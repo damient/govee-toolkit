@@ -1,0 +1,56 @@
+# Runs on every PR. TODO: enable the steps as each package is implemented.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  python:
+    name: Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # TODO: enable once packages/python has code
+      # - run: pip install -e "packages/python[dev]"
+      # - run: pytest packages/python
+      - run: echo "TODO: python tests"
+
+  node:
+    name: Node
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # TODO: enable once packages/node has code
+      # - run: npm ci --prefix packages/node
+      # - run: npm test --prefix packages/node
+      - run: echo "TODO: node tests"
+
+  php:
+    name: PHP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+      # TODO: enable once packages/php has code
+      # - run: composer install --working-dir=packages/php
+      # - run: composer test --working-dir=packages/php
+      - run: echo "TODO: php tests"
+
+  devices:
+    name: Device database
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: validate devices/*.yaml against devices/schema.yaml
+      # TODO: regenerate docs/compatibility.md tables and fail if they drift
+      - run: echo "TODO: validate devices/*.yaml"

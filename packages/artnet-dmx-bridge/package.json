@@ -1,0 +1,12 @@
+{
+  "comment": "TODO: fill in once the bridge is implemented.",
+  "name": "govee-artnet-dmx-bridge",
+  "version": "0.0.0",
+  "description": "Art-Net / DMX bridge: maps DMX channels to Govee devices and segments over LAN.",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  }
+}

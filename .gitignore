@@ -1,0 +1,27 @@
+# OS
+.DS_Store
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+build/
+*.egg-info/
+.pytest_cache/
+
+# PHP
+vendor/
+.phpunit.result.cache
+
+# Electron
+out/
+release/
+
+# Cache runtime (discovery)
+.cache/
+*.local

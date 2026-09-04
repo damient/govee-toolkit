@@ -1,0 +1,19 @@
+# TODO: fill in once the LAN transport is implemented.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "govee-toolkit"
+version = "0.0.0"
+description = "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them."
+readme = "README.md"
+license = { file = "../../LICENSE" }
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

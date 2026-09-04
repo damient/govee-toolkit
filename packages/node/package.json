@@ -1,0 +1,15 @@
+{
+  "comment": "TODO: fill in once the LAN transport is implemented.",
+  "name": "govee-toolkit",
+  "version": "0.0.0",
+  "description": "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/"
+  }
+}

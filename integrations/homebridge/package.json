@@ -1,0 +1,12 @@
+{
+  "comment": "TODO: fill in once the plugin is implemented.",
+  "name": "homebridge-govee-toolkit",
+  "version": "0.0.0",
+  "description": "Homebridge plugin exposing Govee devices to HomeKit over LAN.",
+  "license": "MIT",
+  "keywords": ["homebridge-plugin", "govee"],
+  "main": "src/index.js",
+  "engines": {
+    "homebridge": "^1.6.0 || ^2.0.0"
+  }
+}

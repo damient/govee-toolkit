@@ -1,0 +1,11 @@
+{
+  "comment": "TODO: fill in once the playground backend is implemented.",
+  "name": "govee-playground-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}

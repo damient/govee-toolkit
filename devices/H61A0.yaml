@@ -1,0 +1,159 @@
+# H61A0 — RGBIC LED Neon Rope Lights.
+# On Govee's official LAN-control list (see ../docs/lan-supported-devices.md).
+# Verified over `lan`, including the undocumented segment channel.
+# Values marked TODO still need to be confirmed.
+
+schema_version: 1
+
+sku: "H61A0"
+family: "rgbic-neon-rope"
+name: "RGBIC LED Neon Rope Lights"
+aliases: []             # none confirmed yet
+candidate_aliases:      # same product in other lengths — NOT verified, do not
+  - H61A1               # assume identical behavior: segment count and native
+  - H61A2               # resolution both depend on length
+  - H61A3
+  - H61A5
+
+capabilities:
+  power: true
+  brightness: true
+  color: true
+  colortemp: true
+  scenes: true
+  segments: true
+  sensors: false
+
+  brightness_range: [1, 100]
+  colortemp_range_kelvin: [2000, 9000]
+  segment_count: 10       # zones the Govee app exposes
+  native_pixels: 42       # see measurements below — depends on unit length
+
+modes:
+  lan:
+    support: full
+    capabilities: all
+    notes: "Requires LAN Control enabled in the Govee Home app."
+  ble:
+    support: none           # TODO: not probed on this device
+    capabilities: []
+    notes: "Not tested. See docs/protocol/ble.md."
+  cloud:
+    support: partial
+    capabilities: [power, brightness, color, colortemp, scenes]
+    notes: >-
+      Internal scenes and per-segment brightness are cloud-only (MQTT to AWS
+      IoT). Requires a Govee account and internet. See docs/protocol/cloud.md.
+
+commands:
+  lan:
+    power:
+      cmd: "turn"
+      documented: true
+      payload: { value: "${on}" }
+      args:
+        on: { type: int, range: [0, 1] }
+      capture: ""         # TODO
+
+    brightness:
+      cmd: "brightness"
+      documented: true
+      payload: { value: "${level}" }
+      args:
+        level: { type: int, range: [1, 100] }   # 0 is clamped to 1, it does not turn off
+      capture: ""         # TODO
+
+    color:
+      cmd: "colorwc"
+      documented: true
+      payload:
+        color: { r: "${r}", g: "${g}", b: "${b}" }
+        colorTemInKelvin: 0
+      args:
+        r: { type: int, range: [0, 255] }
+        g: { type: int, range: [0, 255] }
+        b: { type: int, range: [0, 255] }
+      capture: ""         # TODO
+
+    colortemp:
+      cmd: "colorwc"
+      documented: true
+      payload:
+        color: { r: 0, g: 0, b: 0 }
+        colorTemInKelvin: "${kelvin}"
+      args:
+        kelvin: { type: int, range: [2000, 9000] }
+      capture: ""         # TODO
+
+    status:
+      cmd: "devStatus"
+      documented: true
+      payload: {}
+      args: {}
+      capture: ""         # TODO
+
+    # --- undocumented, verified on this device ---
+    raw_status:
+      cmd: "status"
+      documented: false
+      payload: {}
+      args: {}
+      notes: >-
+        Returns onOff, brightness and a frozen base64 `pt` capability
+        descriptor. Read-only in practice. See docs/protocol/lan.md 2.1.
+      capture: ""         # TODO
+
+    dreamview_enable:
+      cmd: "razer"
+      documented: false
+      frame: "BB 00 01 B1 ${on} <xor>"
+      args:
+        on: { type: int, range: [0, 1] }
+      notes: "Arms the raw segment channel. Send turn(1) first."
+      capture: ""         # TODO
+
+    segment_color:
+      cmd: "razer"
+      documented: false
+      frame: "BB <len:16> B0 ${gradient} ${nb_seg} (R,G,B)×nb_seg <xor>"
+      args:
+        gradient: { type: int, range: [0, 1] }   # 0 = hard zones, 1 = interpolated + wraps
+        nb_seg: { type: int, range: [1, 255] }   # see measurements.native_pixels
+      notes: >-
+        len counts the payload only, 16-bit, header and checksum excluded. An
+        inconsistent length is dropped in silence. See docs/protocol/lan.md 2.2.
+      capture: ""         # TODO
+
+    # Not reachable over LAN on this device: internal scenes, DIY scenes and
+    # per-segment brightness are cloud-only. See docs/protocol/lan.md 2.4.
+
+  ble: {}                 # TODO
+  cloud: {}               # TODO
+
+# Measured on one physical unit. Anything here is specific to that unit's
+# LENGTH as much as to the SKU — see docs/protocol/lan.md 2.3 and 2.7.
+measurements:
+  unit_length_m: 5
+  native_pixels: 42         # one addressable LED every ~12 cm
+  segment_count_app: 10     # what the Govee app exposes
+  resolution_changepoints: [1, 2, 3, 4, 5, 6, 7, 9, 11, 14, 21, 42]
+
+  latency_idle_ms:
+    median: 16
+    p95: 28
+    max: 39
+    loss: "0/30 requests"
+
+  # Sustainable frame rate for the razer segment channel, by zone count.
+  frame_rate:
+    - { zones: 20,  payload_bytes: 62,  clean_hz: 40, breaks_at_hz: 45 }
+    - { zones: 60,  payload_bytes: 182, clean_hz: 25, breaks_at_hz: 30 }
+    - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
+
+verified:
+  by: ""                  # TODO
+  firmware: "wifiVersionSoft 2.05.08, re-checked on 2.06.02"
+  date: ""                # TODO
+  notes: >-
+    lan mode fully exercised, including the undocumented razer segment channel
+    at native resolution. See measurements above. ble not probed.

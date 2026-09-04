@@ -1,0 +1,11 @@
+{
+  "comment": "TODO: fill in once the Electron wrapper is implemented.",
+  "name": "govee-toolkit-desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Electron wrapper around the playground.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  }
+}

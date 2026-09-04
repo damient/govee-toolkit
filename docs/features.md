@@ -1,0 +1,55 @@
+# Features
+
+Everything the toolkit does or is meant to do, in one place. What ships when is
+in [`roadmap.md`](roadmap.md).
+
+Legend: ✅ available · 🚧 in progress · 🔜 planned
+
+## Core
+
+| | Feature |
+| --- | ------- |
+| ✅ | **Device database** (`devices/*.yaml`) — schema and per-SKU definitions, the single source of truth every SDK reads |
+| ✅ | **Protocol documentation** (`docs/protocol/`) — `lan`, `ble`, `cloud`, including the undocumented findings |
+| ✅ | **Official LAN-capable device list** mirrored offline ([`lan-supported-devices.md`](lan-supported-devices.md)) |
+| 🔜 | **`lan` mode, low latency** — reused UDP socket, fire-and-verify, no cloud round-trip |
+| 🔜 | **Discovery** — multicast scan at startup, periodic background refresh, persistent on-disk cache |
+| 🚧 | **Undocumented LAN commands** — the raw segment channel is documented and verified on one device; more to formalize as they are found |
+| 🔜 | **Per-device mode selection** — one mode for strict behavior, several for switching, see [`modes.md`](modes.md) |
+| 🔜 | **Per-device, per-mode circuit breaker** — `OK` / `DEGRADED` / `DOWN`, decided from known state rather than a fresh timeout per call |
+| 🔜 | **Explicit failures** — a command a mode cannot serve fails and says so; nothing is silently approximated |
+
+## Modes
+
+| | Feature |
+| --- | ------- |
+| 🔜 | **`lan`** — full capability coverage, lowest latency, stays on the local network |
+| 🔜 | **`ble`** — opt-in, works off-network within Bluetooth range, partial coverage per SKU family |
+| 🔜 | **`cloud`** — opt-in, reaches a device from anywhere, throttled, reduced to power / brightness / color |
+
+## SDKs
+
+| | Feature |
+| --- | ------- |
+| 🔜 | **Python** (`packages/python`) — pip, `pytest` |
+| 🔜 | **Node.js / TypeScript** (`packages/node`) — npm |
+| 🔜 | **PHP** (`packages/php`) — composer, PSR-4, PHPUnit |
+| 🔜 | Each package versioned and released independently (`python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`) |
+
+## Tools & apps
+
+| | Feature |
+| --- | ------- |
+| 🔜 | **Web playground** — device list with per-mode state badges, power / brightness / color / scenes controls, latency log |
+| 🔜 | **Raw payload field** — send a custom JSON command straight to a device, to try a discovery before formalizing it |
+| 🔜 | **Desktop app (Electron)** — same backend and UI as the playground, auto-discovery on launch, tray icon |
+| 🔜 | **Device simulator** — fake Govee device (UDP + BLE) with fault injection, so tests run without hardware |
+| 🔜 | **Art-Net / DMX bridge** — maps DMX channels to Govee devices and segments |
+
+## Integrations
+
+| | Feature |
+| --- | ------- |
+| 🔜 | **Matter bridge** — one integration, reachable from any Matter controller |
+| 🔜 | **Home Assistant** — custom component distributable through HACS, carries the LAN scenes and segments Matter cannot express |
+| 🔜 | **Homebridge** — HomeKit plugin |

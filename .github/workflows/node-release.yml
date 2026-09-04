@@ -1,0 +1,26 @@
+# Publishes packages/node. Triggered by a node-vX.Y.Z tag.
+name: Node release
+
+on:
+  push:
+    tags: ["node-v*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+      # TODO: enable once packages/node is publishable
+      # - run: npm ci --prefix packages/node
+      # - run: npm run build --prefix packages/node
+      # - run: npm publish --prefix packages/node --provenance
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: echo "TODO: build and publish packages/node"

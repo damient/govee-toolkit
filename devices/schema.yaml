@@ -1,0 +1,89 @@
+# govee-toolkit — device definition schema
+#
+# One YAML file per SKU (or SKU family) in this directory. Every language SDK
+# reads these files instead of hardcoding protocol logic; an SDK only implements
+# the transports (UDP socket, BLE, HTTP) and generic parsing.
+#
+# This file is the reference schema, not a device. See README.md for the how-to,
+# and any device file next to it for what a real entry looks like.
+
+schema_version: 1
+
+sku: ""                 # required — e.g. "H61A0"
+family: ""              # required — e.g. "rgbic-strip"
+name: ""                # required — human-readable model name
+aliases: []             # optional — other SKUs VERIFIED to share this definition
+candidate_aliases: []   # optional — SKUs that look like the same product but
+                        # have not been verified; never merge them into aliases
+                        # on family resemblance alone
+
+capabilities:           # what the hardware can do, regardless of mode
+  power: false
+  brightness: false
+  color: false
+  colortemp: false
+  scenes: false
+  segments: false
+  sensors: false
+
+  brightness_range: [1, 100]
+  colortemp_range_kelvin: [2000, 9000]
+  segment_count: 0      # zones the Govee app exposes
+  native_pixels: 0      # optional — real addressable LEDs, if measured. Depends
+                        # on the LENGTH of the unit, not only the SKU: record a
+                        # measured value or leave it at 0, never extrapolate.
+
+modes:
+  # Which modes this hardware SUPPORTS. This is fact, not preference: the user
+  # picks which supported modes to enable, per device, in their own runtime
+  # config. See ../docs/modes.md.
+  #
+  # support: full | partial | none
+  # capabilities: subset of the capability keys above reachable in this mode;
+  #               "all" means every capability the hardware has.
+  lan:
+    support: none
+    capabilities: []
+    notes: ""
+  ble:
+    support: none
+    capabilities: []
+    notes: ""
+  cloud:
+    support: none
+    capabilities: []
+    notes: ""
+
+commands:
+  # One table per mode. A command absent from a mode is simply not reachable in
+  # that mode — the SDK must fail explicitly rather than approximate it.
+  lan:
+    # <command-name>:
+    #   cmd: <string sent in msg.cmd>
+    #   documented: true | false      # false = discovered by reverse engineering
+    #   payload: { }                  # JSON structure, ${placeholders} for args
+    #   frame: ""                     # for raw-channel commands, the byte layout
+    #   args: { <name>: { type, range } }
+    #   notes: ""                     # behavior worth knowing before calling it
+    #   capture: tests/fixtures/lan-captures/<sku>/<file>
+  ble:
+    # <command-name>:
+    #   opcode: "0x.."
+    #   frame: "..."                  # byte layout, ${placeholders} for args
+    #   args: { }
+    #   capture: tests/fixtures/ble-captures/<sku>/<file>
+  cloud:
+    # <command-name>:
+    #   endpoint: ""
+    #   body: { }
+
+measurements: {}        # optional — numbers taken from a physical unit:
+                        # native_pixels, latency, sustainable frame rate…
+                        # Always record the unit's length alongside them; these
+                        # are properties of a unit, not only of a SKU.
+
+verified:
+  by: ""                # who tested it
+  firmware: ""          # wifi / ble firmware version tested against
+  date: ""              # YYYY-MM-DD
+  notes: ""             # what was actually exercised, and what was not
