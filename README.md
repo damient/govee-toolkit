@@ -6,6 +6,7 @@ round-trip. Bluetooth and the cloud API are there if you need them.
 
 [![status](https://img.shields.io/badge/status-early%20development-orange)](docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![rust](https://img.shields.io/badge/rust%20core-in%20progress-yellow)](packages/rust)
 [![python](https://img.shields.io/badge/python%20SDK-planned-lightgrey)](packages/python)
 [![node](https://img.shields.io/badge/node%20SDK-planned-lightgrey)](packages/node)
 [![php](https://img.shields.io/badge/php%20SDK-planned-lightgrey)](packages/php)
@@ -15,6 +16,10 @@ An alternative to the official Govee API: a community, multi-language SDK
 including undocumented commands — effects, scenes, per-segment control — found
 through reverse engineering and unavailable anywhere else.
 
+The protocol is implemented once, in a Rust core; the other languages bind to it
+rather than re-implementing it. See
+[`docs/architecture.md`](docs/architecture.md).
+
 Three **modes** are available — `lan`, `ble`, `cloud` — and **you choose which
 ones to enable, per device**: one mode for strict, predictable behavior, or
 several when you want the SDK to switch. Nothing is implicit.
@@ -23,8 +28,9 @@ several when you want the SDK to switch. Nothing is implicit.
 > and not endorsed by Govee.
 
 > 🚧 **Early development.** The protocol is documented — including the
-> undocumented commands — and the device schema is in place. The SDKs come next;
-> nothing is published to PyPI / npm / Packagist yet. See the
+> undocumented commands — the device schema is in place, and the Rust core
+> builds the bytes for it. The transport comes next; nothing is published to
+> crates.io / PyPI / npm / Packagist yet. See the
 > [roadmap](docs/roadmap.md) for what is coming, and
 > [features](docs/features.md) for the full picture.
 
@@ -37,6 +43,12 @@ several when you want the SDK to switch. Nothing is implicit.
 - **Protocol documentation** — [`docs/protocol/`](docs/protocol/): the
   documented LAN protocol and the undocumented commands — the raw per-segment
   color channel, the clamping behavior, and how to measure a device's headroom.
+- **Protocol core** — [`packages/rust/crates/govee-core`](packages/rust/crates/govee-core):
+  turns a device file plus arguments into the exact bytes to send, raw segment
+  frames included. No I/O, no SKU-specific code, no network needed to test it.
+- **Conformance vectors** — [`tests/fixtures/golden/`](tests/fixtures/golden/):
+  arguments in, exact bytes out. Every implementation must match them, which is
+  what keeps the ports from drifting.
 - **One verified device** — see [`docs/compatibility.md`](docs/compatibility.md).
 
 Everything else is planned — the full list is in
@@ -63,6 +75,9 @@ Adding a device is mostly filling one YAML file and attaching a capture —
 > release.
 
 ```bash
+# Rust
+cargo add govee
+
 # Python
 pip install govee-toolkit
 
@@ -75,7 +90,7 @@ composer require govee/toolkit
 
 ## Quick start
 
-> 🔜 Lands with milestone 4 of the [roadmap](docs/roadmap.md).
+> 🔜 Lands with milestone 5 of the [roadmap](docs/roadmap.md).
 
 ```python
 # Python — discover devices, then turn a light on
@@ -110,7 +125,7 @@ Per-mode protocol notes: [`lan.md`](docs/protocol/lan.md) ·
 
 ## Playground & desktop app
 
-> 🔜 Milestones 6 and 7 of the [roadmap](docs/roadmap.md); the directories below
+> 🔜 Milestones 8 and 9 of the [roadmap](docs/roadmap.md); the directories below
 > are scaffolded and ready to build on.
 
 - [`apps/playground/`](apps/playground/) — Node backend plus web UI: device
@@ -129,7 +144,8 @@ Per-mode protocol notes: [`lan.md`](docs/protocol/lan.md) ·
 - [`integrations/matter/`](integrations/matter/) — Matter bridge, reachable from
   any Matter controller. First in line: one integration covers every ecosystem.
 - [`integrations/home-assistant/`](integrations/home-assistant/) — custom
-  component distributable through HACS (consumes `packages/python`). Carries the
+  component distributable through HACS (consumes `packages/python`, the PyO3
+  binding over the Rust core). Carries the
   undocumented LAN scenes and segments Matter cannot express.
 - [`integrations/homebridge/`](integrations/homebridge/) — HomeKit plugin
   (consumes `packages/node`).

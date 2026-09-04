@@ -1,15 +1,49 @@
-# Manual only until there is code to test — an automatic run with nothing but
-# echo steps just emails a failure on every push. Restore the triggers below
-# together with the first real test step.
 name: CI
 
 on:
   workflow_dispatch:
-  # pull_request:
-  # push:
-  #   branches: [main]
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
 
 jobs:
+  rust:
+    name: Rust core
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/rust
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      # Also validates devices/*.yaml and runs the conformance vectors in
+      # tests/fixtures/golden/.
+      - name: Test
+        run: cargo test --all-features
+
+  deny:
+    name: Licenses and advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: packages/rust/Cargo.toml
+          command: check
+
   python:
     name: Python
     runs-on: ubuntu-latest
@@ -18,10 +52,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      # TODO: enable once packages/python has code
-      # - run: pip install -e "packages/python[dev]"
-      # - run: pytest packages/python
-      - run: echo "TODO: python tests"
+      # TODO: enable once packages/python has code — it will wrap the Rust core
+      # through PyO3, so this job builds a wheel rather than running a port.
+      - run: echo "TODO: python binding"
 
   node:
     name: Node
@@ -31,10 +64,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      # TODO: enable once packages/node has code
-      # - run: npm ci --prefix packages/node
-      # - run: npm test --prefix packages/node
-      - run: echo "TODO: node tests"
+      # TODO: enable once packages/node has code — napi-rs binding over the Rust
+      # core.
+      - run: echo "TODO: node binding"
 
   php:
     name: PHP
@@ -44,16 +76,16 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
-      # TODO: enable once packages/php has code
-      # - run: composer install --working-dir=packages/php
-      # - run: composer test --working-dir=packages/php
-      - run: echo "TODO: php tests"
+      # TODO: enable once packages/php has code. PHP is a hand-written port, so
+      # this job must also run tests/fixtures/golden/ — that is what keeps it
+      # from drifting away from the core.
+      - run: echo "TODO: php port"
 
-  devices:
-    name: Device database
+  docs:
+    name: Documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # TODO: validate devices/*.yaml against devices/schema.yaml
-      # TODO: regenerate docs/compatibility.md tables and fail if they drift
-      - run: echo "TODO: validate devices/*.yaml"
+      # TODO: regenerate the docs/compatibility.md tables from devices/*.yaml
+      # and fail if they drift.
+      - run: echo "TODO: compatibility.md drift check"

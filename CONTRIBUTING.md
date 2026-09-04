@@ -13,15 +13,20 @@ another mode or a third-party integration must not slow down or complicate the
 | Directory | Contents |
 | --------- | -------- |
 | `devices/` | Source of truth: per-SKU YAML definitions |
-| `docs/` | Mode model (`modes.md`) and per-protocol documentation |
+| `docs/` | Mode model (`modes.md`), architecture and per-protocol documentation |
+| `packages/rust/` | The protocol core, and the reference implementation |
 | `packages/` | Published SDKs (python, node, php) plus the Art-Net bridge |
 | `apps/` | Web playground and Electron app (not published) |
 | `integrations/` | Matter bridge, Home Assistant, Homebridge |
 | `tools/` | Device simulator for tests |
-| `tests/fixtures/` | Real UDP / BLE captures per SKU |
+| `tests/fixtures/` | Real UDP / BLE captures per SKU, and the conformance vectors |
 
 SDKs **read** `devices/*.yaml` — they do not duplicate protocol logic. An SDK
 only implements the transports and generic parsing.
+
+The protocol is implemented once, in `packages/rust`. Node and Python bind to
+that core; PHP is the one hand-written port, and the conformance vectors are
+what keep it honest. See [`docs/architecture.md`](docs/architecture.md).
 
 `lan`, `ble` and `cloud` are **modes**, not a fallback chain: the user enables
 one or several per device. A contribution must not make a mode implicit, and
@@ -48,23 +53,34 @@ Details: [`devices/README.md`](devices/README.md).
 
 ## Tests
 
-<!-- TODO: complete once the packages are implemented -->
+From `packages/rust`:
+
+```bash
+cargo test                                    # unit, conformance and doc tests
+cargo clippy --all-targets -- -D warnings
+cargo fmt --all --check
+cargo deny check                              # licenses and advisories
+```
+
+`cargo test` also validates every `devices/*.yaml` and replays the conformance
+vectors in `tests/fixtures/golden/` — add one alongside any new command.
+
+<!-- TODO: complete once the bindings and the PHP port exist -->
 
 - Python: `pytest`
 - Node: the project's standard runner
-- PHP: PHPUnit
+- PHP: PHPUnit, running the same conformance vectors
 
 The `tools/device-simulator/` lets you test without hardware.
 
 ## Releases
 
 Each package is versioned and released independently through tags:
-`python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`.
+`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`.
 
-GitHub Actions is **disabled on the repository** for now, and the workflows are
-set to `workflow_dispatch` only: there is nothing to build yet. To bring CI back
-along with the first real test step, re-enable Actions in Settings > Actions and
-restore the triggers commented at the top of each workflow file.
+`ci.yml` runs on push and pull request. The release workflows are still
+`workflow_dispatch` only — nothing is publishable yet; restore the tag trigger
+at the top of one with its first real release.
 
 ## License
 

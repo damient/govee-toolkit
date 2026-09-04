@@ -2,6 +2,8 @@
 
 - [`features.md`](features.md) — everything the toolkit does or is meant to do
 - [`roadmap.md`](roadmap.md) — what is done, what is next
+- [`architecture.md`](architecture.md) — one Rust core, bindings around it, and
+  the conformance vectors that hold them together
 - [`compatibility.md`](compatibility.md) — which devices work, in which modes
 - [`lan-supported-devices.md`](lan-supported-devices.md) — Govee's own list of
   models that expose the LAN switch

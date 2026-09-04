@@ -1,0 +1,270 @@
+//! The device catalog: `devices/*.yaml`, deserialized.
+//!
+//! These types mirror `devices/schema.yaml` field for field. Nothing here is
+//! SKU-specific: the catalog is data, and the codec in [`crate::frame`] and
+//! [`crate::command`] interprets it generically.
+
+use std::collections::BTreeMap;
+use std::fmt;
+
+use serde::Deserialize;
+
+/// A way of talking to a device. Not a fallback chain — see `docs/modes.md`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Mode {
+    /// UDP on the local network. The default, and the only mode that never
+    /// leaves it.
+    Lan,
+    /// Bluetooth Low Energy.
+    Ble,
+    /// Govee's cloud API.
+    Cloud,
+}
+
+impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Lan => "lan",
+            Self::Ble => "ble",
+            Self::Cloud => "cloud",
+        })
+    }
+}
+
+/// How much of a device's capability set a mode reaches.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Support {
+    /// Every capability the hardware has.
+    Full,
+    /// A subset, listed in [`ModeSupport::capabilities`].
+    Partial,
+    /// Not reachable in this mode.
+    #[default]
+    None,
+}
+
+/// The capabilities a mode reaches.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(untagged)]
+pub enum ModeCapabilities {
+    /// The literal `all`: every capability the hardware has.
+    All(AllKeyword),
+    /// An explicit subset, by capability name.
+    Subset(Vec<String>),
+}
+
+impl Default for ModeCapabilities {
+    fn default() -> Self {
+        Self::Subset(Vec::new())
+    }
+}
+
+/// The `all` keyword, as it appears in a device file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AllKeyword {
+    /// `capabilities: all`
+    All,
+}
+
+/// One entry of a device file's `modes:` table.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct ModeSupport {
+    /// Support level.
+    pub support: Support,
+    /// Capabilities reachable in this mode.
+    pub capabilities: ModeCapabilities,
+    /// Free-form notes.
+    pub notes: String,
+}
+
+/// A device file's `modes:` table.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct Modes {
+    /// `lan` support.
+    pub lan: ModeSupport,
+    /// `ble` support.
+    pub ble: ModeSupport,
+    /// `cloud` support.
+    pub cloud: ModeSupport,
+}
+
+impl Modes {
+    /// The entry for `mode`.
+    #[must_use]
+    pub fn get(&self, mode: Mode) -> &ModeSupport {
+        match mode {
+            Mode::Lan => &self.lan,
+            Mode::Ble => &self.ble,
+            Mode::Cloud => &self.cloud,
+        }
+    }
+}
+
+/// What the hardware can do, regardless of mode.
+// One flag per capability, mirroring `devices/schema.yaml`. Grouping them into
+// a bitfield would only make the device files harder to read.
+#[allow(clippy::struct_excessive_bools)]
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct Capabilities {
+    /// On / off.
+    pub power: bool,
+    /// Brightness.
+    pub brightness: bool,
+    /// RGB color.
+    pub color: bool,
+    /// White color temperature.
+    pub colortemp: bool,
+    /// Manufacturer scenes.
+    pub scenes: bool,
+    /// Addressable zones.
+    pub segments: bool,
+    /// Sensor telemetry.
+    pub sensors: bool,
+    /// Accepted brightness bounds, inclusive.
+    pub brightness_range: [i64; 2],
+    /// Accepted color temperature bounds, in kelvin, inclusive.
+    pub colortemp_range_kelvin: [i64; 2],
+    /// Zones the Govee app exposes.
+    pub segment_count: u32,
+    /// Individually addressable LEDs, if measured on a physical unit. `0` means
+    /// not measured — never extrapolated from another unit.
+    pub native_pixels: u32,
+}
+
+/// How an argument may be supplied.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum ArgSpec {
+    /// A whole number, bounded inclusively.
+    Int {
+        /// `[min, max]`, both inclusive.
+        range: [i64; 2],
+    },
+    /// A list of RGB triples, for a frame repeat group.
+    RgbList {
+        /// Optional cap on the number of triples.
+        #[serde(default)]
+        max_len: Option<usize>,
+    },
+}
+
+impl ArgSpec {
+    /// The name used in error messages.
+    #[must_use]
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            Self::Int { .. } => "an integer",
+            Self::RgbList { .. } => "a list of RGB triples",
+        }
+    }
+}
+
+/// One command, in one mode.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct Command {
+    /// The value sent in `msg.cmd`, for `lan` and `cloud`.
+    pub cmd: String,
+    /// `false` marks a command found through reverse engineering.
+    pub documented: bool,
+    /// The `msg.data` template. Placeholders are whole strings, `"${name}"`.
+    pub payload: serde_json::Value,
+    /// The byte layout of a raw-channel frame. See [`crate::frame`].
+    pub frame: Option<String>,
+    /// Declared arguments.
+    pub args: BTreeMap<String, ArgSpec>,
+    /// Behavior worth knowing before calling it.
+    pub notes: String,
+    /// Path to a real capture, relative to the repository root.
+    pub capture: String,
+}
+
+/// A device file's `commands:` table, one map per mode.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct Commands {
+    /// `lan` commands.
+    #[serde(deserialize_with = "null_as_default")]
+    pub lan: BTreeMap<String, Command>,
+    /// `ble` commands.
+    #[serde(deserialize_with = "null_as_default")]
+    pub ble: BTreeMap<String, Command>,
+    /// `cloud` commands.
+    #[serde(deserialize_with = "null_as_default")]
+    pub cloud: BTreeMap<String, Command>,
+}
+
+impl Commands {
+    /// The command table for `mode`.
+    #[must_use]
+    pub fn get(&self, mode: Mode) -> &BTreeMap<String, Command> {
+        match mode {
+            Mode::Lan => &self.lan,
+            Mode::Ble => &self.ble,
+            Mode::Cloud => &self.cloud,
+        }
+    }
+}
+
+/// Who tested the device, against which firmware.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct Verified {
+    /// Who tested it.
+    pub by: String,
+    /// Firmware versions tested against.
+    pub firmware: String,
+    /// `YYYY-MM-DD`.
+    pub date: String,
+    /// What was exercised, and what was not.
+    pub notes: String,
+}
+
+/// One `devices/<SKU>.yaml` file.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Device {
+    /// Schema revision the file was written against.
+    pub schema_version: u32,
+    /// The SKU this file describes.
+    pub sku: String,
+    /// Product family.
+    pub family: String,
+    /// Human-readable model name.
+    pub name: String,
+    /// SKUs **verified** to behave identically. These resolve to this file.
+    #[serde(default)]
+    pub aliases: Vec<String>,
+    /// SKUs that look like the same product but have not been verified. These
+    /// deliberately do **not** resolve: a lookup for one is an unknown SKU.
+    #[serde(default)]
+    pub candidate_aliases: Vec<String>,
+    /// What the hardware can do.
+    pub capabilities: Capabilities,
+    /// Which modes the hardware supports.
+    #[serde(default)]
+    pub modes: Modes,
+    /// The command tables.
+    #[serde(default)]
+    pub commands: Commands,
+    /// Numbers taken from one physical unit. Free-form: they depend on the
+    /// unit's length as much as on the SKU.
+    #[serde(default)]
+    pub measurements: serde_json::Value,
+    /// Verification record.
+    #[serde(default)]
+    pub verified: Verified,
+}
+
+fn null_as_default<'de, D, T>(de: D) -> Result<T, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de> + Default,
+{
+    Ok(Option::<T>::deserialize(de)?.unwrap_or_default())
+}

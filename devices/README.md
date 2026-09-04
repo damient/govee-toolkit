@@ -40,4 +40,17 @@ any command differs.
 
 ## Validation
 
-<!-- TODO: add a schema validation script and wire it into CI -->
+Device files are checked in CI by `cargo test` in
+[`../packages/rust`](../packages/rust). The checks are structural — they say
+whether a file is well-formed, never whether a device really behaves that way:
+
+- every `frame:` parses, and only refers to arguments the command declares;
+- every `${placeholder}` in a `payload:` has an argument behind it;
+- a command declaring a `frame:` carries it through `${frame}`;
+- a command with `documented: false` has a `notes:` line pointing at
+  `../docs/protocol/`;
+- `aliases` resolve on lookup and `candidate_aliases` deliberately do not.
+
+Add a conformance vector alongside a new command —
+[`../tests/fixtures/README.md`](../tests/fixtures/README.md). One vector per
+command is enough to stop every SDK from drifting on it.

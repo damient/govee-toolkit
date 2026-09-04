@@ -12,6 +12,8 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **Device database** (`devices/*.yaml`) — schema and per-SKU definitions, the single source of truth every SDK reads |
 | ✅ | **Protocol documentation** (`docs/protocol/`) — `lan`, `ble`, `cloud`, including the undocumented findings |
 | ✅ | **Official LAN-capable device list** mirrored offline ([`lan-supported-devices.md`](lan-supported-devices.md)) |
+| ✅ | **Protocol core** (`packages/rust/crates/govee-core`) — device files plus arguments in, exact bytes out; raw segment frames included, no I/O |
+| ✅ | **Conformance vectors** (`tests/fixtures/golden/`) — the contract every implementation must match, so a port cannot drift unnoticed |
 | 🔜 | **`lan` mode, low latency** — reused UDP socket, fire-and-verify, no cloud round-trip |
 | 🔜 | **Discovery** — multicast scan at startup, periodic background refresh, persistent on-disk cache |
 | 🚧 | **Undocumented LAN commands** — the raw segment channel is documented and verified on one device; more to formalize as they are found |
@@ -29,12 +31,15 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 
 ## SDKs
 
+One core, in Rust; the rest bind to it — [`architecture.md`](architecture.md).
+
 | | Feature |
 | --- | ------- |
-| 🔜 | **Python** (`packages/python`) — pip, `pytest` |
-| 🔜 | **Node.js / TypeScript** (`packages/node`) — npm |
-| 🔜 | **PHP** (`packages/php`) — composer, PSR-4, PHPUnit |
-| 🔜 | Each package versioned and released independently (`python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`) |
+| 🚧 | **Rust** (`packages/rust`) — the reference implementation and the only place protocol logic lives |
+| 🔜 | **Python** (`packages/python`) — PyO3 binding, pip, `pytest`, multi-arch wheels |
+| 🔜 | **Node.js / TypeScript** (`packages/node`) — napi-rs binding, npm |
+| 🔜 | **PHP** (`packages/php`) — hand-written port, composer, PSR-4, PHPUnit, checked against the conformance vectors |
+| 🔜 | Each package versioned and released independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`) |
 
 ## Tools & apps
 

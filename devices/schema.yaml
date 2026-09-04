@@ -53,6 +53,34 @@ modes:
 commands:
   # One table per mode. A command absent from a mode is simply not reachable in
   # that mode — the SDK must fail explicitly rather than approximate it.
+  #
+  # These entries are executable, not descriptive: an SDK builds the bytes from
+  # what is written here and holds no per-SKU logic of its own. Two small
+  # languages do the work.
+  #
+  # `payload:` — the msg.data template. A string that is exactly "${name}" is
+  # replaced by the argument `name`; every other string is a literal. "${frame}"
+  # is reserved and holds the base64 of the frame built below.
+  #
+  # `frame:` — the byte layout of a raw-channel frame, whitespace-separated:
+  #
+  #   BB                     a literal byte, two hex digits
+  #   ${name}                one byte, from the integer argument `name`
+  #   ${name:16}             two bytes, big-endian
+  #   <len:16>               the payload length, big-endian, filled in on build.
+  #                          It counts the bytes after the NEXT token — the
+  #                          opcode — up to but excluding the checksum.
+  #   (${list}:rgb)×${n}     `n` RGB triples taken from the list argument `list`.
+  #                          Omit `n` at call time and it is derived from the
+  #                          list length.
+  #   <xor>                  XOR of every preceding byte. Must come last.
+  #
+  # `args:` — one entry per argument, either
+  #   { type: int, range: [min, max] }        inclusive bounds
+  #   { type: rgb_list, max_len: <n> }        a list of RGB triples
+  # Bounds are enforced, never clamped: the firmware clamps in silence
+  # (../docs/protocol/lan.md 2.1), and an SDK that did the same would report
+  # success for a value the device did not apply.
   lan:
     # <command-name>:
     #   cmd: <string sent in msg.cmd>
@@ -60,12 +88,14 @@ commands:
     #   payload: { }                  # JSON structure, ${placeholders} for args
     #   frame: ""                     # for raw-channel commands, the byte layout
     #   args: { <name>: { type, range } }
-    #   notes: ""                     # behavior worth knowing before calling it
+    #   notes: ""                     # behavior worth knowing before calling it;
+    #                                 # required when documented is false, and it
+    #                                 # must point at ../docs/protocol/lan.md
     #   capture: tests/fixtures/lan-captures/<sku>/<file>
   ble:
     # <command-name>:
     #   opcode: "0x.."
-    #   frame: "..."                  # byte layout, ${placeholders} for args
+    #   frame: "..."                  # same layout language as above
     #   args: { }
     #   capture: tests/fixtures/ble-captures/<sku>/<file>
   cloud:

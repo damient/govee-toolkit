@@ -106,18 +106,23 @@ commands:
       cmd: "razer"
       documented: false
       frame: "BB 00 01 B1 ${on} <xor>"
+      payload: { pt: "${frame}" }
       args:
         on: { type: int, range: [0, 1] }
-      notes: "Arms the raw segment channel. Send turn(1) first."
+      notes: >-
+        Arms the raw segment channel. Send turn(1) first. See
+        docs/protocol/lan.md 2.3.
       capture: ""         # TODO
 
     segment_color:
       cmd: "razer"
       documented: false
-      frame: "BB <len:16> B0 ${gradient} ${nb_seg} (R,G,B)×nb_seg <xor>"
+      frame: "BB <len:16> B0 ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
+      payload: { pt: "${frame}" }
       args:
         gradient: { type: int, range: [0, 1] }   # 0 = hard zones, 1 = interpolated + wraps
-        nb_seg: { type: int, range: [1, 255] }   # see measurements.native_pixels
+        nb_seg: { type: int, range: [1, 255] }   # derived from colors when omitted
+        colors: { type: rgb_list, max_len: 255 } # one triple per zone
       notes: >-
         len counts the payload only, 16-bit, header and checksum excluded. An
         inconsistent length is dropped in silence. See docs/protocol/lan.md 2.3.

@@ -10,8 +10,11 @@ An unofficial, multi-language SDK to control Govee devices locally, built around
 and `cloud` are three **modes** the user enables per device — never a fallback
 chain, never implicit.
 
-Read [`docs/modes.md`](docs/modes.md) before touching anything that chooses a
-transport.
+The protocol is implemented **once**, in Rust (`packages/rust`). Node and Python
+bind to that core; PHP is the one hand-written port. Read
+[`docs/architecture.md`](docs/architecture.md) before adding code to any
+language, and [`docs/modes.md`](docs/modes.md) before touching anything that
+chooses a transport.
 
 ## Non-negotiables
 
@@ -22,7 +25,9 @@ transport.
    unreachable, the command fails and says so. Never silently substitute a mode,
    never approximate a command a mode cannot serve — fail explicitly instead.
 3. **`devices/*.yaml` is the single source of truth.** SDKs read it. They
-   implement transports and generic parsing, never per-SKU protocol logic.
+   implement transports and generic parsing, never per-SKU protocol logic. No
+   SKU name and no command name belongs in Rust code — if you are about to write
+   one, the device file is missing something instead.
 4. **Never invent verification.** Do not fill `verified`, a capability, a
    measurement or a compatibility row from inference. Unverified is `?` or a
    `TODO`, and that is a perfectly good answer.
@@ -37,6 +42,8 @@ transport.
 | Govee's own list of LAN-capable models | `docs/lan-supported-devices.md` |
 | Full feature list | `docs/features.md` |
 | Ordering of the work | `docs/roadmap.md` |
+| Why the code is shaped this way | `docs/architecture.md` |
+| Arguments in, exact bytes out | `tests/fixtures/golden/<mode>/<SKU>.json` |
 
 The split between the first two rows matters and is easy to get wrong:
 `docs/protocol/` describes the protocol generically — **no SKU names, no
@@ -72,9 +79,16 @@ SKU.
 - `modes:` declares what the hardware supports. What the user enables is runtime
   configuration and never lives here.
 - Undocumented commands get `documented: false`, plus a `notes:` line and a
-  pointer to the matching section of `docs/protocol/lan.md`.
+  pointer to the matching section of `docs/protocol/lan.md`. This is enforced by
+  `cargo test`.
 - Attach a real capture under `tests/fixtures/lan-captures/<SKU>/` and reference
   it from `capture:`.
+- `payload:` and `frame:` are **executable**, not descriptive — the core builds
+  bytes straight from them. The two mini-languages are documented at the top of
+  `devices/schema.yaml`.
+- Add a conformance vector under `tests/fixtures/golden/` for every new command,
+  and say in its `source` whether the bytes come from a capture or were worked
+  out from the documented layout. Only the first is evidence.
 
 ## Protocol work
 
@@ -88,17 +102,21 @@ SKU.
 
 ## Packages
 
-Python and Node are the reference implementations; PHP is ported from them once
-they are stable. Each package versions and releases independently
-(`python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`) through the workflows in
-`.github/workflows/`.
+`packages/rust` is the reference implementation and the only place protocol
+logic exists. Node and Python wrap it (napi-rs, PyO3); PHP is ported by hand and
+is checked against `tests/fixtures/golden/`. Each package versions and releases
+independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`)
+through the workflows in `.github/workflows/`.
 
 Nothing is published yet — package names are reserved in the manifests but no
 release has shipped.
 
-GitHub Actions is disabled on the repository and the workflows only accept
-`workflow_dispatch`, because empty runs email a failure on every push. Re-enable
-both together with the first real test step.
+In Rust: no `unsafe`, and no `panic` / `unwrap` / `expect` in library code. Out
+of range is an error, never a clamp — the firmware clamps in silence, and an SDK
+that did the same would report success for a value the device did not apply.
+
+`ci.yml` runs on push and pull request. The release workflows stay
+`workflow_dispatch` only until there is something to publish.
 
 ## Repository
 
