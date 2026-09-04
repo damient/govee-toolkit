@@ -1,11 +1,7 @@
-# govee-toolkit — device definition schema
+# govee-toolkit — device definition schema.
 #
-# One YAML file per SKU (or SKU family) in this directory. Every language SDK
-# reads these files instead of hardcoding protocol logic; an SDK only implements
-# the transports (UDP socket, BLE, HTTP) and generic parsing.
-#
-# This file is the reference schema, not a device. See README.md for the how-to,
-# and any device file next to it for what a real entry looks like.
+# Reference schema, not a device: see README.md for the how-to and any device
+# file next to it for a real entry.
 
 schema_version: 1
 

@@ -1,7 +1,7 @@
 # Device simulator
 
-Fake Govee device (UDP + BLE) so the SDKs and the playground can be tested
-without hardware, and so CI can run transport tests.
+Fake Govee device (UDP + BLE), so the SDKs and the playground can be tested
+without hardware and CI can run transport tests.
 
 ## Planned scope
 

@@ -1,10 +1,7 @@
 # Art-Net / DMX bridge
 
 Listens for Art-Net, maps DMX channels to a Govee device + segment, and pushes
-over LAN first via `packages/node`.
-
-No equivalent project exists in the Govee ecosystem today — this is a
-differentiating part of the toolkit, not a side feature.
+over LAN via `packages/node`.
 
 ## Planned mapping
 

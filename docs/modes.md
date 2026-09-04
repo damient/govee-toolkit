@@ -44,9 +44,9 @@ devices:
 ### Single mode
 
 The device is only ever reached over that mode. If it becomes unreachable, the
-command **fails and is reported as failed** — nothing silently switches behind
-the user's back. This is the right setting when predictability matters more than
-availability (a show, a DMX rig, a latency-sensitive setup).
+command **fails and is reported as failed**; nothing switches implicitly. Use
+it when predictability matters more than availability (a show, a DMX rig, a
+latency-sensitive setup).
 
 ### Several modes
 
@@ -58,22 +58,22 @@ one, driven by the per-device circuit breaker:
   to the next enabled mode for a cooldown (e.g. 30 s), then retries the
   preferred one.
 - The mode is chosen from the breaker state already known, never from a fresh
-  timeout on each call — that is what keeps the fast path fast.
+  timeout on each call: a fresh timeout would cost the fast path a round-trip.
 
 Switching is always observable: the SDK reports which mode served each command,
 and every mode transition is an event the application can subscribe to.
 
 ## Capability differences between modes
 
-Modes are not interchangeable. `cloud` in particular does not expose the
-undocumented scenes and segments reachable over `lan`. When several modes are
-enabled and the SDK switches, a command unsupported by the active mode
-**fails explicitly** rather than being silently approximated.
+Modes are not interchangeable: `cloud` does not expose the undocumented scenes
+and segments reachable over `lan`. When several modes are enabled and the SDK
+switches, a command unsupported by the active mode **fails explicitly** rather
+than being silently approximated.
 
 `devices/<SKU>.yaml` declares capabilities per mode, so an application can know
 in advance what it loses on a switch.
 
 ## Defaults
 
-`lan` alone is the default: it is the point of this project, and it is the mode
-that never leaves the local network. Everything else is opt-in.
+`lan` alone is the default: it is the only mode that never leaves the local
+network. Everything else is opt-in.

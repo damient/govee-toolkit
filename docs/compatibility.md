@@ -4,8 +4,8 @@ Which Govee devices work, in which [modes](modes.md), and how far.
 
 > 🚧 One device verified so far, the **H61A0**: `lan` mode fully exercised,
 > including the undocumented segment channel. The other 270 models on Govee's
-> list are untested rather than unsupported — most should work with someone to
-> confirm them. Contributions welcome.
+> list are untested rather than unsupported — they need someone with the
+> hardware to confirm them.
 
 The authoritative data lives in [`../devices/`](../devices/), one YAML file per
 SKU or SKU family. This page is the human-readable view of it — the YAML wins on
@@ -43,11 +43,10 @@ such in the device file until someone verifies them.
 | --- | ----- | ---------- | ----- | --------- | ------ | -------- | ------- |
 | H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 
-Capabilities are hardware facts. What is reachable depends on the active mode.
+Capabilities are hardware facts; what is reachable depends on the active mode.
 Where the undocumented `razer` channel is implemented, `lan` reaches per-segment
-color at a resolution well beyond the 10 zones the Govee app exposes — but
-**not** internal scenes or per-segment brightness, which are cloud-only whatever
-the device.
+color beyond the 10 zones the Govee app exposes, but **not** internal scenes or
+per-segment brightness, which are cloud-only whatever the device.
 
 ## Prerequisites per mode
 
@@ -60,11 +59,11 @@ the device.
 
 ## Known limitations
 
-Verified on H61A0, likely to hold more widely — confirm before generalizing:
+Verified on H61A0 only — confirm before generalizing:
 
 - **Internal scenes, DIY scenes and per-segment brightness are cloud-only.** They
   travel over MQTT to AWS IoT, not over UDP. Over `lan`, brightness is global.
-  See [`protocol/lan.md`](protocol/lan.md) § 2.4.
+  See [`protocol/lan.md`](protocol/lan.md) § 2.5.
 - **Nothing is ever rejected.** Out-of-range values are clamped in silence and
   unknown commands are ignored with no error — a failed probe looks exactly like
   an unsupported feature.
@@ -80,8 +79,6 @@ First check [`lan-supported-devices.md`](lan-supported-devices.md): if Govee
 lists it, `lan` mode should work and only needs someone to verify and declare
 it.
 
-
-That means nobody has tested it yet — the odds are good it works. Adding one is
-mostly filling a YAML file and attaching a capture — see
+Adding a device is mostly filling a YAML file and attaching a capture — see
 [`../devices/README.md`](../devices/README.md), and
 [`../CONTRIBUTING.md`](../CONTRIBUTING.md) for the workflow.

@@ -1,13 +1,12 @@
 # Contributing to govee-toolkit
 
-Thanks for your interest! This is a community project, not affiliated with
-Govee.
+A community project, not affiliated with Govee.
 
 ## Guiding principle
 
-**LAN path latency and reliability come before everything else.** A contribution
-that adds another mode or a third-party integration must never slow down or
-complicate the `lan` fast path.
+**LAN path latency and reliability come first.** A contribution that adds
+another mode or a third-party integration must not slow down or complicate the
+`lan` fast path.
 
 ## Monorepo layout
 

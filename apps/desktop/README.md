@@ -1,9 +1,9 @@
 # Desktop app (Electron)
 
-Wraps the same Node backend and the same web UI as
-[`../playground/`](../playground/) — no code duplication.
+Wraps the same Node backend and web UI as
+[`../playground/`](../playground/), without duplicating them.
 
-- Auto-discovery on launch (automatic multicast scan, no manual button)
-- Tray icon for quick access
+- Auto-discovery on launch (multicast scan, no manual button)
+- Tray icon
 
 <!-- TODO: build + packaging instructions -->

@@ -4,9 +4,8 @@
 [`../modes.md`](../modes.md). It is opt-in and never enabled implicitly.
 
 It reaches a device from anywhere, at the cost of an internet round-trip: high
-latency, rate limits and a reduced capability set. It is the right choice for a
-device that is not on the local network, and a poor one for anything
-latency-sensitive.
+latency, rate limits and a reduced capability set. Use it for a device that is
+not on the local network, not for anything latency-sensitive.
 
 ## Authentication
 
@@ -38,8 +37,8 @@ mode, and applications should expect it.
 
 ## What only the cloud can do
 
-The relationship is not one-way. Two features are **cloud-only** and cannot be
-reached over LAN, wherever this has been checked:
+Two features are **cloud-only** and cannot be reached over LAN, wherever this
+has been checked:
 
 - **Internal scenes and DIY scenes** — published over MQTT to AWS IoT, with an
   account topic and a transaction id. The `pt`, `ptReal`, `ptIotOp` and `bulb`
@@ -48,9 +47,8 @@ reached over LAN, wherever this has been checked:
 - **Per-segment brightness.** Over LAN, brightness is global — the segment
   channel carries color only.
 
-So a user who wants the manufacturer's scene library needs `cloud` mode enabled,
-account and internet included. See
-[`lan.md`](lan.md) § 2.4.
+The manufacturer's scene library therefore needs `cloud` mode enabled, account
+and internet included. See [`lan.md`](lan.md) § 2.5.
 
 ## What the cloud cannot do
 
@@ -58,7 +56,7 @@ The cloud API does not expose the per-segment color channel that `lan` reaches,
 nor its frame rate. A device reached in `cloud` mode is limited to power /
 brightness / color.
 
-When a user enables several modes and the SDK moves to `cloud`, a command
-outside that set **fails explicitly** — it is never silently approximated.
+When several modes are enabled and the SDK moves to `cloud`, a command outside
+that set **fails explicitly**; it is never approximated.
 
 <!-- TODO: detailed per-capability table, mode by mode -->

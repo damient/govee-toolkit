@@ -1,14 +1,13 @@
 # H61A0 — RGBIC LED Neon Rope Lights.
 # On Govee's official LAN-control list (see ../docs/lan-supported-devices.md).
 # Verified over `lan`, including the undocumented segment channel.
-# Values marked TODO still need to be confirmed.
 
 schema_version: 1
 
 sku: "H61A0"
 family: "rgbic-neon-rope"
 name: "RGBIC LED Neon Rope Lights"
-aliases: []             # none confirmed yet
+aliases: []
 candidate_aliases:      # same product in other lengths — NOT verified, do not
   - H61A1               # assume identical behavior: segment count and native
   - H61A2               # resolution both depend on length
@@ -27,7 +26,7 @@ capabilities:
   brightness_range: [1, 100]
   colortemp_range_kelvin: [2000, 9000]
   segment_count: 10       # zones the Govee app exposes
-  native_pixels: 42       # see measurements below — depends on unit length
+  native_pixels: 42       # measured on a 5 m unit — see measurements below
 
 modes:
   lan:
@@ -100,7 +99,7 @@ commands:
       args: {}
       notes: >-
         Returns onOff, brightness and a frozen base64 `pt` capability
-        descriptor. Read-only in practice. See docs/protocol/lan.md 2.1.
+        descriptor. Read-only in practice. See docs/protocol/lan.md 2.2.
       capture: ""         # TODO
 
     dreamview_enable:
@@ -121,21 +120,21 @@ commands:
         nb_seg: { type: int, range: [1, 255] }   # see measurements.native_pixels
       notes: >-
         len counts the payload only, 16-bit, header and checksum excluded. An
-        inconsistent length is dropped in silence. See docs/protocol/lan.md 2.2.
+        inconsistent length is dropped in silence. See docs/protocol/lan.md 2.3.
       capture: ""         # TODO
 
     # Not reachable over LAN on this device: internal scenes, DIY scenes and
-    # per-segment brightness are cloud-only. See docs/protocol/lan.md 2.4.
+    # per-segment brightness are cloud-only. See docs/protocol/lan.md 2.5.
 
   ble: {}                 # TODO
   cloud: {}               # TODO
 
-# Measured on one physical unit. Anything here is specific to that unit's
-# LENGTH as much as to the SKU — see docs/protocol/lan.md 2.3 and 2.7.
+# Measured on one physical unit. Anything here depends on that unit's LENGTH as
+# much as on the SKU — see docs/protocol/lan.md 2.3 and 2.7.
 measurements:
   unit_length_m: 5
   native_pixels: 42         # one addressable LED every ~12 cm
-  segment_count_app: 10     # what the Govee app exposes
+  segment_count_app: 10
   resolution_changepoints: [1, 2, 3, 4, 5, 6, 7, 9, 11, 14, 21, 42]
 
   latency_idle_ms:

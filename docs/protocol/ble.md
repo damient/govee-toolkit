@@ -9,9 +9,8 @@ family and is generally narrower than `lan`.
 
 ## Status
 
-Nothing probed yet — the LAN work covered what was needed, and no device has
-been sniffed over BLE. Everything below is a template waiting for someone with
-hardware and a BLE sniffer.
+Nothing probed yet: no device has been sniffed over BLE. Everything below is a
+template.
 
 One data point carried over from the LAN work: the raw LAN channel uses a
 variable-length dialect prefixed `0xBB`, **distinct** from the 20-byte `0x33`

@@ -1,7 +1,4 @@
-// Electron wrapper around the playground.
-//
-// Wraps the same Node backend and the same web UI as apps/playground — no code
-// duplication.
+// Electron wrapper around apps/playground.
 //
 // TODO:
 //   - start the playground backend in-process

@@ -1,9 +1,9 @@
 # Device database
 
 One YAML file per SKU (or SKU family). These files are the **single source of
-truth** for protocol behavior: every language SDK reads them instead of
-duplicating the protocol. An SDK only implements the transports (UDP socket,
-BLE, HTTP) and generic parsing.
+truth** for protocol behavior: every SDK reads them instead of duplicating the
+protocol, and implements only the transports (UDP socket, BLE, HTTP) and
+generic parsing.
 
 A device file declares which **modes** (`lan`, `ble`, `cloud`) the hardware
 supports and what each one can reach. It does **not** declare which modes are
@@ -14,7 +14,7 @@ See [`../docs/modes.md`](../docs/modes.md).
 - [`H61A0.yaml`](H61A0.yaml) — RGBIC LED Neon Rope Lights, verified over `lan`
   including the undocumented segment channel
 
-Looking for **which devices work**, rather than how to declare one? That is
+For **which devices work**, rather than how to declare one, see
 [`../docs/compatibility.md`](../docs/compatibility.md), the readable view of
 these files.
 
@@ -34,9 +34,9 @@ these files.
 
 ## SKU families
 
-When several SKUs share the exact same protocol behavior in every mode, keep one file and list
-the others under `aliases`. Split into separate files as soon as any command
-differs.
+When several SKUs share the same protocol behavior in every mode, keep one
+file and list the others under `aliases`. Split into separate files as soon as
+any command differs.
 
 ## Validation
 

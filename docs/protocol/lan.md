@@ -1,12 +1,10 @@
 # Govee LAN protocol (`lan` mode)
 
-`lan` is the default mode and the point of this project — see
-[`../modes.md`](../modes.md). Lowest latency, full capability coverage, and it
-never leaves the local network.
+`lan` is the default mode — see [`../modes.md`](../modes.md). Lowest latency,
+full capability coverage, and it never leaves the local network.
 
-Two parts: the LAN protocol **officially documented** by Govee, and the
-**undocumented commands** found through reverse engineering (filled in over
-time).
+Two parts: the LAN protocol documented by Govee, and the undocumented commands
+found through reverse engineering.
 
 The official part below follows Govee's WLAN guide
 (<https://app-h5.govee.com/user-manual/wlan-guide>, retrieved 2026-09-04). The
@@ -153,8 +151,8 @@ included. Its value is static — unchanged by power, color, temperature or
 brightness — so it reads as a capability descriptor rather than a data channel,
 and writing it back has no observable effect.
 
-It is still worth using: it gives a machine-readable observation channel while
-probing writes, which beats watching the device.
+It is still useful while probing writes: a machine-readable observation
+channel, instead of watching the device.
 
 ### 2.3 Per-segment color — the `razer` raw channel
 
@@ -192,9 +190,9 @@ glows at the other. With `0` the zones are hard-edged. Which default a model
 uses is a per-SKU fact — in the vendor's own desktop app it is a user setting
 overridden for a list of models.
 
-**Zone count is not fixed at 10.** `nbSeg` is a single byte and the length field
-is 16-bit, so the protocol allows up to 255 zones. The Govee app exposes 10;
-firmwares accept more. The real ceiling is the number of individually
+**Zone count is not fixed at 10.** `nbSeg` is a single byte and the length
+field is 16-bit, so the protocol allows up to 255 zones. The Govee app exposes
+10; firmwares accept more. The real ceiling is the number of individually
 addressable LEDs, which the protocol never reports.
 
 **Measuring the native resolution.** Asking for `n` zones makes the firmware
@@ -213,10 +211,10 @@ another.
 The vendor's desktop app captures audio, computes a spectrum, groups the LEDs
 and streams the result over the `razer` channel of 2.3. The device only obeys.
 
-Music mode is therefore fully reproducible locally, using the channel already
-documented above — the only missing piece is audio capture, which is a host
-concern. On macOS, capturing *system* audio needs a loopback device; a
-microphone is directly accessible.
+Music mode is therefore reproducible locally over the channel documented
+above; the only missing piece is audio capture, which is a host concern. On
+macOS, capturing *system* audio needs a loopback device; a microphone is
+directly accessible.
 
 ### 2.5 Internal scenes, DIY and per-segment brightness — not on this transport
 
@@ -268,9 +266,8 @@ replies.
 
 Two things that paid off and are worth repeating:
 
-- **Decompile the vendor's desktop app.** It implements the segment channel over
-  LAN, which pins down the real frame format and the per-SKU tables behind it —
-  in minutes, where guessing frames settles nothing.
+- **Decompile the vendor's desktop app.** It implements the segment channel
+  over LAN, so it pins down the frame format and the per-SKU tables behind it.
 - **Capture that app's traffic.** `udp.port == 4003` in Wireshark while it
   drives a device yields real frames instead of guessed ones.
 

@@ -4,19 +4,17 @@ Exposes Govee devices as Matter endpoints, so they are reachable from any
 Matter controller — Home Assistant, Apple Home, Google Home, Alexa, SmartThings
 — through a single integration.
 
-**Priority #1 among the integrations.** One bridge covers every ecosystem at
-once, which is a better return than writing one plugin per platform. It starts
-once the core SDK (`packages/python` and `packages/node`) is stable, like the
-other integrations.
+First among the integrations: one bridge covers every ecosystem, where the
+other plugins cover one platform each. Starts once the core SDK
+(`packages/python` and `packages/node`) is stable.
 
 ## Scope
 
 - Matter endpoints for the capabilities every controller understands: power,
   brightness, color, color temperature.
-- The undocumented LAN scenes and segments are **not** expressible in the Matter
-  data model today. They stay reachable through the SDKs, the playground and the
-  first-party integrations. The bridge exposes what Matter can carry, and does
-  not pretend to carry the rest.
+- The undocumented LAN scenes and segments are **not** expressible in the
+  Matter data model today. They stay reachable through the SDKs, the playground
+  and the first-party integrations; the bridge exposes what Matter can carry.
 - Devices are driven in the modes the user enabled for them — the bridge does
   not enable a mode on its own. See [`../../docs/modes.md`](../../docs/modes.md).
 
