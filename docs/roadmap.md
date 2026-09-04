@@ -13,8 +13,8 @@ people actually ask for. Open an issue if something matters to you.
 | 2 | `devices/schema.yaml` + the first device entry (H61A0) | ✅ Done |
 | 3 | `docs/protocol/lan.md` — documented protocol + the undocumented commands found so far | ✅ Done |
 | 4 | `govee-core` in **Rust** — device catalog, command encoding, raw frame codec, conformance vectors | ✅ Done |
-| 5 | `lan` transport in Rust — scan, cache, reused socket, per-mode circuit breaker, mode selection | 🚧 Next |
-| 5b | Segment streaming — `razer` channel, native resolution, rate limiting from zone count | 🔜 Planned |
+| 5 | `lan` transport in Rust — scan, cache, reused socket, per-mode circuit breaker, mode selection | ✅ Done |
+| 5b | Segment streaming — `razer` channel, native resolution, rate limiting from zone count | 🚧 Next |
 | 6 | **Node** binding (napi-rs) and **Python** binding (PyO3), with multi-arch wheels | 🔜 Planned |
 | 7 | **PHP** port, checked against the conformance vectors | 🔜 Planned |
 | 8 | Playground — backend, web UI, raw payload field | 🔜 Planned |

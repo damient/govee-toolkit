@@ -18,7 +18,7 @@ another mode or a third-party integration must not slow down or complicate the
 | `packages/` | Published SDKs (python, node, php) plus the Art-Net bridge |
 | `apps/` | Web playground and Electron app (not published) |
 | `integrations/` | Matter bridge, Home Assistant, Homebridge |
-| `tools/` | Device simulator for tests |
+| `tools/` | Pointers to the development tools; the device simulator is `packages/rust/crates/govee-sim` |
 | `tests/fixtures/` | Real UDP / BLE captures per SKU, and the conformance vectors |
 
 SDKs **read** `devices/*.yaml` — they do not duplicate protocol logic. An SDK
@@ -71,7 +71,9 @@ vectors in `tests/fixtures/golden/` — add one alongside any new command.
 - Node: the project's standard runner
 - PHP: PHPUnit, running the same conformance vectors
 
-The `tools/device-simulator/` lets you test without hardware.
+`packages/rust/crates/govee-sim` lets you test without hardware. `cargo test`
+drives it in-process on loopback ports; `cargo run -p govee-sim` runs one on the
+real ports for manual testing.
 
 ## Releases
 

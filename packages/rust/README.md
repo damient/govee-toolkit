@@ -11,12 +11,33 @@ Nothing is published to crates.io yet.
 | Crate | Contents | Status |
 | ----- | -------- | ------ |
 | [`govee-core`](crates/govee-core) | Device catalog, command encoding, raw frame codec. No I/O. | ✅ |
-| `govee-lan` | UDP transport: discovery, reused socket, per-device circuit breaker, segment streaming | 🔜 |
-| `govee` | Public facade: modes, configuration, events | 🔜 |
+| [`govee-lan`](crates/govee-lan) | UDP transport: discovery, device cache, reused socket, per-device circuit breaker | ✅ |
+| [`govee`](crates/govee) | Public facade: configuration, mode selection, events | ✅ |
+| [`govee-sim`](crates/govee-sim) | A fake device on UDP, with fault injection, so the transport is testable in CI | ✅ |
+| `govee-lan` segment streaming | The `razer` channel, rate-limited from the zone count | 🔜 |
 | `govee-cli` | Dogfooding binary — drive a SKU without an SDK | 🔜 |
 
-The split is deliberate: `govee-core` does no I/O, so every protocol decision is
-testable without hardware and without a network.
+The split is deliberate. `govee-core` does no I/O, so every protocol decision is
+testable without hardware and without a network. `govee-lan` carries bytes for
+one mode and never chooses between modes — with a single mode enabled and the
+device unreachable, it returns an error and nothing else happens. Choosing is
+`govee`'s job, and it chooses from breaker state already recorded, never by
+trying a mode and waiting for a timeout.
+
+## Testing without hardware
+
+`govee-sim` is a fake device on the loopback with ephemeral ports. It answers
+discovery and status requests, records everything else, and can be told to go
+silent, to answer late or to drop replies — which is how the breaker's
+transitions are exercised end to end in CI.
+
+```bash
+cargo run -p govee-sim -- --sku H61A0 --ip 192.168.1.42   # on the real ports
+```
+
+It plays the wire, not the firmware: it does not interpret writes, because
+modelling what each command means would put per-SKU semantics in Rust, which is
+the one thing this project keeps in `devices/*.yaml`.
 
 ## Working on it
 

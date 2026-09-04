@@ -27,8 +27,12 @@ Details per mode: [`protocol/lan.md`](protocol/lan.md),
 The user picks **one or several** modes per device, as an ordered list. Order is
 preference order: the first entry is the preferred mode.
 
+YAML, at `~/.config/govee-toolkit/config.yaml` — `$XDG_CONFIG_HOME` and
+`GOVEE_CONFIG` both override it. Devices are keyed by the MAC they report in a
+discovery reply, not by address: a DHCP lease renews and the device is at a
+different one, still the same device.
+
 ```yaml
-# TODO: config file location and exact format to be settled with the SDKs
 defaults:
   modes: [lan]              # applies to any device without an explicit entry
 
@@ -39,7 +43,25 @@ devices:
     modes: [lan, ble]       # preferred lan, may switch to ble
   "99:88:77:66:55:44":
     modes: [cloud]          # remote device, cloud only
+    name: "hallway"         # for logs and interfaces; never read as identity
 ```
+
+A key the file does not define is refused rather than ignored: a misspelled
+option that was silently dropped would read as a setting that did not work.
+
+Two other sections are optional. `lan:` tunes the transport — scan window,
+refresh interval, cache location, breaker thresholds. `catalog:` decides whether
+`~/.config/govee-toolkit/devices/*.yaml` may replace the device files the build
+shipped:
+
+```yaml
+catalog:
+  local_devices: false      # opt-in, and off by default
+```
+
+It is off because a device file is a claim about a model, not about one unit.
+Turning it on is the right move while probing a SKU that has not shipped yet;
+every file that replaces one is logged, every run.
 
 ### Single mode
 

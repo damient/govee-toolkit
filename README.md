@@ -6,7 +6,7 @@ round-trip. Bluetooth and the cloud API are there if you need them.
 
 [![status](https://img.shields.io/badge/status-early%20development-orange)](docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![rust](https://img.shields.io/badge/rust%20core-in%20progress-yellow)](packages/rust)
+[![rust](https://img.shields.io/badge/rust%20core-lan%20working-green)](packages/rust)
 [![python](https://img.shields.io/badge/python%20SDK-planned-lightgrey)](packages/python)
 [![node](https://img.shields.io/badge/node%20SDK-planned-lightgrey)](packages/node)
 [![php](https://img.shields.io/badge/php%20SDK-planned-lightgrey)](packages/php)
@@ -28,10 +28,10 @@ several when you want the SDK to switch. Nothing is implicit.
 > and not endorsed by Govee.
 
 > 🚧 **Early development.** The protocol is documented — including the
-> undocumented commands — the device schema is in place, and the Rust core
-> builds the bytes for it. The transport comes next; nothing is published to
-> crates.io / PyPI / npm / Packagist yet. See the
-> [roadmap](docs/roadmap.md) for what is coming, and
+> undocumented commands — the device schema is in place, and the Rust core and
+> `lan` transport are working end to end. Segment streaming and the language
+> bindings come next; nothing is published to crates.io / PyPI / npm /
+> Packagist yet. See the [roadmap](docs/roadmap.md) for what is coming, and
 > [features](docs/features.md) for the full picture.
 
 ---
@@ -46,6 +46,16 @@ several when you want the SDK to switch. Nothing is implicit.
 - **Protocol core** — [`packages/rust/crates/govee-core`](packages/rust/crates/govee-core):
   turns a device file plus arguments into the exact bytes to send, raw segment
   frames included. No I/O, no SKU-specific code, no network needed to test it.
+- **`lan` transport** — [`packages/rust/crates/govee-lan`](packages/rust/crates/govee-lan):
+  multicast discovery, an on-disk device cache so a command never waits for a
+  scan, one reused UDP socket, fire-and-verify, and a per-device circuit breaker.
+- **Modes and configuration** — [`packages/rust/crates/govee`](packages/rust/crates/govee):
+  the enabled modes per device, read from
+  `~/.config/govee-toolkit/config.yaml`; every command reports which mode served
+  it, and every health transition is an event.
+- **Device simulator** — [`packages/rust/crates/govee-sim`](packages/rust/crates/govee-sim):
+  a fake device on UDP with fault injection, so all of the above is tested in CI
+  without hardware.
 - **Conformance vectors** — [`tests/fixtures/golden/`](tests/fixtures/golden/):
   arguments in, exact bytes out. Every implementation must match them, which is
   what keeps the ports from drifting.
@@ -90,21 +100,31 @@ composer require govee/toolkit
 
 ## Quick start
 
-> 🔜 Lands with milestone 5 of the [roadmap](docs/roadmap.md).
+> 🔜 Python and Node land with milestone 6 of the
+> [roadmap](docs/roadmap.md). In Rust, this works today from a checkout.
 
-```python
-# Python — discover devices, then turn a light on
-# TODO
+```rust
+use govee::{Args, Config, Govee};
+
+let govee = Govee::start(Config::load()?).await?;
+govee.scan().await?;
+
+for device in govee.devices() {
+    let served = govee
+        .device(&device.id)
+        .send("power", &Args::new().int("on", 1))
+        .await?;
+    println!("{} served by {}", device.id, served.mode);
+}
 ```
 
-```js
-// Node.js — discover devices, then turn a light on
-// TODO
-```
+Command names — `power`, `brightness`, `color` — are the entries in
+[`devices/<SKU>.yaml`](devices/), not names hardcoded in the SDK.
 
 ## Modes
 
-> 🔜 Design settled; implementation lands with the SDKs.
+> ✅ Implemented for `lan`. `ble` and `cloud` are declared but have no transport
+> yet: enabling one is reported as such, never silently skipped.
 
 `lan`, `ble` and `cloud` are three ways of reaching a device, with different
 trade-offs — not a fixed chain. You enable the ones you want, per device.

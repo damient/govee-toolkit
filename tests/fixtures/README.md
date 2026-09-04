@@ -1,7 +1,6 @@
 # Fixtures
 
-Real frames captured from hardware, used by the SDK tests and replayed by
-`tools/device-simulator/`.
+Real frames captured from hardware, used by the SDK tests.
 
 ```
 lan-captures/<SKU>/<command>.json     # UDP payloads observed on 4001/4002/4003
