@@ -62,9 +62,10 @@ The `tools/device-simulator/` lets you test without hardware.
 Each package is versioned and released independently through tags:
 `python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`.
 
-The GitHub Actions workflows are set to `workflow_dispatch` only for now — there
-is nothing to build yet, and an automatic run would just be noise. Re-enable the
-triggers, commented at the top of each file, along with the first real step.
+GitHub Actions is **disabled on the repository** for now, and the workflows are
+set to `workflow_dispatch` only: there is nothing to build yet. To bring CI back
+along with the first real test step, re-enable Actions in Settings > Actions and
+restore the triggers commented at the top of each workflow file.
 
 ## License
 

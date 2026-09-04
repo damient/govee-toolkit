@@ -96,6 +96,10 @@ they are stable. Each package versions and releases independently
 Nothing is published yet — package names are reserved in the manifests but no
 release has shipped.
 
+GitHub Actions is disabled on the repository and the workflows only accept
+`workflow_dispatch`, because empty runs email a failure on every push. Re-enable
+both together with the first real test step.
+
 ## Repository
 
 - MIT, no copyleft dependencies.
