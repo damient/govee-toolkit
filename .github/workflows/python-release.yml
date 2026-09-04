@@ -1,9 +1,12 @@
 # Publishes packages/python. Triggered by a python-vX.Y.Z tag.
 name: Python release
 
+# Manual only until the package is publishable. Restore the tag trigger with
+# the first real release.
 on:
-  push:
-    tags: ["python-v*"]
+  workflow_dispatch:
+  # push:
+  #   tags: ["python-v*"]
 
 jobs:
   release:

@@ -1,10 +1,13 @@
-# Runs on every PR. TODO: enable the steps as each package is implemented.
+# Manual only until there is code to test — an automatic run with nothing but
+# echo steps just emails a failure on every push. Restore the triggers below
+# together with the first real test step.
 name: CI
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+  # pull_request:
+  # push:
+  #   branches: [main]
 
 jobs:
   python:

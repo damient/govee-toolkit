@@ -2,9 +2,12 @@
 # Packagist pulls from the repo, so this workflow validates and notifies.
 name: PHP release
 
+# Manual only until the package is publishable. Restore the tag trigger with
+# the first real release.
 on:
-  push:
-    tags: ["php-v*"]
+  workflow_dispatch:
+  # push:
+  #   tags: ["php-v*"]
 
 jobs:
   release:

@@ -1,9 +1,12 @@
 # Publishes packages/node. Triggered by a node-vX.Y.Z tag.
 name: Node release
 
+# Manual only until the package is publishable. Restore the tag trigger with
+# the first real release.
 on:
-  push:
-    tags: ["node-v*"]
+  workflow_dispatch:
+  # push:
+  #   tags: ["node-v*"]
 
 jobs:
   release:

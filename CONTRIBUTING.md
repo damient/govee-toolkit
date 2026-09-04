@@ -60,8 +60,11 @@ The `tools/device-simulator/` lets you test without hardware.
 ## Releases
 
 Each package is versioned and released independently through tags:
-`python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`. The GitHub Actions workflows use
-path filters on `packages/<lang>/**`.
+`python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`.
+
+The GitHub Actions workflows are set to `workflow_dispatch` only for now — there
+is nothing to build yet, and an automatic run would just be noise. Re-enable the
+triggers, commented at the top of each file, along with the first real step.
 
 ## License
 
