@@ -124,19 +124,17 @@ The Rust side is one published crate, `govee-toolkit`, rooted at
 
 `lan` is a default feature; `ble` and `cloud` join it as they land. With default
 features off the codec builds on its own, and CI checks that it still does.
-`tools/check-no-io.sh` is what keeps the codec free of sockets now that a crate
-boundary no longer does — do not import `std::net`, `std::fs`, `tokio` or
-`socket2` under `src/codec/`.
+`tools/check-no-io.sh` is what keeps the codec free of sockets — under
+`src/codec/`, do not import `std::net`, `std::fs`, `std::thread`, `tokio` or
+`socket2`, and do not write an `async fn` or an `.await`.
 
 Registry names elsewhere are `govee-toolkit` on PyPI and npm, and
 `govee/toolkit` on Packagist.
 
-SDKs **read** `devices/*.yaml` — they do not duplicate protocol logic. An SDK
-only implements the transports and generic parsing.
-
-The protocol is implemented once, in `packages/rust`. Node and Python bind to
-that core; PHP is the one hand-written port, and the conformance vectors are
-what keep it honest. See [`docs/architecture.md`](docs/architecture.md).
+SDKs **read** `devices/*.yaml`: they implement the transports and generic
+parsing, and no protocol logic of their own. The protocol is implemented once,
+in `packages/rust` — Node and Python bind to that core, PHP is the one
+hand-written port. See [`docs/architecture.md`](docs/architecture.md).
 
 `lan`, `ble` and `cloud` are **modes**, not a fallback chain: the user enables
 one or several per device. A contribution must not make a mode implicit, and

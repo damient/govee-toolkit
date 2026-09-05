@@ -2,9 +2,8 @@
 # Fails when the codec reaches for the network.
 #
 # `src/codec/` turns devices/*.yaml plus arguments into bytes and does nothing
-# else: no socket, no async runtime, no filesystem. That used to be enforced by
-# a crate boundary. It is one crate now, so it is enforced here instead — see
-# docs/architecture.md.
+# else: no socket, no async runtime, no filesystem. The Rust side is one crate,
+# so this script is what enforces that — see docs/architecture.md.
 #
 # The list is narrow on purpose. It catches the imports that would make the
 # codec-only build (`cargo check --no-default-features`) stop being a codec-only

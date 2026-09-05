@@ -35,7 +35,7 @@ Then fix every failure, and re-run the affected check to confirm.
   capture the fixture cites; never edit a fixture to match the code when its
   bytes came from a capture.
 - `spelling` — a real typo gets fixed. A SKU or a protocol term that `typos`
-  splits into a word goes in `_typos.toml`, as narrow an entry as will do.
+  splits into a word goes in `typos.toml`, as narrow an entry as will do.
 - `file length` — split the file along its responsibilities. Do not trim
   comments to get under the limit.
 - `licenses and advisories` — a rejected license is a dependency to drop, not

@@ -248,7 +248,6 @@ impl Govee {
         })
     }
 
-    /// Encode one command for a device, in one mode.
     pub(crate) fn encode(
         &self,
         id: &DeviceId,

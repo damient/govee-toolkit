@@ -24,18 +24,14 @@
 //! async runtime, no `tokio`. That is the build a hand-written port checks
 //! itself against.
 //!
-//! # What "decides" means here
+//! # Choosing a mode
 //!
-//! Narrow, and deliberately so (`docs/modes.md`):
-//!
-//! - The mode is picked from **breaker state already known**, before anything
-//!   is encoded. It is never picked by trying one and waiting for a timeout.
-//! - A device with one enabled mode is reached over that mode or not at all.
-//!   Unreachable is an error, never a quiet switch to something else.
-//! - A command the chosen mode does not carry **fails**. It is not approximated
-//!   with a command that mode does have.
-//! - Every command reports which mode served it, and every health transition is
-//!   an event.
+//! The mode is picked from breaker state already known, before anything is
+//! encoded — never by trying one and waiting for a timeout. It is picked from
+//! the modes the user enabled for that device and from nothing else: a device
+//! that cannot be reached is an error, and a command the chosen mode does not
+//! carry fails rather than being approximated. Every command reports which
+//! mode served it. The rules are `docs/modes.md`.
 //!
 //! ```no_run
 //! use govee_toolkit::{Args, Config, Govee};

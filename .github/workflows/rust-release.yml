@@ -1,7 +1,7 @@
-# Publishes the crates in packages/rust. Triggered by a rust-vX.Y.Z tag.
+# Publishes govee-toolkit from packages/rust. Triggered by a rust-vX.Y.Z tag.
 name: Rust release
 
-# Manual only until the crates are publishable. Restore the tag trigger with
+# Manual only until the crate is publishable. Restore the tag trigger with
 # the first real release.
 on:
   workflow_dispatch:

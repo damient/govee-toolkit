@@ -9,7 +9,8 @@ use crate::event::Served;
 use crate::govee::Govee;
 use crate::lan::{DeviceId, DeviceStatus, Health};
 
-/// One device, bound to the SDK that reaches it.
+/// A borrow of the SDK and one identity. It holds no state of its own: every
+/// call reads the configuration and the health recorded right now.
 #[derive(Debug, Clone)]
 pub struct DeviceHandle<'a> {
     govee: &'a Govee,
@@ -62,7 +63,7 @@ impl DeviceHandle<'_> {
         let encoded = self.govee.encode(&self.id, mode, command, args)?;
 
         // Fire-and-verify needs a request to verify with. A device file that
-        // declares no status command simply is not verified — the command still
+        // declares no status command is not verified — the command still
         // goes out.
         let verification = self.govee.status_request(&self.id, mode).ok();
         let verify = verification

@@ -33,10 +33,10 @@ capture costs more than a miss — so it is a backstop for the checklist, not a
 replacement for reading the capture.
 
 `check-no-io.sh` fails when anything under `packages/rust/src/codec/` imports
-`std::net`, `std::fs`, `tokio` or `socket2`, or writes an `async fn`. The codec
-does no I/O; that used to be guaranteed by a crate boundary and is guaranteed by
-this now that the Rust side is one crate. `cargo check --no-default-features` is
-the other half of it.
+`std::net`, `std::fs`, `std::thread`, `tokio` or `socket2`, or writes an
+`async fn` or an `.await`. The codec
+does no I/O, and with the Rust side a single crate this script is what
+guarantees it. `cargo check --no-default-features` is the other half of it.
 
 `xtask` generates what is derived from `devices/*.yaml`:
 

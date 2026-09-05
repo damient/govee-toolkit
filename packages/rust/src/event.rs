@@ -4,7 +4,8 @@
 use crate::codec::Mode;
 use crate::lan::{DeviceId, Health};
 
-/// Something worth telling the application about.
+/// One stream for the whole SDK: what the transports report, plus what only
+/// the facade can see.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum Event {

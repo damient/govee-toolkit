@@ -9,7 +9,6 @@
 
 use std::path::PathBuf;
 
-/// The directory name used under the config and cache roots.
 const APP: &str = "govee-toolkit";
 
 /// `$XDG_CONFIG_HOME/govee-toolkit`, or `~/.config/govee-toolkit`.

@@ -55,7 +55,7 @@ modes:
     notes: ""
 
 commands:
-  # One table per mode. A command absent from a mode is simply not reachable in
+  # One table per mode. A command absent from a mode is not reachable in
   # that mode — the SDK must fail explicitly rather than approximate it.
   #
   # These entries are executable, not descriptive: an SDK builds the bytes from

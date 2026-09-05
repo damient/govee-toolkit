@@ -11,7 +11,7 @@ readme = "README.md"
 keywords = ["govee", "led", "smart-home", "iot", "sdk"]
 categories = ["api-bindings", "hardware-support", "network-programming"]
 # `cargo package` cannot reach above the manifest, so publishing vendors
-# `devices/` in beside it first — see GOING-PUBLIC.md.
+# `devices/` in beside it first — see .github/workflows/rust-release.yml.
 include = ["src/**", "build.rs", "README.md", "devices/**"]
 
 [workspace]

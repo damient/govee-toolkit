@@ -1,12 +1,12 @@
 //! Embeds `devices/*.yaml` into the crate.
 //!
-//! A build script fails the build loudly; the no-panic rule that applies to the
-//! library does not apply here.
-#![allow(clippy::expect_used, clippy::panic, clippy::format_push_string)]
-//!
 //! The catalog is compiled in, so an SDK ships as a single artifact with no
-//! data directory to install. Adding a SKU therefore means rebuilding — that
-//! is the accepted trade-off; see the crate README.
+//! data directory to install. Adding a SKU therefore means rebuilding — the
+//! accepted trade-off; see the crate README.
+//!
+//! A build script fails the build loudly: the no-panic rule of the library
+//! does not apply here.
+#![allow(clippy::expect_used, clippy::panic, clippy::format_push_string)]
 
 use std::path::{Path, PathBuf};
 use std::{env, fs};

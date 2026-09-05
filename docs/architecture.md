@@ -26,13 +26,13 @@ devices/*.yaml             data — what a SKU does, and the bytes for it
        │
 src/codec/                 codec — no I/O, no SKU names, no command names
        │
-src/lan/                   transport — UDP, discovery, breaker, rate limiting
+src/lan/                   transport — UDP, discovery, device cache, breaker
        │
 src/ (crate root)          facade — modes, configuration, events
        │
-  ┌────┴────┬──────────┬──────────┐
-node       python      cli       php
-(napi-rs)  (PyO3)              (port)
+  ┌────┴────┬──────────┐
+node       python      php
+(napi-rs)  (PyO3)      (port)
 ```
 
 **One crate, `govee-toolkit`**, at `packages/rust`. The layers are modules of
@@ -46,17 +46,17 @@ this one carries the longer name.
 
 ### Why one crate and not four
 
-The layering used to be four crates, and the crate boundary was what guaranteed
-the codec did no I/O. One package is the simpler thing to publish, to version
-and to explain — `cargo add govee-toolkit`, one version, one tag — and a Rust
-user gains nothing from seeing three names on crates.io when two of them are
-transitive.
+One package is the simpler thing to publish, to version and to explain —
+`cargo add govee-toolkit`, one version, one tag — and a Rust user gains nothing
+from seeing three names on crates.io when two of them are transitive.
 
-What the merge costs is that guarantee, so it is replaced by something more
-explicit rather than dropped:
+Splitting the layers into crates would buy one thing: a compiler-enforced
+guarantee that the codec does no I/O. Two checks buy the same guarantee more
+explicitly:
 
 - `tools/check-no-io.sh` fails the build if anything under `src/codec/` imports
-  `std::net`, `std::fs`, `tokio`, `socket2` or writes an `async fn`.
+  `std::net`, `std::fs`, `std::thread`, `tokio` or `socket2`, or writes an
+  `async fn` or an `.await`.
 - `cargo check --no-default-features` is a CI job. With the transport feature
   off, the codec has to keep compiling on its own — no socket, no async runtime.
   That is also the build a hand-written port checks itself against.

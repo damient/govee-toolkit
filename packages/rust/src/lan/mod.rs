@@ -10,8 +10,8 @@
 //!   device that cannot be reached produces an error, and what to do about it
 //!   is the facade's decision, made from the user's configuration.
 //! - **Health is state already known.** [`Transport::send`] never waits for a
-//!   timeout to decide whether to send: the breaker answers from what the last
-//!   commands did. A fresh timeout would cost the fast path a round-trip.
+//!   timeout to decide whether to send; the breaker answers from what the last
+//!   commands did.
 //! - **Nothing is approximated.** Ranges are already enforced by the codec, and
 //!   this layer does not soften them.
 //!

@@ -4,10 +4,8 @@
 //! reading a clock, so the transitions in `docs/modes.md` can be tested without
 //! a socket and without waiting.
 //!
-//! The point of the breaker is that a mode is chosen from state **already
-//! known**. Asking the network whether a device answers costs a round-trip on
-//! the fast path, which is the cost this design exists to avoid: the breaker
-//! remembers the last answer instead.
+//! It answers from the last recorded answer, never from the network: that is
+//! what lets a mode be chosen without paying a round-trip for it.
 
 use std::time::{Duration, Instant};
 
