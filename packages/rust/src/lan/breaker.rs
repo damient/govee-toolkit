@@ -202,20 +202,10 @@ mod tests {
 
     use super::*;
 
-    fn policy() -> Policy {
-        Policy {
-            degrade_after: 3,
-            down_after: 6,
-            recover_after: 2,
-            cooldown: Duration::from_secs(30),
-            down_cooldown: Duration::from_secs(300),
-        }
-    }
-
     #[test]
     fn healthy_until_the_threshold() {
         let now = Instant::now();
-        let mut b = Breaker::new(policy());
+        let mut b = Breaker::new(Policy::default());
         for _ in 0..2 {
             assert!(!b.record_failure(now).changed());
             assert_eq!(b.state(), State::Ok);
@@ -228,7 +218,7 @@ mod tests {
     #[test]
     fn a_success_resets_the_run() {
         let now = Instant::now();
-        let mut b = Breaker::new(policy());
+        let mut b = Breaker::new(Policy::default());
         b.record_failure(now);
         b.record_failure(now);
         b.record_success(now);
@@ -241,7 +231,7 @@ mod tests {
     #[test]
     fn degraded_refuses_until_the_cooldown_elapses() {
         let now = Instant::now();
-        let mut b = Breaker::new(policy());
+        let mut b = Breaker::new(Policy::default());
         for _ in 0..3 {
             b.record_failure(now);
         }
@@ -254,7 +244,7 @@ mod tests {
     #[test]
     fn a_single_answer_is_not_recovery() {
         let now = Instant::now();
-        let mut b = Breaker::new(policy());
+        let mut b = Breaker::new(Policy::default());
         for _ in 0..3 {
             b.record_failure(now);
         }
@@ -270,7 +260,7 @@ mod tests {
     #[test]
     fn a_failed_probe_reaches_down() {
         let now = Instant::now();
-        let mut b = Breaker::new(policy());
+        let mut b = Breaker::new(Policy::default());
         for _ in 0..6 {
             b.record_failure(now);
         }
@@ -282,7 +272,7 @@ mod tests {
     #[test]
     fn down_climbs_back_through_degraded() {
         let now = Instant::now();
-        let mut b = Breaker::new(policy());
+        let mut b = Breaker::new(Policy::default());
         for _ in 0..6 {
             b.record_failure(now);
         }
@@ -297,7 +287,7 @@ mod tests {
     #[test]
     fn failures_do_not_wrap() {
         let now = Instant::now();
-        let mut b = Breaker::new(policy());
+        let mut b = Breaker::new(Policy::default());
         for _ in 0..1000 {
             b.record_failure(now);
         }

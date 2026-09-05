@@ -117,12 +117,14 @@ pub(crate) struct Reply {
 /// network answer discovery requests that were not this crate's, and other
 /// software shares port 4002 — a datagram that does not parse is not an error.
 pub(crate) fn parse_reply(from: SocketAddr, bytes: &[u8]) -> Option<Reply> {
-    let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
-    let msg = value.get("msg")?;
+    let mut value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    let msg = value.get_mut("msg")?.as_object_mut()?;
     Some(Reply {
         from,
         cmd: msg.get("cmd")?.as_str()?.to_owned(),
-        data: msg.get("data").cloned().unwrap_or(serde_json::Value::Null),
+        // Moved out, not cloned: a status payload is copied enough on the way
+        // to the watcher and the event stream as it is.
+        data: msg.remove("data").unwrap_or(serde_json::Value::Null),
     })
 }
 

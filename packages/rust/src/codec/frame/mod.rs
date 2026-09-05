@@ -89,21 +89,22 @@ impl Frame {
             return Err(bad("empty".to_owned()));
         }
 
-        let len_at = position_of(&tokens, |t| matches!(t, Token::Len16));
-        if count_of(&tokens, |t| matches!(t, Token::Len16)) > 1 {
+        let lens: Vec<usize> = positions(&tokens, |t| matches!(t, Token::Len16));
+        let xors: Vec<usize> = positions(&tokens, |t| matches!(t, Token::Xor));
+        if lens.len() > 1 {
             return Err(bad("`<len:16>` appears more than once".to_owned()));
         }
-        if count_of(&tokens, |t| matches!(t, Token::Xor)) > 1 {
+        if xors.len() > 1 {
             return Err(bad("`<xor>` appears more than once".to_owned()));
         }
-        if let Some(i) = position_of(&tokens, |t| matches!(t, Token::Xor))
+        if let Some(i) = xors.first()
             && i + 1 != tokens.len()
         {
             return Err(bad("`<xor>` must be the last token".to_owned()));
         }
         // The token right after the length field is the opcode, and the payload
         // it counts starts after that. Both must exist.
-        if let Some(i) = len_at {
+        if let Some(&i) = lens.first() {
             match tokens.get(i + 1) {
                 None | Some(Token::Xor) => {
                     return Err(bad("`<len:16>` must be followed by an opcode".to_owned()));
@@ -130,12 +131,13 @@ impl Frame {
     }
 }
 
-fn position_of(tokens: &[Token], pred: impl Fn(&Token) -> bool) -> Option<usize> {
-    tokens.iter().position(pred)
-}
-
-fn count_of(tokens: &[Token], pred: impl Fn(&Token) -> bool) -> usize {
-    tokens.iter().filter(|t| pred(t)).count()
+fn positions(tokens: &[Token], pred: impl Fn(&Token) -> bool) -> Vec<usize> {
+    tokens
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| pred(t))
+        .map(|(i, _)| i)
+        .collect()
 }
 
 fn parse_token(raw: &str) -> Option<Token> {

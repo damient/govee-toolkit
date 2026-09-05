@@ -6,15 +6,15 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
-use std::net::{Ipv4Addr, SocketAddr};
 use std::time::{Duration, Instant};
 
-use govee_toolkit::lan::{Endpoints, Transport};
+use govee_toolkit::lan::Transport;
 use govee_toolkit::{Args, Catalog, Config, DeviceId, Govee, Mode, State};
 use govee_toolkit_sim::Simulator;
 
-const MAC: &str = "AA:BB:CC:DD:EE:FF";
-const SKU: &str = "H61A0";
+mod common;
+
+use common::{SKU, id};
 
 struct Rig {
     govee: Govee,
@@ -27,9 +27,7 @@ impl Rig {
     }
 
     async fn start_with(yaml: &str, catalog: Catalog) -> Self {
-        let simulator = Simulator::start(govee_toolkit_sim::Options::loopback(MAC, SKU))
-            .await
-            .expect("the simulator binds");
+        let simulator = common::simulator().await;
 
         let mut config: Config = serde_norway::from_str(yaml).expect("the configuration parses");
         config.lan.cache_disabled = true;
@@ -38,12 +36,7 @@ impl Rig {
         config.lan.scan_window_ms = 200;
 
         let transport = Transport::start(govee_toolkit::lan::Options {
-            endpoints: Endpoints {
-                scan_target: simulator.scan_addr().expect("scan address"),
-                reply_bind: SocketAddr::from((Ipv4Addr::LOCALHOST, 0)),
-                control_port: simulator.control_addr().expect("control address").port(),
-                multicast_group: None,
-            },
+            endpoints: common::endpoints(&simulator),
             ..config.lan.transport_options().expect("transport options")
         })
         .await
@@ -53,10 +46,6 @@ impl Rig {
         govee.scan().await.expect("the scan goes out");
         Self { govee, simulator }
     }
-}
-
-fn id() -> DeviceId {
-    DeviceId::new(MAC)
 }
 
 #[tokio::test]
@@ -252,4 +241,41 @@ async fn the_devices_listing_carries_the_configured_view() {
         devices[0].lan_health.expect("health is tracked").state,
         State::Ok
     );
+}
+
+#[tokio::test]
+async fn a_file_that_names_no_status_command_still_sends() {
+    // Nothing in the SDK knows what a status entry is called: the device file
+    // marks one `role: status`. A file that marks none has no status request,
+    // so the command goes out unverified and `status()` says why.
+    let mut catalog = Catalog::embedded().expect("catalog");
+    catalog
+        .overlay([(
+            "no-status.yaml",
+            concat!(
+                "schema_version: 1\nsku: \"H61A0\"\nfamily: test\nname: Test\n",
+                "capabilities: {}\ncommands:\n  lan:\n    power:\n",
+                "      cmd: turn\n      documented: true\n",
+                "      payload: { value: \"${on}\" }\n",
+                "      args: { on: { type: int, range: [0, 1] } }\n"
+            ),
+        )])
+        .expect("the overlay applies");
+
+    let rig = Rig::start_with("defaults:\n  modes: [lan]\n", catalog).await;
+    rig.simulator.clear();
+
+    rig.govee
+        .device(&id())
+        .send("power", &Args::new().int("on", 1))
+        .await
+        .expect("the command goes out");
+
+    let error = rig
+        .govee
+        .device(&id())
+        .status()
+        .await
+        .expect_err("nothing names a status command");
+    assert_eq!(error.code(), "no_status_command");
 }

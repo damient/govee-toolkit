@@ -52,6 +52,11 @@ use serde::{Deserialize, Serialize};
 pub use status::DeviceStatus;
 pub use transport::{Event, Health, KnownDevice, Options, Sent, Transport, Verify};
 
+/// A duration as whole milliseconds, saturating rather than wrapping.
+pub(crate) fn millis(d: std::time::Duration) -> u64 {
+    u64::try_from(d.as_millis()).unwrap_or(u64::MAX)
+}
+
 /// A device's identity: the MAC address it reports in a `scan` reply.
 ///
 /// Addresses are not identity — a DHCP lease renews and the device is at a

@@ -57,6 +57,19 @@ pub enum Error {
         mode: Mode,
     },
 
+    /// The device file names no command that reports state in this mode.
+    ///
+    /// Fire-and-verify does without it and says so;
+    /// [`crate::DeviceHandle::status`] fails rather than guessing an entry
+    /// name. Mark the right entry `role: status` in `devices/<SKU>.yaml`.
+    #[error("{sku}: no command in `commands.{mode}` is marked `role: status`")]
+    NoStatusCommand {
+        /// The SKU whose file is missing it.
+        sku: String,
+        /// The mode that was asked for.
+        mode: Mode,
+    },
+
     /// A device file could not be read from the user's own directory.
     #[error("local device file `{path}`: {reason}")]
     LocalDevices {
@@ -85,6 +98,7 @@ impl Error {
             Self::Configuration(_) => "configuration",
             Self::NoModeAvailable { .. } => "no_mode_available",
             Self::ModeNotImplemented { .. } => "mode_not_implemented",
+            Self::NoStatusCommand { .. } => "no_status_command",
             Self::LocalDevices { .. } => "local_devices",
         }
     }

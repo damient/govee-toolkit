@@ -2,6 +2,11 @@
 
 use std::collections::BTreeMap;
 
+/// The name an integer goes by in a type-mismatch error.
+pub(crate) const INT: &str = "an integer";
+/// The name an RGB list goes by in a type-mismatch error.
+pub(crate) const RGB_LIST: &str = "a list of RGB triples";
+
 /// A value for one declared argument.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ArgValue {
@@ -16,8 +21,8 @@ impl ArgValue {
     #[must_use]
     pub fn type_name(&self) -> &'static str {
         match self {
-            Self::Int(_) => "an integer",
-            Self::Rgb(_) => "a list of RGB triples",
+            Self::Int(_) => INT,
+            Self::Rgb(_) => RGB_LIST,
         }
     }
 }

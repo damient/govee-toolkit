@@ -200,20 +200,18 @@ impl Simulator {
         let scan = bind(options.scan_bind, options.multicast_group)?;
         let control = bind(options.control_bind, None)?;
 
+        let faults = options.faults;
         let inner = Arc::new(Inner {
             options,
             scan,
             control,
             state: Mutex::new(State {
-                faults: Faults::default(),
+                faults,
                 status: serde_json::json!({}),
                 received: Vec::new(),
                 replies: 0,
             }),
         });
-        if let Ok(mut state) = inner.state.lock() {
-            state.faults = inner.options.faults;
-        }
 
         for socket in [Listen::Scan, Listen::Control] {
             let inner = Arc::clone(&inner);

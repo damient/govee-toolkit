@@ -67,7 +67,7 @@ impl DeviceHandle<'_> {
         // goes out.
         let verification = self.govee.status_request(&self.id, mode).ok();
         let verify = verification
-            .as_ref()
+            .as_deref()
             .map_or(crate::lan::Verify::None, crate::lan::Verify::With);
 
         let sent = match mode {

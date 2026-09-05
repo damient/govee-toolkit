@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use serde::Deserialize;
 
 use crate::error::Result;
+use crate::lan::millis;
 
 /// Transport tuning for `lan`.
 #[derive(Debug, Clone, Deserialize)]
@@ -29,13 +30,6 @@ pub struct LanConfig {
     pub verify_interval_ms: Option<u64>,
     /// Forget a cached device that has not answered a scan for this long.
     pub forget_after_days: u64,
-    /// Which entry of a device file's `commands.lan` table asks for status.
-    ///
-    /// It names a key in `devices/<SKU>.yaml`, never a wire command: the `cmd`
-    /// actually sent comes from the device file. It is configurable because
-    /// fire-and-verify has to issue that request on its own, and a device file
-    /// is free to call it something else.
-    pub status_command: String,
     /// Consecutive unanswered verifications that degrade the mode.
     pub degrade_after: u32,
     /// Consecutive unanswered verifications that take it down.
@@ -60,7 +54,6 @@ impl Default for LanConfig {
             status_timeout_ms: millis(transport.status_timeout),
             verify_interval_ms: transport.verify_interval.map(millis),
             forget_after_days: transport.forget_after.as_secs() / 86_400,
-            status_command: "status".to_owned(),
             degrade_after: breaker.degrade_after,
             down_after: breaker.down_after,
             recover_after: breaker.recover_after,
@@ -124,10 +117,6 @@ impl LanConfig {
                 .unwrap_or_else(crate::paths::device_cache_file),
         )
     }
-}
-
-pub(super) fn millis(d: std::time::Duration) -> u64 {
-    u64::try_from(d.as_millis()).unwrap_or(u64::MAX)
 }
 
 #[cfg(test)]

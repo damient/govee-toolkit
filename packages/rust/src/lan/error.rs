@@ -15,10 +15,6 @@ use crate::lan::breaker::State;
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
-    /// Encoding failed before anything was sent.
-    #[error(transparent)]
-    Codec(#[from] crate::codec::Error),
-
     /// No device with this identity has been discovered, and none is cached.
     ///
     /// Note what this is *not*: a reason to scan. Scanning on the send path
@@ -95,7 +91,6 @@ impl Error {
     #[must_use]
     pub fn code(&self) -> &'static str {
         match self {
-            Self::Codec(e) => e.code(),
             Self::UnknownDevice { .. } => "unknown_device",
             Self::Unavailable { .. } => "mode_unavailable",
             Self::Unreachable { .. } => "unreachable",

@@ -14,13 +14,13 @@ use tokio::sync::{broadcast, watch};
 
 use super::events::Event;
 use crate::codec::{Encoded, Mode};
-use crate::lan::DeviceId;
 use crate::lan::breaker::{Breaker, Policy};
 use crate::lan::cache::Cache;
 use crate::lan::discovery::{DiscoveredDevice, Endpoints};
 use crate::lan::error::{Error, Result};
 use crate::lan::socket::Socket;
 use crate::lan::status::DeviceStatus;
+use crate::lan::{DeviceId, millis};
 
 /// One device, as the transport tracks it.
 pub(super) struct Tracked {
@@ -35,6 +35,19 @@ pub(super) struct Tracked {
     pub(super) verified_at: Option<Instant>,
 }
 
+impl Tracked {
+    pub(super) fn new(ip: IpAddr, sku: String, policy: Policy) -> Self {
+        Self {
+            ip,
+            sku,
+            breaker: Breaker::new(policy),
+            status: watch::Sender::new(None),
+            probing: false,
+            verified_at: None,
+        }
+    }
+}
+
 pub(super) struct Shared {
     pub(super) socket: Socket,
     pub(super) endpoints: Endpoints,
@@ -42,7 +55,6 @@ pub(super) struct Shared {
     pub(super) status_timeout: Duration,
     pub(super) verify_interval: Option<Duration>,
     pub(super) devices: Mutex<HashMap<DeviceId, Tracked>>,
-    pub(super) by_address: Mutex<HashMap<IpAddr, DeviceId>>,
     pub(super) cache: Mutex<Cache>,
     pub(super) events: broadcast::Sender<Event>,
     pub(super) replies: broadcast::Sender<DiscoveredDevice>,
@@ -54,22 +66,13 @@ impl Shared {
         let Ok(cache) = self.cache.lock() else {
             return;
         };
-        let (Ok(mut devices), Ok(mut by_address)) = (self.devices.lock(), self.by_address.lock())
-        else {
+        let Ok(mut devices) = self.devices.lock() else {
             return;
         };
         for cached in cache.devices() {
-            by_address.insert(cached.ip, cached.id.clone());
             devices.insert(
                 cached.id.clone(),
-                Tracked {
-                    ip: cached.ip,
-                    sku: cached.sku.clone(),
-                    breaker: Breaker::new(self.policy),
-                    status: watch::Sender::new(None),
-                    probing: false,
-                    verified_at: None,
-                },
+                Tracked::new(cached.ip, cached.sku.clone(), self.policy),
             );
         }
     }
@@ -79,9 +82,22 @@ impl Shared {
     /// Both answers come from memory. Nothing here waits on the network — that
     /// is the rule this whole design exists for.
     pub(super) fn route(&self, id: &DeviceId, now: Instant) -> Result<SocketAddr> {
-        let devices = self.devices.lock().map_err(|_| Error::ShutDown)?;
+        Ok(self.route_and_claim(id, now, false)?.0)
+    }
+
+    /// Where to send, and whether this command should pay for a verification.
+    ///
+    /// One lock for both answers: the send path takes it exactly once. Claiming
+    /// marks the device verified, so a burst of commands produces one probe.
+    pub(super) fn route_and_claim(
+        &self,
+        id: &DeviceId,
+        now: Instant,
+        claim: bool,
+    ) -> Result<(SocketAddr, bool)> {
+        let mut devices = self.devices.lock().map_err(|_| Error::ShutDown)?;
         let tracked = devices
-            .get(id)
+            .get_mut(id)
             .ok_or_else(|| Error::UnknownDevice { id: id.clone() })?;
         if !tracked.breaker.allows(now) {
             return Err(Error::Unavailable {
@@ -89,28 +105,18 @@ impl Shared {
                 state: tracked.breaker.state(),
             });
         }
-        Ok(SocketAddr::new(tracked.ip, self.endpoints.control_port))
-    }
+        let addr = SocketAddr::new(tracked.ip, self.endpoints.control_port);
 
-    /// Whether this command should pay for a verification.
-    pub(super) fn claim_verification(&self, id: &DeviceId, now: Instant) -> bool {
-        let Some(interval) = self.verify_interval else {
-            return false;
-        };
-        let Ok(mut devices) = self.devices.lock() else {
-            return false;
-        };
-        let Some(tracked) = devices.get_mut(id) else {
-            return false;
-        };
-        if tracked
-            .verified_at
-            .is_some_and(|at| now.duration_since(at) < interval)
-        {
-            return false;
+        let claimed = claim
+            && self.verify_interval.is_some_and(|interval| {
+                tracked
+                    .verified_at
+                    .is_none_or(|at| now.duration_since(at) >= interval)
+            });
+        if claimed {
+            tracked.verified_at = Some(now);
         }
-        tracked.verified_at = Some(now);
-        true
+        Ok((addr, claimed))
     }
 
     pub(super) async fn request_status(
@@ -146,25 +152,22 @@ impl Shared {
         let outcome = tokio::time::timeout(timeout, watcher.changed()).await;
         self.clear_probe(id);
 
+        let unreachable = || Error::Unreachable {
+            id: id.clone(),
+            addr,
+            timeout_ms: millis(timeout),
+        };
         match outcome {
             Ok(Ok(())) => {
                 let status = watcher.borrow_and_update().clone();
                 self.record(id, true, Instant::now());
-                status.ok_or_else(|| Error::Unreachable {
-                    id: id.clone(),
-                    addr,
-                    timeout_ms: to_millis(timeout),
-                })
+                status.ok_or_else(unreachable)
             }
             // The device is gone from the map: nothing left to wait on.
             Ok(Err(_)) => Err(Error::UnknownDevice { id: id.clone() }),
             Err(_elapsed) => {
                 self.record(id, false, Instant::now());
-                Err(Error::Unreachable {
-                    id: id.clone(),
-                    addr,
-                    timeout_ms: to_millis(timeout),
-                })
+                Err(unreachable())
             }
         }
     }
@@ -208,8 +211,4 @@ pub(super) fn datagram(command: &Encoded) -> Result<Vec<u8>> {
         cmd: command.cmd.clone(),
         reason: e.to_string(),
     })
-}
-
-fn to_millis(d: Duration) -> u64 {
-    u64::try_from(d.as_millis()).unwrap_or(u64::MAX)
 }

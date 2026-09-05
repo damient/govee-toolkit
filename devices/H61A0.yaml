@@ -87,6 +87,7 @@ commands:
     status:
       cmd: "devStatus"
       documented: true
+      role: status        # the entry fire-and-verify issues on its own
       payload: {}
       args: {}
       capture: ""         # TODO

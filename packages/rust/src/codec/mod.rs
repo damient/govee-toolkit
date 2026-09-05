@@ -41,7 +41,7 @@ pub mod validate;
 use std::collections::BTreeMap;
 
 pub use args::{ArgValue, Args};
-pub use catalog::{Capabilities, Command, Device, Mode, ModeSupport, Modes, Support};
+pub use catalog::{Capabilities, Command, Device, Mode, ModeSupport, Modes, Role, Support};
 pub use command::{Encoded, encode};
 pub use error::{Error, Result};
 pub use frame::Frame;

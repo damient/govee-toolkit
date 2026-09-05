@@ -1,7 +1,8 @@
 //! The facade: it holds the catalog, the configuration and the transports, and
 //! it is the one place that decides which mode serves a command.
 
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use tokio::sync::broadcast;
@@ -11,14 +12,19 @@ use crate::config::{Config, Problem};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::{Device, Event};
+use crate::govee::events::{Forwarder, forward};
 use crate::lan::{DeviceId, Transport};
 use crate::paths;
+
+mod events;
 
 pub(crate) struct Inner {
     pub(crate) catalog: Catalog,
     pub(crate) config: Config,
     pub(crate) lan: Transport,
     pub(crate) events: broadcast::Sender<Event>,
+    /// Encoded status requests, by mode and SKU. See [`Govee::status_request`].
+    status_requests: Mutex<HashMap<(Mode, String), Arc<crate::codec::Encoded>>>,
 }
 
 /// The SDK.
@@ -29,14 +35,6 @@ pub(crate) struct Inner {
 pub struct Govee {
     pub(crate) inner: Arc<Inner>,
     _forwarder: Arc<Forwarder>,
-}
-
-struct Forwarder(tokio::task::JoinHandle<()>);
-
-impl Drop for Forwarder {
-    fn drop(&mut self) {
-        self.0.abort();
-    }
 }
 
 impl std::fmt::Debug for Govee {
@@ -95,6 +93,7 @@ impl Govee {
             config,
             lan: transport,
             events: events.clone(),
+            status_requests: Mutex::new(HashMap::new()),
         });
 
         let forwarder = tokio::spawn(forward(Arc::clone(&inner), events));
@@ -248,6 +247,20 @@ impl Govee {
         })
     }
 
+    /// The SKU a device is encoded against: what the user configured, else what
+    /// the device reported in its scan reply.
+    fn sku(&self, id: &DeviceId) -> Result<String> {
+        match self.inner.lan.sku(id) {
+            Some(reported) => Ok(self.sku_of(id, &reported)),
+            None => Ok(self
+                .inner
+                .config
+                .sku_for(id)
+                .ok_or_else(|| crate::lan::Error::UnknownDevice { id: id.clone() })?
+                .to_owned()),
+        }
+    }
+
     pub(crate) fn encode(
         &self,
         id: &DeviceId,
@@ -255,61 +268,46 @@ impl Govee {
         command: &str,
         args: &Args,
     ) -> Result<crate::codec::Encoded> {
-        let sku = match self.inner.lan.sku(id) {
-            Some(reported) => self.sku_of(id, &reported),
-            None => self
-                .inner
-                .config
-                .sku_for(id)
-                .ok_or_else(|| crate::lan::Error::UnknownDevice { id: id.clone() })?
-                .to_owned(),
-        };
-        let device = self.inner.catalog.device(&sku)?;
+        let device = self.inner.catalog.device(&self.sku(id)?)?;
         Ok(crate::codec::encode(device, mode, command, args)?)
     }
 
     /// The status request for a device, built from its device file.
+    ///
+    /// The command is the one the file marks `role: status` for this mode — no
+    /// command name lives here. A file that names none has no status request,
+    /// and [`Error::NoStatusCommand`] says so rather than a guess failing
+    /// later.
+    ///
+    /// Encoded once per mode and SKU, then shared: it takes no arguments and
+    /// the device file does not change at runtime, so the bytes never change.
+    /// Every [`DeviceHandle::send`] asks for one, and most discard it —
+    /// building it each time would put a frame parse on the send path for
+    /// nothing.
     pub(crate) fn status_request(
         &self,
         id: &DeviceId,
         mode: Mode,
-    ) -> Result<crate::codec::Encoded> {
-        self.encode(
-            id,
-            mode,
-            &self.inner.config.lan.status_command,
-            &Args::new(),
-        )
-    }
-}
-
-/// Republish transport events, and flag a device the catalog cannot encode for.
-async fn forward(inner: Arc<Inner>, out: broadcast::Sender<Event>) {
-    let mut events = inner.lan.events();
-    loop {
-        match events.recv().await {
-            Ok(event) => {
-                if let crate::lan::Event::Discovered { device, .. } = &event {
-                    let sku = inner
-                        .config
-                        .sku_for(&device.id)
-                        .unwrap_or(&device.sku)
-                        .to_owned();
-                    if inner.catalog.device(&sku).is_err() {
-                        tracing::warn!(id = %device.id, %sku, "no device file declares this SKU");
-                        let _ = out.send(Event::UnknownSku {
-                            id: device.id.clone(),
-                            sku,
-                        });
-                    }
-                }
-                let _ = out.send(Event::Lan(event));
-            }
-            Err(broadcast::error::RecvError::Lagged(missed)) => {
-                tracing::warn!(missed, "the facade fell behind the transport's events");
-            }
-            Err(broadcast::error::RecvError::Closed) => return,
+    ) -> Result<Arc<crate::codec::Encoded>> {
+        let sku = self.sku(id)?;
+        if let Ok(cache) = self.inner.status_requests.lock()
+            && let Some(hit) = cache.get(&(mode, sku.clone()))
+        {
+            return Ok(Arc::clone(hit));
         }
+
+        let device = self.inner.catalog.device(&sku)?;
+        let command = device
+            .status_command(mode)
+            .ok_or_else(|| Error::NoStatusCommand {
+                sku: sku.clone(),
+                mode,
+            })?;
+        let request = Arc::new(crate::codec::encode(device, mode, command, &Args::new())?);
+        if let Ok(mut cache) = self.inner.status_requests.lock() {
+            cache.insert((mode, sku), Arc::clone(&request));
+        }
+        Ok(request)
     }
 }
 

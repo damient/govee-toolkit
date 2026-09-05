@@ -98,7 +98,6 @@ impl Transport {
             status_timeout: options.status_timeout,
             verify_interval: options.verify_interval,
             devices: Mutex::new(HashMap::new()),
-            by_address: Mutex::new(HashMap::new()),
             cache: Mutex::new(options.cache),
             events,
             replies,
@@ -216,7 +215,9 @@ impl Transport {
     /// [`Error::Io`] if the write fails.
     pub async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify<'_>) -> Result<Sent> {
         let now = Instant::now();
-        let addr = self.shared.route(id, now)?;
+        let (addr, verifying) =
+            self.shared
+                .route_and_claim(id, now, matches!(verify, Verify::With(_)))?;
         let bytes = datagram(command)?;
 
         self.shared.socket.send_to(&bytes, addr).await?;
@@ -227,10 +228,14 @@ impl Transport {
             cmd: command.cmd.clone(),
             addr,
         };
-        let _ = self.shared.events.send(Event::Sent(sent.clone()));
+        // Cloning `Sent` allocates twice; with nobody listening the broadcast
+        // would drop it straight away.
+        if self.shared.events.receiver_count() > 0 {
+            let _ = self.shared.events.send(Event::Sent(sent.clone()));
+        }
 
         if let Verify::With(request) = verify
-            && self.shared.claim_verification(id, now)
+            && verifying
         {
             let shared = Arc::clone(&self.shared);
             let id = id.clone();

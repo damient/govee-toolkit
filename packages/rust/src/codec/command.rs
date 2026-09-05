@@ -66,13 +66,16 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
             command: command.to_owned(),
         })?;
 
-    let frame = spec
-        .frame
-        .as_deref()
-        .map(|f| Frame::parse(command, f))
-        .transpose()?;
+    let frame = match (spec.frame.as_deref(), spec.parsed_frame.get()) {
+        (None, _) => None,
+        (Some(_), Some(frame)) => Some(frame),
+        (Some(source), None) => {
+            let parsed = Frame::parse(command, source)?;
+            Some(spec.parsed_frame.get_or_init(|| parsed))
+        }
+    };
 
-    let resolved = resolve(command, spec, frame.as_ref(), args)?;
+    let resolved = resolve(command, spec, frame, args)?;
     let bytes = frame.map(|f| f.build(command, &resolved)).transpose()?;
     let data = substitute(command, &spec.payload, &resolved, bytes.as_deref())?;
 
@@ -225,7 +228,11 @@ fn substitute(
     })
 }
 
-fn placeholder(s: &str) -> Option<&str> {
+/// The name inside a whole-string `${name}` placeholder.
+///
+/// An empty or nested name is not a placeholder; the validator and the encoder
+/// share this so a payload cannot pass validation and then fail to encode.
+pub(crate) fn placeholder(s: &str) -> Option<&str> {
     let inner = s.strip_prefix("${")?.strip_suffix('}')?;
     (!inner.is_empty() && !inner.contains("${")).then_some(inner)
 }

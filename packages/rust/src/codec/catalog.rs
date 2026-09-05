@@ -170,10 +170,25 @@ impl ArgSpec {
     #[must_use]
     pub fn type_name(&self) -> &'static str {
         match self {
-            Self::Int { .. } => "an integer",
-            Self::RgbList { .. } => "a list of RGB triples",
+            Self::Int { .. } => crate::codec::args::INT,
+            Self::RgbList { .. } => crate::codec::args::RGB_LIST,
         }
     }
+}
+
+/// What a command is for, when the SDK has to pick one without being told.
+///
+/// Only the device file names commands. A role lets it say which entry serves a
+/// purpose the SDK has of its own, so no command name has to live in code.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Role {
+    /// Nothing beyond the name the caller asks for. The default.
+    #[default]
+    None,
+    /// Reports the device's state. This is what fire-and-verify sends after a
+    /// command, and what a `status()` call encodes.
+    Status,
 }
 
 /// One command, in one mode.
@@ -194,6 +209,13 @@ pub struct Command {
     pub notes: String,
     /// Path to a real capture, relative to the repository root.
     pub capture: String,
+    /// What the SDK may use this command for on its own. See [`Role`].
+    pub role: Role,
+
+    /// `frame`, tokenized on first use. The layout is fixed by the device file,
+    /// so the send path parses it once rather than once per command.
+    #[serde(skip)]
+    pub(crate) parsed_frame: std::sync::OnceLock<crate::codec::Frame>,
 }
 
 /// A device file's `commands:` table, one map per mode.
@@ -270,6 +292,24 @@ pub struct Device {
     /// Verification record.
     #[serde(default)]
     pub verified: Verified,
+}
+
+impl Device {
+    /// The entry in `commands.<mode>` that reports state, if the file names
+    /// one.
+    ///
+    /// Returns the entry's name, not its `cmd`: the caller encodes it like any
+    /// other command. `None` means the file declares no status command for this
+    /// mode, and callers that need one — fire-and-verify — do without rather
+    /// than guessing a name.
+    #[must_use]
+    pub fn status_command(&self, mode: Mode) -> Option<&str> {
+        self.commands
+            .get(mode)
+            .iter()
+            .find(|(_, command)| command.role == Role::Status)
+            .map(|(name, _)| name.as_str())
+    }
 }
 
 fn null_as_default<'de, D, T>(de: D) -> Result<T, D::Error>

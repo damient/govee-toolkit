@@ -7,15 +7,15 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
-use std::net::{Ipv4Addr, SocketAddr};
 use std::time::{Duration, Instant};
 
 use govee_toolkit::codec::{Args, Catalog, Encoded, Mode};
-use govee_toolkit::lan::{Endpoints, Event, Options, Policy, State, Transport, Verify};
+use govee_toolkit::lan::{Event, Options, Policy, State, Transport, Verify};
 use govee_toolkit_sim::Simulator;
 
-const MAC: &str = "AA:BB:CC:DD:EE:FF";
-const SKU: &str = "H61A0";
+mod common;
+
+use common::{MAC, SKU};
 
 /// A transport wired to one simulated device, and the device itself.
 struct Rig {
@@ -30,19 +30,10 @@ impl Rig {
     }
 
     async fn with_options(policy: Policy, tweak: impl FnOnce(Options) -> Options) -> Self {
-        let simulator = Simulator::start(govee_toolkit_sim::Options::loopback(MAC, SKU))
-            .await
-            .expect("the simulator binds");
-
-        let endpoints = Endpoints {
-            scan_target: simulator.scan_addr().expect("scan address"),
-            reply_bind: SocketAddr::from((Ipv4Addr::LOCALHOST, 0)),
-            control_port: simulator.control_addr().expect("control address").port(),
-            multicast_group: None,
-        };
+        let simulator = common::simulator().await;
 
         let options = tweak(Options {
-            endpoints,
+            endpoints: common::endpoints(&simulator),
             policy,
             // Every test drives its own scan: a background one would make the
             // breaker assertions race.
@@ -327,18 +318,8 @@ async fn the_cache_makes_a_restart_free_of_scanning() {
 
     // A second transport on the same cache, wired to the same device, with no
     // scan of its own.
-    let endpoints = Endpoints {
-        scan_target: rig.simulator.scan_addr().expect("scan address"),
-        reply_bind: SocketAddr::from((Ipv4Addr::LOCALHOST, 0)),
-        control_port: rig
-            .simulator
-            .control_addr()
-            .expect("control address")
-            .port(),
-        multicast_group: None,
-    };
     let restarted = Transport::start(Options {
-        endpoints,
+        endpoints: common::endpoints(&rig.simulator),
         refresh_interval: None,
         cache: govee_toolkit::lan::Cache::load(&path).expect("the cache reloads"),
         ..Options::default()

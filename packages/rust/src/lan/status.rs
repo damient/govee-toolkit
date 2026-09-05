@@ -31,7 +31,7 @@ pub struct DeviceStatus {
 impl DeviceStatus {
     /// Read one out of a reply's `msg.data`.
     #[must_use]
-    pub fn from_data(id: DeviceId, data: &serde_json::Value) -> Self {
+    pub fn from_data(id: DeviceId, data: serde_json::Value) -> Self {
         let int = |key: &str| data.get(key).and_then(serde_json::Value::as_i64);
         let channel = |key: &str| {
             data.get("color")
@@ -49,7 +49,7 @@ impl DeviceStatus {
                 _ => None,
             },
             color_temp_kelvin: int("colorTemInKelvin"),
-            raw: data.clone(),
+            raw: data,
         }
     }
 
@@ -81,7 +81,7 @@ mod tests {
     fn reads_the_documented_reply() {
         let status = DeviceStatus::from_data(
             id(),
-            &data(
+            data(
                 r#"{"onOff":1,"brightness":100,"color":{"r":255,"g":0,"b":0},
                     "colorTemInKelvin":0}"#,
             ),
@@ -96,7 +96,7 @@ mod tests {
     fn white_mode_is_visible_in_the_reply() {
         let status = DeviceStatus::from_data(
             id(),
-            &data(
+            data(
                 r#"{"onOff":1,"brightness":50,"color":{"r":0,"g":0,"b":0},"colorTemInKelvin":7200}"#,
             ),
         );
@@ -107,10 +107,8 @@ mod tests {
     #[test]
     fn a_partial_reply_loses_nothing() {
         // The undocumented `status` command answers with a shape of its own.
-        let status = DeviceStatus::from_data(
-            id(),
-            &data(r#"{"onOff":1,"brightness":75,"pt":"uwABsQEK"}"#),
-        );
+        let status =
+            DeviceStatus::from_data(id(), data(r#"{"onOff":1,"brightness":75,"pt":"uwABsQEK"}"#));
         assert_eq!(status.on, Some(true));
         assert_eq!(status.color, None);
         assert_eq!(status.color_temp_kelvin, None);
@@ -123,7 +121,7 @@ mod tests {
         /// arrives, reading it is total and loses nothing.
         #[test]
         fn any_reply_is_read_without_loss(value in crate::lan::arbitrary::json()) {
-            let status = DeviceStatus::from_data(id(), &value);
+            let status = DeviceStatus::from_data(id(), value.clone());
             proptest::prop_assert_eq!(&status.raw, &value);
         }
     }

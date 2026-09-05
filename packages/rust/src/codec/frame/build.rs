@@ -4,7 +4,7 @@
 //! error, because the firmware would silently clamp it and report success.
 
 use super::{Frame, RepeatItem, Token};
-use crate::codec::args::{ArgValue, Args};
+use crate::codec::args::{self, ArgValue, Args};
 use crate::codec::error::{Error, Result};
 
 impl Frame {
@@ -23,6 +23,7 @@ impl Frame {
         let mut len_pos: Option<usize> = None;
         let mut payload_start: Option<usize> = None;
         let mut opcode_pending = false;
+        let mut checksum = false;
 
         for token in &self.tokens {
             match token {
@@ -48,13 +49,10 @@ impl Frame {
                         }
                     }
                 }
+                // `<xor>` is validated as the last token, so nothing follows.
                 Token::Xor => {
-                    if let (Some(pos), Some(start)) = (len_pos, payload_start) {
-                        let len = out.len() - start;
-                        write_len(&mut out, pos, len);
-                    }
-                    out.push(out.iter().fold(0u8, |acc, b| acc ^ b));
-                    return Ok(out);
+                    checksum = true;
+                    break;
                 }
             }
             if opcode_pending {
@@ -66,6 +64,9 @@ impl Frame {
         if let (Some(pos), Some(start)) = (len_pos, payload_start) {
             let len = out.len() - start;
             write_len(&mut out, pos, len);
+        }
+        if checksum {
+            out.push(out.iter().fold(0u8, |acc, b| acc ^ b));
         }
         Ok(out)
     }
@@ -93,35 +94,35 @@ fn push_int(out: &mut Vec<u8>, command: &str, name: &str, value: i64, bits: u32)
     Ok(())
 }
 
+fn missing(command: &str, name: &str) -> Error {
+    Error::MissingArg {
+        command: command.to_owned(),
+        arg: name.to_owned(),
+    }
+}
+
+fn wrong_type(command: &str, name: &str, expected: &'static str, got: &ArgValue) -> Error {
+    Error::ArgType {
+        command: command.to_owned(),
+        arg: name.to_owned(),
+        expected,
+        got: got.type_name(),
+    }
+}
+
 fn int_arg(command: &str, args: &Args, name: &str) -> Result<i64> {
     match args.get(name) {
         Some(ArgValue::Int(v)) => Ok(*v),
-        Some(other) => Err(Error::ArgType {
-            command: command.to_owned(),
-            arg: name.to_owned(),
-            expected: "an integer",
-            got: other.type_name(),
-        }),
-        None => Err(Error::MissingArg {
-            command: command.to_owned(),
-            arg: name.to_owned(),
-        }),
+        Some(other) => Err(wrong_type(command, name, args::INT, other)),
+        None => Err(missing(command, name)),
     }
 }
 
 fn rgb_arg<'a>(command: &str, args: &'a Args, name: &str) -> Result<&'a [[u8; 3]]> {
     match args.get(name) {
         Some(ArgValue::Rgb(v)) => Ok(v),
-        Some(other) => Err(Error::ArgType {
-            command: command.to_owned(),
-            arg: name.to_owned(),
-            expected: "a list of RGB triples",
-            got: other.type_name(),
-        }),
-        None => Err(Error::MissingArg {
-            command: command.to_owned(),
-            arg: name.to_owned(),
-        }),
+        Some(other) => Err(wrong_type(command, name, args::RGB_LIST, other)),
+        None => Err(missing(command, name)),
     }
 }
 

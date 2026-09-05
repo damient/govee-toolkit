@@ -8,12 +8,11 @@ use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use tokio::sync::{broadcast, watch};
+use tokio::sync::broadcast;
 
 use super::events::Event;
 use super::shared::{Shared, Tracked};
 use crate::lan::DeviceId;
-use crate::lan::breaker::Breaker;
 use crate::lan::cache::Change;
 use crate::lan::discovery::{DiscoveredDevice, scan_request};
 use crate::lan::error::Result;
@@ -91,7 +90,7 @@ impl Shared {
             return;
         };
 
-        let status = DeviceStatus::from_data(id, &reply.data);
+        let status = DeviceStatus::from_data(id, reply.data);
         if let Ok(devices) = self.devices.lock()
             && let Some(tracked) = devices.get(&status.id)
         {
@@ -100,9 +99,16 @@ impl Shared {
         let _ = self.events.send(Event::Status(status));
     }
 
+    /// Which device answers at this address.
+    ///
+    /// A scan over the tracked devices: a household holds a handful, and a
+    /// second index would have to be kept in step on every discovery.
     fn identify(&self, ip: IpAddr) -> Option<DeviceId> {
-        let by_address = self.by_address.lock().ok()?;
-        by_address.get(&ip).cloned()
+        let devices = self.devices.lock().ok()?;
+        devices
+            .iter()
+            .find(|(_, tracked)| tracked.ip == ip)
+            .map(|(id, _)| id.clone())
     }
 
     /// Record a discovery reply and make the device sendable.
@@ -115,34 +121,21 @@ impl Shared {
         };
 
         {
-            let (Ok(mut devices), Ok(mut by_address)) =
-                (self.devices.lock(), self.by_address.lock())
-            else {
+            let Ok(mut devices) = self.devices.lock() else {
                 return;
             };
             match devices.get_mut(&device.id) {
                 Some(tracked) => {
-                    if tracked.ip != device.ip {
-                        by_address.remove(&tracked.ip);
-                        tracked.ip = device.ip;
-                    }
+                    tracked.ip = device.ip;
                     tracked.sku.clone_from(&device.sku);
                 }
                 None => {
                     devices.insert(
                         device.id.clone(),
-                        Tracked {
-                            ip: device.ip,
-                            sku: device.sku.clone(),
-                            breaker: Breaker::new(self.policy),
-                            status: watch::Sender::new(None),
-                            probing: false,
-                            verified_at: None,
-                        },
+                        Tracked::new(device.ip, device.sku.clone(), self.policy),
                     );
                 }
             }
-            by_address.insert(device.ip, device.id.clone());
         }
 
         if change != Change::Refreshed {
@@ -165,11 +158,9 @@ impl Shared {
         if dropped.is_empty() {
             return;
         }
-        if let (Ok(mut devices), Ok(mut by_address)) = (self.devices.lock(), self.by_address.lock())
-        {
+        if let Ok(mut devices) = self.devices.lock() {
             for device in &dropped {
                 devices.remove(&device.id);
-                by_address.remove(&device.ip);
             }
         }
         for device in dropped {

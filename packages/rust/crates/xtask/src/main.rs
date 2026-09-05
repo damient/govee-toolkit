@@ -44,21 +44,10 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
     let devices = root.join("devices");
     let out = out.unwrap_or_else(|| root.join("dist/catalog.json"));
 
-    let mut entries: Vec<PathBuf> = fs::read_dir(&devices)
-        .unwrap_or_else(|e| panic!("cannot read {}: {e}", devices.display()))
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().is_some_and(|e| e == "yaml"))
-        // schema.yaml is the reference template, not a device.
-        .filter(|p| p.file_name().is_some_and(|n| n != "schema.yaml"))
-        .collect();
-    entries.sort();
+    let entries = load(&devices);
 
     let mut catalog = Vec::with_capacity(entries.len());
-    for path in &entries {
-        let text = fs::read_to_string(path)
-            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
-        let value: serde_json::Value =
-            serde_norway::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    for (path, value) in entries {
         let declared = value
             .get("schema_version")
             .and_then(serde_json::Value::as_u64);
@@ -84,7 +73,7 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
     let mut text = serde_json::to_string_pretty(&document).expect("serialize the catalog");
     text.push('\n');
     fs::write(&out, text).unwrap_or_else(|e| panic!("{}: {e}", out.display()));
-    println!("{} devices -> {}", entries.len(), out.display());
+    println!("{} devices -> {}", catalog.len(), out.display());
 }
 
 /// The two tables in `docs/compatibility.md`, between their generated markers.
@@ -97,7 +86,10 @@ fn compat(root: &Path, check: bool) {
     let text =
         fs::read_to_string(&page).unwrap_or_else(|e| panic!("cannot read {}: {e}", page.display()));
 
-    let devices = load(&root.join("devices"));
+    let devices: Vec<serde_json::Value> = load(&root.join("devices"))
+        .into_iter()
+        .map(|(_, value)| value)
+        .collect();
     let updated = replace_block(&text, "support-by-sku", &support_table(&devices));
     let updated = replace_block(&updated, "capabilities-by-sku", &capability_table(&devices));
 
@@ -120,21 +112,24 @@ fn compat(root: &Path, check: bool) {
     );
 }
 
-/// Every device file, parsed and sorted by SKU.
-fn load(dir: &Path) -> Vec<serde_json::Value> {
+/// Every device file, parsed, sorted by path — which sorts by SKU.
+fn load(dir: &Path) -> Vec<(PathBuf, serde_json::Value)> {
     let mut entries: Vec<PathBuf> = fs::read_dir(dir)
         .unwrap_or_else(|e| panic!("cannot read {}: {e}", dir.display()))
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().is_some_and(|e| e == "yaml"))
+        // schema.yaml is the reference template, not a device.
         .filter(|p| p.file_name().is_some_and(|n| n != "schema.yaml"))
         .collect();
     entries.sort();
     entries
-        .iter()
+        .into_iter()
         .map(|path| {
-            let text = fs::read_to_string(path)
+            let text = fs::read_to_string(&path)
                 .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
-            serde_norway::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+            let value =
+                serde_norway::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+            (path, value)
         })
         .collect()
 }

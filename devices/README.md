@@ -28,7 +28,11 @@ these files.
    claim, and a failed probe looks exactly like an unimplemented feature.
 4. Fill in the `commands` table. Set `documented: false` for any command found
    through reverse engineering, and document it in
-   [`../docs/protocol/lan.md`](../docs/protocol/lan.md) as well.
+   [`../docs/protocol/lan.md`](../docs/protocol/lan.md) as well. Mark the entry
+   that reports the device's state `role: status` — that is how an SDK finds it,
+   since no command name lives in SDK code. A file that marks none simply has no
+   status command: verification is skipped and `status()` fails, rather than an
+   SDK guessing an entry name.
 5. Add a real capture under `../tests/fixtures/lan-captures/<SKU>/` and point
    `capture:` at it. **Redact it first** — a capture carries your MAC, your
    IP, your SSID and possibly an account token, and git keeps them after the
@@ -69,6 +73,7 @@ whether a file is well-formed, never whether a device really behaves that way:
 - a command declaring a `frame:` carries it through `${frame}`;
 - a command with `documented: false` has a `notes:` line pointing at
   `../docs/protocol/`;
+- at most one command per mode claims `role: status`;
 - `aliases` resolve on lookup and `candidate_aliases` deliberately do not.
 
 Add a conformance vector alongside a new command —

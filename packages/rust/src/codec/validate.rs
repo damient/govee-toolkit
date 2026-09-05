@@ -8,7 +8,7 @@
 //! They check the *shape* of a file, never whether a device really behaves that
 //! way — that stays a matter of capture and verification.
 
-use crate::codec::catalog::{Command, Device, Mode};
+use crate::codec::catalog::{Command, Device, Mode, Role};
 use crate::codec::frame::{Frame, Token};
 
 /// One thing wrong with a device file.
@@ -61,6 +61,25 @@ pub fn device(device: &Device) -> Vec<Problem> {
                     .into_iter()
                     .map(|message| at(&at_command, message)),
             );
+        }
+
+        // The SDK picks the status command by role, so two claimants leave it
+        // with nothing to pick.
+        let claimants: Vec<&str> = device
+            .commands
+            .get(mode)
+            .iter()
+            .filter(|(_, command)| command.role == Role::Status)
+            .map(|(name, _)| name.as_str())
+            .collect();
+        if claimants.len() > 1 {
+            problems.push(at(
+                &mode.to_string(),
+                format!(
+                    "`role: status` is claimed by {}; exactly one command reports state",
+                    claimants.join(", ")
+                ),
+            ));
         }
     }
 
@@ -131,7 +150,7 @@ fn check_command(name: &str, command: &Command) -> Vec<String> {
 fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {
     match value {
         serde_json::Value::String(s) => {
-            if let Some(inner) = s.strip_prefix("${").and_then(|s| s.strip_suffix('}')) {
+            if let Some(inner) = crate::codec::command::placeholder(s) {
                 out.push(inner.to_owned());
             }
         }
@@ -146,5 +165,55 @@ fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
+
+    use super::*;
+    use crate::codec::Catalog;
+
+    fn device_file(commands: &str) -> String {
+        format!(
+            "schema_version: 1\nsku: HTEST\nfamily: test\nname: Test\n\
+             capabilities: {{}}\ncommands:\n  lan:\n{commands}"
+        )
+    }
+
+    fn parse(commands: &str) -> Catalog {
+        Catalog::from_sources([("HTEST.yaml", device_file(commands).as_str())])
+            .expect("the device file parses")
+    }
+
+    #[test]
+    fn one_command_may_report_state() {
+        let catalog = parse(
+            "    status:\n      cmd: devStatus\n      documented: true\n      role: status\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        assert_eq!(device.status_command(Mode::Lan), Some("status"));
+        assert!(super::device(device).is_empty());
+    }
+
+    #[test]
+    fn a_file_may_report_no_state_at_all() {
+        let catalog = parse("    power:\n      cmd: turn\n      documented: true\n");
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        assert_eq!(device.status_command(Mode::Lan), None);
+        assert!(super::device(device).is_empty());
+    }
+
+    #[test]
+    fn two_claimants_leave_nothing_to_pick() {
+        let catalog = parse(
+            "    status:\n      cmd: devStatus\n      documented: true\n      role: status\n\
+             \n    other:\n      cmd: status\n      documented: true\n      role: status\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("role: status"));
     }
 }
