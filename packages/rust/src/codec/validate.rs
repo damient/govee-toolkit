@@ -63,27 +63,60 @@ pub fn device(device: &Device) -> Vec<Problem> {
             );
         }
 
-        // The SDK picks the status command by role, so two claimants leave it
-        // with nothing to pick.
-        let claimants: Vec<&str> = device
-            .commands
-            .get(mode)
-            .iter()
-            .filter(|(_, command)| command.role == Role::Status)
-            .map(|(name, _)| name.as_str())
-            .collect();
-        if claimants.len() > 1 {
-            problems.push(at(
-                &mode.to_string(),
-                format!(
-                    "`role: status` is claimed by {}; exactly one command reports state",
-                    claimants.join(", ")
-                ),
-            ));
+        // The SDK picks these commands by role, so two claimants leave it with
+        // nothing to pick.
+        for role in Role::CLAIMABLE {
+            let claimants: Vec<&str> = device
+                .commands
+                .get(mode)
+                .iter()
+                .filter(|(_, command)| command.role == role)
+                .map(|(name, _)| name.as_str())
+                .collect();
+            if claimants.len() > 1 {
+                problems.push(at(
+                    &mode.to_string(),
+                    format!(
+                        "`role: {role}` is claimed by {}; at most one command may claim a role",
+                        claimants.join(", ")
+                    ),
+                ));
+            }
+            for name in claimants {
+                if let Some(command) = device.commands.get(mode).get(name) {
+                    problems.extend(
+                        check_role_args(role, command)
+                            .into_iter()
+                            .map(|message| at(&format!("{mode}.{name}"), message)),
+                    );
+                }
+            }
         }
     }
 
     problems
+}
+
+/// A role the SDK invokes on its own has to be callable without a command name
+/// in code, so the arguments it fills are named by the role rather than by the
+/// file. See `devices/schema.yaml`.
+fn check_role_args(role: Role, command: &Command) -> Vec<String> {
+    let required: &[(&str, &str)] = match role {
+        Role::SegmentEnable => &[("on", crate::codec::args::INT)],
+        Role::SegmentColor => &[("colors", crate::codec::args::RGB_LIST)],
+        Role::None | Role::Status => &[],
+    };
+    required
+        .iter()
+        .filter_map(|(arg, expected)| match command.args.get(*arg) {
+            None => Some(format!("`role: {role}` must declare an argument `{arg}`")),
+            Some(spec) if spec.type_name() != *expected => Some(format!(
+                "`role: {role}` needs `{arg}` to be {expected}, not {}",
+                spec.type_name()
+            )),
+            Some(_) => None,
+        })
+        .collect()
 }
 
 fn check_command(name: &str, command: &Command) -> Vec<String> {

@@ -101,12 +101,23 @@ commands:
     #                                 # must point at ../docs/protocol/lan.md
     #   capture: tests/fixtures/lan-captures/<sku>/<file>
     #
-    # `role:` names the entry an SDK issues on its own initiative, so that no
-    # command name has to live in SDK code. `status` is the one role there is:
-    # it marks the command that reports the device's state, which fire-and-verify
-    # sends after a command. At most one entry per mode may claim it. A file that
-    # marks none simply has no status command: the SDK skips verification and
-    # `status()` fails, rather than guessing an entry name.
+    # `role:` names an entry an SDK issues on its own initiative, so that no
+    # command name has to live in SDK code. At most one entry per mode may claim
+    # a given role, and a role nobody claims simply has no command: the SDK does
+    # without it and says so, rather than guessing an entry name.
+    #
+    #   status          reports the device's state. Fire-and-verify sends it
+    #                   after a command, and `status()` encodes it. Unclaimed:
+    #                   commands go unverified and `status()` fails.
+    #   segment_enable  arms and disarms the raw segment channel.
+    #   segment_color   paints every zone at once.
+    #
+    # A role the SDK fills arguments for names them, since it has no other way
+    # to know which is which:
+    #
+    #   segment_enable  `on`, an int
+    #   segment_color   `colors`, an rgb_list. An int `gradient`, if declared,
+    #                   is supplied too. A repeat count is derived from the list.
   ble:
     # <command-name>:
     #   opcode: "0x.."
@@ -122,6 +133,21 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         # native_pixels, latency, sustainable frame rate…
                         # Always record the unit's length alongside them; these
                         # are properties of a unit, not only of a SKU.
+                        #
+                        # Free-form except for `frame_rate`, the one table an
+                        # SDK reads. It paces the segment stream, so its rows
+                        # have a fixed shape:
+                        #
+                        #   frame_rate:
+                        #     - { zones: <n>, payload_bytes: <n>,
+                        #         clean_hz: <n>, breaks_at_hz: <n> }
+                        #
+                        # `zones` and `clean_hz` are what the stream uses: the
+                        # highest rate that zone count sustained without visible
+                        # stutter. Leave the table out and the stream falls back
+                        # to a conservative rate, reported as such — measured on
+                        # the unit at hand beats any constant. See
+                        # ../docs/protocol/lan.md 2.7.
 
 verified:
   by: ""                # who tested it

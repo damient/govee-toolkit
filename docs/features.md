@@ -18,6 +18,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **`lan` mode, low latency** — reused UDP socket, fire-and-verify, no cloud round-trip |
 | ✅ | **Discovery** — multicast scan at startup, periodic background refresh, persistent on-disk cache |
 | 🚧 | **Undocumented LAN commands** — the raw segment channel is documented and verified on one device; more to formalize as they are found |
+| ✅ | **Segment streaming** (`packages/rust/src/stream`) — the raw segment channel armed once and fed frames, at the native resolution of the unit, paced from the frame rate measured on it |
 | ✅ | **Per-device mode selection** — one mode for strict behavior, several for switching, see [`modes.md`](modes.md) |
 | ✅ | **Per-device, per-mode circuit breaker** — `OK` / `DEGRADED` / `DOWN`, decided from known state rather than a fresh timeout per call |
 | ✅ | **Explicit failures** — a command a mode cannot serve fails and says so; nothing is silently approximated |
@@ -26,7 +27,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 
 | | Feature |
 | --- | ------- |
-| ✅ | **`lan`** — power, brightness, color and color temperature over UDP; segment streaming is next |
+| ✅ | **`lan`** — power, brightness, color and color temperature over UDP, plus per-segment color |
 | 🔜 | **`ble`** — opt-in, works off-network within Bluetooth range, partial coverage per SKU family |
 | 🔜 | **`cloud`** — opt-in, reaches a device from anywhere, throttled, reduced to power / brightness / color |
 

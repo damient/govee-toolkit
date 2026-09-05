@@ -29,8 +29,8 @@ several when you want the SDK to switch. Nothing is implicit.
 > and not endorsed by Govee.
 
 > 🚧 **Early development.** The protocol is documented — including the
-> undocumented commands — the device schema is in place, and the Rust core and
-> `lan` transport are working end to end. Segment streaming and the language
+> undocumented commands — the device schema is in place, and the Rust core,
+> `lan` transport and segment streaming are working end to end. The language
 > bindings come next; nothing is published to crates.io / PyPI / npm /
 > Packagist yet. See the [roadmap](docs/roadmap.md) for what is coming, and
 > [features](docs/features.md) for the full picture.
@@ -50,6 +50,11 @@ several when you want the SDK to switch. Nothing is implicit.
 - **`lan` transport** — [`packages/rust/src/lan`](packages/rust/src/lan):
   multicast discovery, an on-disk device cache so a command never waits for a
   scan, one reused UDP socket, fire-and-verify, and a per-device circuit breaker.
+- **Segment streaming** — [`packages/rust/src/stream`](packages/rust/src/stream):
+  the raw segment channel, armed once and fed frames at the resolution measured
+  on the unit. Writes never block — a source faster than the device sees its
+  older frame replaced rather than throttled — and the rate comes from numbers
+  measured on that unit, not from a constant.
 - **Modes and configuration** — [`packages/rust`](packages/rust): the enabled
   modes per device, read from `~/.config/govee-toolkit/config.yaml`; every
   command reports which mode served it, and every health transition is an event.

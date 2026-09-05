@@ -1,0 +1,40 @@
+# A device file that declares the segment channel but records no native
+# resolution — the honest state of every SKU nobody has measured a unit of.
+schema_version: 1
+sku: "H61A0"
+family: "test"
+name: "Unmeasured segment device"
+
+capabilities:
+  segments: true
+  segment_count: 10
+  native_pixels: 0        # nobody measured a unit; `0` is not a small number
+
+modes:
+  lan:
+    support: full
+    capabilities: all
+
+commands:
+  lan:
+    dreamview_enable:
+      cmd: "razer"
+      documented: false
+      role: segment_enable
+      frame: "BB <len:16> <op:B1> ${on} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        on: { type: int, range: [0, 1] }
+      notes: "See docs/protocol/lan.md 2.3."
+
+    segment_color:
+      cmd: "razer"
+      documented: false
+      role: segment_color
+      frame: "BB <len:16> <op:B0> ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        gradient: { type: int, range: [0, 1] }
+        nb_seg: { type: int, range: [1, 255] }
+        colors: { type: rgb_list, max_len: 255 }
+      notes: "See docs/protocol/lan.md 2.3."

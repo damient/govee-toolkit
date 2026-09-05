@@ -10,6 +10,8 @@
 //!   command name. Available with no features enabled at all.
 //! - [`lan`] — the UDP transport: discovery, a device cache, one shared socket
 //!   and a per-device circuit breaker. Behind the `lan` feature, on by default.
+//! - [`stream`] — the raw segment channel, armed once and fed frames at a rate
+//!   taken from what was measured on the device.
 //! - The facade, at the crate root — configuration, mode selection and events.
 //!
 //! `ble` and `cloud` are declared modes with no transport yet. Enabling one is
@@ -64,6 +66,8 @@ pub mod config;
 pub mod error;
 #[cfg(feature = "lan")]
 pub mod paths;
+#[cfg(feature = "lan")]
+pub mod stream;
 
 #[cfg(feature = "lan")]
 mod device;
@@ -85,3 +89,5 @@ pub use event::{Device, Event, Served};
 pub use govee::Govee;
 #[cfg(feature = "lan")]
 pub use lan::{DeviceId, DeviceStatus, Health, State};
+#[cfg(feature = "lan")]
+pub use stream::{Rate, SegmentStream, StreamOptions, Zones};

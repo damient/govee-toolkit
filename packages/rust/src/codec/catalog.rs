@@ -9,6 +9,8 @@ use std::fmt;
 
 use serde::Deserialize;
 
+use crate::codec::measurements::Measurements;
+
 /// A way of talking to a device. Not a fallback chain — see `docs/modes.md`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -189,6 +191,28 @@ pub enum Role {
     /// Reports the device's state. This is what fire-and-verify sends after a
     /// command, and what a `status()` call encodes.
     Status,
+    /// Arms and disarms the raw segment channel. Must declare an int argument
+    /// named `on`.
+    SegmentEnable,
+    /// Paints every zone at once. Must declare an `rgb_list` argument named
+    /// `colors`; an int argument named `gradient` is supplied when declared.
+    SegmentColor,
+}
+
+impl Role {
+    /// Every role the SDK picks a command by, so a caller can iterate them.
+    pub(crate) const CLAIMABLE: [Self; 3] = [Self::Status, Self::SegmentEnable, Self::SegmentColor];
+}
+
+impl fmt::Display for Role {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::None => "none",
+            Self::Status => "status",
+            Self::SegmentEnable => "segment_enable",
+            Self::SegmentColor => "segment_color",
+        })
+    }
 }
 
 /// One command, in one mode.
@@ -285,30 +309,38 @@ pub struct Device {
     /// The command tables.
     #[serde(default)]
     pub commands: Commands,
-    /// Numbers taken from one physical unit. Free-form: they depend on the
-    /// unit's length as much as on the SKU.
+    /// Numbers taken from one physical unit.
     #[serde(default)]
-    pub measurements: serde_json::Value,
+    pub measurements: Measurements,
     /// Verification record.
     #[serde(default)]
     pub verified: Verified,
 }
 
 impl Device {
-    /// The entry in `commands.<mode>` that reports state, if the file names
+    /// The entry in `commands.<mode>` that claims `role`, if the file names
     /// one.
     ///
     /// Returns the entry's name, not its `cmd`: the caller encodes it like any
-    /// other command. `None` means the file declares no status command for this
-    /// mode, and callers that need one — fire-and-verify — do without rather
-    /// than guessing a name.
+    /// other command. `None` means the file claims that role for nothing in
+    /// this mode, and callers do without rather than guessing a name.
     #[must_use]
-    pub fn status_command(&self, mode: Mode) -> Option<&str> {
+    pub fn command_for(&self, mode: Mode, role: Role) -> Option<&str> {
+        if role == Role::None {
+            return None;
+        }
         self.commands
             .get(mode)
             .iter()
-            .find(|(_, command)| command.role == Role::Status)
+            .find(|(_, command)| command.role == role)
             .map(|(name, _)| name.as_str())
+    }
+
+    /// The entry in `commands.<mode>` that reports state. See
+    /// [`Device::command_for`].
+    #[must_use]
+    pub fn status_command(&self, mode: Mode) -> Option<&str> {
+        self.command_for(mode, Role::Status)
     }
 }
 

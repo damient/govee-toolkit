@@ -8,6 +8,7 @@ use crate::error::{Error, Result};
 use crate::event::Served;
 use crate::govee::Govee;
 use crate::lan::{DeviceId, DeviceStatus, Health};
+use crate::stream::{SegmentStream, StreamOptions};
 
 /// A borrow of the SDK and one identity. It holds no state of its own: every
 /// call reads the configuration and the health recorded right now.
@@ -92,6 +93,26 @@ impl DeviceHandle<'_> {
             command: command.to_owned(),
             cmd: sent.cmd,
         })
+    }
+
+    /// Open the raw segment channel and stream colors to it.
+    ///
+    /// Arms the channel and starts emitting; the writers on [`SegmentStream`]
+    /// never block. Power the device on first — `turn(1)` precedes arming
+    /// (`docs/protocol/lan.md` 2.3), and this crate names no command of its
+    /// own.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::ModeNotImplemented`] if the chosen mode is not `lan`,
+    /// [`Error::NoSegmentCommand`] if the device file marks no entry
+    /// `role: segment_enable` or `role: segment_color`,
+    /// [`Error::NativeResolutionUnknown`] for
+    /// [`Zones::Native`](crate::stream::Zones::Native) on an unmeasured unit,
+    /// [`Error::Codec`] if the zone count is outside what the command declares,
+    /// or [`Error::Transport`] if arming cannot be sent.
+    pub async fn open_stream(&self, options: StreamOptions) -> Result<SegmentStream> {
+        SegmentStream::open(self.govee, &self.id, options).await
     }
 
     /// Ask the device for its state and wait for the answer.

@@ -36,6 +36,7 @@ pub mod catalog;
 pub mod command;
 pub mod error;
 pub mod frame;
+pub mod measurements;
 pub mod validate;
 
 use std::collections::BTreeMap;
@@ -45,6 +46,7 @@ pub use catalog::{Capabilities, Command, Device, Mode, ModeSupport, Modes, Role,
 pub use command::{Encoded, encode};
 pub use error::{Error, Result};
 pub use frame::Frame;
+pub use measurements::{FrameRate, Measurements};
 
 include!(concat!(env!("OUT_DIR"), "/devices.rs"));
 

@@ -28,6 +28,8 @@ src/codec/                 codec — no I/O, no SKU names, no command names
        │
 src/lan/                   transport — UDP, discovery, device cache, breaker
        │
+src/stream/                segment channel — armed once, fed frames on a clock
+       │
 src/ (crate root)          facade — modes, configuration, events
        │
   ┌────┴────┬──────────┐

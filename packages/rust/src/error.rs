@@ -1,6 +1,6 @@
 //! Errors the facade can return.
 
-use crate::codec::Mode;
+use crate::codec::{Mode, Role};
 use crate::config::Problem;
 use crate::lan::DeviceId;
 
@@ -70,6 +70,44 @@ pub enum Error {
         mode: Mode,
     },
 
+    /// The device file names no command for a role the segment stream needs.
+    ///
+    /// Mark the right entries `role: segment_enable` and `role: segment_color`
+    /// in `devices/<SKU>.yaml`; the stream will not guess an entry name.
+    #[error("{sku}: no command in `commands.{mode}` is marked `role: {role}`")]
+    NoSegmentCommand {
+        /// The SKU whose file is missing it.
+        sku: String,
+        /// The mode that was asked for.
+        mode: Mode,
+        /// The role nothing claims.
+        role: Role,
+    },
+
+    /// A stream was asked for native resolution on a unit nobody measured.
+    ///
+    /// `native_pixels` is a property of the physical unit, so it cannot be
+    /// extrapolated from another one and the app's zone count is a different
+    /// fact, not a substitute. Measure it — `docs/protocol/lan.md` 2.3 — and
+    /// record it in the device file, or ask for a zone count explicitly.
+    #[error("{sku}: `capabilities.native_pixels` is not measured on this unit")]
+    NativeResolutionUnknown {
+        /// The SKU whose file leaves it at zero.
+        sku: String,
+    },
+
+    /// A frame carried a different number of colors than the stream streams.
+    ///
+    /// The zone count is fixed when the stream opens: the firmware reads it
+    /// from the frame, and changing it mid-stream re-groups the LEDs.
+    #[error("this stream carries {expected} zones, not {got}")]
+    ZoneCountMismatch {
+        /// What the stream was opened with.
+        expected: usize,
+        /// What the caller supplied.
+        got: usize,
+    },
+
     /// A device file could not be read from the user's own directory.
     #[error("local device file `{path}`: {reason}")]
     LocalDevices {
@@ -99,6 +137,9 @@ impl Error {
             Self::NoModeAvailable { .. } => "no_mode_available",
             Self::ModeNotImplemented { .. } => "mode_not_implemented",
             Self::NoStatusCommand { .. } => "no_status_command",
+            Self::NoSegmentCommand { .. } => "no_segment_command",
+            Self::NativeResolutionUnknown { .. } => "native_resolution_unknown",
+            Self::ZoneCountMismatch { .. } => "zone_count_mismatch",
             Self::LocalDevices { .. } => "local_devices",
         }
     }

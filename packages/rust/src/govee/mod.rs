@@ -249,7 +249,7 @@ impl Govee {
 
     /// The SKU a device is encoded against: what the user configured, else what
     /// the device reported in its scan reply.
-    fn sku(&self, id: &DeviceId) -> Result<String> {
+    pub(crate) fn sku(&self, id: &DeviceId) -> Result<String> {
         match self.inner.lan.sku(id) {
             Some(reported) => Ok(self.sku_of(id, &reported)),
             None => Ok(self
