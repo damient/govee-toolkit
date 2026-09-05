@@ -12,8 +12,9 @@
     clippy::format_collect
 )]
 
+use std::collections::BTreeMap;
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::{collections::BTreeMap, fs};
 
 use govee_core::{ArgValue, Args, Catalog, Mode};
 use serde::Deserialize;

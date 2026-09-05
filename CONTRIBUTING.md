@@ -58,9 +58,23 @@ From `packages/rust`:
 ```bash
 cargo test                                    # unit, conformance and doc tests
 cargo clippy --all-targets -- -D warnings
-cargo fmt --all --check
+cargo +nightly fmt --all                      # nightly: see below
 cargo deny check                              # licenses and advisories
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+../../tools/check-file-length.sh              # 400 lines per Rust file
 ```
+
+`rustfmt.toml` uses options that only nightly rustfmt implements — import
+grouping and comment wrapping. CI formats with nightly, so `cargo fmt` on stable
+will disagree with it. Use `cargo +nightly fmt`.
+
+A Rust source file stays under **400 lines**. Rust has no such convention and
+rustfmt enforces nothing, so this is a repository rule: it is a prompt to split
+along responsibilities, not a target to hit. Per-function size is handled
+separately by `clippy::too_many_lines`.
+
+The MSRV in `packages/rust/Cargo.toml` is checked on every push. Raise it in the
+same commit as the feature that needs it, never after the fact.
 
 `cargo test` also validates every `devices/*.yaml` and replays the conformance
 vectors in `tests/fixtures/golden/` — add one alongside any new command.

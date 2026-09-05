@@ -115,6 +115,12 @@ In Rust: no `unsafe`, and no `panic` / `unwrap` / `expect` in library code. Out
 of range is an error, never a clamp — the firmware clamps in silence, and an SDK
 that did the same would report success for a value the device did not apply.
 
+Format with `cargo +nightly fmt` — `rustfmt.toml` uses nightly-only options and
+stable rustfmt produces a different result. A Rust source file stays under 400
+lines (`tools/check-file-length.sh`); split along responsibilities rather than
+trimming to fit. The MSRV is checked in CI, so a feature that needs a newer
+compiler raises `rust-version` in the same commit.
+
 `ci.yml` runs on push and pull request. The release workflows stay
 `workflow_dispatch` only until there is something to publish.
 

@@ -19,7 +19,12 @@
 //!
 //! let catalog = Catalog::embedded()?;
 //! let device = catalog.device("H61A0")?;
-//! let encoded = govee_core::encode(device, Mode::Lan, "brightness", &Args::new().int("level", 50))?;
+//! let encoded = govee_core::encode(
+//!     device,
+//!     Mode::Lan,
+//!     "brightness",
+//!     &Args::new().int("level", 50),
+//! )?;
 //!
 //! assert_eq!(encoded.cmd, "brightness");
 //! # Ok::<_, govee_core::Error>(())
@@ -32,13 +37,13 @@ pub mod error;
 pub mod frame;
 pub mod validate;
 
+use std::collections::BTreeMap;
+
 pub use args::{ArgValue, Args};
 pub use catalog::{Capabilities, Command, Device, Mode, ModeSupport, Modes, Support};
 pub use command::{Encoded, encode};
 pub use error::{Error, Result};
 pub use frame::Frame;
-
-use std::collections::BTreeMap;
 
 include!(concat!(env!("OUT_DIR"), "/devices.rs"));
 

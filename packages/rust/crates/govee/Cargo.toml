@@ -7,6 +7,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+readme = "README.md"
+keywords = ["govee", "led", "smart-home", "iot", "sdk"]
+categories = ["api-bindings", "hardware-support"]
 
 [dependencies]
 govee-core.workspace = true

@@ -3,8 +3,8 @@
 //! Nothing here is recoverable by substituting something else. A device that
 //! cannot be reached over `lan` produces [`Error::Unreachable`] or
 //! [`Error::Unavailable`], and that is the answer the caller gets — choosing
-//! another mode is the facade's decision to make, from the user's configuration,
-//! never this crate's.
+//! another mode is the facade's decision to make, from the user's
+//! configuration, never this crate's.
 
 use std::net::SocketAddr;
 

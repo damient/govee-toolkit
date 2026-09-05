@@ -4,13 +4,13 @@
 //! `cmd`, the `payload` template and the `frame` layout, and this module only
 //! validates and substitutes.
 
+use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD as BASE64;
+
 use crate::args::{ArgValue, Args};
 use crate::catalog::{ArgSpec, Command, Device, Mode};
 use crate::error::{Error, Result};
 use crate::frame::Frame;
-
-use base64::Engine as _;
-use base64::engine::general_purpose::STANDARD as BASE64;
 
 /// A command ready to send.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -45,10 +45,9 @@ pub use breaker::{Breaker, Policy, State, Transition};
 pub use cache::{Cache, CachedDevice, Change};
 pub use discovery::{DiscoveredDevice, Endpoints};
 pub use error::{Error, Result};
+use serde::{Deserialize, Serialize};
 pub use status::DeviceStatus;
 pub use transport::{Event, Health, KnownDevice, Options, Sent, Transport, Verify};
-
-use serde::{Deserialize, Serialize};
 
 /// A device's identity: the MAC address it reports in a `scan` reply.
 ///

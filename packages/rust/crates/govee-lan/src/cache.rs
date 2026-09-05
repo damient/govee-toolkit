@@ -280,8 +280,9 @@ fn seconds(at: SystemTime) -> u64 {
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
-    use super::*;
     use std::time::Duration;
+
+    use super::*;
 
     fn discovered(ip: [u8; 4], firmware: &str) -> DiscoveredDevice {
         DiscoveredDevice {

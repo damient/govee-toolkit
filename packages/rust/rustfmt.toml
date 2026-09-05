@@ -1,2 +1,12 @@
+# Stable options apply everywhere. The rest are nightly-only: CI formats with
+# `cargo +nightly fmt`, so run the same locally or the check job will disagree
+# with you. See ../../CONTRIBUTING.md.
 edition = "2024"
 max_width = 100
+
+group_imports = "StdExternalCrate"
+imports_granularity = "Module"
+wrap_comments = true
+comment_width = 80
+format_code_in_doc_comments = true
+normalize_doc_attributes = true

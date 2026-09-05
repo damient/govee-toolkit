@@ -1,0 +1,6 @@
+[files]
+extend-exclude = [
+  "tests/fixtures/lan-captures/**",
+  "packages/rust/Cargo.lock",
+  "*.pcap",
+]

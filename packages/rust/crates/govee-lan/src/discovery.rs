@@ -1,7 +1,7 @@
 //! Multicast discovery: the `scan` request and the replies it draws.
 //!
 //! Addresses and payload are the documented ones — `docs/protocol/lan.md` §1.
-//! Nothing here touches a socket; [`crate::socket`] does that.
+//! Nothing here touches a socket; the transport does that.
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 

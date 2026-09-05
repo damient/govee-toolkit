@@ -1,6 +1,11 @@
 //! Invariants every device file in the repository must hold.
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    clippy::print_stdout
+)]
 
 use govee_core::{Catalog, Mode, validate};
 
@@ -79,7 +84,8 @@ fn captures_still_missing() {
                 })
         })
         .collect();
-    // TODO: tighten to `assert!(missing.is_empty())` once captures are attached.
+    // TODO: tighten to `assert!(missing.is_empty())` once captures are
+    // attached.
     println!("commands without a capture: {}", missing.len());
 }
 
