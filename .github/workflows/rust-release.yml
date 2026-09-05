@@ -15,7 +15,7 @@ jobs:
       run:
         working-directory: packages/rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       # TODO: enable once the crates are publishable. govee-core embeds
       # devices/*.yaml, which sits outside the package — vendor it into the
