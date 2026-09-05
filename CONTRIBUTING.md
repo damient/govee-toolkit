@@ -267,9 +267,13 @@ number promises, and what counts as a breaking change, is in
 [`docs/versioning.md`](docs/versioning.md).
 
 `ci.yml` runs on push to `main` and on pull request, and skips every job while
-the pull request is a draft. The release workflows are still `workflow_dispatch`
-only — nothing is publishable yet; restore the tag trigger at the top of one
-with its first real release.
+the pull request is a draft. A signed `<pkg>-vX.Y.Z` tag starts that package's
+release workflow, which builds and publishes to the registry — no token is
+stored here, each registry trades the job's identity for a short-lived one.
+
+`cargo-semver-checks` runs on every pull request against the crate published on
+crates.io. A change to the public API that the version in the manifest does not
+account for fails there.
 
 ## License
 

@@ -159,10 +159,11 @@ checked in CI.
 
 ## CI
 
-`cargo-semver-checks` is due as a **required job**: `govee-toolkit` `0.2.0` is
-on crates.io, so there is a baseline to compare against and no excuse for an
-unintended break. Until it lands, the checks in
-[`../CONTRIBUTING.md`](../CONTRIBUTING.md) are what CI runs.
+`cargo-semver-checks` runs on every pull request, against the crate on
+crates.io as the baseline: a change to the public API that the version in the
+manifest does not account for fails there, not on a registry that never takes a
+version back. The rest of what CI runs is in
+[`../CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 PyPI and npm hold the name under a `0.0.0` placeholder each; the first real
 release of either is still ahead.
