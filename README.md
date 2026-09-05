@@ -30,9 +30,9 @@ several when you want the SDK to switch. Nothing is implicit.
 > 🚧 **Early development.** The protocol is documented — including the
 > undocumented commands — the device schema is in place, and the Rust core,
 > `lan` transport and segment streaming are working end to end. The language
-> bindings come next: the crate is on crates.io at `0.2.0`, while PyPI and npm
-> hold the name under a `0.0.0` placeholder. See
-> the [roadmap](docs/roadmap.md) for what is coming, and
+> bindings come next: the crate is on crates.io, while PyPI and npm hold the
+> name under a `0.0.0` placeholder. See the [roadmap](docs/roadmap.md) for
+> what is coming, and
 > [features](docs/features.md) for the full picture.
 
 ---

@@ -7,7 +7,8 @@ This is the reference implementation. Protocol logic lives here once, and every
 other language reaches it through a binding rather than a port — see
 [`docs/architecture.md`][architecture].
 
-`0.2.0` is on crates.io.
+Published on crates.io as
+[`govee-toolkit`](https://crates.io/crates/govee-toolkit).
 
 ## One crate, four layers
 
