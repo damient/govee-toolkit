@@ -23,8 +23,8 @@
 //! - `lan` *(default)* — the UDP transport and the facade above it.
 //!
 //! With default features off, what remains is the codec alone: no socket, no
-//! async runtime, no `tokio`. That is the build a hand-written port checks
-//! itself against.
+//! async runtime, no `tokio`. Every binding encodes through that build, so it
+//! is the one the conformance vectors pin.
 //!
 //! # Choosing a mode
 //!

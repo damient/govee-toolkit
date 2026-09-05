@@ -1,9 +1,8 @@
 //! Runs the conformance vectors in `tests/fixtures/golden/`.
 //!
-//! These files are the contract between implementations: the Rust core, its
-//! bindings and any hand-written port must all produce the same envelope and
-//! the same frame bytes for the same arguments. A port that drifts fails here
-//! first.
+//! These files are the contract between implementations: the Rust core and its
+//! bindings must all produce the same envelope and the same frame bytes for the
+//! same arguments. An implementation that drifts fails here first.
 
 #![allow(
     clippy::unwrap_used,
@@ -174,9 +173,9 @@ fn every_golden_file_names_a_known_device() {
     }
 }
 
-/// The reverse direction, and the one that actually keeps a port honest.
+/// The reverse direction, and the one that actually keeps the vectors honest.
 ///
-/// A command with no vector is a command a hand-written port can get wrong
+/// A command with no vector is a command an implementation can get wrong
 /// without anything failing until it reaches hardware. CLAUDE.md requires one
 /// per command; this is what enforces it.
 #[test]

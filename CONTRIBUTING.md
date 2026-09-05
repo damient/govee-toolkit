@@ -132,7 +132,8 @@ Registry names elsewhere are `govee-toolkit` on PyPI and npm.
 
 SDKs **read** `devices/*.yaml`: they implement the transports and generic
 parsing, and no protocol logic of their own. The protocol is implemented once,
-in `packages/rust` — Node and Python bind to that core. See [`docs/architecture.md`](docs/architecture.md).
+in `packages/rust` — Node and Python bind to that core. See
+[`docs/architecture.md`](docs/architecture.md).
 
 `lan`, `ble` and `cloud` are **modes**, not a fallback chain: the user enables
 one or several per device. A contribution must not make a mode implicit, and

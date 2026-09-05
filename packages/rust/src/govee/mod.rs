@@ -23,8 +23,9 @@ pub(crate) struct Inner {
     pub(crate) config: Config,
     pub(crate) lan: Transport,
     pub(crate) events: broadcast::Sender<Event>,
-    /// Encoded status requests, by mode and SKU. See [`Govee::status_request`].
-    status_requests: Mutex<HashMap<(Mode, String), Arc<crate::codec::Encoded>>>,
+    /// Encoded status requests, by mode then SKU. See
+    /// [`Govee::status_request`].
+    status_requests: Mutex<HashMap<Mode, HashMap<String, Arc<crate::codec::Encoded>>>>,
 }
 
 /// The SDK.
@@ -261,23 +262,24 @@ impl Govee {
         }
     }
 
+    /// Encode against a SKU the caller already resolved. The send path
+    /// resolves it once and encodes against it, rather than per call.
     pub(crate) fn encode(
         &self,
-        id: &DeviceId,
+        sku: &str,
         mode: Mode,
         command: &str,
         args: &Args,
     ) -> Result<crate::codec::Encoded> {
-        let device = self.inner.catalog.device(&self.sku(id)?)?;
+        let device = self.inner.catalog.device(sku)?;
         Ok(crate::codec::encode(device, mode, command, args)?)
     }
 
-    /// The status request for a device, built from its device file.
+    /// The status request for a SKU, built from its device file.
     ///
     /// The command is the one the file marks `role: status` for this mode — no
     /// command name lives here. A file that names none has no status request,
-    /// and [`Error::NoStatusCommand`] says so rather than a guess failing
-    /// later.
+    /// and [`Error::NoRoleCommand`] says so rather than a guess failing later.
     ///
     /// Encoded once per mode and SKU, then shared: it takes no arguments and
     /// the device file does not change at runtime, so the bytes never change.
@@ -286,26 +288,29 @@ impl Govee {
     /// nothing.
     pub(crate) fn status_request(
         &self,
-        id: &DeviceId,
+        sku: &str,
         mode: Mode,
     ) -> Result<Arc<crate::codec::Encoded>> {
-        let sku = self.sku(id)?;
         if let Ok(cache) = self.inner.status_requests.lock()
-            && let Some(hit) = cache.get(&(mode, sku.clone()))
+            && let Some(hit) = cache.get(&mode).and_then(|by_sku| by_sku.get(sku))
         {
             return Ok(Arc::clone(hit));
         }
 
-        let device = self.inner.catalog.device(&sku)?;
+        let device = self.inner.catalog.device(sku)?;
         let command = device
             .status_command(mode)
-            .ok_or_else(|| Error::NoStatusCommand {
-                sku: sku.clone(),
+            .ok_or_else(|| Error::NoRoleCommand {
+                sku: sku.to_owned(),
                 mode,
+                role: crate::codec::Role::Status,
             })?;
         let request = Arc::new(crate::codec::encode(device, mode, command, &Args::new())?);
         if let Ok(mut cache) = self.inner.status_requests.lock() {
-            cache.insert((mode, sku), Arc::clone(&request));
+            cache
+                .entry(mode)
+                .or_default()
+                .insert(sku.to_owned(), Arc::clone(&request));
         }
         Ok(request)
     }

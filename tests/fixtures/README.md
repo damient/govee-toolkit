@@ -68,9 +68,9 @@ golden/<mode>/<SKU>.json
 ```
 
 Golden vectors: arguments in, exact bytes out. They are the contract between
-implementations — the Rust core, its bindings and any hand-written port must
-all produce the same envelope and the same frame for the same call, and a port
-that drifts fails here before it reaches a device.
+implementations — the Rust core and its bindings must all produce the same
+envelope and the same frame for the same call, and one that drifts fails here
+before it reaches a device.
 
 Each file holds:
 

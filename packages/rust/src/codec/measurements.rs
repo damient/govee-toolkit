@@ -57,11 +57,11 @@ impl Measurements {
     /// observed rather than a value extrapolated from the trend.
     #[must_use]
     pub fn clean_hz(&self, zones: u32) -> Option<f64> {
-        let mut rows: Vec<&FrameRate> = self.frame_rate.iter().collect();
-        rows.sort_by_key(|row| row.zones);
-        rows.iter()
-            .find(|row| row.zones >= zones)
-            .or_else(|| rows.last())
+        self.frame_rate
+            .iter()
+            .filter(|row| row.zones >= zones)
+            .min_by_key(|row| row.zones)
+            .or_else(|| self.frame_rate.iter().max_by_key(|row| row.zones))
             .map(|row| row.clean_hz)
     }
 }

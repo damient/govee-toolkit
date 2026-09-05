@@ -11,69 +11,43 @@
     clippy::format_collect
 )]
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64;
-use govee_toolkit::lan::Transport;
 use govee_toolkit::stream::{Rate, StreamOptions, Zones};
-use govee_toolkit::{Args, Catalog, Config, Govee};
+use govee_toolkit::{Args, Catalog, Config};
 use govee_toolkit_sim::Simulator;
 
 mod common;
 
-use common::id;
+use common::{Rig, SKU, hex, id, wait_for};
 
 /// Fast enough that a test does not wait on the measured rate, slow enough that
 /// several writes land inside one interval.
 const TEST_HZ: f64 = 20.0;
 
-struct Rig {
-    govee: Govee,
-    simulator: Simulator,
+async fn rig() -> Rig {
+    rig_with(Catalog::embedded().expect("catalog"), SKU).await
 }
 
-impl Rig {
-    async fn start() -> Self {
-        Self::start_with(Catalog::embedded().expect("catalog")).await
-    }
+async fn rig_with(catalog: Catalog, sku: &str) -> Rig {
+    Rig::start(Config::default(), catalog, sku).await
+}
 
-    async fn start_with(catalog: Catalog) -> Self {
-        let simulator = common::simulator().await;
-
-        let mut config = Config::default();
-        config.lan.cache_disabled = true;
-        config.lan.refresh_interval_seconds = None;
-        config.lan.status_timeout_ms = 150;
-        config.lan.scan_window_ms = 200;
-
-        let transport = Transport::start(govee_toolkit::lan::Options {
-            endpoints: common::endpoints(&simulator),
-            ..config.lan.transport_options().expect("transport options")
-        })
+/// Open a stream and forget the arming frame, so a test sees only what it asked
+/// for. The frame has to arrive before it can be cleared: clearing straight
+/// away would race the datagram and leave it in the next assertion.
+async fn open(rig: &Rig, options: StreamOptions) -> govee_toolkit::SegmentStream {
+    let stream = rig
+        .govee
+        .device(&id())
+        .open_stream(options)
         .await
-        .expect("the socket binds");
-
-        let govee = Govee::attach(config, catalog, transport).expect("the configuration applies");
-        govee.scan().await.expect("the scan goes out");
-        Self { govee, simulator }
-    }
-
-    /// Open a stream and forget the arming frame, so a test sees only what it
-    /// asked for. The frame has to arrive before it can be cleared: clearing
-    /// straight away would race the datagram and leave it in the next
-    /// assertion.
-    async fn open(&self, options: StreamOptions) -> govee_toolkit::SegmentStream {
-        let stream = self
-            .govee
-            .device(&id())
-            .open_stream(options)
-            .await
-            .expect("the stream opens");
-        wait_for(|| (!frames(&self.simulator).is_empty()).then_some(())).await;
-        self.simulator.clear();
-        stream
-    }
+        .expect("the stream opens");
+    wait_for(|| (!frames(&rig.simulator).is_empty()).then_some(())).await;
+    rig.simulator.clear();
+    stream
 }
 
 /// Every raw frame the simulator has received, as hex.
@@ -83,19 +57,8 @@ fn frames(simulator: &Simulator) -> Vec<String> {
         .into_iter()
         .filter_map(|received| received.data.get("pt")?.as_str().map(ToOwned::to_owned))
         .filter_map(|pt| BASE64.decode(pt).ok())
-        .map(|bytes| bytes.iter().map(|b| format!("{b:02x}")).collect())
+        .map(|bytes| hex(&bytes))
         .collect()
-}
-
-async fn wait_for<T>(mut check: impl FnMut() -> Option<T>) -> Option<T> {
-    let deadline = Instant::now() + Duration::from_secs(1);
-    while Instant::now() < deadline {
-        if let Some(value) = check() {
-            return Some(value);
-        }
-        tokio::time::sleep(Duration::from_millis(5)).await;
-    }
-    check()
 }
 
 fn options(zones: Zones) -> StreamOptions {
@@ -108,7 +71,7 @@ fn options(zones: Zones) -> StreamOptions {
 
 #[tokio::test]
 async fn opening_arms_the_channel() {
-    let rig = Rig::start().await;
+    let rig = rig().await;
     let _stream = rig
         .govee
         .device(&id())
@@ -124,8 +87,8 @@ async fn opening_arms_the_channel() {
 
 #[tokio::test]
 async fn an_idle_stream_sends_nothing() {
-    let rig = Rig::start().await;
-    let _stream = rig.open(options(Zones::App)).await;
+    let rig = rig().await;
+    let _stream = open(&rig, options(Zones::App)).await;
 
     tokio::time::sleep(Duration::from_secs_f64(4.0 / TEST_HZ)).await;
     assert!(frames(&rig.simulator).is_empty());
@@ -133,8 +96,8 @@ async fn an_idle_stream_sends_nothing() {
 
 #[tokio::test]
 async fn a_write_reaches_the_device_as_one_frame() {
-    let rig = Rig::start().await;
-    let stream = rig.open(options(Zones::Exact(2))).await;
+    let rig = rig().await;
+    let stream = open(&rig, options(Zones::Exact(2))).await;
     stream.set_all(&[[255, 0, 0], [0, 255, 0]]).unwrap();
 
     let frame = wait_for(|| frames(&rig.simulator).first().cloned())
@@ -145,8 +108,8 @@ async fn a_write_reaches_the_device_as_one_frame() {
 
 #[tokio::test]
 async fn a_repainted_zone_keeps_the_others() {
-    let rig = Rig::start().await;
-    let stream = rig.open(options(Zones::Exact(2))).await;
+    let rig = rig().await;
+    let stream = open(&rig, options(Zones::Exact(2))).await;
 
     stream.fill([255, 0, 0]).unwrap();
     wait_for(|| (!frames(&rig.simulator).is_empty()).then_some(())).await;
@@ -167,8 +130,8 @@ async fn a_repainted_zone_keeps_the_others() {
 
 #[tokio::test]
 async fn only_the_latest_write_is_sent() {
-    let rig = Rig::start().await;
-    let stream = rig.open(options(Zones::Exact(1))).await;
+    let rig = rig().await;
+    let stream = open(&rig, options(Zones::Exact(1))).await;
 
     // Five writes inside one interval: the source is not throttled, and four of
     // the frames it asked for never existed.
@@ -189,8 +152,8 @@ async fn only_the_latest_write_is_sent() {
 
 #[tokio::test]
 async fn closing_disarms_the_channel() {
-    let rig = Rig::start().await;
-    let stream = rig.open(options(Zones::App)).await;
+    let rig = rig().await;
+    let stream = open(&rig, options(Zones::App)).await;
     stream.close().await.expect("the disarm goes out");
 
     assert_eq!(
@@ -201,28 +164,30 @@ async fn closing_disarms_the_channel() {
 
 #[tokio::test]
 async fn native_resolution_comes_from_the_measured_unit() {
-    let rig = Rig::start().await;
-    let stream = rig.open(options(Zones::Native)).await;
+    let rig = rig().await;
+    let stream = open(&rig, options(Zones::Native)).await;
     assert_eq!(stream.zones(), 42);
 }
 
 #[tokio::test]
 async fn the_app_zone_count_is_not_the_native_one() {
-    let rig = Rig::start().await;
-    let stream = rig.open(options(Zones::App)).await;
+    let rig = rig().await;
+    let stream = open(&rig, options(Zones::App)).await;
     assert_eq!(stream.zones(), 10);
 }
 
 #[tokio::test]
 async fn a_measured_rate_is_read_off_the_device_file() {
-    let rig = Rig::start().await;
+    let rig = rig().await;
     // 42 zones falls in the 60-zone row of `devices/H61A0.yaml`.
-    let stream = rig
-        .open(StreamOptions {
+    let stream = open(
+        &rig,
+        StreamOptions {
             zones: Zones::Native,
             ..StreamOptions::default()
-        })
-        .await;
+        },
+    )
+    .await;
     assert!((stream.rate_hz() - 25.0).abs() < f64::EPSILON);
 }
 
@@ -231,7 +196,7 @@ async fn native_resolution_nobody_measured_is_refused() {
     const UNMEASURED: &str = include_str!("fixtures/unmeasured.yaml");
 
     let catalog = Catalog::from_sources([("unmeasured.yaml", UNMEASURED)]).expect("catalog");
-    let rig = Rig::start_with(catalog).await;
+    let rig = rig_with(catalog, "HTEST0").await;
 
     let error = rig
         .govee
@@ -239,7 +204,7 @@ async fn native_resolution_nobody_measured_is_refused() {
         .open_stream(options(Zones::Native))
         .await
         .expect_err("an unmeasured unit has no native resolution");
-    assert_eq!(error.code(), "native_resolution_unknown");
+    assert_eq!(error.code(), "zone_count_unknown");
 }
 
 #[tokio::test]
@@ -247,7 +212,7 @@ async fn a_file_naming_no_segment_command_is_refused() {
     const NO_SEGMENTS: &str = include_str!("fixtures/no-segments.yaml");
 
     let catalog = Catalog::from_sources([("no-segments.yaml", NO_SEGMENTS)]).expect("catalog");
-    let rig = Rig::start_with(catalog).await;
+    let rig = rig_with(catalog, "HTEST1").await;
 
     let error = rig
         .govee
@@ -260,8 +225,8 @@ async fn a_file_naming_no_segment_command_is_refused() {
 
 #[tokio::test]
 async fn a_frame_of_the_wrong_length_is_refused_rather_than_padded() {
-    let rig = Rig::start().await;
-    let stream = rig.open(options(Zones::Exact(3))).await;
+    let rig = rig().await;
+    let stream = open(&rig, options(Zones::Exact(3))).await;
 
     let error = stream
         .set_all(&[[255, 0, 0]])
@@ -271,8 +236,8 @@ async fn a_frame_of_the_wrong_length_is_refused_rather_than_padded() {
 
 #[tokio::test]
 async fn a_stream_survives_a_device_that_stops_answering() {
-    let rig = Rig::start().await;
-    let stream = rig.open(options(Zones::Exact(1))).await;
+    let rig = rig().await;
+    let stream = open(&rig, options(Zones::Exact(1))).await;
 
     // Verification is what learns silence, and a stream asks for none: the
     // breaker keeps letting frames through, and nothing stops the task.
@@ -286,14 +251,16 @@ async fn a_stream_survives_a_device_that_stops_answering() {
 
 #[tokio::test]
 async fn a_gradient_stream_says_so_in_every_frame() {
-    let rig = Rig::start().await;
-    let stream = rig
-        .open(StreamOptions {
+    let rig = rig().await;
+    let stream = open(
+        &rig,
+        StreamOptions {
             zones: Zones::Exact(1),
             rate: Rate::Fixed(TEST_HZ),
             gradient: true,
-        })
-        .await;
+        },
+    )
+    .await;
     stream.fill([255, 0, 0]).unwrap();
 
     let frame = wait_for(|| frames(&rig.simulator).first().cloned())
@@ -304,7 +271,7 @@ async fn a_gradient_stream_says_so_in_every_frame() {
 
 #[tokio::test]
 async fn a_stream_is_only_opened_for_a_device_a_mode_can_reach() {
-    let rig = Rig::start().await;
+    let rig = rig().await;
     let error = rig
         .govee
         .device(&govee_toolkit::DeviceId::new("11:22:33:44:55:66"))
@@ -316,7 +283,7 @@ async fn a_stream_is_only_opened_for_a_device_a_mode_can_reach() {
 
 #[tokio::test]
 async fn a_stream_does_not_power_the_device_on() {
-    let rig = Rig::start().await;
+    let rig = rig().await;
     let _stream = rig
         .govee
         .device(&id())

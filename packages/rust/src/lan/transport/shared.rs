@@ -77,18 +77,12 @@ impl Shared {
         }
     }
 
-    /// Where to send, if the breaker allows it.
-    ///
-    /// Both answers come from memory. Nothing here waits on the network — that
-    /// is the rule this whole design exists for.
-    pub(super) fn route(&self, id: &DeviceId, now: Instant) -> Result<SocketAddr> {
-        Ok(self.route_and_claim(id, now, false)?.0)
-    }
-
     /// Where to send, and whether this command should pay for a verification.
     ///
-    /// One lock for both answers: the send path takes it exactly once. Claiming
-    /// marks the device verified, so a burst of commands produces one probe.
+    /// Both answers come from memory, under one lock: the send path takes it
+    /// exactly once and waits on nothing, which is the rule this whole design
+    /// exists for. Claiming marks the device verified, so a burst of commands
+    /// produces one probe.
     pub(super) fn route_and_claim(
         &self,
         id: &DeviceId,
@@ -126,7 +120,7 @@ impl Shared {
         timeout: Duration,
     ) -> Result<DeviceStatus> {
         let now = Instant::now();
-        let addr = self.route(id, now)?;
+        let (addr, _) = self.route_and_claim(id, now, false)?;
 
         // Subscribe before sending, or a reply that arrives first is missed.
         let (mut watcher, send_it) = {

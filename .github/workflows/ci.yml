@@ -101,6 +101,9 @@ jobs:
       - id: msrv
         run: |
           version=$(sed -n 's/^rust-version *= *"\([^"]*\)".*/\1/p' Cargo.toml | head -1)
+          # An empty match would install the default toolchain and pass without
+          # having checked the MSRV at all.
+          [ -n "$version" ] || { echo "no rust-version in Cargo.toml"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:

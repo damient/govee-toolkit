@@ -57,25 +57,14 @@ pub enum Error {
         mode: Mode,
     },
 
-    /// The device file names no command that reports state in this mode.
+    /// The device file names no command for a role the SDK invokes on its own.
     ///
-    /// Fire-and-verify does without it and says so;
-    /// [`crate::DeviceHandle::status`] fails rather than guessing an entry
-    /// name. Mark the right entry `role: status` in `devices/<SKU>.yaml`.
-    #[error("{sku}: no command in `commands.{mode}` is marked `role: status`")]
-    NoStatusCommand {
-        /// The SKU whose file is missing it.
-        sku: String,
-        /// The mode that was asked for.
-        mode: Mode,
-    },
-
-    /// The device file names no command for a role the segment stream needs.
-    ///
-    /// Mark the right entries `role: segment_enable` and `role: segment_color`
-    /// in `devices/<SKU>.yaml`; the stream will not guess an entry name.
+    /// The SDK will not guess an entry name: mark the right entry `role:
+    /// status`, `role: segment_enable` or `role: segment_color` in
+    /// `devices/<SKU>.yaml`. Fire-and-verify does without a status command and
+    /// says so; [`crate::DeviceHandle::status`] fails instead.
     #[error("{sku}: no command in `commands.{mode}` is marked `role: {role}`")]
-    NoSegmentCommand {
+    NoRoleCommand {
         /// The SKU whose file is missing it.
         sku: String,
         /// The mode that was asked for.
@@ -84,14 +73,14 @@ pub enum Error {
         role: Role,
     },
 
-    /// A stream was asked for native resolution on a unit nobody measured.
+    /// A stream was asked for a zone count nothing records.
     ///
-    /// `native_pixels` is a property of the physical unit, so it cannot be
-    /// extrapolated from another one and the app's zone count is a different
-    /// fact, not a substitute. Measure it — `docs/protocol/lan.md` 2.3 — and
-    /// record it in the device file, or ask for a zone count explicitly.
-    #[error("{sku}: `capabilities.native_pixels` is not measured on this unit")]
-    NativeResolutionUnknown {
+    /// These counts are properties of the physical unit, so neither can be
+    /// extrapolated from another one and neither substitutes for the other.
+    /// Measure it — `docs/protocol/lan.md` 2.3 — and record it in the device
+    /// file, or ask for a zone count explicitly.
+    #[error("{sku}: the zone count asked for is not recorded for this unit")]
+    ZoneCountUnknown {
         /// The SKU whose file leaves it at zero.
         sku: String,
     },
@@ -106,6 +95,25 @@ pub enum Error {
         expected: usize,
         /// What the caller supplied.
         got: usize,
+    },
+
+    /// A zone index past the last zone of the stream.
+    #[error("zone {index} is past the last of this stream's {zones} zones")]
+    ZoneOutOfRange {
+        /// The zero-based index asked for.
+        index: usize,
+        /// What the stream carries.
+        zones: usize,
+    },
+
+    /// A stream was asked for a rate at or below zero.
+    ///
+    /// Out of range, not clamped: a rate is a division on the send path, and
+    /// the nearest legal value would flood the channel this stream paces.
+    #[error("a stream rate must be above zero, not {hz}")]
+    StreamRateOutOfRange {
+        /// What the caller asked for, in hertz.
+        hz: f64,
     },
 
     /// A device file could not be read from the user's own directory.
@@ -136,10 +144,14 @@ impl Error {
             Self::Configuration(_) => "configuration",
             Self::NoModeAvailable { .. } => "no_mode_available",
             Self::ModeNotImplemented { .. } => "mode_not_implemented",
-            Self::NoStatusCommand { .. } => "no_status_command",
-            Self::NoSegmentCommand { .. } => "no_segment_command",
-            Self::NativeResolutionUnknown { .. } => "native_resolution_unknown",
+            Self::NoRoleCommand { role, .. } => match role {
+                Role::Status => "no_status_command",
+                Role::SegmentEnable | Role::SegmentColor => "no_segment_command",
+            },
+            Self::ZoneCountUnknown { .. } => "zone_count_unknown",
             Self::ZoneCountMismatch { .. } => "zone_count_mismatch",
+            Self::ZoneOutOfRange { .. } => "zone_out_of_range",
+            Self::StreamRateOutOfRange { .. } => "stream_rate_out_of_range",
             Self::LocalDevices { .. } => "local_devices",
         }
     }

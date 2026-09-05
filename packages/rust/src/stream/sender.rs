@@ -25,6 +25,9 @@ pub(crate) struct Shared {
     /// device file names its commands per mode, so a stream that changed mode
     /// would be sending another file's bytes.
     pub(crate) mode: Mode,
+    /// The SKU resolved when the stream opened. Carried so a frame does not
+    /// re-take the transport's lock to look it up again.
+    pub(crate) sku: String,
     /// The device file entry that arms and disarms the channel.
     pub(crate) enable: String,
     /// The device file entry that paints zones.
@@ -32,6 +35,9 @@ pub(crate) struct Shared {
     /// The `gradient` argument to send, if the command declares one.
     pub(crate) gradient: Option<i64>,
     pub(crate) hz: f64,
+    /// Fixed when the stream opens: the firmware reads the count off the frame
+    /// and re-groups the LEDs around it.
+    pub(crate) zones: usize,
     pub(crate) colors: Mutex<Vec<[u8; 3]>>,
     /// Bumped by every write.
     pub(crate) generation: AtomicU64,
@@ -44,14 +50,9 @@ pub(crate) struct Shared {
 }
 
 impl Shared {
-    /// A rate at or below zero would be a division by zero on the fast path, so
-    /// it is read as "as fast as the loop runs" — one millisecond.
+    /// The tick length. `hz` is checked above zero when the stream opens.
     fn interval(&self) -> Duration {
-        if self.hz > 0.0 {
-            Duration::from_secs_f64(1.0 / self.hz)
-        } else {
-            Duration::from_millis(1)
-        }
+        Duration::from_secs_f64(1.0 / self.hz)
     }
 }
 
@@ -116,7 +117,7 @@ fn frame_args(shared: &Shared, colors: Vec<[u8; 3]>) -> Args {
 }
 
 fn encode(shared: &Shared, command: &str, args: &Args) -> Result<Encoded> {
-    shared.govee.encode(&shared.id, shared.mode, command, args)
+    shared.govee.encode(&shared.sku, shared.mode, command, args)
 }
 
 /// Write a frame. The one thing here bound to a single transport, and the seam

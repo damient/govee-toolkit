@@ -42,8 +42,8 @@ moving an item out of the default set, is breaking — a user who builds with
 `--no-default-features` is relying on exactly what is left, and the codec-only
 build is a supported configuration, checked in CI.
 
-`govee_toolkit::codec` is public because a binding needs it. It
-carries the same promise as the rest of the crate.
+`govee_toolkit::codec` is public because a binding needs it. It carries the same
+promise as the rest of the crate.
 
 ## Which binding works with which core
 

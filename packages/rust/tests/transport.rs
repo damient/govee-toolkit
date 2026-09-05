@@ -15,7 +15,7 @@ use govee_toolkit_sim::Simulator;
 
 mod common;
 
-use common::{MAC, SKU};
+use common::{SKU, id, wait_for};
 
 /// A transport wired to one simulated device, and the device itself.
 struct Rig {
@@ -30,7 +30,7 @@ impl Rig {
     }
 
     async fn with_options(policy: Policy, tweak: impl FnOnce(Options) -> Options) -> Self {
-        let simulator = common::simulator().await;
+        let simulator = common::simulator(SKU).await;
 
         let options = tweak(Options {
             endpoints: common::endpoints(&simulator),
@@ -72,10 +72,6 @@ impl Rig {
             .expect("the scan goes out");
         assert_eq!(found.len(), 1, "the simulated device answers");
     }
-}
-
-fn id() -> govee_toolkit::lan::DeviceId {
-    govee_toolkit::lan::DeviceId::new(MAC)
 }
 
 #[tokio::test]
@@ -342,19 +338,4 @@ async fn the_cache_makes_a_restart_free_of_scanning() {
     assert!(received.is_some());
 
     let _ = std::fs::remove_dir_all(&directory);
-}
-
-/// Poll `check` until it yields, for at most a second.
-///
-/// UDP on the loopback is fast but not synchronous, and the verification runs
-/// on its own task: a fixed sleep would either be flaky or slow.
-async fn wait_for<T>(mut check: impl FnMut() -> Option<T>) -> Option<T> {
-    let deadline = Instant::now() + Duration::from_secs(1);
-    while Instant::now() < deadline {
-        if let Some(value) = check() {
-            return Some(value);
-        }
-        tokio::time::sleep(Duration::from_millis(5)).await;
-    }
-    check()
 }

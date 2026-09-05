@@ -182,12 +182,9 @@ impl ArgSpec {
 ///
 /// Only the device file names commands. A role lets it say which entry serves a
 /// purpose the SDK has of its own, so no command name has to live in code.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
-    /// Nothing beyond the name the caller asks for. The default.
-    #[default]
-    None,
     /// Reports the device's state. This is what fire-and-verify sends after a
     /// command, and what a `status()` call encodes.
     Status,
@@ -207,7 +204,6 @@ impl Role {
 impl fmt::Display for Role {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            Self::None => "none",
             Self::Status => "status",
             Self::SegmentEnable => "segment_enable",
             Self::SegmentColor => "segment_color",
@@ -234,7 +230,7 @@ pub struct Command {
     /// Path to a real capture, relative to the repository root.
     pub capture: String,
     /// What the SDK may use this command for on its own. See [`Role`].
-    pub role: Role,
+    pub role: Option<Role>,
 
     /// `frame`, tokenized on first use. The layout is fixed by the device file,
     /// so the send path parses it once rather than once per command.
@@ -326,13 +322,10 @@ impl Device {
     /// this mode, and callers do without rather than guessing a name.
     #[must_use]
     pub fn command_for(&self, mode: Mode, role: Role) -> Option<&str> {
-        if role == Role::None {
-            return None;
-        }
         self.commands
             .get(mode)
             .iter()
-            .find(|(_, command)| command.role == role)
+            .find(|(_, command)| command.role == Some(role))
             .map(|(name, _)| name.as_str())
     }
 

@@ -61,12 +61,13 @@ impl DeviceHandle<'_> {
     /// write fails.
     pub async fn send(&self, command: &str, args: &Args) -> Result<Served> {
         let mode = self.govee.choose(&self.id)?;
-        let encoded = self.govee.encode(&self.id, mode, command, args)?;
+        let sku = self.govee.sku(&self.id)?;
+        let encoded = self.govee.encode(&sku, mode, command, args)?;
 
         // Fire-and-verify needs a request to verify with. A device file that
         // declares no status command is not verified — the command still
         // goes out.
-        let verification = self.govee.status_request(&self.id, mode).ok();
+        let verification = self.govee.status_request(&sku, mode).ok();
         let verify = verification
             .as_deref()
             .map_or(crate::lan::Verify::None, crate::lan::Verify::With);
@@ -105,10 +106,10 @@ impl DeviceHandle<'_> {
     /// # Errors
     ///
     /// [`Error::ModeNotImplemented`] if the chosen mode is not `lan`,
-    /// [`Error::NoSegmentCommand`] if the device file marks no entry
+    /// [`Error::NoRoleCommand`] if the device file marks no entry
     /// `role: segment_enable` or `role: segment_color`,
-    /// [`Error::NativeResolutionUnknown`] for
-    /// [`Zones::Native`](crate::stream::Zones::Native) on an unmeasured unit,
+    /// [`Error::ZoneCountUnknown`] if the count asked for is not recorded for
+    /// this unit,
     /// [`Error::Codec`] if the zone count is outside what the command declares,
     /// or [`Error::Transport`] if arming cannot be sent.
     pub async fn open_stream(&self, options: StreamOptions) -> Result<SegmentStream> {
@@ -123,7 +124,9 @@ impl DeviceHandle<'_> {
     /// if nothing answers in time.
     pub async fn status(&self) -> Result<DeviceStatus> {
         let mode = self.govee.choose(&self.id)?;
-        let request = self.govee.status_request(&self.id, mode)?;
+        let request = self
+            .govee
+            .status_request(&self.govee.sku(&self.id)?, mode)?;
         match mode {
             Mode::Lan => Ok(self.govee.inner.lan.status(&self.id, &request).await?),
             Mode::Ble | Mode::Cloud => Err(Error::ModeNotImplemented {

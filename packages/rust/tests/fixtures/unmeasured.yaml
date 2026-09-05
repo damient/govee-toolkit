@@ -1,7 +1,7 @@
 # A device file that declares the segment channel but records no native
 # resolution — the honest state of every SKU nobody has measured a unit of.
 schema_version: 1
-sku: "H61A0"
+sku: "HTEST0"
 family: "test"
 name: "Unmeasured segment device"
 

@@ -95,24 +95,24 @@ impl Frame {
             return Err(bad("empty".to_owned()));
         }
 
-        let lens: Vec<usize> = positions(&tokens, |t| matches!(t, Token::Len16));
-        let ops: Vec<usize> = positions(&tokens, |t| matches!(t, Token::Opcode(_)));
-        let xors: Vec<usize> = positions(&tokens, |t| matches!(t, Token::Xor));
-        if lens.len() > 1 {
+        let (len, len_repeats) = only(&tokens, |t| matches!(t, Token::Len16));
+        let (_, op_repeats) = only(&tokens, |t| matches!(t, Token::Opcode(_)));
+        let (xor, xor_repeats) = only(&tokens, |t| matches!(t, Token::Xor));
+        if len_repeats {
             return Err(bad("`<len:16>` appears more than once".to_owned()));
         }
-        if ops.len() > 1 {
+        if op_repeats {
             return Err(bad("`<op:…>` appears more than once".to_owned()));
         }
-        if xors.len() > 1 {
+        if xor_repeats {
             return Err(bad("`<xor>` appears more than once".to_owned()));
         }
-        if let Some(i) = xors.first()
+        if let Some(i) = xor
             && i + 1 != tokens.len()
         {
             return Err(bad("`<xor>` must be the last token".to_owned()));
         }
-        if let Some(&i) = lens.first()
+        if let Some(i) = len
             && !matches!(tokens.get(i + 1), Some(Token::Opcode(_)))
         {
             return Err(bad("`<len:16>` must be followed by `<op:…>`".to_owned()));
@@ -136,13 +136,14 @@ impl Frame {
     }
 }
 
-fn positions(tokens: &[Token], pred: impl Fn(&Token) -> bool) -> Vec<usize> {
-    tokens
+/// Where the first matching token is, and whether another one follows it.
+fn only(tokens: &[Token], pred: impl Fn(&Token) -> bool) -> (Option<usize>, bool) {
+    let mut matches = tokens
         .iter()
         .enumerate()
         .filter(|(_, t)| pred(t))
-        .map(|(i, _)| i)
-        .collect()
+        .map(|(i, _)| i);
+    (matches.next(), matches.next().is_some())
 }
 
 fn parse_token(raw: &str) -> Option<Token> {
@@ -163,10 +164,14 @@ fn parse_token(raw: &str) -> Option<Token> {
     if raw.starts_with('(') {
         return parse_repeat(raw);
     }
-    if raw.len() == 2 && raw.chars().all(|c| c.is_ascii_hexdigit()) {
-        return u8::from_str_radix(raw, 16).ok().map(Token::Literal);
-    }
-    None
+    hex_byte(raw).map(Token::Literal)
+}
+
+/// Exactly two hex digits, as the byte they spell.
+fn hex_byte(raw: &str) -> Option<u8> {
+    (raw.len() == 2 && raw.bytes().all(|b| b.is_ascii_hexdigit()))
+        .then(|| u8::from_str_radix(raw, 16).ok())
+        .flatten()
 }
 
 /// `<op:…>` carries an even number of hex digits: `B0`, or `B0B1` for a
@@ -178,10 +183,7 @@ fn parse_opcode(hex: &str) -> Option<Token> {
     let bytes = hex
         .as_bytes()
         .chunks(2)
-        .map(|pair| {
-            let pair = std::str::from_utf8(pair).ok()?;
-            u8::from_str_radix(pair, 16).ok()
-        })
+        .map(|pair| hex_byte(std::str::from_utf8(pair).ok()?))
         .collect::<Option<Vec<u8>>>()?;
     Some(Token::Opcode(bytes))
 }

@@ -104,8 +104,8 @@ cargo run -p xtask            # writes dist/catalog.json
 ```
 
 One generated JSON file holding every device, for anything that wants the
-catalog without a YAML parser. It is a build
-output: never committed, produced by CI, attached to a release.
+catalog without a YAML parser. It is a build output: never committed, produced
+by CI, attached to a release.
 
 ### The local escape hatch
 

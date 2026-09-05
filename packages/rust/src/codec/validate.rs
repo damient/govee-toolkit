@@ -66,32 +66,47 @@ pub fn device(device: &Device) -> Vec<Problem> {
         // The SDK picks these commands by role, so two claimants leave it with
         // nothing to pick.
         for role in Role::CLAIMABLE {
-            let claimants: Vec<&str> = device
+            let claimants: Vec<(&str, &Command)> = device
                 .commands
                 .get(mode)
                 .iter()
-                .filter(|(_, command)| command.role == role)
-                .map(|(name, _)| name.as_str())
+                .filter(|(_, command)| command.role == Some(role))
+                .map(|(name, command)| (name.as_str(), command))
                 .collect();
             if claimants.len() > 1 {
                 problems.push(at(
                     &mode.to_string(),
                     format!(
                         "`role: {role}` is claimed by {}; at most one command may claim a role",
-                        claimants.join(", ")
+                        claimants
+                            .iter()
+                            .map(|(name, _)| *name)
+                            .collect::<Vec<_>>()
+                            .join(", ")
                     ),
                 ));
             }
-            for name in claimants {
-                if let Some(command) = device.commands.get(mode).get(name) {
-                    problems.extend(
-                        check_role_args(role, command)
-                            .into_iter()
-                            .map(|message| at(&format!("{mode}.{name}"), message)),
-                    );
-                }
+            for (name, command) in claimants {
+                problems.extend(
+                    check_role_args(role, command)
+                        .into_iter()
+                        .map(|message| at(&format!("{mode}.{name}"), message)),
+                );
             }
         }
+    }
+
+    if let Some(measured) = device.measurements.native_pixels
+        && device.capabilities.native_pixels != 0
+        && device.capabilities.native_pixels != measured
+    {
+        problems.push(at(
+            "capabilities.native_pixels",
+            format!(
+                "is {}, but `measurements.native_pixels` records {measured} on the unit measured",
+                device.capabilities.native_pixels
+            ),
+        ));
     }
 
     problems
@@ -104,7 +119,7 @@ fn check_role_args(role: Role, command: &Command) -> Vec<String> {
     let required: &[(&str, &str)] = match role {
         Role::SegmentEnable => &[("on", crate::codec::args::INT)],
         Role::SegmentColor => &[("colors", crate::codec::args::RGB_LIST)],
-        Role::None | Role::Status => &[],
+        Role::Status => &[],
     };
     required
         .iter()

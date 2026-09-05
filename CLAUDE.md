@@ -137,12 +137,12 @@ carry `publish = false`. A transport is a cargo feature — `ble` and `cloud` jo
 
 The codec keeps building on its own (`cargo check --no-default-features`), and
 `tools/check-no-io.sh` fails the build if anything under `src/codec/` imports
-`std::net`, `std::fs`, `std::thread`, `tokio` or `socket2`, or goes async. That check is what keeps the codec
-I/O-free in a single crate; do not weaken it.
+`std::net`, `std::fs`, `std::thread`, `tokio` or `socket2`, or goes async. That
+check is what keeps the codec I/O-free in a single crate; do not weaken it.
 
 Node and Python wrap the crate (napi-rs, PyO3). Each package versions and
-releases independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) through the workflows in `.github/workflows/`. The policy is
-`docs/versioning.md`.
+releases independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) through
+the workflows in `.github/workflows/`. The policy is `docs/versioning.md`.
 
 Nothing is published. The Rust crate carries `0.2.0`; the other two are at
 `0.0.0` because they have no code. No registry name is reserved, and the bare

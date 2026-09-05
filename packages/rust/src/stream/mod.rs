@@ -140,15 +140,20 @@ impl SegmentStream {
             options.rate,
             govee.config().lan.stream_fallback_hz,
         );
+        if hz <= 0.0 {
+            return Err(Error::StreamRateOutOfRange { hz });
+        }
 
         let shared = Arc::new(Shared {
             govee: govee.clone(),
             id: id.clone(),
             mode,
+            sku,
             enable: enable.to_owned(),
             color: color.to_owned(),
             gradient: gradient_arg(device, mode, color, options.gradient),
             hz,
+            zones,
             colors: Mutex::new(vec![[0, 0, 0]; zones]),
             generation: AtomicU64::new(0),
             emitted: AtomicU64::new(0),
@@ -165,7 +170,7 @@ impl SegmentStream {
     /// How many zones every frame carries. Fixed for the life of the stream.
     #[must_use]
     pub fn zones(&self) -> usize {
-        self.shared.colors.lock().map_or(0, |colors| colors.len())
+        self.shared.zones
     }
 
     /// The rate frames go out at, in hertz.
@@ -182,13 +187,13 @@ impl SegmentStream {
     /// long. The firmware reads the count off the frame and re-groups the LEDs
     /// around it, so a stream carries one count throughout.
     pub fn set_all(&self, colors: &[[u8; 3]]) -> Result<()> {
+        if colors.len() != self.shared.zones {
+            return Err(Error::ZoneCountMismatch {
+                expected: self.shared.zones,
+                got: colors.len(),
+            });
+        }
         self.paint(|current| {
-            if current.len() != colors.len() {
-                return Err(Error::ZoneCountMismatch {
-                    expected: current.len(),
-                    got: colors.len(),
-                });
-            }
             current.copy_from_slice(colors);
             Ok(())
         })
@@ -198,17 +203,19 @@ impl SegmentStream {
     ///
     /// # Errors
     ///
-    /// [`Error::ZoneCountMismatch`] if `index` is past the last zone.
+    /// [`Error::ZoneOutOfRange`] if `index` is past the last zone.
     pub fn set_zone(&self, index: usize, color: [u8; 3]) -> Result<()> {
-        self.paint(|current| match current.get_mut(index) {
-            Some(zone) => {
+        if index >= self.shared.zones {
+            return Err(Error::ZoneOutOfRange {
+                index,
+                zones: self.shared.zones,
+            });
+        }
+        self.paint(|current| {
+            if let Some(zone) = current.get_mut(index) {
                 *zone = color;
-                Ok(())
             }
-            None => Err(Error::ZoneCountMismatch {
-                expected: current.len(),
-                got: index.saturating_add(1),
-            }),
+            Ok(())
         })
     }
 
@@ -216,7 +223,7 @@ impl SegmentStream {
     ///
     /// # Errors
     ///
-    /// Nothing here fails; the signature matches the other writers.
+    /// [`Error::Transport`] if the stream has shut down.
     pub fn fill(&self, color: [u8; 3]) -> Result<()> {
         self.paint(|current| {
             current.fill(color);
@@ -321,26 +328,27 @@ impl Drop for SegmentStream {
 fn named(device: &Device, mode: Mode, role: Role) -> Result<&str> {
     device
         .command_for(mode, role)
-        .ok_or_else(|| Error::NoSegmentCommand {
+        .ok_or_else(|| Error::NoRoleCommand {
             sku: device.sku.clone(),
             mode,
             role,
         })
 }
 
+/// Zero means nobody recorded the count — for either capability, and for a
+/// caller who asked for none. A stream armed on it would send frames the codec
+/// refuses, and the refusal would land where nothing is looking.
 fn zone_count(device: &Device, zones: Zones) -> Result<usize> {
     let count = match zones {
         Zones::App => device.capabilities.segment_count,
-        Zones::Native => match device.capabilities.native_pixels {
-            0 => {
-                return Err(Error::NativeResolutionUnknown {
-                    sku: device.sku.clone(),
-                });
-            }
-            measured => measured,
-        },
+        Zones::Native => device.capabilities.native_pixels,
         Zones::Exact(n) => u32::from(n),
     };
+    if count == 0 {
+        return Err(Error::ZoneCountUnknown {
+            sku: device.sku.clone(),
+        });
+    }
     Ok(count.try_into().unwrap_or(usize::MAX))
 }
 

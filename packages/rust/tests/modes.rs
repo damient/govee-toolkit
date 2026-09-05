@@ -8,49 +8,24 @@
 
 use std::time::{Duration, Instant};
 
-use govee_toolkit::lan::Transport;
 use govee_toolkit::{Args, Catalog, Config, DeviceId, Govee, Mode, State};
-use govee_toolkit_sim::Simulator;
 
 mod common;
 
-use common::{SKU, id};
+use common::{Rig, SKU, id};
 
-struct Rig {
-    govee: Govee,
-    simulator: Simulator,
+async fn rig(yaml: &str) -> Rig {
+    rig_with(yaml, Catalog::embedded().expect("catalog")).await
 }
 
-impl Rig {
-    async fn start(yaml: &str) -> Self {
-        Self::start_with(yaml, Catalog::embedded().expect("catalog")).await
-    }
-
-    async fn start_with(yaml: &str, catalog: Catalog) -> Self {
-        let simulator = common::simulator().await;
-
-        let mut config: Config = serde_norway::from_str(yaml).expect("the configuration parses");
-        config.lan.cache_disabled = true;
-        config.lan.refresh_interval_seconds = None;
-        config.lan.status_timeout_ms = 150;
-        config.lan.scan_window_ms = 200;
-
-        let transport = Transport::start(govee_toolkit::lan::Options {
-            endpoints: common::endpoints(&simulator),
-            ..config.lan.transport_options().expect("transport options")
-        })
-        .await
-        .expect("the socket binds");
-
-        let govee = Govee::attach(config, catalog, transport).expect("the configuration applies");
-        govee.scan().await.expect("the scan goes out");
-        Self { govee, simulator }
-    }
+async fn rig_with(yaml: &str, catalog: Catalog) -> Rig {
+    let config: Config = serde_norway::from_str(yaml).expect("the configuration parses");
+    Rig::start(config, catalog, SKU).await
 }
 
 #[tokio::test]
 async fn a_command_reports_the_mode_that_served_it() {
-    let rig = Rig::start("defaults:\n  modes: [lan]\n").await;
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
     rig.simulator.clear();
 
     let served = rig
@@ -67,7 +42,7 @@ async fn a_command_reports_the_mode_that_served_it() {
 
 #[tokio::test]
 async fn an_out_of_range_argument_is_refused_rather_than_clamped() {
-    let rig = Rig::start("defaults:\n  modes: [lan]\n").await;
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
     rig.simulator.clear();
 
     // The firmware would clamp 0 up to 1 in silence (docs/protocol/lan.md 2.1)
@@ -86,8 +61,7 @@ async fn an_out_of_range_argument_is_refused_rather_than_clamped() {
 #[tokio::test]
 async fn a_single_mode_fails_rather_than_switching() {
     let rig =
-        Rig::start("defaults:\n  modes: [lan]\nlan:\n  degrade_after: 1\n  cooldown_seconds: 60\n")
-            .await;
+        rig("defaults:\n  modes: [lan]\nlan:\n  degrade_after: 1\n  cooldown_seconds: 60\n").await;
     rig.simulator.set_silent(true);
 
     // One unanswered status is enough to degrade this configuration.
@@ -114,10 +88,9 @@ async fn a_single_mode_fails_rather_than_switching() {
 
 #[tokio::test]
 async fn a_second_mode_is_reported_rather_than_silently_skipped() {
-    let rig = Rig::start(
-        "defaults:\n  modes: [lan, ble]\nlan:\n  degrade_after: 1\n  cooldown_seconds: 60\n",
-    )
-    .await;
+    let rig =
+        rig("defaults:\n  modes: [lan, ble]\nlan:\n  degrade_after: 1\n  cooldown_seconds: 60\n")
+            .await;
     rig.simulator.set_silent(true);
 
     let device = rig.govee.device(&id());
@@ -137,7 +110,7 @@ async fn a_second_mode_is_reported_rather_than_silently_skipped() {
 
 #[tokio::test]
 async fn a_device_that_was_never_discovered_is_not_scanned_for() {
-    let rig = Rig::start("defaults:\n  modes: [lan]\n").await;
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
     rig.simulator.clear();
 
     let error = rig
@@ -152,7 +125,7 @@ async fn a_device_that_was_never_discovered_is_not_scanned_for() {
 
 #[tokio::test]
 async fn the_status_a_device_reports_reaches_the_caller() {
-    let rig = Rig::start("defaults:\n  modes: [lan]\n").await;
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
     rig.simulator.set_status(serde_json::json!({
         "onOff": 1, "brightness": 75, "color": { "r": 0, "g": 0, "b": 0 },
         "colorTemInKelvin": 7200
@@ -183,7 +156,7 @@ async fn enabling_a_mode_the_hardware_lacks_is_reported() {
         )])
         .expect("the overlay applies");
 
-    let rig = Rig::start_with("defaults:\n  modes: [ble]\n", catalog).await;
+    let rig = rig_with("defaults:\n  modes: [ble]\n", catalog).await;
     let problems = rig.govee.problems();
     assert_eq!(problems.len(), 1, "{problems:?}");
     assert!(
@@ -198,7 +171,7 @@ async fn enabling_a_mode_nobody_probed_is_not_a_configuration_error() {
     // H61A0 declares `ble: support: unknown`. Refusing it would be claiming the
     // hardware cannot do it, which nobody established — and enabling the mode
     // is how somebody would find out.
-    let rig = Rig::start("defaults:\n  modes: [ble]\n").await;
+    let rig = rig("defaults:\n  modes: [ble]\n").await;
     assert!(
         rig.govee.problems().is_empty(),
         "{:?}",
@@ -217,7 +190,7 @@ async fn enabling_a_mode_nobody_probed_is_not_a_configuration_error() {
 
 #[tokio::test]
 async fn status_recorded_over_lan_is_not_handed_back_under_another_mode() {
-    let rig = Rig::start("defaults:\n  modes: [ble]\n").await;
+    let rig = rig("defaults:\n  modes: [ble]\n").await;
 
     // The lan transport knows the device — the scan found it — so the
     // accessors have something to return and must still refuse to.
@@ -238,10 +211,9 @@ async fn a_configuration_that_could_never_work_is_refused_at_startup() {
 
 #[tokio::test]
 async fn the_devices_listing_carries_the_configured_view() {
-    let rig = Rig::start(
-        "defaults:\n  modes: [lan]\ndevices:\n  \"aa:bb:cc:dd:ee:ff\":\n    name: \"desk\"\n",
-    )
-    .await;
+    let rig =
+        rig("defaults:\n  modes: [lan]\ndevices:\n  \"aa:bb:cc:dd:ee:ff\":\n    name: \"desk\"\n")
+            .await;
 
     let devices = rig.govee.devices();
     assert_eq!(devices.len(), 1);
@@ -274,7 +246,7 @@ async fn a_file_that_names_no_status_command_still_sends() {
         )])
         .expect("the overlay applies");
 
-    let rig = Rig::start_with("defaults:\n  modes: [lan]\n", catalog).await;
+    let rig = rig_with("defaults:\n  modes: [lan]\n", catalog).await;
     rig.simulator.clear();
 
     rig.govee

@@ -29,8 +29,8 @@ authors = ["govee-toolkit contributors"]
 [features]
 # `lan` is the reason the project exists, so it is on by default. Turning the
 # default features off leaves the codec on its own: `devices/*.yaml` in, bytes
-# out, no socket and no async runtime. That is the build a hand-written port
-# checks itself against, and the one `tools/check-no-io.sh` guards.
+# out, no socket and no async runtime. That is the build every binding encodes
+# through, and the one `tools/check-no-io.sh` guards.
 default = ["lan"]
 lan = ["dep:socket2", "dep:tokio", "dep:tracing"]
 

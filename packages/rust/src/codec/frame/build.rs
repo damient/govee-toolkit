@@ -19,10 +19,9 @@ impl Frame {
     /// [`Error::MissingArg`], [`Error::ArgType`] or [`Error::FrameWidth`] if a
     /// value is absent, of the wrong shape, or too wide for its field.
     pub fn build(&self, command: &str, args: &Args) -> Result<Vec<u8>> {
-        let mut out: Vec<u8> = Vec::new();
+        let mut out: Vec<u8> = Vec::with_capacity(self.size_hint(args));
         let mut len_pos: Option<usize> = None;
         let mut payload_start: Option<usize> = None;
-        let mut checksum = false;
 
         for token in &self.tokens {
             match token {
@@ -53,10 +52,7 @@ impl Frame {
                     }
                 }
                 // `<xor>` is validated as the last token, so nothing follows.
-                Token::Xor => {
-                    checksum = true;
-                    break;
-                }
+                Token::Xor => break,
             }
         }
 
@@ -64,10 +60,32 @@ impl Frame {
             let len = out.len() - start;
             write_len(&mut out, pos, len);
         }
-        if checksum {
+        if matches!(self.tokens.last(), Some(Token::Xor)) {
             out.push(out.iter().fold(0u8, |acc, b| acc ^ b));
         }
         Ok(out)
+    }
+}
+
+impl Frame {
+    /// Bytes this layout will emit, so the buffer is allocated once. A repeat
+    /// group is sized from the list it will carry.
+    fn size_hint(&self, args: &Args) -> usize {
+        self.tokens
+            .iter()
+            .map(|token| match token {
+                Token::Literal(_) | Token::Xor => 1,
+                Token::Len16 => 2,
+                Token::Opcode(bytes) => bytes.len(),
+                Token::Arg { bits, .. } => (*bits as usize).div_ceil(8),
+                Token::Repeat { list, item, .. } => match item {
+                    RepeatItem::Rgb => match args.get(list) {
+                        Some(ArgValue::Rgb(colors)) => colors.len() * 3,
+                        _ => 0,
+                    },
+                },
+            })
+            .sum()
     }
 }
 
