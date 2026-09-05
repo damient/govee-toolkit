@@ -198,7 +198,7 @@ jobs:
     env:
       # Commits reachable from this one predate the convention and are skipped.
       # Emptying the variable checks the whole range.
-      GRANDFATHERED: b928043b2f620582e21a1885d3b07473cf19f5e7
+      GRANDFATHERED: bd87443d8bc4ed95257241ee804168d2c49129af
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
