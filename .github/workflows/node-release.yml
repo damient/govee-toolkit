@@ -25,13 +25,31 @@ jobs:
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
-      # TODO: enable once packages/node is publishable
-      # - run: npm ci --prefix packages/node
-      # - run: npm run build --prefix packages/node
-      # - run: npm publish --prefix packages/node --provenance
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: 'echo "TODO: build and publish packages/node"'
+      # Trusted publishing needs npm 11.5.1 or newer; node 24 ships past that.
+      - run: npm ci
+        working-directory: packages/node
+      - run: npm run build
+        working-directory: packages/node
+      # npm keeps a version forever, and a tag moved to a new commit reruns
+      # this job. A version already up is skipped rather than failing the run
+      # on an upload npm would refuse anyway.
+      - name: Is this version already on npm?
+        id: npm
+        working-directory: packages/node
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if npm view "govee-toolkit@$version" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      # Trusted publishing: npm trades this job's OIDC identity for a
+      # short-lived token, so no registry token lives in the repository. It
+      # also signs the provenance attestation, hence no `--provenance` flag.
+      - name: Publish
+        if: steps.npm.outputs.published == 'false'
+        working-directory: packages/node
+        run: npm publish
       - name: GitHub release
         if: github.event_name == 'push'
         env:
