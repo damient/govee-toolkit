@@ -57,9 +57,24 @@ SKU.
 - **Plain and concise.** State the fact and move on. No lyrical framing, no
   selling, no filler adjectives. This applies to docs, commit messages and code
   alike.
-- **Comment only when the comment earns its place** — a non-obvious constraint, a
-  measured value, a trap. Do not restate what the code already says.
+- **A comment earns its place or it goes.** It survives by carrying what the
+  code cannot state: a constraint the compiler does not enforce, a measured
+  value and what it was measured on, a trap, or a pointer that saves a search.
+  A doc comment adds what a caller must know — errors, units, what the item
+  does not do. Everything else is deleted, not reworded: restatement, headings
+  over code that names itself, narration of control flow, a private `///` that
+  expands the item's name into a sentence, commented-out code. `missing_docs`
+  is the one exception: a public item must carry a `///`, so give it payload —
+  errors, units, what it does not do — or one short line, never a paragraph.
+- **A kept comment states its fact and stops.** No preamble, no second sentence
+  repeating the first, no re-describing the mechanism the reader is looking at.
 - **English throughout**, including code comments.
+- **Describe the code as it is, not as it was.** Docs and comments carry no
+  trace of refactored, renamed or deleted code: no "no longer", "used to",
+  "previously", "this replaces the old X". Rewrite in the present. History that
+  is load-bearing stays — a check that exists to stop a named regression, a
+  migration note the user must act on — and `docs/roadmap.md`, release notes and
+  commit messages are history by design.
 - **The README lists what works today.** Planned work lives in
   `docs/features.md` and `docs/roadmap.md`, marked ✅ / 🚧 / 🔜.
 - **Avoid discouraging phrasing where it carries no technical information.**
@@ -122,8 +137,8 @@ carry `publish = false`. A transport is a cargo feature — `ble` and `cloud` jo
 
 The codec keeps building on its own (`cargo check --no-default-features`), and
 `tools/check-no-io.sh` fails the build if anything under `src/codec/` imports
-`std::net`, `std::fs`, `tokio` or `socket2`. That check is what replaced the
-crate boundary; do not weaken it.
+`std::net`, `std::fs`, `std::thread`, `tokio` or `socket2`, or goes async. That check is what keeps the codec
+I/O-free in a single crate; do not weaken it.
 
 Node and Python wrap the crate (napi-rs, PyO3); PHP is ported by hand and is
 checked against `tests/fixtures/golden/`. Each package versions and releases
