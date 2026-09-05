@@ -146,7 +146,7 @@ Per-mode protocol notes: [`lan.md`](docs/protocol/lan.md) ·
 
 ## Playground & desktop app
 
-> 🔜 Milestones 8 and 9 of the [roadmap](docs/roadmap.md); the directories below
+> 🔜 Milestones 7 and 8 of the [roadmap](docs/roadmap.md); the directories below
 > are scaffolded and ready to build on.
 
 - [`apps/playground/`](apps/playground/) — Node backend plus web UI: device

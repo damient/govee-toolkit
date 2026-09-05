@@ -15,5 +15,5 @@ napi-rs binding over the Rust core lands with milestone 6 of
 
 ### Added
 
-- Package scaffolding: `package.json` reserving the name `govee-toolkit` (ESM,
+- Package scaffolding: `package.json` declaring the name `govee-toolkit` (ESM,
   no dependencies), `tsconfig.json`, and an empty `src/index.ts`.

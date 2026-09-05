@@ -31,6 +31,10 @@ The version the manifests carry. Nothing is published to crates.io and the
   multicast discovery, an on-disk device cache so a command never waits for a
   scan, one reused UDP socket, fire-and-verify, and a per-device circuit breaker
   with `OK` / `DEGRADED` / `DOWN` states.
+- `govee_toolkit::stream` — the raw segment channel, armed once and fed frames
+  on a clock paced from the rate measured on the unit. A write never blocks: a
+  source faster than the device replaces the frame that had not gone out yet
+  rather than being throttled.
 - The facade at the crate root: configuration from
   `~/.config/govee-toolkit/config.yaml`, the enabled modes per device, the mode
   that served each command, and mode-transition events.

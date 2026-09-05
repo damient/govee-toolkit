@@ -118,6 +118,7 @@ The Rust side is one published crate, `govee-toolkit`, rooted at
 | ---- | ---------- |
 | `src/codec/` | Codec: device file in, bytes out, no I/O |
 | `src/lan/` | Transport: UDP, discovery, breaker. Behind the `lan` feature |
+| `src/stream/` | Segment channel: armed once, fed frames on a clock |
 | `src/` | Facade: modes, configuration, events |
 | `crates/sim/` | Device simulator. Never published |
 | `crates/xtask/` | Generates `dist/catalog.json`. Never published |

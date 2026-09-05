@@ -97,7 +97,7 @@ commands:
   #                          name its opcode with <op:…> right after.
   #   (${list}:rgb)×${n}     `n` RGB triples taken from the list argument `list`.
   #                          Omit `n` at call time and it is derived from the
-  #                          list length.
+  #                          list length. An ASCII `x` is accepted for `×`.
   #   <xor>                  XOR of every preceding byte. Must come last.
   #
   # `args:` — one entry per argument, either

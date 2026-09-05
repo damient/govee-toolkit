@@ -86,9 +86,13 @@ The SDK uses the first available mode in the list and may switch to the next
 one, driven by the per-device circuit breaker:
 
 - States: `OK` | `DEGRADED` | `DOWN`, tracked **per device and per mode**.
-- 2–3 consecutive timeouts on a mode → that mode goes `DEGRADED`, the SDK moves
-  to the next enabled mode for a cooldown (e.g. 30 s), then retries the
-  preferred one.
+- Three consecutive failures take a mode to `DEGRADED`: the SDK moves to the
+  next enabled mode, and after a 30 s cooldown lets one command through to probe
+  the preferred one. Two consecutive answers bring it back to `OK`.
+- Six take it to `DOWN`, which is the same shape with a five-minute cooldown —
+  a mode silent for minutes is not worth probing every 30 seconds.
+- The thresholds and both cooldowns are the defaults; `lan:` in the
+  configuration tunes them.
 - The mode is chosen from the breaker state already known, never from a fresh
   timeout on each call: a fresh timeout would cost the fast path a round-trip.
 

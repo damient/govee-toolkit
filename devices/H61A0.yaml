@@ -100,7 +100,6 @@ commands:
       args: {}
       capture: ""         # TODO
 
-    # --- undocumented, verified on this device ---
     raw_status:
       cmd: "status"
       documented: false

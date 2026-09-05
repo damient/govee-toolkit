@@ -56,16 +56,16 @@ reported at runtime.
 
 Public:
 
-- The facade's exported types, functions and traits, including `Transport`.
+- The facade's exported types, functions and traits.
 - The configuration file format at `$XDG_CONFIG_HOME/govee-toolkit/config.yaml`.
 - The event types an application subscribes to, and the error variants it
   matches on.
 - The conformance vector format in `tests/fixtures/golden/`.
 - The `devices/` schema and the generated `catalog.json` format.
 
-Not public: the internal crates' own APIs, the on-disk device cache format (it
-is versioned and discarded when foreign), log and tracing output, and anything
-marked `#[doc(hidden)]`.
+Not public: the APIs of `crates/sim` and `crates/xtask`, the on-disk device
+cache format (it is versioned and discarded when foreign), log and tracing
+output, and anything marked `#[doc(hidden)]`.
 
 ### The device catalogue
 
@@ -117,5 +117,5 @@ anything is published there is no baseline to compare against, and after it
 there is no excuse for an unintended break. Until then, the checks in
 [`../CONTRIBUTING.md`](../CONTRIBUTING.md) are what CI runs.
 
-Nothing has shipped yet — package names are reserved in the manifests and no
+Nothing has shipped yet — the manifests declare the package names, and no
 release exists on any registry.

@@ -9,12 +9,13 @@ other language reaches it through a binding rather than a port — see
 
 Nothing is published to crates.io yet.
 
-## One crate, three layers
+## One crate, four layers
 
 | Layer | Where | Contents |
 | ----- | ----- | -------- |
 | Codec | [`src/codec/`](src/codec) | Device catalog, command encoding, raw frame codec. No I/O. |
 | Transport | [`src/lan/`](src/lan) | UDP: discovery, device cache, reused socket, per-device circuit breaker |
+| Stream | [`src/stream/`](src/stream) | The segment channel: armed once, fed frames on a clock |
 | Facade | [`src/`](src) | Configuration, mode selection, events |
 
 Two more live beside it and are never published:

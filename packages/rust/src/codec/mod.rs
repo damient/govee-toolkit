@@ -155,7 +155,7 @@ impl Catalog {
 
             if let Some(position) = self.index.get(&key).copied() {
                 // Drop every key the old entry answered to, including aliases
-                // the replacement may no longer declare.
+                // the replacement does not declare.
                 self.index.retain(|_, i| *i != position);
                 let was = self.origin.get(position).cloned().unwrap_or_default();
                 self.claim_keys(&device, position, file)?;

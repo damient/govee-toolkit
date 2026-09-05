@@ -130,8 +130,8 @@ SKU.
 
 `packages/rust` is the reference implementation and the only place protocol
 logic exists. It is **one crate**, `govee-toolkit`, with the layers as modules:
-`src/codec/` (no I/O), `src/lan/` (behind the default `lan` feature) and the
-facade at the crate root. `crates/sim` and `crates/xtask` sit beside it and
+`src/codec/` (no I/O), `src/lan/` and `src/stream/` (behind the default `lan`
+feature) and the facade at the crate root. `crates/sim` and `crates/xtask` sit beside it and
 carry `publish = false`. A transport is a cargo feature — `ble` and `cloud` join
 `lan` as they land.
 

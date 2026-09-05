@@ -16,5 +16,5 @@ binding over the Rust core lands with milestone 6 of
 ### Added
 
 - Package scaffolding: `pyproject.toml` (hatchling, `requires-python >= 3.10`,
-  no dependencies) reserving the name `govee-toolkit`, and an empty
+  no dependencies) declaring the name `govee-toolkit`, and an empty
   `govee_toolkit` module.
