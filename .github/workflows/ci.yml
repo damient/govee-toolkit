@@ -2,7 +2,12 @@ name: CI
 
 on:
   workflow_dispatch:
+  # A draft pull request does not run the jobs: every job is gated on
+  # draft == false, and ready_for_review is what starts them. Marking a pull
+  # request ready counts as an event of its own, so nothing has to be pushed
+  # again to get a first run.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
@@ -16,6 +21,7 @@ env:
 jobs:
   rust:
     name: Rust core
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -51,6 +57,7 @@ jobs:
 
   msrv:
     name: MSRV
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -68,6 +75,7 @@ jobs:
 
   lint:
     name: Spelling and file length
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,6 +84,7 @@ jobs:
 
   deny:
     name: Licenses and advisories
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +95,7 @@ jobs:
 
   python:
     name: Python
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,6 +108,7 @@ jobs:
 
   node:
     name: Node
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -110,6 +121,7 @@ jobs:
 
   php:
     name: PHP
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -123,6 +135,7 @@ jobs:
 
   docs:
     name: Documentation
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -121,7 +121,9 @@ lines (`tools/check-file-length.sh`); split along responsibilities rather than
 trimming to fit. The MSRV is checked in CI, so a feature that needs a newer
 compiler raises `rust-version` in the same commit.
 
-`ci.yml` runs on push and pull request. The release workflows stay
+`tools/qa.sh` runs the CI checks locally — use it before pushing rather than
+reading the result off a pull request. `ci.yml` runs on push to `main` and on
+pull request, skipping every job while the pull request is a draft. The release workflows stay
 `workflow_dispatch` only until there is something to publish.
 
 ## Repository

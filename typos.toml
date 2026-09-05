@@ -4,3 +4,9 @@ extend-exclude = [
   "packages/rust/Cargo.lock",
   "*.pcap",
 ]
+
+[default]
+# typos splits a SKU into words, so H61BA reads as "BA" and it asks for "BY".
+# Skipping the SKU token keeps the correction live everywhere else, including
+# in the prose of the same file, and covers the SKUs not listed yet.
+extend-ignore-re = ["\\bH[0-9A-Z]{4}\\b"]
