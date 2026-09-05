@@ -1,9 +1,15 @@
 {
-  "comment": "TODO: fill in once the Electron wrapper is implemented.",
   "name": "govee-toolkit-desktop",
   "version": "0.0.0",
   "private": true,
   "description": "Electron wrapper around the playground.",
+  "license": "MIT",
+  "author": "damient",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damient/govee-toolkit.git",
+    "directory": "apps/desktop"
+  },
   "main": "main.js",
   "scripts": {
     "start": "electron ."

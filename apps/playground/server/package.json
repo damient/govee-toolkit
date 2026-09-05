@@ -1,8 +1,14 @@
 {
-  "comment": "TODO: fill in once the playground backend is implemented.",
   "name": "govee-playground-server",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
+  "author": "damient",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damient/govee-toolkit.git",
+    "directory": "apps/playground/server"
+  },
   "type": "module",
   "main": "index.js",
   "scripts": {

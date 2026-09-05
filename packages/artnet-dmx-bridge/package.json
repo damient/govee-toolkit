@@ -1,9 +1,16 @@
 {
-  "comment": "TODO: fill in once the bridge is implemented.",
   "name": "govee-artnet-dmx-bridge",
   "version": "0.0.0",
   "description": "Art-Net / DMX bridge: maps DMX channels to Govee devices and segments over LAN.",
   "license": "MIT",
+  "author": "damient",
+  "homepage": "https://github.com/damient/govee-toolkit/tree/main/packages/artnet-dmx-bridge#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damient/govee-toolkit.git",
+    "directory": "packages/artnet-dmx-bridge"
+  },
+  "bugs": "https://github.com/damient/govee-toolkit/issues",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

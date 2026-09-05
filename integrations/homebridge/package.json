@@ -1,10 +1,20 @@
 {
-  "comment": "TODO: fill in once the plugin is implemented.",
   "name": "homebridge-govee-toolkit",
   "version": "0.0.0",
   "description": "Homebridge plugin exposing Govee devices to HomeKit over LAN.",
   "license": "MIT",
-  "keywords": ["homebridge-plugin", "govee"],
+  "author": "damient",
+  "homepage": "https://github.com/damient/govee-toolkit/tree/main/integrations/homebridge#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damient/govee-toolkit.git",
+    "directory": "integrations/homebridge"
+  },
+  "bugs": "https://github.com/damient/govee-toolkit/issues",
+  "keywords": [
+    "homebridge-plugin",
+    "govee"
+  ],
   "main": "src/index.js",
   "engines": {
     "homebridge": "^1.6.0 || ^2.0.0"
