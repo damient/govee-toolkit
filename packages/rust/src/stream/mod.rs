@@ -45,6 +45,8 @@ mod sender;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
+use tokio::sync::Notify;
+
 use self::resolve::{arg_named, gradient_arg, named, rate_hz, zone_count};
 use self::sender::{Shared, send_enable};
 use crate::codec::{ArgRole, Mode, Role};
@@ -106,12 +108,14 @@ pub struct StreamOptions {
 
 /// An open segment channel.
 ///
-/// It stays armed until [`SegmentStream::close`]. Dropping it disarms on a
-/// best-effort task instead, which cannot report a failure.
+/// It stays armed until [`SegmentStream::close`]. Dropping it asks the emitting
+/// task to disarm instead, which reports no failure and does nothing at all if
+/// the runtime is already gone.
 #[derive(Debug)]
 pub struct SegmentStream {
     shared: Arc<Shared>,
-    task: tokio::task::JoinHandle<()>,
+    /// Taken by `close`, which awaits the disarm the task sends.
+    task: Option<tokio::task::JoinHandle<Result<()>>>,
 }
 
 impl SegmentStream {
@@ -165,11 +169,15 @@ impl SegmentStream {
             sent: AtomicU64::new(0),
             superseded: AtomicU64::new(0),
             failure: Mutex::new(None),
+            stop: Notify::new(),
         });
 
         send_enable(&shared, 1).await?;
         let task = tokio::spawn(sender::run(Arc::clone(&shared)));
-        Ok(Self { shared, task })
+        Ok(Self {
+            shared,
+            task: Some(task),
+        })
     }
 
     /// How many zones every frame carries. Fixed for the life of the stream.
@@ -276,9 +284,10 @@ impl SegmentStream {
     /// What stopped the stream, if anything did.
     ///
     /// Only an encoding failure stops it: the arguments cannot become valid, so
-    /// retrying would send nothing forever. A transport failure does not — the
-    /// breaker already refuses a device that is down, cheaply, and a stream
-    /// outlives a device that comes back.
+    /// retrying would send nothing forever, and the channel is disarmed there
+    /// and then. A transport failure does not — the breaker already refuses a
+    /// device that is down, cheaply, and a stream outlives a device that comes
+    /// back.
     #[must_use]
     pub fn error(&self) -> Option<Arc<Error>> {
         self.shared.failure.lock().ok().and_then(|e| e.clone())
@@ -288,11 +297,17 @@ impl SegmentStream {
     ///
     /// # Errors
     ///
-    /// [`Error::Transport`] if the disarming frame cannot be sent. The task is
-    /// stopped either way.
-    pub async fn close(self) -> Result<()> {
-        self.task.abort();
-        send_enable(&self.shared, 0).await
+    /// [`Error::Transport`] if the disarming frame cannot be sent, or if the
+    /// emitting task is gone and never sent it. Emitting has stopped either
+    /// way.
+    pub async fn close(mut self) -> Result<()> {
+        self.shared.stop.notify_one();
+        match self.task.take() {
+            Some(task) => task
+                .await
+                .map_err(|_| Error::Transport(crate::lan::Error::ShutDown))?,
+            None => Ok(()),
+        }
     }
 
     fn paint(&self, edit: impl FnOnce(&mut Vec<[u8; 3]>) -> Result<()>) -> Result<()> {
@@ -317,14 +332,10 @@ impl SegmentStream {
 
 impl Drop for SegmentStream {
     fn drop(&mut self) {
-        self.task.abort();
-        let shared = Arc::clone(&self.shared);
-        // Best effort: a `Drop` cannot await, and cannot report a failure
-        // either. `close` is the way to know the channel was disarmed.
-        tokio::spawn(async move {
-            if let Err(e) = send_enable(&shared, 0).await {
-                tracing::warn!(id = %shared.id, error = %e, "could not disarm the segment channel");
-            }
-        });
+        // The emitting task sends the disarming frame. Signalling it is all a
+        // `Drop` can do: it cannot await that frame, and spawning it here
+        // panics when the handle outlives the runtime. `close` is the way to
+        // know the channel was disarmed.
+        self.shared.stop.notify_one();
     }
 }

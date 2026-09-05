@@ -27,6 +27,9 @@ use common::{Rig, SKU, hex, id, wait_for};
 /// several writes land inside one interval.
 const TEST_HZ: f64 = 20.0;
 
+/// The frame that closes the raw channel, as `H61A0` declares it.
+const DISARM: &str = "bb0001b1000b";
+
 async fn rig() -> Rig {
     rig_with(Catalog::embedded().expect("catalog"), SKU).await
 }
@@ -156,10 +159,39 @@ async fn closing_disarms_the_channel() {
     let stream = open(&rig, options(Zones::App)).await;
     stream.close().await.expect("the disarm goes out");
 
+    // Exactly one: the handle asks the emitting task to disarm and reports what
+    // it did, rather than sending a frame of its own on top of it.
+    wait_for(|| frames(&rig.simulator).first().cloned()).await;
+    assert_eq!(frames(&rig.simulator), vec![DISARM.to_owned()]);
+}
+
+#[tokio::test]
+async fn dropping_disarms_the_channel() {
+    let rig = rig().await;
+    drop(open(&rig, options(Zones::App)).await);
+
     assert_eq!(
         wait_for(|| frames(&rig.simulator).first().cloned()).await,
-        Some("bb0001b1000b".to_owned())
+        Some(DISARM.to_owned())
     );
+}
+
+/// A handle can outlive the runtime it was opened on — a binding holding one
+/// past `block_on`, or a test that shuts the runtime down first. Disarming from
+/// `Drop` means signalling the emitting task, never spawning one: nothing goes
+/// out here, because nothing is left to send it, and the drop stays silent.
+#[test]
+fn dropping_after_the_runtime_is_gone_does_not_panic() {
+    let runtime = tokio::runtime::Runtime::new().expect("the runtime starts");
+    let (rig, stream) = runtime.block_on(async {
+        let rig = rig().await;
+        let stream = open(&rig, options(Zones::App)).await;
+        (rig, stream)
+    });
+    runtime.shutdown_timeout(Duration::from_millis(100));
+
+    drop(stream);
+    drop(rig);
 }
 
 #[tokio::test]

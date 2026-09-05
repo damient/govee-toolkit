@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use tokio::sync::Notify;
 use tokio::time::MissedTickBehavior;
 
 use crate::codec::{Args, Encoded, Mode};
@@ -54,6 +55,9 @@ pub(crate) struct Shared {
     pub(crate) superseded: AtomicU64,
     /// What stopped the task.
     pub(crate) failure: Mutex<Option<Arc<Error>>>,
+    /// Raised by the handle to end the stream. Signalling rather than aborting
+    /// is what lets the task send the disarming frame itself.
+    pub(crate) stop: Notify,
 }
 
 impl Shared {
@@ -72,8 +76,19 @@ pub(crate) async fn send_enable(shared: &Shared, on: i64) -> Result<()> {
     write(shared, &encoded).await
 }
 
-/// Emit the current colors, forever, at the stream's rate.
-pub(crate) async fn run(shared: Arc<Shared>) {
+/// Emit the current colors at the stream's rate, then disarm the channel.
+///
+/// The disarm belongs to this task rather than to the handle: a `Drop` cannot
+/// await one, and spawning it there panics when no runtime is left to spawn
+/// onto. Returns whether that frame went out, which is what
+/// [`SegmentStream::close`](crate::SegmentStream::close) reports.
+pub(crate) async fn run(shared: Arc<Shared>) -> Result<()> {
+    emit(&shared).await;
+    send_enable(&shared, 0).await
+}
+
+/// Returns when the handle asks for a stop, or when a frame cannot be encoded.
+async fn emit(shared: &Shared) {
     let mut ticker = tokio::time::interval(shared.interval());
     // A tick missed because a write took the lock is a tick to skip, not one to
     // catch up on: catching up would send a burst at exactly the moment the
@@ -81,7 +96,10 @@ pub(crate) async fn run(shared: Arc<Shared>) {
     ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
     loop {
-        ticker.tick().await;
+        tokio::select! {
+            () = shared.stop.notified() => return,
+            _ = ticker.tick() => {}
+        }
 
         let generation = shared.generation.load(Ordering::Acquire);
         if generation == shared.emitted.load(Ordering::Acquire) {
@@ -92,7 +110,7 @@ pub(crate) async fn run(shared: Arc<Shared>) {
             return;
         };
 
-        let encoded = match encode(&shared, &shared.color, &frame_args(&shared, colors)) {
+        let encoded = match encode(shared, &shared.color, &frame_args(shared, colors)) {
             Ok(encoded) => encoded,
             // The arguments will not become valid on a later tick.
             Err(e) => {
@@ -105,7 +123,7 @@ pub(crate) async fn run(shared: Arc<Shared>) {
         };
 
         shared.emitted.store(generation, Ordering::Release);
-        match write(&shared, &encoded).await {
+        match write(shared, &encoded).await {
             Ok(()) => {
                 shared.sent.fetch_add(1, Ordering::Relaxed);
             }
