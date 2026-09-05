@@ -67,6 +67,10 @@ CI checks every commit in a pull request. `git rebase -i main` with `reword`
 fixes a subject; the convention is what decides the semver bump at release, so
 `feat` and `fix` are not interchangeable.
 
+`main` keeps a linear history: a pull request lands rebased or squashed, never
+as a merge commit. Bring a branch up to date with `git rebase main`, not
+`git merge main`.
+
 ## Sign-off (DCO)
 
 There is no CLA. Contributions stay [MIT](LICENSE), and are certified with the
