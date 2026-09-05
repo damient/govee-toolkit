@@ -12,17 +12,16 @@ people actually ask for. Open an issue if something matters to you.
 | 1 | Repository scaffold — full tree, MIT license, CI skeleton | ✅ Done |
 | 2 | `devices/schema.yaml` + the first device entry (H61A0) | ✅ Done |
 | 3 | `docs/protocol/lan.md` — documented protocol + the undocumented commands found so far | ✅ Done |
-| 4 | `govee-core` in **Rust** — device catalog, command encoding, raw frame codec, conformance vectors | ✅ Done |
-| 5 | `lan` transport in Rust — scan, cache, reused socket, per-mode circuit breaker, mode selection | 🚧 Next |
-| 5b | Segment streaming — `razer` channel, native resolution, rate limiting from zone count | 🔜 Planned |
-| 6 | **Node** binding (napi-rs) and **Python** binding (PyO3), with multi-arch wheels | 🔜 Planned |
-| 7 | **PHP** port, checked against the conformance vectors | 🔜 Planned |
-| 8 | Playground — backend, web UI, raw payload field | 🔜 Planned |
-| 9 | Electron app around the playground | 🔜 Planned |
-| 10 | Matter bridge — one integration, every controller | 🔜 Planned |
-| 11 | Home Assistant custom component (LAN power + brightness first) | 🔜 Planned |
-| 12 | Homebridge plugin | 🔜 Planned |
-| 13 | Art-Net / DMX bridge | 🔜 Planned |
+| 4 | The protocol codec in **Rust** — device catalog, command encoding, raw frame codec, conformance vectors | ✅ Done |
+| 5 | `lan` transport in Rust — scan, cache, reused socket, per-mode circuit breaker, mode selection | ✅ Done |
+| 5b | Segment streaming — `razer` channel, native resolution, rate limiting from zone count | ✅ Done |
+| 6 | **Node** binding (napi-rs) and **Python** binding (PyO3), with multi-arch wheels | 🚧 Next |
+| 7 | Playground — backend, web UI, raw payload field | 🔜 Planned |
+| 8 | Electron app around the playground | 🔜 Planned |
+| 9 | Matter bridge — one integration, every controller | 🔜 Planned |
+| 10 | Home Assistant custom component (LAN power + brightness first) | 🔜 Planned |
+| 11 | Homebridge plugin | 🔜 Planned |
+| 12 | Art-Net / DMX bridge | 🔜 Planned |
 | — | `ble` and `cloud` modes | 🔜 Planned, after the `lan` core |
 
 Undocumented LAN commands are documented and formalized continuously, in

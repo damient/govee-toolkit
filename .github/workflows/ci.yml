@@ -2,90 +2,320 @@ name: CI
 
 on:
   workflow_dispatch:
+  # A draft pull request does not run the jobs: every job is gated on
+  # draft == false, and ready_for_review is what starts them. Marking a pull
+  # request ready counts as an event of its own, so nothing has to be pushed
+  # again to get a first run.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
+
+permissions:
+  contents: read
+
+# A new push to a pull request cancels the run it supersedes. Pushes to main
+# are never cancelled: every commit there keeps its own result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
 
+# Third-party actions are pinned to a commit SHA, not a tag: a tag is mutable
+# and these workflows check out the repository. Dependabot bumps the SHAs.
+
 jobs:
   rust:
-    name: Rust core
+    name: Rust core (${{ matrix.os }})
+    if: github.event.pull_request.draft != true
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # The `lan` transport is UDP multicast on socket2 with one reused
+        # socket, and SO_REUSEADDR, interface selection and loopback of one's
+        # own datagrams differ on each of the three. The in-process simulator
+        # makes that testable without hardware, so it is tested.
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: packages/rust
+        # The steps below use POSIX shell syntax; Windows would otherwise run
+        # them through PowerShell.
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+          components: clippy
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          toolchain: nightly
+          components: rustfmt
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: packages/rust
+      # fmt, clippy and doc are platform-independent — running them once on
+      # Linux costs a third of running them three times.
+      # rustfmt.toml uses nightly-only options (import grouping, comment
+      # wrapping). RUSTUP_TOOLCHAIN overrides rust-toolchain.toml for this step
+      # only.
+      - name: Format
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo fmt --all --check
+        env:
+          RUSTUP_TOOLCHAIN: nightly
+      - name: Clippy
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      # Also validates devices/*.yaml and runs the conformance vectors in
+      # tests/fixtures/golden/.
+      - name: Test
+        run: cargo test --workspace --all-features
+      # The codec has to keep building on its own: no socket, no async runtime.
+      # `tools/check-no-io.sh` guards the imports, this guards the build.
+      - name: Codec alone
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo check --no-default-features
+      - name: Documentation
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo doc --workspace --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  msrv:
+    name: MSRV
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: packages/rust
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Read from the manifest, so raising rust-version raises what CI checks.
+      - id: msrv
+        run: |
+          version=$(sed -n 's/^rust-version *= *"\([^"]*\)".*/\1/p' Cargo.toml | head -1)
+          # An empty match would install the default toolchain and pass without
+          # having checked the MSRV at all.
+          [ -n "$version" ] || { echo "no rust-version in Cargo.toml"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
-          components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+          toolchain: ${{ steps.msrv.outputs.version }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: packages/rust
-      - name: Format
-        run: cargo fmt --all --check
-      - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-      # Also validates devices/*.yaml and runs the conformance vectors in
-      # tests/fixtures/golden/.
-      - name: Test
-        run: cargo test --all-features
+      - run: cargo check --workspace --all-features
+        env:
+          RUSTUP_TOOLCHAIN: ${{ steps.msrv.outputs.version }}
+
+  lint:
+    name: Spelling, file length and layering
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: crate-ci/typos@d43b6c087ac471e2ea7b8af622ff15f05c0c365b # v1.50.1
+      - run: ./tools/check-file-length.sh
+      - run: ./tools/check-no-io.sh
+
+  catalog:
+    name: Device catalog artifact
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: packages/rust
+      # devices/*.yaml stays the source of truth; this is the single file a
+      # third-party tool reads instead of the directory. It is
+      # generated, never committed, and attached to a release.
+      - name: Generate dist/catalog.json
+        working-directory: packages/rust
+        run: cargo run -p xtask
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: catalog
+          path: dist/catalog.json
+          if-no-files-found: error
+
+  captures:
+    name: Capture redaction
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # A capture that reaches main keeps its MAC addresses and tokens in the
+      # history for good, so this runs before the merge, not after.
+      - run: ./tools/check-captures.sh
+
+  dco:
+    name: DCO sign-off
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The whole range between base and head has to be walkable.
+          fetch-depth: 0
+      - name: Every commit carries Signed-off-by
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=0
+          for sha in $(git rev-list "$BASE_SHA..$HEAD_SHA"); do
+            author=$(git show -s --format='%an <%ae>' "$sha")
+            if ! git show -s --format='%B' "$sha" \
+              | grep -qiF "Signed-off-by: $author"; then
+              echo "::error::$sha has no 'Signed-off-by: $author'"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Fix the branch with: git rebase --signoff main"
+            exit 1
+          fi
+
+  commits:
+    name: Commit convention
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    env:
+      # Commits reachable from this one predate the convention and are skipped.
+      # Emptying the variable checks the whole range.
+      GRANDFATHERED: bd87443d8bc4ed95257241ee804168d2c49129af
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The whole range between base and head has to be walkable.
+          fetch-depth: 0
+      - name: Every commit subject is a conventional commit
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          types='feat|fix|perf|refactor|docs|test|build|ci|chore|revert'
+          bad=0
+          for sha in $(git rev-list "$BASE_SHA..$HEAD_SHA"); do
+            if [ -n "$GRANDFATHERED" ] \
+              && git cat-file -e "$GRANDFATHERED^{commit}" 2>/dev/null \
+              && git merge-base --is-ancestor "$sha" "$GRANDFATHERED"; then
+              continue
+            fi
+            subject=$(git show -s --format='%s' "$sha")
+            if ! printf '%s' "$subject" \
+              | grep -qE "^($types)(\([a-z0-9-]+\))?!?: .+"; then
+              echo "::error::$sha: $subject"
+              bad=1
+            fi
+          done
+          if [ "$bad" -ne 0 ]; then
+            echo "A subject is <type>(<scope>)!: <summary>, types $types."
+            echo "See CONTRIBUTING.md, 'Commit messages'."
+            exit 1
+          fi
+
+  changelog:
+    name: Changelog entry
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.draft != true
+      && !contains(github.event.pull_request.labels.*.name, 'no-changelog')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: A change to the code or the catalogue carries an entry
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          needs_entry=$(printf '%s\n' "$changed" \
+            | grep -E '^(packages/[^/]+/(src/|build.rs)|devices/[^/]+\.yaml)' \
+            || true)
+          if [ -z "$needs_entry" ]; then
+            echo "No code or catalogue change in this range."
+            exit 0
+          fi
+          if printf '%s\n' "$changed" | grep -q 'CHANGELOG\.md$'; then
+            echo "Entry present."
+            exit 0
+          fi
+          echo "::error::this range changes code or the catalogue and no CHANGELOG.md"
+          echo "A package's behavior goes in packages/<pkg>/CHANGELOG.md, the"
+          echo "catalogue in the root CHANGELOG.md. Run /changelog, or label the"
+          echo "pull request 'no-changelog' when an entry is genuinely not owed."
+          exit 1
 
   deny:
     name: Licenses and advisories
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
         with:
           manifest-path: packages/rust/Cargo.toml
           command: check
 
   python:
     name: Python
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       # TODO: enable once packages/python has code — it will wrap the Rust core
       # through PyO3, so this job builds a wheel rather than running a port.
-      - run: echo "TODO: python binding"
+      - run: 'echo "TODO: python binding"'
 
   node:
     name: Node
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "20"
+          node-version: "24"
       # TODO: enable once packages/node has code — napi-rs binding over the Rust
       # core.
-      - run: echo "TODO: node binding"
-
-  php:
-    name: PHP
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.2"
-      # TODO: enable once packages/php has code. PHP is a hand-written port, so
-      # this job must also run tests/fixtures/golden/ — that is what keeps it
-      # from drifting away from the core.
-      - run: echo "TODO: php port"
+      - run: 'echo "TODO: node binding"'
 
   docs:
     name: Documentation
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      # TODO: regenerate the docs/compatibility.md tables from devices/*.yaml
-      # and fail if they drift.
-      - run: echo "TODO: compatibility.md drift check"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: packages/rust
+      # The two tables in docs/compatibility.md are generated from
+      # devices/*.yaml. A device file merged without regenerating them leaves
+      # the page saying something the data does not.
+      - name: docs/compatibility.md is in step with devices/
+        working-directory: packages/rust
+        run: cargo run -p xtask -- compat --check

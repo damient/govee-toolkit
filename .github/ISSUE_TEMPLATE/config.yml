@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Question or idea
+    url: https://github.com/damient/govee-toolkit/discussions
+    about: >-
+      Anything that is not a defect or a contribution — ask in Discussions.
+
+  - name: Security report
+    url: https://github.com/damient/govee-toolkit/security/advisories/new
+    about: >-
+      Never open an issue for a vulnerability. Report it through a private
+      security advisory.

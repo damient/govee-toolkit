@@ -1,4 +1,4 @@
-# TODO: fill in once the LAN transport is implemented.
+# TODO: fill in once the PyO3 binding is written.
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

@@ -1,0 +1,28 @@
+[package]
+name = "govee-toolkit-sim"
+description = "A fake Govee device on UDP, so the transport can be tested without hardware."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+keywords = ["govee", "simulator", "udp", "testing", "smart-home"]
+categories = ["development-tools::testing", "network-programming"]
+# Never published: it is a test fixture, and `govee-toolkit` depends on it only
+# as a path-only dev-dependency, which `cargo publish` drops.
+publish = false
+
+[[bin]]
+name = "govee-toolkit-sim"
+path = "src/main.rs"
+
+[dependencies]
+serde_json.workspace = true
+socket2.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
+tracing.workspace = true
+
+[lints]
+workspace = true

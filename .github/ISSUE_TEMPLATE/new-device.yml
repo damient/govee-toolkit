@@ -1,0 +1,145 @@
+name: New device
+description: Add a SKU to the device database, or report one you tested.
+labels: [new-device]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        `devices/*.yaml` is the single source of truth every SDK reads, so a
+        device file is a claim about a model. Fill in only what you observed on
+        hardware you own. Inference is not verification: `?` or `TODO` is a good
+        answer, a guessed row is not.
+
+
+        The walkthrough is in
+        [`devices/README.md`](https://github.com/damient/govee-toolkit/blob/main/devices/README.md).
+
+  - type: input
+    id: sku
+    attributes:
+      label: SKU
+      description: Uppercase, as it appears in the Govee Home app.
+      placeholder: H61A0
+    validations:
+      required: true
+
+  - type: input
+    id: model-name
+    attributes:
+      label: Exact model name
+      description: The full product name, copied rather than paraphrased.
+      placeholder: RGBIC LED Neon Rope Lights
+    validations:
+      required: true
+
+  - type: dropdown
+    id: lan-list
+    attributes:
+      label: Is the SKU on Govee's LAN list?
+      description: >-
+        The list of models exposing the LAN Control switch, mirrored in
+        `docs/lan-supported-devices.md`. Absence from it is not proof the device
+        cannot do LAN.
+      options:
+        - "Yes"
+        - "No"
+        - "Not checked"
+    validations:
+      required: true
+
+  - type: input
+    id: length
+    attributes:
+      label: Physical length of the unit tested
+      description: >-
+        Required, and not a formality: segment count and native resolution
+        depend on the unit, not only on the SKU. A 5 m and a 10 m run of the
+        same product are different devices here.
+      placeholder: 5 m
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version
+      description: From the Govee Home app, on the unit you tested.
+      placeholder: "1.02.14"
+    validations:
+      required: true
+
+  - type: textarea
+    id: modes-tested
+    attributes:
+      label: Modes exercised, and modes not exercised
+      description: >-
+        Per mode (`lan`, `ble`, `cloud`): which commands you actually sent and
+        what the device did. Say plainly which modes you did not try — an
+        untried mode is `?`, never `none`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands observed
+      description: >-
+        One line per command: name, arguments, observed behavior. Note any value
+        the firmware clamped in silence — it reports success either way, so a
+        clamp only shows up if you looked.
+    validations:
+      required: true
+
+  - type: textarea
+    id: capture
+    attributes:
+      label: Capture
+      description: >-
+        A real UDP capture on port 4003, taken from your own hardware on your
+        own network. Attach it here, or link the pull request that adds it under
+        `tests/fixtures/lan-captures/<SKU>/`. A device file without a capture
+        cannot be reviewed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: golden
+    attributes:
+      label: Conformance vector
+      description: >-
+        A vector under `tests/fixtures/golden/<mode>/<SKU>.json` for every new
+        command — arguments in, exact bytes out. In its `source`, say whether
+        the bytes come from the capture or were worked out from the documented
+        layout. Only the first is evidence. Link the pull request, or paste it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: aliases
+    attributes:
+      label: Aliases
+      description: >-
+        A SKU goes in `aliases` only if you verified it behaves identically in
+        every mode. One that merely resembles this product — same family, same
+        marketing name, a different length — goes in `candidate_aliases` and
+        stays there until someone tests it.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Before submitting
+      options:
+        - label: >-
+            Everything I did not verify on hardware is left as `?` or `TODO`
+            rather than filled in from inference.
+          required: true
+        - label: >-
+            The capture is from hardware I own, on my own network, and is
+            redacted — no MAC address, IP address, token or API key.
+          required: true
+        - label: >-
+            Nothing here is copied out of Govee software: no decompiler output,
+            extracted strings, resources or firmware image.
+          required: true

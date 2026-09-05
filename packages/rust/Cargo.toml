@@ -1,34 +1,110 @@
+[package]
+name = "govee-toolkit"
+description = "Control Govee devices over the LAN, including undocumented commands. Unofficial."
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+repository = "https://github.com/damient/govee-toolkit"
+authors = ["govee-toolkit contributors"]
+readme = "README.md"
+keywords = ["govee", "led", "smart-home", "iot", "sdk"]
+categories = ["api-bindings", "hardware-support", "network-programming"]
+# `cargo package` cannot reach above the manifest, so publishing vendors
+# `devices/` in beside it first — see .github/workflows/rust-release.yml.
+include = ["src/**", "build.rs", "README.md", "devices/**"]
+
 [workspace]
 resolver = "3"
-members = ["crates/govee-core"]
+members = ["crates/sim", "crates/xtask"]
 
 [workspace.package]
-version = "0.0.0"
+version = "0.2.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "MIT"
 repository = "https://github.com/damient/govee-toolkit"
 authors = ["govee-toolkit contributors"]
 
-[workspace.dependencies]
-base64 = "0.22"
+[features]
+# `lan` is the reason the project exists, so it is on by default. Turning the
+# default features off leaves the codec on its own: `devices/*.yaml` in, bytes
+# out, no socket and no async runtime. That is the build every binding encodes
+# through, and the one `tools/check-no-io.sh` guards.
+default = ["lan"]
+lan = ["dep:socket2", "dep:tokio", "dep:tracing"]
+
+[dependencies]
+base64 = "0.23"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_norway = "0.9"
 thiserror = "2"
 
+socket2 = { version = "0.6", features = ["all"], optional = true }
+tokio = { version = "1", features = [
+  "macros",
+  "net",
+  "rt",
+  "sync",
+  "time",
+], optional = true }
+tracing = { version = "0.1", optional = true }
+
+[dev-dependencies]
+# Path-only on purpose: a dev-dependency carrying no version is dropped when the
+# crate is published, which is what keeps the simulator off crates.io while
+# still letting the tests here drive it.
+govee-toolkit-sim = { path = "crates/sim" }
+proptest = "1"
+tokio = { version = "1", features = [
+  "macros",
+  "net",
+  "rt",
+  "rt-multi-thread",
+  "sync",
+  "test-util",
+  "time",
+] }
+
+[lints]
+workspace = true
+
+[workspace.dependencies]
+serde_json = "1"
+socket2 = { version = "0.6", features = ["all"] }
+tokio = { version = "1", features = ["macros", "net", "rt", "sync", "time"] }
+tracing = "0.1"
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 missing_docs = "warn"
+# `pub` inside a private module still reads as public API to a contributor.
+unreachable_pub = "warn"
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.rustdoc]
+broken_intra_doc_links = "deny"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+# Duplicate transitive versions are the ecosystem's to resolve, not ours:
+# nothing in this workspace can act on the warning.
+multiple_crate_versions = "allow"
 # The SDK must fail explicitly rather than abort the host application: a panic
 # in a library crate is a bug, not an error path. See docs/modes.md.
 unwrap_used = "warn"
 expect_used = "warn"
 panic = "warn"
 indexing_slicing = "warn"
+todo = "warn"
+unimplemented = "warn"
+dbg_macro = "warn"
+# A library writes through `tracing`, never to the process streams.
+print_stdout = "warn"
+print_stderr = "warn"
 
 [profile.release]
 lto = "thin"

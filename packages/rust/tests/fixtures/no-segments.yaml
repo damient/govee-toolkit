@@ -1,0 +1,23 @@
+# A device file that claims neither segment role. A stream must say so rather
+# than guess which entry paints zones.
+schema_version: 1
+sku: "HTEST1"
+family: "test"
+name: "Device without a segment channel"
+
+capabilities:
+  power:
+
+modes:
+  lan:
+    support: full
+    capabilities: all
+
+commands:
+  lan:
+    power:
+      cmd: "turn"
+      documented: true
+      payload: { value: "${on}" }
+      args:
+        on: { type: int, range: [0, 1] }

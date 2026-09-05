@@ -6,7 +6,7 @@ trade-offs, and **the user chooses which ones to enable, per device**.
 
 | Mode | Latency | Range | Capabilities | Requires |
 | ---- | ------- | ----- | ------------ | -------- |
-| `lan` | lowest | same network | full, including undocumented scenes/segments | LAN Control enabled in the Govee Home app |
+| `lan` | lowest | same network | full, including the undocumented segment channel; not internal scenes | LAN Control enabled in the Govee Home app |
 | `ble` | low | Bluetooth range | partial, depends on SKU family | a BLE adapter on the host |
 | `cloud` | highest (internet round-trip) | anywhere | reduced: power / brightness / color | a Govee API key, subject to rate limits |
 
@@ -27,8 +27,12 @@ Details per mode: [`protocol/lan.md`](protocol/lan.md),
 The user picks **one or several** modes per device, as an ordered list. Order is
 preference order: the first entry is the preferred mode.
 
+YAML, at `~/.config/govee-toolkit/config.yaml` — `$XDG_CONFIG_HOME` and
+`GOVEE_CONFIG` both override it. Devices are keyed by the MAC they report in a
+discovery reply, not by address: a DHCP lease renews and the device is at a
+different one, still the same device.
+
 ```yaml
-# TODO: config file location and exact format to be settled with the SDKs
 defaults:
   modes: [lan]              # applies to any device without an explicit entry
 
@@ -39,7 +43,35 @@ devices:
     modes: [lan, ble]       # preferred lan, may switch to ble
   "99:88:77:66:55:44":
     modes: [cloud]          # remote device, cloud only
+    name: "hallway"         # for logs and interfaces; never read as identity
 ```
+
+A key the file does not define is refused rather than ignored: a misspelled
+option that was silently dropped would read as a setting that did not work.
+
+Two other sections are optional. `lan:` tunes the transport — scan window,
+refresh interval, cache location, breaker thresholds. `catalog:` decides whether
+`~/.config/govee-toolkit/devices/*.yaml` may replace the device files the build
+shipped:
+
+```yaml
+catalog:
+  local_devices: false      # opt-in, and off by default
+```
+
+It is off because a device file is a claim about a model, not about one unit.
+Turning it on is the right move while probing a SKU that has not shipped yet;
+every file that replaces one is logged, every run.
+
+### The cloud API key does not live here
+
+`cloud` mode needs a Govee API key. It is read from the `GOVEE_API_KEY`
+environment variable, or from a separate file the configuration points at — one
+the operator can lock down on its own.
+
+It is **never** stored in `config.yaml`. That file gets pasted into bug reports.
+The key is also never logged and never written to the device cache. See
+[`security.md`](security.md).
 
 ### Single mode
 
@@ -54,9 +86,13 @@ The SDK uses the first available mode in the list and may switch to the next
 one, driven by the per-device circuit breaker:
 
 - States: `OK` | `DEGRADED` | `DOWN`, tracked **per device and per mode**.
-- 2–3 consecutive timeouts on a mode → that mode goes `DEGRADED`, the SDK moves
-  to the next enabled mode for a cooldown (e.g. 30 s), then retries the
-  preferred one.
+- Three consecutive failures take a mode to `DEGRADED`: the SDK moves to the
+  next enabled mode, and after a 30 s cooldown lets one command through to probe
+  the preferred one. Two consecutive answers bring it back to `OK`.
+- Six take it to `DOWN`, which is the same shape with a five-minute cooldown —
+  a mode silent for minutes is not worth probing every 30 seconds.
+- The thresholds and both cooldowns are the defaults; `lan:` in the
+  configuration tunes them.
 - The mode is chosen from the breaker state already known, never from a fresh
   timeout on each call: a fresh timeout would cost the fast path a round-trip.
 
@@ -65,13 +101,17 @@ and every mode transition is an event the application can subscribe to.
 
 ## Capability differences between modes
 
-Modes are not interchangeable: `cloud` does not expose the undocumented scenes
-and segments reachable over `lan`. When several modes are enabled and the SDK
-switches, a command unsupported by the active mode **fails explicitly** rather
-than being silently approximated.
+Modes are not interchangeable, and neither is a superset of the other: `cloud`
+does not expose the undocumented segment channel `lan` reaches, and `lan` does
+not reach the internal scenes or the per-segment brightness `cloud` carries
+([`protocol/cloud.md`](protocol/cloud.md)). When several modes are enabled and
+the SDK switches, a command unsupported by the active mode **fails explicitly**
+rather than being silently approximated.
 
 `devices/<SKU>.yaml` declares capabilities per mode, so an application can know
-in advance what it loses on a switch.
+in advance what it loses on a switch — and, for each capability a mode does not
+reach, whether that is a boundary of the transport or a question nobody has
+answered yet. See [`compatibility.md`](compatibility.md).
 
 ## Defaults
 

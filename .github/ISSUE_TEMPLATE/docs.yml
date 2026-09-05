@@ -1,0 +1,22 @@
+name: Documentation problem
+description: Something in the documentation is wrong, missing or unclear.
+labels: [documentation]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The file, and the section or line.
+      placeholder: docs/protocol/lan.md, "Segment channel"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong
+      description: >-
+        If it is a factual error, say what you observed instead and on which
+        SKU and firmware.
+    validations:
+      required: true

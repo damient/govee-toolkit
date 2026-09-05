@@ -9,7 +9,7 @@ with the LAN API specification, in its WLAN guide:
 
 > ⚠️ This page is a **copy** of Govee's list, kept for offline reference and to
 > make the SKUs searchable and linkable. Govee updates its guide without notice:
-> the source above wins, and a model missing here may simply have been added
+> the source above wins, and a model missing here may have been added
 > after the retrieval date. Re-check the source before concluding a device is
 > unsupported, and update the retrieval date above when you refresh this page.
 

@@ -1,0 +1,20 @@
+# Every path has an owner; the entries below are the ones that must not merge
+# without a review, listed last so the most specific match wins.
+
+* @damient
+
+# Source of truth for the protocol: a wrong row here is wrong in every SDK.
+/devices/ @damient
+
+# Generic protocol documentation — no SKU names, no measured numbers.
+/docs/protocol/ @damient
+
+# The reference implementation. Everything else binds to or is checked against
+# it.
+/packages/rust/ @damient
+
+# Conformance vectors: what stops the ports drifting.
+/tests/fixtures/golden/ @damient
+
+# CI, release workflows and the pinned action SHAs.
+/.github/ @damient

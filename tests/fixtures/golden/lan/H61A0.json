@@ -56,12 +56,35 @@
       "source": "docs/protocol/lan.md 1, documented"
     },
     {
+      "name": "undocumented raw status request",
+      "command": "raw_status",
+      "args": {},
+      "message": { "msg": { "cmd": "status", "data": {} } },
+      "source": "docs/protocol/lan.md 2.2 — undocumented; the envelope is taken from the device file, the reply shape was observed but the request was not captured"
+    },
+    {
       "name": "arm the segment channel",
       "command": "dreamview_enable",
       "args": { "on": 1 },
       "frame_hex": "bb0001b1010a",
       "message": { "msg": { "cmd": "razer", "data": { "pt": "uwABsQEK" } } },
       "source": "docs/protocol/lan.md 2.3 — captured frame, checksum included"
+    },
+    {
+      "name": "disarm the segment channel",
+      "command": "dreamview_enable",
+      "args": { "on": 0 },
+      "frame_hex": "bb0001b1000b",
+      "message": { "msg": { "cmd": "razer", "data": { "pt": "uwABsQAL" } } },
+      "source": "docs/protocol/lan.md 2.3 — derived from the frame layout, not captured; this is what a stream sends on close"
+    },
+    {
+      "name": "one lit zone at native resolution, 42 zones on the 3 m unit",
+      "command": "segment_color",
+      "args": { "gradient": 0, "colors": [[255, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]] },
+      "frame_hex": "bb0080b0002aff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005e",
+      "message": { "msg": { "cmd": "razer", "data": { "pt": "uwCAsAAq/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXg==" } } },
+      "source": "docs/protocol/lan.md 2.3 — derived from the frame layout, not captured; nb_seg is a single byte, so 42 zones is well inside the protocol's range"
     },
     {
       "name": "two hard-edged zones, red then green, nb_seg derived from colors",

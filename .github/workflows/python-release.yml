@@ -1,27 +1,39 @@
 # Publishes packages/python. Triggered by a python-vX.Y.Z tag.
 name: Python release
 
-# Manual only until the package is publishable. Restore the tag trigger with
-# the first real release.
 on:
   workflow_dispatch:
-  # push:
-  #   tags: ["python-v*"]
+  push:
+    tags: ["python-v*"]
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       id-token: write   # PyPI trusted publishing
-      contents: read
+      contents: write   # create the GitHub release
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The tag, the manifest version and the changelog heading have to carry
+      # the same number before anything is built or published.
+      - name: Tag, manifest and changelog agree
+        if: github.event_name == 'push'
+        run: |
+          tools/release-notes.sh python "$GITHUB_REF_NAME" \
+            > "$RUNNER_TEMP/notes.md"
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       # TODO: enable once packages/python is publishable
       # - run: pip install build && python -m build packages/python
-      # - uses: pypa/gh-action-pypi-publish@release/v1
+      # - uses: pypa/gh-action-pypi-publish@<sha>  # pin, like ci.yml
       #   with:
       #     packages-dir: packages/python/dist
-      - run: echo "TODO: build and publish packages/python"
+      - run: 'echo "TODO: build and publish packages/python"'
+      - name: GitHub release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --verify-tag \
+            --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"

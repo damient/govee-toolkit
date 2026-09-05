@@ -11,8 +11,9 @@ The authoritative data lives in [`../devices/`](../devices/), one YAML file per
 SKU or SKU family. This page is the human-readable view of it — the YAML wins on
 any disagreement.
 
-<!-- TODO: generate the tables below from devices/*.yaml and check them in CI,
-     so this page cannot drift from the data. -->
+The two tables below are generated from the device files by
+`cargo run -p xtask -- compat`, and CI fails when they drift. Everything else on
+this page is written by hand.
 
 ## Support levels
 
@@ -21,11 +22,38 @@ any disagreement.
 | **full** | Every capability the hardware has is reachable in this mode |
 | **partial** | Only some capabilities are reachable — the device file lists which |
 | **none** | Not reachable in this mode |
-| **?** | Not tested yet |
+| **?** | Not tested yet. The device file spells this `unknown` |
+
+`none` and `?` are not the same answer. `none` says somebody established the
+hardware cannot do it; `?` says nobody looked. A failed probe and an
+unimplemented feature look identical from outside, so `?` stays until someone
+probes it, and enabling an unprobed mode is allowed — that is how it gets
+probed.
 
 A mode marked `full` or `partial` says what the hardware supports, not what is
 enabled: the user chooses which modes to turn on, per device. See
 [`modes.md`](modes.md).
+
+## Why a capability is out of reach
+
+`partial` says a mode falls short of the hardware; the device file says of what,
+and why. Each capability a mode does not reach is listed under
+`modes.<mode>.unreachable` with one of three reasons:
+
+| Reason | Meaning |
+| ------ | ------- |
+| `transport` | Established that this transport does not carry it. Per-segment brightness over `lan` is one: the channel carries color only, and no command will change that |
+| `unimplemented` | The transport carries it, but this device file declares no command for it yet. Work left to do, not a boundary |
+| `unprobed` | Nobody checked whether this mode reaches it. The default |
+
+The three are not interchangeable. `transport` is a claim about the protocol and
+needs the evidence any other claim needs — the section of
+[`protocol/`](protocol/) that establishes it. `unprobed` is what an unanswered
+question looks like, and it stays until someone answers it.
+
+On a mode that is `full` or `partial`, every capability the hardware has is
+either reached or listed here with a reason; `cargo test` fails on one that is
+neither. A mode left `unknown` owes no answer, since nobody probed it.
 
 ## Support by SKU
 
@@ -33,17 +61,23 @@ A SKU that looks like another is not the same device: lengths differ, and with
 them segment counts and native resolution. Candidate aliases stay declared as
 such in the device file until someone verifies them.
 
+<!-- generated: support-by-sku -->
 | SKU | Family | Name | `lan` | `ble` | `cloud` | Verified |
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
-| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | RGBIC LED Neon Rope Lights | full | ? | partial | ✅ `lan`, incl. segment channel |
+| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | partial | ? | partial | ✅ 2026-09-04 |
+<!-- /generated -->
 
 ## Capabilities by SKU
 
-| SKU | power | brightness | color | colortemp | scenes | segments | sensors |
-| --- | ----- | ---------- | ----- | --------- | ------ | -------- | ------- |
-| H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+<!-- generated: capabilities-by-sku -->
+| SKU | brightness | color | colortemp | power | scenes | segment_brightness | segments |
+| --- | ---------- | ----- | --------- | ----- | ------ | ------------------ | -------- |
+| H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+<!-- /generated -->
 
 Capabilities are hardware facts; what is reachable depends on the active mode.
+The columns are the capabilities the device files declare, so one no file
+declares has no column.
 Where the undocumented `razer` channel is implemented, `lan` reaches per-segment
 color beyond the 10 zones the Govee app exposes, but **not** internal scenes or
 per-segment brightness, which are cloud-only whatever the device.

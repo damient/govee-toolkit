@@ -24,6 +24,10 @@ allow = [
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# The one wildcard is `govee-toolkit-sim`, a path-only dev-dependency. Carrying
+# no version is deliberate: that is what `cargo publish` keys on to drop the
+# simulator from the published crate (see packages/rust/Cargo.toml).
+allow-wildcard-paths = true
 
 [advisories]
 version = 2

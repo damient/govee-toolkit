@@ -1,5 +1,5 @@
 {
-  "comment": "TODO: fill in once the LAN transport is implemented.",
+  "comment": "TODO: fill in once the napi-rs binding is written.",
   "name": "govee-toolkit",
   "version": "0.0.0",
   "description": "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them.",

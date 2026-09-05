@@ -11,7 +11,7 @@ and `cloud` are three **modes** the user enables per device — never a fallback
 chain, never implicit.
 
 The protocol is implemented **once**, in Rust (`packages/rust`). Node and Python
-bind to that core; PHP is the one hand-written port. Read
+bind to that core. Read
 [`docs/architecture.md`](docs/architecture.md) before adding code to any
 language, and [`docs/modes.md`](docs/modes.md) before touching anything that
 chooses a transport.
@@ -44,6 +44,8 @@ chooses a transport.
 | Ordering of the work | `docs/roadmap.md` |
 | Why the code is shaped this way | `docs/architecture.md` |
 | Arguments in, exact bytes out | `tests/fixtures/golden/<mode>/<SKU>.json` |
+| What a package's release changed | `packages/<pkg>/CHANGELOG.md` |
+| Catalogue changes, and the release history | `CHANGELOG.md` |
 
 The split between the first two rows matters and is easy to get wrong:
 `docs/protocol/` describes the protocol generically — **no SKU names, no
@@ -57,9 +59,24 @@ SKU.
 - **Plain and concise.** State the fact and move on. No lyrical framing, no
   selling, no filler adjectives. This applies to docs, commit messages and code
   alike.
-- **Comment only when the comment earns its place** — a non-obvious constraint, a
-  measured value, a trap. Do not restate what the code already says.
+- **A comment earns its place or it goes.** It survives by carrying what the
+  code cannot state: a constraint the compiler does not enforce, a measured
+  value and what it was measured on, a trap, or a pointer that saves a search.
+  A doc comment adds what a caller must know — errors, units, what the item
+  does not do. Everything else is deleted, not reworded: restatement, headings
+  over code that names itself, narration of control flow, a private `///` that
+  expands the item's name into a sentence, commented-out code. `missing_docs`
+  is the one exception: a public item must carry a `///`, so give it payload —
+  errors, units, what it does not do — or one short line, never a paragraph.
+- **A kept comment states its fact and stops.** No preamble, no second sentence
+  repeating the first, no re-describing the mechanism the reader is looking at.
 - **English throughout**, including code comments.
+- **Describe the code as it is, not as it was.** Docs and comments carry no
+  trace of refactored, renamed or deleted code: no "no longer", "used to",
+  "previously", "this replaces the old X". Rewrite in the present. History that
+  is load-bearing stays — a check that exists to stop a named regression, a
+  migration note the user must act on — and `docs/roadmap.md`, release notes and
+  commit messages are history by design.
 - **The README lists what works today.** Planned work lives in
   `docs/features.md` and `docs/roadmap.md`, marked ✅ / 🚧 / 🔜.
 - **Avoid discouraging phrasing where it carries no technical information.**
@@ -77,7 +94,9 @@ SKU.
   looks like the same product goes in `candidate_aliases` — different lengths of
   one product are not interchangeable.
 - `modes:` declares what the hardware supports. What the user enables is runtime
-  configuration and never lives here.
+  configuration and never lives here. `none` says somebody established the
+  hardware cannot do it; a mode nobody probed stays `unknown`, which is the
+  default.
 - Undocumented commands get `documented: false`, plus a `notes:` line and a
   pointer to the matching section of `docs/protocol/lan.md`. This is enforced by
   `cargo test`.
@@ -88,7 +107,13 @@ SKU.
   `devices/schema.yaml`.
 - Add a conformance vector under `tests/fixtures/golden/` for every new command,
   and say in its `source` whether the bytes come from a capture or were worked
-  out from the documented layout. Only the first is evidence.
+  out from the documented layout. Only the first is evidence. `cargo test` fails
+  on a command that has none.
+- Redact a capture before committing it — the checklist is in
+  `tests/fixtures/README.md` and `tools/check-captures.sh` re-checks what it can.
+  Git keeps a leaked capture after the fix.
+- `docs/compatibility.md` holds two generated tables. After a device file
+  changes, run `cargo run -p xtask -- compat`; CI fails on drift.
 
 ## Protocol work
 
@@ -98,27 +123,66 @@ SKU.
 - Firmware updates change behavior without notice. Ship probes rather than
   trusting a table.
 - Two techniques that pay off, in order: decompile the vendor's desktop app, and
-  capture its UDP traffic on port 4003. Both beat guessing frames.
+  capture its UDP traffic on port 4003. Both beat guessing frames. What you
+  learn that way is describable in your own words; **no decompiled output,
+  extracted string, resource or firmware image is ever committed** — see
+  `CONTRIBUTING.md`, "Legal and provenance".
 
 ## Packages
 
 `packages/rust` is the reference implementation and the only place protocol
-logic exists. Node and Python wrap it (napi-rs, PyO3); PHP is ported by hand and
-is checked against `tests/fixtures/golden/`. Each package versions and releases
-independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`)
-through the workflows in `.github/workflows/`.
+logic exists. It is **one crate**, `govee-toolkit`, with the layers as modules:
+`src/codec/` (no I/O), `src/lan/` and `src/stream/` (behind the default `lan`
+feature) and the facade at the crate root. `crates/sim` and `crates/xtask` sit beside it and
+carry `publish = false`. A transport is a cargo feature — `ble` and `cloud` join
+`lan` as they land.
 
-Nothing is published yet — package names are reserved in the manifests but no
-release has shipped.
+The codec keeps building on its own (`cargo check --no-default-features`), and
+`tools/check-no-io.sh` fails the build if anything under `src/codec/` imports
+`std::net`, `std::fs`, `std::thread`, `tokio` or `socket2`, or goes async. That
+check is what keeps the codec I/O-free in a single crate; do not weaken it.
+
+Node and Python wrap the crate (napi-rs, PyO3). Each package versions and
+releases independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) through
+the workflows in `.github/workflows/`. The policy is `docs/versioning.md`.
+
+Nothing is published. The Rust crate carries `0.2.0`; the other two are at
+`0.0.0` because they have no code. No registry name is reserved, and the bare
+name `govee` on crates.io belongs to an unrelated project.
 
 In Rust: no `unsafe`, and no `panic` / `unwrap` / `expect` in library code. Out
 of range is an error, never a clamp — the firmware clamps in silence, and an SDK
 that did the same would report success for a value the device did not apply.
 
-`ci.yml` runs on push and pull request. The release workflows stay
-`workflow_dispatch` only until there is something to publish.
+Mode dispatch is a `match` in the facade. A `Transport` trait is the
+prerequisite for the BLE pull request, not something to add early — see
+`docs/architecture.md`.
+
+Format with `cargo +nightly fmt` — `rustfmt.toml` uses nightly-only options and
+stable rustfmt produces a different result. A Rust source file stays under 400
+lines (`tools/check-file-length.sh`); split along responsibilities rather than
+trimming to fit. The MSRV is checked in CI, so a feature that needs a newer
+compiler raises `rust-version` in the same commit.
+
+`tools/qa.sh` runs the CI checks locally — use it before pushing rather than
+reading the result off a pull request. `ci.yml` runs on push to `main` and on
+pull request, skipping every job while the pull request is a draft, and tests on
+Linux, macOS and Windows because the multicast socket differs on each. Every
+third-party action is pinned to a commit SHA; keep it that way. The release
+workflows stay `workflow_dispatch` only until there is something to publish.
 
 ## Repository
 
 - MIT, no copyleft dependencies.
+- Commit subjects are [Conventional Commits](https://www.conventionalcommits.org/)
+  — `<type>(<scope>)!: <summary>`, types `feat`, `fix`, `perf`, `refactor`,
+  `docs`, `test`, `build`, `ci`, `chore`, `revert`. The type decides the semver
+  bump at release, so `feat` and `fix` are not interchangeable. The body carries
+  the reasoning.
+- Every commit carries `Signed-off-by` (`git commit -s`); CI enforces it.
+- A change to `packages/*/src/` or `devices/*.yaml` carries a changelog entry —
+  `/changelog` writes it. CI enforces that too.
+- Releasing is `docs/versioning.md`: the changelog section is the source, a
+  signed `<pkg>-vX.Y.Z` tag starts the workflow, and `tools/release-notes.sh`
+  fails the run when the tag, the manifest and the changelog heading disagree.
 - Commit and push only when asked.

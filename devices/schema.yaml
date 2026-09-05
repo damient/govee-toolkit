@@ -13,45 +13,67 @@ candidate_aliases: []   # optional — SKUs that look like the same product but
                         # have not been verified; never merge them into aliases
                         # on family resemblance alone
 
-capabilities:           # what the hardware can do, regardless of mode
-  power: false
-  brightness: false
-  color: false
-  colortemp: false
-  scenes: false
-  segments: false
-  sensors: false
-
-  brightness_range: [1, 100]
-  colortemp_range_kelvin: [2000, 9000]
-  segment_count: 0      # zones the Govee app exposes
-  native_pixels: 0      # optional — real addressable LEDs, if measured. Depends
-                        # on the LENGTH of the unit, not only the SKU: record a
-                        # measured value or leave it at 0, never extrapolate.
+capabilities:
+  # What the hardware can do, regardless of mode. One entry per capability the
+  # device has; a capability it does not have is ABSENT, never `false`. An
+  # entry with nothing to qualify it carries no value.
+  #
+  # The names are open: a device may declare one no SDK has heard of, and the
+  # compatibility table gives it a column. The parameters are not — one the
+  # codec does not know fails the file to load rather than being ignored.
+  #
+  #   power:
+  #   brightness:         { range: [1, 100] }
+  #   colortemp:          { range_kelvin: [2000, 9000] }
+  #   color:
+  #   scenes:
+  #   segments:           { count: 10, native_pixels: 42 }
+  #   segment_brightness:
+  #   sensors:
+  #
+  # `segments.count` is the zones the Govee app exposes. `segments.native_pixels`
+  # is the real addressable LEDs, and it depends on the LENGTH of the unit, not
+  # only on the SKU: record a measured value or leave it out, never extrapolate.
 
 modes:
   # Which modes this hardware SUPPORTS. This is fact, not preference: the user
   # picks which supported modes to enable, per device, in their own runtime
   # config. See ../docs/modes.md.
   #
-  # support: full | partial | none
-  # capabilities: subset of the capability keys above reachable in this mode;
-  #               "all" means every capability the hardware has.
+  # support: full | partial | none | unknown
+  #   none    — established that the hardware cannot do this mode
+  #   unknown — nobody probed it. The default, and the right answer until
+  #             somebody does: a failed probe and an unimplemented feature look
+  #             identical from outside
+  #
+  # capabilities: the names above this mode reaches; "all" means every
+  #               capability the hardware has.
+  # unreachable:  the names it does not reach, each with a reason. The
+  #               vocabulary is `transport` | `unimplemented` | `unprobed`, and
+  #               ../docs/compatibility.md says what each one claims.
+  #
+  # The two lists are one statement in two halves: on a mode that is `full` or
+  # `partial`, every capability declared above is either reached or explained,
+  # and `cargo test` fails on one that is neither. A mode left `unknown` is
+  # exempt — an empty answer there is the honest one.
   lan:
-    support: none
+    support: unknown
     capabilities: []
+    unreachable: {}
     notes: ""
   ble:
-    support: none
+    support: unknown
     capabilities: []
+    unreachable: {}
     notes: ""
   cloud:
-    support: none
+    support: unknown
     capabilities: []
+    unreachable: {}
     notes: ""
 
 commands:
-  # One table per mode. A command absent from a mode is simply not reachable in
+  # One table per mode. A command absent from a mode is not reachable in
   # that mode — the SDK must fail explicitly rather than approximate it.
   #
   # These entries are executable, not descriptive: an SDK builds the bytes from
@@ -67,12 +89,15 @@ commands:
   #   BB                     a literal byte, two hex digits
   #   ${name}                one byte, from the integer argument `name`
   #   ${name:16}             two bytes, big-endian
+  #   <op:B0>                the opcode, one or more literal bytes. Marks where
+  #                          the payload begins.
   #   <len:16>               the payload length, big-endian, filled in on build.
-  #                          It counts the bytes after the NEXT token — the
-  #                          opcode — up to but excluding the checksum.
+  #                          It counts the bytes after <op:…>, up to but
+  #                          excluding the checksum, so a frame using it must
+  #                          name its opcode with <op:…> right after.
   #   (${list}:rgb)×${n}     `n` RGB triples taken from the list argument `list`.
   #                          Omit `n` at call time and it is derived from the
-  #                          list length.
+  #                          list length. An ASCII `x` is accepted for `×`.
   #   <xor>                  XOR of every preceding byte. Must come last.
   #
   # `args:` — one entry per argument, either
@@ -81,17 +106,48 @@ commands:
   # Bounds are enforced, never clamped: the firmware clamps in silence
   # (../docs/protocol/lan.md 2.1), and an SDK that did the same would report
   # success for a value the device did not apply.
+  #
+  # Either kind takes an optional `role:`, which names the argument for an SDK
+  # that fills it on its own initiative — see the command `role:` below. At most
+  # one argument per command may claim a given one, and each is fixed to a type:
+  #
+  #   enable    int       the flag a `segment_enable` command arms on
+  #   colors    rgb_list  one triple per zone, for a `segment_color` command
+  #   gradient  int       whether a `segment_color` command interpolates
+  #
+  # An argument the caller always passes needs no role: the SDK never supplies
+  # it, and the name in the call is this file's.
   lan:
     # <command-name>:
     #   cmd: <string sent in msg.cmd>
     #   documented: true | false      # false = discovered by reverse engineering
+    #   role: status                  # optional; see below. Default: no role.
     #   payload: { }                  # JSON structure, ${placeholders} for args
     #   frame: ""                     # for raw-channel commands, the byte layout
-    #   args: { <name>: { type, range } }
+    #   args: { <name>: { type, range, role } }
     #   notes: ""                     # behavior worth knowing before calling it;
     #                                 # required when documented is false, and it
     #                                 # must point at ../docs/protocol/lan.md
     #   capture: tests/fixtures/lan-captures/<sku>/<file>
+    #
+    # `role:` names an entry an SDK issues on its own initiative, so that no
+    # command name has to live in SDK code. At most one entry per mode may claim
+    # a given role, and a role nobody claims simply has no command: the SDK does
+    # without it and says so, rather than guessing an entry name.
+    #
+    #   status          reports the device's state. Fire-and-verify sends it
+    #                   after a command, and `status()` encodes it. Unclaimed:
+    #                   commands go unverified and `status()` fails.
+    #   segment_enable  arms and disarms the raw segment channel.
+    #   segment_color   paints every zone at once.
+    #
+    # A role the SDK fills arguments for marks them with an argument `role:`,
+    # since it knows no argument name either:
+    #
+    #   segment_enable  one argument marked `role: enable`
+    #   segment_color   one marked `role: colors`. One marked `role: gradient`,
+    #                   if declared, is supplied too. A repeat count is derived
+    #                   from the list and needs no role.
   ble:
     # <command-name>:
     #   opcode: "0x.."
@@ -107,6 +163,21 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         # native_pixels, latency, sustainable frame rate…
                         # Always record the unit's length alongside them; these
                         # are properties of a unit, not only of a SKU.
+                        #
+                        # Free-form except for `frame_rate`, the one table an
+                        # SDK reads. It paces the segment stream, so its rows
+                        # have a fixed shape:
+                        #
+                        #   frame_rate:
+                        #     - { zones: <n>, payload_bytes: <n>,
+                        #         clean_hz: <n>, breaks_at_hz: <n> }
+                        #
+                        # `zones` and `clean_hz` are what the stream uses: the
+                        # highest rate that zone count sustained without visible
+                        # stutter. Leave the table out and the stream falls back
+                        # to a conservative rate, reported as such — measured on
+                        # the unit at hand beats any constant. See
+                        # ../docs/protocol/lan.md 2.7.
 
 verified:
   by: ""                # who tested it

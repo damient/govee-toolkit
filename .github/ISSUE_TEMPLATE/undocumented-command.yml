@@ -1,0 +1,100 @@
+name: Undocumented command
+description: >-
+  A command found through reverse engineering that the project does not know
+  about.
+labels: [protocol, undocumented]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Describe what you observed, in your own words. Do not paste anything
+        taken out of Govee software — decompiler output, extracted strings,
+        resources or firmware. Knowledge gained from an application may be
+        written down; the contents of that application may not.
+
+  - type: input
+    id: sku
+    attributes:
+      label: SKU
+      placeholder: H61A0
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version
+      description: >-
+        Firmware changes behavior without notice, so the version is part of the
+        finding.
+      placeholder: "1.02.14"
+    validations:
+      required: true
+
+  - type: textarea
+    id: frame
+    attributes:
+      label: Frame or payload
+      description: >-
+        The bytes as they go on the wire, and what you believe each field means.
+        Mark a field you are guessing at as a guess.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: how-found
+    attributes:
+      label: How it was found
+      options:
+        - Captured the vendor app's UDP traffic on port 4003
+        - Studied the vendor's desktop application
+        - Probed variations of a known command
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed behavior
+      description: >-
+        What the device did, and what it replied — including replying nothing.
+        Say whether the effect is reproducible across power cycles.
+    validations:
+      required: true
+
+  - type: textarea
+    id: negative
+    attributes:
+      label: What was tried and did not work
+      description: >-
+        The variants that produced no effect, with the bytes. This matters as
+        much as the working frame: a failed probe and an unimplemented feature
+        are indistinguishable — the firmware answers nothing either way — so a
+        list of what was already ruled out stops the next person redoing it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: capture
+    attributes:
+      label: Capture
+      description: >-
+        The capture the frame came from, redacted, under
+        `tests/fixtures/lan-captures/<SKU>/`. Attach it here or link the pull
+        request.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Before submitting
+      options:
+        - label: >-
+            The capture is from hardware I own, on my own network, and carries
+            no MAC address, IP address, token or API key.
+          required: true
+        - label: >-
+            Nothing here is copied out of Govee software.
+          required: true
