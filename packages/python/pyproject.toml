@@ -7,10 +7,18 @@ build-backend = "hatchling.build"
 name = "govee-toolkit"
 version = "0.0.0"
 description = "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them."
+authors = [{ name = "damient" }]
 readme = "README.md"
-license = { file = "../../LICENSE" }
+license = "MIT"
 requires-python = ">=3.10"
 dependencies = []
+keywords = ["govee", "led", "smart-home", "iot", "sdk"]
+
+[project.urls]
+Homepage = "https://github.com/damient/govee-toolkit"
+Repository = "https://github.com/damient/govee-toolkit"
+Issues = "https://github.com/damient/govee-toolkit/issues"
+Changelog = "https://github.com/damient/govee-toolkit/blob/main/packages/python/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = ["pytest"]
