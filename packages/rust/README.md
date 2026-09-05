@@ -5,7 +5,7 @@ through reverse engineering. Unofficial, and not affiliated with Govee.
 
 This is the reference implementation. Protocol logic lives here once, and every
 other language reaches it through a binding rather than a port — see
-[`../../docs/architecture.md`](../../docs/architecture.md).
+[`docs/architecture.md`][architecture].
 
 Nothing is published to crates.io yet.
 
@@ -138,3 +138,7 @@ override can never be silent.
   device is in `devices/*.yaml`.
 - Every command in the catalog has a conformance vector under
   `tests/fixtures/golden/`; `cargo test` fails if one does not.
+
+<!-- Absolute: this file is the crate description on crates.io, where a
+     relative link out of the package directory is dead. -->
+[architecture]: https://github.com/damient/govee-toolkit/blob/main/docs/architecture.md

@@ -6,7 +6,7 @@ edition = "2024"
 rust-version = "1.88"
 license = "MIT"
 repository = "https://github.com/damient/govee-toolkit"
-authors = ["govee-toolkit contributors"]
+authors = ["damient"]
 readme = "README.md"
 keywords = ["govee", "led", "smart-home", "iot", "sdk"]
 categories = ["api-bindings", "hardware-support", "network-programming"]
@@ -24,7 +24,7 @@ edition = "2024"
 rust-version = "1.88"
 license = "MIT"
 repository = "https://github.com/damient/govee-toolkit"
-authors = ["govee-toolkit contributors"]
+authors = ["damient"]
 
 [features]
 # `lan` is the reason the project exists, so it is on by default. Turning the

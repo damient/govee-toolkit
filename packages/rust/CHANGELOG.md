@@ -5,6 +5,14 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 `publish = false`, covered by the same entries. The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [Unreleased]
+
+### Changed
+
+- `authors` is `damient`.
+- The crate README links to `docs/` by absolute URL: it is the description shown
+  on crates.io, where a link out of the package directory is dead.
+
 ## [0.2.0] — 2026-09-05
 
 ### Added
