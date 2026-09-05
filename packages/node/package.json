@@ -1,15 +1,29 @@
 {
-  "comment": "TODO: fill in once the napi-rs binding is written.",
   "name": "govee-toolkit",
   "version": "0.0.0",
   "description": "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them.",
   "license": "MIT",
+  "author": "damient",
+  "homepage": "https://github.com/damient/govee-toolkit/tree/main/packages/node#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damient/govee-toolkit.git",
+    "directory": "packages/node"
+  },
+  "bugs": "https://github.com/damient/govee-toolkit/issues",
+  "keywords": ["govee", "led", "smart-home", "iot", "sdk"],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "node --test test/"
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }
