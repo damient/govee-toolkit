@@ -106,7 +106,7 @@ commands:
     dreamview_enable:
       cmd: "razer"
       documented: false
-      frame: "BB 00 01 B1 ${on} <xor>"
+      frame: "BB <len:16> <op:B1> ${on} <xor>"
       payload: { pt: "${frame}" }
       args:
         on: { type: int, range: [0, 1] }
@@ -118,7 +118,7 @@ commands:
     segment_color:
       cmd: "razer"
       documented: false
-      frame: "BB <len:16> B0 ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
+      frame: "BB <len:16> <op:B0> ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
       payload: { pt: "${frame}" }
       args:
         gradient: { type: int, range: [0, 1] }   # 0 = hard zones, 1 = interpolated + wraps

@@ -22,7 +22,6 @@ impl Frame {
         let mut out: Vec<u8> = Vec::new();
         let mut len_pos: Option<usize> = None;
         let mut payload_start: Option<usize> = None;
-        let mut opcode_pending = false;
         let mut checksum = false;
 
         for token in &self.tokens {
@@ -31,8 +30,12 @@ impl Frame {
                 Token::Len16 => {
                     len_pos = Some(out.len());
                     out.extend_from_slice(&[0, 0]);
-                    opcode_pending = true;
-                    continue;
+                }
+                // Parsing guarantees this follows `<len:16>` when there is one,
+                // so the payload the length counts starts here.
+                Token::Opcode(bytes) => {
+                    out.extend_from_slice(bytes);
+                    payload_start = Some(out.len());
                 }
                 Token::Arg { name, bits } => {
                     let value = int_arg(command, args, name)?;
@@ -54,10 +57,6 @@ impl Frame {
                     checksum = true;
                     break;
                 }
-            }
-            if opcode_pending {
-                payload_start = Some(out.len());
-                opcode_pending = false;
             }
         }
 
@@ -144,7 +143,7 @@ mod tests {
     /// The one frame in the documentation that comes from a real capture.
     #[test]
     fn arm_frame_matches_the_captured_bytes() {
-        let frame = Frame::parse("arm", "BB 00 01 B1 ${on} <xor>").unwrap();
+        let frame = Frame::parse("arm", "BB <len:16> <op:B1> ${on} <xor>").unwrap();
         let bytes = frame.build("arm", &Args::new().int("on", 1)).unwrap();
         assert_eq!(hex(&bytes), "bb0001b1010a");
     }
@@ -153,7 +152,7 @@ mod tests {
     fn length_covers_the_payload_only() {
         let frame = Frame::parse(
             "seg",
-            "BB <len:16> B0 ${gradient} ${n} (${colors}:rgb)×${n} <xor>",
+            "BB <len:16> <op:B0> ${gradient} ${n} (${colors}:rgb)×${n} <xor>",
         )
         .unwrap();
         let args = Args::new()
@@ -182,7 +181,10 @@ mod tests {
             gradient in 0i64..=1,
         ) {
             let frame =
-                Frame::parse("seg", "BB <len:16> B0 ${gradient} ${n} (${colors}:rgb)×${n} <xor>")
+                Frame::parse(
+                    "seg",
+                    "BB <len:16> <op:B0> ${gradient} ${n} (${colors}:rgb)×${n} <xor>",
+                )
                     .unwrap();
             let n = i64::try_from(colors.len()).unwrap();
             let args = Args::new().int("gradient", gradient).int("n", n).rgb("colors", colors.clone());

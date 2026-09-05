@@ -71,9 +71,12 @@ commands:
   #   BB                     a literal byte, two hex digits
   #   ${name}                one byte, from the integer argument `name`
   #   ${name:16}             two bytes, big-endian
+  #   <op:B0>                the opcode, one or more literal bytes. Marks where
+  #                          the payload begins.
   #   <len:16>               the payload length, big-endian, filled in on build.
-  #                          It counts the bytes after the NEXT token — the
-  #                          opcode — up to but excluding the checksum.
+  #                          It counts the bytes after <op:…>, up to but
+  #                          excluding the checksum, so a frame using it must
+  #                          name its opcode with <op:…> right after.
   #   (${list}:rgb)×${n}     `n` RGB triples taken from the list argument `list`.
   #                          Omit `n` at call time and it is derived from the
   #                          list length.

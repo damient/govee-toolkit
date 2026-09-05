@@ -9,14 +9,16 @@
 //! | `BB` | that literal byte, two hex digits |
 //! | `${name}` | one byte, from the integer argument `name` |
 //! | `${name:16}` | two bytes, big-endian, from `name` |
+//! | `<op:B0>` | the opcode, one or more literal bytes, marked as the opcode |
 //! | `<len:16>` | the payload length, big-endian, filled in once the frame is built |
 //! | `(${list}:rgb)×${count}` | `count` RGB triples, taken from the list argument `list` |
 //! | `<xor>` | the XOR of every preceding byte |
 //!
-//! `<len:16>` counts the bytes emitted **after the token that follows it** — in
-//! this dialect that token is the opcode — up to but excluding the checksum.
-//! That is the definition in `docs/protocol/lan.md` 2.3: the length covers the
-//! payload alone, header, opcode and checksum excluded.
+//! `<len:16>` counts the bytes emitted after `<op:…>`, up to but excluding the
+//! checksum: the payload alone, header, opcode and checksum excluded — the
+//! definition in `docs/protocol/lan.md` 2.3. A frame that declares `<len:16>`
+//! must name its opcode with `<op:…>` immediately after, so the boundary the
+//! length measures from is written down rather than inferred from position.
 //!
 //! `<xor>`, when present, must be the last token.
 
@@ -36,6 +38,9 @@ pub enum Token {
         /// `8` or `16`.
         bits: u32,
     },
+    /// The opcode, as literal bytes. The payload `<len:16>` counts starts
+    /// after it.
+    Opcode(Vec<u8>),
     /// The 16-bit payload length, big-endian.
     Len16,
     /// `count` items drawn from a list argument.
@@ -71,8 +76,9 @@ impl Frame {
     ///
     /// # Errors
     ///
-    /// [`Error::FrameSyntax`] if a token is unrecognized, or if `<len:16>` /
-    /// `<xor>` appear more than once or in an impossible position.
+    /// [`Error::FrameSyntax`] if a token is unrecognized, if `<len:16>`,
+    /// `<op:…>` or `<xor>` appear more than once or in an impossible position,
+    /// or if `<len:16>` is not immediately followed by `<op:…>`.
     pub fn parse(command: &str, source: &str) -> Result<Self> {
         let bad = |reason: String| Error::FrameSyntax {
             command: command.to_owned(),
@@ -90,9 +96,13 @@ impl Frame {
         }
 
         let lens: Vec<usize> = positions(&tokens, |t| matches!(t, Token::Len16));
+        let ops: Vec<usize> = positions(&tokens, |t| matches!(t, Token::Opcode(_)));
         let xors: Vec<usize> = positions(&tokens, |t| matches!(t, Token::Xor));
         if lens.len() > 1 {
             return Err(bad("`<len:16>` appears more than once".to_owned()));
+        }
+        if ops.len() > 1 {
+            return Err(bad("`<op:…>` appears more than once".to_owned()));
         }
         if xors.len() > 1 {
             return Err(bad("`<xor>` appears more than once".to_owned()));
@@ -102,15 +112,10 @@ impl Frame {
         {
             return Err(bad("`<xor>` must be the last token".to_owned()));
         }
-        // The token right after the length field is the opcode, and the payload
-        // it counts starts after that. Both must exist.
-        if let Some(&i) = lens.first() {
-            match tokens.get(i + 1) {
-                None | Some(Token::Xor) => {
-                    return Err(bad("`<len:16>` must be followed by an opcode".to_owned()));
-                }
-                Some(_) => {}
-            }
+        if let Some(&i) = lens.first()
+            && !matches!(tokens.get(i + 1), Some(Token::Opcode(_)))
+        {
+            return Err(bad("`<len:16>` must be followed by `<op:…>`".to_owned()));
         }
 
         Ok(Self { tokens })
@@ -146,6 +151,9 @@ fn parse_token(raw: &str) -> Option<Token> {
         "<xor>" => return Some(Token::Xor),
         _ => {}
     }
+    if let Some(hex) = raw.strip_prefix("<op:").and_then(|r| r.strip_suffix('>')) {
+        return parse_opcode(hex);
+    }
     if let Some(inner) = raw.strip_prefix("${").and_then(|r| r.strip_suffix('}')) {
         return parse_arg_ref(inner).map(|(name, bits)| Token::Arg {
             name: name.to_owned(),
@@ -159,6 +167,23 @@ fn parse_token(raw: &str) -> Option<Token> {
         return u8::from_str_radix(raw, 16).ok().map(Token::Literal);
     }
     None
+}
+
+/// `<op:…>` carries an even number of hex digits: `B0`, or `B0B1` for a
+/// two-byte opcode.
+fn parse_opcode(hex: &str) -> Option<Token> {
+    if hex.is_empty() || !hex.len().is_multiple_of(2) {
+        return None;
+    }
+    let bytes = hex
+        .as_bytes()
+        .chunks(2)
+        .map(|pair| {
+            let pair = std::str::from_utf8(pair).ok()?;
+            u8::from_str_radix(pair, 16).ok()
+        })
+        .collect::<Option<Vec<u8>>>()?;
+    Some(Token::Opcode(bytes))
 }
 
 /// `name` or `name:16`.
@@ -215,6 +240,27 @@ mod tests {
     #[test]
     fn rejects_a_length_field_with_no_opcode_after_it() {
         let err = Frame::parse("x", "BB <len:16> <xor>").expect_err("should not parse");
+        assert_eq!(err.code(), "frame_syntax");
+    }
+
+    #[test]
+    fn rejects_a_length_field_followed_by_a_plain_literal() {
+        let err = Frame::parse("x", "BB <len:16> B0 ${on} <xor>").expect_err("should not parse");
+        assert_eq!(err.code(), "frame_syntax");
+    }
+
+    #[test]
+    fn parses_a_multi_byte_opcode() {
+        let frame = Frame::parse("x", "BB <len:16> <op:B0B1> ${on}").expect("should parse");
+        assert_eq!(
+            frame.tokens().get(2),
+            Some(&Token::Opcode(vec![0xB0, 0xB1]))
+        );
+    }
+
+    #[test]
+    fn rejects_an_opcode_with_an_odd_number_of_digits() {
+        let err = Frame::parse("x", "<op:B> ${on}").expect_err("should not parse");
         assert_eq!(err.code(), "frame_syntax");
     }
 
