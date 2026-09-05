@@ -178,6 +178,11 @@ jobs:
           missing=0
           for sha in $(git rev-list "$BASE_SHA..$HEAD_SHA"); do
             author=$(git show -s --format='%an <%ae>' "$sha")
+            # A bot cannot certify the DCO: it acts for the repository, and
+            # what it opens is a version bump nobody wrote.
+            case $author in
+            *"[bot]"*) continue ;;
+            esac
             if ! git show -s --format='%B' "$sha" \
               | grep -qiF "Signed-off-by: $author"; then
               echo "::error::$sha has no 'Signed-off-by: $author'"
