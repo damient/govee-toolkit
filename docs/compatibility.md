@@ -43,7 +43,7 @@ such in the device file until someone verifies them.
 <!-- generated: support-by-sku -->
 | SKU | Family | Name | `lan` | `ble` | `cloud` | Verified |
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
-| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | RGBIC LED Neon Rope Lights | full | ? | partial | ✅ 2026-09-04 |
+| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | full | ? | partial | ✅ 2026-09-04 |
 <!-- /generated -->
 
 ## Capabilities by SKU
