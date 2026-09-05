@@ -15,7 +15,11 @@
 - [ ] A conformance vector under `tests/fixtures/golden/` for every new command,
       with its `source` saying whether the bytes come from a capture or were
       worked out from the documented layout.
-- [ ] Every commit carries `Signed-off-by:` (`git commit -s`).
+- [ ] A changelog entry for what changed — `packages/<pkg>/CHANGELOG.md` for a
+      package's behavior, the root `CHANGELOG.md` for the catalogue, the docs,
+      the tooling and CI.
+- [ ] Every commit subject is `<type>(<scope>)!: <summary>`, and every commit
+      carries `Signed-off-by:` (`git commit -s`).
 - [ ] Anything not verified on hardware is left as `?` or `TODO`, not filled in
       from inference.
 

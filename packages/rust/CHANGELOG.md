@@ -1,19 +1,11 @@
 # Changelog
 
-All notable changes to the Rust packages are documented in this file.
+Changes to `govee-toolkit`, the crate published to crates.io from
+`packages/rust`. `govee-toolkit-sim` and `xtask` are workspace crates with
+`publish = false`, covered by the same entries. The policy is
+[`../../docs/versioning.md`](../../docs/versioning.md).
 
-The format is based on
-[Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), and this project
-adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-`govee-toolkit` is the one crate published to crates.io. `govee-toolkit-sim`
-and `xtask` are workspace crates with `publish = false`, and are covered by the
-same entries.
-
-## [0.2.0] — not yet released
-
-The version the manifests carry. Nothing is published to crates.io and the
-`rust-v0.2.0` tag has not been pushed; everything below is on `main` only.
+## [0.2.0]
 
 ### Added
 
@@ -34,14 +26,36 @@ The version the manifests carry. Nothing is published to crates.io and the
 - `govee_toolkit::stream` — the raw segment channel, armed once and fed frames
   on a clock paced from the rate measured on the unit. A write never blocks: a
   source faster than the device replaces the frame that had not gone out yet
-  rather than being throttled.
+  rather than being throttled. Exactly one disarming frame goes out, sent by the
+  emitting task: `close` awaits it and reports what it did, dropping the handle
+  signals it, and a fatal encoding error disarms as the task leaves.
+- `govee_toolkit::codec::capabilities` — what the hardware can do, and per mode
+  which of it is out of reach and why: `transport` when somebody established the
+  transport does not carry it, `unimplemented` when the file declares no command
+  for it yet, `unprobed` — the default — when nobody checked. Capability names
+  are data; the codec reads one of them, `segments`, and treats the rest as
+  opaque strings. A parameter it does not know fails the file to load rather
+  than being ignored.
 - The facade at the crate root: configuration from
   `~/.config/govee-toolkit/config.yaml`, the enabled modes per device, the mode
   that served each command, and mode-transition events.
-- `cargo run -p xtask` generates `dist/catalog.json`, one file holding every
-  device, built by CI and attached to a release. An unknown `schema_version` is
-  a typed error rather than a best-effort parse. Loading an external catalogue
-  at runtime is not part of this.
+- Enabling `ble` or `cloud` reports the mode as unavailable: a mode the build
+  carries no transport for is reported, never silently skipped and never
+  substituted with another mode.
+- `DeviceHandle::status()` asks the device and waits, `last_status()` returns
+  the last reply heard and `watch_status()` follows them as they arrive.
+  `DeviceStatus` carries the parsed fields and the raw JSON beside them. A
+  reply carries no request id, so each device owns one watch channel and
+  concurrent callers share a single request. The two accessors return `None`
+  unless `lan` is enabled for the device: the recorded status belongs to that
+  transport, and handing it back under another mode would be a silent
+  substitution.
+- `cargo run -p xtask -- catalog` generates `dist/catalog.json`, one file
+  holding every device, built by CI and attached to a release. An unknown
+  `schema_version` is a typed error rather than a best-effort parse.
+- `cargo run -p xtask -- compat` regenerates the two tables in
+  `docs/compatibility.md`; `--check` fails CI when they drift from
+  `devices/*.yaml`.
 - A codec-only build: with default features off there is no socket and no async
   runtime. `tools/check-no-io.sh` and a CI job keep it that way.
 - `cargo test` fails when a command in the catalogue has no conformance vector.
@@ -55,17 +69,3 @@ The version the manifests carry. Nothing is published to crates.io and the
 - Workspace lints: `unsafe_code` forbidden, `unwrap` / `expect` / `panic` /
   `indexing_slicing` warned in library code, clippy `pedantic` and `cargo`
   groups on.
-- CI (`ci.yml`) covering format on nightly, clippy, tests, docs, the MSRV,
-  `cargo deny`, spelling, capture redaction, the codec-only build, the codec
-  layering check and the 400-line-per-file limit, on Linux, macOS and Windows;
-  `tools/qa.sh` runs the same list locally.
-
-### Notes
-
-- Mode dispatch is a `match` in the facade. A `Transport` trait is the
-  prerequisite for the BLE pull request, not part of this one — see
-  [`../../docs/architecture.md`](../../docs/architecture.md).
-- `ble` and `cloud` are declared as modes but have no transport. Enabling one is
-  reported as unavailable, never silently skipped.
-- One SKU is verified end to end — see
-  [`../../docs/compatibility.md`](../../docs/compatibility.md).

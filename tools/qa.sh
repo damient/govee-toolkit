@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Runs every check .github/workflows/ci.yml runs that makes sense locally, in
-# the same order. The DCO job is left out: it walks the pull request's commit
-# range, which only exists on the pull request.
+# the same order. Sign-off, commit convention and changelog entry are left out:
+# they walk the pull request's commit range, which only exists on the pull
+# request.
 #
 # Kept in step with ci.yml by hand: the workflow is the authority, this is the
 # local mirror of it. A check whose tool is missing is reported as skipped

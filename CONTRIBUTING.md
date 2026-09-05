@@ -41,6 +41,32 @@ repository cannot hold that content at all.
 The "Govee" trademark is used descriptively, to identify compatible devices.
 This project is not affiliated with, sponsored by, or endorsed by Govee.
 
+## Commit messages
+
+Subjects follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>)!: <summary>
+```
+
+`type` is one of `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`,
+`ci`, `chore`, `revert`. `scope` is optional and lowercase — `lan`, `codec`,
+`stream`, `devices`, `node`, `python`, `ci`. A `!`, or a `BREAKING CHANGE:`
+trailer, marks a change that breaks the public API.
+
+```
+feat(stream): pace segment frames from the measured rate
+fix(devices)!: correct the H61A0 segment count
+```
+
+The body is where the reasoning goes, and it is the part worth writing: what
+the change does, and why it is shaped that way. The subject is an index, not a
+summary of the reasoning.
+
+CI checks every commit in a pull request. `git rebase -i main` with `reword`
+fixes a subject; the convention is what decides the semver bump at release, so
+`feat` and `fix` are not interchangeable.
+
 ## Sign-off (DCO)
 
 There is no CLA. Contributions stay [MIT](LICENSE), and are certified with the

@@ -4,6 +4,15 @@ Three packages release independently off one shared core. This page is the rule
 they follow, written before the first release rather than after the second one
 breaks.
 
+## Where the changelogs are
+
+Each package keeps its own —
+[`rust`](../packages/rust/CHANGELOG.md),
+[`python`](../packages/python/CHANGELOG.md),
+[`node`](../packages/node/CHANGELOG.md). The root
+[`CHANGELOG.md`](../CHANGELOG.md) carries what belongs to no package — the
+device catalogue, the documentation, the tooling and CI — and indexes the three.
+
 ## Semver, and what pre-1.0 means
 
 Every package follows [semantic versioning](https://semver.org/). All of them
@@ -84,6 +93,33 @@ The catalogue is data, and it is versioned as data rather than as code:
   is how a port finds out.
 - Correcting a command that was measurably wrong is a bug fix, not a break. The
   changelog says which device files changed and why.
+
+## Releasing
+
+The changelog is the source, and the release is derived from it:
+
+1. The pull request puts the `## [X.Y.Z] — YYYY-MM-DD` heading above the
+   entries that have accumulated at the top of the changelog, and bumps the
+   version in the package manifest. Both are reviewed there.
+2. A signed tag names the package and the version — `git tag -s rust-v0.3.0 -m
+   rust-v0.3.0 && git push --tags`.
+3. The tag starts the package's release workflow. Its first step runs
+   `tools/release-notes.sh <pkg> <tag>`, which compares the tag, the manifest
+   version and the changelog heading, and prints that section. Three numbers
+   that disagree fail the run before anything is built.
+4. The section becomes the body of the GitHub release, and the workflow
+   publishes to the registry.
+
+The release history is the repository's releases page, written by that
+workflow. The root [`../CHANGELOG.md`](../CHANGELOG.md) carries the version each
+manifest declares, and the catalogue's own changelog — dated rather than
+numbered, since a package embeds the catalogue at build time and the date is
+what a release pins.
+
+Which number to bump comes from the commit types in the range: a `feat` is a
+minor bump, a `fix` a patch, and a `!` or a `BREAKING CHANGE:` trailer the
+breaking one — pre-1.0, that is the minor bump above. `CONTRIBUTING.md` has the
+convention.
 
 ## MSRV
 

@@ -44,6 +44,8 @@ chooses a transport.
 | Ordering of the work | `docs/roadmap.md` |
 | Why the code is shaped this way | `docs/architecture.md` |
 | Arguments in, exact bytes out | `tests/fixtures/golden/<mode>/<SKU>.json` |
+| What a package's release changed | `packages/<pkg>/CHANGELOG.md` |
+| Catalogue changes, and the release history | `CHANGELOG.md` |
 
 The split between the first two rows matters and is easy to get wrong:
 `docs/protocol/` describes the protocol generically — **no SKU names, no
@@ -172,5 +174,15 @@ workflows stay `workflow_dispatch` only until there is something to publish.
 ## Repository
 
 - MIT, no copyleft dependencies.
+- Commit subjects are [Conventional Commits](https://www.conventionalcommits.org/)
+  — `<type>(<scope>)!: <summary>`, types `feat`, `fix`, `perf`, `refactor`,
+  `docs`, `test`, `build`, `ci`, `chore`, `revert`. The type decides the semver
+  bump at release, so `feat` and `fix` are not interchangeable. The body carries
+  the reasoning.
 - Every commit carries `Signed-off-by` (`git commit -s`); CI enforces it.
+- A change to `packages/*/src/` or `devices/*.yaml` carries a changelog entry —
+  `/changelog` writes it. CI enforces that too.
+- Releasing is `docs/versioning.md`: the changelog section is the source, a
+  signed `<pkg>-vX.Y.Z` tag starts the workflow, and `tools/release-notes.sh`
+  fails the run when the tag, the manifest and the changelog heading disagree.
 - Commit and push only when asked.

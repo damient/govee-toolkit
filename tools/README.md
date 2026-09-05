@@ -7,6 +7,7 @@
 | Redaction check | [`check-captures.sh`](check-captures.sh) |
 | Rust file length | [`check-file-length.sh`](check-file-length.sh) |
 | Codec layering | [`check-no-io.sh`](check-no-io.sh) |
+| Release notes from the changelog | [`release-notes.sh`](release-notes.sh) |
 | Generated catalog and tables | [`packages/rust/crates/xtask`](../packages/rust/crates/xtask) |
 
 The simulator is a Rust crate rather than a tool of its own: the transport tests
@@ -15,10 +16,10 @@ the same wire protocol would be one more place for it to be wrong.
 
 `qa.sh` runs the checks of `.github/workflows/ci.yml` in the same order and
 prints a pass/fail summary. It reports a check whose tool is missing as skipped
-rather than passed, and names the install command. The DCO job is the one it
-leaves out — that one walks a pull request's commit range, which does not exist
-locally. The workflow stays the authority; this is a mirror of it kept in step
-by hand.
+rather than passed, and names the install command. The three it leaves out —
+sign-off, commit convention and changelog entry — walk a pull request's commit
+range, which does not exist locally. The workflow stays the authority; this is
+a mirror of it kept in step by hand.
 
 `check-captures.sh` scans every tracked file under `tests/fixtures/` and
 `devices/` for what a packet capture carries out of a home network: a MAC that
@@ -37,6 +38,18 @@ replacement for reading the capture.
 `async fn` or an `.await`. The codec
 does no I/O, and with the Rust side a single crate this script is what
 guarantees it. `cargo check --no-default-features` is the other half of it.
+
+`release-notes.sh` takes a package and a release tag, and prints the changelog
+section for that version:
+
+```bash
+tools/release-notes.sh rust rust-v0.3.0
+```
+
+It fails when the tag, the version in the package manifest and the changelog
+heading are not the same number, or when the section exists with no entries
+under it. The release workflows run it as their first step, so a tag pushed
+past a manifest nobody bumped stops there instead of publishing.
 
 `xtask` generates what is derived from `devices/*.yaml`:
 
