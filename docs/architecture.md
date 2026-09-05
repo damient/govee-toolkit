@@ -32,9 +32,9 @@ src/stream/                segment channel — armed once, fed frames on a clock
        │
 src/ (crate root)          facade — modes, configuration, events
        │
-  ┌────┴────┬──────────┐
-node       python      php
-(napi-rs)  (PyO3)      (port)
+  ┌────┴────┐
+node       python
+(napi-rs)  (PyO3)
 ```
 
 **One crate, `govee-toolkit`**, at `packages/rust`. The layers are modules of
@@ -61,7 +61,6 @@ explicitly:
   `async fn` or an `.await`.
 - `cargo check --no-default-features` is a CI job. With the transport feature
   off, the codec has to keep compiling on its own — no socket, no async runtime.
-  That is also the build a hand-written port checks itself against.
 
 `src/codec/` interprets the device files; it contains no per-SKU logic and never
 will. Adding a device is adding YAML — see
@@ -87,25 +86,21 @@ It will not make modes implicit. Which transports a device may use stays the
 user's explicit list; a trait only removes the repetition. See
 [`modes.md`](modes.md).
 
-## Bindings, and the one port
+## Bindings
 
 - **Node** — `napi-rs`. Serves the playground, the Electron app and the
   Homebridge plugin.
 - **Python** — `PyO3` / `maturin`. Serves the Home Assistant component. It needs
   wheels for aarch64, armv7 and musl, or Raspberry Pi users cannot install it;
   that CI is part of the work, not an afterthought.
-- **PHP** — a hand-written port. `ext-php-rs` produces an extension that has to
-  be compiled on the host, which is not something to ask of a Composer install.
-  PHP is the one implementation that can drift, which is exactly why the
-  conformance vectors exist.
 
 ## The catalogue as an artefact
 
 `devices/*.yaml` is the source of truth, one file per SKU. `cargo run -p xtask`
 generates the whole directory into a single `catalog.json`, carrying the schema
 revision it was generated at; CI builds it on every run and a release attaches
-it. The PHP port and any third-party tool read that one file instead of walking
-a directory and parsing YAML. It is a build output, never committed.
+it. A third-party tool reads that one file instead of walking a directory and
+parsing YAML. It is a build output, never committed.
 
 The crate still **compiles the catalogue in**, at build time. That is what keeps
 the SDK a single artefact: no data file to install alongside it, no path to
@@ -133,6 +128,6 @@ conditional field — do have to touch the core. The language is deliberately
 broader than the one device that exists today so that stays rare.
 
 Adding a SKU still means a release of every package, because the catalogue is
-compiled in: a device file merged today reaches users when Rust, Python, Node
-and PHP have each shipped. That is the known friction, and the generated
+compiled in: a device file merged today reaches users when Rust, Python and
+Node have each shipped. That is the known friction, and the generated
 `catalog.json` is the first step away from it rather than the fix.

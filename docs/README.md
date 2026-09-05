@@ -16,7 +16,7 @@
   capability gaps
 - [`security.md`](security.md) — what the LAN protocol does not protect, and
   where the cloud API key lives
-- [`versioning.md`](versioning.md) — semver across four packages, MSRV and
+- [`versioning.md`](versioning.md) — semver across three packages, MSRV and
   deprecation policy
 
 See also [`../devices/README.md`](../devices/README.md) for the device database.

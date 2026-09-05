@@ -16,13 +16,12 @@ people actually ask for. Open an issue if something matters to you.
 | 5 | `lan` transport in Rust — scan, cache, reused socket, per-mode circuit breaker, mode selection | ✅ Done |
 | 5b | Segment streaming — `razer` channel, native resolution, rate limiting from zone count | ✅ Done |
 | 6 | **Node** binding (napi-rs) and **Python** binding (PyO3), with multi-arch wheels | 🚧 Next |
-| 7 | **PHP** port, checked against the conformance vectors | 🔜 Planned |
-| 8 | Playground — backend, web UI, raw payload field | 🔜 Planned |
-| 9 | Electron app around the playground | 🔜 Planned |
-| 10 | Matter bridge — one integration, every controller | 🔜 Planned |
-| 11 | Home Assistant custom component (LAN power + brightness first) | 🔜 Planned |
-| 12 | Homebridge plugin | 🔜 Planned |
-| 13 | Art-Net / DMX bridge | 🔜 Planned |
+| 7 | Playground — backend, web UI, raw payload field | 🔜 Planned |
+| 8 | Electron app around the playground | 🔜 Planned |
+| 9 | Matter bridge — one integration, every controller | 🔜 Planned |
+| 10 | Home Assistant custom component (LAN power + brightness first) | 🔜 Planned |
+| 11 | Homebridge plugin | 🔜 Planned |
+| 12 | Art-Net / DMX bridge | 🔜 Planned |
 | — | `ble` and `cloud` modes | 🔜 Planned, after the `lan` core |
 
 Undocumented LAN commands are documented and formalized continuously, in

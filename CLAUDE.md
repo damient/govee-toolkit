@@ -11,7 +11,7 @@ and `cloud` are three **modes** the user enables per device — never a fallback
 chain, never implicit.
 
 The protocol is implemented **once**, in Rust (`packages/rust`). Node and Python
-bind to that core; PHP is the one hand-written port. Read
+bind to that core. Read
 [`docs/architecture.md`](docs/architecture.md) before adding code to any
 language, and [`docs/modes.md`](docs/modes.md) before touching anything that
 chooses a transport.
@@ -140,13 +140,11 @@ The codec keeps building on its own (`cargo check --no-default-features`), and
 `std::net`, `std::fs`, `std::thread`, `tokio` or `socket2`, or goes async. That check is what keeps the codec
 I/O-free in a single crate; do not weaken it.
 
-Node and Python wrap the crate (napi-rs, PyO3); PHP is ported by hand and is
-checked against `tests/fixtures/golden/`. Each package versions and releases
-independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`)
-through the workflows in `.github/workflows/`. The policy is
+Node and Python wrap the crate (napi-rs, PyO3). Each package versions and
+releases independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) through the workflows in `.github/workflows/`. The policy is
 `docs/versioning.md`.
 
-Nothing is published. The Rust crate carries `0.2.0`; the other three are at
+Nothing is published. The Rust crate carries `0.2.0`; the other two are at
 `0.0.0` because they have no code. No registry name is reserved, and the bare
 name `govee` on crates.io belongs to an unrelated project.
 

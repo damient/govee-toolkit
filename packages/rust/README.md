@@ -103,8 +103,8 @@ the manifest, so the release vendors `devices/` in beside it first.
 cargo run -p xtask            # writes dist/catalog.json
 ```
 
-One generated JSON file holding every device, for the hand-written PHP port and
-for anything else that wants the catalog without a YAML parser. It is a build
+One generated JSON file holding every device, for anything that wants the
+catalog without a YAML parser. It is a build
 output: never committed, produced by CI, attached to a release.
 
 ### The local escape hatch

@@ -105,7 +105,7 @@ Full text: <https://developercertificate.org/>.
 | `devices/` | Source of truth: per-SKU YAML definitions |
 | `docs/` | Mode model (`modes.md`), architecture and per-protocol documentation |
 | `packages/rust/` | The protocol core, and the reference implementation |
-| `packages/` | SDKs (python, node, php) plus the Art-Net bridge |
+| `packages/` | SDKs (python, node) plus the Art-Net bridge |
 | `apps/` | Web playground and Electron app (not published) |
 | `integrations/` | Matter bridge, Home Assistant, Homebridge |
 | `tools/` | Local CI mirror and pointers to the development tools |
@@ -128,13 +128,11 @@ features off the codec builds on its own, and CI checks that it still does.
 `src/codec/`, do not import `std::net`, `std::fs`, `std::thread`, `tokio` or
 `socket2`, and do not write an `async fn` or an `.await`.
 
-Registry names elsewhere are `govee-toolkit` on PyPI and npm, and
-`govee/toolkit` on Packagist.
+Registry names elsewhere are `govee-toolkit` on PyPI and npm.
 
 SDKs **read** `devices/*.yaml`: they implement the transports and generic
 parsing, and no protocol logic of their own. The protocol is implemented once,
-in `packages/rust` — Node and Python bind to that core, PHP is the one
-hand-written port. See [`docs/architecture.md`](docs/architecture.md).
+in `packages/rust` — Node and Python bind to that core. See [`docs/architecture.md`](docs/architecture.md).
 
 `lan`, `ble` and `cloud` are **modes**, not a fallback chain: the user enables
 one or several per device. A contribution must not make a mode implicit, and
@@ -224,14 +222,14 @@ vector covers. Add the vector in the same pull request as the command.
 it in-process on loopback ports; `cargo run -p govee-toolkit-sim` runs one on
 the real ports for manual testing.
 
-The Python, Node and PHP suites arrive with their packages. PHP, the one
-hand-written port, runs the same conformance vectors as the core — that is the
-whole reason the vectors exist.
+The Python and Node suites arrive with their packages. Every implementation
+runs the same conformance vectors as the core — that is the whole reason the
+vectors exist.
 
 ## Releases
 
 Each package is versioned and released independently through tags:
-`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`. What a version
+`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`. What a version
 number promises, and what counts as a breaking change, is in
 [`docs/versioning.md`](docs/versioning.md).
 

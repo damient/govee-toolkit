@@ -1,6 +1,6 @@
 # Versioning and compatibility
 
-Four packages release independently off one shared core. This page is the rule
+Three packages release independently off one shared core. This page is the rule
 they follow, written before the first release rather than after the second one
 breaks.
 
@@ -25,11 +25,10 @@ have survived `ble` and `cloud` landing — not on a date.
 | `rust-vX.Y.Z` | `govee-toolkit` | crates.io |
 | `python-vX.Y.Z` | `govee-toolkit` | PyPI |
 | `node-vX.Y.Z` | `govee-toolkit` | npm |
-| `php-vX.Y.Z` | `govee/toolkit` | Packagist |
 
-Versions are **not** kept in lockstep. Four packages that move at different
-speeds and share a version number would mean publishing three no-op releases
-every time one of them changed.
+Versions are **not** kept in lockstep. Three packages that move at different
+speeds and share a version number would mean publishing two no-op releases every
+time one of them changed.
 
 ## One crate, and what a feature means
 
@@ -43,7 +42,7 @@ moving an item out of the default set, is breaking — a user who builds with
 `--no-default-features` is relying on exactly what is left, and the codec-only
 build is a supported configuration, checked in CI.
 
-`govee_toolkit::codec` is public because a port and a binding both need it. It
+`govee_toolkit::codec` is public because a binding needs it. It
 carries the same promise as the rest of the crate.
 
 ## Which binding works with which core
@@ -52,11 +51,6 @@ Node, Python and the facade are built from the same workspace commit: a binding
 release embeds the core it was built against, so there is no version pair to
 match. The core version a binding was built from is recorded in its metadata and
 reported at runtime.
-
-PHP is the hand-written port and the one place a mismatch is possible. It
-declares the range of catalogue schema versions it implements, and the
-conformance vectors in `tests/fixtures/golden/` are what keep it aligned with
-the core — a PHP release is cut only against a vector set it passes in full.
 
 ## What counts as public API
 

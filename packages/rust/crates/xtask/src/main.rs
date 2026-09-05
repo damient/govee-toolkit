@@ -4,8 +4,8 @@
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //!
 //! The device files are the source of truth, and the Rust build compiles them
-//! in. Everything else — the PHP port, a third-party tool, anyone who wants the
-//! catalog without a YAML parser — reads this one generated file instead of the
+//! in. Everything else — a third-party tool, anyone who wants the catalog
+//! without a YAML parser — reads this one generated file instead of the
 //! directory. It is a build output: never committed, produced by CI and
 //! attached to a release. See `docs/architecture.md`.
 //!

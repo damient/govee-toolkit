@@ -40,8 +40,7 @@ One core, in Rust; the rest bind to it — [`architecture.md`](architecture.md).
 | 🚧 | **Rust** (`packages/rust`) — the reference implementation and the only place protocol logic lives |
 | 🔜 | **Python** (`packages/python`) — PyO3 binding, pip, `pytest`, multi-arch wheels |
 | 🔜 | **Node.js / TypeScript** (`packages/node`) — napi-rs binding, npm |
-| 🔜 | **PHP** (`packages/php`) — hand-written port, composer, PSR-4, PHPUnit, checked against the conformance vectors |
-| 🔜 | Each package versioned and released independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`) |
+| 🔜 | Each package versioned and released independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) |
 
 ## Tools & apps
 

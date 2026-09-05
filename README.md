@@ -10,10 +10,9 @@ round-trip. Bluetooth and the cloud API are there if you need them.
 [![rust](https://img.shields.io/badge/rust%20core-lan%20working-green)](packages/rust)
 [![python](https://img.shields.io/badge/python%20SDK-planned-lightgrey)](packages/python)
 [![node](https://img.shields.io/badge/node%20SDK-planned-lightgrey)](packages/node)
-[![php](https://img.shields.io/badge/php%20SDK-planned-lightgrey)](packages/php)
 
 An alternative to the official Govee API: a community, multi-language SDK
-(Python / Node.js / PHP) that speaks to your devices **directly on your LAN**,
+(Python / Node.js) that speaks to your devices **directly on your LAN**,
 including undocumented commands — per-segment color and the frame rate to
 animate it — found through reverse engineering and unavailable anywhere else.
 
@@ -31,8 +30,8 @@ several when you want the SDK to switch. Nothing is implicit.
 > 🚧 **Early development.** The protocol is documented — including the
 > undocumented commands — the device schema is in place, and the Rust core,
 > `lan` transport and segment streaming are working end to end. The language
-> bindings come next; nothing is published to crates.io / PyPI / npm /
-> Packagist yet. See the [roadmap](docs/roadmap.md) for what is coming, and
+> bindings come next; nothing is published to crates.io, PyPI or npm yet. See
+> the [roadmap](docs/roadmap.md) for what is coming, and
 > [features](docs/features.md) for the full picture.
 
 ---
@@ -98,9 +97,6 @@ pip install govee-toolkit
 
 # Node.js
 npm install govee-toolkit
-
-# PHP
-composer require govee/toolkit
 ```
 
 ## Quick start
