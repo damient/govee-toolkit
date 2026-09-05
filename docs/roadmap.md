@@ -12,7 +12,7 @@ people actually ask for. Open an issue if something matters to you.
 | 1 | Repository scaffold — full tree, MIT license, CI skeleton | ✅ Done |
 | 2 | `devices/schema.yaml` + the first device entry (H61A0) | ✅ Done |
 | 3 | `docs/protocol/lan.md` — documented protocol + the undocumented commands found so far | ✅ Done |
-| 4 | `govee-core` in **Rust** — device catalog, command encoding, raw frame codec, conformance vectors | ✅ Done |
+| 4 | The protocol codec in **Rust** — device catalog, command encoding, raw frame codec, conformance vectors | ✅ Done |
 | 5 | `lan` transport in Rust — scan, cache, reused socket, per-mode circuit breaker, mode selection | ✅ Done |
 | 5b | Segment streaming — `razer` channel, native resolution, rate limiting from zone count | 🚧 Next |
 | 6 | **Node** binding (napi-rs) and **Python** binding (PyO3), with multi-arch wheels | 🔜 Planned |

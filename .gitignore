@@ -25,3 +25,9 @@ release/
 # Cache runtime (discovery)
 .cache/
 *.local
+
+# Vendored at publish time only: the catalog lives in devices/ at the root.
+/packages/rust/devices/
+
+# Generated build outputs (the device catalog artifact).
+/dist/

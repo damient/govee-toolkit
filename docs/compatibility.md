@@ -11,8 +11,9 @@ The authoritative data lives in [`../devices/`](../devices/), one YAML file per
 SKU or SKU family. This page is the human-readable view of it — the YAML wins on
 any disagreement.
 
-<!-- TODO: generate the tables below from devices/*.yaml and check them in CI,
-     so this page cannot drift from the data. -->
+The two tables below are generated from the device files by
+`cargo run -p xtask -- compat`, and CI fails when they drift. Everything else on
+this page is written by hand.
 
 ## Support levels
 
@@ -21,7 +22,13 @@ any disagreement.
 | **full** | Every capability the hardware has is reachable in this mode |
 | **partial** | Only some capabilities are reachable — the device file lists which |
 | **none** | Not reachable in this mode |
-| **?** | Not tested yet |
+| **?** | Not tested yet. The device file spells this `unknown` |
+
+`none` and `?` are not the same answer. `none` says somebody established the
+hardware cannot do it; `?` says nobody looked. A failed probe and an
+unimplemented feature look identical from outside, so `?` stays until someone
+probes it, and enabling an unprobed mode is allowed — that is how it gets
+probed.
 
 A mode marked `full` or `partial` says what the hardware supports, not what is
 enabled: the user chooses which modes to turn on, per device. See
@@ -33,15 +40,19 @@ A SKU that looks like another is not the same device: lengths differ, and with
 them segment counts and native resolution. Candidate aliases stay declared as
 such in the device file until someone verifies them.
 
+<!-- generated: support-by-sku -->
 | SKU | Family | Name | `lan` | `ble` | `cloud` | Verified |
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
-| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | RGBIC LED Neon Rope Lights | full | ? | partial | ✅ `lan`, incl. segment channel |
+| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | RGBIC LED Neon Rope Lights | full | ? | partial | ✅ 2026-09-04 |
+<!-- /generated -->
 
 ## Capabilities by SKU
 
+<!-- generated: capabilities-by-sku -->
 | SKU | power | brightness | color | colortemp | scenes | segments | sensors |
 | --- | ----- | ---------- | ----- | --------- | ------ | -------- | ------- |
 | H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+<!-- /generated -->
 
 Capabilities are hardware facts; what is reachable depends on the active mode.
 Where the undocumented `razer` channel is implemented, `lan` reaches per-segment

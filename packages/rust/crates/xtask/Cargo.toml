@@ -1,0 +1,18 @@
+[package]
+name = "xtask"
+description = "Repository tasks: generates the distributable device catalog."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+# A repository task, not a library. Never published.
+publish = false
+
+[dependencies]
+serde_json.workspace = true
+serde_norway = "0.9"
+
+[lints]
+workspace = true

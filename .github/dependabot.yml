@@ -10,6 +10,8 @@ updates:
       rust-minor:
         update-types: [minor, patch]
 
+  # Actions are pinned to commit SHAs in .github/workflows/. Dependabot reads
+  # the version from the trailing comment and rewrites both.
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -17,3 +19,66 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /packages/node
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      node-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /packages/artnet-dmx-bridge
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      artnet-dmx-bridge-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /apps/desktop
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      desktop-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /apps/playground/server
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      playground-server-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /integrations/homebridge
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      homebridge-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /packages/python
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      python-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: composer
+    directory: /packages/php
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      php-minor:
+        update-types: [minor, patch]

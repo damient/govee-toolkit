@@ -93,40 +93,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "govee"
-version = "0.0.0"
-dependencies = [
- "govee-core",
- "govee-lan",
- "govee-sim",
- "serde",
- "serde_json",
- "serde_norway",
- "thiserror",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "govee-core"
-version = "0.0.0"
+name = "govee-toolkit"
+version = "0.2.0"
 dependencies = [
  "base64",
+ "govee-toolkit-sim",
  "proptest",
  "serde",
  "serde_json",
  "serde_norway",
- "thiserror",
-]
-
-[[package]]
-name = "govee-lan"
-version = "0.0.0"
-dependencies = [
- "govee-core",
- "govee-sim",
- "serde",
- "serde_json",
  "socket2",
  "thiserror",
  "tokio",
@@ -134,8 +109,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "govee-sim"
-version = "0.0.0"
+name = "govee-toolkit-sim"
+version = "0.2.0"
 dependencies = [
  "serde_json",
  "socket2",
@@ -604,6 +579,14 @@ name = "wit-bindgen"
 version = "0.46.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f17a85883d4e6d00e8a97c586de764dabcc06133f7f1d55dce5cdc070ad7fe59"
+
+[[package]]
+name = "xtask"
+version = "0.2.0"
+dependencies = [
+ "serde_json",
+ "serde_norway",
+]
 
 [[package]]
 name = "zerocopy"

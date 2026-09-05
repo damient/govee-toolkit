@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Runs every check .github/workflows/ci.yml runs, in the same order.
+# Runs every check .github/workflows/ci.yml runs that makes sense locally, in
+# the same order. The DCO job is left out: it walks the pull request's commit
+# range, which only exists on the pull request.
 #
 # Kept in step with ci.yml by hand: the workflow is the authority, this is the
 # local mirror of it. A check whose tool is missing is reported as skipped
@@ -64,9 +66,13 @@ else
   skip "rust fmt" "rustup toolchain install nightly"
 fi
 
-check "rust clippy" cargo clippy --all-targets --all-features -- -D warnings
-check "rust test" cargo test --all-features
+check "rust clippy" cargo clippy --workspace --all-targets --all-features -- -D warnings
+check "rust test" cargo test --workspace --all-features
+# The codec has to keep building with no transport: no socket, no async runtime.
+check "codec alone" cargo check --no-default-features
 check "rust doc" env RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features
+check "device catalog" cargo run -q -p xtask
+check "compatibility tables" cargo run -q -p xtask -- compat --check
 
 if [ -z "$MSRV" ]; then
   skip "rust msrv" "no rust-version in packages/rust/Cargo.toml"
@@ -89,6 +95,8 @@ else
 fi
 
 check "file length" "$root/tools/check-file-length.sh"
+check "codec layering" "$root/tools/check-no-io.sh"
+check "capture redaction" "$root/tools/check-captures.sh"
 
 echo
 printf '%s\n' "-- summary"

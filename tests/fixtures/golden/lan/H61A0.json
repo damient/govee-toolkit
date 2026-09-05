@@ -56,6 +56,13 @@
       "source": "docs/protocol/lan.md 1, documented"
     },
     {
+      "name": "undocumented raw status request",
+      "command": "raw_status",
+      "args": {},
+      "message": { "msg": { "cmd": "status", "data": {} } },
+      "source": "docs/protocol/lan.md 2.2 — undocumented; the envelope is taken from the device file, the reply shape was observed but the request was not captured"
+    },
+    {
       "name": "arm the segment channel",
       "command": "dreamview_enable",
       "args": { "on": 1 },

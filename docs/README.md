@@ -14,5 +14,9 @@
 - [`protocol/ble.md`](protocol/ble.md) — BLE / GATT notes per SKU family
 - [`protocol/cloud.md`](protocol/cloud.md) — cloud API: auth, rate limits,
   capability gaps
+- [`security.md`](security.md) — what the LAN protocol does not protect, and
+  where the cloud API key lives
+- [`versioning.md`](versioning.md) — semver across four packages, MSRV and
+  deprecation policy
 
 See also [`../devices/README.md`](../devices/README.md) for the device database.

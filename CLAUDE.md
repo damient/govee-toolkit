@@ -77,7 +77,9 @@ SKU.
   looks like the same product goes in `candidate_aliases` — different lengths of
   one product are not interchangeable.
 - `modes:` declares what the hardware supports. What the user enables is runtime
-  configuration and never lives here.
+  configuration and never lives here. `none` says somebody established the
+  hardware cannot do it; a mode nobody probed stays `unknown`, which is the
+  default.
 - Undocumented commands get `documented: false`, plus a `notes:` line and a
   pointer to the matching section of `docs/protocol/lan.md`. This is enforced by
   `cargo test`.
@@ -88,7 +90,13 @@ SKU.
   `devices/schema.yaml`.
 - Add a conformance vector under `tests/fixtures/golden/` for every new command,
   and say in its `source` whether the bytes come from a capture or were worked
-  out from the documented layout. Only the first is evidence.
+  out from the documented layout. Only the first is evidence. `cargo test` fails
+  on a command that has none.
+- Redact a capture before committing it — the checklist is in
+  `tests/fixtures/README.md` and `tools/check-captures.sh` re-checks what it can.
+  Git keeps a leaked capture after the fix.
+- `docs/compatibility.md` holds two generated tables. After a device file
+  changes, run `cargo run -p xtask -- compat`; CI fails on drift.
 
 ## Protocol work
 
@@ -98,22 +106,42 @@ SKU.
 - Firmware updates change behavior without notice. Ship probes rather than
   trusting a table.
 - Two techniques that pay off, in order: decompile the vendor's desktop app, and
-  capture its UDP traffic on port 4003. Both beat guessing frames.
+  capture its UDP traffic on port 4003. Both beat guessing frames. What you
+  learn that way is describable in your own words; **no decompiled output,
+  extracted string, resource or firmware image is ever committed** — see
+  `CONTRIBUTING.md`, "Legal and provenance".
 
 ## Packages
 
 `packages/rust` is the reference implementation and the only place protocol
-logic exists. Node and Python wrap it (napi-rs, PyO3); PHP is ported by hand and
-is checked against `tests/fixtures/golden/`. Each package versions and releases
-independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`)
-through the workflows in `.github/workflows/`.
+logic exists. It is **one crate**, `govee-toolkit`, with the layers as modules:
+`src/codec/` (no I/O), `src/lan/` (behind the default `lan` feature) and the
+facade at the crate root. `crates/sim` and `crates/xtask` sit beside it and
+carry `publish = false`. A transport is a cargo feature — `ble` and `cloud` join
+`lan` as they land.
 
-Nothing is published yet — package names are reserved in the manifests but no
-release has shipped.
+The codec keeps building on its own (`cargo check --no-default-features`), and
+`tools/check-no-io.sh` fails the build if anything under `src/codec/` imports
+`std::net`, `std::fs`, `tokio` or `socket2`. That check is what replaced the
+crate boundary; do not weaken it.
+
+Node and Python wrap the crate (napi-rs, PyO3); PHP is ported by hand and is
+checked against `tests/fixtures/golden/`. Each package versions and releases
+independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `php-vX.Y.Z`)
+through the workflows in `.github/workflows/`. The policy is
+`docs/versioning.md`.
+
+Nothing is published. The Rust crate carries `0.2.0`; the other three are at
+`0.0.0` because they have no code. No registry name is reserved, and the bare
+name `govee` on crates.io belongs to an unrelated project.
 
 In Rust: no `unsafe`, and no `panic` / `unwrap` / `expect` in library code. Out
 of range is an error, never a clamp — the firmware clamps in silence, and an SDK
 that did the same would report success for a value the device did not apply.
+
+Mode dispatch is a `match` in the facade. A `Transport` trait is the
+prerequisite for the BLE pull request, not something to add early — see
+`docs/architecture.md`.
 
 Format with `cargo +nightly fmt` — `rustfmt.toml` uses nightly-only options and
 stable rustfmt produces a different result. A Rust source file stays under 400
@@ -123,10 +151,13 @@ compiler raises `rust-version` in the same commit.
 
 `tools/qa.sh` runs the CI checks locally — use it before pushing rather than
 reading the result off a pull request. `ci.yml` runs on push to `main` and on
-pull request, skipping every job while the pull request is a draft. The release
+pull request, skipping every job while the pull request is a draft, and tests on
+Linux, macOS and Windows because the multicast socket differs on each. Every
+third-party action is pinned to a commit SHA; keep it that way. The release
 workflows stay `workflow_dispatch` only until there is something to publish.
 
 ## Repository
 
 - MIT, no copyleft dependencies.
+- Every commit carries `Signed-off-by` (`git commit -s`); CI enforces it.
 - Commit and push only when asked.

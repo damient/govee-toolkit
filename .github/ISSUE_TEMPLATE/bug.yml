@@ -1,0 +1,106 @@
+name: Bug report
+description: Something behaves differently from what is documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Redact before pasting: MAC addresses, IP addresses, API keys and account
+        tokens. An unredacted issue is edited or closed, and the edit history
+        keeps what you pasted.
+
+  - type: input
+    id: sku
+    attributes:
+      label: SKU
+      description: >-
+        The model, as printed on the device or shown in the Govee Home app.
+      placeholder: H61A0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode in use
+      description: >-
+        The mode that served the command, not the ones the device supports.
+        Every result reports which mode served it.
+      options:
+        - lan
+        - ble
+        - cloud
+        - unsure
+    validations:
+      required: true
+
+  - type: input
+    id: package
+    attributes:
+      label: Package and version
+      description: Which SDK, and which version or commit.
+      placeholder: govee-toolkit (Rust) 0.1.0, or commit 70d2d29
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: >-
+        Include the architecture. Multicast behavior differs across Linux, macOS
+        and Windows, so this is load-bearing for anything discovery-related.
+      placeholder: macOS 15.6 (arm64)
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Device firmware version
+      description: >-
+        From the Govee Home app. Firmware changes behavior without notice. `?`
+        if you did not check.
+      placeholder: "1.02.14"
+    validations:
+      required: false
+
+  - type: textarea
+    id: sent
+    attributes:
+      label: What was sent
+      description: >-
+        The command name and arguments, or the raw payload. The command names
+        are the entries in `devices/<SKU>.yaml`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened
+      description: >-
+        Say which of the two you observed: the device did the wrong thing, or
+        the device did nothing at all.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >-
+        Redacted output. Set `RUST_LOG=debug` for the Rust core.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: redacted
+    attributes:
+      label: Before submitting
+      options:
+        - label: >-
+            I removed MAC addresses, IP addresses, API keys and tokens from
+            everything above.
+          required: true

@@ -15,13 +15,21 @@ jobs:
       run:
         working-directory: packages/rust
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      # TODO: enable once the crates are publishable. govee-core embeds
-      # devices/*.yaml, which sits outside the package — vendor it into the
-      # crate directory here and point GOVEE_DEVICES_DIR at the copy, otherwise
-      # the published crate will not build.
-      # - run: cargo publish -p govee-core
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+      # `govee-toolkit` is the one crate published; crates/sim and crates/xtask
+      # are publish = false and are reached only as path-only dev-dependencies,
+      # which cargo drops from the upload.
+      #
+      # build.rs embeds devices/*.yaml, which sits above the manifest and so
+      # cannot be packaged from there. Vendor it in first, and check the
+      # --dry-run file list: it must carry devices/*.yaml and no crates/.
+      # - name: Vendor the device catalog
+      #   run: cp -R ../../devices devices
+      # - run: cargo publish
       #   env:
       #     CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      - run: 'echo "TODO: vendor devices/ and publish govee-core"'
+      # TODO: enable once there is something to publish.
+      - run: 'echo "TODO: vendor devices/ and publish govee-toolkit"'

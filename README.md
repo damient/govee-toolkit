@@ -6,6 +6,7 @@ round-trip. Bluetooth and the cloud API are there if you need them.
 
 [![status](https://img.shields.io/badge/status-early%20development-orange)](docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 [![rust](https://img.shields.io/badge/rust%20core-lan%20working-green)](packages/rust)
 [![python](https://img.shields.io/badge/python%20SDK-planned-lightgrey)](packages/python)
 [![node](https://img.shields.io/badge/node%20SDK-planned-lightgrey)](packages/node)
@@ -43,17 +44,16 @@ several when you want the SDK to switch. Nothing is implicit.
 - **Protocol documentation** — [`docs/protocol/`](docs/protocol/): the
   documented LAN protocol and the undocumented commands — the raw per-segment
   color channel, the clamping behavior, and how to measure a device's headroom.
-- **Protocol core** — [`packages/rust/crates/govee-core`](packages/rust/crates/govee-core):
+- **Protocol codec** — [`packages/rust/src/codec`](packages/rust/src/codec):
   turns a device file plus arguments into the exact bytes to send, raw segment
   frames included. No I/O, no SKU-specific code, no network needed to test it.
-- **`lan` transport** — [`packages/rust/crates/govee-lan`](packages/rust/crates/govee-lan):
+- **`lan` transport** — [`packages/rust/src/lan`](packages/rust/src/lan):
   multicast discovery, an on-disk device cache so a command never waits for a
   scan, one reused UDP socket, fire-and-verify, and a per-device circuit breaker.
-- **Modes and configuration** — [`packages/rust/crates/govee`](packages/rust/crates/govee):
-  the enabled modes per device, read from
-  `~/.config/govee-toolkit/config.yaml`; every command reports which mode served
-  it, and every health transition is an event.
-- **Device simulator** — [`packages/rust/crates/govee-sim`](packages/rust/crates/govee-sim):
+- **Modes and configuration** — [`packages/rust`](packages/rust): the enabled
+  modes per device, read from `~/.config/govee-toolkit/config.yaml`; every
+  command reports which mode served it, and every health transition is an event.
+- **Device simulator** — [`packages/rust/crates/sim`](packages/rust/crates/sim):
   a fake device on UDP with fault injection, so all of the above is tested in CI
   without hardware.
 - **Conformance vectors** — [`tests/fixtures/golden/`](tests/fixtures/golden/):
@@ -86,7 +86,7 @@ Adding a device is mostly filling one YAML file and attaching a capture —
 
 ```bash
 # Rust
-cargo add govee
+cargo add govee-toolkit
 
 # Python
 pip install govee-toolkit
@@ -104,7 +104,7 @@ composer require govee/toolkit
 > [roadmap](docs/roadmap.md). In Rust, this works today from a checkout.
 
 ```rust
-use govee::{Args, Config, Govee};
+use govee_toolkit::{Args, Config, Govee};
 
 let govee = Govee::start(Config::load()?).await?;
 govee.scan().await?;

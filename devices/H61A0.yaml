@@ -34,7 +34,7 @@ modes:
     capabilities: all
     notes: "Requires LAN Control enabled in the Govee Home app."
   ble:
-    support: none           # TODO: not probed on this device
+    support: unknown        # not probed on this device; `none` would be a claim
     capabilities: []
     notes: "Not tested. See docs/protocol/ble.md."
   cloud:
@@ -155,9 +155,9 @@ measurements:
     - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
 
 verified:
-  by: ""                  # TODO
-  firmware: "wifiVersionSoft 2.05.08, re-checked on 2.06.02"
-  date: ""                # TODO
+  by: "damient"
+  firmware: "2.06.02"
+  date: "2026-09-04"
   notes: >-
     lan mode fully exercised, including the undocumented razer segment channel
     at native resolution. See measurements above. ble not probed.

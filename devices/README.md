@@ -22,15 +22,35 @@ these files.
 
 1. Copy `schema.yaml` to `<SKU>.yaml` (uppercase, e.g. `H6159.yaml`).
 2. Fill in `sku`, `family`, `name`, then `capabilities`.
-3. Under `modes`, set the support level per mode (`full` | `partial` | `none`)
-   and list the capabilities reachable in that mode.
+3. Under `modes`, set the support level per mode (`full` | `partial` | `none` |
+   `unknown`) and list the capabilities reachable in that mode. A mode you did
+   not probe stays `unknown`: `none` says the hardware cannot do it, which is a
+   claim, and a failed probe looks exactly like an unimplemented feature.
 4. Fill in the `commands` table. Set `documented: false` for any command found
    through reverse engineering, and document it in
    [`../docs/protocol/lan.md`](../docs/protocol/lan.md) as well.
 5. Add a real capture under `../tests/fixtures/lan-captures/<SKU>/` and point
-   `capture:` at it.
-6. Fill in `verified` (who, firmware, date).
-7. Update the tables in [`../docs/compatibility.md`](../docs/compatibility.md).
+   `capture:` at it. **Redact it first** — a capture carries your MAC, your
+   IP, your SSID and possibly an account token, and git keeps them after the
+   fix.
+   The checklist and the placeholders to use are in
+   [`../tests/fixtures/README.md`](../tests/fixtures/README.md);
+   `../tools/check-captures.sh` re-checks what it can.
+6. Add a conformance vector for every command, under
+   `../tests/fixtures/golden/<mode>/<SKU>.json`. `cargo test` fails on a command
+   that has none, and its `source` has to say whether the bytes came from the
+   capture or were worked out from the documented layout.
+7. Fill in `verified` (who, firmware, date). Leave what you did not check as
+   `?` or `TODO` — the compatibility table reads `verified.date`, and an empty
+   one renders `?` rather than a tick.
+8. Regenerate the tables in
+   [`../docs/compatibility.md`](../docs/compatibility.md):
+
+   ```bash
+   cd ../packages/rust && cargo run -p xtask -- compat
+   ```
+
+   They are generated from these files and CI fails when they drift.
 
 ## SKU families
 

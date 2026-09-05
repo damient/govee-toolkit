@@ -34,19 +34,23 @@ modes:
   # picks which supported modes to enable, per device, in their own runtime
   # config. See ../docs/modes.md.
   #
-  # support: full | partial | none
+  # support: full | partial | none | unknown
+  #   none    — established that the hardware cannot do this mode
+  #   unknown — nobody probed it. The default, and the right answer until
+  #             somebody does: a failed probe and an unimplemented feature look
+  #             identical from outside
   # capabilities: subset of the capability keys above reachable in this mode;
   #               "all" means every capability the hardware has.
   lan:
-    support: none
+    support: unknown
     capabilities: []
     notes: ""
   ble:
-    support: none
+    support: unknown
     capabilities: []
     notes: ""
   cloud:
-    support: none
+    support: unknown
     capabilities: []
     notes: ""
 

@@ -14,43 +14,76 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request cancels the run it supersedes. Pushes to main
+# are never cancelled: every commit there keeps its own result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
 
+# Third-party actions are pinned to a commit SHA, not a tag: a tag is mutable
+# and these workflows check out the repository. Dependabot bumps the SHAs.
+
 jobs:
   rust:
-    name: Rust core
+    name: Rust core (${{ matrix.os }})
     if: github.event.pull_request.draft != true
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # The `lan` transport is UDP multicast on socket2 with one reused
+        # socket, and SO_REUSEADDR, interface selection and loopback of one's
+        # own datagrams differ on each of the three. The in-process simulator
+        # makes that testable without hardware, so it is tested.
+        os: [ubuntu-latest, macos-latest, windows-latest]
     defaults:
       run:
         working-directory: packages/rust
+        # The steps below use POSIX shell syntax; Windows would otherwise run
+        # them through PowerShell.
+        shell: bash
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
+          toolchain: stable
           components: clippy
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        if: matrix.os == 'ubuntu-latest'
         with:
+          toolchain: nightly
           components: rustfmt
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: packages/rust
+      # fmt, clippy and doc are platform-independent — running them once on
+      # Linux costs a third of running them three times.
       # rustfmt.toml uses nightly-only options (import grouping, comment
       # wrapping). RUSTUP_TOOLCHAIN overrides rust-toolchain.toml for this step
       # only.
       - name: Format
+        if: matrix.os == 'ubuntu-latest'
         run: cargo fmt --all --check
         env:
           RUSTUP_TOOLCHAIN: nightly
       - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       # Also validates devices/*.yaml and runs the conformance vectors in
       # tests/fixtures/golden/.
       - name: Test
-        run: cargo test --all-features
+        run: cargo test --workspace --all-features
+      # The codec has to keep building on its own: no socket, no async runtime.
+      # `tools/check-no-io.sh` guards the imports, this guards the build.
+      - name: Codec alone
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo check --no-default-features
       - name: Documentation
+        if: matrix.os == 'ubuntu-latest'
         run: cargo doc --workspace --no-deps --all-features
         env:
           RUSTDOCFLAGS: -D warnings
@@ -63,10 +96,12 @@ jobs:
       run:
         working-directory: packages/rust
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Verifies the rust-version declared in Cargo.toml is actually honored.
-      - uses: dtolnay/rust-toolchain@1.88.0
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: "1.88.0"
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: packages/rust
       - run: cargo check --workspace --all-features
@@ -74,21 +109,87 @@ jobs:
           RUSTUP_TOOLCHAIN: "1.88.0"
 
   lint:
-    name: Spelling and file length
+    name: Spelling, file length and layering
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: crate-ci/typos@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: crate-ci/typos@d43b6c087ac471e2ea7b8af622ff15f05c0c365b # v1.50.1
       - run: ./tools/check-file-length.sh
+      # One crate now, so the boundary that used to be a crate boundary is this.
+      - run: ./tools/check-no-io.sh
+
+  catalog:
+    name: Device catalog artifact
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: packages/rust
+      # devices/*.yaml stays the source of truth; this is the single file the
+      # PHP port and any third-party tool read instead of the directory. It is
+      # generated, never committed, and attached to a release.
+      - name: Generate dist/catalog.json
+        working-directory: packages/rust
+        run: cargo run -p xtask
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: catalog
+          path: dist/catalog.json
+          if-no-files-found: error
+
+  captures:
+    name: Capture redaction
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # A capture that reaches main keeps its MAC addresses and tokens in the
+      # history for good, so this runs before the merge, not after.
+      - run: ./tools/check-captures.sh
+
+  dco:
+    name: DCO sign-off
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The whole range between base and head has to be walkable.
+          fetch-depth: 0
+      - name: Every commit carries Signed-off-by
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=0
+          for sha in $(git rev-list "$BASE_SHA..$HEAD_SHA"); do
+            author=$(git show -s --format='%an <%ae>' "$sha")
+            if ! git show -s --format='%B' "$sha" \
+              | grep -qiF "Signed-off-by: $author"; then
+              echo "::error::$sha has no 'Signed-off-by: $author'"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Fix the branch with: git rebase --signoff main"
+            exit 1
+          fi
 
   deny:
     name: Licenses and advisories
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
         with:
           manifest-path: packages/rust/Cargo.toml
           command: check
@@ -98,8 +199,8 @@ jobs:
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       # TODO: enable once packages/python has code — it will wrap the Rust core
@@ -111,8 +212,8 @@ jobs:
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
       # TODO: enable once packages/node has code — napi-rs binding over the Rust
@@ -124,8 +225,8 @@ jobs:
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: "8.2"
       # TODO: enable once packages/php has code. PHP is a hand-written port, so
@@ -138,7 +239,16 @@ jobs:
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      # TODO: regenerate the docs/compatibility.md tables from devices/*.yaml
-      # and fail if they drift.
-      - run: 'echo "TODO: compatibility.md drift check"'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: packages/rust
+      # The two tables in docs/compatibility.md are generated from
+      # devices/*.yaml. A device file merged without regenerating them leaves
+      # the page saying something the data does not.
+      - name: docs/compatibility.md is in step with devices/
+        working-directory: packages/rust
+        run: cargo run -p xtask -- compat --check

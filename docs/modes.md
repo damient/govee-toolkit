@@ -63,6 +63,16 @@ It is off because a device file is a claim about a model, not about one unit.
 Turning it on is the right move while probing a SKU that has not shipped yet;
 every file that replaces one is logged, every run.
 
+### The cloud API key does not live here
+
+`cloud` mode needs a Govee API key. It is read from the `GOVEE_API_KEY`
+environment variable, or from a separate file the configuration points at — one
+the operator can lock down on its own.
+
+It is **never** stored in `config.yaml`. That file gets pasted into bug reports.
+The key is also never logged and never written to the device cache. See
+[`security.md`](security.md).
+
 ### Single mode
 
 The device is only ever reached over that mode. If it becomes unreachable, the

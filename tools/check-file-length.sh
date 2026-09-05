@@ -16,7 +16,8 @@ while read -r count path; do
     echo "$path: $count lines, over the $LIMIT-line limit"
     status=1
   fi
-done < <(cd "$root" && find packages/rust/crates -name '*.rs' -not -path '*/target/*' -exec wc -l {} + |
+done < <(cd "$root" && find packages/rust/src packages/rust/tests packages/rust/crates \
+  -name '*.rs' -not -path '*/target/*' -exec wc -l {} + |
   awk '$2 != "total" { print $1, $2 }')
 
 [ $status -eq 0 ] || echo "Split the file along its responsibilities; see CONTRIBUTING.md."

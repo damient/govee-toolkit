@@ -12,7 +12,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **Device database** (`devices/*.yaml`) — schema and per-SKU definitions, the single source of truth every SDK reads |
 | ✅ | **Protocol documentation** (`docs/protocol/`) — `lan`, `ble`, `cloud`, including the undocumented findings |
 | ✅ | **Official LAN-capable device list** mirrored offline ([`lan-supported-devices.md`](lan-supported-devices.md)) |
-| ✅ | **Protocol core** (`packages/rust/crates/govee-core`) — device files plus arguments in, exact bytes out; raw segment frames included, no I/O |
+| ✅ | **Protocol core** (`packages/rust/src/codec`) — device files plus arguments in, exact bytes out; raw segment frames included, no I/O |
 | ✅ | **Runtime configuration** — enabled modes per device, in YAML, see [`modes.md`](modes.md) |
 | ✅ | **Conformance vectors** (`tests/fixtures/golden/`) — the contract every implementation must match, so a port cannot drift unnoticed |
 | ✅ | **`lan` mode, low latency** — reused UDP socket, fire-and-verify, no cloud round-trip |
@@ -49,7 +49,7 @@ One core, in Rust; the rest bind to it — [`architecture.md`](architecture.md).
 | 🔜 | **Web playground** — device list with per-mode state badges, power / brightness / color / scenes controls, latency log |
 | 🔜 | **Raw payload field** — send a custom JSON command straight to a device, to try a discovery before formalizing it |
 | 🔜 | **Desktop app (Electron)** — same backend and UI as the playground, auto-discovery on launch, tray icon |
-| 🚧 | **Device simulator** (`packages/rust/crates/govee-sim`) — fake Govee device on UDP with fault injection, so tests run without hardware; BLE still to come |
+| 🚧 | **Device simulator** (`packages/rust/crates/sim`) — fake Govee device on UDP with fault injection, so tests run without hardware; BLE still to come |
 | 🔜 | **Art-Net / DMX bridge** — maps DMX channels to Govee devices and segments |
 
 ## Integrations

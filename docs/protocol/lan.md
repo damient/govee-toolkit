@@ -6,6 +6,12 @@ full capability coverage, and it never leaves the local network.
 Two parts: the LAN protocol documented by Govee, and the undocumented commands
 found through reverse engineering.
 
+> **No authentication, no encryption.** Control frames carry no key and no
+> signature, payloads are plaintext, and a discovery reply can be sent by any
+> host on the segment claiming any identity. Anyone on the same layer-2 network
+> can control the devices. The trust boundary is the network, and the answer is
+> to segment it — [`../security.md`](../security.md).
+
 The official part below follows Govee's WLAN guide
 (<https://app-h5.govee.com/user-manual/wlan-guide>, retrieved 2026-09-04). The
 models that expose the LAN switch are listed in
@@ -53,7 +59,7 @@ Response received on port `4002`:
   "msg": {
     "cmd": "scan",
     "data": {
-      "ip": "192.168.1.42",
+      "ip": "192.0.2.10",
       "device": "<MAC>",
       "sku": "Hxxxx",
       "bleVersionHard": "",
