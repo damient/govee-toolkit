@@ -123,8 +123,8 @@ compiler raises `rust-version` in the same commit.
 
 `tools/qa.sh` runs the CI checks locally — use it before pushing rather than
 reading the result off a pull request. `ci.yml` runs on push to `main` and on
-pull request, skipping every job while the pull request is a draft. The release workflows stay
-`workflow_dispatch` only until there is something to publish.
+pull request, skipping every job while the pull request is a draft. The release
+workflows stay `workflow_dispatch` only until there is something to publish.
 
 ## Repository
 
