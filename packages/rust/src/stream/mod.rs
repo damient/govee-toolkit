@@ -62,10 +62,10 @@ pub const FALLBACK_HZ: f64 = 10.0;
 /// How many zones a stream carries.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Zones {
-    /// What the Govee app exposes, from `capabilities.segment_count`.
+    /// What the Govee app exposes, from `capabilities.segments.count`.
     #[default]
     App,
-    /// Every addressable LED, from `capabilities.native_pixels`.
+    /// Every addressable LED, from `capabilities.segments.native_pixels`.
     ///
     /// Fails when nobody measured it: that number belongs to the physical unit
     /// and cannot be inferred from the SKU.
@@ -340,8 +340,8 @@ fn named(device: &Device, mode: Mode, role: Role) -> Result<&str> {
 /// refuses, and the refusal would land where nothing is looking.
 fn zone_count(device: &Device, zones: Zones) -> Result<usize> {
     let count = match zones {
-        Zones::App => device.capabilities.segment_count,
-        Zones::Native => device.capabilities.native_pixels,
+        Zones::App => device.capabilities.segment_count().unwrap_or(0),
+        Zones::Native => device.capabilities.native_pixels().unwrap_or(0),
         Zones::Exact(n) => u32::from(n),
     };
     if count == 0 {

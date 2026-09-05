@@ -188,35 +188,41 @@ fn support_table(devices: &[serde_json::Value]) -> String {
     out
 }
 
-const CAPABILITIES: [&str; 7] = [
-    "power",
-    "brightness",
-    "color",
-    "colortemp",
-    "scenes",
-    "segments",
-    "sensors",
-];
+/// The capability columns, taken from the device files themselves: every name
+/// any of them declares, in name order. A device file may declare a capability
+/// no SDK has heard of, and it still gets a column.
+fn capability_columns(devices: &[serde_json::Value]) -> Vec<String> {
+    let mut names: Vec<String> = devices
+        .iter()
+        .filter_map(|device| device.get("capabilities"))
+        .filter_map(serde_json::Value::as_object)
+        .flat_map(serde_json::Map::keys)
+        .cloned()
+        .collect();
+    names.sort_unstable();
+    names.dedup();
+    names
+}
 
 fn capability_table(devices: &[serde_json::Value]) -> String {
-    let mut out = format!("| SKU | {} |\n", CAPABILITIES.join(" | "));
+    let columns = capability_columns(devices);
+    let mut out = format!("| SKU | {} |\n", columns.join(" | "));
     out.push_str(&format!(
         "| --- | {} |\n",
-        CAPABILITIES
+        columns
             .iter()
             .map(|c| "-".repeat(c.len()))
             .collect::<Vec<_>>()
             .join(" | ")
     ));
     for device in devices {
-        let cells: Vec<&str> = CAPABILITIES
+        let cells: Vec<&str> = columns
             .iter()
             .map(|c| {
                 if device
                     .get("capabilities")
                     .and_then(|caps| caps.get(c))
-                    .and_then(serde_json::Value::as_bool)
-                    == Some(true)
+                    .is_some()
                 {
                     "✅"
                 } else {

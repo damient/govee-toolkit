@@ -21,11 +21,16 @@ these files.
 ## Adding a SKU
 
 1. Copy `schema.yaml` to `<SKU>.yaml` (uppercase, e.g. `H6159.yaml`).
-2. Fill in `sku`, `family`, `name`, then `capabilities`.
+2. Fill in `sku`, `family`, `name`, then `capabilities`. One entry per
+   capability the hardware has; a capability it does not have is left out, not
+   set to `false`.
 3. Under `modes`, set the support level per mode (`full` | `partial` | `none` |
-   `unknown`) and list the capabilities reachable in that mode. A mode you did
-   not probe stays `unknown`: `none` says the hardware cannot do it, which is a
-   claim, and a failed probe looks exactly like an unimplemented feature.
+   `unknown`), list the capabilities reachable in that mode, and put the rest
+   under `unreachable` with a reason (`transport` | `unimplemented` |
+   `unprobed`) — [`../docs/compatibility.md`](../docs/compatibility.md) says
+   what each one claims. A mode you did not probe stays `unknown`: `none` says
+   the hardware cannot do it, which is a claim, and a failed probe looks exactly
+   like an unimplemented feature.
 4. Fill in the `commands` table. Set `documented: false` for any command found
    through reverse engineering, and document it in
    [`../docs/protocol/lan.md`](../docs/protocol/lan.md) as well. Mark the entry
@@ -74,6 +79,8 @@ whether a file is well-formed, never whether a device really behaves that way:
 - a command with `documented: false` has a `notes:` line pointing at
   `../docs/protocol/`;
 - at most one command per mode claims `role: status`;
+- a probed mode either reaches every capability the hardware has or explains
+  each one it does not, and names none the file did not declare;
 - `aliases` resolve on lookup and `candidate_aliases` deliberately do not.
 
 Add a conformance vector alongside a new command —

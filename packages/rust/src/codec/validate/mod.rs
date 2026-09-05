@@ -8,8 +8,11 @@
 //! They check the *shape* of a file, never whether a device really behaves that
 //! way — that stays a matter of capture and verification.
 
+use self::modes::check_mode_capabilities;
 use crate::codec::catalog::{Command, Device, Mode, Role};
 use crate::codec::frame::{Frame, Token};
+
+mod modes;
 
 /// One thing wrong with a device file.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -96,15 +99,23 @@ pub fn device(device: &Device) -> Vec<Problem> {
         }
     }
 
-    if let Some(measured) = device.measurements.native_pixels
-        && device.capabilities.native_pixels != 0
-        && device.capabilities.native_pixels != measured
+    for mode in [Mode::Lan, Mode::Ble, Mode::Cloud] {
+        problems.extend(
+            check_mode_capabilities(device, mode)
+                .into_iter()
+                .map(|(field, message)| at(&format!("modes.{mode}.{field}"), message)),
+        );
+    }
+
+    if let (Some(measured), Some(declared)) = (
+        device.measurements.native_pixels,
+        device.capabilities.native_pixels(),
+    ) && declared != measured
     {
         problems.push(at(
-            "capabilities.native_pixels",
+            "capabilities.segments.native_pixels",
             format!(
-                "is {}, but `measurements.native_pixels` records {measured} on the unit measured",
-                device.capabilities.native_pixels
+                "is {declared}, but `measurements.native_pixels` records {measured} on the unit measured"
             ),
         ));
     }

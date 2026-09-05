@@ -13,21 +13,27 @@ candidate_aliases: []   # optional — SKUs that look like the same product but
                         # have not been verified; never merge them into aliases
                         # on family resemblance alone
 
-capabilities:           # what the hardware can do, regardless of mode
-  power: false
-  brightness: false
-  color: false
-  colortemp: false
-  scenes: false
-  segments: false
-  sensors: false
-
-  brightness_range: [1, 100]
-  colortemp_range_kelvin: [2000, 9000]
-  segment_count: 0      # zones the Govee app exposes
-  native_pixels: 0      # optional — real addressable LEDs, if measured. Depends
-                        # on the LENGTH of the unit, not only the SKU: record a
-                        # measured value or leave it at 0, never extrapolate.
+capabilities:
+  # What the hardware can do, regardless of mode. One entry per capability the
+  # device has; a capability it does not have is ABSENT, never `false`. An
+  # entry with nothing to qualify it carries no value.
+  #
+  # The names are open: a device may declare one no SDK has heard of, and the
+  # compatibility table gives it a column. The parameters are not — one the
+  # codec does not know fails the file to load rather than being ignored.
+  #
+  #   power:
+  #   brightness:         { range: [1, 100] }
+  #   colortemp:          { range_kelvin: [2000, 9000] }
+  #   color:
+  #   scenes:
+  #   segments:           { count: 10, native_pixels: 42 }
+  #   segment_brightness:
+  #   sensors:
+  #
+  # `segments.count` is the zones the Govee app exposes. `segments.native_pixels`
+  # is the real addressable LEDs, and it depends on the LENGTH of the unit, not
+  # only on the SKU: record a measured value or leave it out, never extrapolate.
 
 modes:
   # Which modes this hardware SUPPORTS. This is fact, not preference: the user
@@ -39,19 +45,31 @@ modes:
   #   unknown — nobody probed it. The default, and the right answer until
   #             somebody does: a failed probe and an unimplemented feature look
   #             identical from outside
-  # capabilities: subset of the capability keys above reachable in this mode;
-  #               "all" means every capability the hardware has.
+  #
+  # capabilities: the names above this mode reaches; "all" means every
+  #               capability the hardware has.
+  # unreachable:  the names it does not reach, each with a reason. The
+  #               vocabulary is `transport` | `unimplemented` | `unprobed`, and
+  #               ../docs/compatibility.md says what each one claims.
+  #
+  # The two lists are one statement in two halves: on a mode that is `full` or
+  # `partial`, every capability declared above is either reached or explained,
+  # and `cargo test` fails on one that is neither. A mode left `unknown` is
+  # exempt — an empty answer there is the honest one.
   lan:
     support: unknown
     capabilities: []
+    unreachable: {}
     notes: ""
   ble:
     support: unknown
     capabilities: []
+    unreachable: {}
     notes: ""
   cloud:
     support: unknown
     capabilities: []
+    unreachable: {}
     notes: ""
 
 commands:

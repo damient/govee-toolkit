@@ -6,8 +6,7 @@ family: "test"
 name: "Device without a segment channel"
 
 capabilities:
-  segments: false
-  segment_count: 0
+  power:
 
 modes:
   lan:

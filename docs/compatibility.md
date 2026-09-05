@@ -34,6 +34,27 @@ A mode marked `full` or `partial` says what the hardware supports, not what is
 enabled: the user chooses which modes to turn on, per device. See
 [`modes.md`](modes.md).
 
+## Why a capability is out of reach
+
+`partial` says a mode falls short of the hardware; the device file says of what,
+and why. Each capability a mode does not reach is listed under
+`modes.<mode>.unreachable` with one of three reasons:
+
+| Reason | Meaning |
+| ------ | ------- |
+| `transport` | Established that this transport does not carry it. Per-segment brightness over `lan` is one: the channel carries color only, and no command will change that |
+| `unimplemented` | The transport carries it, but this device file declares no command for it yet. Work left to do, not a boundary |
+| `unprobed` | Nobody checked whether this mode reaches it. The default |
+
+The three are not interchangeable. `transport` is a claim about the protocol and
+needs the evidence any other claim needs — the section of
+[`protocol/`](protocol/) that establishes it. `unprobed` is what an unanswered
+question looks like, and it stays until someone answers it.
+
+On a mode that is `full` or `partial`, every capability the hardware has is
+either reached or listed here with a reason; `cargo test` fails on one that is
+neither. A mode left `unknown` owes no answer, since nobody probed it.
+
 ## Support by SKU
 
 A SKU that looks like another is not the same device: lengths differ, and with
@@ -49,12 +70,14 @@ such in the device file until someone verifies them.
 ## Capabilities by SKU
 
 <!-- generated: capabilities-by-sku -->
-| SKU | power | brightness | color | colortemp | scenes | segments | sensors |
-| --- | ----- | ---------- | ----- | --------- | ------ | -------- | ------- |
-| H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| SKU | brightness | color | colortemp | power | scenes | segment_brightness | segments |
+| --- | ---------- | ----- | --------- | ----- | ------ | ------------------ | -------- |
+| H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 <!-- /generated -->
 
 Capabilities are hardware facts; what is reachable depends on the active mode.
+The columns are the capabilities the device files declare, so one no file
+declares has no column.
 Where the undocumented `razer` channel is implemented, `lan` reaches per-segment
 color beyond the 10 zones the Govee app exposes, but **not** internal scenes or
 per-segment brightness, which are cloud-only whatever the device.

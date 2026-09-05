@@ -105,7 +105,9 @@ the SDK switches, a command unsupported by the active mode **fails explicitly**
 rather than being silently approximated.
 
 `devices/<SKU>.yaml` declares capabilities per mode, so an application can know
-in advance what it loses on a switch.
+in advance what it loses on a switch — and, for each capability a mode does not
+reach, whether that is a boundary of the transport or a question nobody has
+answered yet. See [`compatibility.md`](compatibility.md).
 
 ## Defaults
 

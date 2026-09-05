@@ -15,37 +15,42 @@ candidate_aliases:      # same product in other lengths — NOT verified, do not
   - H61A5               # The outdoor rope, H61A8 and H61A9, is another product.
 
 capabilities:
-  power: true
-  brightness: true
-  color: true
-  colortemp: true
-  scenes: true
-  segments: true
-  sensors: false
-
-  brightness_range: [1, 100]
-  colortemp_range_kelvin: [2000, 9000]
-  segment_count: 10       # zones the Govee app exposes
-  native_pixels: 42       # measured on a 3 m unit — see measurements below
+  power:
+  brightness:  { range: [1, 100] }
+  color:
+  colortemp:   { range_kelvin: [2000, 9000] }
+  scenes:
+  segment_brightness:
+  segments:
+    count: 10             # zones the Govee app exposes
+    native_pixels: 42     # measured on a 3 m unit — see measurements below
 
 modes:
   lan:
-    support: partial        # everything but scenes — they never leave the cloud
+    support: partial
     capabilities: [power, brightness, color, colortemp, segments]
+    unreachable:
+      scenes: transport
+      segment_brightness: transport
     notes: >-
       Requires LAN Control enabled in the Govee Home app. Reaches the segment
-      channel, including beyond the 10 zones the app exposes; internal scenes
-      are not on this transport. See docs/protocol/lan.md 2.5.
+      channel, including beyond the 10 zones the app exposes. Brightness is
+      global here: the segment channel carries color only. See
+      docs/protocol/lan.md 2.5.
   ble:
     support: unknown        # not probed on this device; `none` would be a claim
     capabilities: []
+    unreachable: {}
     notes: "Not tested. See docs/protocol/ble.md."
   cloud:
     support: partial
-    capabilities: [power, brightness, color, colortemp, scenes]
+    capabilities: [power, brightness, color, colortemp, scenes, segment_brightness]
+    unreachable:
+      segments: transport
     notes: >-
-      Internal scenes and per-segment brightness are cloud-only (MQTT to AWS
-      IoT). Requires a Govee account and internet. See docs/protocol/cloud.md.
+      Internal scenes and per-segment brightness travel over MQTT to AWS IoT,
+      and the per-segment color channel does not. Requires a Govee account and
+      internet. See docs/protocol/cloud.md.
 
 commands:
   lan:
@@ -133,9 +138,6 @@ commands:
         len counts the payload only, 16-bit, header and checksum excluded. An
         inconsistent length is dropped in silence. See docs/protocol/lan.md 2.3.
       capture: ""         # TODO
-
-    # Not reachable over LAN on this device: internal scenes, DIY scenes and
-    # per-segment brightness are cloud-only. See docs/protocol/lan.md 2.5.
 
   ble: {}                 # TODO
   cloud: {}               # TODO

@@ -143,7 +143,8 @@ must not silently substitute one mode for another — see
 ## Adding a SKU
 
 1. Copy an existing file from `devices/` (or start from `devices/schema.yaml`).
-2. Fill in capabilities, per-mode support level and the command tables.
+2. Fill in capabilities, per-mode support level and reach, and the command
+   tables.
 3. Add a real capture under `tests/fixtures/lan-captures/<SKU>/`. Redact it
    first: [checklist](tests/fixtures/README.md#redaction-checklist).
 4. Update the tables in [`docs/compatibility.md`](docs/compatibility.md).

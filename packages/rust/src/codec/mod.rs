@@ -32,6 +32,7 @@
 //! ```
 
 pub mod args;
+pub mod capabilities;
 pub mod catalog;
 pub mod command;
 pub mod error;
@@ -42,7 +43,8 @@ pub mod validate;
 use std::collections::BTreeMap;
 
 pub use args::{ArgValue, Args};
-pub use catalog::{Capabilities, Command, Device, Mode, ModeSupport, Modes, Role, Support};
+pub use capabilities::{Capabilities, CapabilityParams, ModeCapabilities, Reason};
+pub use catalog::{Command, Device, Mode, ModeSupport, Modes, Role, Support};
 pub use command::{Encoded, encode};
 pub use error::{Error, Result};
 pub use frame::Frame;

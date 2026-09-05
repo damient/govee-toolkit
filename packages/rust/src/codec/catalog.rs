@@ -9,6 +9,7 @@ use std::fmt;
 
 use serde::Deserialize;
 
+use crate::codec::capabilities::{Capabilities, ModeCapabilities, Reason};
 use crate::codec::measurements::Measurements;
 
 /// A way of talking to a device. Not a fallback chain — see `docs/modes.md`.
@@ -58,30 +59,6 @@ pub enum Support {
     Unknown,
 }
 
-/// The capabilities a mode reaches.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(untagged)]
-pub enum ModeCapabilities {
-    /// The literal `all`: every capability the hardware has.
-    All(AllKeyword),
-    /// An explicit subset, by capability name.
-    Subset(Vec<String>),
-}
-
-impl Default for ModeCapabilities {
-    fn default() -> Self {
-        Self::Subset(Vec::new())
-    }
-}
-
-/// The `all` keyword, as it appears in a device file.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum AllKeyword {
-    /// `capabilities: all`
-    All,
-}
-
 /// One entry of a device file's `modes:` table.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
@@ -90,6 +67,10 @@ pub struct ModeSupport {
     pub support: Support,
     /// Capabilities reachable in this mode.
     pub capabilities: ModeCapabilities,
+    /// Capabilities the hardware has that this mode does not reach, each with
+    /// the reason it does not. Together with `capabilities` this covers the
+    /// hardware's whole set, which `crate::codec::validate` checks.
+    pub unreachable: BTreeMap<String, Reason>,
     /// Free-form notes.
     pub notes: String,
 }
@@ -116,38 +97,6 @@ impl Modes {
             Mode::Cloud => &self.cloud,
         }
     }
-}
-
-/// What the hardware can do, regardless of mode.
-// One flag per capability, mirroring `devices/schema.yaml`. Grouping them into
-// a bitfield would only make the device files harder to read.
-#[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, Clone, Default, Deserialize)]
-#[serde(default)]
-pub struct Capabilities {
-    /// On / off.
-    pub power: bool,
-    /// Brightness.
-    pub brightness: bool,
-    /// RGB color.
-    pub color: bool,
-    /// White color temperature.
-    pub colortemp: bool,
-    /// Manufacturer scenes.
-    pub scenes: bool,
-    /// Addressable zones.
-    pub segments: bool,
-    /// Sensor telemetry.
-    pub sensors: bool,
-    /// Accepted brightness bounds, inclusive.
-    pub brightness_range: [i64; 2],
-    /// Accepted color temperature bounds, in kelvin, inclusive.
-    pub colortemp_range_kelvin: [i64; 2],
-    /// Zones the Govee app exposes.
-    pub segment_count: u32,
-    /// Individually addressable LEDs, if measured on a physical unit. `0` means
-    /// not measured — never extrapolated from another unit.
-    pub native_pixels: u32,
 }
 
 /// How an argument may be supplied.

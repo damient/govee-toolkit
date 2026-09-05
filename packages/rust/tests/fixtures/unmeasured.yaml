@@ -6,9 +6,8 @@ family: "test"
 name: "Unmeasured segment device"
 
 capabilities:
-  segments: true
-  segment_count: 10
-  native_pixels: 0        # nobody measured a unit; `0` is not a small number
+  segments:
+    count: 10             # nobody measured a unit, so no `native_pixels`
 
 modes:
   lan:
