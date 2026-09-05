@@ -26,6 +26,8 @@ env:
 
 # Third-party actions are pinned to a commit SHA, not a tag: a tag is mutable
 # and these workflows check out the repository. Dependabot bumps the SHAs.
+# The repository settings also allow only a listed set of owners, so a new
+# action means adding a pattern under Settings > Actions before it will run.
 
 jobs:
   rust:
