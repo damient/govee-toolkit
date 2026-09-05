@@ -21,4 +21,4 @@ jobs:
       # - run: composer validate --working-dir=packages/php
       # - name: Notify Packagist
       #   run: echo "TODO: call the Packagist update hook"
-      - run: echo "TODO: validate and publish packages/php"
+      - run: 'echo "TODO: validate and publish packages/php"'

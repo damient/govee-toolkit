@@ -24,4 +24,4 @@ jobs:
       # - uses: pypa/gh-action-pypi-publish@release/v1
       #   with:
       #     packages-dir: packages/python/dist
-      - run: echo "TODO: build and publish packages/python"
+      - run: 'echo "TODO: build and publish packages/python"'

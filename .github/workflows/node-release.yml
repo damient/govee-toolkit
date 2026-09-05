@@ -26,4 +26,4 @@ jobs:
       # - run: npm publish --prefix packages/node --provenance
       #   env:
       #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: echo "TODO: build and publish packages/node"
+      - run: 'echo "TODO: build and publish packages/node"'
