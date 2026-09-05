@@ -113,14 +113,27 @@ impl DeviceHandle<'_> {
     }
 
     /// The last status heard, without asking for a new one.
+    ///
+    /// `None` unless `lan` is enabled for this device: the recorded status
+    /// belongs to that transport, and handing it back under another mode would
+    /// be a silent substitution.
     #[must_use]
     pub fn last_status(&self) -> Option<DeviceStatus> {
+        if !self.modes().contains(&Mode::Lan) {
+            return None;
+        }
         self.govee.inner.lan.last_status(&self.id)
     }
 
     /// Watch this device's status as replies arrive.
+    ///
+    /// `None` unless `lan` is enabled for this device, as for
+    /// [`DeviceHandle::last_status`].
     #[must_use]
     pub fn watch_status(&self) -> Option<tokio::sync::watch::Receiver<Option<DeviceStatus>>> {
+        if !self.modes().contains(&Mode::Lan) {
+            return None;
+        }
         self.govee.inner.lan.watch_status(&self.id)
     }
 }

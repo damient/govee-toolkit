@@ -216,6 +216,18 @@ async fn enabling_a_mode_nobody_probed_is_not_a_configuration_error() {
 }
 
 #[tokio::test]
+async fn status_recorded_over_lan_is_not_handed_back_under_another_mode() {
+    let rig = Rig::start("defaults:\n  modes: [ble]\n").await;
+
+    // The lan transport knows the device — the scan found it — so the
+    // accessors have something to return and must still refuse to.
+    assert!(rig.govee.device(&id()).health(Mode::Lan).is_some());
+
+    assert!(rig.govee.device(&id()).last_status().is_none());
+    assert!(rig.govee.device(&id()).watch_status().is_none());
+}
+
+#[tokio::test]
 async fn a_configuration_that_could_never_work_is_refused_at_startup() {
     let config: Config = serde_norway::from_str("defaults:\n  modes: []\n").expect("it parses");
     let error = Govee::start_with(config, Catalog::embedded().expect("catalog"))
