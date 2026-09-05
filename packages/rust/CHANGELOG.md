@@ -5,7 +5,10 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 `publish = false`, covered by the same entries. The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
-## [Unreleased]
+## [0.2.1] — 2026-09-05
+
+The code is unchanged: this release fixes the crate metadata and the page
+0.2.0 put on crates.io.
 
 ### Changed
 
