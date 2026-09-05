@@ -99,8 +99,8 @@ holds nothing that can invalidate it.
 
 ## Reverse engineering
 
-The undocumented commands here were found by decompiling the vendor's desktop
-app and capturing its own traffic, for **interoperability**. Nothing in this
+The undocumented commands here were found through reverse engineering, for
+**interoperability**. Nothing in this
 repository bypasses an authentication mechanism — there is none on the LAN
 protocol to bypass. What may and may not be committed as a result is in
 [`../CONTRIBUTING.md`](../CONTRIBUTING.md#legal-and-provenance).

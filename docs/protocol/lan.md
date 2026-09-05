@@ -270,13 +270,6 @@ replies.
 3. Document the protocol above; record what the SKU supports in its device file.
 4. Formalize it in `devices/<sku>.yaml`.
 
-Two things that paid off and are worth repeating:
-
-- **Decompile the vendor's desktop app.** It implements the segment channel
-  over LAN, so it pins down the frame format and the per-SKU tables behind it.
-- **Capture that app's traffic.** `udp.port == 4003` in Wireshark while it
-  drives a device yields real frames instead of guessed ones.
-
 A failed probe on this protocol is indistinguishable from an ignored one — no
 error is ever returned. Assume a malformed frame before assuming an unsupported
 feature.
