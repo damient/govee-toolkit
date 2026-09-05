@@ -3,6 +3,9 @@ version: 2
 updates:
   - package-ecosystem: cargo
     directory: /packages/rust
+    commit-message:
+      prefix: "build"
+      include: scope
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -14,6 +17,9 @@ updates:
   # the version from the trailing comment and rewrites both.
   - package-ecosystem: github-actions
     directory: /
+    commit-message:
+      prefix: "ci"
+      include: scope
     schedule:
       interval: weekly
     groups:
@@ -22,6 +28,9 @@ updates:
 
   - package-ecosystem: npm
     directory: /packages/node
+    commit-message:
+      prefix: "build"
+      include: scope
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -31,6 +40,9 @@ updates:
 
   - package-ecosystem: npm
     directory: /packages/artnet-dmx-bridge
+    commit-message:
+      prefix: "build"
+      include: scope
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -40,6 +52,9 @@ updates:
 
   - package-ecosystem: npm
     directory: /apps/desktop
+    commit-message:
+      prefix: "build"
+      include: scope
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -49,6 +64,9 @@ updates:
 
   - package-ecosystem: npm
     directory: /apps/playground/server
+    commit-message:
+      prefix: "build"
+      include: scope
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -58,6 +76,9 @@ updates:
 
   - package-ecosystem: npm
     directory: /integrations/homebridge
+    commit-message:
+      prefix: "build"
+      include: scope
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -67,6 +88,9 @@ updates:
 
   - package-ecosystem: pip
     directory: /packages/python
+    commit-message:
+      prefix: "build"
+      include: scope
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
