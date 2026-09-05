@@ -191,6 +191,23 @@ async fn a_measured_rate_is_read_off_the_device_file() {
     assert!((stream.rate_hz() - 25.0).abs() < f64::EPSILON);
 }
 
+/// The device file names its arguments as well as its commands, and the SDK
+/// reaches both through `role:` only.
+#[tokio::test]
+async fn the_argument_names_come_from_the_device_file() {
+    const RENAMED: &str = include_str!("fixtures/renamed-args.yaml");
+
+    let catalog = Catalog::from_sources([("renamed-args.yaml", RENAMED)]).expect("catalog");
+    let rig = rig_with(catalog, "HTEST2").await;
+    let stream = open(&rig, options(Zones::App)).await;
+    stream.set_all(&[[255, 0, 0], [0, 255, 0]]).unwrap();
+
+    assert_eq!(
+        wait_for(|| frames(&rig.simulator).first().cloned()).await,
+        Some("bb0008b00002ff000000ff0001".to_owned())
+    );
+}
+
 #[tokio::test]
 async fn native_resolution_nobody_measured_is_refused() {
     const UNMEASURED: &str = include_str!("fixtures/unmeasured.yaml");

@@ -37,7 +37,9 @@ these files.
    that reports the device's state `role: status` — that is how an SDK finds it,
    since no command name lives in SDK code. A file that marks none simply has no
    status command: verification is skipped and `status()` fails, rather than an
-   SDK guessing an entry name.
+   SDK guessing an entry name. An entry whose arguments an SDK fills on its own
+   marks those too, with an argument `role:`; no argument name lives in SDK code
+   either. [`schema.yaml`](schema.yaml) lists both sets of roles.
 5. Add a real capture under `../tests/fixtures/lan-captures/<SKU>/` and point
    `capture:` at it. **Redact it first** — a capture carries your MAC, your
    IP, your SSID and possibly an account token, and git keeps them after the
@@ -78,7 +80,9 @@ whether a file is well-formed, never whether a device really behaves that way:
 - a command declaring a `frame:` carries it through `${frame}`;
 - a command with `documented: false` has a `notes:` line pointing at
   `../docs/protocol/`;
-- at most one command per mode claims `role: status`;
+- at most one command per mode claims a given `role:`, at most one argument per
+  command claims a given argument `role:`, and a command with a `role:` declares
+  the arguments that role has an SDK fill;
 - a probed mode either reaches every capability the hardware has or explains
   each one it does not, and names none the file did not declare;
 - `aliases` resolve on lookup and `candidate_aliases` deliberately do not.

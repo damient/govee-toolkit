@@ -30,10 +30,17 @@ pub(crate) struct Shared {
     pub(crate) sku: String,
     /// The device file entry that arms and disarms the channel.
     pub(crate) enable: String,
+    /// The argument of `enable` the arming flag goes in, as the device file
+    /// names it.
+    pub(crate) enable_arg: String,
     /// The device file entry that paints zones.
     pub(crate) color: String,
-    /// The `gradient` argument to send, if the command declares one.
-    pub(crate) gradient: Option<i64>,
+    /// The argument of `color` the zone colors go in, as the device file names
+    /// it.
+    pub(crate) colors_arg: String,
+    /// The gradient argument to send, named and valued, if the command
+    /// declares one.
+    pub(crate) gradient: Option<(String, i64)>,
     pub(crate) hz: f64,
     /// Fixed when the stream opens: the firmware reads the count off the frame
     /// and re-groups the LEDs around it.
@@ -57,7 +64,11 @@ impl Shared {
 }
 
 pub(crate) async fn send_enable(shared: &Shared, on: i64) -> Result<()> {
-    let encoded = encode(shared, &shared.enable, &Args::new().int("on", on))?;
+    let encoded = encode(
+        shared,
+        &shared.enable,
+        &Args::new().int(shared.enable_arg.as_str(), on),
+    )?;
     write(shared, &encoded).await
 }
 
@@ -109,9 +120,9 @@ pub(crate) async fn run(shared: Arc<Shared>) {
 /// The repeat count is left out on purpose: the codec derives it from the list,
 /// which is the one place it cannot disagree with the colors actually sent.
 fn frame_args(shared: &Shared, colors: Vec<[u8; 3]>) -> Args {
-    let args = Args::new().rgb("colors", colors);
-    match shared.gradient {
-        Some(gradient) => args.int("gradient", gradient),
+    let args = Args::new().rgb(shared.colors_arg.as_str(), colors);
+    match &shared.gradient {
+        Some((name, value)) => args.int(name.as_str(), *value),
         None => args,
     }
 }

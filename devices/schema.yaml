@@ -106,6 +106,17 @@ commands:
   # Bounds are enforced, never clamped: the firmware clamps in silence
   # (../docs/protocol/lan.md 2.1), and an SDK that did the same would report
   # success for a value the device did not apply.
+  #
+  # Either kind takes an optional `role:`, which names the argument for an SDK
+  # that fills it on its own initiative — see the command `role:` below. At most
+  # one argument per command may claim a given one, and each is fixed to a type:
+  #
+  #   enable    int       the flag a `segment_enable` command arms on
+  #   colors    rgb_list  one triple per zone, for a `segment_color` command
+  #   gradient  int       whether a `segment_color` command interpolates
+  #
+  # An argument the caller always passes needs no role: the SDK never supplies
+  # it, and the name in the call is this file's.
   lan:
     # <command-name>:
     #   cmd: <string sent in msg.cmd>
@@ -113,7 +124,7 @@ commands:
     #   role: status                  # optional; see below. Default: no role.
     #   payload: { }                  # JSON structure, ${placeholders} for args
     #   frame: ""                     # for raw-channel commands, the byte layout
-    #   args: { <name>: { type, range } }
+    #   args: { <name>: { type, range, role } }
     #   notes: ""                     # behavior worth knowing before calling it;
     #                                 # required when documented is false, and it
     #                                 # must point at ../docs/protocol/lan.md
@@ -130,12 +141,13 @@ commands:
     #   segment_enable  arms and disarms the raw segment channel.
     #   segment_color   paints every zone at once.
     #
-    # A role the SDK fills arguments for names them, since it has no other way
-    # to know which is which:
+    # A role the SDK fills arguments for marks them with an argument `role:`,
+    # since it knows no argument name either:
     #
-    #   segment_enable  `on`, an int
-    #   segment_color   `colors`, an rgb_list. An int `gradient`, if declared,
-    #                   is supplied too. A repeat count is derived from the list.
+    #   segment_enable  one argument marked `role: enable`
+    #   segment_color   one marked `role: colors`. One marked `role: gradient`,
+    #                   if declared, is supplied too. A repeat count is derived
+    #                   from the list and needs no role.
   ble:
     # <command-name>:
     #   opcode: "0x.."

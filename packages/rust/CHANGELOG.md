@@ -19,8 +19,9 @@ The version the manifests carry. Nothing is published to crates.io and the
 
 - `govee_toolkit::codec` — the protocol codec. Reads `devices/*.yaml`, validates
   arguments and builds the exact bytes for a command, including the raw
-  variable-length frame with its XOR checksum. No I/O, no SKU name and no
-  command name in the code.
+  variable-length frame with its XOR checksum. No I/O, and no SKU name, command
+  name or argument name in the code: a `role:` on a command, and one on an
+  argument, are how the SDK reaches what it issues on its own initiative.
 - The device catalogue is embedded at build time by `build.rs`, so an SDK is one
   artifact with no data directory to install. `GOVEE_DEVICES_DIR` overrides
   where the files are read from at build time.

@@ -23,7 +23,7 @@ commands:
       frame: "BB <len:16> <op:B1> ${on} <xor>"
       payload: { pt: "${frame}" }
       args:
-        on: { type: int, range: [0, 1] }
+        on: { type: int, range: [0, 1], role: enable }
       notes: "See docs/protocol/lan.md 2.3."
 
     segment_color:
@@ -33,7 +33,7 @@ commands:
       frame: "BB <len:16> <op:B0> ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
       payload: { pt: "${frame}" }
       args:
-        gradient: { type: int, range: [0, 1] }
+        gradient: { type: int, range: [0, 1], role: gradient }
         nb_seg: { type: int, range: [1, 255] }
-        colors: { type: rgb_list, max_len: 255 }
+        colors: { type: rgb_list, max_len: 255, role: colors }
       notes: "See docs/protocol/lan.md 2.3."

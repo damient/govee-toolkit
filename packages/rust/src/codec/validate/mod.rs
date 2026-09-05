@@ -9,7 +9,7 @@
 //! way — that stays a matter of capture and verification.
 
 use self::modes::check_mode_capabilities;
-use crate::codec::catalog::{Command, Device, Mode, Role};
+use crate::codec::catalog::{ArgRole, Command, Device, Mode, Role};
 use crate::codec::frame::{Frame, Token};
 
 mod modes;
@@ -123,30 +123,53 @@ pub fn device(device: &Device) -> Vec<Problem> {
     problems
 }
 
-/// A role the SDK invokes on its own has to be callable without a command name
-/// in code, so the arguments it fills are named by the role rather than by the
-/// file. See `devices/schema.yaml`.
+/// A role the SDK invokes on its own fills some of its arguments, so the file
+/// has to mark which those are: the SDK knows no argument name either. See
+/// `devices/schema.yaml`.
 fn check_role_args(role: Role, command: &Command) -> Vec<String> {
-    let required: &[(&str, &str)] = match role {
-        Role::SegmentEnable => &[("on", crate::codec::args::INT)],
-        Role::SegmentColor => &[("colors", crate::codec::args::RGB_LIST)],
+    let required: &[ArgRole] = match role {
+        Role::SegmentEnable => &[ArgRole::Enable],
+        Role::SegmentColor => &[ArgRole::Colors],
         Role::Status => &[],
     };
     required
         .iter()
-        .filter_map(|(arg, expected)| match command.args.get(*arg) {
-            None => Some(format!("`role: {role}` must declare an argument `{arg}`")),
-            Some(spec) if spec.type_name() != *expected => Some(format!(
-                "`role: {role}` needs `{arg}` to be {expected}, not {}",
-                spec.type_name()
-            )),
-            Some(_) => None,
+        .filter(|arg_role| command.arg_for(**arg_role).is_none())
+        .map(|arg_role| {
+            format!("`role: {role}` must declare an argument marked `role: {arg_role}`")
         })
         .collect()
 }
 
 fn check_command(name: &str, command: &Command) -> Vec<String> {
     let mut problems = Vec::new();
+
+    for arg_role in ArgRole::ALL {
+        let claimants: Vec<&str> = command
+            .args
+            .iter()
+            .filter(|(_, spec)| spec.role() == Some(arg_role))
+            .map(|(arg, _)| arg.as_str())
+            .collect();
+        if claimants.len() > 1 {
+            problems.push(format!(
+                "`role: {arg_role}` is claimed by {}; at most one argument may claim a role",
+                claimants.join(", ")
+            ));
+        }
+        for arg in claimants {
+            let Some(spec) = command.args.get(arg) else {
+                continue;
+            };
+            if spec.type_name() != arg_role.type_name() {
+                problems.push(format!(
+                    "`{arg}` is marked `role: {arg_role}`, which has to be {}, not {}",
+                    arg_role.type_name(),
+                    spec.type_name()
+                ));
+            }
+        }
+    }
 
     if !command.documented {
         // An undocumented command is only reproducible if the protocol section
@@ -233,6 +256,7 @@ mod tests {
 
     use super::*;
     use crate::codec::Catalog;
+    use crate::codec::catalog::ArgRole;
 
     fn device_file(commands: &str) -> String {
         format!(
@@ -262,6 +286,62 @@ mod tests {
         let device = catalog.device("HTEST").expect("the SKU resolves");
         assert_eq!(device.status_command(Mode::Lan), None);
         assert!(super::device(device).is_empty());
+    }
+
+    /// A `segment_color` command whose `colors` is spelled the file's way. The
+    /// role is what the SDK reads; the spelling is the file's business.
+    const PAINT: &str = "    paint:\n      cmd: razer\n      documented: true\n\
+         \n      role: segment_color\n      args:\n\
+         \n        pixels: { type: rgb_list, role: colors }\n";
+
+    #[test]
+    fn an_argument_the_sdk_fills_is_found_by_its_role() {
+        let catalog = parse(PAINT);
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let command = device.commands.lan.get("paint").expect("the entry parses");
+        assert_eq!(command.arg_for(ArgRole::Colors), Some("pixels"));
+        assert_eq!(command.arg_for(ArgRole::Gradient), None);
+        assert!(super::device(device).is_empty());
+    }
+
+    #[test]
+    fn a_role_command_missing_its_argument_leaves_nothing_to_fill() {
+        let catalog = parse(
+            "    paint:\n      cmd: razer\n      documented: true\n\
+             \n      role: segment_color\n      args:\n\
+             \n        pixels: { type: rgb_list }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("role: colors"));
+    }
+
+    #[test]
+    fn two_arguments_claiming_one_role_leave_nothing_to_pick() {
+        let catalog = parse(
+            "    paint:\n      cmd: razer\n      documented: true\n\
+             \n      role: segment_color\n      args:\n\
+             \n        pixels: { type: rgb_list, role: colors }\n\
+             \n        zones: { type: rgb_list, role: colors }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("pixels, zones"));
+    }
+
+    #[test]
+    fn an_argument_role_is_fixed_to_one_type() {
+        let catalog = parse(
+            "    arm:\n      cmd: razer\n      documented: true\n\
+             \n      role: segment_enable\n      args:\n\
+             \n        armed: { type: rgb_list, role: enable }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("an integer"));
     }
 
     #[test]

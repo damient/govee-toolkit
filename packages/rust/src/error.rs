@@ -1,6 +1,6 @@
 //! Errors the facade can return.
 
-use crate::codec::{Mode, Role};
+use crate::codec::{ArgRole, Mode, Role};
 use crate::config::Problem;
 use crate::lan::DeviceId;
 
@@ -71,6 +71,27 @@ pub enum Error {
         mode: Mode,
         /// The role nothing claims.
         role: Role,
+    },
+
+    /// A command the SDK invokes on its own does not mark the argument the SDK
+    /// has to fill.
+    ///
+    /// The device file names arguments, so a `role:` command has to say which
+    /// of its own arguments carries what — `devices/schema.yaml`. Caught by
+    /// `crate::codec::validate` as well, and reported here for a file that
+    /// reached the send path without it.
+    #[error(
+        "{sku}: `commands.{mode}.{command}` marks no argument `role: {arg_role}`, so there is nothing to put the value in"
+    )]
+    NoRoleArg {
+        /// The SKU whose file is missing it.
+        sku: String,
+        /// The mode the command was taken from.
+        mode: Mode,
+        /// The device file entry.
+        command: String,
+        /// The argument role nothing claims.
+        arg_role: ArgRole,
     },
 
     /// A stream was asked for a zone count nothing records.
@@ -148,6 +169,7 @@ impl Error {
                 Role::Status => "no_status_command",
                 Role::SegmentEnable | Role::SegmentColor => "no_segment_command",
             },
+            Self::NoRoleArg { .. } => "no_role_arg",
             Self::ZoneCountUnknown { .. } => "zone_count_unknown",
             Self::ZoneCountMismatch { .. } => "zone_count_mismatch",
             Self::ZoneOutOfRange { .. } => "zone_out_of_range",

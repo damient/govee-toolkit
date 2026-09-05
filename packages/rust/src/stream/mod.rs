@@ -39,14 +39,15 @@
 //! # }
 //! ```
 
+mod resolve;
 mod sender;
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
+use self::resolve::{arg_named, gradient_arg, named, rate_hz, zone_count};
 use self::sender::{Shared, send_enable};
-use crate::codec::catalog::ArgSpec;
-use crate::codec::{Device, Mode, Role};
+use crate::codec::{ArgRole, Mode, Role};
 use crate::error::{Error, Result};
 use crate::govee::Govee;
 use crate::lan::DeviceId;
@@ -132,6 +133,8 @@ impl SegmentStream {
         let device = govee.catalog().device(&sku)?;
         let enable = named(device, mode, Role::SegmentEnable)?;
         let color = named(device, mode, Role::SegmentColor)?;
+        let enable_arg = arg_named(device, mode, enable, ArgRole::Enable)?;
+        let colors_arg = arg_named(device, mode, color, ArgRole::Colors)?;
         let zones = zone_count(device, options.zones)?;
         let hz = rate_hz(
             device,
@@ -150,7 +153,9 @@ impl SegmentStream {
             mode,
             sku,
             enable: enable.to_owned(),
+            enable_arg: enable_arg.to_owned(),
             color: color.to_owned(),
+            colors_arg: colors_arg.to_owned(),
             gradient: gradient_arg(device, mode, color, options.gradient),
             hz,
             zones,
@@ -322,63 +327,4 @@ impl Drop for SegmentStream {
             }
         });
     }
-}
-
-/// The device file entry claiming `role`.
-fn named(device: &Device, mode: Mode, role: Role) -> Result<&str> {
-    device
-        .command_for(mode, role)
-        .ok_or_else(|| Error::NoRoleCommand {
-            sku: device.sku.clone(),
-            mode,
-            role,
-        })
-}
-
-/// Zero means nobody recorded the count — for either capability, and for a
-/// caller who asked for none. A stream armed on it would send frames the codec
-/// refuses, and the refusal would land where nothing is looking.
-fn zone_count(device: &Device, zones: Zones) -> Result<usize> {
-    let count = match zones {
-        Zones::App => device.capabilities.segment_count().unwrap_or(0),
-        Zones::Native => device.capabilities.native_pixels().unwrap_or(0),
-        Zones::Exact(n) => u32::from(n),
-    };
-    if count == 0 {
-        return Err(Error::ZoneCountUnknown {
-            sku: device.sku.clone(),
-        });
-    }
-    Ok(count.try_into().unwrap_or(usize::MAX))
-}
-
-/// The rate to send at, and a warning when nothing was measured.
-fn rate_hz(device: &Device, sku: &str, zones: usize, rate: Rate, fallback: f64) -> f64 {
-    match rate {
-        Rate::Fixed(hz) => hz,
-        Rate::Measured => device
-            .measurements
-            .clean_hz(u32::try_from(zones).unwrap_or(u32::MAX))
-            .unwrap_or_else(|| {
-                tracing::warn!(
-                    %sku,
-                    fallback_hz = fallback,
-                    "no `measurements.frame_rate` for this unit; streaming at the fallback rate"
-                );
-                fallback
-            }),
-    }
-}
-
-/// The `gradient` value to send, if the command declares the argument.
-///
-/// A device file that leaves it out gets nothing extra: the codec refuses an
-/// argument the command does not declare.
-fn gradient_arg(device: &Device, mode: Mode, command: &str, gradient: bool) -> Option<i64> {
-    device
-        .commands
-        .get(mode)
-        .get(command)
-        .filter(|spec| matches!(spec.args.get("gradient"), Some(ArgSpec::Int { .. })))
-        .map(|_| i64::from(gradient))
 }

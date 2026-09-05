@@ -1,0 +1,40 @@
+# A device file whose segment arguments carry none of the names the reference
+# file uses. The SDK finds them through their `role:` and nothing else, so this
+# is what proves no argument name lives in code.
+schema_version: 1
+sku: "HTEST2"
+family: "test"
+name: "Segment device with its own argument names"
+
+capabilities:
+  segments:
+    count: 2
+
+modes:
+  lan:
+    support: full
+    capabilities: all
+
+commands:
+  lan:
+    arm:
+      cmd: "razer"
+      documented: false
+      role: segment_enable
+      frame: "BB <len:16> <op:B1> ${armed} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        armed: { type: int, range: [0, 1], role: enable }
+      notes: "See docs/protocol/lan.md 2.3."
+
+    paint:
+      cmd: "razer"
+      documented: false
+      role: segment_color
+      frame: "BB <len:16> <op:B0> ${blend} ${count} (${pixels}:rgb)×${count} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        blend: { type: int, range: [0, 1], role: gradient }
+        count: { type: int, range: [1, 255] }
+        pixels: { type: rgb_list, max_len: 255, role: colors }
+      notes: "See docs/protocol/lan.md 2.3."

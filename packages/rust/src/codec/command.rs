@@ -138,7 +138,7 @@ fn resolve(command: &str, spec: &Command, frame: Option<&Frame>, args: &Args) ->
         })?;
 
         match (arg_spec, &value) {
-            (ArgSpec::Int { range }, ArgValue::Int(v)) => {
+            (ArgSpec::Int { range, .. }, ArgValue::Int(v)) => {
                 let (min, max) = (range[0], range[1]);
                 if *v < min || *v > max {
                     return Err(Error::OutOfRange {
@@ -150,7 +150,7 @@ fn resolve(command: &str, spec: &Command, frame: Option<&Frame>, args: &Args) ->
                     });
                 }
             }
-            (ArgSpec::RgbList { max_len }, ArgValue::Rgb(items)) => {
+            (ArgSpec::RgbList { max_len, .. }, ArgValue::Rgb(items)) => {
                 if let Some(max) = max_len
                     && items.len() > *max
                 {
