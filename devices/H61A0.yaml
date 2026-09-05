@@ -30,9 +30,12 @@ capabilities:
 
 modes:
   lan:
-    support: full
-    capabilities: all
-    notes: "Requires LAN Control enabled in the Govee Home app."
+    support: partial        # everything but scenes — they never leave the cloud
+    capabilities: [power, brightness, color, colortemp, segments]
+    notes: >-
+      Requires LAN Control enabled in the Govee Home app. Reaches the segment
+      channel, including beyond the 10 zones the app exposes; internal scenes
+      are not on this transport. See docs/protocol/lan.md 2.5.
   ble:
     support: unknown        # not probed on this device; `none` would be a claim
     capabilities: []

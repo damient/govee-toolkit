@@ -14,8 +14,8 @@ round-trip. Bluetooth and the cloud API are there if you need them.
 
 An alternative to the official Govee API: a community, multi-language SDK
 (Python / Node.js / PHP) that speaks to your devices **directly on your LAN**,
-including undocumented commands — effects, scenes, per-segment control — found
-through reverse engineering and unavailable anywhere else.
+including undocumented commands — per-segment color and the frame rate to
+animate it — found through reverse engineering and unavailable anywhere else.
 
 The protocol is implemented once, in a Rust core; the other languages bind to it
 rather than re-implementing it. See
@@ -136,7 +136,7 @@ trade-offs — not a fixed chain. You enable the ones you want, per device.
 
 | Mode | Latency | Range | Capabilities |
 | ---- | ------- | ----- | ------------ |
-| `lan` | lowest | same network | full, including undocumented scenes/segments |
+| `lan` | lowest | same network | full, including the undocumented segment channel; not internal scenes |
 | `ble` | low | Bluetooth range | partial, depends on SKU family |
 | `cloud` | highest (internet round-trip) | anywhere | reduced: power / brightness / color |
 
@@ -171,7 +171,7 @@ Per-mode protocol notes: [`lan.md`](docs/protocol/lan.md) ·
 - [`integrations/home-assistant/`](integrations/home-assistant/) — custom
   component distributable through HACS (consumes `packages/python`, the PyO3
   binding over the Rust core). Carries the
-  undocumented LAN scenes and segments Matter cannot express.
+  undocumented LAN segment channel Matter cannot express.
 - [`integrations/homebridge/`](integrations/homebridge/) — HomeKit plugin
   (consumes `packages/node`).
 
