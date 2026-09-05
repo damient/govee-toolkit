@@ -110,6 +110,17 @@ The changelog is the source, and the release is derived from it:
 4. The section becomes the body of the GitHub release, and the workflow
    publishes to the registry.
 
+No registry token is stored in the repository: each workflow publishes through
+the registry's trusted publishing, which trades the job's OIDC identity for a
+short-lived token. It is configured once per package, on the registry, against
+this repository and the workflow file name — crates.io under the crate's
+settings, PyPI and npm under the project's. A publish from a workflow the
+registry does not know about is refused.
+
+A version already on the registry is skipped rather than failing the run: a tag
+moved to a new commit reruns the whole job, and a registry never takes the same
+version twice.
+
 The release history is the repository's releases page, written by that
 workflow. The root [`../CHANGELOG.md`](../CHANGELOG.md) carries the version each
 manifest declares, and the catalogue's own changelog — dated rather than
@@ -148,10 +159,10 @@ checked in CI.
 
 ## CI
 
-`cargo-semver-checks` becomes a **required job at the first release**: before
-anything is published there is no baseline to compare against, and after it
-there is no excuse for an unintended break. Until then, the checks in
+`cargo-semver-checks` is due as a **required job**: `govee-toolkit` `0.2.0` is
+on crates.io, so there is a baseline to compare against and no excuse for an
+unintended break. Until it lands, the checks in
 [`../CONTRIBUTING.md`](../CONTRIBUTING.md) are what CI runs.
 
-Nothing has shipped yet — the manifests declare the package names, and no
-release exists on any registry.
+PyPI and npm hold the name under a `0.0.0` placeholder each; the first real
+release of either is still ahead.

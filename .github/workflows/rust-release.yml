@@ -10,6 +10,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
+      id-token: write   # crates.io trusted publishing
       contents: write   # create the GitHub release
     defaults:
       run:
@@ -27,20 +28,52 @@ jobs:
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: stable
+      # crates.io keeps a version forever, and a tag moved to a new commit
+      # reruns this job. A version already up is skipped rather than failing
+      # the run on an upload crates.io would refuse anyway.
+      - name: Is this version already on crates.io?
+        id: crate
+        run: |
+          version=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' Cargo.toml \
+            | head -1)
+          if curl -sfo /dev/null \
+            -H "User-Agent: govee-toolkit release (github.com/damient)" \
+            "https://crates.io/api/v1/crates/govee-toolkit/$version"; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      # build.rs embeds devices/*.yaml, which sits above the manifest and so
+      # cannot be packaged from there.
+      - name: Vendor the device catalog
+        if: steps.crate.outputs.published == 'false'
+        run: cp -R ../../devices devices
       # `govee-toolkit` is the one crate published; crates/sim and crates/xtask
       # are publish = false and are reached only as path-only dev-dependencies,
-      # which cargo drops from the upload.
-      #
-      # build.rs embeds devices/*.yaml, which sits above the manifest and so
-      # cannot be packaged from there. Vendor it in first, and check the
-      # --dry-run file list: it must carry devices/*.yaml and no crates/.
-      # - name: Vendor the device catalog
-      #   run: cp -R ../../devices devices
-      # - run: cargo publish
-      #   env:
-      #     CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      # TODO: enable once there is something to publish.
-      - run: 'echo "TODO: vendor devices/ and publish govee-toolkit"'
+      # which cargo drops from the upload. A vendoring step that silently did
+      # nothing would ship a crate whose build.rs finds no catalog, so the file
+      # list is read before the upload rather than after.
+      - name: The upload carries the catalog and no workspace crate
+        if: steps.crate.outputs.published == 'false'
+        run: |
+          cargo package --list --allow-dirty > "$RUNNER_TEMP/files.txt"
+          grep -q '^devices/.*\.yaml$' "$RUNNER_TEMP/files.txt"
+          if grep -q '^crates/' "$RUNNER_TEMP/files.txt"; then
+            echo "error: a workspace crate is in the upload" >&2
+            exit 1
+          fi
+      # Trusted publishing: crates.io trades this job's OIDC identity for a
+      # short-lived token, so no registry token lives in the repository.
+      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+        id: auth
+        if: steps.crate.outputs.published == 'false'
+      - name: Publish
+        if: steps.crate.outputs.published == 'false'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        # `devices/` is vendored in and git-ignored, which cargo reads as a
+        # dirty tree.
+        run: cargo publish --allow-dirty
       - name: GitHub release
         if: github.event_name == 'push'
         env:

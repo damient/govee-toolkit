@@ -7,7 +7,7 @@ This is the reference implementation. Protocol logic lives here once, and every
 other language reaches it through a binding rather than a port — see
 [`docs/architecture.md`][architecture].
 
-Nothing is published to crates.io yet.
+`0.2.0` is on crates.io.
 
 ## One crate, four layers
 

@@ -146,8 +146,8 @@ Node and Python wrap the crate (napi-rs, PyO3). Each package versions and
 releases independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) through
 the workflows in `.github/workflows/`. The policy is `docs/versioning.md`.
 
-Nothing is published. The Rust crate carries `0.2.0`; the other two are at
-`0.0.0` because they have no code. No registry name is reserved, and the bare
+`govee-toolkit` `0.2.0` is on crates.io. The name is taken on PyPI and npm too,
+by a `0.0.0` placeholder each: those two packages have no code yet. The bare
 name `govee` on crates.io belongs to an unrelated project.
 
 In Rust: no `unsafe`, and no `panic` / `unwrap` / `expect` in library code. Out
@@ -169,7 +169,10 @@ reading the result off a pull request. `ci.yml` runs on push to `main` and on
 pull request, skipping every job while the pull request is a draft, and tests on
 Linux, macOS and Windows because the multicast socket differs on each. Every
 third-party action is pinned to a commit SHA; keep it that way. The release
-workflows stay `workflow_dispatch` only until there is something to publish.
+workflows publish through trusted publishing — the registry trades the job's
+OIDC identity for a short-lived token, so no registry token is stored in the
+repository. A version already on the registry is skipped rather than failing
+the run, since a tag moved to a new commit reruns the job.
 
 ## Repository
 

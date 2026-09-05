@@ -24,12 +24,17 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
-      # TODO: enable once packages/python is publishable
-      # - run: pip install build && python -m build packages/python
-      # - uses: pypa/gh-action-pypi-publish@<sha>  # pin, like ci.yml
-      #   with:
-      #     packages-dir: packages/python/dist
-      - run: 'echo "TODO: build and publish packages/python"'
+      - run: pip install build
+      - run: python -m build packages/python
+      # Trusted publishing: PyPI trades this job's OIDC identity for a
+      # short-lived token, so no registry token lives in the repository.
+      # PyPI keeps a version forever, and a tag moved to a new commit reruns
+      # this job; `skip-existing` makes the second run a no-op instead of a
+      # failure.
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: packages/python/dist
+          skip-existing: true
       - name: GitHub release
         if: github.event_name == 'push'
         env:
