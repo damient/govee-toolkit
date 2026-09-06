@@ -174,15 +174,20 @@ pub enum Role {
     /// A frame carries one color, so a stream over such a command sends one
     /// write per run of equal color rather than one per frame.
     SegmentColorMasked,
+    /// Sets whether the firmware interpolates between zones, on a mode that
+    /// carries that setting in a frame of its own rather than in the painting
+    /// one. Must declare an argument marked [`ArgRole::Gradient`].
+    SegmentGradient,
 }
 
 impl Role {
     /// Every role the SDK picks a command by, so a caller can iterate them.
-    pub(crate) const CLAIMABLE: [Self; 4] = [
+    pub(crate) const CLAIMABLE: [Self; 5] = [
         Self::Status,
         Self::SegmentEnable,
         Self::SegmentColor,
         Self::SegmentColorMasked,
+        Self::SegmentGradient,
     ];
 }
 
@@ -193,6 +198,7 @@ impl fmt::Display for Role {
             Self::SegmentEnable => "segment_enable",
             Self::SegmentColor => "segment_color",
             Self::SegmentColorMasked => "segment_color_masked",
+            Self::SegmentGradient => "segment_gradient",
         })
     }
 }

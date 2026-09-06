@@ -69,15 +69,15 @@
       "source": "docs/protocol/ble.md 2.5 — exercised on the unit"
     },
     {
-      "name": "fade between colours on",
-      "command": "fade",
+      "name": "zone interpolation on",
+      "command": "gradient",
       "args": { "on": 1 },
       "frames_hex": ["33a3010000000000000000000000000000000091"],
       "source": "docs/protocol/ble.md 2.6 — exercised on the unit"
     },
     {
-      "name": "fade between colours off",
-      "command": "fade",
+      "name": "zone interpolation off",
+      "command": "gradient",
       "args": { "on": 0 },
       "frames_hex": ["33a3000000000000000000000000000000000090"],
       "source": "docs/protocol/ble.md 2.6 — exercised on the unit"
@@ -271,7 +271,7 @@
     },
     {
       "name": "a declared argument left out",
-      "command": "fade",
+      "command": "gradient",
       "args": {},
       "code": "missing_arg"
     },

@@ -170,7 +170,7 @@ impl SegmentStream {
             mode,
             sku,
             enable: plan.enable,
-            enable_arg: plan.enable_arg,
+            gradient: plan.gradient,
             painter: plan.painter,
             hz,
             zones,
@@ -183,6 +183,9 @@ impl SegmentStream {
             stop: Notify::new(),
         });
 
+        // Before arming, so the first frame is painted under the setting the
+        // caller asked for.
+        sender::send_gradient(&shared).await?;
         send_enable(&shared, 1).await?;
         let task = tokio::spawn(sender::run(Arc::clone(&shared)));
         Ok(Self {

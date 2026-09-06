@@ -22,6 +22,12 @@ generated artefact, carries the schema revision it was built at.
 
 #### Changed
 
+- `devices/H61A0.yaml`: the `ble` entry `fade` is `gradient`, and it claims the
+  new `role: segment_gradient`. `33 a3` is not a fade over time — it is the same
+  zone interpolation the `lan` segment channel carries as the first byte of its
+  payload, and the colour frame has no room for it. Exercised on the unit: two
+  zones painted differently meet on a hard edge at `0` and blend at `1`, while
+  two colours sent one after the other cut to each other either way.
 - The two firmware version reads declare `${version:ascii:17}` rather than
   `${version:ascii}`. Reading to the end of the frame took in the trailing
   checksum, which is neither padding nor printable, so both reads failed on
@@ -34,9 +40,9 @@ generated artefact, carries the schema revision it was built at.
 
 - `devices/H61A0.yaml` declares `ble`, verified on the same unit: power,
   brightness, colour, colour temperature, brightness by zone mask, per-zone
-  brightness, the firmware fade, seven `0xAA` read commands and a `role: status`
-  entry that reads power and brightness in two more exchanges. Every one is
-  `documented: false` and points at the section of
+  brightness, zone interpolation, seven `0xAA` read commands and a
+  `role: status` entry that reads power and brightness in two more exchanges.
+  Every one is `documented: false` and points at the section of
   [`docs/protocol/ble.md`](docs/protocol/ble.md) that describes it.
 - `modes.ble` moves from `unknown` to `partial`. Segments are reachable there
   but narrower than over `lan` — fifteen zones by mask, against the unit's 42

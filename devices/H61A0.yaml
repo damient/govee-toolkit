@@ -234,14 +234,20 @@ commands:
         See docs/protocol/ble.md 2.5.
       capture: ""         # TODO
 
-    fade:
+    gradient:
       documented: false
+      role: segment_gradient
       frame: "33 A3 ${on} <pad:20> <xor>"
       args:
-        on: { type: int, range: [0, 1] }
+        on: { type: int, range: [0, 1], role: gradient }
       notes: >-
-        Whether the firmware fades between colours instead of cutting to them.
-        See docs/protocol/ble.md 2.6.
+        Whether the firmware interpolates between zones, wrapping from the last
+        back to the first; 0 gives hard-edged zones. The same user setting as
+        the `gradient` argument of the lan segment channel, which has no room
+        for it here and so carries it in a frame of its own. It is not a fade
+        over time: alternating two colours looks the same either way, and what
+        changes is the boundary between two zones painted differently. See
+        docs/protocol/ble.md 2.6.
       capture: ""         # TODO
 
     status:

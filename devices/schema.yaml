@@ -177,7 +177,8 @@ commands:
   #                         the single triple a `segment_color_masked` frame
   #                         paints
   #   zones       zones     which zones a `segment_color_masked` command paints
-  #   gradient    int       whether a `segment_color` command interpolates
+  #   gradient    int       whether the firmware interpolates between zones,
+  #                         on a `segment_color` or `segment_gradient` command
   #   "on"        int       captured from a reply: non-zero is on
   #   brightness  int       captured from a reply, in the unit the firmware
   #                         reports it in
@@ -213,13 +214,20 @@ commands:
     #   status          reports the device's state. Fire-and-verify sends it
     #                   after a command, and `status()` encodes it. Unclaimed:
     #                   commands go unverified and `status()` fails.
-    #   segment_enable  arms and disarms the raw segment channel.
+    #   segment_enable  arms and disarms the raw segment channel. Unclaimed:
+    #                   nothing is armed, which is what a mode whose zones are
+    #                   always addressable looks like.
     #   segment_color   paints every zone at once.
     #   segment_color_masked
     #                   paints one color over the zones a mask names. A stream
     #                   over it sends one frame per distinct color, so declare
     #                   it where the mode carries no whole-frame command; where
     #                   both are claimed, the whole-frame one is used.
+    #   segment_gradient
+    #                   sets whether the firmware interpolates between zones,
+    #                   where the mode carries that outside the painting frame.
+    #                   Declare it there instead of a `role: gradient` argument;
+    #                   an SDK sends it when a stream opens.
     #
     # A role the SDK fills arguments for marks them with an argument `role:`,
     # since it knows no argument name either:
@@ -233,6 +241,8 @@ commands:
     #                   The `count:` on the zone argument is what an SDK refuses
     #                   a larger stream against, so record it: a mask carrying
     #                   bits past the last zone is dropped in silence.
+    #   segment_gradient
+    #                   one marked `role: gradient`.
   ble:
     # <command-name>:
     #   documented: true | false

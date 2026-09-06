@@ -45,6 +45,11 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   such a mode, since a mask names zones and reaches no pixel behind them; a zone
   count past what the mask reaches; and a file that bounds its mask by nothing,
   through neither a `count:` nor the width of the mask field.
+- A command `role: segment_gradient`, with an argument marked `role: gradient`,
+  for a mode that carries zone interpolation in a frame of its own rather than
+  in the painting frame. A stream sends it when it opens: without it,
+  `StreamOptions::gradient` encoded into nothing over such a mode and a caller
+  was told a setting the device never got. `ble` on the H61A0 is such a mode.
 - `${name:ascii:N}` in a `reply:` layout — a text field of a given length,
   where the unbounded `${name:ascii}` reads to the end and so swallows whatever
   follows the text. On a wire that ends every frame on a checksum, that byte is
@@ -77,6 +82,10 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   idle connection left every later command failing until the process was
   restarted. The transport now scans again when the handle is gone, and only
   then.
+- A segment stream over a mode whose device file declares no
+  `role: segment_enable` no longer fails to open. Arming is the file's to
+  declare; a mode whose zones are always addressable has nothing to arm, which
+  is the case over `ble`.
 
 ### Changed
 
