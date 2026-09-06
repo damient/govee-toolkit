@@ -30,7 +30,9 @@
 //! width of its mask, are both errors: the field would carry something other
 //! than what the caller asked for.
 //!
-//! `<xor>`, when present, must be the last token.
+//! `<xor>`, when present, must be the last token, and `<pad:…>` the one before
+//! it: padding that is not at the end would be followed by bytes the declared
+//! size does not account for.
 
 use crate::codec::error::{Error, Result};
 
@@ -110,8 +112,8 @@ impl Frame {
     /// # Errors
     ///
     /// [`Error::FrameSyntax`] if a token is unrecognized, if `<len:16>`,
-    /// `<op:…>` or `<xor>` appear more than once or in an impossible position,
-    /// or if `<len:16>` is not immediately followed by `<op:…>`.
+    /// `<op:…>`, `<pad:…>` or `<xor>` appear more than once or in an impossible
+    /// position, or if `<len:16>` is not immediately followed by `<op:…>`.
     pub fn parse(command: &str, source: &str) -> Result<Self> {
         let bad = |reason: String| Error::FrameSyntax {
             command: command.to_owned(),
@@ -131,7 +133,7 @@ impl Frame {
         let (len, len_repeats) = only(&tokens, |t| matches!(t, Token::Len16));
         let (_, op_repeats) = only(&tokens, |t| matches!(t, Token::Opcode(_)));
         let (xor, xor_repeats) = only(&tokens, |t| matches!(t, Token::Xor));
-        let (_, pad_repeats) = only(&tokens, |t| matches!(t, Token::Pad(_)));
+        let (pad, pad_repeats) = only(&tokens, |t| matches!(t, Token::Pad(_)));
         if pad_repeats {
             return Err(bad("`<pad:…>` appears more than once".to_owned()));
         }
@@ -148,6 +150,13 @@ impl Frame {
             && i + 1 != tokens.len()
         {
             return Err(bad("`<xor>` must be the last token".to_owned()));
+        }
+        if let Some(i) = pad
+            && i + 1 + usize::from(xor.is_some()) != tokens.len()
+        {
+            return Err(bad(
+                "`<pad:…>` must come last, before `<xor>` where there is one".to_owned(),
+            ));
         }
         if let Some(i) = len
             && !matches!(tokens.get(i + 1), Some(Token::Opcode(_)))
@@ -353,6 +362,12 @@ mod tests {
     #[test]
     fn rejects_a_second_padding_field() {
         let err = Frame::parse("x", "<pad:20> <pad:20> <xor>").expect_err("should not parse");
+        assert_eq!(err.code(), "frame_syntax");
+    }
+
+    #[test]
+    fn rejects_padding_that_something_follows() {
+        let err = Frame::parse("x", "A1 <pad:20> BB <xor>").expect_err("should not parse");
         assert_eq!(err.code(), "frame_syntax");
     }
 
