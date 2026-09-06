@@ -8,7 +8,7 @@ there carries the changelog section it shipped.
 
 | Package | Changelog | Version |
 | ------- | --------- | ------- |
-| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.2.1 |
+| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.3.0 |
 | `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 0.0.0 |
 | `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 0.0.0 |
 
@@ -55,6 +55,27 @@ generated artefact, carries the schema revision it was built at.
 
 No BLE capture is committed. Redacting one is a step of its own, so every
 `capture:` in the `ble` table is empty with a TODO beside it.
+
+### 2026-09-06
+
+#### Added
+
+- `devices/H61A0.yaml` declares `ble` as `partial`, with its command table, the
+  numbers measured on the unit and a `verified:` block that says what was
+  exercised and what was not. Segments are reachable there but narrower than
+  over `lan` — zones are addressed through a fifteen-bit mask, against the
+  forty-two individually addressable ICs the `lan` raw channel reaches — and the
+  file says so rather than omitting the capability.
+- `tests/fixtures/golden/ble/H61A0.json` — conformance vectors for every `ble`
+  command. Each one's `source` distinguishes bytes exercised on hardware from
+  bytes worked out from the documented layout.
+- `devices/schema.yaml` documents the constructs the `ble` work needed: the new
+  frame tokens, the `string`, `zones` and `bytes` argument types, `body:` with
+  `chunk:`, `reply:` with `frames:`, and the `segment_color_masked` role. The
+  schema revision stays 1, which has a cost worth stating: a build older than
+  this one reads a `chunk:` command without seeing the chunking, and encodes it
+  to nothing rather than refusing the file. Nothing can be done about builds
+  already published; use a catalogue no older than the SDK reading it.
 
 ### 2026-09-05
 
