@@ -4,11 +4,10 @@
 //! wire itself — one vendor service, one characteristic to write to, one to be
 //! notified on — and the bytes come from `devices/*.yaml`, as everywhere else.
 //!
-//! **Nothing here is verified against a device.** `docs/protocol/ble.md`
-//! records nothing probed and no device file declares a `ble` command, so the
-//! UUIDs, the frame length and the advertised-name prefixes below are the shape
-//! the transport is written to, not facts this repository has established. Each
-//! carries the same note, and each is a TODO until a capture backs it.
+//! The UUIDs and the frame length below were observed on one unit, the H61A0
+//! `devices/H61A0.yaml` describes, and on no other. `docs/protocol/ble.md` says
+//! what was exercised there and what was not — Wi-Fi provisioning was written
+//! from the read direction alone and has never been sent to a device.
 //!
 //! It is one implementation of [`crate::transport::Transport`], under the same
 //! rules as every other mode (`docs/modes.md`): it never chooses a mode, its
@@ -47,21 +46,22 @@ pub use crate::transport::{
 
 /// The vendor service commands travel on.
 ///
-/// Unverified in this repository: `docs/protocol/ble.md` records nothing
-/// probed, and there is no capture under `tests/fixtures/ble-captures/` behind
-/// this value. TODO: confirm it against a capture, and write it down there with
-/// its provenance.
+/// Observed on one unit, and on no other family. There is no capture under
+/// `tests/fixtures/ble-captures/` behind it yet: TODO: redact one and commit
+/// it, so the value has evidence beside it rather than a note.
 pub const SERVICE: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_1910);
 
-/// The characteristic frames are written to, without a response. Unverified:
-/// see [`SERVICE`].
+/// The characteristic frames are written to, without a response. Same
+/// provenance as [`SERVICE`].
 pub const WRITE_CHARACTERISTIC: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_2b11);
 
-/// The characteristic replies are notified on. Unverified: see [`SERVICE`].
+/// The characteristic replies are notified on. Same provenance as
+/// [`SERVICE`].
 pub const NOTIFY_CHARACTERISTIC: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_2b10);
 
 /// The length of every frame on this wire, in bytes.
 ///
-/// The codec builds a frame from the device file's `frame:` layout, and this is
-/// the one length the transport writes. Unverified: see [`SERVICE`].
+/// There is no MTU negotiation on this wire: every frame is this long,
+/// checksum included. The codec builds one from the device file's `frame:`
+/// layout, which ends `<pad:20> <xor>` for exactly that reason.
 pub const FRAME_LEN: usize = 20;

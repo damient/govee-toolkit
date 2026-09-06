@@ -50,7 +50,7 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
     }
 
     let single_frame = command.frame.is_some() && command.frames.is_empty();
-    problems.extend(check_payload(command, single_frame));
+    problems.extend(check_payload(mode, command, single_frame));
     problems
 }
 
@@ -180,7 +180,7 @@ fn check_chunk(name: &str, command: &Command, problems: &mut Vec<String>) -> Opt
     }
 }
 
-fn check_payload(command: &Command, has_frame: bool) -> Vec<String> {
+fn check_payload(mode: Mode, command: &Command, has_frame: bool) -> Vec<String> {
     let mut problems = Vec::new();
     let mut placeholders = Vec::new();
     collect_placeholders(&command.payload, &mut placeholders);
@@ -196,7 +196,12 @@ fn check_payload(command: &Command, has_frame: bool) -> Vec<String> {
             ));
         }
     }
-    if has_frame && !placeholders.iter().any(|p| p == "frame") {
+    // A command that declares an envelope — a `cmd:`, a `payload:`, or both —
+    // has somewhere to name the frame, so it must. Only `ble` may declare
+    // neither: its wire carries the frame on its own.
+    let wrapped =
+        !matches!(mode, Mode::Ble) || !command.cmd.is_empty() || !command.payload.is_null();
+    if has_frame && wrapped && !placeholders.iter().any(|p| p == "frame") {
         problems.push("declares a `frame:` the payload never carries with `${frame}`".to_owned());
     }
     if command.cmd.is_empty() && !command.payload.is_null() {

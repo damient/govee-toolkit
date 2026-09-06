@@ -1,0 +1,305 @@
+{
+  "description": "Conformance vectors for H61A0 over ble. Every SDK — the Rust core, its bindings and any hand-written port — must produce exactly these bytes for these arguments. The wire carries no envelope here, so a vector states `frames_hex` and no `message`. See ../README.md.",
+  "sku": "H61A0",
+  "mode": "ble",
+  "vectors": [
+    {
+      "name": "power on",
+      "command": "power",
+      "args": { "on": 1 },
+      "frames_hex": ["3301010000000000000000000000000000000033"],
+      "source": "docs/protocol/ble.md 2.1 — exercised on the unit"
+    },
+    {
+      "name": "power off",
+      "command": "power",
+      "args": { "on": 0 },
+      "frames_hex": ["3301000000000000000000000000000000000032"],
+      "source": "docs/protocol/ble.md 2.1 — exercised on the unit"
+    },
+    {
+      "name": "brightness 50%",
+      "command": "brightness",
+      "args": { "level": 50 },
+      "frames_hex": ["3304320000000000000000000000000000000005"],
+      "source": "docs/protocol/ble.md 2.2 — exercised on the unit"
+    },
+    {
+      "name": "colour red over every zone the mask reaches",
+      "command": "color",
+      "args": {
+        "colors": [[255, 0, 0]],
+        "zones": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+      },
+      "frames_hex": ["33051501ff00000000000000ff7f00000000005d"],
+      "source": "docs/protocol/ble.md 2.3 — exercised on the unit; the mask ends 7f, not ff, because bit 15 reaches nothing"
+    },
+    {
+      "name": "colour green over zones 0 and 2 only",
+      "command": "color",
+      "args": { "colors": [[0, 255, 0]], "zones": [0, 2] },
+      "frames_hex": ["3305150100ff00000000000005000000000000d8"],
+      "source": "docs/protocol/ble.md 2.3 — exercised on the unit; least significant bit first, so zones 0 and 2 are 0x05"
+    },
+    {
+      "name": "4000 K with the rendering the caller supplies",
+      "command": "colortemp",
+      "args": {
+        "kelvin": 4000,
+        "white_r": 255,
+        "white_g": 170,
+        "white_b": 110,
+        "zones": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+      },
+      "frames_hex": ["330515010000000fa0ffaa6eff7f000000000036"],
+      "source": "docs/protocol/ble.md 2.3 — exercised on the unit; the white triplet is whatever the caller passes, the codec renders nothing"
+    },
+    {
+      "name": "brightness of zones 0 and 1",
+      "command": "segment_brightness_masked",
+      "args": { "level": 50, "zones": [0, 1] },
+      "frames_hex": ["3305150232030000000000000000000000000010"],
+      "source": "docs/protocol/ble.md 2.4 — exercised on the unit"
+    },
+    {
+      "name": "all fifteen zone brightnesses at once",
+      "command": "segment_brightness",
+      "args": { "levels": [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 10, 10, 10, 10, 10] },
+      "frames_hex": ["33051503645a50463c32281e140a0a0a0a0a0a24"],
+      "source": "docs/protocol/ble.md 2.5 — exercised on the unit"
+    },
+    {
+      "name": "fade between colours on",
+      "command": "fade",
+      "args": { "on": 1 },
+      "frames_hex": ["33a3010000000000000000000000000000000091"],
+      "source": "docs/protocol/ble.md 2.6 — exercised on the unit"
+    },
+    {
+      "name": "fade between colours off",
+      "command": "fade",
+      "args": { "on": 0 },
+      "frames_hex": ["33a3000000000000000000000000000000000090"],
+      "source": "docs/protocol/ble.md 2.6 — exercised on the unit"
+    },
+    {
+      "name": "status: power, then brightness",
+      "command": "status",
+      "args": {},
+      "frames_hex": [
+        "aa010000000000000000000000000000000000ab",
+        "aa040000000000000000000000000000000000ae"
+      ],
+      "source": "docs/protocol/ble.md 3 — both reads exercised on the unit, which answered aa 01 and aa 04 in turn"
+    },
+    {
+      "name": "read the segment count",
+      "command": "read_segment_count",
+      "args": {},
+      "frames_hex": ["aa0f0000000000000000000000000000000000a5"],
+      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered 15"
+    },
+    {
+      "name": "read the IC count",
+      "command": "read_ic_count",
+      "args": {},
+      "frames_hex": ["aa400000000000000000000000000000000000ea"],
+      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered 00 2a"
+    },
+    {
+      "name": "read the Wi-Fi MAC",
+      "command": "read_wifi_mac",
+      "args": {},
+      "frames_hex": ["aa140000000000000000000000000000000000be"],
+      "source": "docs/protocol/ble.md 3 — exercised on the unit"
+    },
+    {
+      "name": "read the hardware version",
+      "command": "read_hardware_version",
+      "args": {},
+      "frames_hex": ["aa2000000000000000000000000000000000008a"],
+      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered 1.02.00"
+    },
+    {
+      "name": "read the software version",
+      "command": "read_software_version",
+      "args": {},
+      "frames_hex": ["aa2100000000000000000000000000000000008b"],
+      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered 2.06.02"
+    },
+    {
+      "name": "read the dynamic API type",
+      "command": "read_dynamic_api",
+      "args": {},
+      "frames_hex": ["aaab000000000000000000000000000000000001"],
+      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered 2"
+    },
+    {
+      "name": "read the first zone group",
+      "command": "read_zone_state",
+      "args": { "group": 1 },
+      "frames_hex": ["aaa501000000000000000000000000000000000e"],
+      "source": "docs/protocol/ble.md 3 — the request was exercised on the unit; the layout of the answer was not established, so the file declares no reply"
+    },
+    {
+      "name": "read the last zone group",
+      "command": "read_zone_state",
+      "args": { "group": 5 },
+      "frames_hex": ["aaa505000000000000000000000000000000000a"],
+      "source": "docs/protocol/ble.md 3 — exercised on the unit"
+    },
+    {
+      "name": "Wi-Fi provisioning, SSID Test, password abc, UTC+2",
+      "command": "wifi_provision",
+      "args": {
+        "network": "Test",
+        "password": "abc",
+        "run_mode": 0,
+        "timezone_hours": 2,
+        "timezone_minutes": 0,
+        "iot_version": 0
+      },
+      "frames_hex": [
+        "a1110001000000000000000000000000000000b1",
+        "a1110104546573740361626300020000000000e2",
+        "a111ff000000000000000000000000000000004f"
+      ],
+      "source": "docs/protocol/ble.md 4 — worked out from the documented layout, NOT captured and never sent to a device; this pins the encoder, not the firmware"
+    },
+    {
+      "name": "Wi-Fi provisioning with an empty password",
+      "command": "wifi_provision",
+      "args": {
+        "network": "Test",
+        "password": "",
+        "run_mode": 0,
+        "timezone_hours": 2,
+        "timezone_minutes": 0,
+        "iot_version": 0
+      },
+      "frames_hex": [
+        "a1110001000000000000000000000000000000b1",
+        "a111010454657374000002000000000000000081",
+        "a111ff000000000000000000000000000000004f"
+      ],
+      "source": "docs/protocol/ble.md 4 — worked out from the documented layout, never sent to a device; an empty password is the single byte 0x00"
+    },
+    {
+      "name": "Wi-Fi provisioning carrying the API block, three data frames",
+      "command": "wifi_provision_with_api",
+      "args": {
+        "network": "Test",
+        "password": "abc",
+        "run_mode": 0,
+        "timezone_hours": 2,
+        "timezone_minutes": 0,
+        "iot_version": 0,
+        "api_url": "https://device.govee.com"
+      },
+      "frames_hex": [
+        "a1110003000000000000000000000000000000b3",
+        "a111010454657374036162630002000000186892",
+        "a11102747470733a2f2f6465766963652e676fb5",
+        "a111037665652e636f6d0000000000000000008a",
+        "a111ff000000000000000000000000000000004f"
+      ],
+      "source": "docs/protocol/ble.md 4 — worked out from the documented layout, never sent to a device; the URL is what a device answering API type 2 is told to use"
+    }
+  ],
+  "errors": [
+    {
+      "name": "brightness 0 is rejected, never clamped to 1",
+      "command": "brightness",
+      "args": { "level": 0 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "brightness above 100 is rejected, never clamped",
+      "command": "brightness",
+      "args": { "level": 101 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "colour temperature below the device range",
+      "command": "colortemp",
+      "args": {
+        "kelvin": 1500,
+        "white_r": 255,
+        "white_g": 170,
+        "white_b": 110,
+        "zones": [0]
+      },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a zone the mask cannot carry is rejected, not dropped in silence",
+      "command": "color",
+      "args": { "colors": [[255, 0, 0]], "zones": [15] },
+      "code": "out_of_range"
+    },
+    {
+      "name": "more zone brightnesses than there are zones",
+      "command": "segment_brightness",
+      "args": { "levels": [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10] },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a timezone offset in minutes that is not minutes",
+      "command": "wifi_provision",
+      "args": {
+        "network": "Test",
+        "password": "abc",
+        "run_mode": 0,
+        "timezone_hours": 2,
+        "timezone_minutes": 90,
+        "iot_version": 0
+      },
+      "code": "out_of_range"
+    },
+    {
+      "name": "an SSID longer than the field can carry",
+      "command": "wifi_provision",
+      "args": {
+        "network": "0123456789012345678901234567890123456789",
+        "password": "abc",
+        "run_mode": 0,
+        "timezone_hours": 2,
+        "timezone_minutes": 0,
+        "iot_version": 0
+      },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a declared argument left out",
+      "command": "fade",
+      "args": {},
+      "code": "missing_arg"
+    },
+    {
+      "name": "an argument the command does not declare",
+      "command": "brightness",
+      "args": { "level": 50, "fade": 1 },
+      "code": "unknown_arg"
+    },
+    {
+      "name": "a command this mode does not carry",
+      "command": "scene",
+      "args": {},
+      "code": "unknown_command"
+    },
+    {
+      "name": "the API block is a command of its own, not an argument to add",
+      "command": "wifi_provision",
+      "args": {
+        "network": "Test",
+        "password": "abc",
+        "run_mode": 0,
+        "timezone_hours": 2,
+        "timezone_minutes": 0,
+        "iot_version": 0,
+        "api_url": "https://device.govee.com"
+      },
+      "code": "unknown_arg"
+    }
+  ]
+}

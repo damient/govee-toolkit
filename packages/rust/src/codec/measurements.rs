@@ -119,10 +119,18 @@ latency_idle_ms:
   p95: 28
   max: 39
   loss: \"0/30 requests\"
+ble:
+  read_round_trip_ms: 63
+  sustained_writes_hz: 130
+  write_budget_hz: 100
+  burst_frames_before_stall: 100
+  burst_recovery_s: 20
+  addressable_zones: 15
 frame_rate:
-  - { zones: 20,  payload_bytes: 62,  clean_hz: 40, breaks_at_hz: 45 }
-  - { zones: 60,  payload_bytes: 182, clean_hz: 25, breaks_at_hz: 30 }
-  - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
+  lan:
+    - { zones: 20,  payload_bytes: 62,  clean_hz: 40, breaks_at_hz: 45 }
+    - { zones: 60,  payload_bytes: 182, clean_hz: 25, breaks_at_hz: 30 }
+    - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
 ";
 
     fn measured() -> Measurements {
@@ -137,6 +145,15 @@ frame_rate:
         assert_eq!(m.frame_rate.rows(Mode::Lan).len(), 3);
         assert!(m.extra.contains_key("latency_idle_ms"));
         assert!(m.extra.contains_key("resolution_changepoints"));
+    }
+
+    #[test]
+    fn a_mode_nobody_ran_the_stutter_test_on_answers_nothing() {
+        // The unit's `measurements.ble` block records a write budget, which is
+        // not a frame rate: no row is derived from it.
+        let m = measured();
+        assert!(m.frame_rate.rows(Mode::Ble).is_empty());
+        assert_eq!(m.clean_hz(Mode::Ble, 15), None);
     }
 
     #[test]
@@ -164,7 +181,10 @@ frame_rate:
 
     #[test]
     fn a_bare_table_is_the_lan_one_and_answers_for_no_other_mode() {
-        let m = measured();
+        let m: Measurements =
+            serde_norway::from_str("frame_rate:\n  - { zones: 20, clean_hz: 40 }\n")
+                .expect("parses");
+        assert_eq!(m.clean_hz(Mode::Lan, 10), Some(40.0));
         assert_eq!(m.clean_hz(Mode::Ble, 10), None);
         assert!(m.frame_rate.rows(Mode::Ble).is_empty());
     }

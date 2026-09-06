@@ -4,15 +4,15 @@
 //! written to faster than it can keep up does not answer with an error, it
 //! stops answering, and the caller sees a device that has gone away.
 //!
-//! What rate a device tolerates is a measurement, and no device file in this
-//! repository records one — `devices/*.yaml` has no field for it and
-//! `docs/protocol/ble.md` reports nothing probed. The default in
-//! [`Options`](super::Options) is therefore a conservative placeholder, not a
-//! measured figure.
+//! What rate a device tolerates is a measurement. One unit has been measured —
+//! `devices/H61A0.yaml` records about 130 writes per second sustained, and a
+//! burst of roughly a hundred frames leaving the firmware unresponsive for
+//! twenty seconds — and the default in [`Options`](super::Options) is that
+//! unit's budget.
 //!
-//! TODO: measure the sustained write rate and the burst a device tolerates,
-//! record both in the device file alongside the unit they were measured on, and
-//! read the budget from there instead of defaulting it here.
+//! TODO: read the budget out of the device file for the device being written
+//! to, so that a unit tolerating less is not written to at another unit's
+//! rate.
 //!
 //! A token bucket, with the tokens allowed to go negative: a caller that finds
 //! the bucket empty is told how long to wait, and concurrent callers queue
