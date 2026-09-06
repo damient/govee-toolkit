@@ -8,9 +8,9 @@
 //! They check the *shape* of a file, never whether a device really behaves that
 //! way — that stays a matter of capture and verification.
 
-use self::command::check_command;
+use self::command::{check_command, check_role_args};
 use self::modes::check_mode_capabilities;
-use crate::codec::catalog::{ArgRole, Command, Device, Mode, Role};
+use crate::codec::catalog::{Command, Device, Mode, Role};
 
 mod command;
 mod modes;
@@ -122,24 +122,6 @@ pub fn device(device: &Device) -> Vec<Problem> {
     }
 
     problems
-}
-
-/// A role the SDK invokes on its own fills some of its arguments, so the file
-/// has to mark which those are: the SDK knows no argument name either. See
-/// `devices/schema.yaml`.
-fn check_role_args(role: Role, command: &Command) -> Vec<String> {
-    let required: &[ArgRole] = match role {
-        Role::SegmentEnable => &[ArgRole::Enable],
-        Role::SegmentColor => &[ArgRole::Colors],
-        Role::Status => &[],
-    };
-    required
-        .iter()
-        .filter(|arg_role| command.arg_for(**arg_role).is_none())
-        .map(|arg_role| {
-            format!("`role: {role}` must declare an argument marked `role: {arg_role}`")
-        })
-        .collect()
 }
 
 #[cfg(test)]

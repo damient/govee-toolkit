@@ -87,7 +87,7 @@ mod govee;
 
 pub use codec::{Args, Catalog, Mode};
 #[cfg(any(feature = "lan", feature = "ble"))]
-pub use config::{Config, DeviceConfig, LanConfig, Problem};
+pub use config::{Config, DeviceConfig, LanConfig, Problem, StreamConfig};
 #[cfg(any(feature = "lan", feature = "ble"))]
 pub use device::DeviceHandle;
 #[cfg(any(feature = "lan", feature = "ble"))]

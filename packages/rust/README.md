@@ -101,9 +101,14 @@ stream.close().await?;
   every LED, and fails when nobody has measured that number on the unit — it
   belongs to the physical strip, not to the SKU. `Zones::Exact(n)` picks a
   count.
-- `Rate::Measured` paces from `measurements.frame_rate` in the device file,
-  falling back to 10 Hz when it records none. That fallback is a starting point,
-  not a finding: measure your unit and record it.
+- `Rate::Measured` paces from `measurements.frame_rate` in the device file for
+  the mode the stream opens on, falling back to 10 Hz when it records none
+  there. That fallback is a starting point, not a finding: measure your unit and
+  record it.
+- A mode whose device file paints zones by mask carries one color per frame, so
+  a repaint costs one write per distinct color: a solid fill is one write. Such
+  a mode addresses the zones the device file declares, and refuses
+  `Zones::Native` rather than sending a mask the firmware would silently trim.
 - `frames_sent()` and `frames_superseded()` tell you whether your source is
   outrunning the device.
 

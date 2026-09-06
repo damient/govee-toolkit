@@ -99,9 +99,12 @@ impl DeviceHandle<'_> {
     /// [`Error::ModeNotImplemented`] if this build carries no transport for
     /// the chosen mode,
     /// [`Error::NoRoleCommand`] if the device file marks no entry
-    /// `role: segment_enable` or `role: segment_color`,
+    /// `role: segment_enable`, and none `role: segment_color` or
+    /// `role: segment_color_masked`,
     /// [`Error::ZoneCountUnknown`] if the count asked for is not recorded for
     /// this unit,
+    /// [`Error::NativeZonesUnreachable`] or [`Error::ZoneCountUnsupported`] if
+    /// the mode paints by zone mask and cannot address the count asked for,
     /// [`Error::Codec`] if the zone count is outside what the command declares,
     /// or [`Error::Transport`] if arming cannot be sent.
     pub async fn open_stream(&self, options: StreamOptions) -> Result<SegmentStream> {

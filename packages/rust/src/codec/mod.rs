@@ -53,7 +53,7 @@ pub use command::{Encoded, encode};
 pub use error::{Error, Result};
 pub use exchange::{Exchange, Exchanges, Step};
 pub use frame::Frame;
-pub use measurements::{FrameRate, Measurements};
+pub use measurements::{FrameRate, FrameRates, Measurements};
 pub use reply::Captured;
 
 include!(concat!(env!("OUT_DIR"), "/devices.rs"));

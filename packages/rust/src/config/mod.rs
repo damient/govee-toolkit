@@ -15,6 +15,9 @@
 //! defaults:
 //!   modes: [lan]                # any device without an entry below
 //!
+//! stream:
+//!   fallback_hz: 10             # any mode, where the device file measured none
+//!
 //! devices:
 //!   "AA:BB:CC:DD:EE:FF":
 //!     modes: [lan]              # one mode means one mode: it never switches
@@ -24,6 +27,11 @@
 //!
 //! Unknown keys are refused. A misspelled option that was silently ignored
 //! would read as a setting that did not work.
+//!
+//! One key to move: the fallback frame rate is `stream.fallback_hz`, and a
+//! file still carrying `lan.stream_fallback_hz` is refused at load along with
+//! the rest of the file. The rate applies to whichever mode a stream opens on,
+//! so it is not `lan`'s to hold.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -48,8 +56,30 @@ pub struct Config {
     pub defaults: Defaults,
     /// Transport tuning for `lan`.
     pub lan: LanConfig,
+    /// Segment streaming, over whichever mode a stream opens on.
+    pub stream: StreamConfig,
     /// Per-device settings, keyed by the MAC the device reports.
     pub devices: BTreeMap<DeviceId, DeviceConfig>,
+}
+
+/// Segment streaming, over whichever mode a stream opens on.
+///
+/// Mode-neutral: a stream picks its mode from what the device has enabled, and
+/// this section applies to whichever it picked.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct StreamConfig {
+    /// The rate to send at when the device file records no measurement for the
+    /// mode the stream opens on.
+    pub fallback_hz: f64,
+}
+
+impl Default for StreamConfig {
+    fn default() -> Self {
+        Self {
+            fallback_hz: crate::stream::FALLBACK_HZ,
+        }
+    }
 }
 
 /// Where device files come from.

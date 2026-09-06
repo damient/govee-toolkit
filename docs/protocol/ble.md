@@ -21,6 +21,14 @@ declares for the command that asked for it, so nothing in the code guesses at
 the correlation — but no device file declares a `ble` command yet, so no layout
 has been checked against a device either.
 
+The segment stream runs over this mode too, where a device file declares a
+`role: segment_color_masked` command: a frame carrying one color and a mask of
+the zones wearing it, so a repaint costs one write per distinct color. Nothing
+here is probed either — no device file declares such a command, and no rate has
+been measured over BLE, so a stream falls back to a conservative one and says
+so. Native resolution is refused rather than approximated: a mask names zones,
+and bits past the last zone are dropped by the firmware without a word.
+
 One data point carried over from the LAN work: the raw LAN channel uses a
 variable-length dialect prefixed `0xBB`, **distinct** from the 20-byte `0x33`
 frames used over BLE. Frames do not port between the two.

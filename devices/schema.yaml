@@ -173,7 +173,10 @@ commands:
   # fixed to a type:
   #
   #   enable      int       the flag a `segment_enable` command arms on
-  #   colors      rgb_list  one triple per zone, for a `segment_color` command
+  #   colors      rgb_list  one triple per zone for a `segment_color` command;
+  #                         the single triple a `segment_color_masked` frame
+  #                         paints
+  #   zones       zones     which zones a `segment_color_masked` command paints
   #   gradient    int       whether a `segment_color` command interpolates
   #   "on"        int       captured from a reply: non-zero is on
   #   brightness  int       captured from a reply, in the unit the firmware
@@ -212,6 +215,11 @@ commands:
     #                   commands go unverified and `status()` fails.
     #   segment_enable  arms and disarms the raw segment channel.
     #   segment_color   paints every zone at once.
+    #   segment_color_masked
+    #                   paints one color over the zones a mask names. A stream
+    #                   over it sends one frame per distinct color, so declare
+    #                   it where the mode carries no whole-frame command; where
+    #                   both are claimed, the whole-frame one is used.
     #
     # A role the SDK fills arguments for marks them with an argument `role:`,
     # since it knows no argument name either:
@@ -220,6 +228,11 @@ commands:
     #   segment_color   one marked `role: colors`. One marked `role: gradient`,
     #                   if declared, is supplied too. A repeat count is derived
     #                   from the list and needs no role.
+    #   segment_color_masked
+    #                   one marked `role: colors` and one marked `role: zones`.
+    #                   The `count:` on the zone argument is what an SDK refuses
+    #                   a larger stream against, so record it: a mask carrying
+    #                   bits past the last zone is dropped in silence.
   ble:
     # <command-name>:
     #   documented: true | false
@@ -249,6 +262,16 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         #   frame_rate:
                         #     - { zones: <n>, payload_bytes: <n>,
                         #         clean_hz: <n>, breaks_at_hz: <n> }
+                        #
+                        # A bare list is the `lan` table. Rows measured over
+                        # another mode go under its name, and a rate is never
+                        # carried from one mode to another:
+                        #
+                        #   frame_rate:
+                        #     lan:
+                        #       - { zones: <n>, clean_hz: <n> }
+                        #     ble:
+                        #       - { zones: <n>, clean_hz: <n> }
                         #
                         # `zones` and `clean_hz` are what the stream uses: the
                         # highest rate that zone count sustained without visible
