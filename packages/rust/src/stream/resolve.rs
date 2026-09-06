@@ -110,7 +110,12 @@ fn painter(device: &Device, mode: Mode, gradient: bool) -> Result<Painter> {
     if let Some(command) = device.command_for(mode, Role::SegmentColor) {
         return Ok(Painter::Whole {
             colors: arg_named(device, mode, command, ArgRole::Colors)?.to_owned(),
-            gradient: gradient_arg(device, mode, command, gradient),
+            // A device file that marks no gradient argument gets nothing
+            // extra: the codec refuses an argument the command does not
+            // declare.
+            gradient: arg_named(device, mode, command, ArgRole::Gradient)
+                .ok()
+                .map(|arg| (arg.to_owned(), i64::from(gradient))),
             command: command.to_owned(),
         });
     }
@@ -243,25 +248,6 @@ fn arg_named<'a>(device: &'a Device, mode: Mode, command: &str, role: ArgRole) -
             command: command.to_owned(),
             arg_role: role,
         })
-}
-
-/// The argument marked [`ArgRole::Gradient`] and the value to send, if the
-/// command declares one.
-///
-/// A device file that marks none gets nothing extra: the codec refuses an
-/// argument the command does not declare.
-fn gradient_arg(
-    device: &Device,
-    mode: Mode,
-    command: &str,
-    gradient: bool,
-) -> Option<(String, i64)> {
-    let arg = device
-        .commands
-        .get(mode)
-        .get(command)?
-        .arg_for(ArgRole::Gradient)?;
-    Some((arg.to_owned(), i64::from(gradient)))
 }
 
 #[cfg(test)]

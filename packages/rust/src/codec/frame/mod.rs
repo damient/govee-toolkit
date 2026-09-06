@@ -183,16 +183,21 @@ impl Frame {
     /// Every argument the layout reads, in the order it reads them. A name
     /// referenced twice appears twice.
     pub fn arg_names(&self) -> impl Iterator<Item = &str> {
-        self.tokens.iter().flat_map(|t| match t {
-            Token::Arg { name, .. }
-            | Token::Text { name, .. }
-            | Token::Mask { name, .. }
-            | Token::Bytes { name } => vec![name.as_str()],
-            Token::Repeat { list, count, .. } => vec![list.as_str(), count.as_str()],
-            Token::Literal(_) | Token::Opcode(_) | Token::Len16 | Token::Pad(_) | Token::Xor => {
-                Vec::new()
-            }
-        })
+        self.tokens
+            .iter()
+            .flat_map(|t| match t {
+                Token::Arg { name, .. }
+                | Token::Text { name, .. }
+                | Token::Mask { name, .. }
+                | Token::Bytes { name } => [Some(name.as_str()), None],
+                Token::Repeat { list, count, .. } => [Some(list.as_str()), Some(count.as_str())],
+                Token::Literal(_)
+                | Token::Opcode(_)
+                | Token::Len16
+                | Token::Pad(_)
+                | Token::Xor => [None, None],
+            })
+            .flatten()
     }
 }
 

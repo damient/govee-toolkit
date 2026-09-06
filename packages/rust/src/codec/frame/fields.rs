@@ -101,34 +101,21 @@ pub(super) fn int_arg(command: &str, args: &Args, name: &str) -> Result<i64> {
     }
 }
 
-pub(super) fn rgb_arg<'a>(command: &str, args: &'a Args, name: &str) -> Result<&'a [[u8; 3]]> {
-    match args.get(name) {
-        Some(ArgValue::Rgb(v)) => Ok(v),
-        Some(other) => Err(wrong_type(command, name, args::RGB_LIST, other)),
-        None => Err(missing(command, name)),
-    }
+/// The borrowing extractors differ only in the variant they accept and the
+/// type name the error reports.
+macro_rules! arg_getter {
+    ($name:ident, $variant:ident, $expected:path, $ret:ty, $out:expr) => {
+        pub(super) fn $name<'a>(command: &str, args: &'a Args, name: &str) -> Result<$ret> {
+            match args.get(name) {
+                Some(ArgValue::$variant(v)) => Ok($out(v)),
+                Some(other) => Err(wrong_type(command, name, $expected, other)),
+                None => Err(missing(command, name)),
+            }
+        }
+    };
 }
 
-pub(super) fn text_arg<'a>(command: &str, args: &'a Args, name: &str) -> Result<&'a str> {
-    match args.get(name) {
-        Some(ArgValue::Text(v)) => Ok(v),
-        Some(other) => Err(wrong_type(command, name, args::TEXT, other)),
-        None => Err(missing(command, name)),
-    }
-}
-
-pub(super) fn zones_arg<'a>(command: &str, args: &'a Args, name: &str) -> Result<&'a [u16]> {
-    match args.get(name) {
-        Some(ArgValue::Zones(v)) => Ok(v),
-        Some(other) => Err(wrong_type(command, name, args::ZONES, other)),
-        None => Err(missing(command, name)),
-    }
-}
-
-pub(super) fn bytes_arg<'a>(command: &str, args: &'a Args, name: &str) -> Result<&'a [u8]> {
-    match args.get(name) {
-        Some(ArgValue::Bytes(v)) => Ok(v),
-        Some(other) => Err(wrong_type(command, name, args::BYTES, other)),
-        None => Err(missing(command, name)),
-    }
-}
+arg_getter!(rgb_arg, Rgb, args::RGB_LIST, &'a [[u8; 3]], Vec::as_slice);
+arg_getter!(text_arg, Text, args::TEXT, &'a str, String::as_str);
+arg_getter!(zones_arg, Zones, args::ZONES, &'a [u16], Vec::as_slice);
+arg_getter!(bytes_arg, Bytes, args::BYTES, &'a [u8], Vec::as_slice);
