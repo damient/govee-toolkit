@@ -11,6 +11,7 @@ use serde::Deserialize;
 
 use crate::codec::capabilities::{Capabilities, ModeCapabilities, Reason};
 use crate::codec::chunk::Chunk;
+use crate::codec::exchange::{Exchanges, Step};
 use crate::codec::measurements::Measurements;
 
 mod spec;
@@ -117,6 +118,11 @@ pub struct Command {
     pub payload: serde_json::Value,
     /// The byte layout of a raw-channel frame. See [`crate::codec::frame`].
     pub frame: Option<String>,
+    /// The layout of the reply `frame` expects. See [`crate::codec::reply`].
+    pub reply: Option<String>,
+    /// Several send/reply exchanges, issued in order. Mutually exclusive with
+    /// `frame` and `body`. See [`crate::codec::exchange`].
+    pub frames: Vec<Step>,
     /// The byte layout of a payload too long for one frame, split by `chunk`.
     /// Mutually exclusive with `frame`.
     pub body: Option<String>,
@@ -131,10 +137,11 @@ pub struct Command {
     /// What the SDK may use this command for on its own. See [`Role`].
     pub role: Option<Role>,
 
-    /// `frame`, tokenized on first use. The layout is fixed by the device file,
-    /// so the send path parses it once rather than once per command.
+    /// The exchanges, tokenized on first use. The layouts are fixed by the
+    /// device file, so the send path parses them once rather than once per
+    /// command.
     #[serde(skip)]
-    pub(crate) parsed_frame: std::sync::OnceLock<crate::codec::Frame>,
+    pub(crate) parsed_exchanges: std::sync::OnceLock<Option<Exchanges>>,
     /// `body` and the three `chunk` layouts, tokenized on first use.
     #[serde(skip)]
     pub(crate) parsed_chunk: std::sync::OnceLock<crate::codec::chunk::Layout>,

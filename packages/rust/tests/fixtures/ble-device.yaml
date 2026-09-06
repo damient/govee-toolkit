@@ -1,7 +1,7 @@
 # A device file whose commands are declared for `ble` alone: no envelope, no
-# `cmd:`, one 20-byte frame on the wire. It exists so the facade's dispatch to
-# a mode other than `lan` can be exercised without a radio, and it describes no
-# real unit.
+# `cmd:`, 20-byte frames on the wire, and `reply:` layouts to read the answers
+# back. It exists so the facade's dispatch to a mode other than `lan` can be
+# exercised without a radio, and it describes no real unit.
 schema_version: 1
 sku: "HTEST4"
 family: "test"
@@ -26,6 +26,20 @@ commands:
     state:
       documented: false
       role: status
-      frame: "aa 01 <pad:20> <xor>"
-      args: {}
+      frames:
+        - send: "aa 01 <pad:20> <xor>"
+          reply: "aa 01 ${lit}"
+        - send: "aa 04 <pad:20> <xor>"
+          reply: "aa 04 ${level}"
+      args:
+        lit: { type: int, range: [0, 1], role: "on" }
+        level: { type: int, range: [0, 100], role: brightness }
+      notes: "See docs/protocol/ble.md."
+
+    software:
+      documented: false
+      frame: "aa 21 <pad:20> <xor>"
+      reply: "aa 21 ${version:ascii}"
+      args:
+        version: { type: string }
       notes: "See docs/protocol/ble.md."

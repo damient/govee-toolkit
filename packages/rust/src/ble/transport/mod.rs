@@ -5,12 +5,13 @@
 //! between the last two is a connection — a device answers nothing until one
 //! is up — and a budget, because the firmware is not a socket.
 //!
-//! Replies carry no request id, so a status request is written under an open
-//! subscription and matched on the two bytes that name it.
+//! Replies carry no request id, so a read is written under an open subscription
+//! and matched against the `reply:` layout the device file declares.
 
 mod discover;
 mod impl_transport;
 mod options;
+mod read;
 mod shared;
 
 use std::sync::Arc;
@@ -27,7 +28,7 @@ use crate::codec::{Encoded, Mode};
 use crate::transport::error::{Error, Result};
 use crate::transport::events::health_of;
 use crate::transport::status::DeviceStatus;
-use crate::transport::{DeviceId, Discovered, Event, Health, KnownDevice, Sent, Verify};
+use crate::transport::{DeviceId, Discovered, Event, Health, KnownDevice, Reply, Sent, Verify};
 
 /// The `ble` transport.
 ///
@@ -231,20 +232,32 @@ impl Transport {
 
     /// Ask a device for its state and wait for the answer.
     ///
-    /// The answer, or the silence, is recorded against the breaker.
-    ///
-    /// The reply reaches the caller as raw bytes under
-    /// [`DeviceStatus::raw`]: what a reply's payload means is per-device
-    /// protocol, so it belongs in the device file, and the file has no
-    /// language for a reply yet.
+    /// The answer, or the silence, is recorded against the breaker. What the
+    /// reply means is the device file's business: its `reply:` layouts say
+    /// which bytes carry what, and the roles on its arguments say which of
+    /// those the SDK models. Everything captured stays in
+    /// [`DeviceStatus::raw`].
     ///
     /// # Errors
     ///
-    /// As for [`Transport::send`], plus [`Error::Unreachable`] if nothing
+    /// As for [`Transport::send`], plus [`Error::NoReplyLayout`] if the status
+    /// command declares no reply to read, and [`Error::Unreachable`] if nothing
     /// answers in time.
     pub async fn status(&self, id: &DeviceId, request: &Encoded) -> Result<DeviceStatus> {
         self.shared
             .request_status(id, request, self.shared.options.status_timeout)
+            .await
+    }
+
+    /// Run a command's exchanges and return what its `reply:` layouts
+    /// captured.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Transport::status`].
+    pub async fn read(&self, id: &DeviceId, request: &Encoded) -> Result<Reply> {
+        self.shared
+            .read(id, request, self.shared.options.status_timeout)
             .await
     }
 

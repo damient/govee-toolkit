@@ -37,8 +37,10 @@ pub mod catalog;
 pub mod chunk;
 pub mod command;
 pub mod error;
+pub mod exchange;
 pub mod frame;
 pub mod measurements;
+pub mod reply;
 pub mod validate;
 
 use std::collections::BTreeMap;
@@ -49,8 +51,10 @@ pub use catalog::{ArgRole, ArgSpec, Command, Device, Mode, ModeSupport, Modes, R
 pub use chunk::Chunk;
 pub use command::{Encoded, encode};
 pub use error::{Error, Result};
+pub use exchange::{Exchange, Exchanges, Step};
 pub use frame::Frame;
 pub use measurements::{FrameRate, Measurements};
+pub use reply::Captured;
 
 include!(concat!(env!("OUT_DIR"), "/devices.rs"));
 

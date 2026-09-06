@@ -7,15 +7,21 @@
 //! the frames the codec built and nothing wrapped around them, and that
 //! fire-and-verify follows.
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    clippy::panic
+)]
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use govee_toolkit::codec::Encoded;
+use govee_toolkit::codec::{Captured, Encoded};
 use govee_toolkit::transport::{
-    DeviceId, DeviceStatus, Discovered, Event, Health, KnownDevice, Result, Sent, Transport, Verify,
+    DeviceId, DeviceStatus, Discovered, Event, Health, KnownDevice, Reply, Result, Sent, Transport,
+    Verify,
 };
 use govee_toolkit::{Args, Catalog, Config, Govee, Mode, State};
 use tokio::sync::{broadcast, watch};
@@ -29,10 +35,31 @@ const MAC: &str = "AA:BB:CC:DD:EE:FF";
 const POWER_ON: [u8; 20] = [
     0x33, 0x01, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x33,
 ];
-/// The status request the fixture marks `role: status`.
-const STATE: [u8; 20] = [
+/// The two frames of the entry the fixture marks `role: status`.
+const POWER_READ: [u8; 20] = [
     0xaa, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xab,
 ];
+const BRIGHTNESS_READ: [u8; 20] = [
+    0xaa, 0x04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xae,
+];
+
+/// What the device answers, by the byte that names the request. A real radio
+/// would put these on the notify characteristic; the layouts in the fixture are
+/// what reads them either way.
+fn answer(frame: &[u8]) -> Vec<u8> {
+    let mut reply = match frame[1] {
+        0x01 => vec![0xaa, 0x01, 0x01],
+        0x04 => vec![0xaa, 0x04, 0x64],
+        0x21 => {
+            let mut bytes = vec![0xaa, 0x21];
+            bytes.extend_from_slice(b"2.06.02");
+            bytes
+        }
+        other => panic!("the fixture declares no request {other:#04x}"),
+    };
+    reply.resize(20, 0);
+    reply
+}
 
 fn id() -> DeviceId {
     DeviceId::new(MAC)
@@ -152,14 +179,38 @@ impl Transport for Fake {
     }
 
     async fn status(&self, id: &DeviceId, request: &Encoded) -> Result<DeviceStatus> {
+        let reply = self.read(id, request).await?;
+        Ok(DeviceStatus::from_captured(
+            id.clone(),
+            &reply.fields,
+            &request.roles,
+        ))
+    }
+
+    async fn read(&self, id: &DeviceId, request: &Encoded) -> Result<Reply> {
         self.written
             .lock()
             .unwrap()
             .extend(request.frames.iter().cloned());
-        Ok(DeviceStatus::from_data(
-            id.clone(),
-            serde_json::json!({ "reply": "aa0101" }),
-        ))
+        let exchanges = request.reads();
+        if exchanges.is_empty() {
+            return Err(govee_toolkit::transport::Error::NoReplyLayout {
+                mode: Mode::Ble,
+                reason: "the fixture declares no `reply:` for this command".to_owned(),
+            });
+        }
+        let mut fields = Captured::new();
+        for (frame, layout) in exchanges {
+            fields.merge(
+                layout
+                    .read(&request.cmd, &answer(frame))
+                    .expect("the answer matches the layout the fixture declares"),
+            );
+        }
+        Ok(Reply {
+            id: id.clone(),
+            fields,
+        })
     }
 
     fn save_cache(&self) -> Result<()> {
@@ -231,7 +282,10 @@ async fn a_command_carries_the_verification_the_device_file_names() {
         .await
         .expect("the command goes out");
 
-    assert_eq!(ble.verified(), vec![STATE.to_vec()]);
+    assert_eq!(
+        ble.verified(),
+        vec![POWER_READ.to_vec(), BRIGHTNESS_READ.to_vec()]
+    );
 }
 
 #[tokio::test]
@@ -241,8 +295,44 @@ async fn a_status_request_is_the_entry_marked_with_the_role() {
 
     let status = govee.device(&id()).status().await.expect("it answers");
 
-    assert_eq!(ble.written(), vec![STATE.to_vec()]);
-    assert_eq!(status.raw["reply"], "aa0101");
+    // One entry, two exchanges: the file names both, and neither name is here.
+    assert_eq!(
+        ble.written(),
+        vec![POWER_READ.to_vec(), BRIGHTNESS_READ.to_vec()]
+    );
+    assert_eq!(status.on, Some(true));
+    assert_eq!(status.brightness, Some(100));
+}
+
+#[tokio::test]
+async fn a_read_returns_the_fields_the_device_file_names() {
+    let ble = Fake::knowing(&id());
+    let govee = govee(&ble, &enabling_ble());
+
+    let reply = govee
+        .device(&id())
+        .read("software", &Args::new())
+        .await
+        .expect("it answers");
+
+    assert_eq!(
+        reply.fields.get("version"),
+        Some(&govee_toolkit::codec::ArgValue::Text("2.06.02".to_owned()))
+    );
+}
+
+#[tokio::test]
+async fn a_command_that_declares_no_reply_has_nothing_to_read() {
+    let ble = Fake::knowing(&id());
+    let govee = govee(&ble, &enabling_ble());
+
+    let error = govee
+        .device(&id())
+        .read("power", &Args::new().int("on", 1))
+        .await
+        .expect_err("the fixture declares no reply for it");
+
+    assert_eq!(error.code(), "no_reply_layout");
 }
 
 #[tokio::test]

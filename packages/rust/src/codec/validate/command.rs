@@ -2,7 +2,7 @@
 
 use crate::codec::catalog::{ArgRole, Command, Mode};
 use crate::codec::chunk::{self, Layout};
-use crate::codec::frame::Frame;
+use crate::codec::exchange::Exchanges;
 
 pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<String> {
     let mut problems = Vec::new();
@@ -10,20 +10,24 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
     problems.extend(check_arg_roles(command));
     problems.extend(check_reserved_args(command));
     problems.extend(check_documentation(mode, command));
+    problems.extend(check_declaration(command));
 
-    let frame = match command.frame.as_deref() {
-        None => None,
-        Some(source) => parse(name, source, &mut problems),
+    let exchanges = match Exchanges::parse(
+        name,
+        command.frame.as_deref(),
+        command.reply.as_deref(),
+        &command.frames,
+    ) {
+        Ok(exchanges) => exchanges,
+        Err(e) => {
+            problems.push(e.to_string());
+            None
+        }
     };
     let chunked = check_chunk(name, command, &mut problems);
 
-    if frame.is_some() && command.body.is_some() {
-        problems.push(
-            "declares both `frame:` and `body:`; a command sends one or the other".to_owned(),
-        );
-    }
-
-    for layout in frame.iter().chain(chunked.iter().flat_map(Layout::frames)) {
+    let sends = exchanges.iter().flat_map(Exchanges::sends);
+    for layout in sends.chain(chunked.iter().flat_map(Layout::frames)) {
         for arg in layout.arg_names() {
             if !command.args.contains_key(arg) && !chunk::RESERVED.contains(&arg) {
                 problems.push(format!(
@@ -32,13 +36,51 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
             }
         }
     }
+    for captured in exchanges.iter().flat_map(Exchanges::capture_names) {
+        if !command.args.contains_key(captured) {
+            problems.push(format!(
+                "reply captures `{captured}`, which `args:` does not declare"
+            ));
+        }
+    }
 
-    if command.cmd.is_empty() && frame.is_none() && chunked.is_none() {
+    if command.cmd.is_empty() && exchanges.is_none() && chunked.is_none() {
         problems
             .push("declares neither a `cmd:` nor a frame layout, so it sends nothing".to_owned());
     }
 
-    problems.extend(check_payload(command, frame.is_some()));
+    let single_frame = command.frame.is_some() && command.frames.is_empty();
+    problems.extend(check_payload(command, single_frame));
+    problems
+}
+
+/// A command sends one frame, a chunked body, or a list of exchanges. The three
+/// declarations describe different wires, and a file that mixes them says
+/// nothing about which one the bytes go out on.
+fn check_declaration(command: &Command) -> Vec<String> {
+    let mut problems = Vec::new();
+    if command.frame.is_some() && command.body.is_some() {
+        problems.push(
+            "declares both `frame:` and `body:`; a command sends one or the other".to_owned(),
+        );
+    }
+    if !command.frames.is_empty() && (command.frame.is_some() || command.body.is_some()) {
+        problems.push(
+            "declares `frames:` beside `frame:` or `body:`; a command sends one or the other"
+                .to_owned(),
+        );
+    }
+    if command.reply.is_some() && command.frame.is_none() {
+        problems.push("declares a `reply:` but no `frame:` to ask for it".to_owned());
+    }
+    for (i, step) in command.frames.iter().enumerate() {
+        if step.reply.trim().is_empty() {
+            problems.push(format!(
+                "`frames:` step {i} declares no `reply:`; a step nobody reads back \
+                 would go out on a read and report nothing"
+            ));
+        }
+    }
     problems
 }
 
@@ -161,16 +203,6 @@ fn check_payload(command: &Command, has_frame: bool) -> Vec<String> {
         problems.push("declares a `payload:` but no `cmd:` to carry it".to_owned());
     }
     problems
-}
-
-fn parse(name: &str, source: &str, problems: &mut Vec<String>) -> Option<Frame> {
-    match Frame::parse(name, source) {
-        Ok(frame) => Some(frame),
-        Err(e) => {
-            problems.push(e.to_string());
-            None
-        }
-    }
 }
 
 fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {

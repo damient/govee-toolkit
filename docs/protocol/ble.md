@@ -15,9 +15,11 @@ template.
 `packages/rust/src/ble/` carries the transport, behind the cargo feature of the
 same name. It is written to the shape below and to a 20-byte frame, and nothing
 in it is confirmed: the GATT UUIDs, the frame length, the advertised-name
-prefixes and the way a reply is matched to its request each carry that note in
-the code, and each is a TODO until a capture backs it. No device file declares a
-`ble` command yet.
+prefixes each carry that note in the code, and each is a TODO until a capture
+backs it. A reply is matched against the `reply:` layout the device file
+declares for the command that asked for it, so nothing in the code guesses at
+the correlation — but no device file declares a `ble` command yet, so no layout
+has been checked against a device either.
 
 One data point carried over from the LAN work: the raw LAN channel uses a
 variable-length dialect prefixed `0xBB`, **distinct** from the 20-byte `0x33`

@@ -11,7 +11,7 @@ use crate::error::Result;
 use crate::event::Served;
 use crate::govee::Govee;
 use crate::stream::{SegmentStream, StreamOptions};
-use crate::transport::{DeviceId, DeviceStatus, Health, Verify};
+use crate::transport::{DeviceId, DeviceStatus, Health, Reply, Verify};
 
 /// A borrow of the SDK and one identity. It holds no state of its own: every
 /// call reads the configuration and the health recorded right now.
@@ -123,6 +123,30 @@ impl DeviceHandle<'_> {
             .govee
             .transport(&self.id, mode)?
             .status(&self.id, &request)
+            .await?)
+    }
+
+    /// Run a command's exchanges and return what its `reply:` layouts
+    /// captured.
+    ///
+    /// This is how a value the SDK does not model reaches a caller: the device
+    /// file says which frames ask for it, which bytes carry it and under what
+    /// name, and nothing about any of that lives in this crate.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::send`], plus
+    /// [`crate::transport::Error::NoReplyLayout`] if the command declares no
+    /// reply to read or the chosen mode does not answer in frames, and
+    /// [`crate::transport::Error::Unreachable`] if nothing answers in time.
+    pub async fn read(&self, command: &str, args: &Args) -> Result<Reply> {
+        let mode = self.govee.choose(&self.id)?;
+        let sku = self.govee.sku(&self.id)?;
+        let request = self.govee.encode(&sku, mode, command, args)?;
+        Ok(self
+            .govee
+            .transport(&self.id, mode)?
+            .read(&self.id, &request)
             .await?)
     }
 

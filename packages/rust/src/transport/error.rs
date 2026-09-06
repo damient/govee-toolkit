@@ -69,6 +69,16 @@ pub enum Error {
         reason: String,
     },
 
+    /// There is nothing to read: the command declares no `reply:` layout this
+    /// mode could match, or the mode does not answer in frames at all.
+    #[error("`{mode}`: {reason}")]
+    NoReplyLayout {
+        /// The mode that was asked.
+        mode: Mode,
+        /// Why nothing can be read.
+        reason: String,
+    },
+
     /// The transport's receive loop is gone, so nothing can be sent or awaited.
     #[error("the transport has been shut down")]
     ShutDown,
@@ -109,6 +119,7 @@ impl Error {
             Self::Unreachable { .. } => "unreachable",
             Self::Serialize { .. } => "serialize",
             Self::Option { .. } => "out_of_range",
+            Self::NoReplyLayout { .. } => "no_reply_layout",
             Self::ShutDown => "shut_down",
             Self::Io { .. } => "io",
             Self::Cache { .. } => "cache",

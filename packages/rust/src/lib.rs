@@ -99,4 +99,4 @@ pub use govee::Govee;
 #[cfg(any(feature = "lan", feature = "ble"))]
 pub use stream::{Rate, SegmentStream, StreamOptions, Zones};
 #[cfg(any(feature = "lan", feature = "ble"))]
-pub use transport::{DeviceId, DeviceStatus, Health, State, Transport};
+pub use transport::{DeviceId, DeviceStatus, Health, Reply, State, Transport};

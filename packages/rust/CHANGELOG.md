@@ -18,8 +18,8 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   paced write path and the same per-device circuit breaker. **The protocol it
   speaks is not verified against a device**: `docs/protocol/ble.md` records
   nothing probed, no device file declares a `ble` command, and every constant
-  in the module says so. It sends the frames the codec built and reads nothing
-  out of a reply.
+  in the module says so. It sends the frames the codec built and reads a reply
+  through the layout the device file declares for it.
 - `ble::Transport::bind` relates a device's identity to the Bluetooth address a
   scan heard. Nothing infers one from the other.
 - The device file can describe a fixed-size frame and a chunked write:
@@ -27,10 +27,21 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   `${name:mask8}` / `${name:mask16}` and `${name:bytes}` are new field tokens,
   and `chunk:` splits one payload across several frames. `Encoded` carries
   `frames` beside an envelope that is now optional.
+- The device file can describe what a device answers with. A `reply:` layout
+  matches the bytes of one reply and captures fields out of them, in the same
+  grammar as `frame:` and capture-only; `frames:` lists send/reply pairs issued
+  in order, so one entry reads several values. A captured field carries an
+  argument `role:`, and `on` and `brightness` join the roles a transport
+  assembles `DeviceStatus` from — everything else stays in `DeviceStatus.raw`.
+- `Transport::read` and `DeviceHandle::read` return what a command's `reply:`
+  layouts captured, as a map keyed by the names the device file gave them. That
+  is how a segment count, a MAC or a firmware version reaches a caller with no
+  field name in this crate. `lan` refuses it: its replies are JSON.
 - Error codes `field_too_long`, `frame_overflow`, `chunk_syntax`, `serialize`,
-  `no_envelope` and, on a transport, `out_of_range` for an option outside the
-  range the mode can honour — an out-of-range write budget is refused, never
-  moved to the nearest value it could serve.
+  `no_envelope`, `reply_syntax`, `reply_mismatch` and, on a transport,
+  `out_of_range` for an option outside the range the mode can honour — an
+  out-of-range write budget is refused, never moved to the nearest value it
+  could serve — and `no_reply_layout` where there is nothing to read.
 
 ### Changed
 

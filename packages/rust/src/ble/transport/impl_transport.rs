@@ -14,7 +14,7 @@ use super::Transport as BleTransport;
 use crate::codec::{Encoded, Mode};
 use crate::transport::error::Result;
 use crate::transport::{
-    DeviceId, DeviceStatus, Discovered, Event, Health, KnownDevice, Sent, Transport, Verify,
+    DeviceId, DeviceStatus, Discovered, Event, Health, KnownDevice, Reply, Sent, Transport, Verify,
 };
 
 #[async_trait]
@@ -57,6 +57,10 @@ impl Transport for BleTransport {
 
     async fn status(&self, id: &DeviceId, request: &Encoded) -> Result<DeviceStatus> {
         Self::status(self, id, request).await
+    }
+
+    async fn read(&self, id: &DeviceId, request: &Encoded) -> Result<Reply> {
+        Self::read(self, id, request).await
     }
 
     /// Does nothing, successfully.

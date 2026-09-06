@@ -77,7 +77,7 @@ commands:
   # that mode — the SDK must fail explicitly rather than approximate it.
   #
   # These entries are executable, not descriptive: an SDK builds the bytes from
-  # what is written here and holds no per-SKU logic of its own. Two small
+  # what is written here and holds no per-SKU logic of its own. A few small
   # languages do the work.
   #
   # `payload:` — the msg.data template. A string that is exactly "${name}" is
@@ -89,31 +89,99 @@ commands:
   #   BB                     a literal byte, two hex digits
   #   ${name}                one byte, from the integer argument `name`
   #   ${name:16}             two bytes, big-endian
+  #   ${name:str8}           one length byte, then `name` as UTF-8
+  #   ${name:str16}          two big-endian length bytes, then `name` as UTF-8
+  #   ${name:mask8}          one byte of zone bits, least significant bit first
+  #   ${name:mask16}         two bytes of the same
+  #   ${name:bytes}          the bytes of `name`, as they are
   #   <op:B0>                the opcode, one or more literal bytes. Marks where
   #                          the payload begins.
   #   <len:16>               the payload length, big-endian, filled in on build.
   #                          It counts the bytes after <op:…>, up to but
   #                          excluding the checksum, so a frame using it must
   #                          name its opcode with <op:…> right after.
+  #   <pad:20>               zeros, so that the frame is 20 bytes once <xor> is
+  #                          appended. One per layout, and it comes second to
+  #                          last: a layout already past that size is an error,
+  #                          never a truncation.
   #   (${list}:rgb)×${n}     `n` RGB triples taken from the list argument `list`.
   #                          Omit `n` at call time and it is derived from the
   #                          list length. An ASCII `x` is accepted for `×`.
   #   <xor>                  XOR of every preceding byte. Must come last.
   #
-  # `args:` — one entry per argument, either
+  # A string longer than its length prefix can count, and a zone index past the
+  # width of its mask, are errors: the field would carry something other than
+  # what the caller asked for.
+  #
+  # `body:` and `chunk:` — a payload longer than one frame, for a wire whose
+  # frames are a fixed size. `body:` is a frame layout with no checksum, and
+  # `chunk:` says how to cut it and what to wrap each slice in. Declare the two
+  # together and neither `frame:` nor `frames:` beside them:
+  #
+  #   body: "${network:str8} ${password:str8}"
+  #   chunk:
+  #     size: 16                                          # body bytes per frame
+  #     header: "A1 <op:11> 00 ${count} 00 <pad:20> <xor>"
+  #     data:   "A1 <op:11> ${index} ${chunk:bytes} <pad:20> <xor>"
+  #     footer: "A1 <op:11> FF <pad:20> <xor>"
+  #
+  # `count`, `index` and `chunk` are filled in by the codec — how many data
+  # frames there are, which one this is, and the slice it carries — so `args:`
+  # may not declare an argument by any of those three names.
+  #
+  # `reply:` — the layout of the answer a `frame:` asks for, in the same
+  # grammar in the matching direction. It only matches bytes, so the tokens that
+  # build them — <xor>, <len:…>, <op:…>, <pad:…> and a repeat group — are
+  # refused:
+  #
+  #   BB                     that literal byte, which the reply must carry
+  #   ${name}                one byte, captured as an integer
+  #   ${name:16}             two bytes, big-endian
+  #   ${name:bytes:6}        exactly six bytes, as they are
+  #   ${name:ascii}          the rest of the reply as text, trailing zeros
+  #                          trimmed. Reads to the end, so it comes last, and
+  #                          what it keeps has to be printable ASCII.
+  #
+  # A reply missing a literal the layout requires is refused whole: a frame that
+  # did not match is another command's answer, and nothing partial is read out
+  # of it. Bytes past the layout are ignored.
+  #
+  # `frames:` — a list of send/reply pairs, issued in order, whose captures
+  # merge into one set of fields. That is how one entry reads several values.
+  # Every step declares both halves; a step with no `reply:` would go out on a
+  # read and report nothing:
+  #
+  #   frames:
+  #     - send:  "AA 01 <pad:20> <xor>"
+  #       reply: "AA 01 ${lit}"
+  #     - send:  "AA 04 <pad:20> <xor>"
+  #       reply: "AA 04 ${level}"
+  #
+  # `args:` — one entry per argument, sent or captured:
   #   { type: int, range: [min, max] }        inclusive bounds
   #   { type: rgb_list, max_len: <n> }        a list of RGB triples
+  #   { type: string, max_len: <n> }          text; the cap counts UTF-8 bytes
+  #   { type: zones, count: <n> }             zone indices, sent as a bitmask
+  #   { type: bytes, max_len: <n> }           bytes the SDK does not interpret
   # Bounds are enforced, never clamped: the firmware clamps in silence
   # (../docs/protocol/lan.md 2.1), and an SDK that did the same would report
   # success for a value the device did not apply.
   #
-  # Either kind takes an optional `role:`, which names the argument for an SDK
-  # that fills it on its own initiative — see the command `role:` below. At most
-  # one argument per command may claim a given one, and each is fixed to a type:
+  # Any kind takes an optional `role:`, which names the argument for an SDK that
+  # fills it, or reads it back, on its own initiative — see the command `role:`
+  # below. At most one argument per command may claim a given one, and each is
+  # fixed to a type:
   #
-  #   enable    int       the flag a `segment_enable` command arms on
-  #   colors    rgb_list  one triple per zone, for a `segment_color` command
-  #   gradient  int       whether a `segment_color` command interpolates
+  #   enable      int       the flag a `segment_enable` command arms on
+  #   colors      rgb_list  one triple per zone, for a `segment_color` command
+  #   gradient    int       whether a `segment_color` command interpolates
+  #   "on"        int       captured from a reply: non-zero is on
+  #   brightness  int       captured from a reply, in the unit the firmware
+  #                         reports it in
+  #
+  # Quote `role: "on"`: a YAML 1.1 reader takes a bare `on` for true.
+  # A captured field with no role is not lost — it reaches the caller under the
+  # name this file gave it.
   #
   # An argument the caller always passes needs no role: the SDK never supplies
   # it, and the name in the call is this file's.
@@ -124,6 +192,10 @@ commands:
     #   role: status                  # optional; see below. Default: no role.
     #   payload: { }                  # JSON structure, ${placeholders} for args
     #   frame: ""                     # for raw-channel commands, the byte layout
+    #   reply: ""                     # the answer that frame asks for
+    #   frames: [ { send, reply } ]   # several exchanges instead of one frame
+    #   body: ""                      # a payload longer than one frame…
+    #   chunk: { size, header, data, footer }   # …and how to cut it
     #   args: { <name>: { type, range, role } }
     #   notes: ""                     # behavior worth knowing before calling it;
     #                                 # required when documented is false, and it
@@ -150,9 +222,15 @@ commands:
     #                   from the list and needs no role.
   ble:
     # <command-name>:
-    #   opcode: "0x.."
-    #   frame: "..."                  # same layout language as above
+    #   documented: true | false
+    #   role: status                  # same roles as above
+    #   frame: ""                     # same layout language as above; the wire
+    #                                 # carries no envelope, so there is no
+    #                                 # `cmd:` and no `payload:` here
+    #   reply: ""                     # or `frames:` for several exchanges
     #   args: { }
+    #   notes: ""                     # must point at ../docs/protocol/ble.md
+    #                                 # when documented is false
     #   capture: tests/fixtures/ble-captures/<sku>/<file>
   cloud:
     # <command-name>:
