@@ -11,7 +11,7 @@ use crate::stream::resolve::Painter;
 ///
 /// [`Error::ZoneOutOfRange`] for a zone the mask cannot name. The zone count is
 /// bounded when the stream opens, so this is unreachable from a stream.
-pub(super) fn frames(painter: &Painter, colors: &[[u8; 3]]) -> Result<Vec<Args>> {
+pub(super) fn frames(painter: &Painter, colors: Vec<[u8; 3]>) -> Result<Vec<Args>> {
     match painter {
         // The repeat count is left out on purpose: the codec derives it from
         // the list, which is the one place it cannot disagree with the colors
@@ -21,7 +21,7 @@ pub(super) fn frames(painter: &Painter, colors: &[[u8; 3]]) -> Result<Vec<Args>>
             gradient,
             ..
         } => {
-            let args = Args::new().rgb(name.as_str(), colors.to_vec());
+            let args = Args::new().rgb(name.as_str(), colors);
             Ok(vec![match gradient {
                 Some((gradient, value)) => args.int(gradient.as_str(), *value),
                 None => args,
@@ -31,7 +31,7 @@ pub(super) fn frames(painter: &Painter, colors: &[[u8; 3]]) -> Result<Vec<Args>>
             colors: name,
             zones,
             ..
-        } => masked(name, zones, colors),
+        } => masked(name, zones, &colors),
     }
 }
 
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn one_color_over_every_zone_is_one_frame() {
-        let frames = frames(&masked_painter(), &[[255, 0, 0]; 4]).unwrap();
+        let frames = frames(&masked_painter(), vec![[255, 0, 0]; 4]).unwrap();
         assert_eq!(frames.len(), 1);
         assert_eq!(zones_of(&frames[0]), vec![0, 1, 2, 3]);
     }
@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn zones_sharing_a_color_travel_in_one_frame_even_when_apart() {
         let colors = [[255, 0, 0], [0, 0, 255], [255, 0, 0]];
-        let frames = frames(&masked_painter(), &colors).unwrap();
+        let frames = frames(&masked_painter(), colors.to_vec()).unwrap();
         assert_eq!(frames.len(), 2);
         assert_eq!(zones_of(&frames[0]), vec![0, 2]);
         assert_eq!(zones_of(&frames[1]), vec![1]);
@@ -111,7 +111,7 @@ mod tests {
         let catalog = Catalog::from_sources([("masked-zones.yaml", MASKED)]).expect("parses");
         let device = catalog.device("HTEST3").expect("the SKU resolves");
         let colors = [[255, 0, 0], [0, 0, 255], [255, 0, 0]];
-        let frames = frames(&masked_painter(), &colors).unwrap();
+        let frames = frames(&masked_painter(), colors.to_vec()).unwrap();
 
         let bytes: Vec<Vec<u8>> = frames
             .iter()
@@ -134,7 +134,7 @@ mod tests {
             colors: "colors".to_owned(),
             gradient: Some(("gradient".to_owned(), 1)),
         };
-        let frames = frames(&painter, &[[1, 2, 3], [4, 5, 6]]).unwrap();
+        let frames = frames(&painter, vec![[1, 2, 3], [4, 5, 6]]).unwrap();
         assert_eq!(frames.len(), 1);
         assert_eq!(
             frames[0].get("colors"),
