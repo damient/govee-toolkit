@@ -13,7 +13,7 @@ trade-offs, and **the user chooses which ones to enable, per device**.
 Details per mode: [`protocol/lan.md`](protocol/lan.md),
 [`protocol/ble.md`](protocol/ble.md), [`protocol/cloud.md`](protocol/cloud.md).
 
-Two `ble` constraints change what an application can do with it:
+Three `ble` constraints change what an application can do with it:
 
 - **One connection at a time.** A connected device stops advertising, so a phone
   or another host holding the link makes the device invisible to a scan, and a
@@ -23,6 +23,13 @@ Two `ble` constraints change what an application can do with it:
   single frame. The transport paces writes against a budget, so a source that
   outruns the budget waits instead of being served at its own rate. The numbers
   live in the `measurements.ble` block of each device file.
+- **The identity has to be bound once.** A device is keyed by its Wi-Fi MAC
+  everywhere in this project, and an advertisement carries a Bluetooth address
+  instead. Nothing observed relates the two, so enabling `ble` for a device is
+  not on its own enough to reach it: the application tells the transport which
+  address belongs to which identity, through `ble::Transport::bind`. A device
+  that has only ever been seen over Bluetooth has no Wi-Fi MAC to key on until
+  something says what it is — `protocol/ble.md` §1.3.
 
 ## Two levels
 

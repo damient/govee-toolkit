@@ -44,9 +44,8 @@ node       python
 **One crate, `govee-toolkit`**, at `packages/rust`. The layers are modules of
 it, and what is optional is a cargo feature rather than a separate package:
 `lan` is on by default, `ble` is opt-in, and `cloud` joins them when it lands.
-Two crates live
-beside it and are never published: `crates/sim`, the device simulator, and
-`crates/xtask`, which generates the distributable catalogue.
+Two crates live beside it and are never published: `crates/sim`, the device
+simulator, and `crates/xtask`, which generates the distributable catalogue.
 
 The bare name `govee` on crates.io belongs to an unrelated project, which is why
 this one carries the longer name.

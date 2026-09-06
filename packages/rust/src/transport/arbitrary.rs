@@ -1,8 +1,9 @@
-//! Generators for the property tests in this module.
+//! Generators for the property tests that read what a device sent.
 //!
-//! Everything under `lan` reads bytes a stranger on the network chose. The
-//! parsers are written to be total — they return `Option`, they never index —
-//! and these strategies are what keeps that true when someone edits them.
+//! A reply is bytes a stranger chose: anything on the network can send one, and
+//! anything in Bluetooth range can answer. The parsers are written to be total
+//! — they return `Option`, they never index — and these strategies are what
+//! keeps that true when someone edits them.
 
 use proptest::prelude::*;
 
