@@ -47,12 +47,6 @@ pub struct Exchange {
 }
 
 impl Exchange {
-    /// The frame that goes out.
-    #[must_use]
-    pub fn send(&self) -> &Frame {
-        &self.send
-    }
-
     /// The reply layout, where the file declares one.
     #[must_use]
     pub fn reply(&self) -> Option<&Layout> {
@@ -99,11 +93,6 @@ impl Exchanges {
             send: Frame::parse(command, frame)?,
             reply: parse_reply(command, reply)?,
         }])))
-    }
-
-    /// Each exchange, in the order it goes out.
-    pub fn iter(&self) -> impl Iterator<Item = &Exchange> {
-        self.0.iter()
     }
 
     /// Every send layout.
@@ -172,7 +161,7 @@ mod tests {
         let exchanges = Exchanges::parse("x", Some("33 01 ${on} <pad:20> <xor>"), None, &[])
             .unwrap()
             .expect("one exchange");
-        assert_eq!(exchanges.iter().count(), 1);
+        assert_eq!(exchanges.sends().count(), 1);
         assert_eq!(exchanges.capture_names().count(), 0);
     }
 
