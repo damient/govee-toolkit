@@ -34,6 +34,13 @@ generated artefact, carries the schema revision it was built at.
   every attempt. `aa 20` answers `1.02.00` and `aa 21` answers `2.06.02` on the
   verified unit, as the file already said.
 
+#### Note
+
+Every `ble` command in the file has now been sent to the unit and its effect or
+its answer observed, Wi-Fi provisioning excepted — that one has still never been
+sent to a device. The `capture:` fields stay empty: no BLE capture has been
+redacted and committed yet.
+
 ### 2026-09-06
 
 #### Added

@@ -185,8 +185,8 @@ commands:
         fields stay zero: colour and white are mutually exclusive, and a
         non-zero kelvin is what turns this frame into the colortemp one. A
         saturated mask looks exactly like an ignored mask, so painting every
-        zone proves nothing about the mask being read. See
-        docs/protocol/ble.md 2.3.
+        zone proves nothing about the mask being read — paint a subset, as the
+        `verified:` block below did. See docs/protocol/ble.md 2.3.
       capture: ""         # TODO
 
     colortemp:
@@ -443,8 +443,13 @@ verified:
     at native resolution. ble mode exercised over GATT on the same unit, against
     soft version 2.06.02 and hard version 1.02.00: every 0x33 write and every
     0xAA read in the table above was sent to the device and its effect or its
-    answer observed. Wi-Fi provisioning over 0xA1 was NOT: its layout was read
-    out of the other direction only, and no frame of it has ever been sent to a
-    device — its golden vectors pin this encoder, not the firmware. Scenes over
-    0xA3 were not worked out. No ble capture has been redacted and committed
-    yet, so every `capture:` in the ble table is empty. See measurements above.
+    answer observed, this time through the Rust transport rather than by hand.
+    The zone mask is read by the firmware and not ignored: painting zones 0-2
+    over a rope already painted left the rest alone. `gradient` was told apart
+    from a fade over time the same way — the boundary between two differently
+    painted zones is what it changes. Wi-Fi provisioning over 0xA1 was NOT
+    exercised: its layout was read out of the other direction only, and no frame
+    of it has ever been sent to a device — its golden vectors pin this encoder,
+    not the firmware. Scenes were not worked out. No ble capture has been
+    redacted and committed yet, so every `capture:` in the ble table is empty.
+    See measurements above.
