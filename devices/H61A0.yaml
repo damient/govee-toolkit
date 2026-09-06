@@ -18,6 +18,7 @@ capabilities:
   color:
   colortemp:   { range_kelvin: [2000, 9000] }
   scenes:
+  music:
   segment_brightness:
   segments:
     count: 10             # zones the Govee app exposes
@@ -30,6 +31,7 @@ modes:
     unreachable:
       scenes: transport
       segment_brightness: transport
+      music: unprobed
     notes: >-
       Requires LAN Control enabled in the Govee Home app. Reaches the segment
       channel, including beyond the 10 zones the app exposes. Brightness is
@@ -37,12 +39,13 @@ modes:
       docs/protocol/lan.md 2.5.
   ble:
     support: partial
-    capabilities: [power, brightness, color, colortemp, segments, segment_brightness]
+    capabilities: [power, brightness, color, colortemp, segments, segment_brightness, music]
     unreachable:
       scenes: unimplemented
     notes: >-
-      Reaches power, brightness, color, color temperature and both per-zone
-      channels without the device being on the network. Segments are narrower
+      Reaches power, brightness, color, color temperature, music and both
+      per-zone channels without the device being on the network. Music runs off
+      the device's own microphone, at sub-mode 19. Segments are narrower
       here than over lan: zones are addressed through a mask 15 bits wide,
       against the 42 individually addressable ICs the lan raw channel reaches,
       and bits past the fifteenth reach nothing. Scenes travel over a second
@@ -54,6 +57,7 @@ modes:
     capabilities: [power, brightness, color, colortemp, scenes, segment_brightness]
     unreachable:
       segments: transport
+      music: unprobed
     notes: >-
       Internal scenes and per-segment brightness travel over MQTT to AWS IoT,
       and the per-segment color channel does not. Requires a Govee account and
@@ -246,6 +250,29 @@ commands:
         docs/protocol/ble.md 2.6.
       capture: ""         # TODO
 
+    music:
+      documented: false
+      frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
+      args:
+        effect: { type: int, range: [0, 7] }
+        sensitivity: { type: int, range: [0, 99] }
+        soft: { type: int, range: [0, 1] }
+        color_mode: { type: int, range: [0, 1] }
+        r: { type: int, range: [0, 255] }
+        g: { type: int, range: [0, 255] }
+        b: { type: int, range: [0, 255] }
+      notes: >-
+        Sub-mode 19. The device listens on its own microphone. `effect` selects
+        the rendering: 0 to 7 each render one, and 8 to 15, 50 and 255 render
+        nothing at all — the rope keeps what the frame before it left. Nothing
+        maps an identifier to an effect. `soft` 0 renders sharp on the beat and
+        1 renders in fades. `color_mode` 0 leaves the colors to the firmware and
+        1 imposes the triplet. The zone mask has no field here. Every byte is
+        read back at `read_mode`, an effect the firmware does not render
+        included, so a read that echoes a value is not evidence that the device
+        plays it. See docs/protocol/ble.md 2.8.
+      capture: ""         # TODO
+
     status:
       documented: false
       role: status
@@ -259,6 +286,21 @@ commands:
         level: { type: int, range: [1, 100], role: brightness }
       notes: >-
         Two reads: no single frame reports both. See docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_mode:
+      documented: false
+      frame: "AA 05 <pad:20> <xor>"
+      reply: "AA 05 ${submode} ${payload:bytes:8}"
+      args:
+        submode: { type: int, range: [0, 255] }
+        payload: { type: bytes, max_len: 8 }
+      notes: >-
+        The live sub-mode and its eight payload bytes, left uninterpreted: their
+        meaning depends on the sub-mode. Answers 21 after a `color` frame and 19
+        after a `music` one, each with the fields of that frame. It reports what
+        was written, which is not the same as what the firmware renders. See
+        docs/protocol/ble.md 3.
       capture: ""         # TODO
 
     read_segment_count:
@@ -435,11 +477,22 @@ verified:
     at native resolution. ble mode exercised over GATT on the same unit, against
     soft version 2.06.02 and hard version 1.02.00: every 0x33 write and every
     0xAA read in the table above was sent to the device and its effect or its
-    answer observed, this time through the Rust transport rather than by hand.
+    answer observed. Everything but music and the sub-mode read went through
+    the Rust transport; those two were sent over raw GATT.
     The zone mask is read by the firmware and not ignored: painting zones 0-2
     over a rope already painted left the rest alone. `gradient` was told apart
     from a fade over time the same way — the boundary between two differently
-    painted zones is what it changes. Wi-Fi provisioning over 0xA1 was NOT
+    painted zones is what it changes. Music was exercised with sound in the
+    room, one field at a time, and a white flash of the whole rope separated
+    each rendering from the next so that the boundary was visible. `effect` 0 to
+    7 each render one, and 8 to 15, 50 and 255 render nothing; several of the
+    eight are visibly different from each other, and none of the eight was
+    mapped to an effect name. `soft` was told apart over three alternations: 1
+    is the softer of the two. `color_mode` 1 played the rope green and nothing
+    else. `sensitivity` is stored and read back, and 0, 99 and 255 all reacted —
+    what the value changes was NOT told apart on this unit. The sub-mode read at
+    0xAA 0x05 answered 21 before any music frame and 19 after each one, with
+    every field of the frame it was given. Wi-Fi provisioning over 0xA1 was NOT
     exercised: its layout was read out of the other direction only, and no frame
     of it has ever been sent to a device — its golden vectors pin this encoder,
     not the firmware. Scenes were not worked out. No ble capture has been

@@ -4,6 +4,58 @@
   "mode": "ble",
   "vectors": [
     {
+      "name": "music, effect 3 with the colors left to the firmware",
+      "command": "music",
+      "args": {
+        "effect": 3,
+        "sensitivity": 99,
+        "soft": 0,
+        "color_mode": 0,
+        "r": 0,
+        "g": 0,
+        "b": 0
+      },
+      "frames_hex": ["3305130363000000000000000000000000000045"],
+      "source": "docs/protocol/ble.md 2.8 — exercised on the unit, which rendered it"
+    },
+    {
+      "name": "music, the softer rendering",
+      "command": "music",
+      "args": {
+        "effect": 3,
+        "sensitivity": 99,
+        "soft": 1,
+        "color_mode": 0,
+        "r": 0,
+        "g": 0,
+        "b": 0
+      },
+      "frames_hex": ["3305130363010000000000000000000000000044"],
+      "source": "docs/protocol/ble.md 2.8 — exercised on the unit, told apart from soft 0 over three alternations"
+    },
+    {
+      "name": "music, the triplet imposed",
+      "command": "music",
+      "args": {
+        "effect": 3,
+        "sensitivity": 99,
+        "soft": 0,
+        "color_mode": 1,
+        "r": 0,
+        "g": 255,
+        "b": 0
+      },
+      "frames_hex": ["3305130363000100ff00000000000000000000bb"],
+      "source": "docs/protocol/ble.md 2.8 — exercised on the unit, which played it green and nothing else"
+    },
+    {
+      "name": "read the live sub-mode",
+      "command": "read_mode",
+      "args": {},
+      "frames_hex": ["aa050000000000000000000000000000000000af"],
+      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered 21 before a music frame and 19 after one"
+    },
+    {
       "name": "power on",
       "command": "power",
       "args": { "on": 1 },
