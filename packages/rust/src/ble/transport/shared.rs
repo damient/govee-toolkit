@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use btleplug::api::{Central as _, Manager as _, Peripheral as _};
 use btleplug::platform::{Adapter, Manager, Peripheral};
@@ -220,66 +220,8 @@ impl Shared {
         Ok(())
     }
 
-    /// Ask a device for its state and wait for the answer.
-    ///
-    /// Every caller sends its own request: the wire carries no request id, and
-    /// two callers sharing one would be told apart by nothing. The budget is
-    /// what keeps that from becoming a burst.
-    pub(super) async fn request_status(
-        &self,
-        id: &DeviceId,
-        request: &Encoded,
-        timeout: Duration,
-    ) -> Result<DeviceStatus> {
-        let route = self.route_and_claim(id, Instant::now(), false)?;
-        let link = match self.link(id, &route.endpoint).await {
-            Ok(link) => link,
-            Err(e) => {
-                // A device that will not take a connection has answered
-                // nothing, which is what the breaker is counting.
-                self.record(id, false, Instant::now());
-                return Err(e);
-            }
-        };
-
-        // Subscribe before writing, or a reply that arrives first is missed.
-        let mut replies = link.replies();
-        self.write_frames(id, &route, &link, request).await?;
-        let Some(sent) = request.frames.first() else {
-            return Err(Error::Serialize {
-                cmd: request.cmd.clone(),
-                reason: "the status request carries no frames".to_owned(),
-            });
-        };
-
-        let answer = tokio::time::timeout(timeout, async {
-            loop {
-                match replies.recv().await {
-                    Ok(reply) if crate::ble::link::answers(&reply, sent) => return Some(reply),
-                    Ok(_) => {}
-                    // Lagged behind the device, or the link is gone: either way
-                    // this request has nothing left to wait for.
-                    Err(_) => return None,
-                }
-            }
-        })
-        .await;
-
-        if let Ok(Some(reply)) = answer {
-            let status = DeviceStatus::from_data(id.clone(), reply_data(&reply));
-            self.record(id, true, Instant::now());
-            self.publish_status(id, status.clone());
-            return Ok(status);
-        }
-        self.record(id, false, Instant::now());
-        Err(Error::Unreachable {
-            id: id.clone(),
-            endpoint: route.endpoint,
-            timeout_ms: crate::transport::millis(timeout),
-        })
-    }
-
-    fn publish_status(&self, id: &DeviceId, status: DeviceStatus) {
+    /// Hand a status to the device's watchers and to the event stream.
+    pub(super) fn publish_status(&self, id: &DeviceId, status: DeviceStatus) {
         if let Ok(devices) = self.devices.lock()
             && let Some(tracked) = devices.get(id)
         {
@@ -334,20 +276,6 @@ pub(super) fn check_frames(command: &Encoded) -> Result<()> {
     Ok(())
 }
 
-/// A reply, as the shape [`DeviceStatus`] reads.
-///
-/// The bytes are handed back untouched, under `raw`. Nothing here reads fields
-/// out of them: what a reply's payload means is per-device protocol, so it
-/// belongs in the device file, and the file has no language for a reply yet.
-fn reply_data(reply: &[u8]) -> serde_json::Value {
-    let mut hex = String::with_capacity(reply.len() * 2);
-    for byte in reply {
-        use std::fmt::Write as _;
-        let _ = write!(hex, "{byte:02x}");
-    }
-    serde_json::json!({ "reply": hex })
-}
-
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
@@ -360,6 +288,8 @@ mod tests {
             cmd: "power".to_owned(),
             message: Some(serde_json::json!({"msg": {}})),
             frames: Vec::new(),
+            replies: Vec::new(),
+            roles: std::collections::BTreeMap::new(),
         };
         let error = check_frames(&command).expect_err("nothing to write");
         assert_eq!(error.code(), "serialize");
@@ -369,11 +299,5 @@ mod tests {
             ..command
         };
         assert!(check_frames(&carried).is_ok());
-    }
-
-    #[test]
-    fn a_reply_reaches_the_caller_byte_for_byte() {
-        let data = reply_data(&[0xaa, 0x04, 0x64]);
-        assert_eq!(data["reply"], "aa0464");
     }
 }

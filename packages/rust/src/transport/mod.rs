@@ -13,6 +13,7 @@
 pub mod breaker;
 pub mod error;
 pub mod events;
+pub mod reply;
 pub mod status;
 
 #[cfg(test)]
@@ -25,6 +26,7 @@ use async_trait::async_trait;
 pub use breaker::{Breaker, Policy, State, Transition};
 pub use error::{Error, Result};
 pub use events::{Change, Discovered, Event, Health, KnownDevice, Sent};
+pub use reply::Reply;
 use serde::{Deserialize, Serialize};
 pub use status::DeviceStatus;
 use tokio::sync::{broadcast, watch};
@@ -113,6 +115,21 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// As for [`Transport::send`], plus [`Error::Unreachable`] if nothing
     /// answers in time.
     async fn status(&self, id: &DeviceId, request: &Encoded) -> Result<DeviceStatus>;
+
+    /// Run a command's exchanges and return what its `reply:` layouts
+    /// captured.
+    ///
+    /// This is how a value the SDK does not model — a segment count, a MAC, a
+    /// firmware version — reaches a caller: the device file says which bytes
+    /// carry it and under what name, and nothing about either lives in this
+    /// crate.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Transport::status`], plus [`Error::NoReplyLayout`] where the
+    /// command declares no reply to read, or where the mode's replies are not
+    /// frames at all.
+    async fn read(&self, id: &DeviceId, request: &Encoded) -> Result<Reply>;
 
     /// Write the device cache out.
     ///

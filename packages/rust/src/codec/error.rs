@@ -150,6 +150,30 @@ pub enum Error {
         actual: usize,
     },
 
+    /// The `reply:` string in the device file is not valid.
+    #[error("{command}: invalid reply `{reply}`: {reason}")]
+    ReplySyntax {
+        /// The command being encoded.
+        command: String,
+        /// The offending reply string.
+        reply: String,
+        /// What is wrong with it.
+        reason: String,
+    },
+
+    /// A reply does not match the layout the device file declares for it.
+    ///
+    /// Nothing captured before the mismatch is returned: a frame that failed to
+    /// match is another command's answer, or a firmware that does not do what
+    /// the file says, and neither is worth reading fields out of.
+    #[error("{command}: the reply does not match the layout: {reason}")]
+    ReplyMismatch {
+        /// The command being read.
+        command: String,
+        /// Where the reply parted from the layout.
+        reason: String,
+    },
+
     /// A `chunk:` block is unusable as written.
     #[error("{command}: invalid `chunk:`: {reason}")]
     ChunkSyntax {
@@ -247,6 +271,8 @@ impl Error {
             Self::FrameWidth { .. } => "frame_width",
             Self::FieldTooLong { .. } => "field_too_long",
             Self::FrameOverflow { .. } => "frame_overflow",
+            Self::ReplySyntax { .. } => "reply_syntax",
+            Self::ReplyMismatch { .. } => "reply_mismatch",
             Self::ChunkSyntax { .. } => "chunk_syntax",
             Self::Serialize { .. } => "serialize",
             Self::NoEnvelope { .. } => "no_envelope",

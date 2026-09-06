@@ -2,9 +2,9 @@
 //!
 //! A device accepts a single connection and stops advertising while it is up,
 //! so the link is opened once and kept. Replies arrive on the notify
-//! characteristic with nothing to correlate them by except their own leading
-//! bytes — [`answers`] is that correlation, and it is why a caller must send
-//! its request and read the reply under one subscription.
+//! characteristic carrying no request id, so a caller subscribes before it
+//! writes and matches an answer against the `reply:` layout its command
+//! declares.
 
 use btleplug::api::{Characteristic, Peripheral as _, WriteType};
 use btleplug::platform::Peripheral;
@@ -17,20 +17,6 @@ use crate::transport::error::{Error, Result};
 
 /// How many replies a subscriber may fall behind by before losing the oldest.
 const REPLY_BACKLOG: usize = 32;
-
-/// Whether a notification answers a request.
-///
-/// The wire carries no request id, so a reply is matched by its first two
-/// bytes repeating the request's. Unverified: nothing in this repository has
-/// captured a reply — see [`crate::ble`]. TODO: confirm the correlation, or
-/// replace it, once `docs/protocol/ble.md` describes a reply.
-#[must_use]
-pub fn answers(reply: &[u8], request: &[u8]) -> bool {
-    match (reply.get(..2), request.get(..2)) {
-        (Some(reply), Some(request)) => reply == request,
-        _ => false,
-    }
-}
 
 /// The notification task, stopped when the link is dropped.
 #[derive(Debug)]
@@ -180,24 +166,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_reply_is_matched_by_the_two_bytes_that_name_it() {
-        assert!(answers(&[0xaa, 0x04, 0x64], &[0xaa, 0x04, 0x00]));
-        assert!(!answers(&[0xaa, 0x01, 0x01], &[0xaa, 0x04, 0x00]));
-        assert!(!answers(&[0x33, 0x04, 0x64], &[0xaa, 0x04, 0x00]));
-    }
-
-    #[test]
     fn only_a_frame_of_the_one_length_is_written() {
         assert!(check_length("power", &[0; FRAME_LEN]).is_ok());
         for len in [0, FRAME_LEN - 1, FRAME_LEN + 1] {
             let error = check_length("power", &vec![0; len]).expect_err("the wrong length");
             assert_eq!(error.code(), "serialize");
         }
-    }
-
-    #[test]
-    fn a_frame_too_short_to_name_itself_answers_nothing() {
-        assert!(!answers(&[0xaa], &[0xaa, 0x04]));
-        assert!(!answers(&[], &[]));
     }
 }

@@ -13,9 +13,9 @@ use tokio::sync::{broadcast, watch};
 
 use super::Transport as LanTransport;
 use crate::codec::{Encoded, Mode};
-use crate::transport::error::Result;
+use crate::transport::error::{Error, Result};
 use crate::transport::{
-    DeviceId, DeviceStatus, Discovered, Event, Health, KnownDevice, Sent, Transport, Verify,
+    DeviceId, DeviceStatus, Discovered, Event, Health, KnownDevice, Reply, Sent, Transport, Verify,
 };
 
 #[async_trait]
@@ -63,6 +63,21 @@ impl Transport for LanTransport {
 
     async fn status(&self, id: &DeviceId, request: &Encoded) -> Result<DeviceStatus> {
         Self::status(self, id, request).await
+    }
+
+    /// Always fails.
+    ///
+    /// This mode answers in JSON, so no command declares a `reply:` layout for
+    /// it and there is nothing to match. A `lan` reply reaches a caller whole,
+    /// under [`DeviceStatus::raw`].
+    async fn read(&self, _id: &DeviceId, request: &Encoded) -> Result<Reply> {
+        Err(Error::NoReplyLayout {
+            mode: Mode::Lan,
+            reason: format!(
+                "`{}` answers in JSON; a `reply:` layout describes bytes on a frame wire",
+                request.cmd
+            ),
+        })
     }
 
     fn save_cache(&self) -> Result<()> {

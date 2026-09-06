@@ -301,4 +301,100 @@ mod tests {
         assert_eq!(problems.len(), 1, "{problems:?}");
         assert!(problems[0].message.contains("role: status"));
     }
+
+    #[test]
+    fn a_reply_capturing_something_undeclared_has_nowhere_to_put_it() {
+        let catalog = parse(
+            "    state:\n      documented: true\n      cmd: raw\n\
+             \n      payload: { pt: \"${frame}\" }\n\
+             \n      frame: \"AA 01 <pad:20> <xor>\"\n\
+             \n      reply: \"AA 01 ${lit}\"\n      args: {}\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("`lit`"));
+    }
+
+    #[test]
+    fn a_reply_layout_only_matches_bytes() {
+        let catalog = parse(
+            "    state:\n      documented: true\n\
+             \n      frame: \"AA 01 <pad:20> <xor>\"\n\
+             \n      reply: \"AA 01 ${lit} <xor>\"\n      args:\n\
+             \n        lit: { type: int, range: [0, 1] }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert!(
+            problems.iter().any(|p| p.message.contains("only matches")),
+            "{problems:?}"
+        );
+    }
+
+    #[test]
+    fn a_reply_needs_a_frame_to_ask_for_it() {
+        let catalog = parse(
+            "    state:\n      cmd: devStatus\n      documented: true\n\
+             \n      reply: \"AA 01 ${lit}\"\n      args:\n\
+             \n        lit: { type: int, range: [0, 1] }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("no `frame:`"));
+    }
+
+    #[test]
+    fn a_command_sends_one_frame_or_a_list_of_exchanges_but_not_both() {
+        let catalog = parse(
+            "    state:\n      documented: true\n\
+             \n      frame: \"AA 01 <pad:20> <xor>\"\n\
+             \n      payload: { pt: \"${frame}\" }\n      cmd: raw\n\
+             \n      frames:\n\
+             \n        - send: \"AA 04 <pad:20> <xor>\"\n\
+             \n          reply: \"AA 04 ${level}\"\n      args:\n\
+             \n        level: { type: int, range: [0, 100] }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert!(
+            problems
+                .iter()
+                .any(|p| p.message.contains("`frames:` beside")),
+            "{problems:?}"
+        );
+    }
+
+    #[test]
+    fn a_step_with_no_reply_would_be_written_but_never_read() {
+        let catalog = parse(
+            "    state:\n      documented: true\n\
+             \n      frames:\n\
+             \n        - send: \"AA 01 <pad:20> <xor>\"\n\
+             \n        - send: \"AA 04 <pad:20> <xor>\"\n\
+             \n          reply: \"AA 04 ${level}\"\n      args:\n\
+             \n        level: { type: int, range: [0, 100] }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("step 0"), "{problems:?}");
+    }
+
+    #[test]
+    fn two_captured_fields_claiming_one_role_leave_nothing_to_pick() {
+        let catalog = parse(
+            "    state:\n      documented: true\n      cmd: raw\n\
+             \n      payload: { pt: \"${frame}\" }\n\
+             \n      frame: \"AA 01 <pad:20> <xor>\"\n\
+             \n      reply: \"AA 01 ${lit} ${also}\"\n      args:\n\
+             \n        lit: { type: int, range: [0, 1], role: \"on\" }\n\
+             \n        also: { type: int, range: [0, 1], role: \"on\" }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("role: on"));
+    }
 }

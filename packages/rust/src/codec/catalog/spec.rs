@@ -86,12 +86,14 @@ impl ArgSpec {
     }
 }
 
-/// What one argument of a [`Role`] command carries, when the SDK supplies it
-/// without being told a name.
+/// What one declared argument carries, when the SDK fills it in or reads it
+/// back without being told a name.
 ///
 /// The device file names arguments as well as commands, so a role the SDK
 /// invokes on its own needs this to say which declared argument is which. An
-/// argument the caller always passes needs no role.
+/// argument the caller always passes needs no role; a field a `reply:` layout
+/// captures needs one only where the SDK models it, as [`ArgRole::On`] and
+/// [`ArgRole::Brightness`] are modelled on a transport's `DeviceStatus`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ArgRole {
@@ -104,17 +106,28 @@ pub enum ArgRole {
     /// [`Role::SegmentColor`] command. Optional: a command declaring no
     /// argument for it is sent none.
     Gradient,
+    /// Whether the device is on, captured from a reply. Non-zero is on.
+    On,
+    /// The device's brightness, captured from a reply, in whatever unit the
+    /// firmware reports it.
+    Brightness,
 }
 
 impl ArgRole {
     /// Every argument role, so a caller can iterate them.
-    pub(crate) const ALL: [Self; 3] = [Self::Enable, Self::Colors, Self::Gradient];
+    pub(crate) const ALL: [Self; 5] = [
+        Self::Enable,
+        Self::Colors,
+        Self::Gradient,
+        Self::On,
+        Self::Brightness,
+    ];
 
     /// The argument type this role has to be declared as.
     #[must_use]
     pub fn type_name(self) -> &'static str {
         match self {
-            Self::Enable | Self::Gradient => crate::codec::args::INT,
+            Self::Enable | Self::Gradient | Self::On | Self::Brightness => crate::codec::args::INT,
             Self::Colors => crate::codec::args::RGB_LIST,
         }
     }
@@ -126,6 +139,8 @@ impl fmt::Display for ArgRole {
             Self::Enable => "enable",
             Self::Colors => "colors",
             Self::Gradient => "gradient",
+            Self::On => "on",
+            Self::Brightness => "brightness",
         })
     }
 }

@@ -87,6 +87,24 @@ async fn a_scan_finds_the_device_and_records_where_it_is() {
     assert_eq!(rig.transport.sku(&id()).as_deref(), Some(SKU));
 }
 
+/// A `lan` reply is JSON, so no command declares a `reply:` layout for it and
+/// there is nothing to match. It says so rather than answering with an empty
+/// set of fields.
+#[tokio::test]
+async fn reading_fields_out_of_a_json_reply_is_refused() {
+    use govee_toolkit::transport::Transport as _;
+
+    let rig = Rig::start(Policy::default()).await;
+    rig.discover().await;
+
+    let error = rig
+        .transport
+        .read(&id(), &rig.status_request())
+        .await
+        .expect_err("this mode has no reply layout");
+    assert_eq!(error.code(), "no_reply_layout");
+}
+
 #[tokio::test]
 async fn a_command_reaches_the_device() {
     let rig = Rig::start(Policy::default()).await;
