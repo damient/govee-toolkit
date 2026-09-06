@@ -20,6 +20,16 @@ generated artefact, carries the schema revision it was built at.
 
 ### 2026-09-06
 
+#### Changed
+
+- The two firmware version reads declare `${version:ascii:17}` rather than
+  `${version:ascii}`. Reading to the end of the frame took in the trailing
+  checksum, which is neither padding nor printable, so both reads failed on
+  every attempt. `aa 20` answers `1.02.00` and `aa 21` answers `2.06.02` on the
+  verified unit, as the file already said.
+
+### 2026-09-06
+
 #### Added
 
 - `devices/H61A0.yaml` declares `ble`, verified on the same unit: power,

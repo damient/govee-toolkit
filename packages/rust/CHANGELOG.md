@@ -45,6 +45,11 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   such a mode, since a mask names zones and reaches no pixel behind them; a zone
   count past what the mask reaches; and a file that bounds its mask by nothing,
   through neither a `count:` nor the width of the mask field.
+- `${name:ascii:N}` in a `reply:` layout — a text field of a given length,
+  where the unbounded `${name:ascii}` reads to the end and so swallows whatever
+  follows the text. On a wire that ends every frame on a checksum, that byte is
+  neither padding nor printable, and the two firmware version reads it broke
+  failed with `reply_mismatch` on every attempt.
 - Error codes `native_zones_unreachable`, `zone_count_unsupported` and
   `zone_mask_unbounded` for those three refusals.
 - Error codes `field_too_long`, `frame_overflow`, `chunk_syntax`, `serialize`,
