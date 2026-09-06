@@ -1,33 +1,37 @@
-//! Republishing the transports' events on the facade's own stream.
+//! Republish the transports' events on the facade's own stream.
 //!
-//! One task per [`Govee`](super::Govee), stopped when the last clone is
-//! dropped. It is also where a device the catalog cannot serve is reported —
-//! discovery is the first moment that is knowable, and the only one where
-//! saying it costs nothing.
+//! One task per transport; the tasks stop when the last [`Govee`](super::Govee)
+//! clone drops. A device the catalog cannot serve is reported here, because
+//! discovery is the first moment that is knowable.
 
 use std::sync::Arc;
 
 use tokio::sync::broadcast;
 
-use crate::codec::Mode;
 use crate::event::Event;
 use crate::govee::Inner;
 
-pub(super) struct Forwarder(pub(super) tokio::task::JoinHandle<()>);
+pub(super) struct Forwarder(pub(super) Vec<tokio::task::JoinHandle<()>>);
 
 impl Drop for Forwarder {
     fn drop(&mut self) {
-        self.0.abort();
+        for task in &self.0 {
+            task.abort();
+        }
     }
 }
 
-/// Republish transport events, and flag a device the catalog cannot encode for.
-pub(super) async fn forward(inner: Arc<Inner>, out: broadcast::Sender<Event>) {
-    let mut events = inner.lan.events();
+/// Republish one transport's events, and flag a device the catalog cannot
+/// encode for.
+pub(super) async fn forward(
+    inner: Arc<Inner>,
+    mut events: broadcast::Receiver<crate::transport::Event>,
+    out: broadcast::Sender<Event>,
+) {
     loop {
         match events.recv().await {
             Ok(event) => {
-                if let crate::lan::Event::Discovered { device, .. } = &event {
+                if let crate::transport::Event::Discovered { mode, device, .. } = &event {
                     let sku = inner
                         .config
                         .sku_for(&device.id)
@@ -41,21 +45,21 @@ pub(super) async fn forward(inner: Arc<Inner>, out: broadcast::Sender<Event>) {
                                 sku,
                             });
                         }
-                        // Said once, on discovery, rather than swallowed on
-                        // every send: without it, commands go out unverified.
-                        Ok(file) if file.status_command(Mode::Lan).is_none() => {
+                        // Said once, on discovery: without a status command,
+                        // commands go out unverified.
+                        Ok(file) if file.status_command(*mode).is_none() => {
                             tracing::warn!(
-                                id = %device.id, %sku,
-                                "no `commands.lan` entry is marked `role: status`; commands will not be verified"
+                                id = %device.id, %sku, %mode,
+                                "no entry in this mode's command table is marked `role: status`; commands will not be verified"
                             );
                         }
                         Ok(_) => {}
                     }
                 }
-                let _ = out.send(Event::Lan(event));
+                let _ = out.send(Event::Transport(event));
             }
             Err(broadcast::error::RecvError::Lagged(missed)) => {
-                tracing::warn!(missed, "the facade fell behind the transport's events");
+                tracing::warn!(missed, "the facade fell behind a transport's events");
             }
             Err(broadcast::error::RecvError::Closed) => return,
         }

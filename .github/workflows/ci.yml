@@ -248,7 +248,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - name: A change to the code or the catalogue carries an entry
+      - name: A change to the code or the catalog carries an entry
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -258,16 +258,16 @@ jobs:
             | grep -E '^(packages/[^/]+/(src/|build.rs)|devices/[^/]+\.yaml)' \
             || true)
           if [ -z "$needs_entry" ]; then
-            echo "No code or catalogue change in this range."
+            echo "No code or catalog change in this range."
             exit 0
           fi
           if printf '%s\n' "$changed" | grep -q 'CHANGELOG\.md$'; then
             echo "Entry present."
             exit 0
           fi
-          echo "::error::this range changes code or the catalogue and no CHANGELOG.md"
+          echo "::error::this range changes code or the catalog and no CHANGELOG.md"
           echo "A package's behavior goes in packages/<pkg>/CHANGELOG.md, the"
-          echo "catalogue in the root CHANGELOG.md. Run /changelog, or label the"
+          echo "catalog in the root CHANGELOG.md. Run /changelog, or label the"
           echo "pull request 'no-changelog' when an entry is genuinely not owed."
           exit 1
 

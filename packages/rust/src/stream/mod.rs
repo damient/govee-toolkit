@@ -1,15 +1,26 @@
 //! Streaming colors to a device's zones over the raw segment channel.
 //!
-//! The channel is armed once, then fed frames — `docs/protocol/lan.md` 2.3. Two
-//! facts about it shape everything here:
+//! The channel is armed once, then fed frames — `docs/protocol/lan.md` 2.3.
 //!
-//! - **It never answers.** Nothing acknowledges a frame, and a malformed one is
-//!   dropped in silence. So the stream verifies nothing and asks for nothing
-//!   back; it sends, and the caller looks at the light.
-//! - **It saturates.** Push faster than the firmware drains and the rope
-//!   freezes or stutters. The ceiling falls as frames grow, so the rate comes
-//!   from the zone count, read off numbers measured on a physical unit and
-//!   recorded in its device file — `docs/protocol/lan.md` 2.7.
+//! - **It never answers.** Nothing acknowledges a frame, and the firmware drops
+//!   a malformed one in silence. The stream therefore verifies nothing and asks
+//!   for nothing back.
+//! - **It saturates.** A rate above what the firmware accepts makes the light
+//!   freeze or stutter. That limit falls as frames grow, so the rate comes from
+//!   the zone count and from a value measured on a physical unit and recorded
+//!   in its device file — `docs/protocol/lan.md` 2.7.
+//!
+//! What a frame costs depends on how the device file paints zones over the
+//! chosen mode. A `segment_color` command carries every zone in one frame. A
+//! `segment_color_masked` one carries a single color and the zones that use it,
+//! so a repaint costs one write per distinct color: a solid fill is one write,
+//! and a picture of fifteen colors is fifteen. That is what `ble` offers. No
+//! per-pixel channel sits behind it, so a stream there runs at the zone count
+//! the device file declares, not at native resolution. [`Zones::Native`] is
+//! refused there: sent as a mask, the firmware drops the high bits in silence.
+//!
+//! On `ble` the transport paces, not the stream. Every write goes through the
+//! same budget, whether or not a stream opened it.
 //!
 //! Writes never block. The stream holds the current colors and an emitting task
 //! sends them on a fixed interval, so a source faster than the device is not
@@ -39,6 +50,7 @@
 //! # }
 //! ```
 
+mod paint;
 mod resolve;
 mod sender;
 
@@ -47,19 +59,21 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::Notify;
 
-use self::resolve::{arg_named, gradient_arg, named, rate_hz, zone_count};
+use self::resolve::{plan, rate_hz};
 use self::sender::{Shared, send_enable};
-use crate::codec::{ArgRole, Mode, Role};
 use crate::error::{Error, Result};
 use crate::govee::Govee;
-use crate::lan::DeviceId;
+use crate::transport::DeviceId;
 
-/// The rate used when a device file records no measurement, in hertz.
+/// The rate used when a device file records no measurement for the mode a
+/// stream opens on, in hertz.
 ///
-/// Below every rate measured so far, on a channel where too fast is a rope that
-/// stutters and too slow is only a coarser animation. It is a fallback, not a
-/// finding: measure the unit at hand and record it, and the stream will use
-/// that instead. Configurable as `lan.stream_fallback_hz`.
+/// Below every rate measured so far: too fast stutters, too slow is only a
+/// coarser animation. It is a fallback and not a measurement, and it is the
+/// same number for every mode. A `ble` stream runs at it, because no device
+/// file records a rate measured over that mode. Measure the unit, record the
+/// value in its device file, and the stream uses that instead. Configurable as
+/// `stream.fallback_hz`.
 pub const FALLBACK_HZ: f64 = 10.0;
 
 /// How many zones a stream carries.
@@ -71,7 +85,8 @@ pub enum Zones {
     /// Every addressable LED, from `capabilities.segments.native_pixels`.
     ///
     /// Fails when nobody measured it: that number belongs to the physical unit
-    /// and cannot be inferred from the SKU.
+    /// and cannot be inferred from the SKU. Fails too on a mode that paints by
+    /// zone mask, which addresses zones and reaches no pixel behind them.
     Native,
     /// A count the caller picks. The firmware groups LEDs into blocks to serve
     /// it, so asking for more than the unit has refines nothing.
@@ -81,8 +96,9 @@ pub enum Zones {
 /// How fast frames go out.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub enum Rate {
-    /// From the device file's `measurements.frame_rate`, falling back to
-    /// [`FALLBACK_HZ`] when it records none.
+    /// From the device file's `measurements.frame_rate` for the mode the
+    /// stream opens on, falling back to [`FALLBACK_HZ`] when it records none
+    /// there. A rate measured over one mode is never carried to another.
     #[default]
     Measured,
     /// A rate the caller picks, in hertz.
@@ -126,26 +142,22 @@ impl SegmentStream {
         // Chosen once, then carried: a mode is picked from recorded state, and
         // re-picking it per frame would put that decision on the fast path.
         let mode = govee.choose(id)?;
-        if mode != Mode::Lan {
-            return Err(Error::ModeNotImplemented {
-                id: id.clone(),
-                mode,
-            });
-        }
+        // Resolved here so that a mode with no transport in this build fails
+        // before anything is armed, rather than on the first frame, and so
+        // that no frame pays for the lookup.
+        let transport = Arc::clone(govee.transport(id, mode)?);
 
         let sku = govee.sku(id)?;
         let device = govee.catalog().device(&sku)?;
-        let enable = named(device, mode, Role::SegmentEnable)?;
-        let color = named(device, mode, Role::SegmentColor)?;
-        let enable_arg = arg_named(device, mode, enable, ArgRole::Enable)?;
-        let colors_arg = arg_named(device, mode, color, ArgRole::Colors)?;
-        let zones = zone_count(device, options.zones)?;
+        let plan = plan(device, mode, &options)?;
+        let zones = plan.zones;
         let hz = rate_hz(
             device,
             &sku,
+            mode,
             zones,
             options.rate,
-            govee.config().lan.stream_fallback_hz,
+            govee.config().stream.fallback_hz,
         );
         if hz <= 0.0 {
             return Err(Error::StreamRateOutOfRange { hz });
@@ -156,11 +168,10 @@ impl SegmentStream {
             id: id.clone(),
             mode,
             sku,
-            enable: enable.to_owned(),
-            enable_arg: enable_arg.to_owned(),
-            color: color.to_owned(),
-            colors_arg: colors_arg.to_owned(),
-            gradient: gradient_arg(device, mode, color, options.gradient),
+            transport,
+            enable: plan.enable,
+            gradient: plan.gradient,
+            painter: plan.painter,
             hz,
             zones,
             colors: Mutex::new(vec![[0, 0, 0]; zones]),
@@ -172,6 +183,9 @@ impl SegmentStream {
             stop: Notify::new(),
         });
 
+        // Before arming, so the first frame is painted under the setting the
+        // caller asked for.
+        sender::send_gradient(&shared).await?;
         send_enable(&shared, 1).await?;
         let task = tokio::spawn(sender::run(Arc::clone(&shared)));
         Ok(Self {
@@ -186,7 +200,11 @@ impl SegmentStream {
         self.shared.zones
     }
 
-    /// The rate frames go out at, in hertz.
+    /// How often the stream repaints, in hertz.
+    ///
+    /// A repaint is one frame where the device file paints every zone at once,
+    /// and one frame per distinct color where it paints by mask — so frames
+    /// leave at this rate times the number of colors the picture holds.
     #[must_use]
     pub fn rate_hz(&self) -> f64 {
         self.shared.hz
@@ -266,7 +284,8 @@ impl SegmentStream {
             .unwrap_or_default()
     }
 
-    /// Frames written to the socket.
+    /// Frames handed to the transport, which is one per write rather than one
+    /// per repaint: a masked painter writes once per distinct color.
     #[must_use]
     pub fn frames_sent(&self) -> u64 {
         self.shared.sent.load(Ordering::Relaxed)
@@ -305,7 +324,7 @@ impl SegmentStream {
         match self.task.take() {
             Some(task) => task
                 .await
-                .map_err(|_| Error::Transport(crate::lan::Error::ShutDown))?,
+                .map_err(|_| Error::Transport(crate::transport::Error::ShutDown))?,
             None => Ok(()),
         }
     }
@@ -316,7 +335,7 @@ impl SegmentStream {
                 .shared
                 .colors
                 .lock()
-                .map_err(|_| Error::Transport(crate::lan::Error::ShutDown))?;
+                .map_err(|_| Error::Transport(crate::transport::Error::ShutDown))?;
             edit(&mut colors)?;
         }
         // A write onto a generation no frame has carried yet replaces one that
@@ -332,10 +351,9 @@ impl SegmentStream {
 
 impl Drop for SegmentStream {
     fn drop(&mut self) {
-        // The emitting task sends the disarming frame. Signalling it is all a
-        // `Drop` can do: it cannot await that frame, and spawning it here
-        // panics when the handle outlives the runtime. `close` is the way to
-        // know the channel was disarmed.
+        // A `Drop` cannot await the disarming frame, and spawning one here
+        // panics when the handle outlives the runtime. The emitting task sends
+        // it; only `close` reports whether it went out.
         self.shared.stop.notify_one();
     }
 }

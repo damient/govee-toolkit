@@ -2,10 +2,12 @@
 
 use std::collections::BTreeMap;
 
-/// The name an integer goes by in a type-mismatch error.
+// The names a type-mismatch error uses for each `ArgValue` variant.
 pub(crate) const INT: &str = "an integer";
-/// The name an RGB list goes by in a type-mismatch error.
 pub(crate) const RGB_LIST: &str = "a list of RGB triples";
+pub(crate) const TEXT: &str = "a string";
+pub(crate) const ZONES: &str = "a list of zone indices";
+pub(crate) const BYTES: &str = "a byte string";
 
 /// A value for one declared argument.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,6 +16,12 @@ pub enum ArgValue {
     Int(i64),
     /// A list of RGB triples.
     Rgb(Vec<[u8; 3]>),
+    /// Text, emitted as UTF-8 behind a length prefix.
+    Text(String),
+    /// Zone indices, zero-based, emitted as a bitmask.
+    Zones(Vec<u16>),
+    /// Bytes the caller supplies and this crate does not interpret.
+    Bytes(Vec<u8>),
 }
 
 impl ArgValue {
@@ -23,6 +31,9 @@ impl ArgValue {
         match self {
             Self::Int(_) => INT,
             Self::Rgb(_) => RGB_LIST,
+            Self::Text(_) => TEXT,
+            Self::Zones(_) => ZONES,
+            Self::Bytes(_) => BYTES,
         }
     }
 }
@@ -52,6 +63,33 @@ impl Args {
         self
     }
 
+    /// Add a string argument.
+    ///
+    /// The value reaches the device as UTF-8 behind the length prefix its
+    /// field declares. This crate escapes nothing and transliterates nothing.
+    #[must_use]
+    pub fn text(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.0.insert(name.into(), ArgValue::Text(value.into()));
+        self
+    }
+
+    /// Add a list of zone indices, zero-based.
+    ///
+    /// The codec emits a bitmask, least significant bit first. The device file
+    /// declares which zones exist.
+    #[must_use]
+    pub fn zones(mut self, name: impl Into<String>, zones: impl Into<Vec<u16>>) -> Self {
+        self.0.insert(name.into(), ArgValue::Zones(zones.into()));
+        self
+    }
+
+    /// Add bytes to be sent as they are.
+    #[must_use]
+    pub fn bytes(mut self, name: impl Into<String>, value: impl Into<Vec<u8>>) -> Self {
+        self.0.insert(name.into(), ArgValue::Bytes(value.into()));
+        self
+    }
+
     /// Look up a value.
     #[must_use]
     pub fn get(&self, name: &str) -> Option<&ArgValue> {
@@ -77,7 +115,7 @@ impl Args {
 }
 
 impl Args {
-    /// Insert a value, replacing any previous one under the same name.
+    /// Insert a value and replace any previous value under the same name.
     pub fn insert(&mut self, name: impl Into<String>, value: ArgValue) {
         self.0.insert(name.into(), value);
     }

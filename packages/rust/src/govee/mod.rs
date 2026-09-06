@@ -1,7 +1,7 @@
 //! The facade: it holds the catalog, the configuration and the transports, and
 //! it is the one place that decides which mode serves a command.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -12,16 +12,19 @@ use crate::config::{Config, Problem};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::{Device, Event};
-use crate::govee::events::{Forwarder, forward};
-use crate::lan::{DeviceId, Transport};
-use crate::paths;
+use crate::govee::events::Forwarder;
+use crate::transport::{DeviceId, Health, Transport};
 
 mod events;
+mod start;
 
 pub(crate) struct Inner {
     pub(crate) catalog: Catalog,
     pub(crate) config: Config,
-    pub(crate) lan: Transport,
+    /// One transport per mode it serves. A mode absent here has no transport in
+    /// this build — the feature is off, or nothing implements it yet — and the
+    /// SDK reports that rather than substitute another mode.
+    pub(crate) transports: BTreeMap<Mode, Arc<dyn Transport>>,
     pub(crate) events: broadcast::Sender<Event>,
     /// Encoded status requests, by mode then SKU. See
     /// [`Govee::status_request`].
@@ -41,77 +44,13 @@ pub struct Govee {
 impl std::fmt::Debug for Govee {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Govee")
-            .field("devices", &self.inner.lan.devices().len())
+            .field("modes", &self.inner.transports.keys().collect::<Vec<_>>())
+            .field("devices", &self.devices().len())
             .finish_non_exhaustive()
     }
 }
 
 impl Govee {
-    /// Start with the embedded catalog, plus the user's own device files if the
-    /// configuration opts into them.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::Codec`] if a device file does not parse,
-    /// [`Error::LocalDevices`] if the local directory cannot be read,
-    /// [`Error::Configuration`] if the configuration cannot be applied, or
-    /// [`Error::Transport`] if the socket cannot be bound.
-    pub async fn start(config: Config) -> Result<Self> {
-        let mut catalog = Catalog::embedded()?;
-        if config.catalog.local_devices {
-            overlay_local_devices(&mut catalog, &config)?;
-        }
-        Self::start_with(config, catalog).await
-    }
-
-    /// Start with a catalog the caller built.
-    ///
-    /// # Errors
-    ///
-    /// See [`Govee::start`].
-    pub async fn start_with(config: Config, catalog: Catalog) -> Result<Self> {
-        let transport = Transport::start(config.lan.transport_options()?).await?;
-        Self::attach(config, catalog, transport)
-    }
-
-    /// Use a transport the caller already built.
-    ///
-    /// The seam for anything that has to bind its own sockets: a test against
-    /// the simulator, or a host embedding the SDK beside other UDP traffic.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::Configuration`] if the configuration cannot be applied.
-    pub fn attach(config: Config, catalog: Catalog, transport: Transport) -> Result<Self> {
-        let problems = config.problems();
-        if !problems.is_empty() {
-            return Err(Error::Configuration(problems));
-        }
-
-        let (events, _) = broadcast::channel(256);
-        let inner = Arc::new(Inner {
-            catalog,
-            config,
-            lan: transport,
-            events: events.clone(),
-            status_requests: Mutex::new(HashMap::new()),
-        });
-
-        let forwarder = tokio::spawn(forward(Arc::clone(&inner), events));
-        let govee = Self {
-            inner,
-            _forwarder: Arc::new(Forwarder(forwarder)),
-        };
-
-        // Whatever the cache already holds can be checked against the device
-        // files right away, without waiting for a scan.
-        let problems = govee.check_devices();
-        for problem in &problems {
-            tracing::warn!(%problem, "configuration");
-        }
-        Ok(govee)
-    }
-
     /// Subscribe to events.
     #[must_use]
     pub fn events(&self) -> broadcast::Receiver<Event> {
@@ -130,28 +69,51 @@ impl Govee {
         &self.inner.catalog
     }
 
-    /// Run a discovery scan and return what answered.
+    /// The modes this build carries a transport for, in preference order.
+    #[must_use]
+    pub fn modes(&self) -> Vec<Mode> {
+        self.inner.transports.keys().copied().collect()
+    }
+
+    /// Run a discovery scan on every transport and return what answered.
     ///
     /// Nothing on the send path calls this: it runs at startup and on the
     /// background interval. See `docs/protocol/lan.md` §1, latency notes.
     ///
     /// # Errors
     ///
-    /// [`Error::Transport`] if the request cannot be sent.
+    /// [`Error::Transport`] if a request cannot be sent. One transport failing
+    /// fails the call: a scan that quietly covered fewer modes than asked would
+    /// read as a device that is not there.
     pub async fn scan(&self) -> Result<Vec<Device>> {
         let window = Duration::from_millis(self.inner.config.lan.scan_window_ms);
-        let found = self.inner.lan.scan(window).await?;
-        Ok(found.iter().map(|d| self.describe(&d.id, &d.sku)).collect())
+        let mut found: BTreeMap<DeviceId, String> = BTreeMap::new();
+        for transport in self.inner.transports.values() {
+            for device in transport.scan(window).await? {
+                found.insert(device.id, device.sku);
+            }
+        }
+        Ok(found
+            .into_iter()
+            .map(|(id, sku)| self.describe(&id, &sku))
+            .collect())
     }
 
-    /// Every device known, from discovery or from the cache.
+    /// Every device known, from discovery or from a cache, across every mode.
+    ///
+    /// One device reachable over two modes appears once: the identity is the
+    /// MAC, and it is the same unit.
     #[must_use]
     pub fn devices(&self) -> Vec<Device> {
-        self.inner
-            .lan
-            .devices()
-            .iter()
-            .map(|known| self.describe(&known.id, &known.sku))
+        let mut known: BTreeMap<DeviceId, String> = BTreeMap::new();
+        for transport in self.inner.transports.values() {
+            for device in transport.devices() {
+                known.insert(device.id, device.sku);
+            }
+        }
+        known
+            .into_iter()
+            .map(|(id, sku)| self.describe(&id, &sku))
             .collect()
     }
 
@@ -170,27 +132,43 @@ impl Govee {
         problems
     }
 
+    /// The transport serving a mode, if this build carries one.
+    pub(crate) fn transport(&self, id: &DeviceId, mode: Mode) -> Result<&Arc<dyn Transport>> {
+        self.inner
+            .transports
+            .get(&mode)
+            .ok_or_else(|| Error::ModeNotImplemented {
+                id: id.clone(),
+                mode,
+            })
+    }
+
     /// Check every known device's enabled modes against what its device file
     /// says the hardware supports.
     pub(crate) fn check_devices(&self) -> Vec<Problem> {
         let mut problems = Vec::new();
-        for known in self.inner.lan.devices() {
-            let sku = self.sku_of(&known.id, &known.sku);
-            let Ok(device) = self.inner.catalog.device(&sku) else {
+        for device in self.devices() {
+            let Ok(file) = self.inner.catalog.device(&device.sku) else {
                 problems.push(Problem {
-                    device: Some(known.id.clone()),
-                    message: format!("reports SKU `{sku}`, which no device file declares"),
+                    device: Some(device.id.clone()),
+                    message: format!(
+                        "reports SKU `{}`, which no device file declares",
+                        device.sku
+                    ),
                 });
                 continue;
             };
-            for mode in self.inner.config.modes_for(&known.id) {
-                // Only `None` is a mistake to report: it is a statement that
-                // the hardware cannot do this. An unprobed mode is enabled on
-                // purpose by whoever is probing it.
-                if device.modes.get(*mode).support == crate::codec::Support::None {
+            for mode in &device.modes {
+                // Only `None` is a mistake to report: it states the hardware
+                // cannot do this. Whoever probes an unprobed mode enables it on
+                // purpose.
+                if file.modes.get(*mode).support == crate::codec::Support::None {
                     problems.push(Problem {
-                        device: Some(known.id.clone()),
-                        message: format!("`{mode}` is enabled but {sku} does not support it"),
+                        device: Some(device.id.clone()),
+                        message: format!(
+                            "`{mode}` is enabled but {} does not support it",
+                            device.sku
+                        ),
                     });
                 }
             }
@@ -199,12 +177,20 @@ impl Govee {
     }
 
     pub(crate) fn describe(&self, id: &DeviceId, reported: &str) -> Device {
+        let modes = self.inner.config.modes_for(id).to_vec();
+        let health: BTreeMap<Mode, Health> = self
+            .inner
+            .transports
+            .iter()
+            .filter(|(mode, _)| modes.contains(mode))
+            .filter_map(|(mode, transport)| transport.health(id).map(|h| (*mode, h)))
+            .collect();
         Device {
             id: id.clone(),
             sku: self.sku_of(id, reported),
             name: self.inner.config.name_for(id).map(ToOwned::to_owned),
-            modes: self.inner.config.modes_for(id).to_vec(),
-            lan_health: self.inner.lan.health(id),
+            modes,
+            health,
         }
     }
 
@@ -214,33 +200,32 @@ impl Govee {
 
     /// The first enabled mode the device can be reached over right now.
     ///
-    /// Decided entirely from recorded state. Nothing here touches a socket,
-    /// which is the rule the whole design exists for: choosing a mode by
-    /// trying one would cost the fast path a round-trip on every command.
+    /// Decided from recorded state alone. Nothing here touches an adapter: a
+    /// trial send would cost the fast path a round-trip on every command.
     pub(crate) fn choose(&self, id: &DeviceId) -> Result<Mode> {
         let modes = self.inner.config.modes_for(id);
+        let mut unknown_to_every_transport = true;
         for &mode in modes {
-            match mode {
-                Mode::Lan => match self.inner.lan.health(id) {
-                    Some(health) if health.available => return Ok(mode),
-                    Some(_) => {}
-                    // The transport has never seen it. Nothing to choose, and
-                    // scanning now is exactly what must not happen.
-                    None => {
-                        return Err(Error::Transport(crate::lan::Error::UnknownDevice {
-                            id: id.clone(),
-                        }));
-                    }
-                },
-                // Reached only because a preferred mode was unavailable, which
-                // is precisely when substituting silently would be wrong.
-                Mode::Ble | Mode::Cloud => {
-                    return Err(Error::ModeNotImplemented {
-                        id: id.clone(),
-                        mode,
-                    });
-                }
+            // Reached only when a preferred mode was unavailable, which is
+            // exactly when a silent substitution would be wrong.
+            let Some(transport) = self.inner.transports.get(&mode) else {
+                return Err(Error::ModeNotImplemented {
+                    id: id.clone(),
+                    mode,
+                });
+            };
+            match transport.health(id) {
+                Some(health) if health.available => return Ok(mode),
+                Some(_) => unknown_to_every_transport = false,
+                // This transport has never seen it. A scan on the send path is
+                // what must not happen, so this mode is not a candidate.
+                None => {}
             }
+        }
+        if unknown_to_every_transport {
+            return Err(Error::Transport(crate::transport::Error::UnknownDevice {
+                id: id.clone(),
+            }));
         }
         Err(Error::NoModeAvailable {
             id: id.clone(),
@@ -249,21 +234,20 @@ impl Govee {
     }
 
     /// The SKU a device is encoded against: what the user configured, else what
-    /// the device reported in its scan reply.
+    /// a transport heard it report.
     pub(crate) fn sku(&self, id: &DeviceId) -> Result<String> {
-        match self.inner.lan.sku(id) {
-            Some(reported) => Ok(self.sku_of(id, &reported)),
-            None => Ok(self
-                .inner
-                .config
-                .sku_for(id)
-                .ok_or_else(|| crate::lan::Error::UnknownDevice { id: id.clone() })?
-                .to_owned()),
+        if let Some(pinned) = self.inner.config.sku_for(id) {
+            return Ok(pinned.to_owned());
         }
+        self.inner
+            .transports
+            .values()
+            .find_map(|transport| transport.sku(id))
+            .ok_or_else(|| crate::transport::Error::UnknownDevice { id: id.clone() }.into())
     }
 
-    /// Encode against a SKU the caller already resolved. The send path
-    /// resolves it once and encodes against it, rather than per call.
+    /// Encode against a SKU the caller already resolved, so the send path
+    /// resolves it once rather than per call.
     pub(crate) fn encode(
         &self,
         sku: &str,
@@ -283,9 +267,8 @@ impl Govee {
     ///
     /// Encoded once per mode and SKU, then shared: it takes no arguments and
     /// the device file does not change at runtime, so the bytes never change.
-    /// Every [`DeviceHandle::send`] asks for one, and most discard it —
-    /// building it each time would put a frame parse on the send path for
-    /// nothing.
+    /// Every [`DeviceHandle::send`] asks for one, and most discard it, so a
+    /// fresh encode would put a frame parse on the send path for nothing.
     pub(crate) fn status_request(
         &self,
         sku: &str,
@@ -314,52 +297,4 @@ impl Govee {
         }
         Ok(request)
     }
-}
-
-/// Let the user's own device files replace what the build shipped.
-fn overlay_local_devices(catalog: &mut Catalog, config: &Config) -> Result<()> {
-    let directory = config
-        .catalog
-        .directory
-        .clone()
-        .unwrap_or_else(paths::local_devices_dir);
-
-    let entries = match std::fs::read_dir(&directory) {
-        Ok(entries) => entries,
-        // Opting in without having written any file yet is not an error.
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-        Err(e) => {
-            return Err(Error::LocalDevices {
-                path: directory.display().to_string(),
-                reason: e.to_string(),
-            });
-        }
-    };
-
-    let mut files: Vec<(String, String)> = Vec::new();
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.extension().is_none_or(|e| e != "yaml") {
-            continue;
-        }
-        let text = std::fs::read_to_string(&path).map_err(|e| Error::LocalDevices {
-            path: path.display().to_string(),
-            reason: e.to_string(),
-        })?;
-        files.push((path.display().to_string(), text));
-    }
-    files.sort();
-
-    let replaced = catalog.overlay(files.iter().map(|(f, y)| (f.as_str(), y.as_str())))?;
-    for overridden in replaced {
-        // An override shadows what everyone else's build ships. It has to be
-        // visible, every run.
-        tracing::warn!(
-            sku = %overridden.sku,
-            was = %overridden.was,
-            now = %overridden.now,
-            "a local device file replaced the one shipped with this build"
-        );
-    }
-    Ok(())
 }

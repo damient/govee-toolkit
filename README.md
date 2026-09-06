@@ -1,8 +1,8 @@
 # govee-toolkit
 
 Control your Govee lights from your own machine, over your own network — no
-internet, no Govee account, no cloud round-trip. Including a few things the
-official app never exposed.
+internet, no Govee account, no cloud round-trip. It also sends commands the
+official app does not expose.
 
 [![status](https://img.shields.io/badge/status-early%20development-orange)](docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -10,22 +10,21 @@ official app never exposed.
 
 > Community project. Not affiliated with, sponsored by or endorsed by Govee.
 
-<!-- TODO: demo GIF here — a strip running per-segment colors. Five seconds of
-     that is worth more than anything written below. -->
+<!-- TODO: demo GIF here — a strip running per-segment colors. -->
 
 ---
 
 ## What you can do with it
 
 Your Govee device already listens on your local network — that is how the
-official app reaches it when your phone is on the same Wi-Fi. This project
-speaks to it the same way, directly, and adds commands the app keeps to itself.
+official app reaches it when your phone is on the same Wi-Fi. This project talks
+to it the same way, directly.
 
 | | |
 | --- | --- |
 | **On/off, brightness, color** | From a script, a keyboard shortcut, a home automation — anything that can run code. |
 | **Every segment of a strip, individually** | The app offers a set of preset effects. Here you address the LED zones yourself. |
-| **Animation in real time** | Feed a stream of frames and drive the strip like a screen: music reactive, screen ambilight, whatever you write. |
+| **Animation in real time** | Feed a stream of frames and drive the strip frame by frame: music reactive, screen ambilight, or your own source. |
 | **Entirely on your network** | Commands go straight from your machine to the device. Govee's servers are not in the path. |
 
 The per-segment channel is not in Govee's documentation. It was found through
@@ -34,9 +33,10 @@ reverse engineering and written up in
 
 ## Where the project is
 
-The engine is working and verified on real hardware: discovery, on/off,
-brightness, color, per-segment color and live animation. It is usable today
-from Rust.
+The engine works over `lan` and over `ble`, verified on real hardware:
+discovery, on/off, brightness, color, per-segment color and live animation. It
+is usable today from Rust. Wi-Fi provisioning over `ble` is written, but nobody
+has sent it to a device.
 
 What comes next is the packaging around it — first the Python and Node.js
 packages, then a web page and a desktop app with actual buttons, then Home
@@ -54,16 +54,14 @@ they are mirrored in
 there, the basics have a good chance of working.
 
 **3. Turn LAN Control on.** Govee app → your device → settings → **LAN
-Control**. That switch is what opens the door everything here walks through.
+Control**. Everything here needs that switch on.
 
 One model is confirmed end to end so far, the **H61A0**, segments included. The
-other 270 are untested rather than unsupported — nobody has had one in hand yet,
-so trying yours genuinely moves the project forward.
+other 270 are untested rather than unsupported — nobody has had one yet, so a
+test on yours moves the project forward.
 [`docs/compatibility.md`](docs/compatibility.md) tracks what is known.
 
 ## Getting started
-
-Pick the line that sounds like you.
 
 | You want to | Start here | |
 | ----------- | ---------- | --- |
@@ -88,13 +86,14 @@ per device.**
 | Mode | Speed | Reaches the device from | What it carries | |
 | ---- | ----- | ----------------------- | --------------- | --- |
 | `lan` | fastest | the same Wi-Fi | everything, segments included | ✅ |
-| `ble` | fast | Bluetooth range, no Wi-Fi needed | depends on the model | 🔜 |
+| `ble` | fast | Bluetooth range, no Wi-Fi needed | depends on the model | ✅ |
 | `cloud` | slowest | anywhere with internet | on/off, brightness, color | 🔜 |
 
-Every command reports which mode served it. Allow several and it switches
-between them; allow one and it stays on that one — if the device is out of
-reach, you get a clear error instead of a silent detour through a slower path,
-and a segment animation is never approximated with a plain color change.
+Every command reports which mode served it. Allow several modes and the SDK
+switches between them. Allow one and it stays on that one: if the device is out
+of reach, the command fails with an error. It never takes a slower path in
+silence, and it never approximates a segment animation with a plain color
+change.
 
 Details in [`docs/modes.md`](docs/modes.md).
 
@@ -109,9 +108,13 @@ core rather than re-implementing it. Reasoning in
   Command names, byte layouts and measured limits live here, never in code.
 - [`packages/rust/src/codec`](packages/rust/src/codec) — device file plus
   arguments in, exact bytes out. No networking, so it is testable on its own.
+- [`packages/rust/src/transport`](packages/rust/src/transport) — what every
+  mode shares: the `Transport` trait, the device identity, the errors and the
+  per-device health state.
 - [`packages/rust/src/lan`](packages/rust/src/lan) — discovery, a device cache
-  so a command never waits for a scan, one reused socket, and a per-device
-  health state.
+  so a command never waits for a scan, and one reused socket.
+- [`packages/rust/src/ble`](packages/rust/src/ble) — the GATT surface, the scan,
+  one connection per device, and writes paced to what the firmware sustains.
 - [`packages/rust/src/stream`](packages/rust/src/stream) — the segment channel,
   armed once and fed frames at the resolution and rate measured on the unit.
 - [`packages/rust/crates/sim`](packages/rust/crates/sim) — a fake Govee device

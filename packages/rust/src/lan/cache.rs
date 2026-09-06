@@ -19,9 +19,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use crate::lan::DeviceId;
 use crate::lan::discovery::DiscoveredDevice;
-use crate::lan::error::{Error, Result};
+use crate::transport::DeviceId;
+use crate::transport::error::{Error, Result};
+use crate::transport::events::Change;
 
 /// Bumped when the file layout changes. A file written by a newer version is
 /// discarded rather than guessed at — re-scanning costs one round-trip.
@@ -53,20 +54,6 @@ pub struct CachedDevice {
     pub wifi_software: String,
     /// When it last answered a scan, in seconds since the epoch.
     pub last_seen: u64,
-}
-
-/// What recording a scan reply changed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Change {
-    /// An identity the cache had never seen.
-    New,
-    /// A known device, at the same address as before.
-    Refreshed,
-    /// A known device that moved — a new DHCP lease, usually.
-    Moved,
-    /// A known device whose reported firmware changed. Worth surfacing:
-    /// `docs/protocol/lan.md` §2.8, behavior can open or close with an update.
-    FirmwareChanged,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

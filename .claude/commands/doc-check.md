@@ -102,6 +102,25 @@ as it is now. Refactored, renamed or deleted code leaves no trace in them.
   needs to act on stays, and `CHANGELOG` entries, commit messages, `docs/
   roadmap.md` and release notes are history by design — leave them alone.
 
+**5. ASD-STE100.** Every comment and every line of prose the branch touched
+must follow the Simplified Technical English rules in `CLAUDE.md`, "Writing".
+Rewrite what breaks one:
+
+- a passive sentence becomes active;
+- a sentence over 20 words (instruction) or 25 words (description) is split, or
+  the half that carries no fact is cut;
+- an `-ing` form that is not a name becomes a simple tense;
+- two words for one object become one word, used everywhere;
+- a dropped article or a dropped "that" comes back;
+- a run of more than 3 nouns is broken with a preposition;
+- an idiom, a metaphor or a rhetorical question is replaced with the fact it
+  stood for;
+- "should" becomes "must" for an obligation and "can" for a possibility;
+- a sentence with more than one condition becomes a list.
+
+Cut first, rewrite second: a sentence that carries no fact is deleted under
+rule 3 and never rewritten into a shorter one.
+
 ## Fix
 
 Apply the fixes. Edit prose and comments freely; do not change code behavior to

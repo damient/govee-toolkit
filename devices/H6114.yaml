@@ -1,0 +1,222 @@
+# NOT on Govee's official LAN-control list — see ../docs/lan-supported-devices.md.
+# Govee's spec sheet gives this model one radio, Bluetooth:
+# https://community.govee.com/support/faqs/specs
+
+schema_version: 1
+
+sku: "H6114"
+family: "rgb-car-strip"
+name: "RGB Car LED Strip Lights"
+aliases: []
+candidate_aliases: []
+
+capabilities:
+  power:
+  brightness:  { range: [0, 255] }
+  color:
+  scenes:
+  music:
+  # No segments and no segment_brightness: the four strips are RGB, not RGBIC,
+  # and they are wired in two lines off one control box. There is one color for
+  # the whole set.
+  #
+  # No colortemp. The color frame carries a kelvin field, and the firmware does
+  # not render it: a frame that names a temperature and no RGB leaves the strips
+  # dark, and one that names a temperature and a green triplet lights them
+  # green. Both were sent to the unit. A white here is a color the caller
+  # computes, which is not a capability of the hardware.
+
+modes:
+  lan:
+    support: none
+    capabilities: []
+    unreachable: {}
+    notes: >-
+      The hardware has no Wi-Fi: Govee's spec sheet gives connectivity as
+      Bluetooth, the unit runs off the 12 V cigarette lighter socket, and the
+      model is absent from Govee's LAN-control list.
+  ble:
+    support: full
+    capabilities: [power, brightness, color, scenes, music]
+    unreachable: {}
+    notes: >-
+      Reaches every capability the hardware has, plus the reads below. The color
+      sub-mode is 13 and its payload carries a 16-bit kelvin field between the
+      two RGB triplets. The music sub-mode is 19. See docs/protocol/ble.md.
+  cloud:
+    support: none
+    capabilities: []
+    unreachable: {}
+    notes: >-
+      Follows from the same fact as lan: with no network interface the device
+      never reaches AWS IoT, and it is registered to the Govee account over
+      Bluetooth only.
+
+commands:
+  # Every frame here is 20 bytes: proType, commandType, payload, then a XOR of
+  # the 19 bytes before it. See docs/protocol/ble.md 1.2.
+  #
+  # No ble capture is redacted and committed yet, so every `capture:` below is
+  # empty. TODO: capture and redact one per command.
+  lan: {}
+
+  ble:
+    power:
+      documented: false
+      frame: "33 01 ${on} <pad:20> <xor>"
+      args:
+        on: { type: int, range: [0, 1] }
+      notes: "See docs/protocol/ble.md 2.1."
+      capture: ""         # TODO
+
+    brightness:
+      documented: false
+      frame: "33 04 ${level} <pad:20> <xor>"
+      args:
+        level: { type: int, range: [0, 255] }
+      notes: >-
+        The whole byte, not percent: 0 and 255 both reach the firmware and both
+        are applied. `0` renders nothing and does NOT turn the device off — it
+        reports itself on with a brightness of 0, so only `power` turns it off.
+        The Govee app drives this field over 20..254, which is a choice of the
+        app: 1 is dimmer than 20 on the unit. See docs/protocol/ble.md 2.2.
+      capture: ""         # TODO
+
+    color:
+      documented: false
+      frame: "33 05 0D ${r} ${g} ${b} 00 00 00 00 00 <pad:20> <xor>"
+      args:
+        r: { type: int, range: [0, 255] }
+        g: { type: int, range: [0, 255] }
+        b: { type: int, range: [0, 255] }
+      notes: >-
+        Sub-mode 13. The payload is the color triplet, a 16-bit kelvin field and
+        a second triplet, and this command zeroes the last two: a non-zero
+        kelvin makes the firmware render the second triplet instead of the
+        first, and the firmware renders no temperature of its own. The device
+        fades from one color to the next rather than cutting, and no frame was
+        found that turns that off. See docs/protocol/ble.md 2.3.
+      capture: ""         # TODO
+
+    scene:
+      documented: false
+      frame: "33 05 04 ${scene} <pad:20> <xor>"
+      args:
+        scene: { type: int, range: [0, 255] }
+      notes: >-
+        Sub-mode 4. The identifiers were not enumerated: 4 renders a fixed white
+        and 8 blinks through changing colors on the unit. The vendor app's own
+        scene names do not match those two, so nothing here maps an identifier
+        to an effect. See docs/protocol/ble.md 2.7.
+      capture: ""         # TODO
+
+    music:
+      documented: false
+      frame: "33 05 13 ${effect} ${sensitivity} 00 ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
+      args:
+        effect: { type: int, range: [0, 1] }
+        sensitivity: { type: int, range: [1, 100] }
+        color_mode: { type: int, range: [0, 1] }
+        r: { type: int, range: [0, 255] }
+        g: { type: int, range: [0, 255] }
+        b: { type: int, range: [0, 255] }
+      notes: >-
+        Sub-mode 19. The device listens on its own microphone. `effect` 0 is the
+        dynamic rendering and 1 is the calm one. `color_mode` 0 lets the
+        firmware choose the colors and ignores the triplet, which the device
+        keeps stored from the last frame that carried one; 1 plays the triplet.
+        The byte between the sensitivity and the color mode is the `soft` flag
+        of docs/protocol/ble.md 2.8. It is 0 in every frame the vendor app
+        writes and nobody varied it on this unit, so it stays a literal here.
+        The firmware also accepts a value past the two ranges above and reads
+        it back: those ranges are the ones the vendor app drives. See
+        docs/protocol/ble.md 2.8.
+      capture: ""         # TODO
+
+    status:
+      documented: false
+      role: status
+      frames:
+        - send:  "AA 01 <pad:20> <xor>"
+          reply: "AA 01 ${on}"
+        - send:  "AA 04 <pad:20> <xor>"
+          reply: "AA 04 ${level}"
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+        level: { type: int, range: [0, 255], role: brightness }
+      notes: >-
+        Two reads: no single frame reports both. See docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_mode:
+      documented: false
+      frame: "AA 05 <pad:20> <xor>"
+      reply: "AA 05 ${submode} ${payload:bytes:8}"
+      args:
+        submode: { type: int, range: [0, 255] }
+        payload: { type: bytes, max_len: 8 }
+      notes: >-
+        The live sub-mode and its eight payload bytes, left uninterpreted: their
+        meaning depends on the sub-mode, and the color one and the music one are
+        the two this file works out. This read reports what is playing — writing
+        a color moved it to 13 with that color, writing a scene moved it to 4
+        with that identifier, and writing music moved it to 19 with every field
+        of the frame. See docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_software_version:
+      documented: false
+      frame: "AA 06 <pad:20> <xor>"
+      reply: "AA 06 ${version:ascii:17}"
+      args:
+        version: { type: string, max_len: 17 }
+      notes: >-
+        ASCII, zero-padded out to the checksum; 2.03.11 on this unit. See
+        docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_hardware_version:
+      documented: false
+      frame: "AA 07 03 <pad:20> <xor>"
+      reply: "AA 07 03 ${version:ascii:16}"
+      args:
+        version: { type: string, max_len: 16 }
+      notes: >-
+        The 03 is part of the request and the answer repeats it; 2.01.01 on this
+        unit. A frame of `AA 07` alone gets no answer at all. See
+        docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+  cloud: {}
+
+# Taken from Govee's published specification, not from a measurement of this
+# unit: four strips of 22 cm, 13 mm wide, not cuttable.
+measurements:
+  strip_count: 4
+  strip_length_cm: 22
+  led_count: 48
+  supply_voltage_v: 12
+
+verified:
+  by: "damient"
+  firmware: "2.03.11"
+  date: "2026-09-06"
+  notes: >-
+    ble mode exercised over GATT, against soft version 2.03.11 and hard version
+    2.01.01. Every command in the table was sent to the device and its effect or
+    its answer observed. The unit carries the same GATT profile as the H61A0.
+    Brightness was walked over 0, 1, 20, 254 and 255: 1 is visibly dimmer than
+    the app's own floor of 20, and 0 goes dark while the device still reports
+    itself on. The color sub-mode is 13, and the sub-mode 2 of the older dialect
+    is accepted with a success code and then ignored — an acknowledged write is
+    not an applied write on this wire. The firmware fades between two colors and
+    fades in at power on; `33 A3`, which sets zone interpolation on the H61A0,
+    is accepted here and changes nothing observable, over six alternations
+    spaced four seconds apart in each position. The music sub-mode is 19: 14,
+    17, 3 and 22, which other dialects use, are acknowledged with a success code
+    and then ignored, and the live sub-mode stays where it was. Every music
+    field was sent to the unit and its effect observed, and each one was read
+    back at `aa 05` — both from a frame written here and from the state the
+    vendor app wrote. DIY and Wi-Fi provisioning were not exercised. Scene
+    identifiers were not enumerated. No ble capture has been redacted and
+    committed yet, so every `capture:` above is empty.

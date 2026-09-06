@@ -1,6 +1,4 @@
-# H61A0 — 3m RGBIC LED Neon Rope Lights.
-# On Govee's official LAN-control list (see ../docs/lan-supported-devices.md).
-# Verified over `lan`, including the undocumented segment channel.
+# On Govee's official LAN-control list — see ../docs/lan-supported-devices.md.
 
 schema_version: 1
 
@@ -8,11 +6,11 @@ sku: "H61A0"
 family: "rgbic-neon-rope"
 name: "3m RGBIC LED Neon Rope Lights"
 aliases: []
-candidate_aliases:      # same product in other lengths — NOT verified, do not
-  - H61A1               # assume identical behavior: segment count and native
-  - H61A2               # resolution both depend on length. 2 m, 5 m, 4 m and
-  - H61A3               # 10 m respectively — see ../docs/lan-supported-devices.md.
-  - H61A5               # The outdoor rope, H61A8 and H61A9, is another product.
+candidate_aliases:      # the same product at 2 m, 5 m, 4 m and 10 m. NOT
+  - H61A1               # verified: segment count and native resolution both
+  - H61A2               # depend on the length. The outdoor rope, H61A8 and
+  - H61A3               # H61A9, is another product. See
+  - H61A5               # ../docs/lan-supported-devices.md.
 
 capabilities:
   power:
@@ -20,6 +18,7 @@ capabilities:
   color:
   colortemp:   { range_kelvin: [2000, 9000] }
   scenes:
+  music:
   segment_brightness:
   segments:
     count: 10             # zones the Govee app exposes
@@ -32,21 +31,33 @@ modes:
     unreachable:
       scenes: transport
       segment_brightness: transport
+      music: unprobed
     notes: >-
       Requires LAN Control enabled in the Govee Home app. Reaches the segment
       channel, including beyond the 10 zones the app exposes. Brightness is
       global here: the segment channel carries color only. See
       docs/protocol/lan.md 2.5.
   ble:
-    support: unknown        # not probed on this device; `none` would be a claim
-    capabilities: []
-    unreachable: {}
-    notes: "Not tested. See docs/protocol/ble.md."
+    support: partial
+    capabilities: [power, brightness, color, colortemp, segments, segment_brightness, music]
+    unreachable:
+      scenes: unimplemented
+    notes: >-
+      Reaches power, brightness, color, color temperature, music and both
+      per-zone channels without the device being on the network. Music runs off
+      the device's own microphone, at sub-mode 19. Segments are narrower
+      here than over lan: zones are addressed through a mask 15 bits wide,
+      against the 42 individually addressable ICs the lan raw channel reaches,
+      and bits past the fifteenth reach nothing. Scenes travel over a second
+      chunked channel whose header was not worked out. Wi-Fi provisioning is
+      declared here but has never been sent to a device. One connection at a
+      time: a connected device stops advertising. See docs/protocol/ble.md.
   cloud:
     support: partial
     capabilities: [power, brightness, color, colortemp, scenes, segment_brightness]
     unreachable:
       segments: transport
+      music: unprobed
     notes: >-
       Internal scenes and per-segment brightness travel over MQTT to AWS IoT,
       and the per-segment color channel does not. Requires a Govee account and
@@ -67,7 +78,7 @@ commands:
       documented: true
       payload: { value: "${level}" }
       args:
-        level: { type: int, range: [1, 100] }   # 0 is clamped to 1, it does not turn off
+        level: { type: int, range: [1, 100] }   # the firmware clamps 0 to 1 and does not turn off
       capture: ""         # TODO
 
     color:
@@ -95,7 +106,7 @@ commands:
     status:
       cmd: "devStatus"
       documented: true
-      role: status        # the entry fire-and-verify issues on its own
+      role: status
       payload: {}
       args: {}
       capture: ""         # TODO
@@ -130,19 +141,299 @@ commands:
       frame: "BB <len:16> <op:B0> ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
       payload: { pt: "${frame}" }
       args:
-        gradient: { type: int, range: [0, 1], role: gradient }   # 0 = hard zones, 1 = interpolated + wraps
-        nb_seg: { type: int, range: [1, 255] }                   # derived from colors when omitted
-        colors: { type: rgb_list, max_len: 255, role: colors }   # one triple per zone
+        gradient: { type: int, range: [0, 1], role: gradient }   # 0 = hard zones, 1 = interpolated and wraps
+        nb_seg: { type: int, range: [1, 255] }
+        colors: { type: rgb_list, max_len: 255, role: colors }
       notes: >-
         len counts the payload only, 16-bit, header and checksum excluded. An
         inconsistent length is dropped in silence. See docs/protocol/lan.md 2.3.
       capture: ""         # TODO
 
-  ble: {}                 # TODO
+  # Every frame here is 20 bytes: proType, commandType, payload, then a XOR of
+  # the 19 bytes before it. See docs/protocol/ble.md 1.2.
+  #
+  # No ble capture is redacted and committed yet, so every `capture:` below is
+  # empty. TODO: capture and redact one per command.
+  ble:
+    power:
+      documented: false
+      frame: "33 01 ${on} <pad:20> <xor>"
+      args:
+        on: { type: int, range: [0, 1] }
+      notes: "See docs/protocol/ble.md 2.1."
+      capture: ""         # TODO
+
+    brightness:
+      documented: false
+      frame: "33 04 ${level} <pad:20> <xor>"
+      args:
+        level: { type: int, range: [1, 100] }
+      notes: >-
+        Percent on this unit, not 0..255. See docs/protocol/ble.md 2.2.
+      capture: ""         # TODO
+
+    color:
+      documented: false
+      role: segment_color_masked
+      frame: "33 05 15 01 (${colors}:rgb)×${nb} 00 00 00 00 00 ${zones:mask16} <pad:20> <xor>"
+      args:
+        colors: { type: rgb_list, max_len: 1, role: colors }
+        nb: { type: int, range: [1, 1] }
+        zones: { type: zones, count: 15, role: zones }
+      notes: >-
+        Paints one color over the zones the mask names. The kelvin and white
+        fields stay zero: color and white are mutually exclusive, and a
+        non-zero kelvin is what turns this frame into the colortemp one. A
+        saturated mask looks exactly like an ignored mask, so painting every
+        zone proves nothing about the mask being read — paint a subset, as the
+        `verified:` block below did. See docs/protocol/ble.md 2.3.
+      capture: ""         # TODO
+
+    colortemp:
+      documented: false
+      frame: "33 05 15 01 00 00 00 ${kelvin:16} ${white_r} ${white_g} ${white_b} ${zones:mask16} <pad:20> <xor>"
+      args:
+        kelvin: { type: int, range: [2000, 9000] }
+        white_r: { type: int, range: [0, 255] }
+        white_g: { type: int, range: [0, 255] }
+        white_b: { type: int, range: [0, 255] }
+        zones: { type: zones, count: 15 }
+      notes: >-
+        The firmware does not render the temperature: the caller ships the
+        kelvin value and its RGB rendering in the same frame, and one carrying
+        only the kelvin value leaves the zones dark. See
+        docs/protocol/ble.md 2.3.
+      capture: ""         # TODO
+
+    segment_brightness_masked:
+      documented: false
+      frame: "33 05 15 02 ${level} ${zones:mask16} <pad:20> <xor>"
+      args:
+        level: { type: int, range: [1, 100] }
+        zones: { type: zones, count: 15 }
+      notes: >-
+        Brightness of the zones the mask names, leaving the rest alone. See
+        docs/protocol/ble.md 2.4.
+      capture: ""         # TODO
+
+    segment_brightness:
+      documented: false
+      frame: "33 05 15 03 ${levels:bytes} <pad:20> <xor>"
+      args:
+        levels: { type: bytes, max_len: 15 }
+      notes: >-
+        Every zone at once, one byte each in zone order, and there is no mask:
+        pass all fifteen. A shorter list is padded with zeros, which sets the
+        zones it does not cover to zero rather than leaving them alone. The
+        bytes are not interpreted here, so nothing checks each one against the
+        1..100 the firmware takes: a 0 or a 200 in the list reaches the device
+        and the firmware clamps it in silence. This command is the one place in
+        this file where the no-clamp guarantee does not hold. TODO: give the
+        `bytes` type a per-element range so each level is checked, then drop
+        this paragraph and add the error vector it makes writable.
+        See docs/protocol/ble.md 2.5.
+      capture: ""         # TODO
+
+    gradient:
+      documented: false
+      role: segment_gradient
+      frame: "33 A3 ${on} <pad:20> <xor>"
+      args:
+        on: { type: int, range: [0, 1], role: gradient }
+      notes: >-
+        Whether the firmware interpolates between zones, wrapping from the last
+        back to the first; 0 gives hard-edged zones. The same user setting as
+        the `gradient` argument of the lan segment channel, which has no room
+        for it here and so carries it in a frame of its own. It is not a fade
+        over time: alternating two colors looks the same either way, and what
+        changes is the boundary between two zones painted differently. See
+        docs/protocol/ble.md 2.6.
+      capture: ""         # TODO
+
+    music:
+      documented: false
+      frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
+      args:
+        effect: { type: int, range: [0, 7] }
+        sensitivity: { type: int, range: [0, 99] }
+        soft: { type: int, range: [0, 1] }
+        color_mode: { type: int, range: [0, 1] }
+        r: { type: int, range: [0, 255] }
+        g: { type: int, range: [0, 255] }
+        b: { type: int, range: [0, 255] }
+      notes: >-
+        Sub-mode 19. The device listens on its own microphone. `effect` selects
+        the rendering: 0 to 7 each render one, and 8 to 15, 50 and 255 render
+        nothing at all — the rope keeps what the frame before it left. Nothing
+        maps an identifier to an effect. `soft` 0 renders sharp on the beat and
+        1 renders in fades. `color_mode` 0 leaves the colors to the firmware and
+        1 imposes the triplet. The zone mask has no field here. Every byte is
+        read back at `read_mode`, an effect the firmware does not render
+        included, so a read that echoes a value is not evidence that the device
+        plays it. See docs/protocol/ble.md 2.8.
+      capture: ""         # TODO
+
+    status:
+      documented: false
+      role: status
+      frames:
+        - send:  "AA 01 <pad:20> <xor>"
+          reply: "AA 01 ${on}"
+        - send:  "AA 04 <pad:20> <xor>"
+          reply: "AA 04 ${level}"
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+        level: { type: int, range: [1, 100], role: brightness }
+      notes: >-
+        Two reads: no single frame reports both. See docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_mode:
+      documented: false
+      frame: "AA 05 <pad:20> <xor>"
+      reply: "AA 05 ${submode} ${payload:bytes:8}"
+      args:
+        submode: { type: int, range: [0, 255] }
+        payload: { type: bytes, max_len: 8 }
+      notes: >-
+        The live sub-mode and its eight payload bytes, left uninterpreted: their
+        meaning depends on the sub-mode. Answers 21 after a `color` frame and 19
+        after a `music` one, each with the fields of that frame. It reports what
+        was written, which is not the same as what the firmware renders. See
+        docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_segment_count:
+      documented: false
+      frame: "AA 0F <pad:20> <xor>"
+      reply: "AA 0F ${segments}"
+      args:
+        segments: { type: int, range: [0, 255] }
+      notes: >-
+        Answers 15 on this unit, which is the width of the zone mask, not the
+        10 zones the app exposes nor the 42 ICs. See docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_ic_count:
+      documented: false
+      frame: "AA 40 <pad:20> <xor>"
+      reply: "AA 40 ${pixels:16}"
+      args:
+        pixels: { type: int, range: [0, 65535] }
+      notes: >-
+        Answers 42 on this unit, matching the native resolution measured over
+        lan. See docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_wifi_mac:
+      documented: false
+      frame: "AA 14 <pad:20> <xor>"
+      reply: "AA 14 ${mac:bytes:6}"
+      args:
+        mac: { type: bytes, max_len: 6 }
+      notes: >-
+        The Wi-Fi MAC, which is how the rest of this project identifies a
+        device — an advertisement carries the Bluetooth address instead. See
+        docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_hardware_version:
+      documented: false
+      frame: "AA 20 <pad:20> <xor>"
+      reply: "AA 20 ${version:ascii:17}"
+      args:
+        version: { type: string, max_len: 17 }
+      notes: >-
+        ASCII, zero-padded out to the checksum; 1.02.00 on this unit. The
+        length is what stops the field before that byte. See
+        docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_software_version:
+      documented: false
+      frame: "AA 21 <pad:20> <xor>"
+      reply: "AA 21 ${version:ascii:17}"
+      args:
+        version: { type: string, max_len: 17 }
+      notes: >-
+        ASCII, zero-padded out to the checksum; 2.06.02 on this unit. The
+        length is what stops the field before that byte. See
+        docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    read_dynamic_api:
+      documented: false
+      frame: "AA AB <pad:20> <xor>"
+      reply: "AA AB ${api_type}"
+      args:
+        api_type: { type: int, range: [0, 255] }
+      notes: >-
+        Which API endpoint provisioning should hand the device. Answers 2 on
+        this unit. See docs/protocol/ble.md 3 and 4.
+      capture: ""         # TODO
+
+    read_zone_state:
+      documented: false
+      frame: "AA A5 ${group} <pad:20> <xor>"
+      args:
+        group: { type: int, range: [1, 5] }
+      notes: >-
+        Brightness and color for three zones, groups 1-based. Declares no
+        `reply:` for two reasons: the byte layout of the answer was not
+        established, and what it reports is the stored color sub-mode rather
+        than what is lit, so it is not a way to read back what `color` painted.
+        See docs/protocol/ble.md 3.
+      capture: ""         # TODO
+
+    wifi_provision:
+      documented: false
+      body: "${network:str8} ${password:str8} ${run_mode} ${timezone_hours} ${iot_version} ${timezone_minutes}"
+      chunk:
+        size: 16
+        header: "A1 11 00 ${count} 00 <pad:20> <xor>"
+        data:   "A1 11 ${index} ${chunk:bytes} <pad:20> <xor>"
+        footer: "A1 11 FF <pad:20> <xor>"
+      args:
+        network: { type: string, max_len: 32 }
+        password: { type: string, max_len: 63 }
+        run_mode: { type: int, range: [0, 255] }          # 0 in production
+        timezone_hours: { type: int, range: [0, 255] }
+        timezone_minutes: { type: int, range: [0, 59] }
+        iot_version: { type: int, range: [0, 255] }       # 0 in production
+      notes: >-
+        Plaintext: no encryption, no key exchange, no session token, so anything
+        in radio range during provisioning sees the password. An empty password
+        is the single byte 0x00. What a negative timezone offset looks like was
+        not observed. NEVER SENT TO A DEVICE — see docs/protocol/ble.md 4.
+      capture: ""         # nothing was ever sent to a device
+
+    wifi_provision_with_api:
+      documented: false
+      body: "${network:str8} ${password:str8} ${run_mode} ${timezone_hours} ${iot_version} ${timezone_minutes} ${api_url:str16}"
+      chunk:
+        size: 16
+        header: "A1 11 00 ${count} 00 <pad:20> <xor>"
+        data:   "A1 11 ${index} ${chunk:bytes} <pad:20> <xor>"
+        footer: "A1 11 FF <pad:20> <xor>"
+      args:
+        network: { type: string, max_len: 32 }
+        password: { type: string, max_len: 63 }
+        run_mode: { type: int, range: [0, 255] }
+        timezone_hours: { type: int, range: [0, 255] }
+        timezone_minutes: { type: int, range: [0, 59] }
+        iot_version: { type: int, range: [0, 255] }
+        api_url: { type: string, max_len: 255 }
+      notes: >-
+        The same transfer with the trailing API block, which is sent when
+        `read_dynamic_api` answers with a type. There is no optional field in
+        this language, so the block is a separate entry rather than an argument
+        left out. NEVER SENT TO A DEVICE — see docs/protocol/ble.md 4.
+      capture: ""         # nothing was ever sent to a device
+
   cloud: {}               # TODO
 
-# Measured on one physical unit. Anything here depends on that unit's LENGTH as
-# much as on the SKU — see docs/protocol/lan.md 2.3 and 2.7.
+# Measured on one physical unit. These numbers depend on the unit's LENGTH as
+# much as on the SKU. See docs/protocol/lan.md 2.3 and 2.7.
 measurements:
   unit_length_m: 3
   native_pixels: 42         # one addressable LED every ~7 cm
@@ -155,16 +446,55 @@ measurements:
     max: 39
     loss: "0/30 requests"
 
-  # Sustainable frame rate for the razer segment channel, by zone count.
+  # Taken on the same unit, over the 20-byte GATT frame. See
+  # docs/protocol/ble.md 5.
+  ble:
+    read_round_trip_ms: 63          # against 16 ms over lan
+    sustained_writes_hz: 130        # spread over seconds
+    write_budget_hz: 100            # what the transport paces itself to
+    burst_frames_before_stall: 100  # approximate, in one burst
+    burst_recovery_s: 20            # approximate, after one burst
+    addressable_zones: 15           # by mask, against the 42 ICs above
+
   frame_rate:
-    - { zones: 20,  payload_bytes: 62,  clean_hz: 40, breaks_at_hz: 45 }
-    - { zones: 60,  payload_bytes: 182, clean_hz: 25, breaks_at_hz: 30 }
-    - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
+    # Measured on the razer segment channel.
+    lan:
+      - { zones: 20,  payload_bytes: 62,  clean_hz: 40, breaks_at_hz: 45 }
+      - { zones: 60,  payload_bytes: 182, clean_hz: 25, breaks_at_hz: 30 }
+      - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
+    # No ble rows. A ble frame is 20 bytes and paints one color, so the write
+    # budget above divided by the zone count gives a figure. That is
+    # arithmetic, not a stutter test on the rope. TODO: run the stutter test
+    # over ble and record what the strip renders cleanly. Until then a stream
+    # over ble falls back to the configured rate.
 
 verified:
   by: "damient"
   firmware: "2.06.02"
-  date: "2026-09-04"
+  date: "2026-09-06"
   notes: >-
     lan mode fully exercised, including the undocumented razer segment channel
-    at native resolution. See measurements above. ble not probed.
+    at native resolution. ble mode exercised over GATT on the same unit, against
+    soft version 2.06.02 and hard version 1.02.00: every 0x33 write and every
+    0xAA read in the table above was sent to the device and its effect or its
+    answer observed. Everything but music and the sub-mode read went through
+    the Rust transport; those two were sent over raw GATT.
+    The zone mask is read by the firmware and not ignored: painting zones 0-2
+    over a rope already painted left the rest alone. `gradient` was told apart
+    from a fade over time the same way — the boundary between two differently
+    painted zones is what it changes. Music was exercised with sound in the
+    room, one field at a time, and a white flash of the whole rope separated
+    each rendering from the next so that the boundary was visible. `effect` 0 to
+    7 each render one, and 8 to 15, 50 and 255 render nothing; several of the
+    eight are visibly different from each other, and none of the eight was
+    mapped to an effect name. `soft` was told apart over three alternations: 1
+    is the softer of the two. `color_mode` 1 played the rope green and nothing
+    else. `sensitivity` is stored and read back, and 0, 99 and 255 all reacted —
+    what the value changes was NOT told apart on this unit. The sub-mode read at
+    0xAA 0x05 answered 21 before any music frame and 19 after each one, with
+    every field of the frame it was given. Wi-Fi provisioning over 0xA1 was NOT
+    exercised: its layout was read out of the other direction only, and no frame
+    of it has ever been sent to a device — its golden vectors pin this encoder,
+    not the firmware. Scenes were not worked out. No ble capture has been
+    redacted and committed yet, so every `capture:` in the ble table is empty.
+    See measurements above.

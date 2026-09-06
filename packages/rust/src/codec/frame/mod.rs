@@ -1,30 +1,42 @@
 //! The `frame:` mini-language used by raw-channel commands.
 //!
-//! A device file describes a raw frame as a whitespace-separated token string,
-//! so the byte layout stays readable next to the command that sends it and the
-//! codec below stays generic — no SKU and no command name appears in this file.
+//! A device file describes a raw frame as a whitespace-separated token string.
+//! The byte layout stays next to the command that sends it, and the codec here
+//! stays generic: no SKU and no command name appears in this file.
 //!
 //! | Token | Emits |
 //! | ----- | ----- |
 //! | `BB` | that literal byte, two hex digits |
 //! | `${name}` | one byte, from the integer argument `name` |
 //! | `${name:16}` | two bytes, big-endian, from `name` |
+//! | `${name:str8}` | one length byte, then `name` as UTF-8 |
+//! | `${name:str16}` | two big-endian length bytes, then `name` as UTF-8 |
+//! | `${name:mask8}` | one byte of zone bits, least significant bit first |
+//! | `${name:mask16}` | two bytes of zone bits, least significant bit first |
+//! | `${name:bytes}` | the bytes of `name`, as they are |
 //! | `<op:B0>` | the opcode, one or more literal bytes, marked as the opcode |
 //! | `<len:16>` | the payload length, big-endian, filled in once the frame is built |
+//! | `<pad:20>` | zeros, so that the whole frame is 20 bytes once `<xor>` is appended |
 //! | `(${list}:rgb)×${count}` | `count` RGB triples, taken from the list argument `list` |
 //! | `<xor>` | the XOR of every preceding byte |
 //!
-//! `<len:16>` counts the bytes emitted after `<op:…>`, up to but excluding the
-//! checksum: the payload alone, header, opcode and checksum excluded — the
-//! definition in `docs/protocol/lan.md` 2.3. A frame that declares `<len:16>`
-//! must name its opcode with `<op:…>` immediately after, so the boundary the
-//! length measures from is written down rather than inferred from position.
+//! `<len:16>` counts the bytes after `<op:…>`, up to but excluding the
+//! checksum — the payload alone, as `docs/protocol/lan.md` 2.3 defines it. A
+//! frame that declares `<len:16>` must put `<op:…>` immediately after it, so
+//! the file states the boundary the length measures from.
 //!
-//! `<xor>`, when present, must be the last token.
+//! A string longer than its length prefix can count, and a zone index past the
+//! width of its mask, are both errors: the field would carry something other
+//! than what the caller asked for.
+//!
+//! `<xor>`, when present, must be the last token, and `<pad:…>` the one before
+//! it: padding that is not at the end would be followed by bytes the declared
+//! size does not account for.
 
 use crate::codec::error::{Error, Result};
 
 mod build;
+mod fields;
 
 /// One element of a parsed frame layout.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,11 +50,33 @@ pub enum Token {
         /// `8` or `16`.
         bits: u32,
     },
+    /// A string argument, behind a length prefix `prefix` bytes wide.
+    Text {
+        /// The argument name.
+        name: String,
+        /// `1` or `2` length bytes, big-endian.
+        prefix: usize,
+    },
+    /// Zone indices as a bitmask `width` bytes wide, least significant bit
+    /// first.
+    Mask {
+        /// The argument name.
+        name: String,
+        /// How many bytes the mask occupies.
+        width: usize,
+    },
+    /// A byte-string argument, emitted as it is.
+    Bytes {
+        /// The argument name.
+        name: String,
+    },
     /// The opcode, as literal bytes. The payload `<len:16>` counts starts
     /// after it.
     Opcode(Vec<u8>),
     /// The 16-bit payload length, big-endian.
     Len16,
+    /// Zeros, up to a frame of this many bytes once `<xor>` is appended.
+    Pad(usize),
     /// `count` items drawn from a list argument.
     Repeat {
         /// The list argument.
@@ -77,8 +111,8 @@ impl Frame {
     /// # Errors
     ///
     /// [`Error::FrameSyntax`] if a token is unrecognized, if `<len:16>`,
-    /// `<op:…>` or `<xor>` appear more than once or in an impossible position,
-    /// or if `<len:16>` is not immediately followed by `<op:…>`.
+    /// `<op:…>`, `<pad:…>` or `<xor>` appear more than once or in an impossible
+    /// position, or if `<len:16>` is not immediately followed by `<op:…>`.
     pub fn parse(command: &str, source: &str) -> Result<Self> {
         let bad = |reason: String| Error::FrameSyntax {
             command: command.to_owned(),
@@ -98,6 +132,10 @@ impl Frame {
         let (len, len_repeats) = only(&tokens, |t| matches!(t, Token::Len16));
         let (_, op_repeats) = only(&tokens, |t| matches!(t, Token::Opcode(_)));
         let (xor, xor_repeats) = only(&tokens, |t| matches!(t, Token::Xor));
+        let (pad, pad_repeats) = only(&tokens, |t| matches!(t, Token::Pad(_)));
+        if pad_repeats {
+            return Err(bad("`<pad:…>` appears more than once".to_owned()));
+        }
         if len_repeats {
             return Err(bad("`<len:16>` appears more than once".to_owned()));
         }
@@ -111,6 +149,13 @@ impl Frame {
             && i + 1 != tokens.len()
         {
             return Err(bad("`<xor>` must be the last token".to_owned()));
+        }
+        if let Some(i) = pad
+            && i + 1 + usize::from(xor.is_some()) != tokens.len()
+        {
+            return Err(bad(
+                "`<pad:…>` must come last, before `<xor>` where there is one".to_owned(),
+            ));
         }
         if let Some(i) = len
             && !matches!(tokens.get(i + 1), Some(Token::Opcode(_)))
@@ -134,6 +179,26 @@ impl Frame {
             _ => None,
         })
     }
+
+    /// Every argument the layout reads, in the order it reads them. A name
+    /// referenced twice appears twice.
+    pub fn arg_names(&self) -> impl Iterator<Item = &str> {
+        self.tokens
+            .iter()
+            .flat_map(|t| match t {
+                Token::Arg { name, .. }
+                | Token::Text { name, .. }
+                | Token::Mask { name, .. }
+                | Token::Bytes { name } => [Some(name.as_str()), None],
+                Token::Repeat { list, count, .. } => [Some(list.as_str()), Some(count.as_str())],
+                Token::Literal(_)
+                | Token::Opcode(_)
+                | Token::Len16
+                | Token::Pad(_)
+                | Token::Xor => [None, None],
+            })
+            .flatten()
+    }
 }
 
 /// Where the first matching token is, and whether another one follows it.
@@ -155,11 +220,11 @@ fn parse_token(raw: &str) -> Option<Token> {
     if let Some(hex) = raw.strip_prefix("<op:").and_then(|r| r.strip_suffix('>')) {
         return parse_opcode(hex);
     }
+    if let Some(size) = raw.strip_prefix("<pad:").and_then(|r| r.strip_suffix('>')) {
+        return size.parse().ok().filter(|s| *s > 0).map(Token::Pad);
+    }
     if let Some(inner) = raw.strip_prefix("${").and_then(|r| r.strip_suffix('}')) {
-        return parse_arg_ref(inner).map(|(name, bits)| Token::Arg {
-            name: name.to_owned(),
-            bits,
-        });
+        return parse_arg_ref(inner);
     }
     if raw.starts_with('(') {
         return parse_repeat(raw);
@@ -188,13 +253,26 @@ fn parse_opcode(hex: &str) -> Option<Token> {
     Some(Token::Opcode(bytes))
 }
 
-/// `name` or `name:16`.
-fn parse_arg_ref(inner: &str) -> Option<(&str, u32)> {
-    match inner.split_once(':') {
-        None if !inner.is_empty() => Some((inner, 8)),
-        Some((name, "16")) if !name.is_empty() => Some((name, 16)),
-        _ => None,
+/// `name`, or `name:` followed by the field's shape.
+fn parse_arg_ref(inner: &str) -> Option<Token> {
+    let (name, kind) = match inner.split_once(':') {
+        None => (inner, "8"),
+        Some((name, kind)) => (name, kind),
+    };
+    if name.is_empty() {
+        return None;
     }
+    let name = name.to_owned();
+    Some(match kind {
+        "8" => Token::Arg { name, bits: 8 },
+        "16" => Token::Arg { name, bits: 16 },
+        "str8" => Token::Text { name, prefix: 1 },
+        "str16" => Token::Text { name, prefix: 2 },
+        "mask8" => Token::Mask { name, width: 1 },
+        "mask16" => Token::Mask { name, width: 2 },
+        "bytes" => Token::Bytes { name },
+        _ => return None,
+    })
 }
 
 /// `(${list}:rgb)×${count}`, with `x` accepted for the multiplication sign.
@@ -263,6 +341,43 @@ mod tests {
     #[test]
     fn rejects_an_opcode_with_an_odd_number_of_digits() {
         let err = Frame::parse("x", "<op:B> ${on}").expect_err("should not parse");
+        assert_eq!(err.code(), "frame_syntax");
+    }
+
+    #[test]
+    fn parses_every_field_shape() {
+        let frame = Frame::parse(
+            "x",
+            "${s:str8} ${t:str16} ${m:mask8} ${z:mask16} ${b:bytes} <pad:20> <xor>",
+        )
+        .expect("should parse");
+        assert_eq!(
+            frame.arg_names().collect::<Vec<_>>(),
+            ["s", "t", "m", "z", "b"]
+        );
+    }
+
+    #[test]
+    fn rejects_an_unknown_field_shape() {
+        let err = Frame::parse("x", "${s:str32}").expect_err("should not parse");
+        assert_eq!(err.code(), "frame_syntax");
+    }
+
+    #[test]
+    fn rejects_a_second_padding_field() {
+        let err = Frame::parse("x", "<pad:20> <pad:20> <xor>").expect_err("should not parse");
+        assert_eq!(err.code(), "frame_syntax");
+    }
+
+    #[test]
+    fn rejects_padding_that_something_follows() {
+        let err = Frame::parse("x", "A1 <pad:20> BB <xor>").expect_err("should not parse");
+        assert_eq!(err.code(), "frame_syntax");
+    }
+
+    #[test]
+    fn rejects_padding_to_nothing() {
+        let err = Frame::parse("x", "BB <pad:0> <xor>").expect_err("should not parse");
         assert_eq!(err.code(), "frame_syntax");
     }
 

@@ -1,12 +1,13 @@
 //! The loopback rig both integration suites are built on.
 //!
-//! Wiring a transport to a simulator means agreeing on four addresses. Keeping
-//! that agreement in one place is what stops the two suites from drifting when
-//! `Endpoints` changes shape.
+//! A transport and a simulator must agree on four addresses. One place holds
+//! that agreement, so the two suites cannot drift when `Endpoints` changes
+//! shape.
 
 #![allow(dead_code, clippy::expect_used, clippy::format_collect)]
 
 use std::net::{Ipv4Addr, SocketAddr};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use govee_toolkit::lan::{DeviceId, Endpoints, Transport};
@@ -27,7 +28,7 @@ pub(crate) async fn simulator(sku: &str) -> Simulator {
         .expect("the simulator binds")
 }
 
-/// Point a transport at that simulator, with no multicast involved.
+/// Point a transport at that simulator, with no multicast.
 pub(crate) fn endpoints(simulator: &Simulator) -> Endpoints {
     Endpoints {
         scan_target: simulator.scan_addr().expect("scan address"),
@@ -44,7 +45,7 @@ pub(crate) fn hex(bytes: &[u8]) -> String {
 /// Poll `check` until it yields, for at most a second.
 ///
 /// UDP on the loopback is fast but not synchronous, and the work under test
-/// runs on its own task: a fixed sleep would either be flaky or slow.
+/// runs on its own task. A fixed sleep is flaky or slow.
 pub(crate) async fn wait_for<T>(mut check: impl FnMut() -> Option<T>) -> Option<T> {
     let deadline = Instant::now() + Duration::from_secs(1);
     while Instant::now() < deadline {
@@ -63,8 +64,8 @@ pub(crate) struct Rig {
 }
 
 impl Rig {
-    /// The timings are the suites' own: short enough that a test does not wait
-    /// on a refresh, long enough that the loopback round trip fits.
+    /// The timings belong to the suites: short enough that a test does not
+    /// wait on a refresh, long enough for the loopback round trip.
     pub(crate) async fn start(mut config: Config, catalog: Catalog, sku: &str) -> Self {
         let simulator = simulator(sku).await;
 
@@ -80,7 +81,8 @@ impl Rig {
         .await
         .expect("the socket binds");
 
-        let govee = Govee::attach(config, catalog, transport).expect("the configuration applies");
+        let govee = Govee::attach(config, catalog, [Arc::new(transport) as Arc<_>])
+            .expect("the configuration applies");
         govee.scan().await.expect("the scan goes out");
         Self { govee, simulator }
     }

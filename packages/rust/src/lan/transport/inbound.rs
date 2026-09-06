@@ -10,14 +10,14 @@ use std::time::{Duration, SystemTime};
 
 use tokio::sync::broadcast;
 
-use super::events::Event;
 use super::shared::{Shared, Tracked};
-use crate::lan::DeviceId;
-use crate::lan::cache::Change;
+use crate::codec::Mode;
 use crate::lan::discovery::{DiscoveredDevice, scan_request};
-use crate::lan::error::Result;
 use crate::lan::socket::{MAX_DATAGRAM, parse_reply};
-use crate::lan::status::DeviceStatus;
+use crate::transport::DeviceId;
+use crate::transport::error::Result;
+use crate::transport::events::{Change, Event};
+use crate::transport::status::DeviceStatus;
 
 impl Shared {
     pub(super) async fn scan(&self, window: Duration) -> Result<Vec<DiscoveredDevice>> {
@@ -65,12 +65,10 @@ impl Shared {
 
     /// Route one datagram.
     ///
-    /// Dispatch is by shape, not by command name: a payload carrying an
-    /// identity, an address and a SKU is a discovery reply, and anything else
-    /// from a device already known is a status. Both the documented
-    /// `devStatus` and the undocumented `status` of `docs/protocol/lan.md` §2.2
-    /// therefore land in the right place without this crate holding a list of
-    /// command names.
+    /// A payload that carries an identity, an address and a SKU is a discovery
+    /// reply; anything else from a device already known is a status. Both the
+    /// documented `devStatus` and the undocumented `status` of
+    /// `docs/protocol/lan.md` §2.2 therefore land in the right place.
     fn dispatch(&self, from: SocketAddr, bytes: &[u8]) {
         let Some(reply) = parse_reply(from, bytes) else {
             return;
@@ -91,12 +89,7 @@ impl Shared {
         };
 
         let status = DeviceStatus::from_data(id, reply.data);
-        if let Ok(devices) = self.devices.lock()
-            && let Some(tracked) = devices.get(&status.id)
-        {
-            let _ = tracked.status.send(Some(status.clone()));
-        }
-        let _ = self.events.send(Event::Status(status));
+        self.devices.publish_status(&self.events, Mode::Lan, status);
     }
 
     /// Which device answers at this address.
@@ -142,7 +135,8 @@ impl Shared {
             tracing::info!(id = %device.id, ip = %device.ip, sku = %device.sku, ?change, "device discovered");
         }
         let _ = self.events.send(Event::Discovered {
-            device: device.clone(),
+            mode: Mode::Lan,
+            device: device.reported(&self.endpoints),
             change,
         });
     }
@@ -164,7 +158,10 @@ impl Shared {
             }
         }
         for device in dropped {
-            let _ = self.events.send(Event::Forgotten { id: device.id });
+            let _ = self.events.send(Event::Forgotten {
+                mode: Mode::Lan,
+                id: device.id,
+            });
         }
         self.persist_cache();
     }
@@ -182,10 +179,8 @@ pub(super) async fn receive_loop(shared: Arc<Shared>) {
                 }
             }
             Err(e) => {
-                // A receive error here is the socket's, not a device's, and
-                // retrying immediately would spin. Slow down and keep going:
-                // the transport surviving a transient error matters more than
-                // reporting it.
+                // The error is the socket's, not a device's, and an immediate
+                // retry would spin. Slow down and keep going.
                 tracing::warn!(error = %e, "the lan receive loop failed");
                 tokio::time::sleep(Duration::from_millis(50)).await;
             }

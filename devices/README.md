@@ -13,6 +13,8 @@ See [`../docs/modes.md`](../docs/modes.md).
 - [`schema.yaml`](schema.yaml) — reference schema, field by field
 - [`H61A0.yaml`](H61A0.yaml) — RGBIC LED Neon Rope Lights, verified over `lan`
   including the undocumented segment channel
+- [`H6114.yaml`](H6114.yaml) — RGB Car LED Strip Lights, a `ble`-only device,
+  verified over `ble` including the music sub-mode
 
 For **which devices work**, rather than how to declare one, see
 [`../docs/compatibility.md`](../docs/compatibility.md), the readable view of
@@ -62,6 +64,25 @@ these files.
    ```
 
    They are generated from these files and CI fails when they drift.
+
+## One command, several modes
+
+A command's **name and its argument names are the contract**; the layout is
+not. Two modes carry the same command in two formats — a `frame:` here, a
+`payload:` there — and a caller reaches both with one call. So a mode that gets
+a command another mode already carries reuses the name and the argument names.
+
+`music` is the example to follow. Over `ble` it is a `frame:` with `effect`,
+`sensitivity`, `color_mode`, `r`, `g` and `b`. A `lan` or a `cloud` entry for
+music declares those same six arguments over its own layout.
+
+Two rules keep this honest:
+
+- name an argument for what the wire carries, not for what an SDK would like to
+  offer. `color_mode` is `0` or `1` because the byte is;
+- a mode that cannot serve a field does not get a command with that field
+  missing. It declares no command at all, and the SDK fails explicitly — see
+  [`../docs/modes.md`](../docs/modes.md).
 
 ## SKU families
 

@@ -1,9 +1,8 @@
 //! The transport against a simulated device.
 //!
 //! Everything here runs on the loopback with ephemeral ports, so it needs no
-//! hardware, no multicast and no privileges — which is the point: the
-//! behaviour that matters most (a breaker that refuses without waiting) cannot
-//! be checked against a device that is answering.
+//! hardware, no multicast and no privileges. A device that answers cannot show
+//! the behavior under test: a breaker that refuses without a wait.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
@@ -35,8 +34,8 @@ impl Rig {
         let options = tweak(Options {
             endpoints: common::endpoints(&simulator),
             policy,
-            // Every test drives its own scan: a background one would make the
-            // breaker assertions race.
+            // Every test drives its own scan: a background scan would race the
+            // breaker assertions.
             refresh_interval: None,
             scan_window: Duration::from_millis(200),
             status_timeout: Duration::from_millis(150),
@@ -87,6 +86,23 @@ async fn a_scan_finds_the_device_and_records_where_it_is() {
     assert_eq!(rig.transport.sku(&id()).as_deref(), Some(SKU));
 }
 
+/// A `lan` reply is JSON, so no command declares a `reply:` layout for it. The
+/// transport fails rather than answers with an empty set of fields.
+#[tokio::test]
+async fn reading_fields_out_of_a_json_reply_is_refused() {
+    use govee_toolkit::transport::Transport as _;
+
+    let rig = Rig::start(Policy::default()).await;
+    rig.discover().await;
+
+    let error = rig
+        .transport
+        .read(&id(), &rig.status_request())
+        .await
+        .expect_err("this mode has no reply layout");
+    assert_eq!(error.code(), "no_reply_layout");
+}
+
 #[tokio::test]
 async fn a_command_reaches_the_device() {
     let rig = Rig::start(Policy::default()).await;
@@ -114,7 +130,7 @@ async fn a_command_reaches_the_device() {
 #[tokio::test]
 async fn an_undiscovered_device_fails_rather_than_triggering_a_scan() {
     let rig = Rig::start(Policy::default()).await;
-    // No scan has run: nothing is known, and asking must not go looking.
+    // No scan has run: nothing is known, and a send must not start one.
     let unknown = govee_toolkit::lan::DeviceId::new("11:22:33:44:55:66");
 
     let error = rig
@@ -210,8 +226,7 @@ async fn silence_degrades_the_mode_and_is_then_refused_without_waiting() {
         (State::Ok, State::Degraded)
     );
 
-    // And the next command is refused from state already known: no round-trip,
-    // no timeout, nothing on the wire.
+    // The next command is refused from state already known: no round trip.
     rig.simulator.clear();
     let started = Instant::now();
     let error = rig
@@ -280,7 +295,11 @@ async fn fire_and_verify_records_the_silence_without_delaying_the_command() {
     let request = rig.status_request();
     let started = Instant::now();
     rig.transport
-        .send(&id(), &rig.power_on(), Verify::With(&request))
+        .send(
+            &id(),
+            &rig.power_on(),
+            Verify::With(std::sync::Arc::new(request)),
+        )
         .await
         .expect("the command goes out");
     assert!(
@@ -312,8 +331,8 @@ async fn the_cache_makes_a_restart_free_of_scanning() {
     rig.discover().await;
     rig.transport.save_cache().expect("the cache is written");
 
-    // A second transport on the same cache, wired to the same device, with no
-    // scan of its own.
+    // A second transport on the same cache and the same device, with no scan
+    // of its own.
     let restarted = Transport::start(Options {
         endpoints: common::endpoints(&rig.simulator),
         refresh_interval: None,

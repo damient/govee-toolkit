@@ -1,24 +1,22 @@
-//! Errors the transport can return.
+//! Errors a transport can return, whichever mode it serves.
 //!
-//! Nothing here is recoverable by substituting something else. A device that
-//! cannot be reached over `lan` produces [`Error::Unreachable`] or
-//! [`Error::Unavailable`], and that is the answer the caller gets — choosing
-//! another mode is the facade's decision to make, from the user's
-//! configuration, never this crate's.
+//! No substitution recovers any of these. A device the transport cannot reach
+//! produces [`Error::Unreachable`] or [`Error::Unavailable`], and the caller
+//! gets that answer. Only the facade chooses another mode, from the user's
+//! configuration.
 
-use std::net::SocketAddr;
+use crate::codec::Mode;
+use crate::transport::DeviceId;
+use crate::transport::breaker::State;
 
-use crate::lan::DeviceId;
-use crate::lan::breaker::State;
-
-/// Anything that can go wrong reaching a device over the local network.
+/// Anything that can go wrong reaching a device.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
     /// No device with this identity has been discovered, and none is cached.
     ///
-    /// Note what this is *not*: a reason to scan. Scanning on the send path
-    /// costs a multicast round-trip — `docs/protocol/lan.md` §1, latency notes.
+    /// This is not a reason to scan: a scan on the send path costs a multicast
+    /// round-trip (`docs/protocol/lan.md` §1, latency notes).
     #[error("no known device `{id}`; it has not been discovered and is not in the cache")]
     UnknownDevice {
         /// The identity that was asked for.
@@ -26,28 +24,31 @@ pub enum Error {
     },
 
     /// The breaker refuses this mode for now, from state already known.
-    #[error("{id}: `lan` is {state} and in cooldown; the command was not sent")]
+    #[error("{id}: `{mode}` is {state} and in cooldown; the command was not sent")]
     Unavailable {
         /// The device.
         id: DeviceId,
+        /// The mode that is refused.
+        mode: Mode,
         /// Why it is refused.
         state: State,
     },
 
     /// A command was sent and the device did not answer within the deadline.
-    #[error("{id}: no answer from {addr} within {timeout_ms} ms")]
+    #[error("{id}: no answer from {endpoint} within {timeout_ms} ms")]
     Unreachable {
         /// The device.
         id: DeviceId,
-        /// Where the command went.
-        addr: SocketAddr,
+        /// Where the command went, in the form the mode addresses a device: a
+        /// socket address over `lan`, a Bluetooth address over `ble`.
+        endpoint: String,
         /// How long it was given.
         timeout_ms: u64,
     },
 
-    /// An encoded command could not be serialized into a datagram. It cannot
-    /// happen for a value [`crate::codec`] built; it is here so that no code
-    /// path has to unwrap.
+    /// An encoded command does not serialize into a datagram. It cannot happen
+    /// for a value [`crate::codec`] built; it exists so that no code path must
+    /// unwrap.
     #[error("{cmd}: the encoded command is not serializable: {reason}")]
     Serialize {
         /// The command.
@@ -56,14 +57,35 @@ pub enum Error {
         reason: String,
     },
 
+    /// A transport option is outside the range the transport can honour. The
+    /// transport refuses it and never moves it to the nearest value it can
+    /// serve: an option quietly replaced is an option the caller never set.
+    #[error("`{field}` is out of range: {reason}")]
+    Option {
+        /// The field, as it is named on the mode's options type.
+        field: String,
+        /// What the range is, and what was given.
+        reason: String,
+    },
+
+    /// There is nothing to read: the command declares no `reply:` layout this
+    /// mode could match, or the mode does not answer in frames at all.
+    #[error("`{mode}`: {reason}")]
+    NoReplyLayout {
+        /// The mode that was asked.
+        mode: Mode,
+        /// Why nothing can be read.
+        reason: String,
+    },
+
     /// The transport's receive loop is gone, so nothing can be sent or awaited.
     #[error("the transport has been shut down")]
     ShutDown,
 
-    /// A socket operation failed.
+    /// An adapter or socket operation failed.
     #[error("{context}: {source}")]
     Io {
-        /// What was being attempted.
+        /// The operation that failed.
         context: String,
         /// The underlying failure.
         #[source]
@@ -95,6 +117,8 @@ impl Error {
             Self::Unavailable { .. } => "mode_unavailable",
             Self::Unreachable { .. } => "unreachable",
             Self::Serialize { .. } => "serialize",
+            Self::Option { .. } => "out_of_range",
+            Self::NoReplyLayout { .. } => "no_reply_layout",
             Self::ShutDown => "shut_down",
             Self::Io { .. } => "io",
             Self::Cache { .. } => "cache",

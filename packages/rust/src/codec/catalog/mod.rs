@@ -10,7 +10,13 @@ use std::fmt;
 use serde::Deserialize;
 
 use crate::codec::capabilities::{Capabilities, ModeCapabilities, Reason};
+use crate::codec::chunk::Chunk;
+use crate::codec::exchange::{Exchanges, Step};
 use crate::codec::measurements::Measurements;
+
+mod spec;
+
+pub use spec::{ArgRole, ArgSpec, Role};
 
 /// A way of talking to a device. Not a fallback chain — see `docs/modes.md`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
@@ -45,15 +51,14 @@ pub enum Support {
     Partial,
     /// Reachable by no command: the hardware does not do this mode.
     ///
-    /// A claim about the hardware, and only correct when somebody established
-    /// it. Not probed is [`Support::Unknown`].
+    /// A claim about the hardware. Set it only when somebody established that.
+    /// Not probed is [`Support::Unknown`].
     None,
-    /// Nobody has probed this mode on this device.
+    /// Nobody has probed this mode on this device. The default.
     ///
-    /// The default, and the honest answer for a mode nobody tried: a failed
-    /// probe and an unimplemented feature look identical from outside
-    /// (`docs/protocol/lan.md`). Enabling the mode is allowed — that is how it
-    /// gets probed — and a command it does not carry still fails explicitly,
+    /// A failed probe and an unimplemented feature look identical from outside
+    /// (`docs/protocol/lan.md`). The user can still enable the mode — that is
+    /// how it gets probed — and a command it does not carry fails explicitly,
     /// as [`Error::UnknownCommand`](crate::codec::Error::UnknownCommand).
     #[default]
     Unknown,
@@ -68,8 +73,8 @@ pub struct ModeSupport {
     /// Capabilities reachable in this mode.
     pub capabilities: ModeCapabilities,
     /// Capabilities the hardware has that this mode does not reach, each with
-    /// the reason it does not. Together with `capabilities` this covers the
-    /// hardware's whole set, which `crate::codec::validate` checks.
+    /// a reason. With `capabilities` this covers the hardware's whole set,
+    /// which `crate::codec::validate` checks.
     pub unreachable: BTreeMap<String, Reason>,
     /// Free-form notes.
     pub notes: String,
@@ -99,131 +104,12 @@ impl Modes {
     }
 }
 
-/// How an argument may be supplied.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum ArgSpec {
-    /// A whole number, bounded inclusively.
-    Int {
-        /// `[min, max]`, both inclusive.
-        range: [i64; 2],
-        /// What the SDK fills this argument with. See [`ArgRole`].
-        #[serde(default)]
-        role: Option<ArgRole>,
-    },
-    /// A list of RGB triples, for a frame repeat group.
-    RgbList {
-        /// Optional cap on the number of triples.
-        #[serde(default)]
-        max_len: Option<usize>,
-        /// What the SDK fills this argument with. See [`ArgRole`].
-        #[serde(default)]
-        role: Option<ArgRole>,
-    },
-}
-
-impl ArgSpec {
-    /// The name used in error messages.
-    #[must_use]
-    pub fn type_name(&self) -> &'static str {
-        match self {
-            Self::Int { .. } => crate::codec::args::INT,
-            Self::RgbList { .. } => crate::codec::args::RGB_LIST,
-        }
-    }
-
-    /// What the SDK fills this argument with, if the file says.
-    #[must_use]
-    pub fn role(&self) -> Option<ArgRole> {
-        match self {
-            Self::Int { role, .. } | Self::RgbList { role, .. } => *role,
-        }
-    }
-}
-
-/// What one argument of a [`Role`] command carries, when the SDK supplies it
-/// without being told a name.
-///
-/// The device file names arguments as well as commands, so a role the SDK
-/// invokes on its own needs this to say which declared argument is which. An
-/// argument the caller always passes needs no role.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ArgRole {
-    /// Whether to arm or disarm, on a [`Role::SegmentEnable`] command. `1`
-    /// arms.
-    Enable,
-    /// One RGB triple per zone, on a [`Role::SegmentColor`] command.
-    Colors,
-    /// Whether the firmware interpolates between zones, on a
-    /// [`Role::SegmentColor`] command. Optional: a command declaring no
-    /// argument for it is sent none.
-    Gradient,
-}
-
-impl ArgRole {
-    /// Every argument role, so a caller can iterate them.
-    pub(crate) const ALL: [Self; 3] = [Self::Enable, Self::Colors, Self::Gradient];
-
-    /// The argument type this role has to be declared as.
-    #[must_use]
-    pub fn type_name(self) -> &'static str {
-        match self {
-            Self::Enable | Self::Gradient => crate::codec::args::INT,
-            Self::Colors => crate::codec::args::RGB_LIST,
-        }
-    }
-}
-
-impl fmt::Display for ArgRole {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Enable => "enable",
-            Self::Colors => "colors",
-            Self::Gradient => "gradient",
-        })
-    }
-}
-
-/// What a command is for, when the SDK has to pick one without being told.
-///
-/// Only the device file names commands. A role lets it say which entry serves a
-/// purpose the SDK has of its own, so no command name has to live in code.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Role {
-    /// Reports the device's state. This is what fire-and-verify sends after a
-    /// command, and what a `status()` call encodes.
-    Status,
-    /// Arms and disarms the raw segment channel. Must declare an argument
-    /// marked [`ArgRole::Enable`].
-    SegmentEnable,
-    /// Paints every zone at once. Must declare an argument marked
-    /// [`ArgRole::Colors`]; one marked [`ArgRole::Gradient`] is supplied when
-    /// declared.
-    SegmentColor,
-}
-
-impl Role {
-    /// Every role the SDK picks a command by, so a caller can iterate them.
-    pub(crate) const CLAIMABLE: [Self; 3] = [Self::Status, Self::SegmentEnable, Self::SegmentColor];
-}
-
-impl fmt::Display for Role {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Status => "status",
-            Self::SegmentEnable => "segment_enable",
-            Self::SegmentColor => "segment_color",
-        })
-    }
-}
-
 /// One command, in one mode.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct Command {
-    /// The value sent in `msg.cmd`, for `lan` and `cloud`.
+    /// The value sent in `msg.cmd`, for `lan` and `cloud`. Empty where the mode
+    /// puts the frame on the wire with no envelope around it.
     pub cmd: String,
     /// `false` marks a command found through reverse engineering.
     pub documented: bool,
@@ -231,6 +117,16 @@ pub struct Command {
     pub payload: serde_json::Value,
     /// The byte layout of a raw-channel frame. See [`crate::codec::frame`].
     pub frame: Option<String>,
+    /// The layout of the reply `frame` expects. See [`crate::codec::reply`].
+    pub reply: Option<String>,
+    /// Several send/reply exchanges, issued in order. Mutually exclusive with
+    /// `frame` and `body`. See [`crate::codec::exchange`].
+    pub frames: Vec<Step>,
+    /// The byte layout of a payload too long for one frame, split by `chunk`.
+    /// Mutually exclusive with `frame`.
+    pub body: Option<String>,
+    /// How to cut `body` into frames. See [`Chunk`].
+    pub chunk: Option<Chunk>,
     /// Declared arguments.
     pub args: BTreeMap<String, ArgSpec>,
     /// Behavior worth knowing before calling it.
@@ -240,10 +136,13 @@ pub struct Command {
     /// What the SDK may use this command for on its own. See [`Role`].
     pub role: Option<Role>,
 
-    /// `frame`, tokenized on first use. The layout is fixed by the device file,
-    /// so the send path parses it once rather than once per command.
+    /// The exchanges, tokenized on first use: the device file fixes the
+    /// layouts, so the send path parses them once and not once per command.
     #[serde(skip)]
-    pub(crate) parsed_frame: std::sync::OnceLock<crate::codec::Frame>,
+    pub(crate) parsed_exchanges: std::sync::OnceLock<Option<Exchanges>>,
+    /// `body` and the three `chunk` layouts, tokenized on first use.
+    #[serde(skip)]
+    pub(crate) parsed_chunk: std::sync::OnceLock<crate::codec::chunk::Layout>,
 }
 
 impl Command {
@@ -343,7 +242,7 @@ impl Device {
     ///
     /// Returns the entry's name, not its `cmd`: the caller encodes it like any
     /// other command. `None` means the file claims that role for nothing in
-    /// this mode, and callers do without rather than guessing a name.
+    /// this mode, and the caller must do without rather than guess a name.
     #[must_use]
     pub fn command_for(&self, mode: Mode, role: Role) -> Option<&str> {
         self.commands

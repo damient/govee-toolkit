@@ -3,7 +3,7 @@
 //! Segment count, native resolution and sustainable frame rate all depend on
 //! the LENGTH of the unit measured, not only on its SKU — two ropes sharing a
 //! model in different lengths share none of them. So these are records of an
-//! observation, never a property of the model, and nothing here is derived from
+//! observation, never a property of the model. Nothing here is derived from
 //! anything else: an absent number stays absent.
 //!
 //! See `docs/protocol/lan.md` 2.3 and 2.7 for how they are measured.
@@ -11,6 +11,8 @@
 use std::collections::BTreeMap;
 
 use serde::Deserialize;
+
+use crate::codec::catalog::Mode;
 
 /// One row of `measurements.frame_rate`: how fast one physical unit accepts
 /// segment frames at a given zone count.
@@ -27,12 +29,42 @@ pub struct FrameRate {
     pub breaks_at_hz: Option<f64>,
 }
 
+/// Sustainable segment frame rates, as a device file records them.
+///
+/// A bare list is the `lan` table. A mapping records one table per mode: the
+/// channels differ in frame size and in what the firmware does between writes,
+/// so a rate measured over one says nothing about another.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum FrameRates {
+    /// Rows measured over `lan`.
+    Lan(Vec<FrameRate>),
+    /// Rows measured per mode.
+    ByMode(BTreeMap<Mode, Vec<FrameRate>>),
+}
+
+impl Default for FrameRates {
+    fn default() -> Self {
+        Self::Lan(Vec::new())
+    }
+}
+
+impl FrameRates {
+    /// The rows measured over `mode`, empty when nobody measured it there.
+    #[must_use]
+    pub fn rows(&self, mode: Mode) -> &[FrameRate] {
+        match self {
+            Self::Lan(rows) if mode == Mode::Lan => rows,
+            Self::Lan(_) => &[],
+            Self::ByMode(by_mode) => by_mode.get(&mode).map_or(&[], Vec::as_slice),
+        }
+    }
+}
+
 /// Numbers taken from one physical unit.
 ///
 /// Only [`Measurements::frame_rate`] is read by the SDK; everything else a
-/// device file records lands in [`Measurements::extra`] and is carried through
-/// untouched. These are properties of the unit measured, not of the SKU — the
-/// same model in another length does not share them.
+/// device file records lands in [`Measurements::extra`], untouched.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct Measurements {
@@ -40,28 +72,28 @@ pub struct Measurements {
     pub unit_length_m: Option<f64>,
     /// Addressable LEDs counted on that unit.
     pub native_pixels: Option<u32>,
-    /// Sustainable segment frame rates, by zone count.
-    pub frame_rate: Vec<FrameRate>,
+    /// Sustainable segment frame rates, by mode and zone count.
+    pub frame_rate: FrameRates,
     /// Everything else the file records.
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
 }
 
 impl Measurements {
-    /// The measured rate for `zones`, in hertz, or `None` if nothing was
-    /// measured on this unit.
+    /// The measured rate for `zones` over `mode`, in hertz, or `None` if
+    /// nothing was measured on this unit for that mode.
     ///
     /// Answers with the smallest row that covers `zones`. Past the largest row
-    /// it answers with that row, which is the slowest rate anybody measured:
-    /// the ceiling only falls as frames grow, so that is a floor already
-    /// observed rather than a value extrapolated from the trend.
+    /// it answers with that row, the slowest rate anybody measured: the ceiling
+    /// only falls as frames grow, so that rate is an observed floor and not an
+    /// extrapolation. No rate crosses from one mode to another.
     #[must_use]
-    pub fn clean_hz(&self, zones: u32) -> Option<f64> {
-        self.frame_rate
-            .iter()
+    pub fn clean_hz(&self, mode: Mode, zones: u32) -> Option<f64> {
+        let rows = self.frame_rate.rows(mode);
+        rows.iter()
             .filter(|row| row.zones >= zones)
             .min_by_key(|row| row.zones)
-            .or_else(|| self.frame_rate.iter().max_by_key(|row| row.zones))
+            .or_else(|| rows.iter().max_by_key(|row| row.zones))
             .map(|row| row.clean_hz)
     }
 }
@@ -83,10 +115,18 @@ latency_idle_ms:
   p95: 28
   max: 39
   loss: \"0/30 requests\"
+ble:
+  read_round_trip_ms: 63
+  sustained_writes_hz: 130
+  write_budget_hz: 100
+  burst_frames_before_stall: 100
+  burst_recovery_s: 20
+  addressable_zones: 15
 frame_rate:
-  - { zones: 20,  payload_bytes: 62,  clean_hz: 40, breaks_at_hz: 45 }
-  - { zones: 60,  payload_bytes: 182, clean_hz: 25, breaks_at_hz: 30 }
-  - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
+  lan:
+    - { zones: 20,  payload_bytes: 62,  clean_hz: 40, breaks_at_hz: 45 }
+    - { zones: 60,  payload_bytes: 182, clean_hz: 25, breaks_at_hz: 30 }
+    - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
 ";
 
     fn measured() -> Measurements {
@@ -98,32 +138,63 @@ frame_rate:
         let m = measured();
         assert_eq!(m.unit_length_m, Some(3.0));
         assert_eq!(m.native_pixels, Some(42));
-        assert_eq!(m.frame_rate.len(), 3);
+        assert_eq!(m.frame_rate.rows(Mode::Lan).len(), 3);
         assert!(m.extra.contains_key("latency_idle_ms"));
         assert!(m.extra.contains_key("resolution_changepoints"));
     }
 
     #[test]
+    fn a_mode_nobody_ran_the_stutter_test_on_answers_nothing() {
+        // The unit's `measurements.ble` block records a write budget, which is
+        // not a frame rate: no row is derived from it.
+        let m = measured();
+        assert!(m.frame_rate.rows(Mode::Ble).is_empty());
+        assert_eq!(m.clean_hz(Mode::Ble, 15), None);
+    }
+
+    #[test]
     fn a_zone_count_is_answered_by_the_smallest_row_that_covers_it() {
         let m = measured();
-        assert_eq!(m.clean_hz(20), Some(40.0));
-        assert_eq!(m.clean_hz(1), Some(40.0));
-        assert_eq!(m.clean_hz(21), Some(25.0));
-        assert_eq!(m.clean_hz(60), Some(25.0));
-        assert_eq!(m.clean_hz(119), Some(20.0));
+        assert_eq!(m.clean_hz(Mode::Lan, 20), Some(40.0));
+        assert_eq!(m.clean_hz(Mode::Lan, 1), Some(40.0));
+        assert_eq!(m.clean_hz(Mode::Lan, 21), Some(25.0));
+        assert_eq!(m.clean_hz(Mode::Lan, 60), Some(25.0));
+        assert_eq!(m.clean_hz(Mode::Lan, 119), Some(20.0));
     }
 
     #[test]
     fn past_the_last_row_the_slowest_measured_rate_stands() {
         // Not extrapolated: 20 Hz is a rate this unit was seen to hold, and the
         // ceiling only falls as frames grow.
-        assert_eq!(measured().clean_hz(255), Some(20.0));
+        assert_eq!(measured().clean_hz(Mode::Lan, 255), Some(20.0));
     }
 
     #[test]
     fn a_unit_nobody_measured_answers_nothing() {
         let m: Measurements = serde_norway::from_str("unit_length_m: 5").expect("parses");
-        assert_eq!(m.clean_hz(10), None);
+        assert_eq!(m.clean_hz(Mode::Lan, 10), None);
+    }
+
+    #[test]
+    fn a_bare_table_is_the_lan_one_and_answers_for_no_other_mode() {
+        let m: Measurements =
+            serde_norway::from_str("frame_rate:\n  - { zones: 20, clean_hz: 40 }\n")
+                .expect("parses");
+        assert_eq!(m.clean_hz(Mode::Lan, 10), Some(40.0));
+        assert_eq!(m.clean_hz(Mode::Ble, 10), None);
+        assert!(m.frame_rate.rows(Mode::Ble).is_empty());
+    }
+
+    #[test]
+    fn a_table_keyed_by_mode_answers_per_mode() {
+        let m: Measurements = serde_norway::from_str(
+            "frame_rate:\n  lan:\n    - { zones: 20, clean_hz: 40 }\n  \
+             ble:\n    - { zones: 15, clean_hz: 5 }\n",
+        )
+        .expect("parses");
+        assert_eq!(m.clean_hz(Mode::Lan, 10), Some(40.0));
+        assert_eq!(m.clean_hz(Mode::Ble, 10), Some(5.0));
+        assert_eq!(m.clean_hz(Mode::Cloud, 10), None);
     }
 
     #[test]
@@ -132,6 +203,6 @@ frame_rate:
             "frame_rate:\n  - { zones: 120, clean_hz: 20 }\n  - { zones: 20, clean_hz: 40 }\n",
         )
         .expect("parses");
-        assert_eq!(m.clean_hz(20), Some(40.0));
+        assert_eq!(m.clean_hz(Mode::Lan, 20), Some(40.0));
     }
 }

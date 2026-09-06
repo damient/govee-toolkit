@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use govee_toolkit::codec::{ArgValue, Args, Catalog, Mode};
+use govee_toolkit::codec::{ArgSpec, ArgValue, Args, Catalog, Command, Mode};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -33,9 +33,26 @@ struct Vector {
     name: String,
     command: String,
     args: BTreeMap<String, serde_json::Value>,
-    message: serde_json::Value,
+    /// The envelope, where the mode wraps the command in one.
+    #[serde(default)]
+    message: Option<serde_json::Value>,
+    /// One frame, for a command that sends one.
     #[serde(default)]
     frame_hex: Option<String>,
+    /// Every frame, in order, for a command that sends several.
+    #[serde(default)]
+    frames_hex: Option<Vec<String>>,
+}
+
+impl Vector {
+    /// The frames the vector expects, however it spells them.
+    fn expected_frames(&self) -> Vec<String> {
+        match (&self.frames_hex, &self.frame_hex) {
+            (Some(frames), _) => frames.clone(),
+            (None, Some(frame)) => vec![frame.clone()],
+            (None, None) => Vec::new(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -79,32 +96,72 @@ fn golden_files() -> Vec<(String, GoldenFile)> {
     out
 }
 
-/// Numbers are integers, arrays are RGB triples. The device file decides which
-/// is which; this only has to carry the value across.
-fn to_args(raw: &BTreeMap<String, serde_json::Value>) -> Args {
+/// JSON says how a value is written; the device file says what it means.
+///
+/// A list of numbers is zone indices to one command and opaque bytes to
+/// another, so the declared type decides. The `unknown_arg` cases declare no
+/// type, so their JSON shape decides, and the codec refuses them by name.
+fn to_args(spec: Option<&Command>, raw: &BTreeMap<String, serde_json::Value>) -> Args {
     let mut args = Args::new();
     for (name, value) in raw {
-        let parsed = match value {
-            serde_json::Value::Number(n) => ArgValue::Int(n.as_i64().expect("integer argument")),
-            serde_json::Value::Array(items) => ArgValue::Rgb(
-                items
-                    .iter()
-                    .map(|item| {
-                        let triple = item.as_array().expect("an RGB triple");
-                        assert_eq!(triple.len(), 3, "an RGB triple has three components");
-                        let mut rgb = [0u8; 3];
-                        for (slot, v) in rgb.iter_mut().zip(triple) {
-                            *slot = u8::try_from(v.as_u64().expect("a byte")).expect("a byte");
-                        }
-                        rgb
-                    })
+        let declared = spec.and_then(|command| command.args.get(name));
+        let parsed = match declared {
+            Some(ArgSpec::Int { .. }) => ArgValue::Int(integer(value)),
+            Some(ArgSpec::RgbList { .. }) => ArgValue::Rgb(triples(value)),
+            Some(ArgSpec::String { .. }) => ArgValue::Text(text(value)),
+            Some(ArgSpec::Zones { .. }) => ArgValue::Zones(
+                numbers(value)
+                    .map(|n| u16::try_from(n).expect("a zone index"))
                     .collect(),
             ),
-            other => panic!("unsupported argument shape in a golden file: {other}"),
+            Some(ArgSpec::Bytes { .. }) => ArgValue::Bytes(
+                numbers(value)
+                    .map(|n| u8::try_from(n).expect("a byte"))
+                    .collect(),
+            ),
+            None => match value {
+                serde_json::Value::Number(_) => ArgValue::Int(integer(value)),
+                serde_json::Value::String(_) => ArgValue::Text(text(value)),
+                serde_json::Value::Array(_) => ArgValue::Rgb(triples(value)),
+                other => panic!("unsupported argument shape in a golden file: {other}"),
+            },
         };
         args.insert(name.clone(), parsed);
     }
     args
+}
+
+fn integer(value: &serde_json::Value) -> i64 {
+    value.as_i64().expect("an integer argument")
+}
+
+fn text(value: &serde_json::Value) -> String {
+    value.as_str().expect("a string argument").to_owned()
+}
+
+fn numbers(value: &serde_json::Value) -> impl Iterator<Item = i64> + '_ {
+    value
+        .as_array()
+        .expect("a list of numbers")
+        .iter()
+        .map(integer)
+}
+
+fn triples(value: &serde_json::Value) -> Vec<[u8; 3]> {
+    value
+        .as_array()
+        .expect("a list of RGB triples")
+        .iter()
+        .map(|item| {
+            let triple = item.as_array().expect("an RGB triple");
+            assert_eq!(triple.len(), 3, "an RGB triple has three components");
+            let mut rgb = [0u8; 3];
+            for (slot, v) in rgb.iter_mut().zip(triple) {
+                *slot = u8::try_from(v.as_u64().expect("a byte")).expect("a byte");
+            }
+            rgb
+        })
+        .collect()
 }
 
 #[test]
@@ -121,7 +178,10 @@ fn vectors_match() {
                 device,
                 golden.mode,
                 &vector.command,
-                &to_args(&vector.args),
+                &to_args(
+                    device.commands.get(golden.mode).get(&vector.command),
+                    &vector.args,
+                ),
             )
             .unwrap_or_else(|e| panic!("{file} / {}: {e}", vector.name));
 
@@ -131,13 +191,14 @@ fn vectors_match() {
                 vector.name
             );
 
-            let actual_hex = encoded
-                .frame
-                .as_ref()
-                .map(|f| f.iter().map(|b| format!("{b:02x}")).collect::<String>());
+            let actual: Vec<String> = encoded
+                .frames
+                .iter()
+                .map(|f| f.iter().map(|b| format!("{b:02x}")).collect::<String>())
+                .collect();
             assert_eq!(
-                actual_hex.as_deref(),
-                vector.frame_hex.as_deref(),
+                actual,
+                vector.expected_frames(),
                 "{file} / {}: frame bytes",
                 vector.name
             );
@@ -148,7 +209,10 @@ fn vectors_match() {
                 device,
                 golden.mode,
                 &case.command,
-                &to_args(&case.args),
+                &to_args(
+                    device.commands.get(golden.mode).get(&case.command),
+                    &case.args,
+                ),
             );
             match result {
                 Ok(_) => panic!(
@@ -173,11 +237,11 @@ fn every_golden_file_names_a_known_device() {
     }
 }
 
-/// The reverse direction, and the one that actually keeps the vectors honest.
+/// The reverse direction: every command in the catalog must have a vector.
 ///
-/// A command with no vector is a command an implementation can get wrong
-/// without anything failing until it reaches hardware. CLAUDE.md requires one
-/// per command; this is what enforces it.
+/// An implementation can get a command with no vector wrong, and nothing fails
+/// until the bytes reach hardware. CLAUDE.md requires one vector per command;
+/// this test enforces it.
 #[test]
 fn every_catalog_command_has_a_vector() {
     let catalog = Catalog::embedded().expect("embedded catalog");

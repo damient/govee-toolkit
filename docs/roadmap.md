@@ -4,8 +4,8 @@ What is done and what is planned. The full feature list is in
 [`features.md`](features.md); why the work is shaped this way is in
 [`architecture.md`](architecture.md).
 
-The order below is a starting point, not a commitment — it will follow what
-people actually ask for. Open an issue if something matters to you.
+The order below is a starting point, not a commitment — it follows what people
+ask for. Open an issue if something matters to you.
 
 | # | Milestone | Status |
 | - | --------- | ------ |
@@ -22,7 +22,8 @@ people actually ask for. Open an issue if something matters to you.
 | 10 | Home Assistant custom component (LAN power + brightness first) | 🔜 Planned |
 | 11 | Homebridge plugin | 🔜 Planned |
 | 12 | Art-Net / DMX bridge | 🔜 Planned |
-| — | `ble` and `cloud` modes | 🔜 Planned, after the `lan` core |
+| — | `ble` mode — the transport, behind its own cargo feature | ✅ Done, verified on one device |
+| — | `cloud` mode | 🔜 Planned, after the `lan` core |
 
 Undocumented LAN commands are documented and formalized continuously, in
 [`protocol/lan.md`](protocol/lan.md) and `devices/*.yaml`, as they are

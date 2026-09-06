@@ -21,7 +21,7 @@ here, and the boundary is not negotiable.
   what a device does when it receives it, which field changed what. That is an
   observation, and observations are the substance of this repository.
 - Do **not** commit, quote at length, or attach to an issue or pull request any
-  artefact taken out of Govee software: decompiler or disassembler output,
+  artifact taken out of Govee software: decompiler or disassembler output,
   extracted strings, resources, assets, firmware images, or source recovered by
   any means. Knowledge gained from an application may be written down; the
   contents of that application may not be pasted.
@@ -248,7 +248,7 @@ not done until the three of them are green.
 
 `cargo test` also validates every `devices/*.yaml` and replays the conformance
 vectors in `tests/fixtures/golden/`. Both directions fail the suite: a vector
-naming a SKU no device file declares, and a command in the catalogue that no
+naming a SKU no device file declares, and a command in the catalog that no
 vector covers. Add the vector in the same pull request as the command.
 
 `packages/rust/crates/sim` lets you test without hardware. `cargo test` drives

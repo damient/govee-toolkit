@@ -1,0 +1,39 @@
+# A fictional device that paints zones by mask: one frame carries one color
+# and the zones that take it. Only the tests use it.
+schema_version: 1
+sku: "HTEST3"
+family: "test"
+name: "Masked segment device"
+
+capabilities:
+  segments:
+    count: 15
+    native_pixels: 42
+
+modes:
+  ble:
+    support: partial
+    capabilities: ["segments"]
+
+commands:
+  ble:
+    arm:
+      documented: true
+      role: segment_enable
+      frame: "33 05 15 ${on} <pad:20> <xor>"
+      args:
+        on: { type: int, range: [0, 1], role: enable }
+
+    paint:
+      documented: true
+      role: segment_color_masked
+      frame: "33 05 15 01 (${color}:rgb)×${n} ${mask:mask16} <pad:20> <xor>"
+      args:
+        n: { type: int, range: [1, 1] }
+        color: { type: rgb_list, max_len: 1, role: colors }
+        mask: { type: zones, count: 15, role: zones }
+
+measurements:
+  frame_rate:
+    ble:
+      - { zones: 15, clean_hz: 8 }

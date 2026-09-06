@@ -1,7 +1,8 @@
 # govee-toolkit
 
-Control Govee devices over the LAN from Rust, including undocumented commands
-found through reverse engineering. Unofficial, and not affiliated with Govee.
+Control Govee devices from Rust over the LAN or Bluetooth, including
+undocumented commands found through reverse engineering. Unofficial, and not
+affiliated with Govee.
 
 This is the reference implementation. Protocol logic lives here once, and every
 other language reaches it through a binding rather than a port — see
@@ -14,8 +15,13 @@ cargo add govee-toolkit
 ```
 
 Async, on Tokio. The `lan` feature is on by default and brings the UDP
-transport with it; turn it off and what is left is the codec alone — arguments
-in, bytes out, no socket and no runtime.
+transport with it. `ble` is off by default and brings the GATT transport, which
+needs a Bluetooth adapter on the host. Turn every feature off and what is left
+is the codec alone — arguments in, bytes out, no socket and no runtime.
+
+```bash
+cargo add govee-toolkit --features ble
+```
 
 ## Quick start
 
@@ -41,13 +47,13 @@ println!("served over {}", served.mode);
 ```
 
 `Served` carries the mode that ran the command, the device file entry that was
-sent and the `cmd` that went on the wire. With several modes enabled, which one
-served a command is not something a caller should have to guess.
+sent and the `cmd` that went on the wire. With several modes enabled, a caller
+reads which mode served a command rather than guesses it.
 
 ### The commands you can send
 
 Command names are entries in the device's YAML file, not identifiers in this
-crate. For the H61A0:
+crate. For the H61A0 over `lan`:
 
 ```rust
 govee.device(&id).send("power",      &Args::new().int("on", 0)).await?;
@@ -56,10 +62,39 @@ govee.device(&id).send("color",      &Args::new().int("r", 255).int("g", 40).int
 govee.device(&id).send("colortemp",  &Args::new().int("kelvin", 4000)).await?;
 ```
 
-`govee.catalog()` lists what a SKU declares, so a UI can build its controls from
-the catalog rather than hardcoding them. A name the device file does not define,
-or an argument outside its declared range, is an error before anything reaches
-the network.
+**A command carries the same name across modes; its arguments do not.** The
+device file declares them per mode, because the frames differ. The SDK picks the
+mode before it encodes anything. The same four commands over `ble`:
+
+```rust
+let zones: Vec<u16> = (0..15).collect();
+
+govee.device(&id).send("power",      &Args::new().int("on", 0)).await?;
+govee.device(&id).send("brightness", &Args::new().int("level", 60)).await?;
+// One color over the zones a mask names, rather than the whole strip.
+govee.device(&id).send("color",      &Args::new().rgb("colors", [[255, 40, 0]]).zones("zones", zones.clone())).await?;
+// The firmware renders no temperature here: ship the kelvin value and its RGB
+// rendering in the same frame, or the zones go dark.
+govee.device(&id).send("colortemp",  &Args::new().int("kelvin", 4000).int("white_r", 255).int("white_g", 209).int("white_b", 163).zones("zones", zones)).await?;
+```
+
+Give the `ble` command the `lan` arguments and it fails before anything reaches
+the wire — `unknown_arg` for `r`, `missing_arg` for `zones`. It never sends a
+frame with a guessed field.
+
+`govee.catalog()` lists what a SKU declares **for a mode**, so a UI can build
+its controls from the catalog rather than hardcoding them. A name the device
+file does not define, or an argument outside its declared range, is an error
+before anything reaches the network.
+
+Two runnable examples send every command of one device file, in order, to a real
+device: [`examples/lan_tour.rs`](examples/lan_tour.rs) and
+[`examples/ble_tour.rs`](examples/ble_tour.rs).
+
+```bash
+cargo run --example lan_tour
+cargo run --example ble_tour --features ble
+```
 
 ### Reading state
 
@@ -70,14 +105,29 @@ println!("{:?} at {:?}%", status.on, status.brightness);
 let cached = govee.device(&id).last_status();     // no I/O, may be None
 ```
 
-`status.raw` keeps the device's whole `msg.data`, so undocumented fields stay
-reachable without this crate modelling them.
+`status.raw` keeps everything the answer carried — the whole `msg.data` on a
+mode that replies in JSON, every captured field on one that replies in frames —
+so a caller reaches undocumented fields this crate does not model.
+
+Anything the SDK does not model reaches a caller through `read`, on a mode whose
+device file declares the layout of an answer. The names below are the file's:
+
+```rust
+let reply = govee.device(&id).read("read_software_version", &Args::new()).await?;
+println!("{}", reply.fields.to_json());          // {"version":"2.06.02"}
+```
+
+The device file decides which frame asks for a value, which bytes carry it and
+under which name. `read` fails with `no_reply_layout` in two cases:
+
+- the command declares no answer to read;
+- the mode replies in JSON rather than in frames.
 
 ### Segment streaming
 
 The segment channel is armed once and then fed frames. Writes never block: a
-source faster than the device replaces its own pending frame rather than backing
-up behind it.
+source faster than the device replaces its own pending frame rather than waits
+behind it.
 
 ```rust
 use govee_toolkit::{Rate, StreamOptions, Zones};
@@ -101,9 +151,14 @@ stream.close().await?;
   every LED, and fails when nobody has measured that number on the unit — it
   belongs to the physical strip, not to the SKU. `Zones::Exact(n)` picks a
   count.
-- `Rate::Measured` paces from `measurements.frame_rate` in the device file,
-  falling back to 10 Hz when it records none. That fallback is a starting point,
-  not a finding: measure your unit and record it.
+- `Rate::Measured` paces from `measurements.frame_rate` in the device file for
+  the mode the stream opens on, falling back to 10 Hz when it records none
+  there. That fallback is a starting point, not a finding: measure your unit and
+  record it.
+- A mode whose device file paints zones by mask carries one color per frame, so
+  a repaint costs one write per distinct color: a solid fill is one write. Such
+  a mode addresses the zones the device file declares, and refuses
+  `Zones::Native`: the firmware would trim such a mask in silence.
 - `frames_sent()` and `frames_superseded()` tell you whether your source is
   outrunning the device.
 
@@ -128,8 +183,9 @@ devices:
 what the configuration got wrong without failing the whole load. The full model
 is [`docs/modes.md`][modes].
 
-`ble` and `cloud` are declared modes with no transport yet. Enabling one is
-reported as `ModeNotImplemented` — never silently skipped, never substituted.
+`ble` needs the crate built with the `ble` feature, and `cloud` has no transport
+at all. Either way, an enabled mode this build cannot carry is reported as
+`ModeNotImplemented` — never silently skipped, never substituted.
 
 ## What this crate will not do to you
 
@@ -164,7 +220,9 @@ the one thing this project keeps in `devices/*.yaml`.
 | Layer | Where | Contents |
 | ----- | ----- | -------- |
 | Codec | [`src/codec/`](src/codec) | Device catalog, command encoding, raw frame codec. No I/O. |
-| Transport | [`src/lan/`](src/lan) | UDP: discovery, device cache, reused socket, per-device circuit breaker |
+| Transport | [`src/transport/`](src/transport) | What every mode shares: the `Transport` trait, device identity, errors, the per-device circuit breaker |
+| `lan` | [`src/lan/`](src/lan) | UDP: discovery, device cache, reused socket |
+| `ble` | [`src/ble/`](src/ble) | GATT: scan, one connection per device, paced writes |
 | Stream | [`src/stream/`](src/stream) | The segment channel: armed once, fed frames on a clock |
 | Facade | [`src/`](src) | Configuration, mode selection, events |
 
@@ -175,7 +233,7 @@ Two more live beside it and are never published:
 The layering is deliberate even though it is one crate. The codec does no I/O,
 so every protocol decision is testable without hardware and without a network —
 `tools/check-no-io.sh` fails the build if anything under `src/codec/` imports a
-socket, a runtime or the filesystem. The transport carries bytes for one mode
+socket, a runtime or the filesystem. A transport carries bytes for one mode
 and never chooses between modes. Choosing is the facade's job, and it chooses
 from breaker state already recorded, never by trying a mode and waiting for a
 timeout.

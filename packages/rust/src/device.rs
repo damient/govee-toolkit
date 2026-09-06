@@ -4,14 +4,17 @@
 //! to another one — see `docs/modes.md`.
 
 use crate::codec::{Args, Mode};
-use crate::error::{Error, Result};
+// Used by the doc comments only.
+#[cfg(doc)]
+use crate::error::Error;
+use crate::error::Result;
 use crate::event::Served;
 use crate::govee::Govee;
-use crate::lan::{DeviceId, DeviceStatus, Health};
 use crate::stream::{SegmentStream, StreamOptions};
+use crate::transport::{DeviceId, DeviceStatus, Health, Reply, Verify};
 
-/// A borrow of the SDK and one identity. It holds no state of its own: every
-/// call reads the configuration and the health recorded right now.
+/// A borrow of the SDK and one identity. It holds no state: every call reads
+/// the configuration and the health recorded now.
 #[derive(Debug, Clone)]
 pub struct DeviceHandle<'a> {
     govee: &'a Govee,
@@ -37,13 +40,13 @@ impl DeviceHandle<'_> {
         self.govee.inner.config.modes_for(&self.id)
     }
 
-    /// Its health in one mode, if that mode is known to a transport.
+    /// Its health in one mode.
+    ///
+    /// `None` when this build carries no transport for that mode, or when the
+    /// transport that serves it has never heard from this device.
     #[must_use]
     pub fn health(&self, mode: Mode) -> Option<Health> {
-        match mode {
-            Mode::Lan => self.govee.inner.lan.health(&self.id),
-            Mode::Ble | Mode::Cloud => None,
-        }
+        self.govee.transport(&self.id, mode).ok()?.health(&self.id)
     }
 
     /// Send a command, named as the device file names it.
@@ -64,29 +67,16 @@ impl DeviceHandle<'_> {
         let sku = self.govee.sku(&self.id)?;
         let encoded = self.govee.encode(&sku, mode, command, args)?;
 
-        // Fire-and-verify needs a request to verify with. A device file that
-        // declares no status command is not verified — the command still
-        // goes out.
+        // Fire-and-verify needs a request to verify with. Without a status
+        // command in the device file, the command still goes out, unverified.
         let verification = self.govee.status_request(&sku, mode).ok();
-        let verify = verification
-            .as_deref()
-            .map_or(crate::lan::Verify::None, crate::lan::Verify::With);
+        let verify = verification.map_or(Verify::None, Verify::With);
 
-        let sent = match mode {
-            Mode::Lan => {
-                self.govee
-                    .inner
-                    .lan
-                    .send(&self.id, &encoded, verify)
-                    .await?
-            }
-            Mode::Ble | Mode::Cloud => {
-                return Err(Error::ModeNotImplemented {
-                    id: self.id.clone(),
-                    mode,
-                });
-            }
-        };
+        let sent = self
+            .govee
+            .transport(&self.id, mode)?
+            .send(&self.id, &encoded, verify)
+            .await?;
 
         Ok(Served {
             id: sent.id,
@@ -105,11 +95,15 @@ impl DeviceHandle<'_> {
     ///
     /// # Errors
     ///
-    /// [`Error::ModeNotImplemented`] if the chosen mode is not `lan`,
+    /// [`Error::ModeNotImplemented`] if this build carries no transport for
+    /// the chosen mode,
     /// [`Error::NoRoleCommand`] if the device file marks no entry
-    /// `role: segment_enable` or `role: segment_color`,
+    /// `role: segment_enable`, and none `role: segment_color` or
+    /// `role: segment_color_masked`,
     /// [`Error::ZoneCountUnknown`] if the count asked for is not recorded for
     /// this unit,
+    /// [`Error::NativeZonesUnreachable`] or [`Error::ZoneCountUnsupported`] if
+    /// the mode paints by zone mask and cannot address the count asked for,
     /// [`Error::Codec`] if the zone count is outside what the command declares,
     /// or [`Error::Transport`] if arming cannot be sent.
     pub async fn open_stream(&self, options: StreamOptions) -> Result<SegmentStream> {
@@ -120,44 +114,69 @@ impl DeviceHandle<'_> {
     ///
     /// # Errors
     ///
-    /// As for [`DeviceHandle::send`], plus [`crate::lan::Error::Unreachable`]
-    /// if nothing answers in time.
+    /// As for [`DeviceHandle::send`], plus
+    /// [`crate::transport::Error::Unreachable`] if nothing answers in time.
     pub async fn status(&self) -> Result<DeviceStatus> {
         let mode = self.govee.choose(&self.id)?;
         let request = self
             .govee
             .status_request(&self.govee.sku(&self.id)?, mode)?;
-        match mode {
-            Mode::Lan => Ok(self.govee.inner.lan.status(&self.id, &request).await?),
-            Mode::Ble | Mode::Cloud => Err(Error::ModeNotImplemented {
-                id: self.id.clone(),
-                mode,
-            }),
-        }
+        Ok(self
+            .govee
+            .transport(&self.id, mode)?
+            .status(&self.id, &request)
+            .await?)
+    }
+
+    /// Run a command's exchanges and return what its `reply:` layouts
+    /// captured.
+    ///
+    /// This is how a value the SDK does not model reaches a caller. The device
+    /// file names the frames that ask for it, the bytes that carry it and the
+    /// name it comes back under. None of that lives in this crate.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::send`], plus
+    /// [`crate::transport::Error::NoReplyLayout`] if the command declares no
+    /// reply to read or the chosen mode does not answer in frames, and
+    /// [`crate::transport::Error::Unreachable`] if nothing answers in time.
+    pub async fn read(&self, command: &str, args: &Args) -> Result<Reply> {
+        let mode = self.govee.choose(&self.id)?;
+        let sku = self.govee.sku(&self.id)?;
+        let request = self.govee.encode(&sku, mode, command, args)?;
+        Ok(self
+            .govee
+            .transport(&self.id, mode)?
+            .read(&self.id, &request)
+            .await?)
     }
 
     /// The last status heard, without asking for a new one.
     ///
-    /// `None` unless `lan` is enabled for this device: the recorded status
-    /// belongs to that transport, and handing it back under another mode would
-    /// be a silent substitution.
+    /// Read from the mode that would serve a command right now. `None` if no
+    /// enabled mode can, or if that transport has heard nothing yet: a status
+    /// recorded by one transport handed back under another mode would be a
+    /// silent substitution.
     #[must_use]
     pub fn last_status(&self) -> Option<DeviceStatus> {
-        if !self.modes().contains(&Mode::Lan) {
-            return None;
-        }
-        self.govee.inner.lan.last_status(&self.id)
+        let mode = self.govee.choose(&self.id).ok()?;
+        self.govee
+            .transport(&self.id, mode)
+            .ok()?
+            .last_status(&self.id)
     }
 
-    /// Watch this device's status as replies arrive.
+    /// Watch this device's status as answers arrive.
     ///
-    /// `None` unless `lan` is enabled for this device, as for
-    /// [`DeviceHandle::last_status`].
+    /// From the same mode as [`DeviceHandle::last_status`], and `None` under
+    /// the same conditions.
     #[must_use]
     pub fn watch_status(&self) -> Option<tokio::sync::watch::Receiver<Option<DeviceStatus>>> {
-        if !self.modes().contains(&Mode::Lan) {
-            return None;
-        }
-        self.govee.inner.lan.watch_status(&self.id)
+        let mode = self.govee.choose(&self.id).ok()?;
+        self.govee
+            .transport(&self.id, mode)
+            .ok()?
+            .watch_status(&self.id)
     }
 }

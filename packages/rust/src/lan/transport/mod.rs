@@ -1,28 +1,26 @@
 //! Discovery, the socket, the cache and the breaker, tied together.
 //!
-//! The shape of the send path is the whole point of this module:
+//! The send path:
 //!
 //! 1. resolve the device from what is already known — cache or a past scan,
 //!    **never** a scan issued for this command;
 //! 2. ask the breaker, which answers from recorded state and touches no socket;
 //! 3. write the datagram and return.
 //!
-//! Verification happens after the fact, on its own task: a `devStatus` request
-//! whose answer — or absence — is what feeds the breaker. That is the
-//! fire-and-verify of `docs/protocol/lan.md` §1, and it is why a command does
-//! not pay for a round-trip it does not need.
+//! Verification runs after the fact, on its own task: a `devStatus` request
+//! whose answer — or absence — feeds the breaker. This is the fire-and-verify
+//! of `docs/protocol/lan.md` §1, and it keeps a round-trip off the send path.
 //!
 //! Replies carry no request id. The source address is the only correlation
 //! there is, so each device owns a [`tokio::sync::watch`] channel holding its
 //! last known status: a caller waiting for one waits for that value to change,
 //! and every waiter is woken by the same reply.
 
-mod events;
+mod impl_transport;
 mod inbound;
 mod options;
 mod shared;
 
-use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -30,20 +28,19 @@ use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, watch};
 use tokio::task::JoinHandle;
 
-use self::events::health_of;
-pub use self::events::{Event, Health, KnownDevice, Sent};
 use self::inbound::{receive_loop, refresh_loop};
-pub use self::options::{Options, Verify};
+pub use self::options::Options;
 use self::shared::{Shared, datagram};
 use crate::codec::{Encoded, Mode};
-use crate::lan::DeviceId;
-use crate::lan::discovery::DiscoveredDevice;
+use crate::lan::discovery::{DiscoveredDevice, Endpoints};
+use crate::lan::socket::Socket;
 // Referenced from the doc comments below, nowhere else.
 #[cfg(doc)]
-use crate::lan::error::Error;
-use crate::lan::error::Result;
-use crate::lan::socket::Socket;
-use crate::lan::status::DeviceStatus;
+use crate::transport::error::Error;
+use crate::transport::error::Result;
+use crate::transport::registry::{Devices, publish_sent};
+use crate::transport::status::DeviceStatus;
+use crate::transport::{DeviceId, Event, Health, KnownDevice, Sent, Verify};
 
 /// Background tasks, stopped when the last [`Transport`] handle goes away.
 struct Tasks(Vec<JoinHandle<()>>);
@@ -83,8 +80,8 @@ impl Transport {
     /// # Errors
     ///
     /// [`Error::Io`] if the socket cannot be bound.
-    // Nothing here awaits, but the background tasks are spawned onto the
-    // current runtime: `async` is what states that there has to be one.
+    // Nothing here awaits. `async` states that a runtime must exist: the
+    // background tasks are spawned onto the current one.
     #[allow(clippy::unused_async, clippy::unused_async_trait_impl)]
     pub async fn start(options: Options) -> Result<Self> {
         let socket = Socket::bind(&options.endpoints)?;
@@ -97,7 +94,7 @@ impl Transport {
             policy: options.policy,
             status_timeout: options.status_timeout,
             verify_interval: options.verify_interval,
-            devices: Mutex::new(HashMap::new()),
+            devices: Devices::new(),
             cache: Mutex::new(options.cache),
             events,
             replies,
@@ -127,6 +124,12 @@ impl Transport {
         self.shared.events.subscribe()
     }
 
+    /// Where this transport sends and listens.
+    #[must_use]
+    pub fn endpoints(&self) -> Endpoints {
+        self.shared.endpoints
+    }
+
     /// The address the socket is bound to.
     ///
     /// # Errors
@@ -151,36 +154,22 @@ impl Transport {
     /// Every device the transport knows, from a scan or from the cache.
     #[must_use]
     pub fn devices(&self) -> Vec<KnownDevice> {
-        let now = Instant::now();
-        let Ok(devices) = self.shared.devices.lock() else {
-            return Vec::new();
-        };
-        let mut out: Vec<KnownDevice> = devices
-            .iter()
-            .map(|(id, tracked)| KnownDevice {
-                id: id.clone(),
-                ip: tracked.ip,
-                sku: tracked.sku.clone(),
-                health: health_of(&tracked.breaker, now),
-            })
-            .collect();
-        out.sort_by(|a, b| a.id.cmp(&b.id));
-        out
+        let port = self.shared.endpoints.control_port;
+        self.shared
+            .devices
+            .known(|tracked| SocketAddr::new(tracked.ip, port).to_string())
     }
 
     /// The SKU a device reports, if it is known.
     #[must_use]
     pub fn sku(&self, id: &DeviceId) -> Option<String> {
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).map(|d| d.sku.clone())
+        self.shared.devices.sku(id)
     }
 
     /// A device's health in this mode, if it is known.
     #[must_use]
     pub fn health(&self, id: &DeviceId) -> Option<Health> {
-        let now = Instant::now();
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).map(|d| health_of(&d.breaker, now))
+        self.shared.devices.health(id)
     }
 
     /// Watch a device's status as replies arrive.
@@ -190,15 +179,13 @@ impl Transport {
     /// that.
     #[must_use]
     pub fn watch_status(&self, id: &DeviceId) -> Option<watch::Receiver<Option<DeviceStatus>>> {
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).map(|d| d.status.subscribe())
+        self.shared.devices.watch_status(id)
     }
 
     /// The last status heard from a device, without asking for a new one.
     #[must_use]
     pub fn last_status(&self, id: &DeviceId) -> Option<DeviceStatus> {
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).and_then(|d| d.status.borrow().clone())
+        self.shared.devices.last_status(id)
     }
 
     /// Write a command to the socket.
@@ -213,11 +200,11 @@ impl Transport {
     /// identity, [`Error::Unavailable`] if the breaker refuses this mode right
     /// now — decided from recorded state, without touching the network — or
     /// [`Error::Io`] if the write fails.
-    pub async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify<'_>) -> Result<Sent> {
+    pub async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent> {
         let now = Instant::now();
         let (addr, verifying) =
             self.shared
-                .route_and_claim(id, now, matches!(verify, Verify::With(_)))?;
+                .route_and_claim(id, now, matches!(&verify, Verify::With(_)))?;
         let bytes = datagram(command)?;
 
         self.shared.socket.send_to(&bytes, addr).await?;
@@ -226,20 +213,15 @@ impl Transport {
             id: id.clone(),
             mode: Mode::Lan,
             cmd: command.cmd.clone(),
-            addr,
+            endpoint: addr.to_string(),
         };
-        // Cloning `Sent` allocates twice; with nobody listening the broadcast
-        // would drop it straight away.
-        if self.shared.events.receiver_count() > 0 {
-            let _ = self.shared.events.send(Event::Sent(sent.clone()));
-        }
+        publish_sent(&self.shared.events, &sent);
 
         if let Verify::With(request) = verify
             && verifying
         {
             let shared = Arc::clone(&self.shared);
             let id = id.clone();
-            let request = request.clone();
             let timeout = self.shared.status_timeout;
             tokio::spawn(async move {
                 // The result is already recorded against the breaker and

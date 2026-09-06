@@ -3,9 +3,10 @@
 Which Govee devices work, in which [modes](modes.md), and how far.
 
 > 🚧 One device verified so far, the **H61A0**: `lan` mode fully exercised,
-> including the undocumented segment channel. The other 270 models on Govee's
-> list are untested rather than unsupported — they need someone with the
-> hardware to confirm them.
+> including the undocumented segment channel, and `ble` mode everywhere except
+> Wi-Fi provisioning, which has never been sent to a device. The other 270
+> models on Govee's list are untested rather than unsupported — they need
+> someone with the hardware to confirm them.
 
 The authoritative data lives in [`../devices/`](../devices/), one YAML file per
 SKU or SKU family. This page is the human-readable view of it — the YAML wins on
@@ -64,23 +65,27 @@ such in the device file until someone verifies them.
 <!-- generated: support-by-sku -->
 | SKU | Family | Name | `lan` | `ble` | `cloud` | Verified |
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
-| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | partial | ? | partial | ✅ 2026-09-04 |
+| [H6114](../devices/H6114.yaml) | rgb-car-strip | RGB Car LED Strip Lights | none | full | none | ✅ 2026-09-06 |
+| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | partial | partial | partial | ✅ 2026-09-06 |
 <!-- /generated -->
 
 ## Capabilities by SKU
 
 <!-- generated: capabilities-by-sku -->
-| SKU | brightness | color | colortemp | power | scenes | segment_brightness | segments |
-| --- | ---------- | ----- | --------- | ----- | ------ | ------------------ | -------- |
-| H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| SKU | brightness | color | colortemp | music | power | scenes | segment_brightness | segments |
+| --- | ---------- | ----- | --------- | ----- | ----- | ------ | ------------------ | -------- |
+| H6114 | ✅ | ✅ | — | ✅ | ✅ | ✅ | — | — |
+| H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 <!-- /generated -->
 
 Capabilities are hardware facts; what is reachable depends on the active mode.
 The columns are the capabilities the device files declare, so one no file
 declares has no column.
 Where the undocumented `razer` channel is implemented, `lan` reaches per-segment
-color beyond the 10 zones the Govee app exposes, but **not** internal scenes or
-per-segment brightness, which are cloud-only whatever the device.
+color beyond the 10 zones the Govee app exposes, but neither internal scenes nor
+per-segment brightness. On the H61A0 `ble` reaches per-segment brightness and a
+narrower per-segment color — fifteen zones by mask, against the unit's 42
+individually addressable LEDs.
 
 ## Prerequisites per mode
 
@@ -88,16 +93,19 @@ per-segment brightness, which are cloud-only whatever the device.
   app, and the device must be on the same network as the host. Not every SKU
   exposes the switch: Govee's own list of models that do is mirrored in
   [`lan-supported-devices.md`](lan-supported-devices.md).
-- **`ble`** — a Bluetooth adapter on the host, and the device within range.
+- **`ble`** — a Bluetooth adapter on the host, and the device within range. One
+  connection at a time: a connected device stops advertising, so a scan run
+  while another app holds the link finds nothing.
 - **`cloud`** — a Govee API key, and the device registered to that account.
 
 ## Known limitations
 
 Verified on H61A0 only — confirm before generalizing:
 
-- **Internal scenes, DIY scenes and per-segment brightness are cloud-only.** They
-  travel over MQTT to AWS IoT, not over UDP. Over `lan`, brightness is global.
-  See [`protocol/lan.md`](protocol/lan.md) § 2.5.
+- **Internal scenes and DIY scenes are cloud-only.** They travel over MQTT to
+  AWS IoT, not over UDP. See [`protocol/lan.md`](protocol/lan.md) § 2.5.
+- **Per-segment brightness does not travel over `lan`.** Brightness is global
+  there. `ble` carries it, per zone and by mask, and so does the cloud.
 - **Nothing is ever rejected.** Out-of-range values are clamped in silence and
   unknown commands are ignored with no error — a failed probe looks exactly like
   an unsupported feature.

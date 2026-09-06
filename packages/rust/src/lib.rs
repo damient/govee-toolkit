@@ -1,4 +1,5 @@
-//! Control Govee devices over the LAN, including undocumented commands.
+//! Control Govee devices over the LAN or Bluetooth, including undocumented
+//! commands.
 //!
 //! Unofficial, and not affiliated with Govee. The protocol is implemented once,
 //! here; every other language binds to this crate rather than porting it — see
@@ -7,20 +8,24 @@
 //! # Layers
 //!
 //! - [`codec`] — `devices/*.yaml` in, exact bytes out. No I/O, no SKU name, no
-//!   command name. Available with no features enabled at all.
+//!   command name. Available with no features enabled.
+//! - [`transport`] — what every mode has in common: the `Transport` trait, the
+//!   device identity, the circuit breaker and the errors.
 //! - [`lan`] — the UDP transport: discovery, a device cache, one shared socket
 //!   and a per-device circuit breaker. Behind the `lan` feature, on by default.
-//! - [`stream`] — the raw segment channel, armed once and fed frames at a rate
-//!   taken from what was measured on the device.
+//! - [`ble`] — the GATT transport: one connection per device, a paced write
+//!   budget and the same per-device breaker. Behind the `ble` feature.
+//! - [`stream`] — the raw segment channel. It arms once, then takes frames at
+//!   the rate the device file records.
 //! - The facade, at the crate root — configuration, mode selection and events.
 //!
-//! `ble` and `cloud` are declared modes with no transport yet. Enabling one is
-//! reported as such; it is never silently skipped, and never substituted with
-//! another mode.
+//! `cloud` is a declared mode with no transport yet. The SDK reports it as
+//! such: it never skips the mode in silence, and never substitutes another one.
 //!
 //! # Features
 //!
 //! - `lan` *(default)* — the UDP transport and the facade above it.
+//! - `ble` — the GATT transport, and the facade above it.
 //!
 //! With default features off, what remains is the codec alone: no socket, no
 //! async runtime, no `tokio`. Every binding encodes through that build, so it
@@ -28,12 +33,13 @@
 //!
 //! # Choosing a mode
 //!
-//! The mode is picked from breaker state already known, before anything is
-//! encoded — never by trying one and waiting for a timeout. It is picked from
-//! the modes the user enabled for that device and from nothing else: a device
-//! that cannot be reached is an error, and a command the chosen mode does not
-//! carry fails rather than being approximated. Every command reports which
-//! mode served it. The rules are `docs/modes.md`.
+//! The SDK chooses the mode from breaker state it already holds, before it
+//! encodes anything — never by a trial send that waits for a timeout. It
+//! chooses among the modes the user enabled for that device and nothing else:
+//! modes are explicit, never a fallback chain. A device it cannot reach is an
+//! error. A command the chosen mode does not carry fails, and the SDK never
+//! approximates it. Every command reports which mode served it. The rules are
+//! `docs/modes.md`.
 //!
 //! ```no_run
 //! use govee_toolkit::{Args, Config, Govee};
@@ -55,39 +61,43 @@
 
 pub mod codec;
 
+#[cfg(feature = "ble")]
+pub mod ble;
 #[cfg(feature = "lan")]
 pub mod lan;
 
-// The facade below needs a transport to be worth compiling. When `ble` and
-// `cloud` land, every `feature = "lan"` here becomes `any(feature = "lan", …)`.
-#[cfg(feature = "lan")]
+// The facade needs a transport, but not a particular one. Every gate here names
+// the modes that carry one, so `cloud` joins by widening the list.
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub mod config;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub mod error;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub mod paths;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub mod stream;
+#[cfg(any(feature = "lan", feature = "ble"))]
+pub mod transport;
 
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 mod device;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 mod event;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 mod govee;
 
 pub use codec::{Args, Catalog, Mode};
-#[cfg(feature = "lan")]
-pub use config::{Config, DeviceConfig, LanConfig, Problem};
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
+pub use config::{Config, DeviceConfig, LanConfig, Problem, StreamConfig};
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use device::DeviceHandle;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use error::{Error, Result};
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use event::{Device, Event, Served};
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use govee::Govee;
-#[cfg(feature = "lan")]
-pub use lan::{DeviceId, DeviceStatus, Health, State};
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use stream::{Rate, SegmentStream, StreamOptions, Zones};
+#[cfg(any(feature = "lan", feature = "ble"))]
+pub use transport::{DeviceId, DeviceStatus, Health, Reply, State, Transport};

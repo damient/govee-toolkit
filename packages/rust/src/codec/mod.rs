@@ -34,10 +34,13 @@
 pub mod args;
 pub mod capabilities;
 pub mod catalog;
+pub mod chunk;
 pub mod command;
 pub mod error;
+pub mod exchange;
 pub mod frame;
 pub mod measurements;
+pub mod reply;
 pub mod validate;
 
 use std::collections::BTreeMap;
@@ -45,10 +48,13 @@ use std::collections::BTreeMap;
 pub use args::{ArgValue, Args};
 pub use capabilities::{Capabilities, CapabilityParams, ModeCapabilities, Reason};
 pub use catalog::{ArgRole, ArgSpec, Command, Device, Mode, ModeSupport, Modes, Role, Support};
+pub use chunk::Chunk;
 pub use command::{Encoded, encode};
 pub use error::{Error, Result};
+pub use exchange::{Exchange, Exchanges, Step};
 pub use frame::Frame;
-pub use measurements::{FrameRate, Measurements};
+pub use measurements::{FrameRate, FrameRates, Measurements};
+pub use reply::Captured;
 
 include!(concat!(env!("OUT_DIR"), "/devices.rs"));
 
@@ -62,8 +68,8 @@ pub const SCHEMA_VERSION: u32 = 1;
 
 /// A device file that replaced one already in the catalog.
 ///
-/// An override is a local escape hatch, not a contribution channel: it shadows
-/// what the build shipped, so it has to be visible. Log every one of these.
+/// An override shadows what the build shipped, so it must be visible. Log
+/// every one.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Overridden {
     /// The SKU that was replaced.
@@ -120,14 +126,13 @@ impl Catalog {
 
     /// Replace catalog entries with locally supplied files.
     ///
-    /// This is the escape hatch behind a user's own device directory: a file
-    /// here replaces the one the build shipped for that SKU, wholesale. It is
-    /// deliberately not the default — a new SKU normally arrives with a
-    /// release, so that what one person's device does is not silently what
-    /// everyone else's is assumed to do.
+    /// A file here replaces the one the build shipped for that SKU, wholesale.
+    /// This is not the default: a new SKU normally arrives with a release, so
+    /// that one person's device does not silently define the model for
+    /// everyone.
     ///
-    /// Returns what was replaced, so a caller can report it. Two files inside
-    /// one overlay claiming the same SKU is still an error: that is a mistake,
+    /// Returns what was replaced, so a caller can report it. Two files in one
+    /// overlay that claim the same SKU is still an error: that is a mistake,
     /// not an override.
     ///
     /// # Errors

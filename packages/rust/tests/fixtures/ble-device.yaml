@@ -1,0 +1,44 @@
+# A fictional device that declares its commands for `ble` alone: no envelope,
+# no `cmd:`, 20-byte frames, and `reply:` layouts to read the answers back. It
+# lets the tests exercise dispatch to a mode other than `lan` without a radio.
+schema_version: 1
+sku: "HTEST4"
+family: "test"
+name: "Frame-only device on the ble wire"
+
+capabilities: {}
+
+modes:
+  ble:
+    support: full
+    capabilities: all
+
+commands:
+  ble:
+    power:
+      documented: false
+      frame: "33 01 ${on} <pad:20> <xor>"
+      args:
+        on: { type: int, range: [0, 1] }
+      notes: "See docs/protocol/ble.md."
+
+    state:
+      documented: false
+      role: status
+      frames:
+        - send: "aa 01 <pad:20> <xor>"
+          reply: "aa 01 ${lit}"
+        - send: "aa 04 <pad:20> <xor>"
+          reply: "aa 04 ${level}"
+      args:
+        lit: { type: int, range: [0, 1], role: "on" }
+        level: { type: int, range: [0, 100], role: brightness }
+      notes: "See docs/protocol/ble.md."
+
+    software:
+      documented: false
+      frame: "aa 21 <pad:20> <xor>"
+      reply: "aa 21 ${version:ascii}"
+      args:
+        version: { type: string }
+      notes: "See docs/protocol/ble.md."
