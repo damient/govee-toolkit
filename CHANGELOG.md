@@ -29,15 +29,23 @@ at.
   colour: the hardware is RGB, so the file declares power, brightness, colour,
   scenes and music, and no zone capability. `lan` and `cloud` are `none`,
   because Govee gives the model one radio, Bluetooth.
-- `modes.ble` is `partial`, verified on the unit against soft version 2.03.11
-  and hard version 2.01.01. The commands are power, brightness, colour and the
-  scene sub-mode, plus four reads: power, brightness, the live sub-mode and the
-  two versions. Music is `unimplemented`. Each command is `documented: false`
+- `modes.ble` is `full`, verified on the unit against soft version 2.03.11
+  and hard version 2.01.01. The commands are power, brightness, colour, the
+  scene sub-mode and the music sub-mode, plus four reads: power, brightness,
+  the live sub-mode and the two versions. Each command is `documented: false`
   and points to the section of [`docs/protocol/ble.md`](docs/protocol/ble.md)
   that describes it.
 - The colour sub-mode of this family is `13`, and its payload carries a 16-bit
   kelvin field between the two RGB triplets. Sub-mode `2`, which an older
   dialect uses, is acknowledged with a success code and then ignored.
+- The music sub-mode of this family is `19`. The device listens on its own
+  microphone. The frame carries `effect`, `sensitivity`, one byte nobody
+  explained, a colour mode and an RGB triplet. `effect` is `0` for the dynamic
+  rendering and `1` for the calm one. `sensitivity` runs `1..100`. The colour
+  mode is `0` to leave the colours to the firmware, which then ignores the
+  triplet and keeps the last one it was given, and `1` to impose the triplet.
+  Sub-modes `14`, `17`, `3` and `22`, which other dialects use, are acknowledged
+  with a success code and then ignored.
 - Brightness takes the whole byte, `0..255`, and not the percent the other
   family takes. `0` renders nothing and does **not** turn the device off: it
   reports itself on with a brightness of 0.
@@ -50,9 +58,11 @@ at.
 
 The firmware fades from one colour to the next and fades in at power on. `33 A3`,
 which sets zone interpolation on a device that has zones, is accepted here and
-changes nothing observable. Scene identifiers were not enumerated. Music, DIY
-and Wi-Fi provisioning were not exercised. No BLE capture has been redacted and
-committed yet, so every `capture:` in the file is empty.
+changes nothing observable. Scene identifiers were not enumerated. DIY and
+Wi-Fi provisioning were not exercised. The firmware accepts an effect and a
+sensitivity past the ranges above and reads the value back, so those ranges are
+the ones the vendor app drives. No BLE capture has been redacted and committed
+yet, so every `capture:` in the file is empty.
 
 #### Changed
 

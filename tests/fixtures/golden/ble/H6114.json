@@ -85,6 +85,54 @@
       "source": "docs/protocol/ble.md 2.7 \u2014 exercised on the unit"
     },
     {
+      "name": "music, the dynamic effect at the top sensitivity, colours left to the firmware",
+      "command": "music",
+      "args": {
+        "effect": 0,
+        "sensitivity": 100,
+        "color_mode": 0,
+        "r": 0,
+        "g": 0,
+        "b": 0
+      },
+      "frames_hex": [
+        "3305130064000000000000000000000000000041"
+      ],
+      "source": "docs/protocol/ble.md 2.8 \u2014 worked out from the layout; the vendor app set this state on the unit, which reported it at `aa 05` as 13 00 64 00 00"
+    },
+    {
+      "name": "music, the calm effect, colours left to the firmware",
+      "command": "music",
+      "args": {
+        "effect": 1,
+        "sensitivity": 99,
+        "color_mode": 0,
+        "r": 0,
+        "g": 0,
+        "b": 0
+      },
+      "frames_hex": [
+        "3305130163000000000000000000000000000047"
+      ],
+      "source": "docs/protocol/ble.md 2.8 \u2014 exercised on the unit, which read the state back as 13 01 63 00 00"
+    },
+    {
+      "name": "music, the calm effect at the lowest sensitivity, on a red the caller imposes",
+      "command": "music",
+      "args": {
+        "effect": 1,
+        "sensitivity": 1,
+        "color_mode": 1,
+        "r": 255,
+        "g": 0,
+        "b": 0
+      },
+      "frames_hex": [
+        "33051301010001ff0000000000000000000000db"
+      ],
+      "source": "docs/protocol/ble.md 2.8 \u2014 worked out from the layout; the vendor app set this state on the unit, which reported it at `aa 05` as 13 01 01 00 01 ff 00 00"
+    },
+    {
       "name": "status: power, then brightness",
       "command": "status",
       "args": {},

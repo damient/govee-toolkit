@@ -197,6 +197,37 @@ than protocol, and the names the vendor app gives them do not match what a
 device plays. Nothing here maps an identifier to an effect: a device file
 records the ones somebody watched on its unit.
 
+### 2.8 Music sub-mode
+
+```
+33 05 <sub-mode> <effect> <sensitivity> <?> <0|1> <R G B>
+```
+
+The device listens on its own microphone and renders what it hears. The
+sub-mode byte is a property of the family: one family answers to 19, and 14,
+17, 3 and 22, which other dialects carry, are acknowledged with a success code
+and then played by nothing — see §1.4. The device file says which one its unit
+takes.
+
+The fields, on the family measured:
+
+- `effect` selects the rendering. `0` is the dynamic one and `1` is the calm
+  one.
+- `sensitivity` is how loud a sound must be to move the light. The vendor app
+  drives `1..100`.
+- The byte after the sensitivity is `0` in every frame the vendor app writes.
+  Nobody established what it carries.
+- The last flag chooses the colors. `0` lets the firmware choose them and
+  ignores the triplet, which the device keeps stored. `1` plays the triplet.
+
+Two traps:
+
+- the firmware stores every byte of this frame and reports it back at §3, an
+  effect it does not render included. A read that echoes a value is not
+  evidence that the device plays it;
+- the vendor app also offers the microphone of the phone as the source. That is
+  not a field of this frame. It is the channel of §8.
+
 ## 3. Reads — `proType` `0xAA`
 
 Each read is answered on the notify characteristic, under the same two leading
@@ -311,6 +342,21 @@ A failed probe and an unimplemented feature look identical: the firmware answers
 nothing either way. Assume a malformed request before concluding that a device
 lacks a capability, and re-check after a firmware update — behavior changes
 without notice.
+
+## 8. Audio from the host — `proType` `0xA5`
+
+Not implemented. The host computes a color from the audio it captures and
+writes one frame per color. The frames are shorter than 20 bytes and the last
+byte is the **sum** of the bytes before it, not the XOR of §1.2:
+
+```
+a5 02 90                request, does the device carry this channel
+a5 02 83 <R G B>        one color
+```
+
+A device answered the first frame with `a5 02 10 01`. Nothing else was
+established here: no frame of this channel was seen to change what a device
+renders.
 
 ## Captures
 

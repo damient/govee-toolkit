@@ -36,15 +36,13 @@ modes:
       Bluetooth, the unit runs off the 12 V cigarette lighter socket, and the
       model is absent from Govee's LAN-control list.
   ble:
-    support: partial
-    capabilities: [power, brightness, color, scenes]
-    unreachable:
-      music: unimplemented
+    support: full
+    capabilities: [power, brightness, color, scenes, music]
+    unreachable: {}
     notes: >-
-      Reaches power, brightness, color and the scene sub-mode, plus the reads
-      below. The color sub-mode is 13 and its payload carries a 16-bit kelvin
-      field between the two RGB triplets. Music has a sub-mode of its own that
-      this file declares no command for. See docs/protocol/ble.md.
+      Reaches every capability the hardware has, plus the reads below. The color
+      sub-mode is 13 and its payload carries a 16-bit kelvin field between the
+      two RGB triplets. The music sub-mode is 19. See docs/protocol/ble.md.
   cloud:
     support: none
     capabilities: []
@@ -112,6 +110,28 @@ commands:
         to an effect. See docs/protocol/ble.md 2.7.
       capture: ""         # TODO
 
+    music:
+      documented: false
+      frame: "33 05 13 ${effect} ${sensitivity} 00 ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
+      args:
+        effect: { type: int, range: [0, 1] }
+        sensitivity: { type: int, range: [1, 100] }
+        color_mode: { type: int, range: [0, 1] }
+        r: { type: int, range: [0, 255] }
+        g: { type: int, range: [0, 255] }
+        b: { type: int, range: [0, 255] }
+      notes: >-
+        Sub-mode 19. The device listens on its own microphone. `effect` 0 is the
+        dynamic rendering and 1 is the calm one. `color_mode` 0 lets the
+        firmware choose the colors and ignores the triplet, which the device
+        keeps stored from the last frame that carried one; 1 plays the triplet.
+        The byte between the sensitivity and the color mode is 0 in every frame
+        the vendor app writes, and nothing established what it carries. The
+        firmware also accepts a value past the two ranges above and reads it
+        back: those ranges are the ones the vendor app drives. See
+        docs/protocol/ble.md 2.8.
+      capture: ""         # TODO
+
     status:
       documented: false
       role: status
@@ -136,10 +156,11 @@ commands:
         payload: { type: bytes, max_len: 8 }
       notes: >-
         The live sub-mode and its eight payload bytes, left uninterpreted: their
-        meaning depends on the sub-mode, and only the color one was worked out.
-        This read reports what is playing — writing a color moved it to 13 with
-        that color, and writing a scene moved it to 4 with that identifier. See
-        docs/protocol/ble.md 3.
+        meaning depends on the sub-mode, and the color one and the music one are
+        the two this file works out. This read reports what is playing — writing
+        a color moved it to 13 with that color, writing a scene moved it to 4
+        with that identifier, and writing music moved it to 19 with every field
+        of the frame. See docs/protocol/ble.md 3.
       capture: ""         # TODO
 
     read_software_version:
@@ -190,7 +211,11 @@ verified:
     not an applied write on this wire. The firmware fades between two colors and
     fades in at power on; `33 A3`, which sets zone interpolation on the H61A0,
     is accepted here and changes nothing observable, over six alternations
-    spaced four seconds apart in each position. Music, DIY and Wi-Fi
-    provisioning were not exercised. Scene identifiers were not enumerated. No
-    ble capture has been redacted and committed yet, so every `capture:` above
-    is empty.
+    spaced four seconds apart in each position. The music sub-mode is 19: 14,
+    17, 3 and 22, which other dialects use, are acknowledged with a success code
+    and then ignored, and the live sub-mode stays where it was. Every music
+    field was sent to the unit and its effect observed, and each one was read
+    back at `aa 05` — both from a frame written here and from the state the
+    vendor app wrote. DIY and Wi-Fi provisioning were not exercised. Scene
+    identifiers were not enumerated. No ble capture has been redacted and
+    committed yet, so every `capture:` above is empty.
