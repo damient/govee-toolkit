@@ -15,6 +15,8 @@ use tokio::time::MissedTickBehavior;
 use crate::codec::{Args, Encoded, Mode};
 use crate::error::{Error, Result};
 use crate::govee::Govee;
+use crate::stream::paint;
+use crate::stream::resolve::Painter;
 use crate::transport::{DeviceId, Verify};
 
 /// What the stream handle and its task share.
@@ -34,14 +36,9 @@ pub(crate) struct Shared {
     /// The argument of `enable` the arming flag goes in, as the device file
     /// names it.
     pub(crate) enable_arg: String,
-    /// The device file entry that paints zones.
-    pub(crate) color: String,
-    /// The argument of `color` the zone colors go in, as the device file names
-    /// it.
-    pub(crate) colors_arg: String,
-    /// The gradient argument to send, named and valued, if the command
-    /// declares one.
-    pub(crate) gradient: Option<(String, i64)>,
+    /// How the device file paints zones over this mode, and the arguments it
+    /// names for it.
+    pub(crate) painter: Painter,
     pub(crate) hz: f64,
     /// Fixed when the stream opens: the firmware reads the count off the frame
     /// and re-groups the LEDs around it.
@@ -110,7 +107,7 @@ async fn emit(shared: &Shared) {
             return;
         };
 
-        let encoded = match encode(shared, &shared.color, &frame_args(shared, colors)) {
+        let encoded = match encode_repaint(shared, &colors) {
             Ok(encoded) => encoded,
             // The arguments will not become valid on a later tick.
             Err(e) => {
@@ -123,26 +120,31 @@ async fn emit(shared: &Shared) {
         };
 
         shared.emitted.store(generation, Ordering::Release);
-        match write(shared, &encoded).await {
-            Ok(()) => {
-                shared.sent.fetch_add(1, Ordering::Relaxed);
+        for frame in &encoded {
+            match write(shared, frame).await {
+                Ok(()) => {
+                    shared.sent.fetch_add(1, Ordering::Relaxed);
+                }
+                // Transient by nature: the device is unreachable or the breaker
+                // is refusing it, and both are answered by carrying on — the
+                // next tick costs a lock and a refusal decided from recorded
+                // state.
+                Err(e) => tracing::warn!(id = %shared.id, error = %e, "segment frame not sent"),
             }
-            // Transient by nature: the device is unreachable or the breaker is
-            // refusing it, and both are answered by carrying on — the next tick
-            // costs a lock and a refusal decided from recorded state.
-            Err(e) => tracing::warn!(id = %shared.id, error = %e, "segment frame not sent"),
         }
     }
 }
 
-/// The repeat count is left out on purpose: the codec derives it from the list,
-/// which is the one place it cannot disagree with the colors actually sent.
-fn frame_args(shared: &Shared, colors: Vec<[u8; 3]>) -> Args {
-    let args = Args::new().rgb(shared.colors_arg.as_str(), colors);
-    match &shared.gradient {
-        Some((name, value)) => args.int(name.as_str(), *value),
-        None => args,
-    }
+/// Every frame one repaint takes: one for a whole-frame command, one per
+/// distinct color for a masked one.
+///
+/// All of them are encoded before any goes out, so a repaint the codec refuses
+/// leaves the device wearing what it wore rather than half of the new picture.
+fn encode_repaint(shared: &Shared, colors: &[[u8; 3]]) -> Result<Vec<Encoded>> {
+    paint::frames(&shared.painter, colors)?
+        .iter()
+        .map(|args| encode(shared, shared.painter.command(), args))
+        .collect()
 }
 
 fn encode(shared: &Shared, command: &str, args: &Args) -> Result<Encoded> {

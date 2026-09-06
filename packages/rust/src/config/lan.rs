@@ -29,8 +29,6 @@ pub struct LanConfig {
     pub refresh_interval_seconds: Option<u64>,
     /// How long a status request waits for an answer.
     pub status_timeout_ms: u64,
-    /// Segment frame rate for a device whose file records no measurement.
-    pub stream_fallback_hz: f64,
     /// Shortest interval between two verifications of one device. `null`
     /// disables fire-and-verify, and with it everything the breaker learns.
     pub verify_interval_ms: Option<u64>,
@@ -57,7 +55,6 @@ impl Default for LanConfig {
             scan_window_ms: 2_000,
             refresh_interval_seconds: Some(60),
             status_timeout_ms: 500,
-            stream_fallback_hz: crate::stream::FALLBACK_HZ,
             verify_interval_ms: Some(1_000),
             forget_after_days: 7,
             degrade_after: breaker.degrade_after,
@@ -150,7 +147,6 @@ mod tests {
             lan.forget_after_days,
             transport.forget_after.as_secs() / 86_400
         );
-        assert!((lan.stream_fallback_hz - crate::stream::FALLBACK_HZ).abs() < f64::EPSILON);
         assert_eq!(lan.policy(), Policy::default());
     }
 }

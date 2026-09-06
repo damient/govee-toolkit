@@ -37,6 +37,16 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   layouts captured, as a map keyed by the names the device file gave them. That
   is how a segment count, a MAC or a firmware version reaches a caller with no
   field name in this crate. `lan` refuses it: its replies are JSON.
+- The segment stream runs over any mode whose device file declares a painting
+  command. A new command `role: segment_color_masked`, with argument roles
+  `colors` and `zones`, describes a frame that carries one color and the zones
+  wearing it: a repaint over it costs one write per distinct color rather than
+  one per frame. Three refusals land when the stream opens: `Zones::Native` on
+  such a mode, since a mask names zones and reaches no pixel behind them; a zone
+  count past what the mask reaches; and a file that bounds its mask by nothing,
+  through neither a `count:` nor the width of the mask field.
+- Error codes `native_zones_unreachable`, `zone_count_unsupported` and
+  `zone_mask_unbounded` for those three refusals.
 - Error codes `field_too_long`, `frame_overflow`, `chunk_syntax`, `serialize`,
   `no_envelope`, `reply_syntax`, `reply_mismatch` and, on a transport,
   `out_of_range` for an option outside the range the mode can honour — an
@@ -49,6 +59,16 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   matching on it in every method. `Govee::attach` takes the transports and
   refuses two claiming the same mode. `Device.lan_health` became
   `Device.health`, one entry per mode.
+- `measurements.frame_rate` may be keyed by mode, with the rows it already
+  used. A bare list stays the `lan` table, and `Measurements::clean_hz` now
+  takes the mode: a rate measured over one channel is never carried to another.
+- **Breaking, and a config file to edit.** The fallback frame rate moved out of
+  `lan`: the configuration key is `stream.fallback_hz` and the field is
+  `Config::stream.fallback_hz` on the new `StreamConfig`, replacing
+  `LanConfig::stream_fallback_hz`. A stream picks whichever mode the device has
+  enabled, so the rate is not `lan`'s to hold. The `lan` section refuses keys it
+  does not know, so a file still carrying `lan.stream_fallback_hz` fails to
+  load: move the key rather than deleting it, or the fallback returns to 10 Hz.
 
 ## [0.2.1] — 2026-09-05
 

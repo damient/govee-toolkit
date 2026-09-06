@@ -60,8 +60,9 @@ pub enum Error {
     /// The device file names no command for a role the SDK invokes on its own.
     ///
     /// The SDK will not guess an entry name: mark the right entry `role:
-    /// status`, `role: segment_enable` or `role: segment_color` in
-    /// `devices/<SKU>.yaml`. Fire-and-verify does without a status command and
+    /// status`, `role: segment_enable`, `role: segment_color` or `role:
+    /// segment_color_masked` in `devices/<SKU>.yaml`. Fire-and-verify does
+    /// without a status command and
     /// says so; [`crate::DeviceHandle::status`] fails instead.
     #[error("{sku}: no command in `commands.{mode}` is marked `role: {role}`")]
     NoRoleCommand {
@@ -127,6 +128,55 @@ pub enum Error {
         zones: usize,
     },
 
+    /// A stream was asked for native resolution over a mode that paints by
+    /// zone mask.
+    ///
+    /// Such a mode addresses zones, and the device file's zone count is what
+    /// its mask can name; there is no per-pixel channel behind it. Ask for
+    /// [`Zones::App`](crate::stream::Zones::App) or an explicit count instead.
+    #[error("{sku}: mode `{mode}` paints zones by mask and cannot reach native resolution")]
+    NativeZonesUnreachable {
+        /// The SKU asked for.
+        sku: String,
+        /// The mode the stream was opened on.
+        mode: Mode,
+    },
+
+    /// A stream was asked for more zones than the mode's mask can name.
+    ///
+    /// Refused rather than sent: a mask carrying bits past the last zone is
+    /// dropped in silence by the firmware, so the frame would look sent and
+    /// paint nothing.
+    #[error("{sku}: mode `{mode}` addresses {limit} zones, not {zones}")]
+    ZoneCountUnsupported {
+        /// The SKU asked for.
+        sku: String,
+        /// The mode the stream was opened on.
+        mode: Mode,
+        /// What the caller asked for.
+        zones: usize,
+        /// What the device file declares the mask can name.
+        limit: usize,
+    },
+
+    /// A stream opened on a mode whose device file bounds its zone mask by
+    /// nothing.
+    ///
+    /// The bound is the `count:` on the argument marked `role: zones`, or the
+    /// width of the mask field the layout writes it into. A file declaring
+    /// neither says nothing about how many zones the mask reaches, and a mask
+    /// the firmware drops looks exactly like one it applied, so the stream
+    /// refuses to arm rather than paint into the dark.
+    #[error("{sku}: mode `{mode}`, command `{command}` bounds its zone mask by nothing")]
+    ZoneMaskUnbounded {
+        /// The SKU asked for.
+        sku: String,
+        /// The mode the stream was opened on.
+        mode: Mode,
+        /// The device file entry marked `role: segment_color_masked`.
+        command: String,
+    },
+
     /// A stream was asked for a rate at or below zero.
     ///
     /// Out of range, not clamped: a rate is a division on the send path, and
@@ -167,12 +217,17 @@ impl Error {
             Self::ModeNotImplemented { .. } => "mode_not_implemented",
             Self::NoRoleCommand { role, .. } => match role {
                 Role::Status => "no_status_command",
-                Role::SegmentEnable | Role::SegmentColor => "no_segment_command",
+                Role::SegmentEnable | Role::SegmentColor | Role::SegmentColorMasked => {
+                    "no_segment_command"
+                }
             },
             Self::NoRoleArg { .. } => "no_role_arg",
             Self::ZoneCountUnknown { .. } => "zone_count_unknown",
             Self::ZoneCountMismatch { .. } => "zone_count_mismatch",
             Self::ZoneOutOfRange { .. } => "zone_out_of_range",
+            Self::NativeZonesUnreachable { .. } => "native_zones_unreachable",
+            Self::ZoneCountUnsupported { .. } => "zone_count_unsupported",
+            Self::ZoneMaskUnbounded { .. } => "zone_mask_unbounded",
             Self::StreamRateOutOfRange { .. } => "stream_rate_out_of_range",
             Self::LocalDevices { .. } => "local_devices",
         }

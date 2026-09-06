@@ -1,6 +1,6 @@
 //! Structural checks on one command entry.
 
-use crate::codec::catalog::{ArgRole, Command, Mode};
+use crate::codec::catalog::{ArgRole, Command, Mode, Role};
 use crate::codec::chunk::{self, Layout};
 use crate::codec::exchange::Exchanges;
 
@@ -224,4 +224,23 @@ fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {
         }
         _ => {}
     }
+}
+
+/// A role the SDK invokes on its own fills some of its arguments, so the file
+/// has to mark which those are: the SDK knows no argument name either. See
+/// `devices/schema.yaml`.
+pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
+    let required: &[ArgRole] = match role {
+        Role::SegmentEnable => &[ArgRole::Enable],
+        Role::SegmentColor => &[ArgRole::Colors],
+        Role::SegmentColorMasked => &[ArgRole::Colors, ArgRole::Zones],
+        Role::Status => &[],
+    };
+    required
+        .iter()
+        .filter(|arg_role| command.arg_for(**arg_role).is_none())
+        .map(|arg_role| {
+            format!("`role: {role}` must declare an argument marked `role: {arg_role}`")
+        })
+        .collect()
 }

@@ -100,8 +100,11 @@ pub enum ArgRole {
     /// Whether to arm or disarm, on a [`Role::SegmentEnable`] command. `1`
     /// arms.
     Enable,
-    /// One RGB triple per zone, on a [`Role::SegmentColor`] command.
+    /// One RGB triple per zone, on a [`Role::SegmentColor`] command, or the
+    /// single triple a [`Role::SegmentColorMasked`] frame paints its zones.
     Colors,
+    /// Which zones a [`Role::SegmentColorMasked`] command paints, zero-based.
+    Zones,
     /// Whether the firmware interpolates between zones, on a
     /// [`Role::SegmentColor`] command. Optional: a command declaring no
     /// argument for it is sent none.
@@ -115,9 +118,10 @@ pub enum ArgRole {
 
 impl ArgRole {
     /// Every argument role, so a caller can iterate them.
-    pub(crate) const ALL: [Self; 5] = [
+    pub(crate) const ALL: [Self; 6] = [
         Self::Enable,
         Self::Colors,
+        Self::Zones,
         Self::Gradient,
         Self::On,
         Self::Brightness,
@@ -129,6 +133,7 @@ impl ArgRole {
         match self {
             Self::Enable | Self::Gradient | Self::On | Self::Brightness => crate::codec::args::INT,
             Self::Colors => crate::codec::args::RGB_LIST,
+            Self::Zones => crate::codec::args::ZONES,
         }
     }
 }
@@ -138,6 +143,7 @@ impl fmt::Display for ArgRole {
         f.write_str(match self {
             Self::Enable => "enable",
             Self::Colors => "colors",
+            Self::Zones => "zones",
             Self::Gradient => "gradient",
             Self::On => "on",
             Self::Brightness => "brightness",
@@ -162,11 +168,22 @@ pub enum Role {
     /// [`ArgRole::Colors`]; one marked [`ArgRole::Gradient`] is supplied when
     /// declared.
     SegmentColor,
+    /// Paints one color over the zones a mask names. Must declare an argument
+    /// marked [`ArgRole::Colors`] and one marked [`ArgRole::Zones`].
+    ///
+    /// A frame carries one color, so a stream over such a command sends one
+    /// write per run of equal color rather than one per frame.
+    SegmentColorMasked,
 }
 
 impl Role {
     /// Every role the SDK picks a command by, so a caller can iterate them.
-    pub(crate) const CLAIMABLE: [Self; 3] = [Self::Status, Self::SegmentEnable, Self::SegmentColor];
+    pub(crate) const CLAIMABLE: [Self; 4] = [
+        Self::Status,
+        Self::SegmentEnable,
+        Self::SegmentColor,
+        Self::SegmentColorMasked,
+    ];
 }
 
 impl fmt::Display for Role {
@@ -175,6 +192,7 @@ impl fmt::Display for Role {
             Self::Status => "status",
             Self::SegmentEnable => "segment_enable",
             Self::SegmentColor => "segment_color",
+            Self::SegmentColorMasked => "segment_color_masked",
         })
     }
 }
