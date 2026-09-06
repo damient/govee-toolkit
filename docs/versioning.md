@@ -11,7 +11,7 @@ Each package keeps its own —
 [`python`](../packages/python/CHANGELOG.md),
 [`node`](../packages/node/CHANGELOG.md). The root
 [`CHANGELOG.md`](../CHANGELOG.md) carries what belongs to no package — the
-device catalogue, the documentation, the tooling and CI — and indexes the three.
+device catalog, the documentation, the tooling and CI — and indexes the three.
 
 ## Semver, and what pre-1.0 means
 
@@ -76,14 +76,14 @@ Not public: the APIs of `crates/sim` and `crates/xtask`, the on-disk device
 cache format (it is versioned and discarded when foreign), log and tracing
 output, and anything marked `#[doc(hidden)]`.
 
-### The device catalogue
+### The device catalog
 
-The catalogue is data, and it is versioned as data rather than as code:
+The catalog is data, and it is versioned as data rather than as code:
 
 - `devices/*.yaml` declares `schema_version`. An unknown value is a **typed
   error** — a file is never read as if it were the version the build happens to
   understand.
-- The generated [`catalog.json`](architecture.md#the-catalogue-as-an-artefact)
+- The generated [`catalog.json`](architecture.md#the-catalog-as-an-artifact)
   carries its own version, independent of any package version.
 - **Adding a SKU is additive** and never a breaking change. It ships in a patch
   release.
@@ -123,8 +123,8 @@ version twice.
 
 The release history is the repository's releases page, written by that
 workflow. The root [`../CHANGELOG.md`](../CHANGELOG.md) carries the version each
-manifest declares, and the catalogue's own changelog — dated rather than
-numbered, since a package embeds the catalogue at build time and the date is
+manifest declares, and the catalog's own changelog — dated rather than
+numbered, since a package embeds the catalog at build time and the date is
 what a release pins.
 
 Which number to bump comes from the commit types in the range: a `feat` is a

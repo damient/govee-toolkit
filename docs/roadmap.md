@@ -4,8 +4,8 @@ What is done and what is planned. The full feature list is in
 [`features.md`](features.md); why the work is shaped this way is in
 [`architecture.md`](architecture.md).
 
-The order below is a starting point, not a commitment — it will follow what
-people actually ask for. Open an issue if something matters to you.
+The order below is a starting point, not a commitment — it follows what people
+ask for. Open an issue if something matters to you.
 
 | # | Milestone | Status |
 | - | --------- | ------ |

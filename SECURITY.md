@@ -44,7 +44,7 @@ A supported-versions table appears here with the first release.
 - **A secret in a log, an error message or a committed capture.** Cloud API
   keys, tokens, and anything in `tests/fixtures/lan-captures/` that identifies
   an account rather than a device.
-- **Path traversal or an arbitrary write through the device catalogue or the
+- **Path traversal or an arbitrary write through the device catalog or the
   config loader** — a device file, an overlay directory or a config path that
   reads or writes outside where it should.
 - **A dependency advisory `cargo deny check` should have caught**, including a

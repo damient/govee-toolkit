@@ -60,7 +60,7 @@ There is no application. A contributor who has landed a sustained run of
 reviewed work — device files with real captures, protocol findings, or a
 package they carry — and who reviews other people's pull requests, gets offered
 commit access by the maintainer. Areas are handed over whole where that makes
-sense: a language binding, an integration, the device catalogue.
+sense: a language binding, an integration, the device catalog.
 
 The expectation that comes with it is the four points above, and the writing
 conventions in [`CLAUDE.md`](CLAUDE.md).

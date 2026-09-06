@@ -7,7 +7,7 @@ trade-offs, and **the user chooses which ones to enable, per device**.
 | Mode | Latency | Range | Capabilities | Requires |
 | ---- | ------- | ----- | ------------ | -------- |
 | `lan` | lowest | same network | full, including the undocumented segment channel; not internal scenes | LAN Control enabled in the Govee Home app |
-| `ble` | low | Bluetooth range | partial, depends on SKU family | a BLE adapter on the host, and the device not already connected to something else |
+| `ble` | low | Bluetooth range | partial, depends on SKU family | a Bluetooth adapter on the host, and the device not already connected to something else |
 | `cloud` | highest (internet round-trip) | anywhere | reduced: power / brightness / color | a Govee API key, subject to rate limits |
 
 Details per mode: [`protocol/lan.md`](protocol/lan.md),
@@ -15,21 +15,20 @@ Details per mode: [`protocol/lan.md`](protocol/lan.md),
 
 Three `ble` constraints change what an application can do with it:
 
-- **One connection at a time.** A connected device stops advertising, so a phone
-  or another host holding the link makes the device invisible to a scan, and a
+- **One connection at a time.** A connected device stops advertising. A phone or
+  another host that holds the link makes the device invisible to a scan. A
   device this SDK holds is unreachable to anything else until the link closes.
 - **Writes are paced.** The firmware accepts only so many writes a second, and a
   burst past that leaves it unresponsive for seconds rather than dropping a
   single frame. The transport paces writes against a budget, so a source that
-  outruns the budget waits instead of being served at its own rate. The numbers
-  live in the `measurements.ble` block of each device file.
-- **The identity has to be bound once.** A device is keyed by its Wi-Fi MAC
-  everywhere in this project, and an advertisement carries a Bluetooth address
-  instead. Nothing observed relates the two, so enabling `ble` for a device is
-  not on its own enough to reach it: the application tells the transport which
-  address belongs to which identity, through `ble::Transport::bind`. A device
-  that has only ever been seen over Bluetooth has no Wi-Fi MAC to key on until
-  something says what it is — `protocol/ble.md` §1.3.
+  outruns the budget waits. The numbers live in the `measurements.ble` block of
+  each device file.
+- **Bind the identity once.** This project keys a device by its Wi-Fi MAC, and
+  an advertisement carries a Bluetooth address instead. Nothing observed relates
+  the two, so `ble` enabled for a device is not enough to reach it. The
+  application must tell the transport which address belongs to which identity,
+  through `ble::Transport::bind`. A device seen only over Bluetooth has no Wi-Fi
+  MAC until something declares it — see `protocol/ble.md` §1.3.
 
 ## Two levels
 
@@ -78,8 +77,8 @@ catalog:
 ```
 
 It is off because a device file is a claim about a model, not about one unit.
-Turning it on is the right move while probing a SKU that has not shipped yet;
-every file that replaces one is logged, every run.
+Turn it on while you probe a SKU that has not shipped yet. Every file that
+replaces one is logged, every run.
 
 ### The cloud API key does not live here
 

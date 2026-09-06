@@ -47,8 +47,8 @@ println!("served over {}", served.mode);
 ```
 
 `Served` carries the mode that ran the command, the device file entry that was
-sent and the `cmd` that went on the wire. With several modes enabled, which one
-served a command is not something a caller should have to guess.
+sent and the `cmd` that went on the wire. With several modes enabled, a caller
+reads which mode served a command rather than guesses it.
 
 ### The commands you can send
 
@@ -62,33 +62,33 @@ govee.device(&id).send("color",      &Args::new().int("r", 255).int("g", 40).int
 govee.device(&id).send("colortemp",  &Args::new().int("kelvin", 4000)).await?;
 ```
 
-**A command is named the same across modes; its arguments are not.** The device
-file declares them per mode, because the frames differ, and the mode is chosen
-before anything is encoded. The same four commands over `ble`:
+**A command carries the same name across modes; its arguments do not.** The
+device file declares them per mode, because the frames differ. The SDK picks the
+mode before it encodes anything. The same four commands over `ble`:
 
 ```rust
 let zones: Vec<u16> = (0..15).collect();
 
 govee.device(&id).send("power",      &Args::new().int("on", 0)).await?;
 govee.device(&id).send("brightness", &Args::new().int("level", 60)).await?;
-// One colour over the zones a mask names, rather than the whole strip.
+// One color over the zones a mask names, rather than the whole strip.
 govee.device(&id).send("color",      &Args::new().rgb("colors", [[255, 40, 0]]).zones("zones", zones.clone())).await?;
 // The firmware renders no temperature here: ship the kelvin value and its RGB
 // rendering in the same frame, or the zones go dark.
 govee.device(&id).send("colortemp",  &Args::new().int("kelvin", 4000).int("white_r", 255).int("white_g", 209).int("white_b", 163).zones("zones", zones)).await?;
 ```
 
-Passing the `lan` arguments to the `ble` command is an error before anything
-reaches the wire — `unknown_arg` for `r`, `missing_arg` for `zones` — never a
-frame sent with a field guessed at.
+Give the `ble` command the `lan` arguments and it fails before anything reaches
+the wire — `unknown_arg` for `r`, `missing_arg` for `zones`. It never sends a
+frame with a guessed field.
 
 `govee.catalog()` lists what a SKU declares **for a mode**, so a UI can build
 its controls from the catalog rather than hardcoding them. A name the device
 file does not define, or an argument outside its declared range, is an error
 before anything reaches the network.
 
-Two runnable walkthroughs go through every command of one device file, in
-order, against a real device: [`examples/lan_tour.rs`](examples/lan_tour.rs) and
+Two runnable examples send every command of one device file, in order, to a real
+device: [`examples/lan_tour.rs`](examples/lan_tour.rs) and
 [`examples/ble_tour.rs`](examples/ble_tour.rs).
 
 ```bash
@@ -107,26 +107,27 @@ let cached = govee.device(&id).last_status();     // no I/O, may be None
 
 `status.raw` keeps everything the answer carried — the whole `msg.data` on a
 mode that replies in JSON, every captured field on one that replies in frames —
-so undocumented fields stay reachable without this crate modelling them.
+so a caller reaches undocumented fields this crate does not model.
 
 Anything the SDK does not model reaches a caller through `read`, on a mode whose
-device file declares what an answer looks like. The names below are the file's:
+device file declares the layout of an answer. The names below are the file's:
 
 ```rust
 let reply = govee.device(&id).read("read_software_version", &Args::new()).await?;
 println!("{}", reply.fields.to_json());          // {"version":"2.06.02"}
 ```
 
-Which frame asks for a value, which bytes carry it and under what name are all
-the device file's business. `read` fails with `no_reply_layout` where the
-command declares no answer to read, or where the mode replies in JSON rather
-than in frames.
+The device file decides which frame asks for a value, which bytes carry it and
+under which name. `read` fails with `no_reply_layout` in two cases:
+
+- the command declares no answer to read;
+- the mode replies in JSON rather than in frames.
 
 ### Segment streaming
 
 The segment channel is armed once and then fed frames. Writes never block: a
-source faster than the device replaces its own pending frame rather than backing
-up behind it.
+source faster than the device replaces its own pending frame rather than waits
+behind it.
 
 ```rust
 use govee_toolkit::{Rate, StreamOptions, Zones};
@@ -157,7 +158,7 @@ stream.close().await?;
 - A mode whose device file paints zones by mask carries one color per frame, so
   a repaint costs one write per distinct color: a solid fill is one write. Such
   a mode addresses the zones the device file declares, and refuses
-  `Zones::Native` rather than sending a mask the firmware would silently trim.
+  `Zones::Native`: the firmware would trim such a mask in silence.
 - `frames_sent()` and `frames_superseded()` tell you whether your source is
   outrunning the device.
 
@@ -182,10 +183,9 @@ devices:
 what the configuration got wrong without failing the whole load. The full model
 is [`docs/modes.md`][modes].
 
-Enabling `ble` needs the crate built with the `ble` feature; enabling `cloud`
-has no transport to serve it. Either way, an enabled mode this build cannot
-carry is reported as `ModeNotImplemented` — never silently skipped, never
-substituted.
+`ble` needs the crate built with the `ble` feature, and `cloud` has no transport
+at all. Either way, an enabled mode this build cannot carry is reported as
+`ModeNotImplemented` — never silently skipped, never substituted.
 
 ## What this crate will not do to you
 
