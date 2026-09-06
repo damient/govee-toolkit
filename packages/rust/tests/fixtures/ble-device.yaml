@@ -1,7 +1,6 @@
-# A device file whose commands are declared for `ble` alone: no envelope, no
-# `cmd:`, 20-byte frames on the wire, and `reply:` layouts to read the answers
-# back. It exists so the facade's dispatch to a mode other than `lan` can be
-# exercised without a radio, and it describes no real unit.
+# A fictional device that declares its commands for `ble` alone: no envelope,
+# no `cmd:`, 20-byte frames, and `reply:` layouts to read the answers back. It
+# lets the tests exercise dispatch to a mode other than `lan` without a radio.
 schema_version: 1
 sku: "HTEST4"
 family: "test"

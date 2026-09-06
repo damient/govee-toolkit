@@ -1,5 +1,5 @@
-# A device file whose mode paints zones by mask: one frame carries one color
-# and the zones wearing it. Fictional, and only ever used by the tests.
+# A fictional device that paints zones by mask: one frame carries one color
+# and the zones that take it. Only the tests use it.
 schema_version: 1
 sku: "HTEST3"
 family: "test"
