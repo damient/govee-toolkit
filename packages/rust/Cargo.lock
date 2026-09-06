@@ -330,7 +330,7 @@ dependencies = [
 
 [[package]]
 name = "govee-toolkit"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "async-trait",
  "base64",
@@ -350,7 +350,7 @@ dependencies = [
 
 [[package]]
 name = "govee-toolkit-sim"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "serde_json",
  "socket2",
@@ -1277,7 +1277,7 @@ checksum = "2f45bb2c13fec6a6cb4c0f76a7e94839e110a14ec803ec2940777a94c347bc52"
 
 [[package]]
 name = "xtask"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "serde_json",
  "serde_norway",

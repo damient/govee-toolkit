@@ -73,6 +73,77 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   does not know, so a file still carrying `lan.stream_fallback_hz` fails to
   load: move the key rather than deleting it, or the fallback returns to 10 Hz.
 
+## [0.3.0] — 2026-09-06
+
+`ble` is a mode with a transport behind it. It is opt-in, off by default, and
+`lan` is untouched by it — but the trait the two now share moved several public
+types, so this is the breaking bump pre-1.0 reserves the minor for.
+
+### Added
+
+- `govee_toolkit::transport` — what every mode has in common: the `Transport`
+  trait, the device identity, the circuit breaker, the reported status and the
+  errors. None of it was ever specific to UDP; only its address in the tree was.
+  `docs/architecture.md` named this trait as the prerequisite for `ble` rather
+  than something to add early, and `ble` is what decided its shape.
+- `govee_toolkit::ble`, behind the non-default `ble` cargo feature — the GATT
+  surface, a scan that reads the SKU out of the advertised name, one connection
+  per device, and writes paced against a budget. The firmware does not drop a
+  frame it cannot keep up with: it stops answering for seconds. Pacing therefore
+  lives in the transport, so a caller that bypasses the segment stream still
+  cannot provoke that.
+- `ble::Transport::bind` — a device is keyed by its Wi-Fi MAC everywhere in this
+  project, and an advertisement carries a Bluetooth address. Nothing observed
+  relates the two, so the application says which is which rather than this crate
+  guessing.
+- The `frame:` language gained `<pad:N>`, `${name:str8}`, `${name:str16}`,
+  `${name:mask8}`, `${name:mask16}` and `${name:bytes}`, and arguments gained the
+  `string`, `zones` and `bytes` types. A zone the mask cannot carry is an error:
+  the firmware drops those bits in silence, which is exactly what must not be
+  reported as success.
+- `body:` with `chunk:` — a command whose payload is split across several frames,
+  described in the device file rather than in code. `${count}`, `${index}` and
+  `${chunk}` are reserved and supplied by the codec.
+- `reply:` and `frames:` — a command may declare what an answer looks like, and
+  may issue several exchanges in order. That is how one entry marked
+  `role: status` reads power and brightness over `ble` without either name
+  reaching this crate. `DeviceHandle::read` returns what a layout captured.
+- `role: segment_color_masked` — a segment channel that paints one colour per
+  write over the zones a mask names, for a mode with no per-pixel channel.
+  `measurements.frame_rate` is keyed by mode so each one is paced from what was
+  measured on it.
+
+### Changed
+
+- **Breaking.** `Govee::attach` takes an iterator of `Arc<dyn Transport>` rather
+  than one `lan::Transport`, and refuses two claiming the same mode: one of them
+  would never be reached.
+- **Breaking.** `Encoded` is `{ cmd, message: Option<Value>, frames: Vec<Vec<u8>> }`.
+  A `ble` command carries no JSON envelope, and a chunked one carries several
+  frames.
+- **Breaking.** `Error::Transport` and `Event` carry `transport::` types instead
+  of `lan::` ones. `Unreachable` carries an `endpoint: String` — a Bluetooth
+  address is not a `SocketAddr` — and `Unavailable` names the mode it refuses.
+  Every event carries its mode, so an application subscribes once whatever the
+  build carries.
+- **Breaking.** `Device.lan_health` is `Device.health`, one entry per enabled
+  mode a transport knows the device in.
+- `lan` re-exports the moved types, so `crate::lan::DeviceId` and its neighbours
+  still resolve, and keeps its own richer surface: a `lan` caller still gets the
+  address and the four firmware strings a scan reply carries.
+- The published crate description says "over the LAN or Bluetooth".
+
+### Not in this release
+
+- Wi-Fi provisioning over `ble` is encoded and pinned by conformance vectors,
+  and **has never been sent to a device**. The vectors say so in their `source`;
+  they pin the encoder, not the firmware.
+- Scenes. The channel is a second chunked dialect whose header count byte does
+  not follow from what was observed, and guessing it would be inventing
+  verification. `docs/protocol/ble.md` records what is known.
+- No `ble` capture is committed yet, so every `capture:` in the H61A0's `ble`
+  table is empty.
+
 ## [0.2.1] — 2026-09-05
 
 The code is unchanged: this release fixes the crate metadata and the page
