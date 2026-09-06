@@ -16,7 +16,7 @@
       with its `source` saying whether the bytes come from a capture or were
       worked out from the documented layout.
 - [ ] A changelog entry for what changed — `packages/<pkg>/CHANGELOG.md` for a
-      package's behavior, the root `CHANGELOG.md` for the catalogue, the docs,
+      package's behavior, the root `CHANGELOG.md` for the catalog, the docs,
       the tooling and CI.
 - [ ] Every commit subject is `<type>(<scope>)!: <summary>`, and every commit
       carries `Signed-off-by:` (`git commit -s`).
@@ -25,7 +25,7 @@
 
 ## Provenance
 
-- [ ] No artefact taken out of Govee software — no decompiler or disassembler
+- [ ] No artifact taken out of Govee software — no decompiler or disassembler
       output, extracted strings, resources or firmware image.
 - [ ] No unredacted capture: no MAC address, IP address, API key or account
       token. A pull request carrying one is closed rather than amended, because
