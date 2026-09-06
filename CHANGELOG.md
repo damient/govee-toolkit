@@ -18,6 +18,44 @@ The catalogue has no version of its own: a package embeds it at build time and
 ships it, so the date below is what a release pins. `catalog.json`, the
 generated artefact, carries the schema revision it was built at.
 
+### 2026-09-06
+
+#### Added
+
+- `devices/H61A0.yaml` declares `ble`, verified on the same unit: power,
+  brightness, colour, colour temperature, brightness by zone mask, per-zone
+  brightness, the firmware fade, seven `0xAA` read commands and a `role: status`
+  entry that reads power and brightness in two more exchanges. Every one is
+  `documented: false` and points at the section of
+  [`docs/protocol/ble.md`](docs/protocol/ble.md) that describes it.
+- `modes.ble` moves from `unknown` to `partial`. Segments are reachable there
+  but narrower than over `lan` — fifteen zones by mask, against the unit's 42
+  individually addressable LEDs — and scenes are `unimplemented`.
+- Wi-Fi provisioning, as two chunked entries: one with the trailing API block
+  and one without, since the layout has no optional field. **Neither has ever
+  been sent to a device.** The layout was read out of the other direction only;
+  its notes, its `verified:` line and every one of its conformance vectors say
+  so, and the vectors pin this repository's encoder rather than the firmware.
+- `measurements.ble` — the read round trip, the sustained write rate, the burst
+  that leaves the firmware unresponsive and how long it stays that way, and the
+  fifteen addressable zones, all taken on the same 3 m unit as the `lan`
+  numbers. `frame_rate` carries no `ble` rows: dividing the write budget by one
+  write per colour is arithmetic, not a stutter test, and the file says so
+  where the rows would go.
+- Conformance vectors in
+  [`tests/fixtures/golden/ble/H61A0.json`](tests/fixtures/golden/ble/H61A0.json)
+  for every `ble` command, including the refusals that prove an out-of-range
+  value is an error and not a clamp: a zone past the width of the mask, a
+  brightness of 0, a colour temperature under the device's range.
+- `devices/schema.yaml` documents the `ble` command shape as the codec reads
+  it: the same layout language as `lan` with no `cmd:` and no `payload:`, plus
+  `reply:`, `frames:`, `body:` and `chunk:`. The schema revision stays 1.
+
+#### Note
+
+No BLE capture is committed. Redacting one is a step of its own, so every
+`capture:` in the `ble` table is empty with a TODO beside it.
+
 ### 2026-09-05
 
 #### Added

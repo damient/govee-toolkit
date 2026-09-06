@@ -15,11 +15,11 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   it and keeps its richer inherent surface.
 - `govee_toolkit::ble` — the `ble` transport, behind the new non-default `ble`
   feature: a scan over advertised names, one held connection per device, a
-  paced write path and the same per-device circuit breaker. **The protocol it
-  speaks is not verified against a device**: `docs/protocol/ble.md` records
-  nothing probed, no device file declares a `ble` command, and every constant
-  in the module says so. It sends the frames the codec built and reads a reply
-  through the layout the device file declares for it.
+  paced write path and the same per-device circuit breaker. It sends the frames
+  the codec built and reads a reply through the layout the device file declares
+  for it. The protocol is verified on one device, the H61A0, and on no other
+  family; Wi-Fi provisioning is declared in the device file but has never been
+  sent to a device.
 - `ble::Transport::bind` relates a device's identity to the Bluetooth address a
   scan heard. Nothing infers one from the other.
 - The device file can describe a fixed-size frame and a chunked write:
@@ -55,6 +55,9 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 
 ### Changed
 
+- A command declaring a `frame:` no longer has to name it with `${frame}` in a
+  `payload:`. That is required of a mode that wraps the frame in an envelope; a
+  wire carrying the frame on its own has no payload to name it in.
 - The facade holds one transport per mode and looks the mode up, rather than
   matching on it in every method. `Govee::attach` takes the transports and
   refuses two claiming the same mode. `Device.lan_health` became

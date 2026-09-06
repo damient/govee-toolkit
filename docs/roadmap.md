@@ -22,7 +22,7 @@ people actually ask for. Open an issue if something matters to you.
 | 10 | Home Assistant custom component (LAN power + brightness first) | 🔜 Planned |
 | 11 | Homebridge plugin | 🔜 Planned |
 | 12 | Art-Net / DMX bridge | 🔜 Planned |
-| — | `ble` mode — the transport, behind its own cargo feature | 🚧 In progress, protocol unverified |
+| — | `ble` mode — the transport, behind its own cargo feature | 🚧 In progress, verified on one device |
 | — | `cloud` mode | 🔜 Planned, after the `lan` core |
 
 Undocumented LAN commands are documented and formalized continuously, in

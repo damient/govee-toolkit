@@ -144,7 +144,8 @@ async fn the_status_a_device_reports_reaches_the_caller() {
 #[tokio::test]
 async fn enabling_a_mode_the_hardware_lacks_is_reported() {
     // `none` is a statement that the hardware cannot do it, so enabling it is a
-    // mistake to report. H61A0 leaves `ble` unknown, so the claim is overlaid.
+    // mistake to report. The embedded file declares `ble` reached in part, so
+    // the claim is overlaid.
     let mut catalog = Catalog::embedded().expect("catalog");
     catalog
         .overlay([(
@@ -168,10 +169,21 @@ async fn enabling_a_mode_the_hardware_lacks_is_reported() {
 
 #[tokio::test]
 async fn enabling_a_mode_nobody_probed_is_not_a_configuration_error() {
-    // H61A0 declares `ble: support: unknown`. Refusing it would be claiming the
+    // `unknown` is the absence of a probe. Refusing it would be claiming the
     // hardware cannot do it, which nobody established — and enabling the mode
     // is how somebody would find out.
-    let rig = rig("defaults:\n  modes: [ble]\n").await;
+    let mut catalog = Catalog::embedded().expect("catalog");
+    catalog
+        .overlay([(
+            "ble-unknown.yaml",
+            concat!(
+                "schema_version: 1\nsku: \"H61A0\"\nfamily: test\nname: Test\n",
+                "capabilities: {}\nmodes:\n  ble:\n    support: unknown\n"
+            ),
+        )])
+        .expect("the overlay applies");
+
+    let rig = rig_with("defaults:\n  modes: [ble]\n", catalog).await;
     assert!(
         rig.govee.problems().is_empty(),
         "{:?}",

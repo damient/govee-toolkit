@@ -240,11 +240,19 @@ commands:
     #   frame: ""                     # same layout language as above; the wire
     #                                 # carries no envelope, so there is no
     #                                 # `cmd:` and no `payload:` here
-    #   reply: ""                     # or `frames:` for several exchanges
-    #   args: { }
+    #   reply: ""                     # the answer that frame asks for
+    #   frames: [ { send, reply } ]   # several exchanges instead of one frame
+    #   body: ""                      # a payload longer than one frame…
+    #   chunk: { size, header, data, footer }   # …and how to cut it
+    #   args: { <name>: { type, range, role } }
     #   notes: ""                     # must point at ../docs/protocol/ble.md
     #                                 # when documented is false
     #   capture: tests/fixtures/ble-captures/<sku>/<file>
+    #
+    # Every frame on this wire is a fixed size and carries its own checksum, so
+    # each layout ends `<pad:N> <xor>` — including the three inside `chunk:`.
+    # `body:` is the one exception: it is the payload being cut up, not a frame,
+    # so it takes neither.
   cloud:
     # <command-name>:
     #   endpoint: ""
@@ -275,7 +283,9 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         #
                         # `zones` and `clean_hz` are what the stream uses: the
                         # highest rate that zone count sustained without visible
-                        # stutter. Leave the table out and the stream falls back
+                        # stutter. A row is a measurement, never arithmetic on
+                        # another number: a rate nobody watched is left out.
+                        # Leave the table out and the stream falls back
                         # to a conservative rate, reported as such — measured on
                         # the unit at hand beats any constant. See
                         # ../docs/protocol/lan.md 2.7.

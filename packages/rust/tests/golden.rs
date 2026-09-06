@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use govee_toolkit::codec::{ArgValue, Args, Catalog, Mode};
+use govee_toolkit::codec::{ArgSpec, ArgValue, Args, Catalog, Command, Mode};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -96,32 +96,73 @@ fn golden_files() -> Vec<(String, GoldenFile)> {
     out
 }
 
-/// Numbers are integers, arrays are RGB triples. The device file decides which
-/// is which; this only has to carry the value across.
-fn to_args(raw: &BTreeMap<String, serde_json::Value>) -> Args {
+/// JSON says how a value is written; the device file says what it means.
+///
+/// A list of numbers is zone indices to one command and opaque bytes to
+/// another, so the declared type decides. An argument no command declares —
+/// which is the point of the `unknown_arg` cases — is read off its JSON shape
+/// instead, and reaches the codec far enough to be refused by name.
+fn to_args(spec: Option<&Command>, raw: &BTreeMap<String, serde_json::Value>) -> Args {
     let mut args = Args::new();
     for (name, value) in raw {
-        let parsed = match value {
-            serde_json::Value::Number(n) => ArgValue::Int(n.as_i64().expect("integer argument")),
-            serde_json::Value::Array(items) => ArgValue::Rgb(
-                items
-                    .iter()
-                    .map(|item| {
-                        let triple = item.as_array().expect("an RGB triple");
-                        assert_eq!(triple.len(), 3, "an RGB triple has three components");
-                        let mut rgb = [0u8; 3];
-                        for (slot, v) in rgb.iter_mut().zip(triple) {
-                            *slot = u8::try_from(v.as_u64().expect("a byte")).expect("a byte");
-                        }
-                        rgb
-                    })
+        let declared = spec.and_then(|command| command.args.get(name));
+        let parsed = match declared {
+            Some(ArgSpec::Int { .. }) => ArgValue::Int(integer(value)),
+            Some(ArgSpec::RgbList { .. }) => ArgValue::Rgb(triples(value)),
+            Some(ArgSpec::String { .. }) => ArgValue::Text(text(value)),
+            Some(ArgSpec::Zones { .. }) => ArgValue::Zones(
+                numbers(value)
+                    .map(|n| u16::try_from(n).expect("a zone index"))
                     .collect(),
             ),
-            other => panic!("unsupported argument shape in a golden file: {other}"),
+            Some(ArgSpec::Bytes { .. }) => ArgValue::Bytes(
+                numbers(value)
+                    .map(|n| u8::try_from(n).expect("a byte"))
+                    .collect(),
+            ),
+            None => match value {
+                serde_json::Value::Number(_) => ArgValue::Int(integer(value)),
+                serde_json::Value::String(_) => ArgValue::Text(text(value)),
+                serde_json::Value::Array(_) => ArgValue::Rgb(triples(value)),
+                other => panic!("unsupported argument shape in a golden file: {other}"),
+            },
         };
         args.insert(name.clone(), parsed);
     }
     args
+}
+
+fn integer(value: &serde_json::Value) -> i64 {
+    value.as_i64().expect("an integer argument")
+}
+
+fn text(value: &serde_json::Value) -> String {
+    value.as_str().expect("a string argument").to_owned()
+}
+
+fn numbers(value: &serde_json::Value) -> impl Iterator<Item = i64> + '_ {
+    value
+        .as_array()
+        .expect("a list of numbers")
+        .iter()
+        .map(integer)
+}
+
+fn triples(value: &serde_json::Value) -> Vec<[u8; 3]> {
+    value
+        .as_array()
+        .expect("a list of RGB triples")
+        .iter()
+        .map(|item| {
+            let triple = item.as_array().expect("an RGB triple");
+            assert_eq!(triple.len(), 3, "an RGB triple has three components");
+            let mut rgb = [0u8; 3];
+            for (slot, v) in rgb.iter_mut().zip(triple) {
+                *slot = u8::try_from(v.as_u64().expect("a byte")).expect("a byte");
+            }
+            rgb
+        })
+        .collect()
 }
 
 #[test]
@@ -138,7 +179,10 @@ fn vectors_match() {
                 device,
                 golden.mode,
                 &vector.command,
-                &to_args(&vector.args),
+                &to_args(
+                    device.commands.get(golden.mode).get(&vector.command),
+                    &vector.args,
+                ),
             )
             .unwrap_or_else(|e| panic!("{file} / {}: {e}", vector.name));
 
@@ -166,7 +210,10 @@ fn vectors_match() {
                 device,
                 golden.mode,
                 &case.command,
-                &to_args(&case.args),
+                &to_args(
+                    device.commands.get(golden.mode).get(&case.command),
+                    &case.args,
+                ),
             );
             match result {
                 Ok(_) => panic!(

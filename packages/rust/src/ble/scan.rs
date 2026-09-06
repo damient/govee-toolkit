@@ -6,15 +6,16 @@
 //! simply not found, which is why
 //! [`Transport::bind`](super::transport::Transport::bind) exists.
 //!
-//! Unverified in this repository: no scan has been recorded here, so both the
-//! name shape and the prefix list are the shape this transport is written to.
-//! TODO: record what devices actually advertise in `docs/protocol/ble.md`.
+//! `GBK_` is what the one measured unit advertises under — see
+//! `docs/protocol/ble.md` 1.3. The other prefixes are the vendor's older
+//! brands, reported rather than observed here, and no device in this repository
+//! has been found under one.
 //!
 //! Nothing here touches an adapter. The transport does that.
 
 /// The advertised-name prefixes a Govee device is recognized by, matched
-/// case-insensitively. `IHOMENT` and `MINGER` are the vendor's other brands.
-/// Unverified: see the module documentation.
+/// case-insensitively. `IHOMENT` and `MINGER` are the vendor's older brands,
+/// and only `GBK_` has been seen — see the module documentation.
 pub const NAME_PREFIXES: [&str; 4] = ["GBK_", "GOVEE", "IHOMENT_", "MINGER_"];
 
 /// One device as an advertisement describes it.

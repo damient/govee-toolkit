@@ -38,8 +38,8 @@ impl Default for Options {
             connect_timeout: Duration::from_secs(10),
             status_timeout: Duration::from_secs(1),
             verify_interval: Some(Duration::from_secs(1)),
-            // Unverified placeholders: nothing in this repository has measured
-            // what a device tolerates. See `crate::ble::pace`.
+            // The budget measured on one H61A0, which is the only unit
+            // anybody measured. See `crate::ble::pace`.
             writes_per_second: 100.0,
             burst: 16,
         }
