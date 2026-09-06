@@ -45,7 +45,7 @@ chooses a transport.
 | Why the code is shaped this way | `docs/architecture.md` |
 | Arguments in, exact bytes out | `tests/fixtures/golden/<mode>/<SKU>.json` |
 | What a package's release changed | `packages/<pkg>/CHANGELOG.md` |
-| Catalogue changes, and the release history | `CHANGELOG.md` |
+| Catalog changes, and the release history | `CHANGELOG.md` |
 
 The split between the first two rows matters and is easy to get wrong:
 `docs/protocol/` describes the protocol generically — **no SKU names, no
@@ -59,6 +59,21 @@ SKU.
 - **Plain and concise.** State the fact and move on. No lyrical framing, no
   selling, no filler adjectives. This applies to docs, commit messages and code
   alike.
+- **Write in ASD-STE100 (Simplified Technical English).** These rules apply to
+  docs, comments, doc comments and commit messages:
+  - One word, one meaning. Use the same word for the same thing every time. Do
+    not switch between "frame" and "packet" for one object.
+  - Use the active voice. Use the imperative for an instruction.
+  - One topic per sentence. 20 words at most in an instruction, 25 in a
+    description. 6 sentences at most in a paragraph.
+  - Use the simple tenses. Do not use an `-ing` form unless it names a thing.
+  - Keep the articles and keep "that". Do not delete a word to make a sentence
+    shorter.
+  - 3 nouns at most in a row.
+  - Write "must" for an obligation, "can" for a possibility, "do not" for a
+    prohibition.
+  - No idiom, no metaphor, no rhetorical question, no word play.
+  - Use a list when a sentence carries more than one condition.
 - **A comment earns its place or it goes.** It survives by carrying what the
   code cannot state: a constraint the compiler does not enforce, a measured
   value and what it was measured on, a trap, or a pointer that saves a search.
