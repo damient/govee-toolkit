@@ -1,11 +1,10 @@
-//! How the transport is configured, and what to do after a command is written.
+//! How the `lan` transport is configured.
 
 use std::time::Duration;
 
-use crate::codec::Encoded;
-use crate::lan::breaker::Policy;
 use crate::lan::cache::Cache;
 use crate::lan::discovery::Endpoints;
+use crate::transport::breaker::Policy;
 
 /// How the transport is set up.
 #[derive(Debug, Clone)]
@@ -47,18 +46,4 @@ impl Default for Options {
             forget_after: Duration::from_secs(7 * 24 * 3600),
         }
     }
-}
-
-/// What to do about a command once it has been written to the socket.
-#[derive(Debug, Clone, Copy)]
-pub enum Verify<'a> {
-    /// Nothing. The breaker learns nothing from this command — right for a
-    /// stream of frames, where the verification traffic would compete with the
-    /// frames themselves.
-    None,
-    /// Ask the device for its status afterwards, and record the answer, or its
-    /// absence, against the breaker. The request is supplied by the caller
-    /// because building it means reading the device file, which is the codec's
-    /// job and not this crate's.
-    With(&'a Encoded),
 }

@@ -49,7 +49,7 @@ use tokio::sync::Notify;
 
 use self::resolve::{arg_named, gradient_arg, named, rate_hz, zone_count};
 use self::sender::{Shared, send_enable};
-use crate::codec::{ArgRole, Mode, Role};
+use crate::codec::{ArgRole, Role};
 use crate::error::{Error, Result};
 use crate::govee::Govee;
 use crate::lan::DeviceId;
@@ -126,12 +126,9 @@ impl SegmentStream {
         // Chosen once, then carried: a mode is picked from recorded state, and
         // re-picking it per frame would put that decision on the fast path.
         let mode = govee.choose(id)?;
-        if mode != Mode::Lan {
-            return Err(Error::ModeNotImplemented {
-                id: id.clone(),
-                mode,
-            });
-        }
+        // Resolved here so that a mode with no transport in this build fails
+        // before anything is armed, rather than on the first frame.
+        govee.transport(id, mode)?;
 
         let sku = govee.sku(id)?;
         let device = govee.catalog().device(&sku)?;

@@ -12,15 +12,15 @@ use std::time::{Duration, Instant};
 
 use tokio::sync::{broadcast, watch};
 
-use super::events::Event;
 use crate::codec::{Encoded, Mode};
-use crate::lan::breaker::{Breaker, Policy};
 use crate::lan::cache::Cache;
 use crate::lan::discovery::{DiscoveredDevice, Endpoints};
-use crate::lan::error::{Error, Result};
 use crate::lan::socket::Socket;
-use crate::lan::status::DeviceStatus;
-use crate::lan::{DeviceId, millis};
+use crate::transport::breaker::{Breaker, Policy};
+use crate::transport::error::{Error, Result};
+use crate::transport::events::Event;
+use crate::transport::status::DeviceStatus;
+use crate::transport::{DeviceId, millis};
 
 /// One device, as the transport tracks it.
 pub(super) struct Tracked {
@@ -96,6 +96,7 @@ impl Shared {
         if !tracked.breaker.allows(now) {
             return Err(Error::Unavailable {
                 id: id.clone(),
+                mode: Mode::Lan,
                 state: tracked.breaker.state(),
             });
         }
@@ -148,7 +149,7 @@ impl Shared {
 
         let unreachable = || Error::Unreachable {
             id: id.clone(),
-            addr,
+            endpoint: addr.to_string(),
             timeout_ms: millis(timeout),
         };
         match outcome {

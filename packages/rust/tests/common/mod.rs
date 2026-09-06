@@ -7,6 +7,7 @@
 #![allow(dead_code, clippy::expect_used, clippy::format_collect)]
 
 use std::net::{Ipv4Addr, SocketAddr};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use govee_toolkit::lan::{DeviceId, Endpoints, Transport};
@@ -80,7 +81,8 @@ impl Rig {
         .await
         .expect("the socket binds");
 
-        let govee = Govee::attach(config, catalog, transport).expect("the configuration applies");
+        let govee = Govee::attach(config, catalog, [Arc::new(transport) as Arc<_>])
+            .expect("the configuration applies");
         govee.scan().await.expect("the scan goes out");
         Self { govee, simulator }
     }

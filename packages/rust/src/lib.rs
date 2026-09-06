@@ -8,6 +8,8 @@
 //!
 //! - [`codec`] — `devices/*.yaml` in, exact bytes out. No I/O, no SKU name, no
 //!   command name. Available with no features enabled at all.
+//! - [`transport`] — what every mode has in common: the `Transport` trait, the
+//!   device identity, the circuit breaker and the errors.
 //! - [`lan`] — the UDP transport: discovery, a device cache, one shared socket
 //!   and a per-device circuit breaker. Behind the `lan` feature, on by default.
 //! - [`stream`] — the raw segment channel, armed once and fed frames at a rate
@@ -58,8 +60,9 @@ pub mod codec;
 #[cfg(feature = "lan")]
 pub mod lan;
 
-// The facade below needs a transport to be worth compiling. When `ble` and
-// `cloud` land, every `feature = "lan"` here becomes `any(feature = "lan", …)`.
+// The facade below needs a transport to be worth compiling, but not a
+// particular one. Every gate here names the set of modes that carry one, so
+// `ble` and `cloud` join it by widening the list rather than by moving code.
 #[cfg(feature = "lan")]
 pub mod config;
 #[cfg(feature = "lan")]
@@ -68,6 +71,8 @@ pub mod error;
 pub mod paths;
 #[cfg(feature = "lan")]
 pub mod stream;
+#[cfg(feature = "lan")]
+pub mod transport;
 
 #[cfg(feature = "lan")]
 mod device;
@@ -88,6 +93,6 @@ pub use event::{Device, Event, Served};
 #[cfg(feature = "lan")]
 pub use govee::Govee;
 #[cfg(feature = "lan")]
-pub use lan::{DeviceId, DeviceStatus, Health, State};
-#[cfg(feature = "lan")]
 pub use stream::{Rate, SegmentStream, StreamOptions, Zones};
+#[cfg(feature = "lan")]
+pub use transport::{DeviceId, DeviceStatus, Health, State, Transport};

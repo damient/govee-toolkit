@@ -10,14 +10,14 @@ use std::time::{Duration, SystemTime};
 
 use tokio::sync::broadcast;
 
-use super::events::Event;
 use super::shared::{Shared, Tracked};
-use crate::lan::DeviceId;
-use crate::lan::cache::Change;
+use crate::codec::Mode;
 use crate::lan::discovery::{DiscoveredDevice, scan_request};
-use crate::lan::error::Result;
 use crate::lan::socket::{MAX_DATAGRAM, parse_reply};
-use crate::lan::status::DeviceStatus;
+use crate::transport::DeviceId;
+use crate::transport::error::Result;
+use crate::transport::events::{Change, Event};
+use crate::transport::status::DeviceStatus;
 
 impl Shared {
     pub(super) async fn scan(&self, window: Duration) -> Result<Vec<DiscoveredDevice>> {
@@ -96,7 +96,10 @@ impl Shared {
         {
             let _ = tracked.status.send(Some(status.clone()));
         }
-        let _ = self.events.send(Event::Status(status));
+        let _ = self.events.send(Event::Status {
+            mode: Mode::Lan,
+            status,
+        });
     }
 
     /// Which device answers at this address.
@@ -142,7 +145,8 @@ impl Shared {
             tracing::info!(id = %device.id, ip = %device.ip, sku = %device.sku, ?change, "device discovered");
         }
         let _ = self.events.send(Event::Discovered {
-            device: device.clone(),
+            mode: Mode::Lan,
+            device: device.reported(&self.endpoints),
             change,
         });
     }
@@ -164,7 +168,10 @@ impl Shared {
             }
         }
         for device in dropped {
-            let _ = self.events.send(Event::Forgotten { id: device.id });
+            let _ = self.events.send(Event::Forgotten {
+                mode: Mode::Lan,
+                id: device.id,
+            });
         }
         self.persist_cache();
     }
