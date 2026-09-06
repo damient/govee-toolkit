@@ -17,7 +17,7 @@ use crate::error::{Error, Result};
 use crate::govee::Govee;
 use crate::stream::paint;
 use crate::stream::resolve::{Enable, Painter};
-use crate::transport::{DeviceId, Verify};
+use crate::transport::{DeviceId, Transport, Verify};
 
 /// What the stream handle and its task share.
 #[derive(Debug)]
@@ -31,6 +31,9 @@ pub(crate) struct Shared {
     /// The SKU resolved when the stream opened. Carried so a frame does not
     /// re-take the transport's lock to look it up again.
     pub(crate) sku: String,
+    /// The transport serving [`Shared::mode`], resolved when the stream opened
+    /// so that a frame does not look it up again.
+    pub(crate) transport: Arc<dyn Transport>,
     /// The device file entry that arms and disarms the channel, and the
     /// argument the flag goes in. `None` where the file declares none for this
     /// mode: nothing is armed, and nothing is disarmed on close.
@@ -126,7 +129,7 @@ async fn emit(shared: &Shared) {
             return;
         };
 
-        let encoded = match encode_repaint(shared, &colors) {
+        let encoded = match encode_repaint(shared, colors) {
             Ok(encoded) => encoded,
             // The arguments will not become valid on a later tick.
             Err(e) => {
@@ -159,7 +162,7 @@ async fn emit(shared: &Shared) {
 ///
 /// All of them are encoded before any goes out, so a repaint the codec refuses
 /// leaves the previous picture on the device rather than half of the new one.
-fn encode_repaint(shared: &Shared, colors: &[[u8; 3]]) -> Result<Vec<Encoded>> {
+fn encode_repaint(shared: &Shared, colors: Vec<[u8; 3]>) -> Result<Vec<Encoded>> {
     paint::frames(&shared.painter, colors)?
         .iter()
         .map(|args| encode(shared, shared.painter.command(), args))
@@ -176,8 +179,7 @@ fn encode(shared: &Shared, command: &str, args: &Args) -> Result<Encoded> {
 /// only be traffic competing with the frames it checks.
 async fn write(shared: &Shared, encoded: &Encoded) -> Result<()> {
     shared
-        .govee
-        .transport(&shared.id, shared.mode)?
+        .transport
         .send(&shared.id, encoded, Verify::None)
         .await?;
     Ok(())

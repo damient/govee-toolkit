@@ -143,8 +143,9 @@ impl SegmentStream {
         // re-picking it per frame would put that decision on the fast path.
         let mode = govee.choose(id)?;
         // Resolved here so that a mode with no transport in this build fails
-        // before anything is armed, rather than on the first frame.
-        govee.transport(id, mode)?;
+        // before anything is armed, rather than on the first frame, and so
+        // that no frame pays for the lookup.
+        let transport = Arc::clone(govee.transport(id, mode)?);
 
         let sku = govee.sku(id)?;
         let device = govee.catalog().device(&sku)?;
@@ -167,6 +168,7 @@ impl SegmentStream {
             id: id.clone(),
             mode,
             sku,
+            transport,
             enable: plan.enable,
             gradient: plan.gradient,
             painter: plan.painter,

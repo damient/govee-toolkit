@@ -94,8 +94,8 @@ impl Govee {
             }
         }
         Ok(found
-            .iter()
-            .map(|(id, sku)| self.describe(id, sku))
+            .into_iter()
+            .map(|(id, sku)| self.describe(&id, &sku))
             .collect())
     }
 
@@ -112,8 +112,8 @@ impl Govee {
             }
         }
         known
-            .iter()
-            .map(|(id, sku)| self.describe(id, sku))
+            .into_iter()
+            .map(|(id, sku)| self.describe(&id, &sku))
             .collect()
     }
 
