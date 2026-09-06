@@ -89,15 +89,7 @@ impl Shared {
         };
 
         let status = DeviceStatus::from_data(id, reply.data);
-        if let Ok(devices) = self.devices.lock()
-            && let Some(tracked) = devices.get(&status.id)
-        {
-            let _ = tracked.status.send(Some(status.clone()));
-        }
-        let _ = self.events.send(Event::Status {
-            mode: Mode::Lan,
-            status,
-        });
+        self.devices.publish_status(&self.events, Mode::Lan, status);
     }
 
     /// Which device answers at this address.

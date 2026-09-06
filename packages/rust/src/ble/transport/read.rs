@@ -47,15 +47,7 @@ impl Shared {
         }
 
         let route = self.route_and_claim(id, Instant::now(), false)?;
-        let link = match self.link(id, &route.endpoint).await {
-            Ok(link) => link,
-            Err(e) => {
-                // A device that will not take a connection has answered
-                // nothing, and that is what the breaker counts.
-                self.record(id, false, Instant::now());
-                return Err(e);
-            }
-        };
+        let link = self.connect(id, &route.endpoint).await?;
 
         let mut captured = Captured::new();
         for (frame, layout) in exchanges {
@@ -99,12 +91,12 @@ impl Shared {
     ) -> Result<DeviceStatus> {
         let reply = self.read(id, request, timeout).await?;
         let status = DeviceStatus::from_captured(id.clone(), &reply.fields, &request.roles);
-        self.publish_status(id, status.clone());
+        self.publish_status(status.clone());
         Ok(status)
     }
 
     /// Write one frame at the device's budget. A failed write drops the link.
-    async fn write_frame(
+    pub(super) async fn write_frame(
         &self,
         id: &DeviceId,
         route: &Route,

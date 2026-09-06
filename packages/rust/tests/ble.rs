@@ -160,7 +160,7 @@ impl Transport for Fake {
         Ok(Vec::new())
     }
 
-    async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify<'_>) -> Result<Sent> {
+    async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent> {
         self.written
             .lock()
             .unwrap()
@@ -212,10 +212,6 @@ impl Transport for Fake {
             id: id.clone(),
             fields,
         })
-    }
-
-    fn save_cache(&self) -> Result<()> {
-        Ok(())
     }
 }
 

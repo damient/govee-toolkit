@@ -7,7 +7,7 @@ use btleplug::platform::Adapter;
 
 use crate::ble::link::adapter as adapter_error;
 use crate::ble::scan::Advertised;
-use crate::ble::transport::shared::{Shared, Tracked};
+use crate::ble::transport::shared::{Shared, Tracked, id_at};
 use crate::codec::Mode;
 use crate::transport::DeviceId;
 use crate::transport::error::Result;
@@ -50,13 +50,7 @@ impl Shared {
         };
         let mut found = Vec::with_capacity(seen.len());
         for device in seen {
-            let known = devices.iter().find_map(|(id, tracked)| {
-                tracked
-                    .endpoint
-                    .eq_ignore_ascii_case(&device.endpoint)
-                    .then(|| id.clone())
-            });
-            let (id, change) = match known {
+            let (id, change) = match id_at(&devices, &device.endpoint) {
                 Some(id) => (id, Change::Refreshed),
                 None => (DeviceId::new(&device.endpoint), Change::New),
             };
@@ -67,7 +61,7 @@ impl Shared {
                     Tracked::new(
                         device.endpoint.clone(),
                         device.sku.clone(),
-                        &self.options,
+                        self.options.policy,
                         self.budget,
                     )
                 });
