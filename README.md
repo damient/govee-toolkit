@@ -88,7 +88,7 @@ per device.**
 | Mode | Speed | Reaches the device from | What it carries | |
 | ---- | ----- | ----------------------- | --------------- | --- |
 | `lan` | fastest | the same Wi-Fi | everything, segments included | ✅ |
-| `ble` | fast | Bluetooth range, no Wi-Fi needed | depends on the model | 🔜 |
+| `ble` | fast | Bluetooth range, no Wi-Fi needed | depends on the model | 🚧 |
 | `cloud` | slowest | anywhere with internet | on/off, brightness, color | 🔜 |
 
 Every command reports which mode served it. Allow several and it switches

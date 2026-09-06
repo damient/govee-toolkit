@@ -36,7 +36,8 @@ impl Govee {
     ///
     /// Every transport this build carries is started, whether or not a device
     /// enables it: which modes a device may use is per-device configuration,
-    /// and a transport that is up costs a socket or an adapter handle.
+    /// and starting one costs a socket at most — `ble` claims its adapter only
+    /// when something needs it.
     ///
     /// # Errors
     ///
@@ -48,6 +49,11 @@ impl Govee {
         transports.push(Arc::new(
             crate::lan::Transport::start(config.lan.transport_options()?).await?,
         ));
+
+        #[cfg(feature = "ble")]
+        transports.push(Arc::new(crate::ble::Transport::start(
+            crate::ble::Options::default(),
+        )?));
 
         Self::attach(config, catalog, transports)
     }

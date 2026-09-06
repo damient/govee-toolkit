@@ -28,7 +28,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | | Feature |
 | --- | ------- |
 | ✅ | **`lan`** — power, brightness, color and color temperature over UDP, plus per-segment color |
-| 🔜 | **`ble`** — opt-in, works off-network within Bluetooth range, partial coverage per SKU family |
+| 🚧 | **`ble`** — opt-in, works off-network within Bluetooth range, partial coverage per SKU family. The transport ships behind the `ble` cargo feature, off by default; the protocol it speaks is not verified against a device yet, and no device file declares a `ble` command |
 | 🔜 | **`cloud`** — opt-in, reaches a device from anywhere, throttled, reduced to power / brightness / color |
 
 ## SDKs

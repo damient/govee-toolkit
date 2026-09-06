@@ -12,17 +12,19 @@
 //!   device identity, the circuit breaker and the errors.
 //! - [`lan`] — the UDP transport: discovery, a device cache, one shared socket
 //!   and a per-device circuit breaker. Behind the `lan` feature, on by default.
+//! - [`ble`] — the GATT transport: one connection per device, a paced write
+//!   budget and the same per-device breaker. Behind the `ble` feature.
 //! - [`stream`] — the raw segment channel, armed once and fed frames at a rate
 //!   taken from what was measured on the device.
 //! - The facade, at the crate root — configuration, mode selection and events.
 //!
-//! `ble` and `cloud` are declared modes with no transport yet. Enabling one is
-//! reported as such; it is never silently skipped, and never substituted with
-//! another mode.
+//! `cloud` is a declared mode with no transport yet. Enabling it is reported as
+//! such; it is never silently skipped, and never substituted with another mode.
 //!
 //! # Features
 //!
 //! - `lan` *(default)* — the UDP transport and the facade above it.
+//! - `ble` — the GATT transport, and the facade above it.
 //!
 //! With default features off, what remains is the codec alone: no socket, no
 //! async runtime, no `tokio`. Every binding encodes through that build, so it
@@ -57,42 +59,44 @@
 
 pub mod codec;
 
+#[cfg(feature = "ble")]
+pub mod ble;
 #[cfg(feature = "lan")]
 pub mod lan;
 
 // The facade below needs a transport to be worth compiling, but not a
 // particular one. Every gate here names the set of modes that carry one, so
-// `ble` and `cloud` join it by widening the list rather than by moving code.
-#[cfg(feature = "lan")]
+// `cloud` joins it by widening the list rather than by moving code.
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub mod config;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub mod error;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub mod paths;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub mod stream;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub mod transport;
 
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 mod device;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 mod event;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 mod govee;
 
 pub use codec::{Args, Catalog, Mode};
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use config::{Config, DeviceConfig, LanConfig, Problem};
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use device::DeviceHandle;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use error::{Error, Result};
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use event::{Device, Event, Served};
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use govee::Govee;
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use stream::{Rate, SegmentStream, StreamOptions, Zones};
-#[cfg(feature = "lan")]
+#[cfg(any(feature = "lan", feature = "ble"))]
 pub use transport::{DeviceId, DeviceStatus, Health, State, Transport};

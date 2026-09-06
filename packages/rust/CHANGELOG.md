@@ -5,6 +5,40 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 `publish = false`, covered by the same entries. The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [Unreleased]
+
+### Added
+
+- `govee_toolkit::transport` — what every mode shares, lifted out of the facade:
+  the `Transport` trait a mode implements, the transport-neutral error, the
+  circuit breaker, `DeviceStatus` and the event types. `lan` re-exports all of
+  it and keeps its richer inherent surface.
+- `govee_toolkit::ble` — the `ble` transport, behind the new non-default `ble`
+  feature: a scan over advertised names, one held connection per device, a
+  paced write path and the same per-device circuit breaker. **The protocol it
+  speaks is not verified against a device**: `docs/protocol/ble.md` records
+  nothing probed, no device file declares a `ble` command, and every constant
+  in the module says so. It sends the frames the codec built and reads nothing
+  out of a reply.
+- `ble::Transport::bind` relates a device's identity to the Bluetooth address a
+  scan heard. Nothing infers one from the other.
+- The device file can describe a fixed-size frame and a chunked write:
+  `<pad:N>` zero-fills a layout, `${name:str8}` / `${name:str16}`,
+  `${name:mask8}` / `${name:mask16}` and `${name:bytes}` are new field tokens,
+  and `chunk:` splits one payload across several frames. `Encoded` carries
+  `frames` beside an envelope that is now optional.
+- Error codes `field_too_long`, `frame_overflow`, `chunk_syntax`, `serialize`,
+  `no_envelope` and, on a transport, `out_of_range` for an option outside the
+  range the mode can honour — an out-of-range write budget is refused, never
+  moved to the nearest value it could serve.
+
+### Changed
+
+- The facade holds one transport per mode and looks the mode up, rather than
+  matching on it in every method. `Govee::attach` takes the transports and
+  refuses two claiming the same mode. `Device.lan_health` became
+  `Device.health`, one entry per mode.
+
 ## [0.2.1] — 2026-09-05
 
 The code is unchanged: this release fixes the crate metadata and the page

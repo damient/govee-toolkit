@@ -15,7 +15,7 @@ use tokio::time::MissedTickBehavior;
 use crate::codec::{Args, Encoded, Mode};
 use crate::error::{Error, Result};
 use crate::govee::Govee;
-use crate::lan::{DeviceId, Verify};
+use crate::transport::{DeviceId, Verify};
 
 /// What the stream handle and its task share.
 #[derive(Debug)]

@@ -1,14 +1,18 @@
 //! Transport tuning for `lan`.
 //!
-//! The defaults here mirror `crate::lan::Options`; the test at the bottom is
-//! what keeps the two from drifting apart.
+//! The section is read whatever transports the build carries, so that one
+//! configuration file works against all of them. What turns it into
+//! `crate::lan::Options` is behind the `lan` feature, and the test at the
+//! bottom is what keeps the numbers here and the transport's own defaults from
+//! drifting apart.
 
 use std::path::PathBuf;
 
 use serde::Deserialize;
 
+#[cfg(feature = "lan")]
 use crate::error::Result;
-use crate::transport::millis;
+use crate::transport::breaker::Policy;
 
 /// Transport tuning for `lan`.
 #[derive(Debug, Clone, Deserialize)]
@@ -46,17 +50,16 @@ pub struct LanConfig {
 
 impl Default for LanConfig {
     fn default() -> Self {
-        let breaker = crate::lan::Policy::default();
-        let transport = crate::lan::Options::default();
+        let breaker = Policy::default();
         Self {
             cache: None,
             cache_disabled: false,
-            scan_window_ms: millis(transport.scan_window),
-            refresh_interval_seconds: transport.refresh_interval.map(|d| d.as_secs()),
-            status_timeout_ms: millis(transport.status_timeout),
+            scan_window_ms: 2_000,
+            refresh_interval_seconds: Some(60),
+            status_timeout_ms: 500,
             stream_fallback_hz: crate::stream::FALLBACK_HZ,
-            verify_interval_ms: transport.verify_interval.map(millis),
-            forget_after_days: transport.forget_after.as_secs() / 86_400,
+            verify_interval_ms: Some(1_000),
+            forget_after_days: 7,
             degrade_after: breaker.degrade_after,
             down_after: breaker.down_after,
             recover_after: breaker.recover_after,
@@ -69,8 +72,8 @@ impl Default for LanConfig {
 impl LanConfig {
     /// The breaker thresholds this configuration asks for.
     #[must_use]
-    pub fn policy(&self) -> crate::lan::Policy {
-        crate::lan::Policy {
+    pub fn policy(&self) -> Policy {
+        Policy {
             degrade_after: self.degrade_after,
             down_after: self.down_after,
             recover_after: self.recover_after,
@@ -85,6 +88,7 @@ impl LanConfig {
     ///
     /// [`Error::Transport`](crate::Error::Transport) if the cache file cannot
     /// be read.
+    #[cfg(feature = "lan")]
     pub fn transport_options(&self) -> Result<crate::lan::Options> {
         let cache = match self.cache_path() {
             Some(path) => crate::lan::Cache::load(path)?,
@@ -109,6 +113,7 @@ impl LanConfig {
     }
 
     /// Where the device cache belongs, or `None` to keep it in memory.
+    #[cfg(feature = "lan")]
     #[must_use]
     pub fn cache_path(&self) -> Option<PathBuf> {
         if self.cache_disabled {
@@ -122,16 +127,30 @@ impl LanConfig {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "lan"))]
 mod tests {
     use super::*;
+    use crate::transport::millis;
 
     #[test]
     fn the_defaults_match_the_transport_they_configure() {
         let lan = LanConfig::default();
         let transport = crate::lan::Options::default();
+        assert_eq!(lan.scan_window_ms, millis(transport.scan_window));
+        assert_eq!(
+            lan.refresh_interval_seconds,
+            transport.refresh_interval.map(|d| d.as_secs())
+        );
         assert_eq!(lan.status_timeout_ms, millis(transport.status_timeout));
+        assert_eq!(
+            lan.verify_interval_ms,
+            transport.verify_interval.map(millis)
+        );
+        assert_eq!(
+            lan.forget_after_days,
+            transport.forget_after.as_secs() / 86_400
+        );
         assert!((lan.stream_fallback_hz - crate::stream::FALLBACK_HZ).abs() < f64::EPSILON);
-        assert_eq!(lan.policy(), crate::lan::Policy::default());
+        assert_eq!(lan.policy(), Policy::default());
     }
 }

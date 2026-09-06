@@ -58,6 +58,17 @@ pub enum Error {
         reason: String,
     },
 
+    /// A transport option is outside the range the transport can honour. It is
+    /// refused rather than moved to the nearest value it could serve: an option
+    /// quietly replaced is an option the caller never set.
+    #[error("`{field}` is out of range: {reason}")]
+    Option {
+        /// The field, as it is named on the mode's options type.
+        field: String,
+        /// What the range is, and what was given.
+        reason: String,
+    },
+
     /// The transport's receive loop is gone, so nothing can be sent or awaited.
     #[error("the transport has been shut down")]
     ShutDown,
@@ -97,6 +108,7 @@ impl Error {
             Self::Unavailable { .. } => "mode_unavailable",
             Self::Unreachable { .. } => "unreachable",
             Self::Serialize { .. } => "serialize",
+            Self::Option { .. } => "out_of_range",
             Self::ShutDown => "shut_down",
             Self::Io { .. } => "io",
             Self::Cache { .. } => "cache",

@@ -52,7 +52,7 @@ use self::sender::{Shared, send_enable};
 use crate::codec::{ArgRole, Role};
 use crate::error::{Error, Result};
 use crate::govee::Govee;
-use crate::lan::DeviceId;
+use crate::transport::DeviceId;
 
 /// The rate used when a device file records no measurement, in hertz.
 ///
@@ -302,7 +302,7 @@ impl SegmentStream {
         match self.task.take() {
             Some(task) => task
                 .await
-                .map_err(|_| Error::Transport(crate::lan::Error::ShutDown))?,
+                .map_err(|_| Error::Transport(crate::transport::Error::ShutDown))?,
             None => Ok(()),
         }
     }
@@ -313,7 +313,7 @@ impl SegmentStream {
                 .shared
                 .colors
                 .lock()
-                .map_err(|_| Error::Transport(crate::lan::Error::ShutDown))?;
+                .map_err(|_| Error::Transport(crate::transport::Error::ShutDown))?;
             edit(&mut colors)?;
         }
         // A write onto a generation no frame has carried yet replaces one that

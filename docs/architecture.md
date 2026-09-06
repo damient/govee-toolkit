@@ -66,24 +66,25 @@ explicitly:
 will. Adding a device is adding YAML — see
 [`../devices/README.md`](../devices/README.md).
 
-## Mode dispatch, and the `Transport` trait that is not there yet
+## Mode dispatch, and the `Transport` trait
 
-The facade picks a mode and then matches on it — in `send`, in `status`, in
-`health`. With one implemented mode that is the honest shape, and it is what
-ships today.
+A mode is one implementation of `Transport`: given a device and the bytes the
+codec built, send them and report what came back. `src/transport/` holds what
+every mode shares — the trait, the transport-neutral error, the circuit breaker,
+device status and the event types — and `src/lan/` and `src/ble/` implement it,
+each keeping the inherent surface the trait cannot express.
 
-It does not survive `ble`. Each of those matches grows a third arm, then a
-fourth, and the same question gets asked in five places. The prerequisite for
-the BLE pull request is therefore a `Transport` trait: given a device and the
-bytes the codec built, send them and report what came back; one mode becomes one
-module that implements it.
+The facade holds one transport per mode and looks the mode up rather than
+matching on it. `Govee::attach` takes the transports a host built and refuses
+two claiming the same mode; a build that carries no transport for an enabled
+mode reports the mode as unavailable. Adding `cloud` adds a module, not a third
+arm in five places.
 
-Written down here rather than done early on purpose — a trait with one
-implementation is a guess about the second. `ble` is the pull request that knows
-what the trait needs.
+The trait was written when the second mode was in sight, not before: a trait
+with one implementation is a guess about the second.
 
-It will not make modes implicit. Which transports a device may use stays the
-user's explicit list; a trait only removes the repetition. See
+It does not make modes implicit. Which transports a device may use stays the
+user's explicit list; the trait only removes the repetition. See
 [`modes.md`](modes.md).
 
 ## Bindings

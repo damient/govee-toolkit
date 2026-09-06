@@ -38,6 +38,14 @@ default = ["lan"]
 # a `dyn`: its methods are async, and async fn in a dyn-safe trait needs
 # boxed futures.
 lan = ["dep:socket2", "dep:async-trait", "dep:tokio", "dep:tracing"]
+ble = [
+  "dep:btleplug",
+  "dep:futures-util",
+  "dep:uuid",
+  "dep:async-trait",
+  "dep:tokio",
+  "dep:tracing",
+]
 
 [dependencies]
 base64 = "0.23"
@@ -47,6 +55,10 @@ serde_norway = "0.9"
 thiserror = "2"
 
 async-trait = { version = "0.1", optional = true }
+btleplug = { version = "0.13", optional = true }
+# btleplug hands notifications back as a `futures` stream; this is what reads
+# one. `default-features = false` keeps the executor and the compat shims out.
+futures-util = { version = "0.3", default-features = false, optional = true }
 socket2 = { version = "0.6", features = ["all"], optional = true }
 tokio = { version = "1", features = [
   "macros",
@@ -56,8 +68,13 @@ tokio = { version = "1", features = [
   "time",
 ], optional = true }
 tracing = { version = "0.1", optional = true }
+uuid = { version = "1", optional = true }
 
 [dev-dependencies]
+# The `Transport` trait is `#[async_trait]`, so anything implementing it needs
+# the same macro — the test that fakes a transport implements it the way an
+# application would.
+async-trait = "0.1"
 # Path-only on purpose: a dev-dependency carrying no version is dropped when the
 # crate is published, which is what keeps the simulator off crates.io while
 # still letting the tests here drive it.
