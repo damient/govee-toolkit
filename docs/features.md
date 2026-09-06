@@ -28,7 +28,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | | Feature |
 | --- | ------- |
 | ✅ | **`lan`** — power, brightness, color and color temperature over UDP, plus per-segment color |
-| ✅ | **`ble`** — opt-in, works off-network within Bluetooth range, partial coverage per SKU family, one connection per device. A budget paces the writes. The transport ships behind the `ble` cargo feature, off by default. Power, brightness, color, color temperature, both per-zone channels and the reads are verified on one device, the H61A0. Wi-Fi provisioning is encoded from the layout and has never been sent to a device. Scenes are not implemented |
+| ✅ | **`ble`** — opt-in, works off-network within Bluetooth range, partial coverage per SKU family, one connection per device. A budget paces the writes. The transport ships behind the `ble` cargo feature, off by default. Power, brightness, color, color temperature, both per-zone channels and the reads are verified on one device, the H61A0. Power, brightness, color, the scene sub-mode, the music sub-mode and the reads are verified on a second one, the H6114, which speaks another dialect. Wi-Fi provisioning is encoded from the layout and has never been sent to a device. Scenes are not implemented |
 | 🔜 | **`cloud`** — opt-in, reaches a device from anywhere, throttled, reduced to power / brightness / color |
 
 ## SDKs
