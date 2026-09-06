@@ -4,7 +4,7 @@
 //! to another one — see `docs/modes.md`.
 
 use crate::codec::{Args, Mode};
-// Referenced from the doc comments below, nowhere else.
+// Used by the doc comments only.
 #[cfg(doc)]
 use crate::error::Error;
 use crate::error::Result;
@@ -13,8 +13,8 @@ use crate::govee::Govee;
 use crate::stream::{SegmentStream, StreamOptions};
 use crate::transport::{DeviceId, DeviceStatus, Health, Reply, Verify};
 
-/// A borrow of the SDK and one identity. It holds no state of its own: every
-/// call reads the configuration and the health recorded right now.
+/// A borrow of the SDK and one identity. It holds no state: every call reads
+/// the configuration and the health recorded now.
 #[derive(Debug, Clone)]
 pub struct DeviceHandle<'a> {
     govee: &'a Govee,
@@ -67,9 +67,8 @@ impl DeviceHandle<'_> {
         let sku = self.govee.sku(&self.id)?;
         let encoded = self.govee.encode(&sku, mode, command, args)?;
 
-        // Fire-and-verify needs a request to verify with. A device file that
-        // declares no status command is not verified — the command still
-        // goes out.
+        // Fire-and-verify needs a request to verify with. Without a status
+        // command in the device file, the command still goes out, unverified.
         let verification = self.govee.status_request(&sku, mode).ok();
         let verify = verification.as_deref().map_or(Verify::None, Verify::With);
 
@@ -132,9 +131,9 @@ impl DeviceHandle<'_> {
     /// Run a command's exchanges and return what its `reply:` layouts
     /// captured.
     ///
-    /// This is how a value the SDK does not model reaches a caller: the device
-    /// file says which frames ask for it, which bytes carry it and under what
-    /// name, and nothing about any of that lives in this crate.
+    /// This is how a value the SDK does not model reaches a caller. The device
+    /// file names the frames that ask for it, the bytes that carry it and the
+    /// name it comes back under. None of that lives in this crate.
     ///
     /// # Errors
     ///

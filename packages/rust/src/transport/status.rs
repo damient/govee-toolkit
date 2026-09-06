@@ -1,9 +1,8 @@
 //! What a device reports about itself.
 //!
 //! `devStatus` and the undocumented `status` of `docs/protocol/lan.md` §2.2
-//! both land here. Parsing is generic: every field is optional, because which
-//! ones a firmware fills in is not something this crate can know, and `raw`
-//! keeps whatever was not recognized.
+//! both land here. Every field is optional, because this crate cannot know
+//! which ones a firmware fills in, and `raw` keeps what it did not recognize.
 
 use std::collections::BTreeMap;
 
@@ -27,9 +26,8 @@ pub struct DeviceStatus {
     /// `colorTemInKelvin`. `0` means the device is in color mode.
     pub color_temp_kelvin: Option<i64>,
     /// The whole reply: `msg.data` for a mode that answers JSON, every captured
-    /// field for one that answers frames. Undocumented fields — the frozen `pt`
-    /// descriptor of §2.2 among them — stay reachable without this crate having
-    /// to model them.
+    /// field for one that answers frames. Undocumented fields stay reachable
+    /// here, the frozen `pt` descriptor of §2.2 among them.
     pub raw: serde_json::Value,
 }
 
@@ -61,8 +59,7 @@ impl DeviceStatus {
     /// Read one out of what a command's `reply:` layouts captured.
     ///
     /// `roles` says which captured field is which, so no field name reaches
-    /// this code. A field no role claims is not lost: everything captured is in
-    /// `raw`.
+    /// this code. A field no role claims stays in `raw`.
     #[must_use]
     pub fn from_captured(
         id: DeviceId,
@@ -128,7 +125,6 @@ mod tests {
         let status = DeviceStatus::from_captured(id(), &captured, &roles);
         assert_eq!(status.on, Some(true));
         assert_eq!(status.brightness, Some(64));
-        // Nothing claims it, and it is still there.
         assert_eq!(status.raw["segments"], 15);
     }
 
@@ -182,9 +178,6 @@ mod tests {
     }
 
     proptest::proptest! {
-        /// Which fields a firmware fills in is not something this crate can
-        /// know, so every one is optional and `raw` keeps the rest. Whatever
-        /// arrives, reading it is total and loses nothing.
         #[test]
         fn any_reply_is_read_without_loss(value in crate::transport::arbitrary::json()) {
             let status = DeviceStatus::from_data(id(), value.clone());

@@ -1,13 +1,12 @@
-//! Asking a device something, and reading the answer.
+//! Requests to a device, and the answers.
 //!
-//! A read is a run of exchanges: write one frame, wait for the notification its
-//! `reply:` layout matches, write the next. The wire carries no request id, so
-//! the layout is the correlation — a notification that does not match the
-//! layout is not this exchange's answer, and it is skipped rather than read.
+//! A read is a run of exchanges: write one frame, wait for the notification
+//! its `reply:` layout matches, write the next. The wire carries no request
+//! id, so the layout is the correlation. A notification the layout does not
+//! match is skipped.
 //!
-//! Every caller sends its own frames, because two callers sharing one request
-//! would be told apart by nothing. The write budget is what keeps that from
-//! becoming a burst.
+//! Every caller sends its own frames, because nothing tells two callers of one
+//! request apart. The write budget holds the result to a rate.
 
 use std::time::{Duration, Instant};
 
@@ -52,7 +51,7 @@ impl Shared {
             Ok(link) => link,
             Err(e) => {
                 // A device that will not take a connection has answered
-                // nothing, which is what the breaker is counting.
+                // nothing, and that is what the breaker counts.
                 self.record(id, false, Instant::now());
                 return Err(e);
             }
@@ -60,8 +59,8 @@ impl Shared {
 
         let mut captured = Captured::new();
         for (frame, layout) in exchanges {
-            // Subscribe before writing, or a reply that arrives first is
-            // missed.
+            // Subscribe before the write, or a reply that arrives first is
+            // lost.
             let replies = link.replies();
             self.write_frame(id, &route, &link, &request.cmd, frame)
                 .await?;
@@ -104,7 +103,7 @@ impl Shared {
         Ok(status)
     }
 
-    /// Write one frame at the device's budget, dropping the link if it fails.
+    /// Write one frame at the device's budget. A failed write drops the link.
     async fn write_frame(
         &self,
         id: &DeviceId,
@@ -138,8 +137,8 @@ async fn await_reply(
                         return Some(fields);
                     }
                 }
-                // Lagged behind the device, or the link is gone: either way
-                // this exchange has nothing left to wait for.
+                // The receiver lagged, or the link is gone: this exchange has
+                // nothing left to wait for.
                 Err(_) => return None,
             }
         }

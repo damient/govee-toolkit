@@ -1,17 +1,16 @@
 //! The `ble` transport: GATT over Bluetooth Low Energy.
 //!
-//! Carries the frames [`crate::codec`] produces. Everything it needs is on the
-//! wire itself — one vendor service, one characteristic to write to, one to be
-//! notified on — and the bytes come from `devices/*.yaml`, as everywhere else.
+//! Carries the frames [`crate::codec`] produces over one vendor service: one
+//! characteristic to write to, one to be notified on. The bytes come from
+//! `devices/*.yaml`.
 //!
 //! The UUIDs and the frame length below were observed on one unit, the H61A0
 //! `devices/H61A0.yaml` describes, and on no other. `docs/protocol/ble.md` says
 //! what was exercised there and what was not — Wi-Fi provisioning was written
 //! from the read direction alone and has never been sent to a device.
 //!
-//! It is one implementation of [`crate::transport::Transport`], under the same
-//! rules as every other mode (`docs/modes.md`): it never chooses a mode, its
-//! health is state already recorded, and nothing is approximated.
+//! It implements [`crate::transport::Transport`] under the rules in
+//! `docs/modes.md`.
 //!
 //! What is specific to this mode:
 //!
@@ -38,7 +37,7 @@ pub use scan::Advertised;
 pub use transport::{Options, Transport};
 use uuid::Uuid;
 
-// Shared with every other mode; re-exported so that `ble` reads as one module.
+// Re-exported so that `ble` reads as one module.
 pub use crate::transport::{
     Breaker, Change, DeviceId, DeviceStatus, Discovered, Error, Event, Health, KnownDevice, Policy,
     Result, Sent, State, Transition, Verify,
@@ -46,9 +45,8 @@ pub use crate::transport::{
 
 /// The vendor service commands travel on.
 ///
-/// Observed on one unit, and on no other family. There is no capture under
-/// `tests/fixtures/ble-captures/` behind it yet: TODO: redact one and commit
-/// it, so the value has evidence beside it rather than a note.
+/// Observed on one unit, and on no other family. TODO: redact a capture under
+/// `tests/fixtures/ble-captures/` and commit it as evidence.
 pub const SERVICE: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_1910);
 
 /// The characteristic frames are written to, without a response. Same
@@ -59,9 +57,8 @@ pub const WRITE_CHARACTERISTIC: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_080
 /// [`SERVICE`].
 pub const NOTIFY_CHARACTERISTIC: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_2b10);
 
-/// The length of every frame on this wire, in bytes.
+/// The length of every frame on this wire, in bytes, checksum included.
 ///
-/// There is no MTU negotiation on this wire: every frame is this long,
-/// checksum included. The codec builds one from the device file's `frame:`
-/// layout, which ends `<pad:20> <xor>` for exactly that reason.
+/// This wire has no MTU negotiation. The codec builds a frame from the device
+/// file's `frame:` layout, which ends `<pad:20> <xor>` for that reason.
 pub const FRAME_LEN: usize = 20;

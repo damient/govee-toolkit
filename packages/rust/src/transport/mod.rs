@@ -1,14 +1,12 @@
 //! What every mode has in common: one trait, one identity, one error.
 //!
 //! A transport carries the bytes [`crate::codec`] produced to one device and
-//! reports what came back. It does **not** choose a mode: there is nothing to
-//! fall back to at this layer. A device that cannot be reached produces an
-//! error, and what to do about it is the facade's decision, made from the
-//! user's configuration — `docs/modes.md`.
+//! reports what came back. It must **not** choose a mode: this layer has no
+//! fallback. A device it cannot reach produces an error, and the facade decides
+//! what to do about it, from the user's configuration — `docs/modes.md`.
 //!
-//! The trait exists because the facade would otherwise ask the same question in
-//! six places, once per mode. It removes that repetition and nothing else:
-//! which transports a device may use stays the user's explicit list.
+//! The trait removes repetition in the facade and nothing else: the transports
+//! a device may use stay the user's explicit list.
 
 pub mod breaker;
 pub mod error;
@@ -41,26 +39,24 @@ pub(crate) fn millis(d: std::time::Duration) -> u64 {
 /// What to do about a command once it has been written out.
 #[derive(Debug, Clone, Copy)]
 pub enum Verify<'a> {
-    /// Nothing. The breaker learns nothing from this command — right for a
-    /// stream of frames, where the verification traffic would compete with the
-    /// frames themselves.
+    /// Nothing. The breaker learns nothing from this command, which is right
+    /// for a stream of frames: the verification traffic would compete with the
+    /// frames.
     None,
     /// Ask the device for its status afterwards, and record the answer, or its
-    /// absence, against the breaker. The request is supplied by the caller
-    /// because building it means reading the device file, which is the codec's
-    /// job and not a transport's.
+    /// absence, against the breaker. The caller supplies the request, because
+    /// to build it is to read the device file, which is the codec's job.
     With(&'a Encoded),
 }
 
 /// One way of reaching devices.
 ///
-/// Implemented once per mode. Every method answers for the mode this transport
-/// serves and for no other; the facade is what holds several of them and picks
-/// between them.
+/// Implement it once per mode. Every method answers for that mode and for no
+/// other; the facade holds several transports and picks between them.
 ///
-/// The read-only methods answer from state already recorded and must touch no
-/// adapter: choosing a mode by trying one would cost the fast path a
-/// round-trip on every command.
+/// The read-only methods must answer from recorded state and must touch no
+/// adapter: to choose a mode by a trial would cost the fast path a round-trip
+/// on every command.
 #[async_trait]
 pub trait Transport: Debug + Send + Sync + 'static {
     /// The mode this transport serves.
@@ -83,7 +79,7 @@ pub trait Transport: Debug + Send + Sync + 'static {
 
     /// Watch a device's status as answers arrive.
     ///
-    /// Nothing is requested by subscribing; use [`Transport::status`] for that.
+    /// A subscription requests nothing; use [`Transport::status`] for that.
     fn watch_status(&self, id: &DeviceId) -> Option<watch::Receiver<Option<DeviceStatus>>>;
 
     /// Look for devices for `window`, and return what answered.
@@ -98,8 +94,8 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// Write a command out.
     ///
     /// Returns as soon as the bytes are gone. A successful return means the
-    /// command was sent, never that it was applied — which is what
-    /// [`Verify::With`] is for.
+    /// device got the command, never that it applied it. [`Verify::With`]
+    /// answers that question.
     ///
     /// # Errors
     ///
@@ -119,10 +115,9 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// Run a command's exchanges and return what its `reply:` layouts
     /// captured.
     ///
-    /// This is how a value the SDK does not model — a segment count, a MAC, a
-    /// firmware version — reaches a caller: the device file says which bytes
-    /// carry it and under what name, and nothing about either lives in this
-    /// crate.
+    /// A value the SDK does not model — a segment count, a MAC, a firmware
+    /// version — reaches the caller this way. The device file says which bytes
+    /// carry it and under what name; neither lives in this crate.
     ///
     /// # Errors
     ///
@@ -141,15 +136,14 @@ pub trait Transport: Debug + Send + Sync + 'static {
 
 /// A device's identity: the MAC address it reports.
 ///
-/// Addresses are not identity — a DHCP lease renews and the device is at a
-/// different one, still the same device, and the same unit answers on a
-/// Bluetooth address that has nothing to do with either. The cache, the breaker
-/// and the user's configuration all key on this instead, which is also what
-/// lets one configuration entry cover a device reachable over several modes.
+/// An address is not an identity: a DHCP lease renews and the same device sits
+/// at a different one, and the same unit answers on an unrelated Bluetooth
+/// address. The cache, the breaker and the user's configuration all key on the
+/// MAC, so one configuration entry covers a device reachable over several
+/// modes.
 ///
-/// Normalized to uppercase on construction: firmwares are not consistent about
-/// the case they report, and two spellings of one device would otherwise be two
-/// devices.
+/// [`DeviceId::new`] normalizes to uppercase. Firmwares are not consistent
+/// about case, and two spellings would otherwise be two devices.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(from = "String", into = "String")]
 pub struct DeviceId(String);

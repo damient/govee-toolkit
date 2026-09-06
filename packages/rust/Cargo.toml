@@ -10,8 +10,8 @@ authors = ["damient"]
 readme = "README.md"
 keywords = ["govee", "led", "smart-home", "iot", "sdk"]
 categories = ["api-bindings", "hardware-support", "network-programming"]
-# `cargo package` cannot reach above the manifest, so publishing vendors
-# `devices/` in beside it first — see .github/workflows/rust-release.yml.
+# `cargo package` cannot reach above the manifest, so the release workflow
+# copies `devices/` beside it first — see .github/workflows/rust-release.yml.
 include = ["src/**", "build.rs", "README.md", "devices/**"]
 
 [workspace]
@@ -27,16 +27,14 @@ repository = "https://github.com/damient/govee-toolkit"
 authors = ["damient"]
 
 [features]
-# `lan` is the reason the project exists, so it is on by default. Turning the
-# default features off leaves the codec on its own: `devices/*.yaml` in, bytes
-# out, no socket and no async runtime. That is the build every binding encodes
-# through, and the one `tools/check-no-io.sh` guards.
+# `--no-default-features` leaves the codec on its own: `devices/*.yaml` in,
+# bytes out, no socket and no async runtime. Every binding encodes through that
+# build, and `tools/check-no-io.sh` guards it.
 default = ["lan"]
-# A feature is public API (`docs/versioning.md`), so the transports spell
-# their dependencies out rather than sharing an internal one nobody enables
-# on purpose. `async-trait` is what puts the shared `Transport` trait behind
-# a `dyn`: its methods are async, and async fn in a dyn-safe trait needs
-# boxed futures.
+# A feature is public API (`docs/versioning.md`), so each transport spells its
+# dependencies out rather than shares an internal feature. `async-trait` puts
+# the shared `Transport` trait behind a `dyn`: its methods are async, and an
+# async fn in a dyn-safe trait needs boxed futures.
 lan = ["dep:socket2", "dep:async-trait", "dep:tokio", "dep:tracing"]
 ble = [
   "dep:btleplug",
@@ -56,7 +54,7 @@ thiserror = "2"
 
 async-trait = { version = "0.1", optional = true }
 btleplug = { version = "0.13", optional = true }
-# btleplug hands notifications back as a `futures` stream; this is what reads
+# btleplug returns notifications as a `futures` stream, and this crate reads
 # one. `default-features = false` keeps the executor and the compat shims out.
 futures-util = { version = "0.3", default-features = false, optional = true }
 socket2 = { version = "0.6", features = ["all"], optional = true }
@@ -70,9 +68,9 @@ tokio = { version = "1", features = [
 tracing = { version = "0.1", optional = true }
 uuid = { version = "1", optional = true }
 
-# The examples are walkthroughs against a real device, one per mode. Naming
-# them here is what keeps `cargo build` from trying to compile the `ble` one
-# into a build that has no `ble` transport.
+# The examples run against a real device, one per mode. These entries stop
+# `cargo build` from compiling the `ble` example into a build with no `ble`
+# transport.
 [[example]]
 name = "lan_tour"
 required-features = ["lan"]
@@ -82,13 +80,11 @@ name = "ble_tour"
 required-features = ["ble"]
 
 [dev-dependencies]
-# The `Transport` trait is `#[async_trait]`, so anything implementing it needs
-# the same macro — the test that fakes a transport implements it the way an
-# application would.
+# The `Transport` trait is `#[async_trait]`, so every implementation needs the
+# same macro. The test that fakes a transport uses it as an application would.
 async-trait = "0.1"
-# Path-only on purpose: a dev-dependency carrying no version is dropped when the
-# crate is published, which is what keeps the simulator off crates.io while
-# still letting the tests here drive it.
+# Path-only on purpose: `cargo package` drops a dev-dependency that carries no
+# version, which keeps the simulator off crates.io.
 govee-toolkit-sim = { path = "crates/sim" }
 proptest = "1"
 tokio = { version = "1", features = [
@@ -124,8 +120,7 @@ broken_intra_doc_links = "deny"
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 cargo = { level = "warn", priority = -1 }
-# Duplicate transitive versions are the ecosystem's to resolve, not ours:
-# nothing in this workspace can act on the warning.
+# Nothing in this workspace can act on a duplicate transitive version.
 multiple_crate_versions = "allow"
 # The SDK must fail explicitly rather than abort the host application: a panic
 # in a library crate is a bug, not an error path. See docs/modes.md.

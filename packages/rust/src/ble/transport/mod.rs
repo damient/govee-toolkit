@@ -1,12 +1,12 @@
-//! Scanning, the link, the budget and the breaker, tied together.
+//! The scan, the link, the budget and the breaker, tied together.
 //!
 //! The send path is the same shape as every other mode's: resolve the device
-//! from what is already known, ask the breaker, write. What this mode adds
-//! between the last two is a connection — a device answers nothing until one
-//! is up — and a budget, because the firmware is not a socket.
+//! from what is already known, ask the breaker, write. Between the last two
+//! this mode adds a connection, because a device answers nothing until one is
+//! up, and a write budget the firmware imposes.
 //!
-//! Replies carry no request id, so a read is written under an open subscription
-//! and matched against the `reply:` layout the device file declares.
+//! A reply carries no request id, so a read waits under an open subscription
+//! and matches the `reply:` layout the device file declares.
 
 mod discover;
 mod impl_transport;
@@ -48,9 +48,8 @@ impl std::fmt::Debug for Transport {
 impl Transport {
     /// Build the transport.
     ///
-    /// Claims no adapter: none is opened until a scan or a command needs one,
-    /// so this succeeds on a machine whose radio is off and the first command
-    /// is what reports it.
+    /// Claims no adapter. A scan or a command opens one, so this succeeds on a
+    /// machine whose radio is off, and the first command reports it.
     ///
     /// # Errors
     ///
@@ -72,8 +71,8 @@ impl Transport {
 
     /// Listen for advertisements and record what answered.
     ///
-    /// Nothing on the send path calls this. A device is reported under the
-    /// identity this transport can observe — see [`Transport::bind`].
+    /// Nothing on the send path calls this. This transport reports a device
+    /// under the identity it can observe — see [`Transport::bind`].
     ///
     /// # Errors
     ///
@@ -85,20 +84,17 @@ impl Transport {
 
     /// Say that the device known by `id` is the one answering at `endpoint`.
     ///
-    /// A device is identified by its Wi-Fi MAC everywhere in this crate, and a
-    /// scan reports the handle the platform addresses the peripheral by
-    /// instead. The two name one unit, and **nothing here infers one from the
-    /// other**: a scan reports a device under that handle until somebody who
-    /// knows better says otherwise. This is how they are said to be the same
-    /// unit, and it is what lets one configuration entry cover a device
-    /// reachable over both `lan` and `ble`.
+    /// This crate identifies a device by its Wi-Fi MAC, and a scan reports the
+    /// handle the platform addresses the peripheral by. The two name one unit,
+    /// and **nothing here infers one from the other**: a scan reports a device
+    /// under that handle until a caller says otherwise. One configuration
+    /// entry can then cover a device reachable over both `lan` and `ble`.
     ///
     /// The device keeps everything already recorded about it, health included.
     ///
     /// # Errors
     ///
-    /// [`Error::UnknownDevice`] if no scan has heard that handle: there is
-    /// nothing to relate the identity to yet.
+    /// [`Error::UnknownDevice`] if no scan has heard that handle.
     pub fn bind(&self, id: &DeviceId, endpoint: &str) -> Result<()> {
         let mut devices = self.shared.devices.lock().map_err(|_| Error::ShutDown)?;
         let known = devices.iter().find_map(|(known, tracked)| {
@@ -121,9 +117,8 @@ impl Transport {
 
     /// Every device the transport knows, from a scan.
     ///
-    /// Empty until one has run: an advertisement is the only thing that
-    /// relates a device to a handle to connect to, and this mode caches
-    /// nothing across restarts.
+    /// Empty until a scan has run: only an advertisement relates a device to a
+    /// handle, and this mode caches nothing across restarts.
     #[must_use]
     pub fn devices(&self) -> Vec<KnownDevice> {
         let now = Instant::now();
@@ -177,8 +172,8 @@ impl Transport {
     /// Write a command out, one frame at a time and at the device's budget.
     ///
     /// Returns once the last frame is written. The characteristic takes writes
-    /// without a response, so a successful return means the frames were sent,
-    /// never that they were applied — which is what [`Verify::With`] is for.
+    /// without a response, so a successful return means the frames went out,
+    /// never that the device applied them. [`Verify::With`] is for that.
     ///
     /// # Errors
     ///
@@ -193,8 +188,8 @@ impl Transport {
         let link = match self.shared.link(id, &route.endpoint).await {
             Ok(link) => link,
             Err(e) => {
-                // A device that will not take a connection is unreachable, and
-                // saying so now spares the next command the same wait.
+                // A device that will not take a connection is unreachable. A
+                // record now spares the next command the same wait.
                 self.shared.record(id, false, Instant::now());
                 return Err(e);
             }
@@ -221,8 +216,8 @@ impl Transport {
             let request = request.clone();
             let timeout = self.shared.options.status_timeout;
             tokio::spawn(async move {
-                // The result is already recorded against the breaker and
-                // published as an event; nothing here needs it.
+                // The breaker already holds the result and the event stream
+                // already carries it.
                 let _ = shared.request_status(&id, &request, timeout).await;
             });
         }
@@ -232,11 +227,10 @@ impl Transport {
 
     /// Ask a device for its state and wait for the answer.
     ///
-    /// The answer, or the silence, is recorded against the breaker. What the
-    /// reply means is the device file's business: its `reply:` layouts say
-    /// which bytes carry what, and the roles on its arguments say which of
-    /// those the SDK models. Everything captured stays in
-    /// [`DeviceStatus::raw`].
+    /// The breaker records the answer or the silence. The device file says
+    /// what the reply means: its `reply:` layouts say which bytes carry what,
+    /// and the roles on its arguments say which of those the SDK models.
+    /// [`DeviceStatus::raw`] keeps everything captured.
     ///
     /// # Errors
     ///
@@ -262,9 +256,6 @@ impl Transport {
     }
 
     /// Record a device the caller already knows how to reach.
-    ///
-    /// The seam a test uses, and a host that discovered the handle some other
-    /// way.
     #[cfg(test)]
     pub(crate) fn insert(&self, id: &DeviceId, endpoint: &str, sku: &str) {
         if let Ok(mut devices) = self.shared.devices.lock() {

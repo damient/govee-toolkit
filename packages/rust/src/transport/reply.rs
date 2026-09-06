@@ -5,10 +5,10 @@ use crate::transport::DeviceId;
 
 /// The fields one command's `reply:` layouts captured.
 ///
-/// Nothing here interprets a field name: the device file named them, and a
-/// caller that wants to know what a name means reads the same file. What the
-/// SDK does model — whether the device is on, and how bright — it finds by
-/// role, on [`DeviceStatus`](crate::transport::DeviceStatus).
+/// Nothing here interprets a field name: the device file names them, and a
+/// caller reads that same file for the meaning. What the SDK does model —
+/// whether the device is on, and how bright — it finds by role, on
+/// [`DeviceStatus`](crate::transport::DeviceStatus).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Reply {
     /// Which device answered.

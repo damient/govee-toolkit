@@ -5,8 +5,8 @@
 //! is this file, and enabling a mode the hardware does not support is a
 //! configuration error reported at startup rather than a surprise at send time.
 //!
-//! YAML, at `~/.config/govee-toolkit/config.yaml` — the same language the
-//! device files are written in, so a contributor reads one syntax and not two.
+//! YAML, at `~/.config/govee-toolkit/config.yaml` — the same language as the
+//! device files, so a contributor reads one syntax and not two.
 //!
 //! ```yaml
 //! catalog:
@@ -28,10 +28,9 @@
 //! Unknown keys are refused. A misspelled option that was silently ignored
 //! would read as a setting that did not work.
 //!
-//! One key to move: the fallback frame rate is `stream.fallback_hz`, and a
-//! file still carrying `lan.stream_fallback_hz` is refused at load along with
-//! the rest of the file. The rate applies to whichever mode a stream opens on,
-//! so it is not `lan`'s to hold.
+//! The fallback frame rate is `stream.fallback_hz`. It applies to whichever
+//! mode a stream opens on, so `lan` does not hold it: `lan.stream_fallback_hz`
+//! is an unknown key, and the load fails.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -56,16 +55,16 @@ pub struct Config {
     pub defaults: Defaults,
     /// Transport tuning for `lan`.
     pub lan: LanConfig,
-    /// Segment streaming, over whichever mode a stream opens on.
+    /// Segment streaming settings.
     pub stream: StreamConfig,
     /// Per-device settings, keyed by the MAC the device reports.
     pub devices: BTreeMap<DeviceId, DeviceConfig>,
 }
 
-/// Segment streaming, over whichever mode a stream opens on.
+/// Segment streaming settings.
 ///
-/// Mode-neutral: a stream picks its mode from what the device has enabled, and
-/// this section applies to whichever it picked.
+/// A stream picks its mode from what the device enables, and this section
+/// applies to whichever mode it picked.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct StreamConfig {
@@ -85,9 +84,9 @@ impl Default for StreamConfig {
 /// Where device files come from.
 ///
 /// The catalog compiled into the build is the normal source. A local directory
-/// is an escape hatch for someone reverse-engineering their own unit, and it is
-/// **opt-in**: what one person measured on one device must not silently become
-/// what everyone's device is assumed to do.
+/// serves someone who reverse-engineers their own unit, and it is **opt-in**:
+/// what one person measured on one device must not silently become what
+/// everyone's device is assumed to do.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CatalogConfig {
@@ -153,7 +152,7 @@ impl Config {
     /// Read the configuration from its default location.
     ///
     /// A missing file is the default configuration — `lan` alone — not an
-    /// error: an SDK has to work before anyone has written one.
+    /// error: an SDK must work before anyone writes one.
     ///
     /// # Errors
     ///
@@ -289,7 +288,6 @@ mod tests {
         assert_eq!(config.modes_for(&flexible), [Mode::Lan, Mode::Ble]);
         assert_eq!(config.name_for(&flexible), Some("desk"));
 
-        // Anything not listed gets the defaults.
         assert_eq!(
             config.modes_for(&DeviceId::new("99:99:99:99:99:99")),
             [Mode::Lan]

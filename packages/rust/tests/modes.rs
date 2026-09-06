@@ -79,8 +79,6 @@ async fn a_single_mode_fails_rather_than_switching() {
         .await
         .expect_err("the only enabled mode is unavailable");
 
-    // It fails and says so. It does not reach for another mode, and it does not
-    // wait for a timeout to find out.
     assert_eq!(error.code(), "no_mode_available");
     assert!(started.elapsed() < Duration::from_millis(50));
     assert_eq!(rig.simulator.received_count(), 0);
@@ -143,9 +141,9 @@ async fn the_status_a_device_reports_reaches_the_caller() {
 
 #[tokio::test]
 async fn enabling_a_mode_the_hardware_lacks_is_reported() {
-    // `none` is a statement that the hardware cannot do it, so enabling it is a
-    // mistake to report. The embedded file declares `ble` reached in part, so
-    // the claim is overlaid.
+    // `none` states that the hardware cannot do it, so the SDK must report the
+    // mistake. The embedded file declares `ble` as partial, so the overlay
+    // carries the claim.
     let mut catalog = Catalog::embedded().expect("catalog");
     catalog
         .overlay([(
@@ -169,9 +167,8 @@ async fn enabling_a_mode_the_hardware_lacks_is_reported() {
 
 #[tokio::test]
 async fn enabling_a_mode_nobody_probed_is_not_a_configuration_error() {
-    // `unknown` is the absence of a probe. Refusing it would be claiming the
-    // hardware cannot do it, which nobody established — and enabling the mode
-    // is how somebody would find out.
+    // `unknown` means nobody probed the mode. A refusal would claim the
+    // hardware cannot do it, which nobody established.
     let mut catalog = Catalog::embedded().expect("catalog");
     catalog
         .overlay([(
@@ -190,7 +187,6 @@ async fn enabling_a_mode_nobody_probed_is_not_a_configuration_error() {
         rig.govee.problems()
     );
 
-    // It still fails explicitly rather than being served by another mode.
     let error = rig
         .govee
         .device(&id())
@@ -204,8 +200,8 @@ async fn enabling_a_mode_nobody_probed_is_not_a_configuration_error() {
 async fn status_recorded_over_lan_is_not_handed_back_under_another_mode() {
     let rig = rig("defaults:\n  modes: [ble]\n").await;
 
-    // The lan transport knows the device — the scan found it — so the
-    // accessors have something to return and must still refuse to.
+    // The scan found the device, so the lan transport holds a status the
+    // accessors could return under `ble`. They must still refuse.
     assert!(rig.govee.device(&id()).health(Mode::Lan).is_some());
 
     assert!(rig.govee.device(&id()).last_status().is_none());
@@ -240,7 +236,7 @@ async fn the_devices_listing_carries_the_configured_view() {
 async fn a_file_that_names_no_status_command_still_sends() {
     // Nothing in the SDK knows what a status entry is called: the device file
     // marks one `role: status`. A file that marks none has no status request,
-    // so the command goes out unverified and `status()` says why.
+    // so the command goes out unverified and `status()` fails.
     let mut catalog = Catalog::embedded().expect("catalog");
     catalog
         .overlay([(

@@ -99,9 +99,8 @@ fn golden_files() -> Vec<(String, GoldenFile)> {
 /// JSON says how a value is written; the device file says what it means.
 ///
 /// A list of numbers is zone indices to one command and opaque bytes to
-/// another, so the declared type decides. An argument no command declares —
-/// which is the point of the `unknown_arg` cases — is read off its JSON shape
-/// instead, and reaches the codec far enough to be refused by name.
+/// another, so the declared type decides. The `unknown_arg` cases declare no
+/// type, so their JSON shape decides, and the codec refuses them by name.
 fn to_args(spec: Option<&Command>, raw: &BTreeMap<String, serde_json::Value>) -> Args {
     let mut args = Args::new();
     for (name, value) in raw {
@@ -238,11 +237,11 @@ fn every_golden_file_names_a_known_device() {
     }
 }
 
-/// The reverse direction, and the one that actually keeps the vectors honest.
+/// The reverse direction: every command in the catalog must have a vector.
 ///
-/// A command with no vector is a command an implementation can get wrong
-/// without anything failing until it reaches hardware. CLAUDE.md requires one
-/// per command; this is what enforces it.
+/// An implementation can get a command with no vector wrong, and nothing fails
+/// until the bytes reach hardware. CLAUDE.md requires one vector per command;
+/// this test enforces it.
 #[test]
 fn every_catalog_command_has_a_vector() {
     let catalog = Catalog::embedded().expect("embedded catalog");

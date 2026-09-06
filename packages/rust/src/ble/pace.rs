@@ -1,22 +1,20 @@
 //! The write budget.
 //!
-//! The transport paces itself rather than trusting a caller: a firmware that is
-//! written to faster than it can keep up does not answer with an error, it
+//! The transport paces itself rather than trusting a caller. A firmware
+//! written to faster than it can keep up does not answer with an error. It
 //! stops answering, and the caller sees a device that has gone away.
 //!
-//! What rate a device tolerates is a measurement. One unit has been measured —
-//! `devices/H61A0.yaml` records about 130 writes per second sustained, and a
-//! burst of roughly a hundred frames leaving the firmware unresponsive for
-//! twenty seconds — and the default in [`Options`](super::Options) is that
-//! unit's budget.
+//! What rate a device tolerates is a measurement. `devices/H61A0.yaml` records
+//! about 130 writes per second sustained on one unit, and a burst of roughly a
+//! hundred frames that left the firmware unresponsive for twenty seconds. The
+//! default in [`Options`](super::Options) is that unit's budget.
 //!
-//! TODO: read the budget out of the device file for the device being written
-//! to, so that a unit tolerating less is not written to at another unit's
-//! rate.
+//! TODO: read the budget out of the device file for the target device, so that
+//! a unit which tolerates less is not written to at another unit's rate.
 //!
-//! A token bucket, with the tokens allowed to go negative: a caller that finds
-//! the bucket empty is told how long to wait, and concurrent callers queue
-//! behind each other instead of all waking at once.
+//! A token bucket, with the tokens allowed to go negative. The bucket tells a
+//! caller that finds it empty how long to wait, so concurrent callers queue
+//! behind each other rather than wake together.
 
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -37,10 +35,10 @@ impl Budget {
     /// # Errors
     ///
     /// [`Error::Option`] if the rate is not finite and positive, or if the
-    /// burst is zero. Either would describe a budget that never releases a
-    /// write, which on this wire is indistinguishable from a device that has
-    /// stopped answering — so it is refused here rather than raised to
-    /// something the caller did not ask for.
+    /// burst is zero. Either describes a budget that never releases a write.
+    /// On this wire that is indistinguishable from a device that stopped
+    /// answering, so it is refused here, never raised to a value the caller
+    /// did not ask for.
     pub fn new(per_second: f64, burst: u32) -> Result<Self> {
         if !per_second.is_finite() || per_second <= 0.0 {
             return Err(Error::Option {
@@ -75,7 +73,7 @@ struct State {
 }
 
 impl Pacer {
-    /// A pacer spending `budget`, starting with a full burst.
+    /// A pacer that spends `budget`. It starts with a full burst.
     #[must_use]
     pub fn new(budget: Budget) -> Self {
         Self {

@@ -19,8 +19,7 @@ use crate::lan::discovery::Endpoints;
 use crate::transport::error::{Error, Result};
 
 /// The largest datagram this protocol produces. A full-resolution segment frame
-/// is a few hundred bytes base64'd into JSON; 4 KiB leaves room to spare, and a
-/// larger datagram is not something this protocol sends.
+/// is a few hundred bytes base64'd into JSON, so 4 KiB leaves room to spare.
 pub(crate) const MAX_DATAGRAM: usize = 4096;
 
 /// A bound, shared UDP socket.
@@ -122,8 +121,8 @@ pub(crate) fn parse_reply(from: SocketAddr, bytes: &[u8]) -> Option<Reply> {
     Some(Reply {
         from,
         cmd: msg.get("cmd")?.as_str()?.to_owned(),
-        // Moved out, not cloned: a status payload is copied enough on the way
-        // to the watcher and the event stream as it is.
+        // Moved out, not cloned: the watcher and the event stream copy a status
+        // payload enough already.
         data: msg.remove("data").unwrap_or(serde_json::Value::Null),
     })
 }

@@ -1,9 +1,8 @@
-//! Republishing the transports' events on the facade's own stream.
+//! Republish the transports' events on the facade's own stream.
 //!
-//! One task per transport, all stopped when the last [`Govee`](super::Govee)
-//! clone is dropped. It is also where a device the catalog cannot serve is
-//! reported — discovery is the first moment that is knowable, and the only one
-//! where saying it costs nothing.
+//! One task per transport; the tasks stop when the last [`Govee`](super::Govee)
+//! clone drops. A device the catalog cannot serve is reported here, because
+//! discovery is the first moment that is knowable.
 
 use std::sync::Arc;
 
@@ -46,8 +45,8 @@ pub(super) async fn forward(
                                 sku,
                             });
                         }
-                        // Said once, on discovery, rather than swallowed on
-                        // every send: without it, commands go out unverified.
+                        // Said once, on discovery: without a status command,
+                        // commands go out unverified.
                         Ok(file) if file.status_command(*mode).is_none() => {
                             tracing::warn!(
                                 id = %device.id, %sku, %mode,

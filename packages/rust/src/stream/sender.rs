@@ -1,9 +1,9 @@
 //! The task that puts frames on the wire.
 //!
-//! It owns the cadence and nothing else: the colors it sends are whatever the
+//! It owns the cadence and nothing else. The colors it sends are the ones the
 //! writers last left, and a tick that finds them unchanged sends nothing. An
-//! idle stream therefore costs no traffic, which matters on a channel shared
-//! with the status requests the breaker reads health from.
+//! idle stream therefore costs no traffic, on a channel it shares with the
+//! status requests the breaker reads health from.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -95,9 +95,8 @@ async fn send_flag(shared: &Shared, command: &Enable, value: i64) -> Result<()> 
 
 /// Emit the current colors at the stream's rate, then disarm the channel.
 ///
-/// The disarm belongs to this task rather than to the handle: a `Drop` cannot
-/// await one, and spawning it there panics when no runtime is left to spawn
-/// onto. Returns whether that frame went out, which is what
+/// The disarm belongs to this task rather than to the handle, which cannot
+/// await a frame from a `Drop`. Returns whether that frame went out, which
 /// [`SegmentStream::close`](crate::SegmentStream::close) reports.
 pub(crate) async fn run(shared: Arc<Shared>) -> Result<()> {
     emit(&shared).await;
@@ -159,7 +158,7 @@ async fn emit(shared: &Shared) {
 /// distinct color for a masked one.
 ///
 /// All of them are encoded before any goes out, so a repaint the codec refuses
-/// leaves the device wearing what it wore rather than half of the new picture.
+/// leaves the previous picture on the device rather than half of the new one.
 fn encode_repaint(shared: &Shared, colors: &[[u8; 3]]) -> Result<Vec<Encoded>> {
     paint::frames(&shared.painter, colors)?
         .iter()

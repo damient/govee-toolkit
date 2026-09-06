@@ -8,19 +8,19 @@
 //! # Layers
 //!
 //! - [`codec`] — `devices/*.yaml` in, exact bytes out. No I/O, no SKU name, no
-//!   command name. Available with no features enabled at all.
+//!   command name. Available with no features enabled.
 //! - [`transport`] — what every mode has in common: the `Transport` trait, the
 //!   device identity, the circuit breaker and the errors.
 //! - [`lan`] — the UDP transport: discovery, a device cache, one shared socket
 //!   and a per-device circuit breaker. Behind the `lan` feature, on by default.
 //! - [`ble`] — the GATT transport: one connection per device, a paced write
 //!   budget and the same per-device breaker. Behind the `ble` feature.
-//! - [`stream`] — the raw segment channel, armed once and fed frames at a rate
-//!   taken from what was measured on the device.
+//! - [`stream`] — the raw segment channel. It arms once, then takes frames at
+//!   the rate the device file records.
 //! - The facade, at the crate root — configuration, mode selection and events.
 //!
-//! `cloud` is a declared mode with no transport yet. Enabling it is reported as
-//! such; it is never silently skipped, and never substituted with another mode.
+//! `cloud` is a declared mode with no transport yet. The SDK reports it as
+//! such: it never skips the mode in silence, and never substitutes another one.
 //!
 //! # Features
 //!
@@ -33,12 +33,13 @@
 //!
 //! # Choosing a mode
 //!
-//! The mode is picked from breaker state already known, before anything is
-//! encoded — never by trying one and waiting for a timeout. It is picked from
-//! the modes the user enabled for that device and from nothing else: a device
-//! that cannot be reached is an error, and a command the chosen mode does not
-//! carry fails rather than being approximated. Every command reports which
-//! mode served it. The rules are `docs/modes.md`.
+//! The SDK chooses the mode from breaker state it already holds, before it
+//! encodes anything — never by a trial send that waits for a timeout. It
+//! chooses among the modes the user enabled for that device and nothing else:
+//! modes are explicit, never a fallback chain. A device it cannot reach is an
+//! error. A command the chosen mode does not carry fails, and the SDK never
+//! approximates it. Every command reports which mode served it. The rules are
+//! `docs/modes.md`.
 //!
 //! ```no_run
 //! use govee_toolkit::{Args, Config, Govee};
@@ -65,9 +66,8 @@ pub mod ble;
 #[cfg(feature = "lan")]
 pub mod lan;
 
-// The facade below needs a transport to be worth compiling, but not a
-// particular one. Every gate here names the set of modes that carry one, so
-// `cloud` joins it by widening the list rather than by moving code.
+// The facade needs a transport, but not a particular one. Every gate here names
+// the modes that carry one, so `cloud` joins by widening the list.
 #[cfg(any(feature = "lan", feature = "ble"))]
 pub mod config;
 #[cfg(any(feature = "lan", feature = "ble"))]

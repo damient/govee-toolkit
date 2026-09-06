@@ -3,7 +3,7 @@
 //! Segment count, native resolution and sustainable frame rate all depend on
 //! the LENGTH of the unit measured, not only on its SKU — two ropes sharing a
 //! model in different lengths share none of them. So these are records of an
-//! observation, never a property of the model, and nothing here is derived from
+//! observation, never a property of the model. Nothing here is derived from
 //! anything else: an absent number stays absent.
 //!
 //! See `docs/protocol/lan.md` 2.3 and 2.7 for how they are measured.
@@ -31,10 +31,9 @@ pub struct FrameRate {
 
 /// Sustainable segment frame rates, as a device file records them.
 ///
-/// A bare list is the `lan` table, which is where the measurement started. A
-/// mapping records one table per mode: the channels differ in frame size and
-/// in what the firmware does between writes, so a rate measured over one says
-/// nothing about another.
+/// A bare list is the `lan` table. A mapping records one table per mode: the
+/// channels differ in frame size and in what the firmware does between writes,
+/// so a rate measured over one says nothing about another.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum FrameRates {
@@ -65,9 +64,7 @@ impl FrameRates {
 /// Numbers taken from one physical unit.
 ///
 /// Only [`Measurements::frame_rate`] is read by the SDK; everything else a
-/// device file records lands in [`Measurements::extra`] and is carried through
-/// untouched. These are properties of the unit measured, not of the SKU — the
-/// same model in another length does not share them.
+/// device file records lands in [`Measurements::extra`], untouched.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct Measurements {
@@ -87,10 +84,9 @@ impl Measurements {
     /// nothing was measured on this unit for that mode.
     ///
     /// Answers with the smallest row that covers `zones`. Past the largest row
-    /// it answers with that row, which is the slowest rate anybody measured:
-    /// the ceiling only falls as frames grow, so that is a floor already
-    /// observed rather than a value extrapolated from the trend. A rate is
-    /// never carried from one mode to another.
+    /// it answers with that row, the slowest rate anybody measured: the ceiling
+    /// only falls as frames grow, so that rate is an observed floor and not an
+    /// extrapolation. No rate crosses from one mode to another.
     #[must_use]
     pub fn clean_hz(&self, mode: Mode, zones: u32) -> Option<f64> {
         let rows = self.frame_rate.rows(mode);

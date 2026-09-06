@@ -1,9 +1,9 @@
 //! Finding devices: which advertised names are ours, and what one carries.
 //!
-//! An advertisement is all there is to go on before connecting, and the vendor
-//! puts the SKU in the name: three underscore-separated fields, of which the
-//! second is the model. A family that advertises under some other name is
-//! simply not found, which is why
+//! An advertisement is all there is to go on before a connection, and the
+//! vendor puts the SKU in the name: three underscore-separated fields, of which
+//! the second is the model. A family that advertises under another name is not
+//! found, which is why
 //! [`Transport::bind`](super::transport::Transport::bind) exists.
 //!
 //! `GBK_` is what the one measured unit advertises under — see
@@ -14,8 +14,8 @@
 //! Nothing here touches an adapter. The transport does that.
 
 /// The advertised-name prefixes a Govee device is recognized by, matched
-/// case-insensitively. `IHOMENT` and `MINGER` are the vendor's older brands,
-/// and only `GBK_` has been seen — see the module documentation.
+/// case-insensitively. Only `GBK_` has been seen — see the module
+/// documentation.
 pub const NAME_PREFIXES: [&str; 4] = ["GBK_", "GOVEE", "IHOMENT_", "MINGER_"];
 
 /// One device as an advertisement describes it.
@@ -25,9 +25,9 @@ pub struct Advertised {
     /// connect, and it is **not** the device's identity.
     ///
     /// Its shape is the platform's: a Bluetooth address where one is exposed,
-    /// and a per-host identifier on macOS, which exposes none — `CoreBluetooth`
-    /// reports every peripheral as `00:00:00:00:00:00`. Nothing here parses
-    /// it; it is handed back to the adapter as it came.
+    /// and a per-host identifier on macOS, which exposes none —
+    /// `CoreBluetooth` reports every peripheral as `00:00:00:00:00:00`.
+    /// Nothing here parses it; the adapter gets it back as it came.
     pub endpoint: String,
     /// The name it advertises.
     pub name: String,
@@ -39,10 +39,8 @@ impl Advertised {
     /// Read an advertisement, or `None` if the name is not one of ours or
     /// carries no SKU.
     ///
-    /// A name with no SKU field is refused rather than reported with an empty
-    /// one: nothing can be encoded for a device whose model is unknown, and a
-    /// device that only appears in a listing is worse than one that does not
-    /// appear at all.
+    /// A name with no SKU field is refused, never reported with an empty one:
+    /// the crate can encode nothing for a device whose model is unknown.
     #[must_use]
     pub fn read(endpoint: impl Into<String>, name: &str) -> Option<Self> {
         let sku = sku_of(name)?;

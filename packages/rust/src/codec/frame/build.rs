@@ -1,7 +1,7 @@
-//! Emitting the bytes of a parsed frame layout.
+//! Emits the bytes of a parsed frame layout.
 //!
-//! Argument values are read, never defaulted: a missing or too-wide value is an
-//! error, because the firmware would silently clamp it and report success.
+//! A missing or too-wide value is an error, never a default: the firmware
+//! clamps such a value in silence and then reports success.
 
 use super::fields::{
     bytes_arg, int_arg, mask, pad, push_int, rgb_arg, text_arg, too_long, write_len, zones_arg,
@@ -14,8 +14,7 @@ impl Frame {
     /// Emit the bytes.
     ///
     /// `args` must already be resolved and validated — see
-    /// [`crate::codec::command`]; a missing or mistyped value is an error here
-    /// too, never a default.
+    /// [`crate::codec::command`].
     ///
     /// # Errors
     ///
@@ -98,9 +97,8 @@ impl Frame {
 }
 
 impl Frame {
-    /// Bytes this layout will emit, so the buffer is allocated once. A repeat
-    /// group and a variable-width field are sized from the value they will
-    /// carry; `<pad:…>` sizes the frame on its own.
+    /// Bytes this layout emits, so one allocation is enough. `<pad:…>` sets the
+    /// whole frame size on its own.
     fn size_hint(&self, args: &Args) -> usize {
         let mut size = 0usize;
         for token in &self.tokens {
@@ -195,7 +193,7 @@ mod tests {
     }
 
     /// The firmware drops a bit past its zone count in silence, and a saturated
-    /// mask looks exactly like an ignored one, so the width is enforced here.
+    /// mask looks exactly like an ignored one, so the build must refuse it.
     #[test]
     fn a_zone_the_mask_cannot_carry_is_refused() {
         let frame = Frame::parse("x", "${z:mask8}").unwrap();

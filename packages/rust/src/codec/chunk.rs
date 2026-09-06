@@ -1,4 +1,4 @@
-//! Splitting one payload across several frames.
+//! One payload split across several frames.
 //!
 //! A mode whose frames are a fixed size carries a longer payload as a start
 //! frame, a run of data frames and an end frame. The device file writes the
@@ -30,9 +30,9 @@ pub const INDEX: &str = "index";
 /// The slice of the body one data frame carries.
 pub const CHUNK: &str = "chunk";
 
-/// The names this module supplies. A command declaring one of them as an
-/// argument would be writing over a value the codec fills in, so the validator
-/// refuses it.
+/// The names this module supplies. The validator refuses a command that
+/// declares one of them as an argument: it would overwrite a value the codec
+/// fills in.
 pub const RESERVED: [&str; 3] = [COUNT, INDEX, CHUNK];
 
 /// A command's `chunk:` block.
@@ -82,7 +82,7 @@ impl Layout {
         })
     }
 
-    /// The layout of the payload being split.
+    /// The layout of the payload to split.
     #[must_use]
     pub fn body(&self) -> &Frame {
         &self.body

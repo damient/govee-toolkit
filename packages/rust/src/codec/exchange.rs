@@ -12,9 +12,9 @@
 //!     reply: "AA 04 ${level}"
 //! ```
 //!
-//! The pairs go out in the order they are written, and what they capture is
-//! merged into one set of fields. That is how one entry reads several values
-//! without the SDK knowing the name of either.
+//! The pairs go out in the order they are written, and their captures merge
+//! into one set of fields. One entry reads several values, and no field name
+//! appears in SDK code.
 
 use std::sync::OnceLock;
 
@@ -142,10 +142,8 @@ fn parse_reply(command: &str, source: Option<&str>) -> Result<Option<Layout>> {
     }
 }
 
-/// The tokenized exchanges, parsed on first use.
-///
-/// The layouts are fixed by the device file, so the send path parses them once
-/// rather than once per command.
+/// The tokenized exchanges, parsed on first use: the device file fixes the
+/// layouts, so the send path parses them once and not once per command.
 pub(crate) fn exchanges<'a>(
     command: &str,
     spec: &'a crate::codec::catalog::Command,

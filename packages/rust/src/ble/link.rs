@@ -28,7 +28,6 @@ impl Drop for Listener {
     }
 }
 
-/// A connected device.
 #[derive(Debug)]
 pub(crate) struct Link {
     peripheral: Peripheral,
@@ -104,15 +103,12 @@ impl Link {
         })
     }
 
-    /// Subscribe to what the device notifies.
-    ///
-    /// Subscribe before writing the request, or a reply that arrives first is
-    /// missed.
+    /// Subscribe before you write the request, or a reply that arrives first
+    /// is missed.
     pub(crate) fn replies(&self) -> broadcast::Receiver<Vec<u8>> {
         self.replies.subscribe()
     }
 
-    /// Whether the connection is still up.
     pub(crate) async fn is_live(&self) -> bool {
         self.peripheral.is_connected().await.unwrap_or(false)
     }
@@ -151,7 +147,6 @@ pub(crate) fn check_length(cmd: &str, frame: &[u8]) -> Result<()> {
     })
 }
 
-/// What the adapter reported, as a transport error.
 pub(crate) fn adapter(endpoint: &str, doing: &str, source: &btleplug::Error) -> Error {
     Error::io(
         format!("{endpoint}: {doing}"),

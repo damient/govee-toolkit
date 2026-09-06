@@ -95,8 +95,8 @@ fn a_layout_that_builds_bytes_is_not_a_reply() {
     }
 }
 
-/// The wire this reads ends every frame on a checksum, which is neither
-/// padding nor text: the length is what leaves it out.
+/// The wire ends every frame on a checksum, which is neither padding nor text.
+/// The length leaves it out.
 #[test]
 fn text_of_a_given_length_stops_before_what_follows_it() {
     let mut frame = vec![0xaa, 0x21];

@@ -41,7 +41,7 @@ pub enum Error {
     /// A declared argument was not supplied.
     #[error("{command}: missing argument `{arg}`")]
     MissingArg {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The declared argument that has no value.
         arg: String,
@@ -50,7 +50,7 @@ pub enum Error {
     /// An argument was supplied that the command does not declare.
     #[error("{command}: unknown argument `{arg}`")]
     UnknownArg {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The supplied argument.
         arg: String,
@@ -59,7 +59,7 @@ pub enum Error {
     /// An argument was supplied with the wrong shape.
     #[error("{command}: argument `{arg}` expects {expected}, got {got}")]
     ArgType {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The argument.
         arg: String,
@@ -72,7 +72,7 @@ pub enum Error {
     /// An integer argument fell outside the range the device file declares.
     #[error("{command}: argument `{arg}` = {value} is outside {min}..={max}")]
     OutOfRange {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The argument.
         arg: String,
@@ -88,7 +88,7 @@ pub enum Error {
     /// counts. Supplying neither is fine — the count is derived from the list.
     #[error("{command}: `{count_arg}` = {declared} but `{list_arg}` holds {actual} items")]
     RepeatCountMismatch {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The argument used as the repeat count.
         count_arg: String,
@@ -103,7 +103,7 @@ pub enum Error {
     /// The `frame:` string in the device file is not valid.
     #[error("{command}: invalid frame `{frame}`: {reason}")]
     FrameSyntax {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The offending frame string.
         frame: String,
@@ -114,7 +114,7 @@ pub enum Error {
     /// A value does not fit the width the frame declares for it.
     #[error("{command}: `{arg}` = {value} does not fit in {bits} bits")]
     FrameWidth {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The argument.
         arg: String,
@@ -128,7 +128,7 @@ pub enum Error {
     /// past what its length prefix counts.
     #[error("{command}: `{arg}` is {len} bytes, more than the {max} its field carries")]
     FieldTooLong {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The argument.
         arg: String,
@@ -142,7 +142,7 @@ pub enum Error {
     /// declares.
     #[error("{command}: frame is {actual} bytes, past the {size} the layout declares")]
     FrameOverflow {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The size `<pad:…>` declares.
         size: usize,
@@ -153,7 +153,7 @@ pub enum Error {
     /// The `reply:` string in the device file is not valid.
     #[error("{command}: invalid reply `{reply}`: {reason}")]
     ReplySyntax {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The offending reply string.
         reply: String,
@@ -163,12 +163,12 @@ pub enum Error {
 
     /// A reply does not match the layout the device file declares for it.
     ///
-    /// Nothing captured before the mismatch is returned: a frame that failed to
-    /// match is another command's answer, or a firmware that does not do what
-    /// the file says, and neither is worth reading fields out of.
+    /// The codec discards what it captured before the mismatch. A frame that
+    /// does not match is another command's answer, or a firmware that does not
+    /// do what the file says.
     #[error("{command}: the reply does not match the layout: {reason}")]
     ReplyMismatch {
-        /// The command being read.
+        /// The command the codec reads.
         command: String,
         /// Where the reply parted from the layout.
         reason: String,
@@ -177,7 +177,7 @@ pub enum Error {
     /// A `chunk:` block is unusable as written.
     #[error("{command}: invalid `chunk:`: {reason}")]
     ChunkSyntax {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// What is wrong with it.
         reason: String,
@@ -186,7 +186,7 @@ pub enum Error {
     /// The envelope could not be serialized.
     #[error("{command}: cannot serialize the envelope: {reason}")]
     Serialize {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// What serialization reported.
         reason: String,
@@ -196,14 +196,14 @@ pub enum Error {
     /// envelope to serialize.
     #[error("{command}: carries no `msg` envelope")]
     NoEnvelope {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
     },
 
     /// The `payload:` template holds a placeholder that resolves to nothing.
     #[error("{command}: payload placeholder `${{{name}}}` has no value")]
     UnresolvedPlaceholder {
-        /// The command being encoded.
+        /// The command the codec encodes.
         command: String,
         /// The placeholder name.
         name: String,
@@ -222,9 +222,8 @@ pub enum Error {
     /// A device file was written against a schema revision this build does not
     /// know.
     ///
-    /// Read as the current revision it would be interpreted by rules it was not
-    /// written for, which is the silent kind of wrong this project refuses. A
-    /// newer file needs a newer build.
+    /// A newer file needs a newer build. Read as the current revision, the file
+    /// would be interpreted by rules it was not written for.
     #[error("device file `{file}`: schema_version {found}, but this build knows {supported}")]
     SchemaVersion {
         /// The file name.
