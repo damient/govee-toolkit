@@ -11,6 +11,7 @@
 pub mod breaker;
 pub mod error;
 pub mod events;
+pub(crate) mod registry;
 pub mod reply;
 pub mod status;
 
@@ -18,6 +19,7 @@ pub mod status;
 pub(crate) mod arbitrary;
 
 use std::fmt::Debug;
+use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -37,16 +39,18 @@ pub(crate) fn millis(d: std::time::Duration) -> u64 {
 }
 
 /// What to do about a command once it has been written out.
-#[derive(Debug, Clone, Copy)]
-pub enum Verify<'a> {
+#[derive(Debug, Clone)]
+pub enum Verify {
     /// Nothing. The breaker learns nothing from this command, which is right
     /// for a stream of frames: the verification traffic would compete with the
     /// frames.
     None,
     /// Ask the device for its status afterwards, and record the answer, or its
     /// absence, against the breaker. The caller supplies the request, because
-    /// to build it is to read the device file, which is the codec's job.
-    With(&'a Encoded),
+    /// to build it is to read the device file, which is the codec's job. It is
+    /// shared rather than copied: the verification runs on its own task, and
+    /// the bytes are the same on every send.
+    With(Arc<Encoded>),
 }
 
 /// One way of reaching devices.
@@ -102,7 +106,7 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// [`Error::UnknownDevice`] if nothing is known under this identity,
     /// [`Error::Unavailable`] if the breaker refuses this mode right now, or
     /// [`Error::Io`] if the write fails.
-    async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify<'_>) -> Result<Sent>;
+    async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent>;
 
     /// Ask a device for its state and wait for the answer.
     ///
@@ -125,13 +129,6 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// command declares no reply to read, or where the mode's replies are not
     /// frames at all.
     async fn read(&self, id: &DeviceId, request: &Encoded) -> Result<Reply>;
-
-    /// Write the device cache out.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::Cache`] if the file cannot be written.
-    fn save_cache(&self) -> Result<()>;
 }
 
 /// A device's identity: the MAC address it reports.

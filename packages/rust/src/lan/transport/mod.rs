@@ -21,7 +21,6 @@ mod inbound;
 mod options;
 mod shared;
 
-use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -39,7 +38,7 @@ use crate::lan::socket::Socket;
 #[cfg(doc)]
 use crate::transport::error::Error;
 use crate::transport::error::Result;
-use crate::transport::events::health_of;
+use crate::transport::registry::{Devices, publish_sent};
 use crate::transport::status::DeviceStatus;
 use crate::transport::{DeviceId, Event, Health, KnownDevice, Sent, Verify};
 
@@ -95,7 +94,7 @@ impl Transport {
             policy: options.policy,
             status_timeout: options.status_timeout,
             verify_interval: options.verify_interval,
-            devices: Mutex::new(HashMap::new()),
+            devices: Devices::new(),
             cache: Mutex::new(options.cache),
             events,
             replies,
@@ -155,37 +154,22 @@ impl Transport {
     /// Every device the transport knows, from a scan or from the cache.
     #[must_use]
     pub fn devices(&self) -> Vec<KnownDevice> {
-        let now = Instant::now();
-        let Ok(devices) = self.shared.devices.lock() else {
-            return Vec::new();
-        };
-        let mut out: Vec<KnownDevice> = devices
-            .iter()
-            .map(|(id, tracked)| KnownDevice {
-                id: id.clone(),
-                endpoint: SocketAddr::new(tracked.ip, self.shared.endpoints.control_port)
-                    .to_string(),
-                sku: tracked.sku.clone(),
-                health: health_of(&tracked.breaker, now),
-            })
-            .collect();
-        out.sort_by(|a, b| a.id.cmp(&b.id));
-        out
+        let port = self.shared.endpoints.control_port;
+        self.shared
+            .devices
+            .known(|tracked| SocketAddr::new(tracked.ip, port).to_string())
     }
 
     /// The SKU a device reports, if it is known.
     #[must_use]
     pub fn sku(&self, id: &DeviceId) -> Option<String> {
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).map(|d| d.sku.clone())
+        self.shared.devices.sku(id)
     }
 
     /// A device's health in this mode, if it is known.
     #[must_use]
     pub fn health(&self, id: &DeviceId) -> Option<Health> {
-        let now = Instant::now();
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).map(|d| health_of(&d.breaker, now))
+        self.shared.devices.health(id)
     }
 
     /// Watch a device's status as replies arrive.
@@ -195,15 +179,13 @@ impl Transport {
     /// that.
     #[must_use]
     pub fn watch_status(&self, id: &DeviceId) -> Option<watch::Receiver<Option<DeviceStatus>>> {
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).map(|d| d.status.subscribe())
+        self.shared.devices.watch_status(id)
     }
 
     /// The last status heard from a device, without asking for a new one.
     #[must_use]
     pub fn last_status(&self, id: &DeviceId) -> Option<DeviceStatus> {
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).and_then(|d| d.status.borrow().clone())
+        self.shared.devices.last_status(id)
     }
 
     /// Write a command to the socket.
@@ -218,11 +200,11 @@ impl Transport {
     /// identity, [`Error::Unavailable`] if the breaker refuses this mode right
     /// now — decided from recorded state, without touching the network — or
     /// [`Error::Io`] if the write fails.
-    pub async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify<'_>) -> Result<Sent> {
+    pub async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent> {
         let now = Instant::now();
         let (addr, verifying) =
             self.shared
-                .route_and_claim(id, now, matches!(verify, Verify::With(_)))?;
+                .route_and_claim(id, now, matches!(&verify, Verify::With(_)))?;
         let bytes = datagram(command)?;
 
         self.shared.socket.send_to(&bytes, addr).await?;
@@ -233,18 +215,13 @@ impl Transport {
             cmd: command.cmd.clone(),
             endpoint: addr.to_string(),
         };
-        // Cloning `Sent` allocates twice; with nobody listening the broadcast
-        // would drop it straight away.
-        if self.shared.events.receiver_count() > 0 {
-            let _ = self.shared.events.send(Event::Sent(sent.clone()));
-        }
+        publish_sent(&self.shared.events, &sent);
 
         if let Verify::With(request) = verify
             && verifying
         {
             let shared = Arc::clone(&self.shared);
             let id = id.clone();
-            let request = request.clone();
             let timeout = self.shared.status_timeout;
             tokio::spawn(async move {
                 // The result is already recorded against the breaker and

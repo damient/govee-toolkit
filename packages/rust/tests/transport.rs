@@ -295,7 +295,11 @@ async fn fire_and_verify_records_the_silence_without_delaying_the_command() {
     let request = rig.status_request();
     let started = Instant::now();
     rig.transport
-        .send(&id(), &rig.power_on(), Verify::With(&request))
+        .send(
+            &id(),
+            &rig.power_on(),
+            Verify::With(std::sync::Arc::new(request)),
+        )
         .await
         .expect("the command goes out");
     assert!(

@@ -107,6 +107,10 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   matching on it in every method. `Govee::attach` takes the transports and
   refuses two that claim the same mode. `Device.lan_health` became
   `Device.health`, one entry per mode.
+- **Breaking.** `Verify::With` carries an `Arc<Encoded>` and `Verify` has no
+  lifetime parameter. A verified send gives the request to the task that runs
+  the verification. A shared request costs one pointer copy, where a borrowed
+  one made the task copy the frames of every command.
 - `measurements.frame_rate` may be keyed by mode, with the rows it already used.
   A bare list stays the `lan` table, and `Measurements::clean_hz` now takes the
   mode: a rate measured over one channel is never carried to another.

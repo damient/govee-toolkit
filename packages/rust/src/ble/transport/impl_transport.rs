@@ -51,7 +51,7 @@ impl Transport for BleTransport {
         Self::scan(self, window).await
     }
 
-    async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify<'_>) -> Result<Sent> {
+    async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent> {
         Self::send(self, id, command, verify).await
     }
 
@@ -61,14 +61,5 @@ impl Transport for BleTransport {
 
     async fn read(&self, id: &DeviceId, request: &Encoded) -> Result<Reply> {
         Self::read(self, id, request).await
-    }
-
-    /// Does nothing, successfully.
-    ///
-    /// There is no `ble` cache: an address works only while the adapter still
-    /// holds the peripheral, so a saved one would promise a device that a
-    /// restart cannot reach.
-    fn save_cache(&self) -> Result<()> {
-        Ok(())
     }
 }

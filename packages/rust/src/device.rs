@@ -70,7 +70,7 @@ impl DeviceHandle<'_> {
         // Fire-and-verify needs a request to verify with. Without a status
         // command in the device file, the command still goes out, unverified.
         let verification = self.govee.status_request(&sku, mode).ok();
-        let verify = verification.as_deref().map_or(Verify::None, Verify::With);
+        let verify = verification.map_or(Verify::None, Verify::With);
 
         let sent = self
             .govee

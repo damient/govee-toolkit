@@ -5,7 +5,6 @@
 //! network is [`Shared::request_status`], and it is deliberately off the send
 //! path — see the module documentation of [`super`].
 
-use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -19,6 +18,7 @@ use crate::lan::socket::Socket;
 use crate::transport::breaker::{Breaker, Policy};
 use crate::transport::error::{Error, Result};
 use crate::transport::events::Event;
+use crate::transport::registry::Devices;
 use crate::transport::status::DeviceStatus;
 use crate::transport::{DeviceId, millis};
 
@@ -33,6 +33,28 @@ pub(super) struct Tracked {
     /// When verification last ran, so a burst of commands does not turn into a
     /// burst of probes.
     pub(super) verified_at: Option<Instant>,
+}
+
+impl crate::transport::registry::Tracked for Tracked {
+    fn sku(&self) -> &str {
+        &self.sku
+    }
+
+    fn breaker(&self) -> &Breaker {
+        &self.breaker
+    }
+
+    fn breaker_mut(&mut self) -> &mut Breaker {
+        &mut self.breaker
+    }
+
+    fn status(&self) -> &watch::Sender<Option<DeviceStatus>> {
+        &self.status
+    }
+
+    fn verified_at(&mut self) -> &mut Option<Instant> {
+        &mut self.verified_at
+    }
 }
 
 impl Tracked {
@@ -54,7 +76,7 @@ pub(super) struct Shared {
     pub(super) policy: Policy,
     pub(super) status_timeout: Duration,
     pub(super) verify_interval: Option<Duration>,
-    pub(super) devices: Mutex<HashMap<DeviceId, Tracked>>,
+    pub(super) devices: Devices<Tracked>,
     pub(super) cache: Mutex<Cache>,
     pub(super) events: broadcast::Sender<Event>,
     pub(super) replies: broadcast::Sender<DiscoveredDevice>,
@@ -78,39 +100,17 @@ impl Shared {
     }
 
     /// Where to send, and whether this command should pay for a verification.
-    ///
-    /// Both answers come from memory, under one lock: the send path takes it
-    /// exactly once and waits on nothing. A claim marks the device verified, so
-    /// a burst of commands produces one probe.
     pub(super) fn route_and_claim(
         &self,
         id: &DeviceId,
         now: Instant,
         claim: bool,
     ) -> Result<(SocketAddr, bool)> {
-        let mut devices = self.devices.lock().map_err(|_| Error::ShutDown)?;
-        let tracked = devices
-            .get_mut(id)
-            .ok_or_else(|| Error::UnknownDevice { id: id.clone() })?;
-        if !tracked.breaker.allows(now) {
-            return Err(Error::Unavailable {
-                id: id.clone(),
-                mode: Mode::Lan,
-                state: tracked.breaker.state(),
-            });
-        }
-        let addr = SocketAddr::new(tracked.ip, self.endpoints.control_port);
-
-        let claimed = claim
-            && self.verify_interval.is_some_and(|interval| {
-                tracked
-                    .verified_at
-                    .is_none_or(|at| now.duration_since(at) >= interval)
-            });
-        if claimed {
-            tracked.verified_at = Some(now);
-        }
-        Ok((addr, claimed))
+        let interval = if claim { self.verify_interval } else { None };
+        self.devices
+            .route_and_claim(id, Mode::Lan, now, interval, |tracked| {
+                SocketAddr::new(tracked.ip, self.endpoints.control_port)
+            })
     }
 
     pub(super) async fn request_status(
@@ -124,7 +124,7 @@ impl Shared {
 
         // Subscribe before sending, or a reply that arrives first is missed.
         let (mut watcher, send_it) = {
-            let mut devices = self.devices.lock().map_err(|_| Error::ShutDown)?;
+            let mut devices = self.devices.lock()?;
             let tracked = devices
                 .get_mut(id)
                 .ok_or_else(|| Error::UnknownDevice { id: id.clone() })?;
@@ -176,27 +176,8 @@ impl Shared {
 
     /// Feed the breaker and publish the transition, if there was one.
     fn record(&self, id: &DeviceId, answered: bool, now: Instant) {
-        let transition = {
-            let Ok(mut devices) = self.devices.lock() else {
-                return;
-            };
-            let Some(tracked) = devices.get_mut(id) else {
-                return;
-            };
-            if answered {
-                tracked.breaker.record_success(now)
-            } else {
-                tracked.breaker.record_failure(now)
-            }
-        };
-        if transition.changed() {
-            tracing::info!(%id, from = %transition.from, to = %transition.to, "lan health changed");
-            let _ = self.events.send(Event::HealthChanged {
-                id: id.clone(),
-                mode: Mode::Lan,
-                transition,
-            });
-        }
+        self.devices
+            .record(&self.events, id, Mode::Lan, answered, now);
     }
 }
 

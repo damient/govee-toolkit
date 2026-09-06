@@ -6,7 +6,7 @@
 //! to open one, and it opens one connection per device at a time.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Instant;
 
 use btleplug::api::{Central as _, Manager as _, Peripheral as _};
@@ -18,9 +18,10 @@ use crate::ble::pace::{Budget, Pacer};
 use crate::ble::transport::Options;
 use crate::codec::{Encoded, Mode};
 use crate::transport::DeviceId;
-use crate::transport::breaker::Breaker;
+use crate::transport::breaker::{Breaker, Policy};
 use crate::transport::error::{Error, Result};
 use crate::transport::events::Event;
+use crate::transport::registry::Devices;
 use crate::transport::status::DeviceStatus;
 
 /// One device, as the transport tracks it.
@@ -38,12 +39,34 @@ pub(super) struct Tracked {
     pub(super) verified_at: Option<Instant>,
 }
 
+impl crate::transport::registry::Tracked for Tracked {
+    fn sku(&self) -> &str {
+        &self.sku
+    }
+
+    fn breaker(&self) -> &Breaker {
+        &self.breaker
+    }
+
+    fn breaker_mut(&mut self) -> &mut Breaker {
+        &mut self.breaker
+    }
+
+    fn status(&self) -> &watch::Sender<Option<DeviceStatus>> {
+        &self.status
+    }
+
+    fn verified_at(&mut self) -> &mut Option<Instant> {
+        &mut self.verified_at
+    }
+}
+
 impl Tracked {
-    pub(super) fn new(endpoint: String, sku: String, options: &Options, budget: Budget) -> Self {
+    pub(super) fn new(endpoint: String, sku: String, policy: Policy, budget: Budget) -> Self {
         Self {
             endpoint,
             sku,
-            breaker: Breaker::new(options.policy),
+            breaker: Breaker::new(policy),
             status: watch::Sender::new(None),
             pacer: Arc::new(Pacer::new(budget)),
             verified_at: None,
@@ -66,7 +89,7 @@ pub(super) struct Shared {
     /// Claimed on first use. The transport must start on a machine whose radio
     /// is off, so the first command is what reports it.
     adapter: OnceCell<Adapter>,
-    pub(super) devices: Mutex<HashMap<DeviceId, Tracked>>,
+    pub(super) devices: Devices<Tracked>,
     /// One open connection per device, reused across commands. A device
     /// accepts only one, and a new connection costs seconds.
     links: tokio::sync::Mutex<HashMap<DeviceId, Arc<Link>>>,
@@ -79,7 +102,7 @@ impl Shared {
             options,
             budget,
             adapter: OnceCell::new(),
-            devices: Mutex::new(HashMap::new()),
+            devices: Devices::new(),
             links: tokio::sync::Mutex::new(HashMap::new()),
             events,
         }
@@ -122,30 +145,19 @@ impl Shared {
         now: Instant,
         claim: bool,
     ) -> Result<Route> {
-        let mut devices = self.devices.lock().map_err(|_| Error::ShutDown)?;
-        let tracked = devices
-            .get_mut(id)
-            .ok_or_else(|| Error::UnknownDevice { id: id.clone() })?;
-        if !tracked.breaker.allows(now) {
-            return Err(Error::Unavailable {
-                id: id.clone(),
-                mode: Mode::Ble,
-                state: tracked.breaker.state(),
-            });
-        }
-
-        let verifying = claim
-            && self.options.verify_interval.is_some_and(|interval| {
-                tracked
-                    .verified_at
-                    .is_none_or(|at| now.duration_since(at) >= interval)
-            });
-        if verifying {
-            tracked.verified_at = Some(now);
-        }
+        let interval = if claim {
+            self.options.verify_interval
+        } else {
+            None
+        };
+        let ((endpoint, pacer), verifying) =
+            self.devices
+                .route_and_claim(id, Mode::Ble, now, interval, |tracked| {
+                    (tracked.endpoint.clone(), Arc::clone(&tracked.pacer))
+                })?;
         Ok(Route {
-            endpoint: tracked.endpoint.clone(),
-            pacer: Arc::clone(&tracked.pacer),
+            endpoint,
+            pacer,
             verifying,
         })
     }
@@ -263,53 +275,51 @@ impl Shared {
     ) -> Result<()> {
         check_frames(command)?;
         for frame in &command.frames {
-            route.pacer.acquire().await;
-            if let Err(e) = link.write_frame(&command.cmd, &route.endpoint, frame).await {
-                self.drop_link(id).await;
-                self.record(id, false, Instant::now());
-                return Err(e);
-            }
+            self.write_frame(id, route, link, &command.cmd, frame)
+                .await?;
         }
         Ok(())
     }
 
     /// Hand a status to the device's watchers and to the event stream.
-    pub(super) fn publish_status(&self, id: &DeviceId, status: DeviceStatus) {
-        if let Ok(devices) = self.devices.lock()
-            && let Some(tracked) = devices.get(id)
-        {
-            let _ = tracked.status.send(Some(status.clone()));
-        }
-        let _ = self.events.send(Event::Status {
-            mode: Mode::Ble,
-            status,
-        });
+    pub(super) fn publish_status(&self, status: DeviceStatus) {
+        self.devices.publish_status(&self.events, Mode::Ble, status);
     }
 
     /// Feed the breaker and publish the transition, if there was one.
     pub(super) fn record(&self, id: &DeviceId, answered: bool, now: Instant) {
-        let transition = {
-            let Ok(mut devices) = self.devices.lock() else {
-                return;
-            };
-            let Some(tracked) = devices.get_mut(id) else {
-                return;
-            };
-            if answered {
-                tracked.breaker.record_success(now)
-            } else {
-                tracked.breaker.record_failure(now)
+        self.devices
+            .record(&self.events, id, Mode::Ble, answered, now);
+    }
+
+    /// The open connection to a device, opening one if there is none, and a
+    /// failure recorded against the breaker if it cannot be opened.
+    ///
+    /// A device that will not take a connection is unreachable, and a record
+    /// now spares the next command the same wait.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Shared::link`].
+    pub(super) async fn connect(&self, id: &DeviceId, endpoint: &str) -> Result<Arc<Link>> {
+        match self.link(id, endpoint).await {
+            Ok(link) => Ok(link),
+            Err(e) => {
+                self.record(id, false, Instant::now());
+                Err(e)
             }
-        };
-        if transition.changed() {
-            tracing::info!(%id, from = %transition.from, to = %transition.to, "ble health changed");
-            let _ = self.events.send(Event::HealthChanged {
-                id: id.clone(),
-                mode: Mode::Ble,
-                transition,
-            });
         }
     }
+}
+
+/// Which identity a handle is tracked under, if any.
+pub(super) fn id_at(devices: &HashMap<DeviceId, Tracked>, endpoint: &str) -> Option<DeviceId> {
+    devices.iter().find_map(|(id, tracked)| {
+        tracked
+            .endpoint
+            .eq_ignore_ascii_case(endpoint)
+            .then(|| id.clone())
+    })
 }
 
 /// Refuse a command this wire has nothing to send for.

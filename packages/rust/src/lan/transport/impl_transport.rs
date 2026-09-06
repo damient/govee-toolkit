@@ -56,7 +56,7 @@ impl Transport for LanTransport {
             .collect())
     }
 
-    async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify<'_>) -> Result<Sent> {
+    async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent> {
         Self::send(self, id, command, verify).await
     }
 
@@ -77,9 +77,5 @@ impl Transport for LanTransport {
                 request.cmd
             ),
         })
-    }
-
-    fn save_cache(&self) -> Result<()> {
-        Self::save_cache(self)
     }
 }

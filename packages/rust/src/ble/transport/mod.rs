@@ -20,13 +20,13 @@ use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, watch};
 
 pub use self::options::Options;
-use self::shared::Shared;
 #[cfg(test)]
 use self::shared::Tracked;
+use self::shared::{Shared, id_at};
 use crate::ble::pace::Budget;
 use crate::codec::{Encoded, Mode};
 use crate::transport::error::{Error, Result};
-use crate::transport::events::health_of;
+use crate::transport::registry::publish_sent;
 use crate::transport::status::DeviceStatus;
 use crate::transport::{DeviceId, Discovered, Event, Health, KnownDevice, Reply, Sent, Verify};
 
@@ -96,14 +96,8 @@ impl Transport {
     ///
     /// [`Error::UnknownDevice`] if no scan has heard that handle.
     pub fn bind(&self, id: &DeviceId, endpoint: &str) -> Result<()> {
-        let mut devices = self.shared.devices.lock().map_err(|_| Error::ShutDown)?;
-        let known = devices.iter().find_map(|(known, tracked)| {
-            tracked
-                .endpoint
-                .eq_ignore_ascii_case(endpoint)
-                .then(|| known.clone())
-        });
-        let known = known.ok_or_else(|| Error::UnknownDevice {
+        let mut devices = self.shared.devices.lock()?;
+        let known = id_at(&devices, endpoint).ok_or_else(|| Error::UnknownDevice {
             id: DeviceId::new(endpoint),
         })?;
         if &known == id {
@@ -121,36 +115,21 @@ impl Transport {
     /// handle, and this mode caches nothing across restarts.
     #[must_use]
     pub fn devices(&self) -> Vec<KnownDevice> {
-        let now = Instant::now();
-        let Ok(devices) = self.shared.devices.lock() else {
-            return Vec::new();
-        };
-        let mut out: Vec<KnownDevice> = devices
-            .iter()
-            .map(|(id, tracked)| KnownDevice {
-                id: id.clone(),
-                endpoint: tracked.endpoint.clone(),
-                sku: tracked.sku.clone(),
-                health: health_of(&tracked.breaker, now),
-            })
-            .collect();
-        out.sort_by(|a, b| a.id.cmp(&b.id));
-        out
+        self.shared
+            .devices
+            .known(|tracked| tracked.endpoint.clone())
     }
 
     /// The SKU a device advertises, if it is known.
     #[must_use]
     pub fn sku(&self, id: &DeviceId) -> Option<String> {
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).map(|d| d.sku.clone())
+        self.shared.devices.sku(id)
     }
 
     /// A device's health in this mode, if it is known.
     #[must_use]
     pub fn health(&self, id: &DeviceId) -> Option<Health> {
-        let now = Instant::now();
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).map(|d| health_of(&d.breaker, now))
+        self.shared.devices.health(id)
     }
 
     /// Watch a device's status as answers arrive.
@@ -158,15 +137,13 @@ impl Transport {
     /// Nothing is requested by subscribing; use [`Transport::status`] for that.
     #[must_use]
     pub fn watch_status(&self, id: &DeviceId) -> Option<watch::Receiver<Option<DeviceStatus>>> {
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).map(|d| d.status.subscribe())
+        self.shared.devices.watch_status(id)
     }
 
     /// The last status heard from a device, without asking for a new one.
     #[must_use]
     pub fn last_status(&self, id: &DeviceId) -> Option<DeviceStatus> {
-        let devices = self.shared.devices.lock().ok()?;
-        devices.get(id).and_then(|d| d.status.borrow().clone())
+        self.shared.devices.last_status(id)
     }
 
     /// Write a command out, one frame at a time and at the device's budget.
@@ -181,19 +158,11 @@ impl Transport {
     /// [`Error::Unavailable`] if the breaker refuses this mode right now,
     /// [`Error::Serialize`] if the command carries no frames, or [`Error::Io`]
     /// if the connection or a write fails.
-    pub async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify<'_>) -> Result<Sent> {
+    pub async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent> {
         let route =
             self.shared
-                .route_and_claim(id, Instant::now(), matches!(verify, Verify::With(_)))?;
-        let link = match self.shared.link(id, &route.endpoint).await {
-            Ok(link) => link,
-            Err(e) => {
-                // A device that will not take a connection is unreachable. A
-                // record now spares the next command the same wait.
-                self.shared.record(id, false, Instant::now());
-                return Err(e);
-            }
-        };
+                .route_and_claim(id, Instant::now(), matches!(&verify, Verify::With(_)))?;
+        let link = self.shared.connect(id, &route.endpoint).await?;
         self.shared.write_frames(id, &route, &link, command).await?;
 
         let sent = Sent {
@@ -202,18 +171,13 @@ impl Transport {
             cmd: command.cmd.clone(),
             endpoint: route.endpoint.clone(),
         };
-        // Cloning `Sent` allocates twice; with nobody listening the broadcast
-        // would drop it straight away.
-        if self.shared.events.receiver_count() > 0 {
-            let _ = self.shared.events.send(Event::Sent(sent.clone()));
-        }
+        publish_sent(&self.shared.events, &sent);
 
         if let Verify::With(request) = verify
             && route.verifying
         {
             let shared = Arc::clone(&self.shared);
             let id = id.clone();
-            let request = request.clone();
             let timeout = self.shared.options.status_timeout;
             tokio::spawn(async move {
                 // The breaker already holds the result and the event stream
@@ -264,7 +228,7 @@ impl Transport {
                 Tracked::new(
                     endpoint.to_owned(),
                     sku.to_owned(),
-                    &self.shared.options,
+                    self.shared.options.policy,
                     self.shared.budget,
                 ),
             );
