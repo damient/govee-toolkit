@@ -135,13 +135,20 @@ All zones at once, one byte each, in zone order — as many bytes as the unit ha
 zones. There is no mask here: a frame that means to leave a zone alone has to
 repeat its current level.
 
-### 2.6 Fade
+### 2.6 Zone interpolation
 
 ```
 33 a3 <0|1>
 ```
 
-Whether the firmware fades between colors instead of cutting to them.
+Whether the firmware interpolates between zones, wrapping from the last back to
+the first. `0` gives hard-edged zones.
+
+It is the same user setting the LAN segment channel carries as the first byte of
+its payload. The colour frame above has no room left for it, so this mode gives
+it a frame of its own. Nothing about it is a fade over time: two colours sent one
+after the other cut to each other either way, and what the setting changes is the
+boundary between two zones painted differently.
 
 ## 3. Reads — `proType` `0xAA`
 

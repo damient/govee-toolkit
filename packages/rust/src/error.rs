@@ -217,9 +217,10 @@ impl Error {
             Self::ModeNotImplemented { .. } => "mode_not_implemented",
             Self::NoRoleCommand { role, .. } => match role {
                 Role::Status => "no_status_command",
-                Role::SegmentEnable | Role::SegmentColor | Role::SegmentColorMasked => {
-                    "no_segment_command"
-                }
+                Role::SegmentEnable
+                | Role::SegmentColor
+                | Role::SegmentColorMasked
+                | Role::SegmentGradient => "no_segment_command",
             },
             Self::NoRoleArg { .. } => "no_role_arg",
             Self::ZoneCountUnknown { .. } => "zone_count_unknown",

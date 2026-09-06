@@ -239,6 +239,7 @@ pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
         Role::SegmentEnable => &[ArgRole::Enable],
         Role::SegmentColor => &[ArgRole::Colors],
         Role::SegmentColorMasked => &[ArgRole::Colors, ArgRole::Zones],
+        Role::SegmentGradient => &[ArgRole::Gradient],
         Role::Status => &[],
     };
     required

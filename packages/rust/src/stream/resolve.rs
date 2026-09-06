@@ -44,40 +44,63 @@ impl Painter {
     }
 }
 
+/// The entry that arms and disarms the channel, where the mode has one.
+#[derive(Debug, Clone)]
+pub(super) struct Enable {
+    /// The device file entry.
+    pub(super) command: String,
+    /// The argument the arming flag goes in.
+    pub(super) arg: String,
+}
+
 /// The commands and the zone count a stream opens with.
 #[derive(Debug)]
 pub(super) struct Plan {
-    /// The entry that arms and disarms the channel.
-    pub(super) enable: String,
-    /// The argument the arming flag goes in.
-    pub(super) enable_arg: String,
+    /// `None` where the file declares no arming command for this mode, which
+    /// is what a mode whose zones are always addressable looks like.
+    pub(super) enable: Option<Enable>,
+    /// The entry that sets zone interpolation, where the mode carries it in a
+    /// frame of its own, and the value to send.
+    pub(super) gradient: Option<(Enable, i64)>,
     pub(super) painter: Painter,
     pub(super) zones: usize,
 }
 
 /// Everything the device file has to say about a stream over `mode`.
 pub(super) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Result<Plan> {
-    let enable = named(device, mode, Role::SegmentEnable)?.to_owned();
-    let enable_arg = arg_named(device, mode, &enable, ArgRole::Enable)?.to_owned();
+    // Arming is the file's to declare. A mode that names no entry for it has
+    // nothing to arm — over one that paints by mask the zones are addressable
+    // the moment the device is on — and inventing a frame for it here would be
+    // this crate deciding what a device does.
+    let enable = match device.command_for(mode, Role::SegmentEnable) {
+        Some(command) => Some(Enable {
+            arg: arg_named(device, mode, command, ArgRole::Enable)?.to_owned(),
+            command: command.to_owned(),
+        }),
+        None => None,
+    };
     let painter = painter(device, mode, options.gradient)?;
+    // Where the painting frame has no room for the setting, the file names a
+    // command that carries it alone. Without this the option would encode into
+    // nothing on such a mode, and a caller would be told a gradient it never
+    // got.
+    let gradient = match device.command_for(mode, Role::SegmentGradient) {
+        Some(command) => Some((
+            Enable {
+                arg: arg_named(device, mode, command, ArgRole::Gradient)?.to_owned(),
+                command: command.to_owned(),
+            },
+            i64::from(options.gradient),
+        )),
+        None => None,
+    };
     let zones = zone_count(device, mode, &painter, options.zones)?;
     Ok(Plan {
         enable,
-        enable_arg,
+        gradient,
         painter,
         zones,
     })
-}
-
-/// The device file entry claiming `role`.
-fn named(device: &Device, mode: Mode, role: Role) -> Result<&str> {
-    device
-        .command_for(mode, role)
-        .ok_or_else(|| Error::NoRoleCommand {
-            sku: device.sku.clone(),
-            mode,
-            role,
-        })
 }
 
 /// Whichever of the two painting roles the file declares for `mode`.

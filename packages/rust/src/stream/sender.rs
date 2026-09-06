@@ -16,7 +16,7 @@ use crate::codec::{Args, Encoded, Mode};
 use crate::error::{Error, Result};
 use crate::govee::Govee;
 use crate::stream::paint;
-use crate::stream::resolve::Painter;
+use crate::stream::resolve::{Enable, Painter};
 use crate::transport::{DeviceId, Verify};
 
 /// What the stream handle and its task share.
@@ -31,11 +31,14 @@ pub(crate) struct Shared {
     /// The SKU resolved when the stream opened. Carried so a frame does not
     /// re-take the transport's lock to look it up again.
     pub(crate) sku: String,
-    /// The device file entry that arms and disarms the channel.
-    pub(crate) enable: String,
-    /// The argument of `enable` the arming flag goes in, as the device file
-    /// names it.
-    pub(crate) enable_arg: String,
+    /// The device file entry that arms and disarms the channel, and the
+    /// argument the flag goes in. `None` where the file declares none for this
+    /// mode: nothing is armed, and nothing is disarmed on close.
+    pub(crate) enable: Option<Enable>,
+    /// The entry that sets zone interpolation and the value to send, where the
+    /// mode carries that setting outside the painting frame. `None` where the
+    /// painting frame carries it, or where the file names neither.
+    pub(crate) gradient: Option<(Enable, i64)>,
     /// How the device file paints zones over this mode, and the arguments it
     /// names for it.
     pub(crate) painter: Painter,
@@ -64,11 +67,28 @@ impl Shared {
     }
 }
 
+/// Arm or disarm the channel, where the device file names a command for it.
 pub(crate) async fn send_enable(shared: &Shared, on: i64) -> Result<()> {
+    let Some(enable) = &shared.enable else {
+        return Ok(());
+    };
+    send_flag(shared, enable, on).await
+}
+
+/// Set zone interpolation, where the mode carries it in a frame of its own.
+pub(crate) async fn send_gradient(shared: &Shared) -> Result<()> {
+    let Some((command, on)) = &shared.gradient else {
+        return Ok(());
+    };
+    send_flag(shared, command, *on).await
+}
+
+/// Write a one-flag command the device file named by role.
+async fn send_flag(shared: &Shared, command: &Enable, value: i64) -> Result<()> {
     let encoded = encode(
         shared,
-        &shared.enable,
-        &Args::new().int(shared.enable_arg.as_str(), on),
+        &command.command,
+        &Args::new().int(command.arg.as_str(), value),
     )?;
     write(shared, &encoded).await
 }
