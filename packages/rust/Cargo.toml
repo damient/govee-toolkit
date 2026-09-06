@@ -70,6 +70,17 @@ tokio = { version = "1", features = [
 tracing = { version = "0.1", optional = true }
 uuid = { version = "1", optional = true }
 
+# The examples are walkthroughs against a real device, one per mode. Naming
+# them here is what keeps `cargo build` from trying to compile the `ble` one
+# into a build that has no `ble` transport.
+[[example]]
+name = "lan_tour"
+required-features = ["lan"]
+
+[[example]]
+name = "ble_tour"
+required-features = ["ble"]
+
 [dev-dependencies]
 # The `Transport` trait is `#[async_trait]`, so anything implementing it needs
 # the same macro — the test that fakes a transport implements it the way an

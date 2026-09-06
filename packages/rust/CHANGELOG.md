@@ -45,6 +45,11 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   such a mode, since a mask names zones and reaches no pixel behind them; a zone
   count past what the mask reaches; and a file that bounds its mask by nothing,
   through neither a `count:` nor the width of the mask field.
+- `examples/lan_tour.rs` and `examples/ble_tour.rs` — one walkthrough per mode,
+  each sending every command of the H61A0's table to a real device in order and
+  reading back everything its file declares an answer for. They are compiled by
+  the same `--all-targets` lint CI runs, so a signature that changes breaks them
+  the same day rather than leaving a stale snippet in a document.
 - A command `role: segment_gradient`, with an argument marked `role: gradient`,
   for a mode that carries zone interpolation in a frame of its own rather than
   in the painting frame. A stream sends it when it opens: without it,
