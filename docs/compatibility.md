@@ -75,7 +75,7 @@ such in the device file until someone verifies them.
 | SKU | brightness | color | colortemp | music | power | scenes | segment_brightness | segments |
 | --- | ---------- | ----- | --------- | ----- | ----- | ------ | ------------------ | -------- |
 | H6114 | ✅ | ✅ | — | ✅ | ✅ | ✅ | — | — |
-| H61A0 | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ |
+| H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 <!-- /generated -->
 
 Capabilities are hardware facts; what is reachable depends on the active mode.

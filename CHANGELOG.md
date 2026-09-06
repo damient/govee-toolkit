@@ -24,6 +24,24 @@ at.
 
 #### Added
 
+- `devices/H61A0.yaml` declares the music sub-mode over `ble`, and `music`
+  joins the capabilities the file lists. The sub-mode is `19` and the device
+  listens on its own microphone. The frame carries `effect`, `sensitivity`,
+  `soft`, a colour mode and an RGB triplet. `effect` runs `0..7`: each of the
+  eight renders one effect, several of them are visibly different from each
+  other, and `8..15`, `50` and `255` render nothing at all. Nothing maps an
+  identifier to an effect. `soft` is `0` for a rendering that is sharp on the
+  beat and `1` for one that runs in fades. The colour mode is `0` to leave the
+  colours to the firmware and `1` to impose the triplet, which plays the rope
+  in that colour and no other. `sensitivity` runs `0..99`, the range the vendor
+  app drives; the unit reacted at `0`, `99` and `255` alike, and what the value
+  changes was not told apart there. Music is `unprobed` over `lan` and over
+  `cloud`.
+- `devices/H61A0.yaml` declares `read_mode`, the `aa 05` read. It answers the
+  live sub-mode and its eight payload bytes: `21` after a colour frame and `19`
+  after a music one, each with the fields of that frame. It reports what was
+  written, which is not what the firmware renders: it echoes an identifier that
+  the device plays with nothing, so a read is not evidence on its own.
 - `devices/H6114.yaml` declares the RGB Car LED Strip Lights, a 12 V interior
   car light with four 22 cm strips and 48 LEDs. The four strips carry one
   colour: the hardware is RGB, so the file declares power, brightness, colour,
@@ -66,6 +84,10 @@ yet, so every `capture:` in the file is empty.
 
 #### Changed
 
+- `devices/H6114.yaml`: the byte between the sensitivity and the colour mode of
+  the music frame is the `soft` flag of
+  [`docs/protocol/ble.md`](docs/protocol/ble.md) 2.8. The file keeps it a
+  literal `0`: nobody varied it on that unit.
 - `devices/H61A0.yaml`: the `ble` entry `fade` becomes `gradient`, and it
   declares the new `role: segment_gradient`. `33 a3` is not a fade over time.
   It is the same zone interpolation that the `lan` segment channel carries as

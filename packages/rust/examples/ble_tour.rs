@@ -112,6 +112,23 @@ async fn main() -> Result<(), Error> {
     // colors one after the other cut to each other either way.
     device.send("gradient", &Args::new().int("on", 1)).await?;
 
+    // The device listens on its own microphone. `effect` selects the
+    // rendering, and this unit renders nothing above 7. `color_mode` 1 imposes
+    // the triplet instead of leaving the colors to the firmware.
+    device
+        .send(
+            "music",
+            &Args::new()
+                .int("effect", 3)
+                .int("sensitivity", 99)
+                .int("soft", 0)
+                .int("color_mode", 1)
+                .int("r", 0)
+                .int("g", 255)
+                .int("b", 0),
+        )
+        .await?;
+
     read_everything(&device).await?;
     paint_zones(&device).await?;
 
@@ -131,6 +148,7 @@ async fn read_everything(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(),
     println!("on {:?}, brightness {:?}", status.on, status.brightness);
 
     for command in [
+        "read_mode",
         "read_segment_count",
         "read_ic_count",
         "read_wifi_mac",

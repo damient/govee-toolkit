@@ -125,10 +125,11 @@ commands:
         dynamic rendering and 1 is the calm one. `color_mode` 0 lets the
         firmware choose the colors and ignores the triplet, which the device
         keeps stored from the last frame that carried one; 1 plays the triplet.
-        The byte between the sensitivity and the color mode is 0 in every frame
-        the vendor app writes, and nothing established what it carries. The
-        firmware also accepts a value past the two ranges above and reads it
-        back: those ranges are the ones the vendor app drives. See
+        The byte between the sensitivity and the color mode is the `soft` flag
+        of docs/protocol/ble.md 2.8. It is 0 in every frame the vendor app
+        writes and nobody varied it on this unit, so it stays a literal here.
+        The firmware also accepts a value past the two ranges above and reads
+        it back: those ranges are the ones the vendor app drives. See
         docs/protocol/ble.md 2.8.
       capture: ""         # TODO
 

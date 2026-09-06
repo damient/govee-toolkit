@@ -200,23 +200,26 @@ records the ones somebody watched on its unit.
 ### 2.8 Music sub-mode
 
 ```
-33 05 <sub-mode> <effect> <sensitivity> <?> <0|1> <R G B>
+33 05 <sub-mode> <effect> <sensitivity> <soft> <0|1> <R G B>
 ```
 
 The device listens on its own microphone and renders what it hears. The
-sub-mode byte is a property of the family: one family answers to 19, and 14,
+sub-mode byte is a property of the family: two families answer to 19, and 14,
 17, 3 and 22, which other dialects carry, are acknowledged with a success code
 and then played by nothing — see §1.4. The device file says which one its unit
 takes.
 
-The fields, on the family measured:
+The fields:
 
-- `effect` selects the rendering. `0` is the dynamic one and `1` is the calm
-  one.
+- `effect` selects the rendering. How many identifiers a firmware renders is a
+  property of the family: one renders `0..7` and renders nothing at all above
+  that. An identifier is not a name — a device file records the ones somebody
+  watched on its unit, and this project maps none of them to an effect.
 - `sensitivity` is how loud a sound must be to move the light. The vendor app
-  drives `1..100`.
-- The byte after the sensitivity is `0` in every frame the vendor app writes.
-  Nobody established what it carries.
+  drives it over a hundred values.
+- `soft` chooses between two renderings of the same effect. `0` is sharp on the
+  beat and `1` runs in fades. This was told apart on one family. A device file
+  that keeps the byte a literal is one whose unit nobody varied it on.
 - The last flag chooses the colors. `0` lets the firmware choose them and
   ignores the triplet, which the device keeps stored. `1` plays the triplet.
 
