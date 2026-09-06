@@ -94,13 +94,13 @@ Every frame below is padded with zeros to byte 18, and byte 19 is the BCC.
 Percent on the unit measured. Other families are reported to take 0..255 here;
 that was not checked. The device file carries the range it takes.
 
-### 2.3 Colour and white, by zone mask
+### 2.3 Color and white, by zone mask
 
 ```
 33 05 15 01 <R G B> <K_hi K_lo> <Rw Gw Bw> <mask>
 ```
 
-Colour and white are mutually exclusive. Setting a colour temperature zeroes the
+Color and white are mutually exclusive. Setting a color temperature zeroes the
 leading RGB triplet and carries the RGB **rendering** of that temperature in the
 second triplet. The firmware does not compute that rendering — the host ships
 both, and shipping only the kelvin value leaves the strip dark. Kelvin range
@@ -141,7 +141,7 @@ repeat its current level.
 33 a3 <0|1>
 ```
 
-Whether the firmware fades between colours instead of cutting to them.
+Whether the firmware fades between colors instead of cutting to them.
 
 ## 3. Reads — `proType` `0xAA`
 
@@ -158,14 +158,14 @@ bytes it was asked with.
 | `aa 20` | hard version, ASCII |
 | `aa 21` | soft version, ASCII |
 | `aa ab` | dynamic API type, see §4 |
-| `aa a5 <group>` | brightness and colour for three zones. Groups are 1-based, five of them |
+| `aa a5 <group>` | brightness and color for three zones. Groups are 1-based, five of them |
 
 Three of these do not do what they look like they do:
 
 - **`aa 05` lies.** It mirrors back codes the device never played. Whatever it
   is for, it is not a report of what is lit, and this repository declares no
   command for it.
-- **`aa a5` reports the stored colour sub-mode**, not the live render. It is not
+- **`aa a5` reports the stored color sub-mode**, not the live render. It is not
   a way to read back what §2.3 painted. The byte layout of its answer was not
   established, so the device file sends the read and declares no `reply:` for
   it.
@@ -231,8 +231,8 @@ The budget, the sustained rate, the burst ceiling and how long recovery takes
 are properties of a unit, a host adapter and a radio environment, not of a SKU.
 They live in the `measurements.ble` block of the device file, and nowhere else.
 
-A repaint over §2.3 costs one write per distinct colour, so a frame rate over
-this mode falls with the number of colours in it.
+A repaint over §2.3 costs one write per distinct color, so a frame rate over
+this mode falls with the number of colors in it.
 
 ## 6. Scenes — `proType` `0xA3`
 

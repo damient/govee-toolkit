@@ -1,4 +1,5 @@
-//! Control Govee devices over the LAN, including undocumented commands.
+//! Control Govee devices over the LAN or Bluetooth, including undocumented
+//! commands.
 //!
 //! Unofficial, and not affiliated with Govee. The protocol is implemented once,
 //! here; every other language binds to this crate rather than porting it — see
