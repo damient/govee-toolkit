@@ -2,7 +2,7 @@
 
 use crate::codec::{ArgRole, Mode, Role};
 use crate::config::Problem;
-use crate::lan::DeviceId;
+use crate::transport::DeviceId;
 
 /// Anything that can go wrong between a call and the bytes on the wire.
 #[derive(Debug, thiserror::Error)]

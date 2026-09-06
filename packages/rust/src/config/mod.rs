@@ -32,7 +32,7 @@ use serde::Deserialize;
 
 use crate::codec::Mode;
 use crate::error::{Error, Result};
-use crate::lan::DeviceId;
+use crate::transport::DeviceId;
 
 mod lan;
 

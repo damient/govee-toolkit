@@ -22,7 +22,8 @@ people actually ask for. Open an issue if something matters to you.
 | 10 | Home Assistant custom component (LAN power + brightness first) | 🔜 Planned |
 | 11 | Homebridge plugin | 🔜 Planned |
 | 12 | Art-Net / DMX bridge | 🔜 Planned |
-| — | `ble` and `cloud` modes | 🔜 Planned, after the `lan` core |
+| — | `ble` mode — the transport, behind its own cargo feature | 🚧 In progress, protocol unverified |
+| — | `cloud` mode | 🔜 Planned, after the `lan` core |
 
 Undocumented LAN commands are documented and formalized continuously, in
 [`protocol/lan.md`](protocol/lan.md) and `devices/*.yaml`, as they are
