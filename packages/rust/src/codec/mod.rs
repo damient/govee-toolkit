@@ -34,6 +34,7 @@
 pub mod args;
 pub mod capabilities;
 pub mod catalog;
+pub mod chunk;
 pub mod command;
 pub mod error;
 pub mod frame;
@@ -45,6 +46,7 @@ use std::collections::BTreeMap;
 pub use args::{ArgValue, Args};
 pub use capabilities::{Capabilities, CapabilityParams, ModeCapabilities, Reason};
 pub use catalog::{ArgRole, ArgSpec, Command, Device, Mode, ModeSupport, Modes, Role, Support};
+pub use chunk::Chunk;
 pub use command::{Encoded, encode};
 pub use error::{Error, Result};
 pub use frame::Frame;

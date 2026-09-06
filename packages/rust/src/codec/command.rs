@@ -9,30 +9,43 @@ use base64::engine::general_purpose::STANDARD as BASE64;
 
 use crate::codec::args::{ArgValue, Args};
 use crate::codec::catalog::{ArgSpec, Command, Device, Mode};
+use crate::codec::chunk;
 use crate::codec::error::{Error, Result};
 use crate::codec::frame::Frame;
 
 /// A command ready to send.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Encoded {
-    /// The value carried in `msg.cmd`.
+    /// The value carried in `msg.cmd`, empty where the wire carries no
+    /// envelope.
     pub cmd: String,
-    /// The whole `{"msg":{"cmd":…,"data":…}}` envelope.
-    pub message: serde_json::Value,
-    /// The raw frame, for commands that declare one. Already base64-encoded
-    /// into `message`; exposed for tests and captures.
-    pub frame: Option<Vec<u8>>,
+    /// The whole `{"msg":{"cmd":…,"data":…}}` envelope. `None` where the mode
+    /// puts the frames on the wire with nothing wrapped around them.
+    pub message: Option<serde_json::Value>,
+    /// The raw frames, in the order they go out: one for a command that
+    /// declares a `frame:`, several for a chunked one, none for a command that
+    /// travels in its envelope alone. A single frame is already base64-encoded
+    /// into `message` when the payload asks for it; the bytes stay here for
+    /// tests and captures.
+    pub frames: Vec<Vec<u8>>,
 }
 
 impl Encoded {
-    /// The UDP payload: the envelope, serialized.
+    /// The datagram payload: the envelope, serialized.
     ///
     /// # Errors
     ///
-    /// Only if the envelope cannot be serialized, which cannot happen for a
-    /// value this crate built.
-    pub fn to_bytes(&self) -> serde_json::Result<Vec<u8>> {
-        serde_json::to_vec(&self.message)
+    /// [`Error::NoEnvelope`] for a command that carries none — a caller that
+    /// asks for one is on the wrong wire, and a silent empty payload would take
+    /// that as far as the device.
+    pub fn to_bytes(&self) -> Result<Vec<u8>> {
+        let message = self.message.as_ref().ok_or_else(|| Error::NoEnvelope {
+            command: self.cmd.clone(),
+        })?;
+        serde_json::to_vec(message).map_err(|e| Error::Serialize {
+            command: self.cmd.clone(),
+            reason: e.to_string(),
+        })
     }
 }
 
@@ -74,15 +87,36 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
             Some(spec.parsed_frame.get_or_init(|| parsed))
         }
     };
+    let chunked = match (spec.body.as_deref(), spec.chunk.as_ref()) {
+        (Some(body), Some(chunk)) => Some(chunk::layout(command, body, chunk, &spec.parsed_chunk)?),
+        _ => None,
+    };
 
-    let resolved = resolve(command, spec, frame, args)?;
-    let bytes = frame.map(|f| f.build(command, &resolved)).transpose()?;
-    let data = substitute(command, &spec.payload, &resolved, bytes.as_deref())?;
+    let resolved = resolve(
+        command,
+        spec,
+        frame.or(chunked.map(chunk::Layout::body)),
+        args,
+    )?;
+    let frames = match (frame, chunked) {
+        (Some(frame), _) => vec![frame.build(command, &resolved)?],
+        (None, Some(layout)) => layout.build(command, &resolved)?,
+        (None, None) => Vec::new(),
+    };
+
+    // `${frame}` names one frame, so a chunked command has none to name; the
+    // validator refuses a payload that asks for it.
+    let single = match (frame.is_some(), frames.first()) {
+        (true, Some(bytes)) => Some(bytes.as_slice()),
+        _ => None,
+    };
+    let data = substitute(command, &spec.payload, &resolved, single)?;
 
     Ok(Encoded {
         cmd: spec.cmd.clone(),
-        message: serde_json::json!({ "msg": { "cmd": spec.cmd, "data": data } }),
-        frame: bytes,
+        message: (!spec.cmd.is_empty())
+            .then(|| serde_json::json!({ "msg": { "cmd": spec.cmd, "data": data } })),
+        frames,
     })
 }
 
@@ -151,16 +185,26 @@ fn resolve(command: &str, spec: &Command, frame: Option<&Frame>, args: &Args) ->
                 }
             }
             (ArgSpec::RgbList { max_len, .. }, ArgValue::Rgb(items)) => {
-                if let Some(max) = max_len
-                    && items.len() > *max
-                {
-                    return Err(Error::OutOfRange {
-                        command: command.to_owned(),
-                        arg: name.clone(),
-                        value: i64::try_from(items.len()).unwrap_or(i64::MAX),
-                        min: 0,
-                        max: i64::try_from(*max).unwrap_or(i64::MAX),
-                    });
+                check_len(command, name, items.len(), *max_len)?;
+            }
+            (ArgSpec::String { max_len, .. }, ArgValue::Text(text)) => {
+                check_len(command, name, text.len(), *max_len)?;
+            }
+            (ArgSpec::Bytes { max_len, .. }, ArgValue::Bytes(bytes)) => {
+                check_len(command, name, bytes.len(), *max_len)?;
+            }
+            (ArgSpec::Zones { count, .. }, ArgValue::Zones(zones)) => {
+                if let Some(count) = count {
+                    let max = i64::try_from(*count).unwrap_or(i64::MAX) - 1;
+                    if let Some(zone) = zones.iter().find(|z| i64::from(**z) > max) {
+                        return Err(Error::OutOfRange {
+                            command: command.to_owned(),
+                            arg: name.clone(),
+                            value: i64::from(*zone),
+                            min: 0,
+                            max,
+                        });
+                    }
                 }
             }
             (spec, got) => {
@@ -175,6 +219,22 @@ fn resolve(command: &str, spec: &Command, frame: Option<&Frame>, args: &Args) ->
         out.insert(name.clone(), value);
     }
     Ok(out)
+}
+
+/// A length against the cap the device file declares, in the units the wire
+/// counts: bytes of UTF-8 for a string, items for a list.
+fn check_len(command: &str, name: &str, len: usize, max_len: Option<usize>) -> Result<()> {
+    let Some(max) = max_len else { return Ok(()) };
+    if len > max {
+        return Err(Error::OutOfRange {
+            command: command.to_owned(),
+            arg: name.to_owned(),
+            value: i64::try_from(len).unwrap_or(i64::MAX),
+            min: 0,
+            max: i64::try_from(max).unwrap_or(i64::MAX),
+        });
+    }
+    Ok(())
 }
 
 /// Replace `"${name}"` placeholders in the `payload:` template.
@@ -235,4 +295,66 @@ fn substitute(
 pub(crate) fn placeholder(s: &str) -> Option<&str> {
     let inner = s.strip_prefix("${")?.strip_suffix('}')?;
     (!inner.is_empty() && !inner.contains("${")).then_some(inner)
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used)]
+
+    use crate::codec::Catalog;
+    use crate::codec::args::Args;
+    use crate::codec::catalog::Mode;
+
+    /// A mode whose frames are a fixed size, with no envelope around them.
+    const CHUNKED: &str = r#"
+schema_version: 1
+sku: HTEST
+family: test
+name: Test
+capabilities: {}
+commands:
+  ble:
+    provision:
+      documented: true
+      body: "${ssid:str8}"
+      chunk:
+        size: 16
+        header: "A1 <op:11> 00 ${count} 00 <pad:20> <xor>"
+        data: "A1 <op:11> ${index} ${chunk:bytes} <pad:20> <xor>"
+        footer: "A1 <op:11> FF <pad:20> <xor>"
+      args:
+        ssid: { type: string, max_len: 32 }
+"#;
+
+    #[test]
+    fn a_chunked_command_encodes_to_a_frame_per_slice_and_no_envelope() {
+        let catalog = Catalog::from_sources([("HTEST.yaml", CHUNKED)]).expect("the file parses");
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let encoded = super::encode(
+            device,
+            Mode::Ble,
+            "provision",
+            &Args::new().text("ssid", "Test"),
+        )
+        .expect("the command encodes");
+
+        assert_eq!(encoded.message, None);
+        assert_eq!(encoded.frames.len(), 3);
+        assert!(encoded.frames.iter().all(|f| f.len() == 20));
+        assert_eq!(encoded.to_bytes().unwrap_err().code(), "no_envelope");
+    }
+
+    #[test]
+    fn a_string_past_the_cap_the_file_declares_is_refused() {
+        let catalog = Catalog::from_sources([("HTEST.yaml", CHUNKED)]).expect("the file parses");
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let err = super::encode(
+            device,
+            Mode::Ble,
+            "provision",
+            &Args::new().text("ssid", "0".repeat(33)),
+        )
+        .expect_err("the cap is enforced");
+        assert_eq!(err.code(), "out_of_range");
+    }
 }

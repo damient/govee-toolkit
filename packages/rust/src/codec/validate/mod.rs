@@ -8,10 +8,11 @@
 //! They check the *shape* of a file, never whether a device really behaves that
 //! way — that stays a matter of capture and verification.
 
+use self::command::check_command;
 use self::modes::check_mode_capabilities;
 use crate::codec::catalog::{ArgRole, Command, Device, Mode, Role};
-use crate::codec::frame::{Frame, Token};
 
+mod command;
 mod modes;
 
 /// One thing wrong with a device file.
@@ -60,7 +61,7 @@ pub fn device(device: &Device) -> Vec<Problem> {
         for (name, command) in device.commands.get(mode) {
             let at_command = format!("{mode}.{name}");
             problems.extend(
-                check_command(name, command)
+                check_command(mode, name, command)
                     .into_iter()
                     .map(|message| at(&at_command, message)),
             );
@@ -139,115 +140,6 @@ fn check_role_args(role: Role, command: &Command) -> Vec<String> {
             format!("`role: {role}` must declare an argument marked `role: {arg_role}`")
         })
         .collect()
-}
-
-fn check_command(name: &str, command: &Command) -> Vec<String> {
-    let mut problems = Vec::new();
-
-    for arg_role in ArgRole::ALL {
-        let claimants: Vec<&str> = command
-            .args
-            .iter()
-            .filter(|(_, spec)| spec.role() == Some(arg_role))
-            .map(|(arg, _)| arg.as_str())
-            .collect();
-        if claimants.len() > 1 {
-            problems.push(format!(
-                "`role: {arg_role}` is claimed by {}; at most one argument may claim a role",
-                claimants.join(", ")
-            ));
-        }
-        for arg in claimants {
-            let Some(spec) = command.args.get(arg) else {
-                continue;
-            };
-            if spec.type_name() != arg_role.type_name() {
-                problems.push(format!(
-                    "`{arg}` is marked `role: {arg_role}`, which has to be {}, not {}",
-                    arg_role.type_name(),
-                    spec.type_name()
-                ));
-            }
-        }
-    }
-
-    if !command.documented {
-        // An undocumented command is only reproducible if the protocol section
-        // behind it is written down. See CLAUDE.md, "Device files".
-        if command.notes.trim().is_empty() {
-            problems.push("undocumented, but carries no `notes:`".to_owned());
-        } else if !command.notes.contains("docs/protocol/") {
-            problems.push("undocumented `notes:` does not point at docs/protocol/".to_owned());
-        }
-    }
-
-    let frame = match command.frame.as_deref() {
-        None => None,
-        Some(source) => match Frame::parse(name, source) {
-            Ok(frame) => Some(frame),
-            Err(e) => {
-                problems.push(e.to_string());
-                None
-            }
-        },
-    };
-
-    if let Some(frame) = &frame {
-        for token in frame.tokens() {
-            let referenced: &[&str] = match token {
-                Token::Arg { name, .. } => &[name.as_str()],
-                Token::Repeat { list, count, .. } => &[list.as_str(), count.as_str()],
-                _ => &[],
-            };
-            for arg in referenced {
-                if !command.args.contains_key(*arg) {
-                    problems.push(format!(
-                        "frame refers to `{arg}`, which `args:` does not declare"
-                    ));
-                }
-            }
-        }
-    }
-
-    let mut placeholders = Vec::new();
-    collect_placeholders(&command.payload, &mut placeholders);
-    for name in &placeholders {
-        if name == "frame" {
-            if frame.is_none() {
-                problems.push("payload uses `${frame}` but no `frame:` is declared".to_owned());
-            }
-        } else if !command.args.contains_key(name) {
-            problems.push(format!(
-                "payload refers to `{name}`, which `args:` does not declare"
-            ));
-        }
-    }
-    if frame.is_some() && !placeholders.iter().any(|p| p == "frame") {
-        problems.push("declares a `frame:` the payload never carries with `${frame}`".to_owned());
-    }
-
-    problems
-}
-
-fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {
-    match value {
-        serde_json::Value::String(s) => {
-            if let Some(inner) = crate::codec::command::placeholder(s) {
-                out.push(inner.to_owned());
-            }
-        }
-        serde_json::Value::Object(map) => {
-            for v in map.values() {
-                collect_placeholders(v, out);
-            }
-        }
-        serde_json::Value::Array(items) => {
-            for v in items {
-                collect_placeholders(v, out);
-            }
-        }
-        _ => {}
-    }
 }
 
 #[cfg(test)]
@@ -342,6 +234,60 @@ mod tests {
         let problems = super::device(device);
         assert_eq!(problems.len(), 1, "{problems:?}");
         assert!(problems[0].message.contains("an integer"));
+    }
+
+    #[test]
+    fn the_names_the_codec_fills_in_may_not_be_declared() {
+        let catalog = parse(
+            "    send:\n      cmd: razer\n      documented: true\n      args:\n\
+             \n        index: { type: int, range: [0, 1] }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("`index`"));
+    }
+
+    #[test]
+    fn a_body_needs_the_chunk_that_splits_it() {
+        let catalog = parse(
+            "    send:\n      cmd: razer\n      documented: true\n\
+             \n      body: \"${b:bytes}\"\n      args:\n\
+             \n        b: { type: bytes }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("no `chunk:`"));
+    }
+
+    #[test]
+    fn a_command_sends_one_frame_or_a_chunked_body_but_not_both() {
+        let catalog = parse(
+            "    send:\n      cmd: razer\n      documented: true\n\
+             \n      frame: \"BB ${on}\"\n      payload: { pt: \"${frame}\" }\n\
+             \n      body: \"${on}\"\n      chunk:\n        size: 16\n\
+             \n        header: \"A1 ${count} <pad:20> <xor>\"\n\
+             \n        data: \"A1 ${index} ${chunk:bytes} <pad:20> <xor>\"\n\
+             \n        footer: \"A1 FF <pad:20> <xor>\"\n      args:\n\
+             \n        on: { type: int, range: [0, 1] }\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("`frame:` and `body:`"));
+    }
+
+    #[test]
+    fn an_undocumented_command_points_at_the_protocol_notes_for_its_own_mode() {
+        let catalog = parse(
+            "    raw:\n      cmd: status\n      documented: false\n\
+             \n      notes: \"See docs/protocol/ble.md.\"\n",
+        );
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].message.contains("docs/protocol/lan.md"));
     }
 
     #[test]

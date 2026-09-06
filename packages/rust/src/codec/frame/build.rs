@@ -3,9 +3,12 @@
 //! Argument values are read, never defaulted: a missing or too-wide value is an
 //! error, because the firmware would silently clamp it and report success.
 
+use super::fields::{
+    bytes_arg, int_arg, mask, pad, push_int, rgb_arg, text_arg, too_long, write_len, zones_arg,
+};
 use super::{Frame, RepeatItem, Token};
-use crate::codec::args::{self, ArgValue, Args};
-use crate::codec::error::{Error, Result};
+use crate::codec::args::{ArgValue, Args};
+use crate::codec::error::Result;
 
 impl Frame {
     /// Emit the bytes.
@@ -16,12 +19,19 @@ impl Frame {
     ///
     /// # Errors
     ///
-    /// [`Error::MissingArg`], [`Error::ArgType`] or [`Error::FrameWidth`] if a
-    /// value is absent, of the wrong shape, or too wide for its field.
+    /// [`Error::MissingArg`](crate::codec::Error::MissingArg),
+    /// [`Error::ArgType`](crate::codec::Error::ArgType) or
+    /// [`Error::FrameWidth`](crate::codec::Error::FrameWidth) if a value is
+    /// absent, of the wrong shape, or too wide for its field;
+    /// [`Error::FieldTooLong`](crate::codec::Error::FieldTooLong) for a string
+    /// its length prefix cannot count or a zone its mask cannot carry, and
+    /// [`Error::FrameOverflow`](crate::codec::Error::FrameOverflow) for a frame
+    /// already past the size `<pad:…>` declares.
     pub fn build(&self, command: &str, args: &Args) -> Result<Vec<u8>> {
         let mut out: Vec<u8> = Vec::with_capacity(self.size_hint(args));
         let mut len_pos: Option<usize> = None;
         let mut payload_start: Option<usize> = None;
+        let has_xor = matches!(self.tokens.last(), Some(Token::Xor));
 
         for token in &self.tokens {
             match token {
@@ -40,6 +50,26 @@ impl Frame {
                     let value = int_arg(command, args, name)?;
                     push_int(&mut out, command, name, value, *bits)?;
                 }
+                Token::Text { name, prefix } => {
+                    let text = text_arg(command, args, name)?.as_bytes();
+                    let max = (1usize << (prefix * 8)) - 1;
+                    if text.len() > max {
+                        return Err(too_long(command, name, text.len(), max));
+                    }
+                    let len = text.len().to_be_bytes();
+                    out.extend_from_slice(len.get(len.len() - prefix..).unwrap_or_default());
+                    out.extend_from_slice(text);
+                }
+                Token::Mask { name, width } => out.extend_from_slice(&mask(
+                    command,
+                    zones_arg(command, args, name)?,
+                    name,
+                    *width,
+                )?),
+                Token::Bytes { name } => {
+                    out.extend_from_slice(bytes_arg(command, args, name)?);
+                }
+                Token::Pad(size) => pad(&mut out, command, *size, has_xor)?,
                 Token::Repeat { list, count, item } => {
                     let n = usize::try_from(int_arg(command, args, count)?).unwrap_or(0);
                     let colors = rgb_arg(command, args, list)?;
@@ -60,7 +90,7 @@ impl Frame {
             let len = out.len() - start;
             write_len(&mut out, pos, len);
         }
-        if matches!(self.tokens.last(), Some(Token::Xor)) {
+        if has_xor {
             out.push(out.iter().fold(0u8, |acc, b| acc ^ b));
         }
         Ok(out)
@@ -69,77 +99,35 @@ impl Frame {
 
 impl Frame {
     /// Bytes this layout will emit, so the buffer is allocated once. A repeat
-    /// group is sized from the list it will carry.
+    /// group and a variable-width field are sized from the value they will
+    /// carry; `<pad:…>` sizes the frame on its own.
     fn size_hint(&self, args: &Args) -> usize {
-        self.tokens
-            .iter()
-            .map(|token| match token {
+        let mut size = 0usize;
+        for token in &self.tokens {
+            size += match token {
                 Token::Literal(_) | Token::Xor => 1,
                 Token::Len16 => 2,
                 Token::Opcode(bytes) => bytes.len(),
                 Token::Arg { bits, .. } => (*bits as usize).div_ceil(8),
+                Token::Mask { width, .. } => *width,
+                Token::Text { name, prefix } => match args.get(name) {
+                    Some(ArgValue::Text(text)) => prefix + text.len(),
+                    _ => *prefix,
+                },
+                Token::Bytes { name } => match args.get(name) {
+                    Some(ArgValue::Bytes(bytes)) => bytes.len(),
+                    _ => 0,
+                },
+                Token::Pad(declared) => return *declared,
                 Token::Repeat { list, item, .. } => match item {
                     RepeatItem::Rgb => match args.get(list) {
                         Some(ArgValue::Rgb(colors)) => colors.len() * 3,
                         _ => 0,
                     },
                 },
-            })
-            .sum()
-    }
-}
-
-fn write_len(out: &mut [u8], pos: usize, len: usize) {
-    let len = u16::try_from(len).unwrap_or(u16::MAX).to_be_bytes();
-    if let Some(slot) = out.get_mut(pos..pos + 2) {
-        slot.copy_from_slice(&len);
-    }
-}
-
-fn push_int(out: &mut Vec<u8>, command: &str, name: &str, value: i64, bits: u32) -> Result<()> {
-    let too_wide = || Error::FrameWidth {
-        command: command.to_owned(),
-        arg: name.to_owned(),
-        value,
-        bits,
-    };
-    match bits {
-        8 => out.push(u8::try_from(value).map_err(|_| too_wide())?),
-        16 => out.extend_from_slice(&u16::try_from(value).map_err(|_| too_wide())?.to_be_bytes()),
-        _ => return Err(too_wide()),
-    }
-    Ok(())
-}
-
-fn missing(command: &str, name: &str) -> Error {
-    Error::MissingArg {
-        command: command.to_owned(),
-        arg: name.to_owned(),
-    }
-}
-
-fn wrong_type(command: &str, name: &str, expected: &'static str, got: &ArgValue) -> Error {
-    Error::ArgType {
-        command: command.to_owned(),
-        arg: name.to_owned(),
-        expected,
-        got: got.type_name(),
-    }
-}
-
-fn int_arg(command: &str, args: &Args, name: &str) -> Result<i64> {
-    match args.get(name) {
-        Some(ArgValue::Int(v)) => Ok(*v),
-        Some(other) => Err(wrong_type(command, name, args::INT, other)),
-        None => Err(missing(command, name)),
-    }
-}
-
-fn rgb_arg<'a>(command: &str, args: &'a Args, name: &str) -> Result<&'a [[u8; 3]]> {
-    match args.get(name) {
-        Some(ArgValue::Rgb(v)) => Ok(v),
-        Some(other) => Err(wrong_type(command, name, args::RGB_LIST, other)),
-        None => Err(missing(command, name)),
+            };
+        }
+        size
     }
 }
 
@@ -180,6 +168,57 @@ mod tests {
         let bytes = frame.build("seg", &args).unwrap();
         // len = 2 + 3 × 2 = 8, header, opcode and checksum excluded.
         assert_eq!(hex(&bytes), "bb0008b00002ff000000ff0001");
+    }
+
+    #[test]
+    fn a_string_travels_behind_its_length_prefix() {
+        let frame = Frame::parse("x", "${s:str8} ${t:str16}").unwrap();
+        let args = Args::new().text("s", "Test").text("t", "ab");
+        assert_eq!(hex(&frame.build("x", &args).unwrap()), "045465737400026162");
+    }
+
+    #[test]
+    fn a_string_longer_than_its_prefix_counts_is_refused() {
+        let frame = Frame::parse("x", "${s:str8}").unwrap();
+        let args = Args::new().text("s", "a".repeat(256));
+        assert_eq!(
+            frame.build("x", &args).unwrap_err().code(),
+            "field_too_long"
+        );
+    }
+
+    #[test]
+    fn zones_become_one_bit_each_least_significant_first() {
+        let frame = Frame::parse("x", "${z:mask16}").unwrap();
+        let args = Args::new().zones("z", vec![0, 1, 14]);
+        assert_eq!(hex(&frame.build("x", &args).unwrap()), "0340");
+    }
+
+    /// The firmware drops a bit past its zone count in silence, and a saturated
+    /// mask looks exactly like an ignored one, so the width is enforced here.
+    #[test]
+    fn a_zone_the_mask_cannot_carry_is_refused() {
+        let frame = Frame::parse("x", "${z:mask8}").unwrap();
+        let args = Args::new().zones("z", vec![8]);
+        assert_eq!(frame.build("x", &args).unwrap_err().code(), "out_of_range");
+    }
+
+    #[test]
+    fn padding_fills_the_frame_out_to_its_declared_size() {
+        let frame = Frame::parse("x", "33 01 ${on} <pad:20> <xor>").unwrap();
+        let bytes = frame.build("x", &Args::new().int("on", 1)).unwrap();
+        assert_eq!(bytes.len(), 20);
+        assert_eq!(hex(&bytes), "3301010000000000000000000000000000000033");
+    }
+
+    #[test]
+    fn a_frame_already_past_its_declared_size_is_refused() {
+        let frame = Frame::parse("x", "${b:bytes} <pad:4> <xor>").unwrap();
+        let args = Args::new().bytes("b", vec![0; 8]);
+        assert_eq!(
+            frame.build("x", &args).unwrap_err().code(),
+            "frame_overflow"
+        );
     }
 
     #[test]

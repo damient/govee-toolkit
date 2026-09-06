@@ -124,6 +124,58 @@ pub enum Error {
         bits: u32,
     },
 
+    /// A value is longer than the field that carries it can describe: a string
+    /// past what its length prefix counts.
+    #[error("{command}: `{arg}` is {len} bytes, more than the {max} its field carries")]
+    FieldTooLong {
+        /// The command being encoded.
+        command: String,
+        /// The argument.
+        arg: String,
+        /// The length supplied.
+        len: usize,
+        /// The largest the field describes.
+        max: usize,
+    },
+
+    /// The bytes emitted before `<pad:…>` already exceed the frame size it
+    /// declares.
+    #[error("{command}: frame is {actual} bytes, past the {size} the layout declares")]
+    FrameOverflow {
+        /// The command being encoded.
+        command: String,
+        /// The size `<pad:…>` declares.
+        size: usize,
+        /// What the layout emitted.
+        actual: usize,
+    },
+
+    /// A `chunk:` block is unusable as written.
+    #[error("{command}: invalid `chunk:`: {reason}")]
+    ChunkSyntax {
+        /// The command being encoded.
+        command: String,
+        /// What is wrong with it.
+        reason: String,
+    },
+
+    /// The envelope could not be serialized.
+    #[error("{command}: cannot serialize the envelope: {reason}")]
+    Serialize {
+        /// The command being encoded.
+        command: String,
+        /// What serialization reported.
+        reason: String,
+    },
+
+    /// The command puts its bytes on the wire directly: there is no `msg`
+    /// envelope to serialize.
+    #[error("{command}: carries no `msg` envelope")]
+    NoEnvelope {
+        /// The command being encoded.
+        command: String,
+    },
+
     /// The `payload:` template holds a placeholder that resolves to nothing.
     #[error("{command}: payload placeholder `${{{name}}}` has no value")]
     UnresolvedPlaceholder {
@@ -193,6 +245,11 @@ impl Error {
             Self::RepeatCountMismatch { .. } => "repeat_count_mismatch",
             Self::FrameSyntax { .. } => "frame_syntax",
             Self::FrameWidth { .. } => "frame_width",
+            Self::FieldTooLong { .. } => "field_too_long",
+            Self::FrameOverflow { .. } => "frame_overflow",
+            Self::ChunkSyntax { .. } => "chunk_syntax",
+            Self::Serialize { .. } => "serialize",
+            Self::NoEnvelope { .. } => "no_envelope",
             Self::UnresolvedPlaceholder { .. } => "unresolved_placeholder",
             Self::DeviceFile { .. } => "device_file",
             Self::SchemaVersion { .. } => "schema_version",

@@ -6,6 +6,12 @@ use std::collections::BTreeMap;
 pub(crate) const INT: &str = "an integer";
 /// The name an RGB list goes by in a type-mismatch error.
 pub(crate) const RGB_LIST: &str = "a list of RGB triples";
+/// The name a string goes by in a type-mismatch error.
+pub(crate) const TEXT: &str = "a string";
+/// The name a zone list goes by in a type-mismatch error.
+pub(crate) const ZONES: &str = "a list of zone indices";
+/// The name an opaque blob goes by in a type-mismatch error.
+pub(crate) const BYTES: &str = "a byte string";
 
 /// A value for one declared argument.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,6 +20,12 @@ pub enum ArgValue {
     Int(i64),
     /// A list of RGB triples.
     Rgb(Vec<[u8; 3]>),
+    /// Text, emitted as UTF-8 behind a length prefix.
+    Text(String),
+    /// Zone indices, zero-based, emitted as a bitmask.
+    Zones(Vec<u16>),
+    /// Bytes the caller supplies and this crate does not interpret.
+    Bytes(Vec<u8>),
 }
 
 impl ArgValue {
@@ -23,6 +35,9 @@ impl ArgValue {
         match self {
             Self::Int(_) => INT,
             Self::Rgb(_) => RGB_LIST,
+            Self::Text(_) => TEXT,
+            Self::Zones(_) => ZONES,
+            Self::Bytes(_) => BYTES,
         }
     }
 }
@@ -49,6 +64,34 @@ impl Args {
     #[must_use]
     pub fn rgb(mut self, name: impl Into<String>, colors: impl Into<Vec<[u8; 3]>>) -> Self {
         self.0.insert(name.into(), ArgValue::Rgb(colors.into()));
+        self
+    }
+
+    /// Add a string argument.
+    ///
+    /// It reaches the device as UTF-8 behind the length prefix its field
+    /// declares. Nothing is escaped or transliterated: what the caller passes
+    /// is what the firmware is asked to match.
+    #[must_use]
+    pub fn text(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.0.insert(name.into(), ArgValue::Text(value.into()));
+        self
+    }
+
+    /// Add a list of zone indices, zero-based.
+    ///
+    /// Emitted as a bitmask, least significant bit first. Which zones exist is
+    /// the device file's business, not this type's.
+    #[must_use]
+    pub fn zones(mut self, name: impl Into<String>, zones: impl Into<Vec<u16>>) -> Self {
+        self.0.insert(name.into(), ArgValue::Zones(zones.into()));
+        self
+    }
+
+    /// Add bytes to be sent as they are.
+    #[must_use]
+    pub fn bytes(mut self, name: impl Into<String>, value: impl Into<Vec<u8>>) -> Self {
+        self.0.insert(name.into(), ArgValue::Bytes(value.into()));
         self
     }
 
