@@ -206,7 +206,7 @@ fn a_frame_on_its_own_wire_needs_no_envelope_to_name_it() {
 #[test]
 fn a_frame_on_a_wire_that_wraps_it_still_needs_an_envelope() {
     // `lan` carries every frame inside a JSON envelope, so a frame with no
-    // `cmd:` to name it would go out as nothing at all.
+    // `cmd:` to name it goes out as nothing.
     let catalog = parse(
         "    state:\n      documented: true\n\
          \n      frame: \"AA 01 <pad:20> <xor>\"\n      args: {}\n",

@@ -1,16 +1,15 @@
 //! Discovery, the socket, the cache and the breaker, tied together.
 //!
-//! The shape of the send path is the whole point of this module:
+//! The send path:
 //!
 //! 1. resolve the device from what is already known — cache or a past scan,
 //!    **never** a scan issued for this command;
 //! 2. ask the breaker, which answers from recorded state and touches no socket;
 //! 3. write the datagram and return.
 //!
-//! Verification happens after the fact, on its own task: a `devStatus` request
-//! whose answer — or absence — is what feeds the breaker. That is the
-//! fire-and-verify of `docs/protocol/lan.md` §1, and it is why a command does
-//! not pay for a round-trip it does not need.
+//! Verification runs after the fact, on its own task: a `devStatus` request
+//! whose answer — or absence — feeds the breaker. This is the fire-and-verify
+//! of `docs/protocol/lan.md` §1, and it keeps a round-trip off the send path.
 //!
 //! Replies carry no request id. The source address is the only correlation
 //! there is, so each device owns a [`tokio::sync::watch`] channel holding its
@@ -82,8 +81,8 @@ impl Transport {
     /// # Errors
     ///
     /// [`Error::Io`] if the socket cannot be bound.
-    // Nothing here awaits, but the background tasks are spawned onto the
-    // current runtime: `async` is what states that there has to be one.
+    // Nothing here awaits. `async` states that a runtime must exist: the
+    // background tasks are spawned onto the current one.
     #[allow(clippy::unused_async, clippy::unused_async_trait_impl)]
     pub async fn start(options: Options) -> Result<Self> {
         let socket = Socket::bind(&options.endpoints)?;

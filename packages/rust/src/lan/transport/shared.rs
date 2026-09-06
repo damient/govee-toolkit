@@ -80,9 +80,8 @@ impl Shared {
     /// Where to send, and whether this command should pay for a verification.
     ///
     /// Both answers come from memory, under one lock: the send path takes it
-    /// exactly once and waits on nothing, which is the rule this whole design
-    /// exists for. Claiming marks the device verified, so a burst of commands
-    /// produces one probe.
+    /// exactly once and waits on nothing. A claim marks the device verified, so
+    /// a burst of commands produces one probe.
     pub(super) fn route_and_claim(
         &self,
         id: &DeviceId,

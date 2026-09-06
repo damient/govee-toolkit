@@ -1,10 +1,9 @@
 //! Errors a transport can return, whichever mode it serves.
 //!
-//! Nothing here is recoverable by substituting something else. A device that
-//! cannot be reached produces [`Error::Unreachable`] or [`Error::Unavailable`],
-//! and that is the answer the caller gets — choosing another mode is the
-//! facade's decision to make, from the user's configuration, never a
-//! transport's.
+//! No substitution recovers any of these. A device the transport cannot reach
+//! produces [`Error::Unreachable`] or [`Error::Unavailable`], and the caller
+//! gets that answer. Only the facade chooses another mode, from the user's
+//! configuration.
 
 use crate::codec::Mode;
 use crate::transport::DeviceId;
@@ -16,8 +15,8 @@ use crate::transport::breaker::State;
 pub enum Error {
     /// No device with this identity has been discovered, and none is cached.
     ///
-    /// Note what this is *not*: a reason to scan. Scanning on the send path
-    /// costs a multicast round-trip — `docs/protocol/lan.md` §1, latency notes.
+    /// This is not a reason to scan: a scan on the send path costs a multicast
+    /// round-trip (`docs/protocol/lan.md` §1, latency notes).
     #[error("no known device `{id}`; it has not been discovered and is not in the cache")]
     UnknownDevice {
         /// The identity that was asked for.
@@ -40,16 +39,16 @@ pub enum Error {
     Unreachable {
         /// The device.
         id: DeviceId,
-        /// Where the command went, in whatever form the mode addresses a
-        /// device: a socket address over `lan`, a Bluetooth address over `ble`.
+        /// Where the command went, in the form the mode addresses a device: a
+        /// socket address over `lan`, a Bluetooth address over `ble`.
         endpoint: String,
         /// How long it was given.
         timeout_ms: u64,
     },
 
-    /// An encoded command could not be serialized into a datagram. It cannot
-    /// happen for a value [`crate::codec`] built; it is here so that no code
-    /// path has to unwrap.
+    /// An encoded command does not serialize into a datagram. It cannot happen
+    /// for a value [`crate::codec`] built; it exists so that no code path must
+    /// unwrap.
     #[error("{cmd}: the encoded command is not serializable: {reason}")]
     Serialize {
         /// The command.
@@ -58,9 +57,9 @@ pub enum Error {
         reason: String,
     },
 
-    /// A transport option is outside the range the transport can honour. It is
-    /// refused rather than moved to the nearest value it could serve: an option
-    /// quietly replaced is an option the caller never set.
+    /// A transport option is outside the range the transport can honour. The
+    /// transport refuses it and never moves it to the nearest value it can
+    /// serve: an option quietly replaced is an option the caller never set.
     #[error("`{field}` is out of range: {reason}")]
     Option {
         /// The field, as it is named on the mode's options type.
@@ -86,7 +85,7 @@ pub enum Error {
     /// An adapter or socket operation failed.
     #[error("{context}: {source}")]
     Io {
-        /// What was being attempted.
+        /// The operation that failed.
         context: String,
         /// The underlying failure.
         #[source]

@@ -59,11 +59,11 @@ pub enum Error {
 
     /// The device file names no command for a role the SDK invokes on its own.
     ///
-    /// The SDK will not guess an entry name: mark the right entry `role:
+    /// The SDK does not guess an entry name: mark the right entry `role:
     /// status`, `role: segment_enable`, `role: segment_color` or `role:
-    /// segment_color_masked` in `devices/<SKU>.yaml`. Fire-and-verify does
-    /// without a status command and
-    /// says so; [`crate::DeviceHandle::status`] fails instead.
+    /// segment_color_masked` in `devices/<SKU>.yaml`. Fire-and-verify works
+    /// without a status command and says so; [`crate::DeviceHandle::status`]
+    /// fails instead.
     #[error("{sku}: no command in `commands.{mode}` is marked `role: {role}`")]
     NoRoleCommand {
         /// The SKU whose file is missing it.
@@ -77,9 +77,9 @@ pub enum Error {
     /// A command the SDK invokes on its own does not mark the argument the SDK
     /// has to fill.
     ///
-    /// The device file names arguments, so a `role:` command has to say which
-    /// of its own arguments carries what — `devices/schema.yaml`. Caught by
-    /// `crate::codec::validate` as well, and reported here for a file that
+    /// The device file names arguments, so a `role:` command must say which of
+    /// its own arguments carries what — `devices/schema.yaml`.
+    /// `crate::codec::validate` catches this too; this error covers a file that
     /// reached the send path without it.
     #[error(
         "{sku}: `commands.{mode}.{command}` marks no argument `role: {arg_role}`, so there is nothing to put the value in"
@@ -97,10 +97,10 @@ pub enum Error {
 
     /// A stream was asked for a zone count nothing records.
     ///
-    /// These counts are properties of the physical unit, so neither can be
-    /// extrapolated from another one and neither substitutes for the other.
-    /// Measure it — `docs/protocol/lan.md` 2.3 — and record it in the device
-    /// file, or ask for a zone count explicitly.
+    /// A zone count is a property of the physical unit: no count substitutes
+    /// for another, and none follows from another. Measure it —
+    /// `docs/protocol/lan.md` 2.3 — and record it in the device file, or ask
+    /// for a zone count explicitly.
     #[error("{sku}: the zone count asked for is not recorded for this unit")]
     ZoneCountUnknown {
         /// The SKU whose file leaves it at zero.
@@ -110,7 +110,7 @@ pub enum Error {
     /// A frame carried a different number of colors than the stream streams.
     ///
     /// The zone count is fixed when the stream opens: the firmware reads it
-    /// from the frame, and changing it mid-stream re-groups the LEDs.
+    /// from the frame, and a change mid-stream re-groups the LEDs.
     #[error("this stream carries {expected} zones, not {got}")]
     ZoneCountMismatch {
         /// What the stream was opened with.
@@ -144,9 +144,8 @@ pub enum Error {
 
     /// A stream was asked for more zones than the mode's mask can name.
     ///
-    /// Refused rather than sent: a mask carrying bits past the last zone is
-    /// dropped in silence by the firmware, so the frame would look sent and
-    /// paint nothing.
+    /// Refused rather than sent: the firmware drops a mask with bits past the
+    /// last zone in silence, so the frame would look sent and paint nothing.
     #[error("{sku}: mode `{mode}` addresses {limit} zones, not {zones}")]
     ZoneCountUnsupported {
         /// The SKU asked for.
@@ -163,10 +162,10 @@ pub enum Error {
     /// nothing.
     ///
     /// The bound is the `count:` on the argument marked `role: zones`, or the
-    /// width of the mask field the layout writes it into. A file declaring
+    /// width of the mask field the layout writes it into. A file that declares
     /// neither says nothing about how many zones the mask reaches, and a mask
     /// the firmware drops looks exactly like one it applied, so the stream
-    /// refuses to arm rather than paint into the dark.
+    /// refuses to arm.
     #[error("{sku}: mode `{mode}`, command `{command}` bounds its zone mask by nothing")]
     ZoneMaskUnbounded {
         /// The SKU asked for.

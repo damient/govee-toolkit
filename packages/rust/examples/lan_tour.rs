@@ -1,20 +1,19 @@
 //! Every `lan` command of a device file, sent to a real device in order.
 //!
-//! What it needs: the device on the same network, with LAN Control enabled in
-//! the Govee Home app.
+//! It needs the device on the same network, with LAN Control enabled in the
+//! Govee Home app.
 //!
 //! ```bash
 //! cargo run --example lan_tour
 //! GOVEE_SKU=H61A0 cargo run --example lan_tour
 //! ```
 //!
-//! It walks the H61A0's table. Another SKU names its commands and arguments in
-//! its own device file, and the calls below are then that file's, not this
-//! example's — nothing here knows a command name that `devices/*.yaml` did not
+//! It walks the H61A0's table. Another SKU names its own commands and
+//! arguments: nothing here knows a command name that `devices/*.yaml` did not
 //! give it.
 
-// An example is a program: it reports to the person running it. The no-print
-// rule is the library's.
+// The no-print lint is the library's rule. An example reports to the person who
+// runs it.
 #![allow(clippy::print_stdout)]
 
 use std::time::Duration;
@@ -26,8 +25,8 @@ use govee_toolkit::{Args, Config, Error, Govee};
 async fn main() -> Result<(), Error> {
     let sku = std::env::var("GOVEE_SKU").unwrap_or_else(|_| "H61A0".to_owned());
 
-    // `lan` is the default, spelled out here so this example is unaffected by
-    // whatever the user's configuration enables.
+    // `lan` is the default. This example names it so that the user's
+    // configuration cannot change what runs below.
     let config = Config {
         defaults: govee_toolkit::config::Defaults {
             modes: vec![govee_toolkit::Mode::Lan],
@@ -49,14 +48,14 @@ async fn main() -> Result<(), Error> {
         .send("brightness", &Args::new().int("level", 60))
         .await?;
 
-    // Colour is per channel here, and the whole strip wears it: this mode's
-    // colour command carries no zones.
+    // This mode's color command carries no zones, so the whole strip takes
+    // the color.
     device
         .send("color", &Args::new().int("r", 255).int("g", 40).int("b", 0))
         .await?;
 
     // Kelvin alone, unlike `ble`: this mode's frame asks the firmware for a
-    // temperature rather than shipping its rendering.
+    // temperature rather than for its RGB rendering.
     device
         .send("colortemp", &Args::new().int("kelvin", 4000))
         .await?;
@@ -67,10 +66,9 @@ async fn main() -> Result<(), Error> {
     println!("on {:?}, brightness {:?}", status.on, status.brightness);
     println!("raw {}", status.raw);
 
-    // An undocumented read the SDK models nothing of. Its reply reaches the
-    // caller through `DeviceHandle::read` on a mode that answers frames; over
-    // `lan` the answer is JSON, so `raw_status` is sent and read back through
-    // the status above rather than through `read`.
+    // An undocumented read the SDK models nothing of. `DeviceHandle::read`
+    // serves it on a mode that answers frames. Over `lan` the answer is JSON,
+    // so the status above reads it back instead.
     device.send("raw_status", &Args::new()).await?;
 
     paint_zones(&device).await?;
@@ -82,13 +80,13 @@ async fn main() -> Result<(), Error> {
 /// The raw segment channel: armed once, then fed frames on a clock.
 ///
 /// This mode carries every zone in one frame, so a repaint costs one write
-/// whatever the picture holds — and it reaches the strip's native resolution,
-/// past the zones the Govee app exposes.
+/// whatever the picture holds. It reaches the strip's native resolution, past
+/// the zones the Govee app exposes.
 async fn paint_zones(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(), Error> {
     let stream = device
         .open_stream(StreamOptions {
             // Every addressable LED. It fails where nobody measured that count
-            // on the unit: it belongs to the physical strip, not to the SKU.
+            // on the unit: the count belongs to the strip, not to the SKU.
             zones: Zones::Native,
             rate: Rate::Measured,
             gradient: false,

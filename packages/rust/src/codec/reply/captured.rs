@@ -7,8 +7,7 @@ use crate::codec::args::ArgValue;
 /// The fields one or more replies were read into.
 ///
 /// Keyed by the name the device file gave the field. Nothing here interprets a
-/// name: what a field means is the file's business, and a caller that wants
-/// more than the value reads the file too.
+/// name: what a field means is the file's business.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Captured(BTreeMap<String, ArgValue>);
 
@@ -42,7 +41,7 @@ impl Captured {
         self.0.len()
     }
 
-    /// Add a field, replacing any previous one under the same name.
+    /// Add a field, and replace any previous field of the same name.
     pub fn insert(&mut self, name: impl Into<String>, value: ArgValue) {
         self.0.insert(name.into(), value);
     }

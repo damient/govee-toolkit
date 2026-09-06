@@ -1,11 +1,12 @@
 //! Dispatch to a mode that is not `lan`, through a transport that is not a
 //! radio.
 //!
-//! The `ble` transport talks to hardware, and CI has none. What can be checked
-//! without one is everything the facade does around it: that a device enabling
-//! `ble` is served by the transport claiming that mode, that what reaches it is
-//! the frames the codec built and nothing wrapped around them, and that
-//! fire-and-verify follows.
+//! The `ble` transport talks to hardware, and CI has none. These tests cover
+//! what the facade does around it:
+//!
+//! - the transport that claims the enabled mode serves the device;
+//! - the frames the codec built reach it, with nothing wrapped around them;
+//! - fire-and-verify follows.
 
 #![allow(
     clippy::unwrap_used,
@@ -44,8 +45,8 @@ const BRIGHTNESS_READ: [u8; 20] = [
 ];
 
 /// What the device answers, by the byte that names the request. A real radio
-/// would put these on the notify characteristic; the layouts in the fixture are
-/// what reads them either way.
+/// carries these on the notify characteristic; the fixture's layouts read them
+/// either way.
 fn answer(frame: &[u8]) -> Vec<u8> {
     let mut reply = match frame[1] {
         0x01 => vec![0xaa, 0x01, 0x01],
@@ -65,7 +66,7 @@ fn id() -> DeviceId {
     DeviceId::new(MAC)
 }
 
-/// A transport claiming `ble` that records what it was handed.
+/// A transport that claims `ble` and records every frame it receives.
 #[derive(Debug)]
 struct Fake {
     known: Option<DeviceId>,
@@ -253,7 +254,7 @@ async fn a_command_is_served_by_the_transport_claiming_the_enabled_mode() {
 
     assert_eq!(served.mode, Mode::Ble);
     assert_eq!(served.command, "power");
-    // Nothing on this wire carries a name: the envelope is a `lan` thing.
+    // Nothing on this wire carries a name: the envelope belongs to `lan`.
     assert_eq!(served.cmd, "");
 }
 

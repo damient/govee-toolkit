@@ -18,9 +18,9 @@ pub const CONTROL_PORT: u16 = 4003;
 
 /// Where the transport sends and listens.
 ///
-/// The constants above are the protocol. These are here because a test and the
-/// simulator need ephemeral ports on the loopback: the defaults are what talks
-/// to real hardware, and nothing else should change them.
+/// The constants above are the protocol. These fields exist because a test and
+/// the simulator need ephemeral ports on the loopback. The defaults are what
+/// real hardware answers on; change them only for a test.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Endpoints {
     /// Where the `scan` request is sent.
@@ -105,9 +105,9 @@ impl DiscoveredDevice {
 
     /// The same reply in the shape every mode reports discoveries in.
     ///
-    /// Only the Wi-Fi firmware is carried over: it is the one this transport
-    /// talks to, and the BLE versions a `scan` reply also lists say nothing
-    /// about the radio `lan` uses.
+    /// This carries only the Wi-Fi firmware, the one this transport talks to.
+    /// The BLE versions a `scan` reply also lists say nothing about the radio
+    /// `lan` uses.
     #[must_use]
     pub fn reported(&self, endpoints: &Endpoints) -> Discovered {
         Discovered {

@@ -2,10 +2,10 @@
 //!
 //! Carries the bytes [`crate::codec`] produces. It discovers devices,
 //! remembers where they are, keeps one socket for everything and tracks each
-//! device's health — and it does exactly that, for one mode.
+//! device's health.
 //!
-//! It is one implementation of [`crate::transport::Transport`], and the rules
-//! that shape it are that trait's, all from `docs/modes.md`:
+//! It is one implementation of [`crate::transport::Transport`]. The rules below
+//! are that trait's, and come from `docs/modes.md`:
 //!
 //! - **It never chooses a mode.** There is nothing to fall back to here. A
 //!   device that cannot be reached produces an error, and what to do about it
@@ -16,10 +16,9 @@
 //! - **Nothing is approximated.** Ranges are already enforced by the codec, and
 //!   this layer does not soften them.
 //!
-//! The identity, the breaker, the error and the reported status are shared with
-//! every other mode and live in [`crate::transport`]; they are re-exported here
-//! so that reaching for the `lan` transport does not mean reaching into two
-//! modules.
+//! The identity, the breaker, the error and the reported status live in
+//! [`crate::transport`], shared with every other mode. They are re-exported
+//! here so that `lan` reads as one module.
 //!
 //! ```no_run
 //! use govee_toolkit::codec::{self, Args, Catalog, Mode};
@@ -49,7 +48,6 @@ pub use cache::{Cache, CachedDevice};
 pub use discovery::{DiscoveredDevice, Endpoints};
 pub use transport::{Options, Transport};
 
-// Shared with every other mode; re-exported so that `lan` reads as one module.
 pub use crate::transport::{
     Breaker, Change, DeviceId, DeviceStatus, Discovered, Error, Event, Health, KnownDevice, Policy,
     Result, Sent, State, Transition, Verify,

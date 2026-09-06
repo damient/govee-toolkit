@@ -1,9 +1,8 @@
 //! Generators for the property tests that read what a device sent.
 //!
-//! A reply is bytes a stranger chose: anything on the network can send one, and
-//! anything in Bluetooth range can answer. The parsers are written to be total
-//! — they return `Option`, they never index — and these strategies are what
-//! keeps that true when someone edits them.
+//! Any host on the network, and any device in Bluetooth range, can send a
+//! reply. The parsers must stay total against those bytes: they return
+//! `Option` and they never index.
 
 use proptest::prelude::*;
 
@@ -26,8 +25,8 @@ pub(crate) fn json() -> impl Strategy<Value = serde_json::Value> {
     })
 }
 
-/// Object keys, weighted towards the ones the protocol actually uses so the
-/// generated values reach past the first `get`.
+/// Object keys, weighted towards the names the protocol uses so that a
+/// generated value reaches past the first `get`.
 fn key() -> impl Strategy<Value = String> {
     prop_oneof![
         3 => prop::sample::select(vec![

@@ -31,8 +31,8 @@ pub enum Event {
 pub struct Served {
     /// The device it went to.
     pub id: DeviceId,
-    /// The mode that served it. The whole point of returning this: with several
-    /// modes enabled, which one ran is not something a caller should guess.
+    /// The mode that served it. With several modes enabled, a caller must not
+    /// guess which one ran.
     pub mode: Mode,
     /// The device file entry that was sent.
     pub command: String,

@@ -2,7 +2,7 @@
 //!
 //! These are the conventions in `devices/README.md` and `CLAUDE.md`, made
 //! machine-checkable: a frame that does not parse, a placeholder with no
-//! argument behind it, an undocumented command with no note pointing at the
+//! argument behind it, an undocumented command with no note that points at the
 //! protocol documentation. They run in CI and in this crate's tests.
 //!
 //! They check the *shape* of a file, never whether a device really behaves that

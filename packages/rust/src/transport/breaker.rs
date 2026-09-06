@@ -1,25 +1,22 @@
 //! The per-device, per-mode circuit breaker.
 //!
-//! Pure state machine: every method takes the current instant rather than
-//! reading a clock, so the transitions in `docs/modes.md` can be tested without
-//! a socket and without waiting.
-//!
-//! It answers from the last recorded answer, never from the network: that is
-//! what lets a mode be chosen without paying a round-trip for it.
+//! Every method takes the current instant instead of a clock read, so the
+//! transitions in `docs/modes.md` are testable without a socket and without a
+//! wait. The breaker answers from the last recorded result, never from the
+//! network, so a mode costs no round-trip to choose.
 
 use std::time::{Duration, Instant};
 
 /// How healthy a mode is for one device.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum State {
-    /// Answering. Commands go out without hesitation.
+    /// Answering. Every command goes out.
     Ok,
-    /// Consecutive failures crossed [`Policy::degrade_after`]. Another mode
-    /// serves for a cooldown, after which one command is let through to probe.
+    /// Consecutive failures crossed [`Policy::degrade_after`]. After a
+    /// cooldown, the breaker allows one command as a probe.
     Degraded,
-    /// Still failing after [`Policy::down_after`]. Same shape as `Degraded`
-    /// with a longer cooldown — a device that has been silent for minutes is
-    /// not worth probing every 30 seconds.
+    /// Still failing after [`Policy::down_after`]. As `Degraded`, with a
+    /// longer cooldown.
     Down,
 }
 
@@ -35,8 +32,7 @@ impl std::fmt::Display for State {
 
 /// The thresholds behind the transitions.
 ///
-/// Defaults follow `docs/modes.md`: a handful of consecutive timeouts degrades
-/// a mode, and the cooldown before the preferred mode is retried is 30 s.
+/// The defaults follow `docs/modes.md`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Policy {
     /// Consecutive failures that take a healthy mode to `Degraded`.
@@ -65,8 +61,8 @@ impl Default for Policy {
 
 /// What a call to the breaker changed, if anything.
 ///
-/// Every transition is observable — `docs/modes.md` requires it — so the caller
-/// gets one of these back rather than having to diff the state itself.
+/// `docs/modes.md` requires every transition to be observable, so each call
+/// returns one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Transition {
     /// State before the call.
@@ -76,7 +72,7 @@ pub struct Transition {
 }
 
 impl Transition {
-    /// Whether anything actually moved.
+    /// Whether the state moved.
     #[must_use]
     pub fn changed(self) -> bool {
         self.from != self.to
@@ -90,7 +86,7 @@ pub struct Breaker {
     state: State,
     failures: u32,
     successes: u32,
-    /// When a non-`Ok` breaker will let one command through to probe.
+    /// When a non-`Ok` breaker allows one probe.
     retry_at: Option<Instant>,
 }
 
@@ -125,7 +121,7 @@ impl Breaker {
         self.failures
     }
 
-    /// When the next probe is allowed, for a breaker that is not `Ok`.
+    /// When this breaker allows the next probe, if it is not `Ok`.
     #[must_use]
     pub fn retry_at(&self) -> Option<Instant> {
         self.retry_at
@@ -133,9 +129,9 @@ impl Breaker {
 
     /// Whether a command may be sent over this mode right now.
     ///
-    /// `Ok` always passes. `Degraded` and `Down` pass exactly one command once
-    /// their cooldown has elapsed — that probe is what allows recovery — and
-    /// refuse until then. No network round-trip is involved either way.
+    /// `Ok` always passes. `Degraded` and `Down` pass one command after their
+    /// cooldown, and refuse until then. That probe is the only route back to
+    /// `Ok`. No network round-trip is involved.
     #[must_use]
     pub fn allows(&self, now: Instant) -> bool {
         match self.state {
@@ -152,16 +148,14 @@ impl Breaker {
             State::Ok => {}
             State::Degraded | State::Down => {
                 self.successes += 1;
-                // A single answer after a silence is not recovery: a device
-                // that flaps would otherwise be reported healthy between two
-                // dropped commands.
+                // A single answer is not recovery: a device that flaps would
+                // read as healthy between two dropped commands.
                 if self.successes >= self.policy.recover_after {
                     self.state = State::Ok;
                     self.successes = 0;
                     self.retry_at = None;
                 } else {
-                    // Let the next command through immediately; it is the
-                    // second half of the same probe.
+                    // The next command is the second half of the same probe.
                     self.retry_at = Some(now);
                     if self.state == State::Down {
                         self.state = State::Degraded;
@@ -251,7 +245,6 @@ mod tests {
         let probe = now + Duration::from_secs(30);
         assert!(!b.record_success(probe).changed());
         assert_eq!(b.state(), State::Degraded);
-        // The second half of the probe is allowed straight away.
         assert!(b.allows(probe));
         let t = b.record_success(probe);
         assert_eq!((t.from, t.to), (State::Degraded, State::Ok));

@@ -1,5 +1,5 @@
-//! Starting the facade: building the transports, applying the configuration,
-//! and letting the user's own device files replace what the build shipped.
+//! Start the facade: build the transports, apply the configuration, and let the
+//! user's own device files replace what the build ships.
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
@@ -34,8 +34,8 @@ impl Govee {
 
     /// Start with a catalog the caller built.
     ///
-    /// Every transport this build carries is started, whether or not a device
-    /// enables it: which modes a device may use is per-device configuration,
+    /// The SDK starts every transport this build carries, whether or not a
+    /// device enables it: the modes a device may use are per-device settings,
     /// and starting one costs a socket at most — `ble` claims its adapter only
     /// when something needs it.
     ///
@@ -60,16 +60,16 @@ impl Govee {
 
     /// Use transports the caller already built.
     ///
-    /// The seam for anything that has to bind its own sockets or hold its own
-    /// adapter: a test against the simulator, or a host embedding the SDK
+    /// The entry point for anything that must bind its own sockets or hold its
+    /// own adapter: a test against the simulator, or a host that embeds the SDK
     /// beside other traffic.
     ///
     /// # Errors
     ///
     /// [`Error::Configuration`] if the configuration cannot be applied, or if
     /// two transports claim the same mode — one of them would never be
-    /// reached, and silently dropping it is how a command ends up served by
-    /// something the caller did not build.
+    /// reached, and a silent drop lets something the caller did not build serve
+    /// a command.
     pub fn attach<I>(config: Config, catalog: Catalog, transports: I) -> Result<Self>
     where
         I: IntoIterator<Item = Arc<dyn Transport>>,
@@ -118,8 +118,8 @@ impl Govee {
             _forwarder: Arc::new(forwarder),
         };
 
-        // Whatever the caches already hold can be checked against the device
-        // files right away, without waiting for a scan.
+        // The caches already hold devices: check them against the device files
+        // now, rather than after a scan.
         let problems = govee.check_devices();
         for problem in &problems {
             tracing::warn!(%problem, "configuration");
@@ -128,7 +128,7 @@ impl Govee {
     }
 }
 
-/// Let the user's own device files replace what the build shipped.
+/// Let the user's own device files replace what the build ships.
 fn overlay_local_devices(catalog: &mut Catalog, config: &Config) -> Result<()> {
     let directory = config
         .catalog
@@ -138,7 +138,7 @@ fn overlay_local_devices(catalog: &mut Catalog, config: &Config) -> Result<()> {
 
     let entries = match std::fs::read_dir(&directory) {
         Ok(entries) => entries,
-        // Opting in without having written any file yet is not an error.
+        // An opt-in before any file exists is not an error.
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
         Err(e) => {
             return Err(Error::LocalDevices {
@@ -164,8 +164,8 @@ fn overlay_local_devices(catalog: &mut Catalog, config: &Config) -> Result<()> {
 
     let replaced = catalog.overlay(files.iter().map(|(f, y)| (f.as_str(), y.as_str())))?;
     for overridden in replaced {
-        // An override shadows what everyone else's build ships. It has to be
-        // visible, every run.
+        // An override shadows what everyone else's build ships, so it must be
+        // visible on every run.
         tracing::warn!(
             sku = %overridden.sku,
             was = %overridden.was,

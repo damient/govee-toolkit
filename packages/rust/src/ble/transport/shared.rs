@@ -1,10 +1,9 @@
 //! The state every [`Transport`](super::Transport) clone shares, and the send
 //! path that reads it.
 //!
-//! Routing answers from memory, as it does for every mode. What is different
-//! here is the link: reaching a device means holding a connection to it, so
-//! the send path may have to open one, and one device's connection is opened
-//! at a time.
+//! Routing answers from memory, as it does for every mode. The link is what
+//! differs: a device answers only over a connection, so the send path can have
+//! to open one, and it opens one connection per device at a time.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -56,7 +55,7 @@ impl Tracked {
 pub(super) struct Route {
     pub(super) endpoint: String,
     pub(super) pacer: Arc<Pacer>,
-    /// Whether this command should pay for a verification.
+    /// Whether this command pays for a verification.
     pub(super) verifying: bool,
 }
 
@@ -64,13 +63,12 @@ pub(super) struct Shared {
     pub(super) options: Options,
     /// The write budget, checked once when the transport was built.
     pub(super) budget: Budget,
-    /// Claimed on first use. Starting the transport must not fail on a machine
-    /// whose radio is off or arrives later; the first command is what reports
-    /// it.
+    /// Claimed on first use. The transport must start on a machine whose radio
+    /// is off, so the first command is what reports it.
     adapter: OnceCell<Adapter>,
     pub(super) devices: Mutex<HashMap<DeviceId, Tracked>>,
     /// One open connection per device, reused across commands. A device
-    /// accepts only one, and reconnecting costs seconds.
+    /// accepts only one, and a new connection costs seconds.
     links: tokio::sync::Mutex<HashMap<DeviceId, Arc<Link>>>,
     pub(super) events: broadcast::Sender<Event>,
 }
@@ -152,15 +150,13 @@ impl Shared {
         })
     }
 
-    /// The open connection to a device, opening one if there is none.
+    /// The open connection to a device, or a new one if there is none.
     ///
     /// # Errors
     ///
-    /// [`Error::Io`] if nothing is advertising at the handle even after a
-    /// scan,
-    /// [`Error::Unreachable`] if connecting takes longer than
-    /// [`Options::connect_timeout`], or [`Error::Io`] if the connection cannot
-    /// be established.
+    /// [`Error::Unreachable`] if the connection takes longer than
+    /// [`Options::connect_timeout`], or [`Error::Io`] if nothing advertises at
+    /// the handle after a scan, or if the connection fails.
     pub(super) async fn link(&self, id: &DeviceId, endpoint: &str) -> Result<Arc<Link>> {
         let mut links = self.links.lock().await;
         if let Some(link) = links.get(id)
@@ -170,19 +166,19 @@ impl Shared {
         }
         links.remove(id);
 
-        // A handle is only good while the platform still holds the peripheral
-        // behind it, and macOS drops that the moment a link goes down: the
-        // device has to be heard advertising again before anything can connect
-        // to it. Scanning here reaches the same device over the same mode, so
-        // it substitutes nothing — it costs seconds, which is why it happens
-        // only once the handle is gone.
+        // A handle is good only while the platform still holds the peripheral
+        // behind it, and macOS drops that when a link goes down: the device
+        // must be heard advertising again before anything can connect to it.
+        // The scan reaches the same device over the same mode, so it
+        // substitutes nothing. It costs seconds, so it runs only once the
+        // handle is gone.
         let peripheral = match self.peripheral(endpoint).await? {
             Some(peripheral) => peripheral,
             None => self.rediscover(endpoint).await?,
         };
         // A peripheral that never answers leaves `connect` pending for as long
-        // as the platform cares to wait, and every caller behind this lock
-        // waits with it.
+        // as the platform waits, and every caller behind this lock waits with
+        // it.
         let timeout = self.options.connect_timeout;
         let link = tokio::time::timeout(timeout, Link::open(peripheral, endpoint))
             .await
@@ -220,9 +216,9 @@ impl Shared {
     /// The peripheral behind a handle, among those the adapter has seen, or
     /// `None` if the adapter is not holding one.
     ///
-    /// Exactly one, never a choice: a handle several peripherals carry names
-    /// no device, and connecting to one of them would write a command into
-    /// whatever the adapter happened to list first.
+    /// A handle that several peripherals carry names no device, and a
+    /// connection to one of them would write the command into whatever the
+    /// adapter listed first.
     ///
     /// # Errors
     ///

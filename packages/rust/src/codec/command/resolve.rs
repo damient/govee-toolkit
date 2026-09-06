@@ -1,5 +1,5 @@
-//! Filling in derivable arguments, checking declared ones, and substituting
-//! them into the `payload:` template.
+//! Fills in derivable arguments, checks declared ones, and substitutes them
+//! into the `payload:` template.
 
 use std::collections::BTreeSet;
 
@@ -13,10 +13,9 @@ use crate::codec::frame::Frame;
 
 /// Fill in derivable arguments, then validate every declared one.
 ///
-/// `sends` are the layouts that go out, which is where a repeat count can be
-/// derived from the list it counts. `captured` names the arguments a `reply:`
-/// reads back: the device fills those in, so the caller supplies none and they
-/// are not required.
+/// `sends` are the layouts that go out: a repeat count comes from the list it
+/// counts there. `captured` names the arguments a `reply:` reads back; the
+/// device fills those in, so the caller supplies none.
 pub(super) fn resolve(
     command: &str,
     spec: &Command,
@@ -34,7 +33,7 @@ pub(super) fn resolve(
     }
 
     // A repeat count is redundant with the length of the list it counts: derive
-    // it when it was not supplied, and refuse the two disagreeing.
+    // it when the caller supplied none, and refuse the two when they disagree.
     let mut derived: Vec<(String, i64)> = Vec::new();
     for frame in sends {
         for (list, count) in frame.repeat_groups() {

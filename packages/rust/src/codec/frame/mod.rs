@@ -1,8 +1,8 @@
 //! The `frame:` mini-language used by raw-channel commands.
 //!
-//! A device file describes a raw frame as a whitespace-separated token string,
-//! so the byte layout stays readable next to the command that sends it and the
-//! codec below stays generic — no SKU and no command name appears in this file.
+//! A device file describes a raw frame as a whitespace-separated token string.
+//! The byte layout stays next to the command that sends it, and the codec here
+//! stays generic: no SKU and no command name appears in this file.
 //!
 //! | Token | Emits |
 //! | ----- | ----- |
@@ -20,11 +20,10 @@
 //! | `(${list}:rgb)×${count}` | `count` RGB triples, taken from the list argument `list` |
 //! | `<xor>` | the XOR of every preceding byte |
 //!
-//! `<len:16>` counts the bytes emitted after `<op:…>`, up to but excluding the
-//! checksum: the payload alone, header, opcode and checksum excluded — the
-//! definition in `docs/protocol/lan.md` 2.3. A frame that declares `<len:16>`
-//! must name its opcode with `<op:…>` immediately after, so the boundary the
-//! length measures from is written down rather than inferred from position.
+//! `<len:16>` counts the bytes after `<op:…>`, up to but excluding the
+//! checksum — the payload alone, as `docs/protocol/lan.md` 2.3 defines it. A
+//! frame that declares `<len:16>` must put `<op:…>` immediately after it, so
+//! the file states the boundary the length measures from.
 //!
 //! A string longer than its length prefix can count, and a zone index past the
 //! width of its mask, are both errors: the field would carry something other

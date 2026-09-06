@@ -1,9 +1,9 @@
 //! `ble` as one implementation of [`crate::transport::Transport`].
 //!
-//! Every method here forwards to the inherent one above it. They are kept
-//! separate because the inherent surface says more than the trait can:
-//! [`BleTransport::bind`] has no place in a trait every mode implements, since
-//! no other mode addresses a device by something other than its identity.
+//! Every method forwards to the inherent one. The inherent surface says more
+//! than the trait can: [`BleTransport::bind`] has no place in a trait every
+//! mode implements, because no other mode addresses a device by something
+//! other than its identity.
 
 use std::time::Duration;
 
@@ -65,9 +65,9 @@ impl Transport for BleTransport {
 
     /// Does nothing, successfully.
     ///
-    /// There is no `ble` cache: an address is usable only while the adapter
-    /// still knows the peripheral it belongs to, so writing one down would
-    /// promise a device that a restart cannot reach.
+    /// There is no `ble` cache: an address works only while the adapter still
+    /// holds the peripheral, so a saved one would promise a device that a
+    /// restart cannot reach.
     fn save_cache(&self) -> Result<()> {
         Ok(())
     }

@@ -1,28 +1,26 @@
 //! Streaming colors to a device's zones over the raw segment channel.
 //!
-//! The channel is armed once, then fed frames — `docs/protocol/lan.md` 2.3. Two
-//! facts about it shape everything here:
+//! The channel is armed once, then fed frames — `docs/protocol/lan.md` 2.3.
 //!
-//! - **It never answers.** Nothing acknowledges a frame, and a malformed one is
-//!   dropped in silence. So the stream verifies nothing and asks for nothing
-//!   back; it sends, and the caller looks at the light.
-//! - **It saturates.** Push faster than the firmware drains and the rope
-//!   freezes or stutters. The ceiling falls as frames grow, so the rate comes
-//!   from the zone count, read off numbers measured on a physical unit and
-//!   recorded in its device file — `docs/protocol/lan.md` 2.7.
+//! - **It never answers.** Nothing acknowledges a frame, and the firmware drops
+//!   a malformed one in silence. The stream therefore verifies nothing and asks
+//!   for nothing back.
+//! - **It saturates.** A rate above what the firmware accepts makes the light
+//!   freeze or stutter. That limit falls as frames grow, so the rate comes from
+//!   the zone count and from a value measured on a physical unit and recorded
+//!   in its device file — `docs/protocol/lan.md` 2.7.
 //!
 //! What a frame costs depends on how the device file paints zones over the
 //! chosen mode. A `segment_color` command carries every zone in one frame. A
-//! `segment_color_masked` one carries a single color and the zones wearing it,
+//! `segment_color_masked` one carries a single color and the zones that use it,
 //! so a repaint costs one write per distinct color: a solid fill is one write,
-//! and a picture of fifteen colors is fifteen. That is what `ble` offers —
-//! there is no per-pixel channel behind it, so a stream there runs at the zone
-//! count the device file declares rather than at native resolution, and
-//! [`Zones::Native`] is refused rather than sent as a mask the firmware would
-//! drop the high bits of in silence.
+//! and a picture of fifteen colors is fifteen. That is what `ble` offers. No
+//! per-pixel channel sits behind it, so a stream there runs at the zone count
+//! the device file declares, not at native resolution. [`Zones::Native`] is
+//! refused there: sent as a mask, the firmware drops the high bits in silence.
 //!
-//! Pacing is the transport's, not the stream's: a caller writing frames without
-//! opening a stream at all is held to the same rate.
+//! On `ble` the transport paces, not the stream. Every write goes through the
+//! same budget, whether or not a stream opened it.
 //!
 //! Writes never block. The stream holds the current colors and an emitting task
 //! sends them on a fixed interval, so a source faster than the device is not
@@ -70,12 +68,12 @@ use crate::transport::DeviceId;
 /// The rate used when a device file records no measurement for the mode a
 /// stream opens on, in hertz.
 ///
-/// Below every rate measured so far, on a channel where too fast stutters and
-/// too slow is only a coarser animation. It is a fallback and not a finding,
-/// and it is the same number for every mode. It is what a `ble` stream runs at
-/// today, since no device file records a rate measured over that mode. Measure
-/// the unit at hand, record it in its device file, and the stream uses that
-/// instead. Configurable as `stream.fallback_hz`.
+/// Below every rate measured so far: too fast stutters, too slow is only a
+/// coarser animation. It is a fallback and not a measurement, and it is the
+/// same number for every mode. A `ble` stream runs at it, because no device
+/// file records a rate measured over that mode. Measure the unit, record the
+/// value in its device file, and the stream uses that instead. Configurable as
+/// `stream.fallback_hz`.
 pub const FALLBACK_HZ: f64 = 10.0;
 
 /// How many zones a stream carries.
@@ -351,10 +349,9 @@ impl SegmentStream {
 
 impl Drop for SegmentStream {
     fn drop(&mut self) {
-        // The emitting task sends the disarming frame. Signalling it is all a
-        // `Drop` can do: it cannot await that frame, and spawning it here
-        // panics when the handle outlives the runtime. `close` is the way to
-        // know the channel was disarmed.
+        // A `Drop` cannot await the disarming frame, and spawning one here
+        // panics when the handle outlives the runtime. The emitting task sends
+        // it; only `close` reports whether it went out.
         self.shared.stop.notify_one();
     }
 }

@@ -51,15 +51,14 @@ pub enum Support {
     Partial,
     /// Reachable by no command: the hardware does not do this mode.
     ///
-    /// A claim about the hardware, and only correct when somebody established
-    /// it. Not probed is [`Support::Unknown`].
+    /// A claim about the hardware. Set it only when somebody established that.
+    /// Not probed is [`Support::Unknown`].
     None,
-    /// Nobody has probed this mode on this device.
+    /// Nobody has probed this mode on this device. The default.
     ///
-    /// The default, and the honest answer for a mode nobody tried: a failed
-    /// probe and an unimplemented feature look identical from outside
-    /// (`docs/protocol/lan.md`). Enabling the mode is allowed — that is how it
-    /// gets probed — and a command it does not carry still fails explicitly,
+    /// A failed probe and an unimplemented feature look identical from outside
+    /// (`docs/protocol/lan.md`). The user can still enable the mode — that is
+    /// how it gets probed — and a command it does not carry fails explicitly,
     /// as [`Error::UnknownCommand`](crate::codec::Error::UnknownCommand).
     #[default]
     Unknown,
@@ -74,8 +73,8 @@ pub struct ModeSupport {
     /// Capabilities reachable in this mode.
     pub capabilities: ModeCapabilities,
     /// Capabilities the hardware has that this mode does not reach, each with
-    /// the reason it does not. Together with `capabilities` this covers the
-    /// hardware's whole set, which `crate::codec::validate` checks.
+    /// a reason. With `capabilities` this covers the hardware's whole set,
+    /// which `crate::codec::validate` checks.
     pub unreachable: BTreeMap<String, Reason>,
     /// Free-form notes.
     pub notes: String,
@@ -137,9 +136,8 @@ pub struct Command {
     /// What the SDK may use this command for on its own. See [`Role`].
     pub role: Option<Role>,
 
-    /// The exchanges, tokenized on first use. The layouts are fixed by the
-    /// device file, so the send path parses them once rather than once per
-    /// command.
+    /// The exchanges, tokenized on first use: the device file fixes the
+    /// layouts, so the send path parses them once and not once per command.
     #[serde(skip)]
     pub(crate) parsed_exchanges: std::sync::OnceLock<Option<Exchanges>>,
     /// `body` and the three `chunk` layouts, tokenized on first use.
@@ -244,7 +242,7 @@ impl Device {
     ///
     /// Returns the entry's name, not its `cmd`: the caller encodes it like any
     /// other command. `None` means the file claims that role for nothing in
-    /// this mode, and callers do without rather than guessing a name.
+    /// this mode, and the caller must do without rather than guess a name.
     #[must_use]
     pub fn command_for(&self, mode: Mode, role: Role) -> Option<&str> {
         self.commands

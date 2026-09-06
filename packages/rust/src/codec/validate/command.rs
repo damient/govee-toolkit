@@ -54,9 +54,8 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
     problems
 }
 
-/// A command sends one frame, a chunked body, or a list of exchanges. The three
-/// declarations describe different wires, and a file that mixes them says
-/// nothing about which one the bytes go out on.
+/// A command sends one frame, a chunked body, or a list of exchanges. A file
+/// that mixes the three says nothing about which wire the bytes go out on.
 fn check_declaration(command: &Command) -> Vec<String> {
     let mut problems = Vec::new();
     if command.frame.is_some() && command.body.is_some() {
@@ -231,8 +230,8 @@ fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {
     }
 }
 
-/// A role the SDK invokes on its own fills some of its arguments, so the file
-/// has to mark which those are: the SDK knows no argument name either. See
+/// A role the SDK invokes on its own fills some of its arguments. The SDK knows
+/// no argument name, so the file must mark which ones. See
 /// `devices/schema.yaml`.
 pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
     let required: &[ArgRole] = match role {

@@ -21,7 +21,7 @@ pub(super) enum Painter {
         gradient: Option<(String, i64)>,
     },
     /// One frame carries one color and the zones it applies to, so a repaint
-    /// costs one write per run of equal color.
+    /// costs one write per distinct color.
     Masked {
         /// The device file entry.
         command: String,
@@ -68,10 +68,10 @@ pub(super) struct Plan {
 
 /// Everything the device file has to say about a stream over `mode`.
 pub(super) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Result<Plan> {
-    // Arming is the file's to declare. A mode that names no entry for it has
-    // nothing to arm — over one that paints by mask the zones are addressable
-    // the moment the device is on — and inventing a frame for it here would be
-    // this crate deciding what a device does.
+    // A mode that names no arming entry has nothing to arm: over one that
+    // paints by mask, the zones are addressable as soon as the device is on.
+    // Do not invent a frame here — only the device file says what a device
+    // does.
     let enable = match device.command_for(mode, Role::SegmentEnable) {
         Some(command) => Some(Enable {
             arg: arg_named(device, mode, command, ArgRole::Enable)?.to_owned(),
@@ -81,9 +81,8 @@ pub(super) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Resu
     };
     let painter = painter(device, mode, options.gradient)?;
     // Where the painting frame has no room for the setting, the file names a
-    // command that carries it alone. Without this the option would encode into
-    // nothing on such a mode, and a caller would be told a gradient it never
-    // got.
+    // command that carries it alone. Without that command the option encodes
+    // into nothing, and the caller never gets the gradient it asked for.
     let gradient = match device.command_for(mode, Role::SegmentGradient) {
         Some(command) => Some((
             Enable {
@@ -173,7 +172,7 @@ fn mask_bits(command: &str, spec: &Command, arg: &str) -> Option<usize> {
 ///
 /// Zero means nobody recorded the count — for either capability, and for a
 /// caller who asked for none. A stream armed on it would send frames the codec
-/// refuses, and the refusal would land where nothing is looking.
+/// refuses, and nothing reads that refusal.
 fn zone_count(device: &Device, mode: Mode, painter: &Painter, zones: Zones) -> Result<usize> {
     if let (Painter::Masked { .. }, Zones::Native) = (painter, zones) {
         return Err(Error::NativeZonesUnreachable {
@@ -301,8 +300,8 @@ mod tests {
 
     #[test]
     fn native_resolution_is_refused_rather_than_masked() {
-        // 42 pixels behind 15 zones: a mask names zones, and the bits past the
-        // last one are dropped by the firmware without a word.
+        // 42 pixels behind 15 zones: a mask names zones, and the firmware drops
+        // the bits past the last one in silence.
         let error = planned(Zones::Native).expect_err("a mask reaches no pixel");
         assert_eq!(error.code(), "native_zones_unreachable");
     }

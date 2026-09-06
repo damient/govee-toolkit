@@ -1,10 +1,9 @@
 //! `lan` as one implementation of [`crate::transport::Transport`].
 //!
-//! Every method here forwards to the inherent one above it. They are kept
-//! separate because the inherent surface says more than the trait can: a `lan`
-//! caller gets [`DiscoveredDevice`] with the address and the four firmware
-//! strings a reply carries, where the trait reports the shape every mode can
-//! fill in.
+//! Every method forwards to the inherent one on [`super::Transport`]. The
+//! inherent surface says more than the trait can: a `lan` caller gets
+//! [`DiscoveredDevice`], with the address and the four firmware strings a reply
+//! carries, where the trait reports the shape every mode can fill in.
 
 use std::time::Duration;
 

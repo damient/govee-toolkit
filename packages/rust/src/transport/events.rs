@@ -1,10 +1,9 @@
 //! What a transport reports: per-device health, discoveries, and the event
 //! stream every mode publishes into.
 //!
-//! None of it names a mode in its shape. A device is addressed by a string
-//! whose meaning belongs to the transport — a socket address over `lan`, a
-//! Bluetooth address over `ble` — because an application that lists devices
-//! wants to show where one is, not to parse it.
+//! No type here names a mode in its shape. A device carries an endpoint string
+//! the transport defines: a socket address over `lan`, a Bluetooth address over
+//! `ble`. An application shows that string; it does not parse it.
 
 use std::time::Instant;
 
@@ -18,8 +17,7 @@ use crate::transport::status::DeviceStatus;
 pub struct Sent {
     /// Which device it went to.
     pub id: DeviceId,
-    /// Which mode served it. Carried so that a caller reporting "which mode
-    /// served this command" reads the same whatever the transport was.
+    /// Which mode served it.
     pub mode: Mode,
     /// What went out under the protocol's own name for it: the `msg.cmd` over
     /// `lan`, the device file's entry name where the wire carries no name.
@@ -74,17 +72,16 @@ pub enum Change {
     Refreshed,
     /// A known device that moved — a new DHCP lease, usually.
     Moved,
-    /// A known device whose reported firmware changed. Worth surfacing:
-    /// `docs/protocol/lan.md` §2.8, behavior can open or close with an update.
+    /// A known device whose reported firmware changed. An update can open or
+    /// close a behavior (`docs/protocol/lan.md` §2.8).
     FirmwareChanged,
 }
 
 /// Something worth telling the application about.
 ///
-/// `docs/modes.md` requires every mode transition to be subscribable; the rest
-/// is here because an application that shows devices needs it and polling for
-/// it would be worse. Every variant carries the mode it is about, so an
-/// application subscribes once and does not care how many transports exist.
+/// `docs/modes.md` requires every mode transition to be subscribable. Every
+/// variant carries its own mode, so an application subscribes once whatever the
+/// number of transports.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum Event {

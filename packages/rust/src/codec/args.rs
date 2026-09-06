@@ -2,15 +2,11 @@
 
 use std::collections::BTreeMap;
 
-/// The name an integer goes by in a type-mismatch error.
+// The names a type-mismatch error uses for each `ArgValue` variant.
 pub(crate) const INT: &str = "an integer";
-/// The name an RGB list goes by in a type-mismatch error.
 pub(crate) const RGB_LIST: &str = "a list of RGB triples";
-/// The name a string goes by in a type-mismatch error.
 pub(crate) const TEXT: &str = "a string";
-/// The name a zone list goes by in a type-mismatch error.
 pub(crate) const ZONES: &str = "a list of zone indices";
-/// The name an opaque blob goes by in a type-mismatch error.
 pub(crate) const BYTES: &str = "a byte string";
 
 /// A value for one declared argument.
@@ -69,9 +65,8 @@ impl Args {
 
     /// Add a string argument.
     ///
-    /// It reaches the device as UTF-8 behind the length prefix its field
-    /// declares. Nothing is escaped or transliterated: what the caller passes
-    /// is what the firmware is asked to match.
+    /// The value reaches the device as UTF-8 behind the length prefix its
+    /// field declares. This crate escapes nothing and transliterates nothing.
     #[must_use]
     pub fn text(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.0.insert(name.into(), ArgValue::Text(value.into()));
@@ -80,8 +75,8 @@ impl Args {
 
     /// Add a list of zone indices, zero-based.
     ///
-    /// Emitted as a bitmask, least significant bit first. Which zones exist is
-    /// the device file's business, not this type's.
+    /// The codec emits a bitmask, least significant bit first. The device file
+    /// declares which zones exist.
     #[must_use]
     pub fn zones(mut self, name: impl Into<String>, zones: impl Into<Vec<u16>>) -> Self {
         self.0.insert(name.into(), ArgValue::Zones(zones.into()));
@@ -120,7 +115,7 @@ impl Args {
 }
 
 impl Args {
-    /// Insert a value, replacing any previous one under the same name.
+    /// Insert a value and replace any previous value under the same name.
     pub fn insert(&mut self, name: impl Into<String>, value: ArgValue) {
         self.0.insert(name.into(), value);
     }

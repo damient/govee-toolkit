@@ -6,7 +6,7 @@ use crate::lan::cache::Cache;
 use crate::lan::discovery::Endpoints;
 use crate::transport::breaker::Policy;
 
-/// How the transport is set up.
+/// The settings [`Transport::start`](super::Transport::start) takes.
 #[derive(Debug, Clone)]
 pub struct Options {
     /// Where to send and listen. The defaults are the protocol's own ports.

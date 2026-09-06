@@ -2,7 +2,7 @@
 //! them by.
 //!
 //! The device file names every argument and every command; a role is how the
-//! SDK reaches one without a name of its own living in this code.
+//! SDK reaches one without a name of its own in this code.
 
 use std::fmt;
 
@@ -31,8 +31,8 @@ pub enum ArgSpec {
     },
     /// Text, sent as UTF-8 behind a length prefix.
     String {
-        /// Optional cap, in bytes of UTF-8 rather than characters: that is what
-        /// the length prefix counts.
+        /// Optional cap in bytes of UTF-8, not characters: the length prefix
+        /// counts bytes.
         #[serde(default)]
         max_len: Option<usize>,
         /// What the SDK fills this argument with. See [`ArgRole`].
@@ -61,7 +61,7 @@ pub enum ArgSpec {
 }
 
 impl ArgSpec {
-    /// The name used in error messages.
+    /// The name error messages use for this type.
     #[must_use]
     pub fn type_name(&self) -> &'static str {
         match self {
@@ -89,11 +89,9 @@ impl ArgSpec {
 /// What one declared argument carries, when the SDK fills it in or reads it
 /// back without being told a name.
 ///
-/// The device file names arguments as well as commands, so a role the SDK
-/// invokes on its own needs this to say which declared argument is which. An
-/// argument the caller always passes needs no role; a field a `reply:` layout
-/// captures needs one only where the SDK models it, as [`ArgRole::On`] and
-/// [`ArgRole::Brightness`] are modelled on a transport's `DeviceStatus`.
+/// An argument the caller always passes needs no role. A field a `reply:`
+/// layout captures needs one only where the SDK models it: a transport's
+/// `DeviceStatus` models [`ArgRole::On`] and [`ArgRole::Brightness`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ArgRole {
@@ -117,7 +115,6 @@ pub enum ArgRole {
 }
 
 impl ArgRole {
-    /// Every argument role, so a caller can iterate them.
     pub(crate) const ALL: [Self; 6] = [
         Self::Enable,
         Self::Colors,
@@ -127,7 +124,7 @@ impl ArgRole {
         Self::Brightness,
     ];
 
-    /// The argument type this role has to be declared as.
+    /// The argument type a device file must declare for this role.
     #[must_use]
     pub fn type_name(self) -> &'static str {
         match self {
@@ -151,10 +148,7 @@ impl fmt::Display for ArgRole {
     }
 }
 
-/// What a command is for, when the SDK has to pick one without being told.
-///
-/// Only the device file names commands. A role lets it say which entry serves a
-/// purpose the SDK has of its own, so no command name has to live in code.
+/// What a command is for, when the SDK must pick one without being told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
@@ -181,7 +175,6 @@ pub enum Role {
 }
 
 impl Role {
-    /// Every role the SDK picks a command by, so a caller can iterate them.
     pub(crate) const CLAIMABLE: [Self; 5] = [
         Self::Status,
         Self::SegmentEnable,

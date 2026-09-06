@@ -1,4 +1,4 @@
-//! Turning a device file entry plus arguments into something sendable.
+//! Turns a device file entry and its arguments into something sendable.
 //!
 //! Nothing here knows a SKU or a command name: the device file supplies the
 //! `cmd`, the `payload` template, the `frame` layout and the `reply` layout,
@@ -28,14 +28,14 @@ pub struct Encoded {
     /// The raw frames, in the order they go out: one for a command that
     /// declares a `frame:`, several for a chunked one or for a list of
     /// exchanges, none for a command that travels in its envelope alone. A
-    /// single frame is already base64-encoded into `message` when the payload
-    /// asks for it; the bytes stay here for tests and captures.
+    /// single frame also reaches `message` as base64 when the payload asks for
+    /// it; the bytes stay here for tests and captures.
     pub frames: Vec<Vec<u8>>,
     /// The reply each frame expects, parallel to `frames`. Empty for a command
     /// that only writes.
     pub replies: Vec<Option<ReplyLayout>>,
-    /// The role each captured field carries, where `args:` marks one. It is how
-    /// a transport builds a status out of a reply without a field name reaching
+    /// The role each captured field carries, where `args:` marks one: a
+    /// transport builds a status from a reply without a field name reaching
     /// this crate.
     pub roles: BTreeMap<String, ArgRole>,
 }
@@ -80,9 +80,9 @@ impl Encoded {
 pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result<Encoded> {
     use crate::codec::catalog::Support;
 
-    // `Unknown` is deliberately not refused here: nobody probed the mode, so
-    // "unsupported" would be a claim. The command table answers instead, and an
-    // empty one produces `UnknownCommand`.
+    // `Unknown` is not refused here: nobody probed the mode, so "unsupported"
+    // would be a claim. The command table answers instead, and an empty one
+    // produces `UnknownCommand`.
     if device.modes.get(mode).support == Support::None {
         return Err(Error::ModeUnsupported {
             sku: device.sku.clone(),
@@ -249,8 +249,8 @@ commands:
         );
     }
 
-    /// The device fills a captured field in, so nothing has to be passed for
-    /// it — but the file still declares it, so the reply has somewhere to land.
+    /// The device fills a captured field in, so the caller passes nothing for
+    /// it. The file still declares it, so the reply has somewhere to land.
     #[test]
     fn a_captured_argument_is_not_one_the_caller_supplies() {
         let encoded = encode(READS, "state", &Args::new()).expect("nothing to supply");

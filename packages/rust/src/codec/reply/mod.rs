@@ -16,22 +16,20 @@
 //! | `${name:ascii:17}` | exactly seventeen bytes, read the same way |
 //!
 //! Unbounded `${name:ascii}` reads to the end, so it comes last. Give it a
-//! length when the reply carries anything after the text — a wire that ends
-//! every frame on a checksum is the usual reason, and reading to the end there
-//! swallows that byte and fails on it as unprintable.
+//! length when the reply carries anything after the text. A wire that ends
+//! every frame on a checksum is the usual reason: a read to the end swallows
+//! that byte and fails on it as unprintable.
 //!
-//! Either way the field has to keep at least one character once the padding is
-//! off: a reply that stops at the layout's last literal, and one that carries
+//! Either way the field must keep at least one character once the padding is
+//! off. A reply that stops at the layout's last literal, and one that carries
 //! nothing but zeros, are both refused rather than captured as an empty
-//! string. What it keeps has to be printable ASCII, `0x20` to `0x7e`, so a
-//! binary answer of low bytes is a mismatch rather than text. Bytes past the
-//! layout are ignored: a wire whose frames are a fixed size pads a short reply
-//! out, and those zeros carry nothing.
+//! string. What it keeps must be printable ASCII, `0x20` to `0x7e`: a binary
+//! answer of low bytes is a mismatch, not text. Bytes past the layout are
+//! ignored, since a wire whose frames are a fixed size pads a short reply out.
 //!
 //! A reply that does not carry a literal the layout requires is refused whole.
-//! Nothing partial is returned — a frame that failed to match is another
-//! command's answer, or a firmware that does not do what the file says, and
-//! neither is worth reading fields out of.
+//! Nothing partial is returned: a frame that does not match is another
+//! command's answer, or a firmware that does not do what the file says.
 
 use crate::codec::args::ArgValue;
 use crate::codec::error::{Error, Result};
@@ -184,7 +182,7 @@ impl Layout {
     }
 }
 
-/// Read one field, and answer where the next one starts.
+/// Returns where the next field starts.
 fn read_field(
     captured: &mut Captured,
     name: &str,
@@ -211,8 +209,8 @@ fn read_field(
         Field::Bytes { .. } => ArgValue::Bytes(slice.to_vec()),
         Field::Ascii { .. } => {
             let text = trim_padding(slice);
-            // All-zero padding, and a reply that stops at the last literal,
-            // both leave nothing: neither is the text the layout describes.
+            // All-zero padding and a reply that stops at the last literal both
+            // leave nothing, and neither is the text the layout describes.
             if text.is_empty() {
                 return Err(bad(format!("`{name}` reads no text at byte {at}")));
             }

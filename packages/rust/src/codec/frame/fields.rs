@@ -1,4 +1,4 @@
-//! Reading one argument and turning it into the bytes of one field.
+//! Reads one argument and turns it into the bytes of one field.
 
 use crate::codec::args::{self, ArgValue, Args};
 use crate::codec::error::{Error, Result};
@@ -54,7 +54,7 @@ pub(super) fn mask(command: &str, zones: &[u16], name: &str, width: usize) -> Re
     Ok(out)
 }
 
-/// Zero-fill up to `size`, leaving room for the checksum that follows.
+/// Zero-fill up to `size`, minus the byte the checksum takes.
 pub(super) fn pad(out: &mut Vec<u8>, command: &str, size: usize, has_xor: bool) -> Result<()> {
     let room = size - usize::from(has_xor);
     if out.len() > room {

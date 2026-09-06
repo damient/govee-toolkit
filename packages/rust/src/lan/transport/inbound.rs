@@ -65,12 +65,10 @@ impl Shared {
 
     /// Route one datagram.
     ///
-    /// Dispatch is by shape, not by command name: a payload carrying an
-    /// identity, an address and a SKU is a discovery reply, and anything else
-    /// from a device already known is a status. Both the documented
-    /// `devStatus` and the undocumented `status` of `docs/protocol/lan.md` §2.2
-    /// therefore land in the right place without this crate holding a list of
-    /// command names.
+    /// A payload that carries an identity, an address and a SKU is a discovery
+    /// reply; anything else from a device already known is a status. Both the
+    /// documented `devStatus` and the undocumented `status` of
+    /// `docs/protocol/lan.md` §2.2 therefore land in the right place.
     fn dispatch(&self, from: SocketAddr, bytes: &[u8]) {
         let Some(reply) = parse_reply(from, bytes) else {
             return;
@@ -189,10 +187,8 @@ pub(super) async fn receive_loop(shared: Arc<Shared>) {
                 }
             }
             Err(e) => {
-                // A receive error here is the socket's, not a device's, and
-                // retrying immediately would spin. Slow down and keep going:
-                // the transport surviving a transient error matters more than
-                // reporting it.
+                // The error is the socket's, not a device's, and an immediate
+                // retry would spin. Slow down and keep going.
                 tracing::warn!(error = %e, "the lan receive loop failed");
                 tokio::time::sleep(Duration::from_millis(50)).await;
             }

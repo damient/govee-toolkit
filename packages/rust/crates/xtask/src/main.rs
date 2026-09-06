@@ -1,6 +1,6 @@
 //! Repository tasks, all of them generating something from `devices/*.yaml`.
 //!
-//! - `xtask catalog [path]` — the distributable catalogue.
+//! - `xtask catalog [path]` — the distributable catalog.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //!
 //! The device files are the source of truth, and the Rust build compiles them

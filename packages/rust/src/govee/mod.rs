@@ -22,8 +22,8 @@ pub(crate) struct Inner {
     pub(crate) catalog: Catalog,
     pub(crate) config: Config,
     /// One transport per mode it serves. A mode absent here has no transport in
-    /// this build — the feature is off, or nothing implements it yet — and
-    /// choosing it says so rather than reaching for another one.
+    /// this build — the feature is off, or nothing implements it yet — and the
+    /// SDK reports that rather than substitute another mode.
     pub(crate) transports: BTreeMap<Mode, Arc<dyn Transport>>,
     pub(crate) events: broadcast::Sender<Event>,
     /// Encoded status requests, by mode then SKU. See
@@ -159,9 +159,9 @@ impl Govee {
                 continue;
             };
             for mode in &device.modes {
-                // Only `None` is a mistake to report: it is a statement that
-                // the hardware cannot do this. An unprobed mode is enabled on
-                // purpose by whoever is probing it.
+                // Only `None` is a mistake to report: it states the hardware
+                // cannot do this. Whoever probes an unprobed mode enables it on
+                // purpose.
                 if file.modes.get(*mode).support == crate::codec::Support::None {
                     problems.push(Problem {
                         device: Some(device.id.clone()),
@@ -200,15 +200,14 @@ impl Govee {
 
     /// The first enabled mode the device can be reached over right now.
     ///
-    /// Decided entirely from recorded state. Nothing here touches an adapter,
-    /// which is the rule the whole design exists for: choosing a mode by
-    /// trying one would cost the fast path a round-trip on every command.
+    /// Decided from recorded state alone. Nothing here touches an adapter: a
+    /// trial send would cost the fast path a round-trip on every command.
     pub(crate) fn choose(&self, id: &DeviceId) -> Result<Mode> {
         let modes = self.inner.config.modes_for(id);
         let mut unknown_to_every_transport = true;
         for &mode in modes {
-            // Reached only because a preferred mode was unavailable, which is
-            // precisely when substituting silently would be wrong.
+            // Reached only when a preferred mode was unavailable, which is
+            // exactly when a silent substitution would be wrong.
             let Some(transport) = self.inner.transports.get(&mode) else {
                 return Err(Error::ModeNotImplemented {
                     id: id.clone(),
@@ -218,8 +217,8 @@ impl Govee {
             match transport.health(id) {
                 Some(health) if health.available => return Ok(mode),
                 Some(_) => unknown_to_every_transport = false,
-                // This transport has never seen it. Scanning now is exactly
-                // what must not happen, so it is not a mode to choose.
+                // This transport has never seen it. A scan on the send path is
+                // what must not happen, so this mode is not a candidate.
                 None => {}
             }
         }
@@ -247,8 +246,8 @@ impl Govee {
             .ok_or_else(|| crate::transport::Error::UnknownDevice { id: id.clone() }.into())
     }
 
-    /// Encode against a SKU the caller already resolved. The send path
-    /// resolves it once and encodes against it, rather than per call.
+    /// Encode against a SKU the caller already resolved, so the send path
+    /// resolves it once rather than per call.
     pub(crate) fn encode(
         &self,
         sku: &str,
@@ -268,9 +267,8 @@ impl Govee {
     ///
     /// Encoded once per mode and SKU, then shared: it takes no arguments and
     /// the device file does not change at runtime, so the bytes never change.
-    /// Every [`DeviceHandle::send`] asks for one, and most discard it —
-    /// building it each time would put a frame parse on the send path for
-    /// nothing.
+    /// Every [`DeviceHandle::send`] asks for one, and most discard it, so a
+    /// fresh encode would put a frame parse on the send path for nothing.
     pub(crate) fn status_request(
         &self,
         sku: &str,
