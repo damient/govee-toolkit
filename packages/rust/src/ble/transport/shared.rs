@@ -26,9 +26,9 @@ use crate::transport::status::DeviceStatus;
 
 /// One device, as the transport tracks it.
 pub(super) struct Tracked {
-    /// The Bluetooth address to connect to. Not the identity: see
-    /// [`super::Transport::bind`].
-    pub(super) address: String,
+    /// The handle the platform addresses the peripheral by. Not the identity:
+    /// see [`super::Transport::bind`].
+    pub(super) endpoint: String,
     pub(super) sku: String,
     pub(super) breaker: Breaker,
     pub(super) status: watch::Sender<Option<DeviceStatus>>,
@@ -40,9 +40,9 @@ pub(super) struct Tracked {
 }
 
 impl Tracked {
-    pub(super) fn new(address: String, sku: String, options: &Options, budget: Budget) -> Self {
+    pub(super) fn new(endpoint: String, sku: String, options: &Options, budget: Budget) -> Self {
         Self {
-            address,
+            endpoint,
             sku,
             breaker: Breaker::new(options.policy),
             status: watch::Sender::new(None),
@@ -146,7 +146,7 @@ impl Shared {
             tracked.verified_at = Some(now);
         }
         Ok(Route {
-            endpoint: tracked.address.clone(),
+            endpoint: tracked.endpoint.clone(),
             pacer: Arc::clone(&tracked.pacer),
             verifying,
         })
@@ -156,8 +156,11 @@ impl Shared {
     ///
     /// # Errors
     ///
-    /// [`Error::UnknownDevice`] if the address has not been seen advertising,
-    /// or [`Error::Io`] if the connection cannot be established.
+    /// [`Error::Io`] if nothing is advertising at the handle even after a
+    /// scan,
+    /// [`Error::Unreachable`] if connecting takes longer than
+    /// [`Options::connect_timeout`], or [`Error::Io`] if the connection cannot
+    /// be established.
     pub(super) async fn link(&self, id: &DeviceId, endpoint: &str) -> Result<Arc<Link>> {
         let mut links = self.links.lock().await;
         if let Some(link) = links.get(id)
@@ -167,8 +170,28 @@ impl Shared {
         }
         links.remove(id);
 
-        let peripheral = self.peripheral(endpoint).await?;
-        let link = Arc::new(Link::open(peripheral, endpoint).await?);
+        // A handle is only good while the platform still holds the peripheral
+        // behind it, and macOS drops that the moment a link goes down: the
+        // device has to be heard advertising again before anything can connect
+        // to it. Scanning here reaches the same device over the same mode, so
+        // it substitutes nothing — it costs seconds, which is why it happens
+        // only once the handle is gone.
+        let peripheral = match self.peripheral(endpoint).await? {
+            Some(peripheral) => peripheral,
+            None => self.rediscover(endpoint).await?,
+        };
+        // A peripheral that never answers leaves `connect` pending for as long
+        // as the platform cares to wait, and every caller behind this lock
+        // waits with it.
+        let timeout = self.options.connect_timeout;
+        let link = tokio::time::timeout(timeout, Link::open(peripheral, endpoint))
+            .await
+            .map_err(|_| Error::Unreachable {
+                id: id.clone(),
+                endpoint: endpoint.to_owned(),
+                timeout_ms: crate::transport::millis(timeout),
+            })??;
+        let link = Arc::new(link);
         links.insert(id.clone(), Arc::clone(&link));
         Ok(link)
     }
@@ -178,22 +201,56 @@ impl Shared {
         self.links.lock().await.remove(id);
     }
 
-    /// The peripheral at an address, among those the adapter has seen.
-    async fn peripheral(&self, endpoint: &str) -> Result<Peripheral> {
+    /// Scan again, and answer with the peripheral that came back.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Io`] if the scan fails, or if nothing is advertising at the
+    /// handle once it has run.
+    async fn rediscover(&self, endpoint: &str) -> Result<Peripheral> {
+        self.scan(self.options.rescan_window).await?;
+        self.peripheral(endpoint).await?.ok_or_else(|| {
+            Error::io(
+                format!("{endpoint}: nothing at this handle is advertising"),
+                std::io::ErrorKind::NotFound.into(),
+            )
+        })
+    }
+
+    /// The peripheral behind a handle, among those the adapter has seen, or
+    /// `None` if the adapter is not holding one.
+    ///
+    /// Exactly one, never a choice: a handle several peripherals carry names
+    /// no device, and connecting to one of them would write a command into
+    /// whatever the adapter happened to list first.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Io`] if the adapter cannot be listed, or if more than one
+    /// peripheral carries the handle.
+    async fn peripheral(&self, endpoint: &str) -> Result<Option<Peripheral>> {
         let adapter = self.adapter().await?;
         let peripherals = adapter
             .peripherals()
             .await
             .map_err(|e| adapter_error(endpoint, "listing known peripherals", &e))?;
-        peripherals
+        let mut matching = peripherals
             .into_iter()
-            .find(|p| p.address().to_string().eq_ignore_ascii_case(endpoint))
-            .ok_or_else(|| {
-                Error::io(
-                    format!("{endpoint}: this address has not been seen advertising; scan first"),
-                    std::io::ErrorKind::NotFound.into(),
-                )
-            })
+            .filter(|p| p.id().to_string().eq_ignore_ascii_case(endpoint));
+        let Some(found) = matching.next() else {
+            return Ok(None);
+        };
+        let others = matching.count();
+        if others > 0 {
+            return Err(Error::io(
+                format!(
+                    "{endpoint}: {} peripherals carry this handle, so it names none of them",
+                    others + 1
+                ),
+                std::io::ErrorKind::InvalidData.into(),
+            ));
+        }
+        Ok(Some(found))
     }
 
     /// Write every frame of a command, at the device's budget.

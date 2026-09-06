@@ -55,20 +55,20 @@ impl Shared {
         for device in seen {
             let known = devices.iter().find_map(|(id, tracked)| {
                 tracked
-                    .address
-                    .eq_ignore_ascii_case(&device.address)
+                    .endpoint
+                    .eq_ignore_ascii_case(&device.endpoint)
                     .then(|| id.clone())
             });
             let (id, change) = match known {
                 Some(id) => (id, Change::Refreshed),
-                None => (DeviceId::new(&device.address), Change::New),
+                None => (DeviceId::new(&device.endpoint), Change::New),
             };
             devices
                 .entry(id.clone())
                 .and_modify(|tracked| device.sku.clone_into(&mut tracked.sku))
                 .or_insert_with(|| {
                     Tracked::new(
-                        device.address.clone(),
+                        device.endpoint.clone(),
                         device.sku.clone(),
                         &self.options,
                         self.budget,
@@ -77,7 +77,7 @@ impl Shared {
 
             let reported = Discovered {
                 id,
-                endpoint: device.address,
+                endpoint: device.endpoint,
                 sku: device.sku,
                 // An advertisement carries no version, and asking for one means
                 // connecting and reading a command this layer does not name.
@@ -95,6 +95,11 @@ impl Shared {
 }
 
 /// Read the advertisements the adapter has collected so far.
+///
+/// A peripheral is recorded under the handle the platform addresses it by, not
+/// under its Bluetooth address: macOS exposes no address at all and reports
+/// every peripheral as `00:00:00:00:00:00`, so addresses there name one device
+/// as well as they name every other.
 async fn collect(adapter: &Adapter) -> Result<Vec<Advertised>> {
     let peripherals = adapter
         .peripherals()
@@ -115,7 +120,7 @@ async fn collect(adapter: &Adapter) -> Result<Vec<Advertised>> {
         else {
             continue;
         };
-        if let Some(device) = Advertised::read(properties.address.to_string(), &name) {
+        if let Some(device) = Advertised::read(peripheral.id().to_string(), &name) {
             seen.push(device);
         }
     }

@@ -21,9 +21,14 @@ pub const NAME_PREFIXES: [&str; 4] = ["GBK_", "GOVEE", "IHOMENT_", "MINGER_"];
 /// One device as an advertisement describes it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Advertised {
-    /// The Bluetooth address it advertises from, uppercase and colon-separated.
-    /// This is where to connect, and it is **not** the device's identity.
-    pub address: String,
+    /// The handle the platform addresses this peripheral by. This is where to
+    /// connect, and it is **not** the device's identity.
+    ///
+    /// Its shape is the platform's: a Bluetooth address where one is exposed,
+    /// and a per-host identifier on macOS, which exposes none — `CoreBluetooth`
+    /// reports every peripheral as `00:00:00:00:00:00`. Nothing here parses
+    /// it; it is handed back to the adapter as it came.
+    pub endpoint: String,
     /// The name it advertises.
     pub name: String,
     /// The SKU read out of that name.
@@ -39,10 +44,10 @@ impl Advertised {
     /// device that only appears in a listing is worse than one that does not
     /// appear at all.
     #[must_use]
-    pub fn read(address: impl Into<String>, name: &str) -> Option<Self> {
+    pub fn read(endpoint: impl Into<String>, name: &str) -> Option<Self> {
         let sku = sku_of(name)?;
         Some(Self {
-            address: address.into(),
+            endpoint: endpoint.into(),
             name: name.to_owned(),
             sku,
         })
@@ -101,9 +106,9 @@ mod tests {
     }
 
     #[test]
-    fn the_address_is_carried_but_is_not_the_identity() {
+    fn the_endpoint_is_carried_but_is_not_the_identity() {
         let seen = Advertised::read("AA:BB:CC:DD:EE:FF", "GBK_H0004_6BAF").expect("a device");
-        assert_eq!(seen.address, "AA:BB:CC:DD:EE:FF");
+        assert_eq!(seen.endpoint, "AA:BB:CC:DD:EE:FF");
         assert_eq!(seen.sku, "H0004");
         assert_eq!(seen.name, "GBK_H0004_6BAF");
     }
