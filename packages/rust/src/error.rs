@@ -15,7 +15,7 @@ pub enum Error {
 
     /// The transport failed.
     #[error(transparent)]
-    Transport(#[from] crate::lan::Error),
+    Transport(#[from] crate::transport::Error),
 
     /// The configuration file could not be read or parsed.
     #[error("configuration `{path}`: {reason}")]
@@ -154,8 +154,8 @@ impl Error {
     /// A stable, language-neutral identifier for this failure.
     ///
     /// Shares the namespace of [`crate::codec::Error::code`] and
-    /// [`crate::lan::Error::code`], so a binding surfaces one flat set of codes
-    /// whatever layer failed.
+    /// [`crate::transport::Error::code`], so a binding surfaces one flat set of
+    /// codes whatever layer failed.
     #[must_use]
     pub fn code(&self) -> &'static str {
         match self {

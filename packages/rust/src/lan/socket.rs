@@ -16,7 +16,7 @@ use socket2::{Domain, Protocol, Socket as Socket2, Type};
 use tokio::net::UdpSocket;
 
 use crate::lan::discovery::Endpoints;
-use crate::lan::error::{Error, Result};
+use crate::transport::error::{Error, Result};
 
 /// The largest datagram this protocol produces. A full-resolution segment frame
 /// is a few hundred bytes base64'd into JSON; 4 KiB leaves room to spare, and a
@@ -175,7 +175,7 @@ mod tests {
         /// so the generator reaches past the first `get`.
         #[test]
         fn arbitrary_envelopes_are_read_or_dropped(
-            value in crate::lan::arbitrary::json()
+            value in crate::transport::arbitrary::json()
         ) {
             let bytes = serde_json::to_vec(&value).unwrap();
             let _ = parse_reply(from(), &bytes);

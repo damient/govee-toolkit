@@ -5,7 +5,7 @@
 //! ones a firmware fills in is not something this crate can know, and `raw`
 //! keeps whatever was not recognized.
 
-use crate::lan::DeviceId;
+use crate::transport::DeviceId;
 
 /// A device's reported state.
 #[derive(Debug, Clone, PartialEq)]
@@ -120,7 +120,7 @@ mod tests {
         /// know, so every one is optional and `raw` keeps the rest. Whatever
         /// arrives, reading it is total and loses nothing.
         #[test]
-        fn any_reply_is_read_without_loss(value in crate::lan::arbitrary::json()) {
+        fn any_reply_is_read_without_loss(value in crate::transport::arbitrary::json()) {
             let status = DeviceStatus::from_data(id(), value.clone());
             proptest::prop_assert_eq!(&status.raw, &value);
         }

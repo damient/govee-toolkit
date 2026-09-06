@@ -221,10 +221,7 @@ async fn the_devices_listing_carries_the_configured_view() {
     assert_eq!(devices[0].sku, SKU);
     assert_eq!(devices[0].name.as_deref(), Some("desk"));
     assert_eq!(devices[0].modes, [Mode::Lan]);
-    assert_eq!(
-        devices[0].lan_health.expect("health is tracked").state,
-        State::Ok
-    );
+    assert_eq!(devices[0].health[&Mode::Lan].state, State::Ok);
 }
 
 #[tokio::test]

@@ -1,17 +1,16 @@
-//! Errors the transport can return.
+//! Errors a transport can return, whichever mode it serves.
 //!
 //! Nothing here is recoverable by substituting something else. A device that
-//! cannot be reached over `lan` produces [`Error::Unreachable`] or
-//! [`Error::Unavailable`], and that is the answer the caller gets — choosing
-//! another mode is the facade's decision to make, from the user's
-//! configuration, never this crate's.
+//! cannot be reached produces [`Error::Unreachable`] or [`Error::Unavailable`],
+//! and that is the answer the caller gets — choosing another mode is the
+//! facade's decision to make, from the user's configuration, never a
+//! transport's.
 
-use std::net::SocketAddr;
+use crate::codec::Mode;
+use crate::transport::DeviceId;
+use crate::transport::breaker::State;
 
-use crate::lan::DeviceId;
-use crate::lan::breaker::State;
-
-/// Anything that can go wrong reaching a device over the local network.
+/// Anything that can go wrong reaching a device.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -26,21 +25,24 @@ pub enum Error {
     },
 
     /// The breaker refuses this mode for now, from state already known.
-    #[error("{id}: `lan` is {state} and in cooldown; the command was not sent")]
+    #[error("{id}: `{mode}` is {state} and in cooldown; the command was not sent")]
     Unavailable {
         /// The device.
         id: DeviceId,
+        /// The mode that is refused.
+        mode: Mode,
         /// Why it is refused.
         state: State,
     },
 
     /// A command was sent and the device did not answer within the deadline.
-    #[error("{id}: no answer from {addr} within {timeout_ms} ms")]
+    #[error("{id}: no answer from {endpoint} within {timeout_ms} ms")]
     Unreachable {
         /// The device.
         id: DeviceId,
-        /// Where the command went.
-        addr: SocketAddr,
+        /// Where the command went, in whatever form the mode addresses a
+        /// device: a socket address over `lan`, a Bluetooth address over `ble`.
+        endpoint: String,
         /// How long it was given.
         timeout_ms: u64,
     },
@@ -60,7 +62,7 @@ pub enum Error {
     #[error("the transport has been shut down")]
     ShutDown,
 
-    /// A socket operation failed.
+    /// An adapter or socket operation failed.
     #[error("{context}: {source}")]
     Io {
         /// What was being attempted.

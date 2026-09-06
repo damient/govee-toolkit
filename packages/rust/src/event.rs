@@ -1,18 +1,20 @@
 //! What the facade reports: its event stream, and the two shapes an
 //! application reads devices through.
 
+use std::collections::BTreeMap;
+
 use crate::codec::Mode;
-use crate::lan::{DeviceId, Health};
+use crate::transport::{DeviceId, Health};
 
 /// One stream for the whole SDK: what the transports report, plus what only
 /// the facade can see.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum Event {
-    /// Something the `lan` transport reported: a discovery, a status, a health
-    /// transition. Health transitions carry the mode they are about, so an
-    /// application subscribes once and does not care how many transports exist.
-    Lan(crate::lan::Event),
+    /// Something a transport reported: a discovery, a status, a health
+    /// transition. Every one carries the mode it is about, so an application
+    /// subscribes once and does not care how many transports exist.
+    Transport(crate::transport::Event),
     /// A device answered with a SKU the catalog does not know, so nothing can
     /// be encoded for it. Pin a known SKU in the configuration, or add a device
     /// file — see `devices/README.md`.
@@ -34,7 +36,8 @@ pub struct Served {
     pub mode: Mode,
     /// The device file entry that was sent.
     pub command: String,
-    /// The `msg.cmd` that went on the wire.
+    /// What went out under the protocol's own name for it: the `msg.cmd` over
+    /// `lan`, the device file's entry name where the wire carries no name.
     pub cmd: String,
 }
 
@@ -50,6 +53,8 @@ pub struct Device {
     pub name: Option<String>,
     /// The enabled modes, in preference order.
     pub modes: Vec<Mode>,
-    /// Its health in `lan`, if `lan` is one of them.
-    pub lan_health: Option<Health>,
+    /// Its health, per enabled mode a transport knows it in. A mode is absent
+    /// when this build carries no transport for it, or when that transport has
+    /// never heard from the device.
+    pub health: BTreeMap<Mode, Health>,
 }

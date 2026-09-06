@@ -149,16 +149,14 @@ fn encode(shared: &Shared, command: &str, args: &Args) -> Result<Encoded> {
     shared.govee.encode(&shared.sku, shared.mode, command, args)
 }
 
-/// Write a frame. The one thing here bound to a single transport, and the seam
-/// the `Transport` trait replaces when `ble` lands — `docs/architecture.md`.
+/// Write a frame, over whichever mode the stream was opened on.
 ///
 /// Nothing is verified: the channel never answers, so a status request would
 /// only be traffic competing with the frames it checks.
 async fn write(shared: &Shared, encoded: &Encoded) -> Result<()> {
     shared
         .govee
-        .inner
-        .lan
+        .transport(&shared.id, shared.mode)?
         .send(&shared.id, encoded, Verify::None)
         .await?;
     Ok(())

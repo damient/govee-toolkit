@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use serde::Deserialize;
 
 use crate::error::Result;
-use crate::lan::millis;
+use crate::transport::millis;
 
 /// Transport tuning for `lan`.
 #[derive(Debug, Clone, Deserialize)]

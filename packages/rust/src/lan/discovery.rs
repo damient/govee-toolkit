@@ -5,7 +5,7 @@
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
-use crate::lan::DeviceId;
+use crate::transport::{DeviceId, Discovered};
 
 /// The multicast group discovery requests go to.
 pub const MULTICAST_GROUP: Ipv4Addr = Ipv4Addr::new(239, 255, 255, 250);
@@ -102,6 +102,21 @@ impl DiscoveredDevice {
     pub fn control_address(&self, endpoints: &Endpoints) -> SocketAddr {
         SocketAddr::new(self.ip, endpoints.control_port)
     }
+
+    /// The same reply in the shape every mode reports discoveries in.
+    ///
+    /// Only the Wi-Fi firmware is carried over: it is the one this transport
+    /// talks to, and the BLE versions a `scan` reply also lists say nothing
+    /// about the radio `lan` uses.
+    #[must_use]
+    pub fn reported(&self, endpoints: &Endpoints) -> Discovered {
+        Discovered {
+            id: self.id.clone(),
+            endpoint: self.control_address(endpoints).to_string(),
+            sku: self.sku.clone(),
+            firmware: Some(self.wifi_software.clone()).filter(|v| !v.is_empty()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -157,7 +172,7 @@ mod tests {
         /// send one. Reading it is total, and a device that comes out of it
         /// always has an identity — the cache and the breaker key on it.
         #[test]
-        fn a_reply_is_read_or_refused(value in crate::lan::arbitrary::json()) {
+        fn a_reply_is_read_or_refused(value in crate::transport::arbitrary::json()) {
             if let Some(device) = DiscoveredDevice::from_data(&value) {
                 proptest::prop_assert!(!device.id.as_str().is_empty());
             }

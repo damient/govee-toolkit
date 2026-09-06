@@ -17,7 +17,7 @@
 //! last known status: a caller waiting for one waits for that value to change,
 //! and every waiter is woken by the same reply.
 
-mod events;
+mod impl_transport;
 mod inbound;
 mod options;
 mod shared;
@@ -30,20 +30,19 @@ use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, watch};
 use tokio::task::JoinHandle;
 
-use self::events::health_of;
-pub use self::events::{Event, Health, KnownDevice, Sent};
 use self::inbound::{receive_loop, refresh_loop};
-pub use self::options::{Options, Verify};
+pub use self::options::Options;
 use self::shared::{Shared, datagram};
 use crate::codec::{Encoded, Mode};
-use crate::lan::DeviceId;
-use crate::lan::discovery::DiscoveredDevice;
+use crate::lan::discovery::{DiscoveredDevice, Endpoints};
+use crate::lan::socket::Socket;
 // Referenced from the doc comments below, nowhere else.
 #[cfg(doc)]
-use crate::lan::error::Error;
-use crate::lan::error::Result;
-use crate::lan::socket::Socket;
-use crate::lan::status::DeviceStatus;
+use crate::transport::error::Error;
+use crate::transport::error::Result;
+use crate::transport::events::health_of;
+use crate::transport::status::DeviceStatus;
+use crate::transport::{DeviceId, Event, Health, KnownDevice, Sent, Verify};
 
 /// Background tasks, stopped when the last [`Transport`] handle goes away.
 struct Tasks(Vec<JoinHandle<()>>);
@@ -127,6 +126,12 @@ impl Transport {
         self.shared.events.subscribe()
     }
 
+    /// Where this transport sends and listens.
+    #[must_use]
+    pub fn endpoints(&self) -> Endpoints {
+        self.shared.endpoints
+    }
+
     /// The address the socket is bound to.
     ///
     /// # Errors
@@ -159,7 +164,8 @@ impl Transport {
             .iter()
             .map(|(id, tracked)| KnownDevice {
                 id: id.clone(),
-                ip: tracked.ip,
+                endpoint: SocketAddr::new(tracked.ip, self.shared.endpoints.control_port)
+                    .to_string(),
                 sku: tracked.sku.clone(),
                 health: health_of(&tracked.breaker, now),
             })
@@ -226,7 +232,7 @@ impl Transport {
             id: id.clone(),
             mode: Mode::Lan,
             cmd: command.cmd.clone(),
-            addr,
+            endpoint: addr.to_string(),
         };
         // Cloning `Sent` allocates twice; with nobody listening the broadcast
         // would drop it straight away.
