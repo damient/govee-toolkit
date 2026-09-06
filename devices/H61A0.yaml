@@ -296,22 +296,24 @@ commands:
     read_hardware_version:
       documented: false
       frame: "AA 20 <pad:20> <xor>"
-      reply: "AA 20 ${version:ascii}"
+      reply: "AA 20 ${version:ascii:17}"
       args:
         version: { type: string, max_len: 17 }
       notes: >-
-        ASCII, zero-padded to the frame; 1.02.00 on this unit. See
+        ASCII, zero-padded out to the checksum; 1.02.00 on this unit. The
+        length is what stops the field before that byte. See
         docs/protocol/ble.md 3.
       capture: ""         # TODO
 
     read_software_version:
       documented: false
       frame: "AA 21 <pad:20> <xor>"
-      reply: "AA 21 ${version:ascii}"
+      reply: "AA 21 ${version:ascii:17}"
       args:
         version: { type: string, max_len: 17 }
       notes: >-
-        ASCII, zero-padded to the frame; 2.06.02 on this unit. See
+        ASCII, zero-padded out to the checksum; 2.06.02 on this unit. The
+        length is what stops the field before that byte. See
         docs/protocol/ble.md 3.
       capture: ""         # TODO
 

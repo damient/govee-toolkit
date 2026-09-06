@@ -13,15 +13,20 @@
 //! | `${name:16}` | two bytes, big-endian, as an integer |
 //! | `${name:bytes:6}` | exactly six bytes, as they are |
 //! | `${name:ascii}` | the rest of the reply as text, trailing zeros trimmed |
+//! | `${name:ascii:17}` | exactly seventeen bytes, read the same way |
 //!
-//! `${name:ascii}` reads to the end, so it comes last, and it has to keep at
-//! least one character once the padding is off: a reply that stops at the
-//! layout's last literal, and one that carries nothing but zeros, are both
-//! refused rather than captured as an empty string. What it keeps has to be
-//! printable ASCII, `0x20` to `0x7e`, so a binary answer of low bytes is a
-//! mismatch rather than text. Bytes past the layout are ignored: a wire whose
-//! frames are a fixed size pads a short reply out, and those zeros carry
-//! nothing.
+//! Unbounded `${name:ascii}` reads to the end, so it comes last. Give it a
+//! length when the reply carries anything after the text — a wire that ends
+//! every frame on a checksum is the usual reason, and reading to the end there
+//! swallows that byte and fails on it as unprintable.
+//!
+//! Either way the field has to keep at least one character once the padding is
+//! off: a reply that stops at the layout's last literal, and one that carries
+//! nothing but zeros, are both refused rather than captured as an empty
+//! string. What it keeps has to be printable ASCII, `0x20` to `0x7e`, so a
+//! binary answer of low bytes is a mismatch rather than text. Bytes past the
+//! layout are ignored: a wire whose frames are a fixed size pads a short reply
+//! out, and those zeros carry nothing.
 //!
 //! A reply that does not carry a literal the layout requires is refused whole.
 //! Nothing partial is returned — a frame that failed to match is another
@@ -48,8 +53,11 @@ pub enum Field {
         /// How many.
         len: usize,
     },
-    /// Everything left, as text.
-    Ascii,
+    /// Text, trailing zeros trimmed.
+    Ascii {
+        /// How many bytes it spans, or `None` to read to the end of the reply.
+        len: Option<usize>,
+    },
 }
 
 /// One element of a parsed reply layout.
@@ -80,8 +88,8 @@ impl Layout {
     /// # Errors
     ///
     /// [`Error::ReplySyntax`] if a token is unrecognized, if it builds bytes
-    /// rather than matching them, if two fields share a name, or if
-    /// `${name:ascii}` is not last.
+    /// rather than matching them, if two fields share a name, or if an
+    /// unbounded `${name:ascii}` is not last.
     pub fn parse(command: &str, source: &str) -> Result<Self> {
         let bad = |reason: String| Error::ReplySyntax {
             command: command.to_owned(),
@@ -112,9 +120,10 @@ impl Layout {
                 return Err(bad(format!("`{name}` is captured twice")));
             }
             names.push(name);
-            if *field == Field::Ascii && i + 1 != tokens.len() {
+            if *field == (Field::Ascii { len: None }) && i + 1 != tokens.len() {
                 return Err(bad(
-                    "`:ascii` reads to the end of the reply, so it must be the last token"
+                    "`:ascii` with no length reads to the end of the reply, so it must be the \
+                     last token; give it one to read a field the rest of the frame follows"
                         .to_owned(),
                 ));
             }
@@ -188,7 +197,7 @@ fn read_field(
     let width = match field {
         Field::Int { bits } => (bits as usize).div_ceil(8),
         Field::Bytes { len } => len,
-        Field::Ascii => bytes.len().saturating_sub(at),
+        Field::Ascii { len } => len.unwrap_or_else(|| bytes.len().saturating_sub(at)),
     };
     let end = at.saturating_add(width);
     let Some(slice) = bytes.get(at..end) else {
@@ -200,7 +209,7 @@ fn read_field(
             acc.saturating_mul(256).saturating_add(i64::from(*b))
         })),
         Field::Bytes { .. } => ArgValue::Bytes(slice.to_vec()),
-        Field::Ascii => {
+        Field::Ascii { .. } => {
             let text = trim_padding(slice);
             // All-zero padding, and a reply that stops at the last literal,
             // both leave nothing: neither is the text the layout describes.
@@ -235,10 +244,16 @@ fn parse_token(raw: &str) -> Option<Token> {
         let field = match kind {
             "8" => Field::Int { bits: 8 },
             "16" => Field::Int { bits: 16 },
-            "ascii" => Field::Ascii,
+            "ascii" => Field::Ascii { len: None },
             _ => {
-                let len: usize = kind.strip_prefix("bytes:")?.parse().ok()?;
-                Field::Bytes { len }
+                if let Some(len) = kind.strip_prefix("ascii:") {
+                    Field::Ascii {
+                        len: Some(len.parse().ok()?),
+                    }
+                } else {
+                    let len: usize = kind.strip_prefix("bytes:")?.parse().ok()?;
+                    Field::Bytes { len }
+                }
             }
         };
         return Some(Token::Capture {
@@ -253,118 +268,4 @@ fn parse_token(raw: &str) -> Option<Token> {
 }
 
 #[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used, clippy::expect_used)]
-
-    use super::*;
-
-    fn read(layout: &str, bytes: &[u8]) -> Result<Captured> {
-        Layout::parse("x", layout)?.read("x", bytes)
-    }
-
-    #[test]
-    fn a_literal_the_reply_does_not_carry_refuses_the_whole_frame() {
-        let error = read("AA 04 ${level}", &[0xaa, 0x01, 0x64]).expect_err("byte 1 is not 04");
-        assert_eq!(error.code(), "reply_mismatch");
-    }
-
-    #[test]
-    fn one_byte_is_captured_as_an_integer() {
-        let captured = read("AA 04 ${level}", &[0xaa, 0x04, 0x64]).unwrap();
-        assert_eq!(captured.get("level"), Some(&ArgValue::Int(100)));
-        assert_eq!(captured.len(), 1);
-    }
-
-    #[test]
-    fn two_bytes_are_captured_big_endian() {
-        let captured = read("AA 40 ${count:16}", &[0xaa, 0x40, 0x00, 0x2a]).unwrap();
-        assert_eq!(captured.get("count"), Some(&ArgValue::Int(42)));
-    }
-
-    /// A version answers as text, not as binary version bytes.
-    #[test]
-    fn trailing_text_is_captured_without_its_padding() {
-        let mut frame = vec![0xaa, 0x21];
-        frame.extend_from_slice(b"2.06.02");
-        frame.resize(20, 0);
-        let captured = read("AA 21 ${version:ascii}", &frame).unwrap();
-        assert_eq!(
-            captured.get("version"),
-            Some(&ArgValue::Text("2.06.02".to_owned()))
-        );
-    }
-
-    #[test]
-    fn a_fixed_run_of_bytes_is_captured_as_it_is() {
-        let frame = [0xaa, 0x14, 1, 2, 3, 4, 5, 6, 0, 0];
-        let captured = read("AA 14 ${mac:bytes:6}", &frame).unwrap();
-        assert_eq!(
-            captured.get("mac"),
-            Some(&ArgValue::Bytes(vec![1, 2, 3, 4, 5, 6]))
-        );
-    }
-
-    #[test]
-    fn a_binary_answer_of_low_bytes_is_not_text() {
-        let error = read("AA 21 ${version:ascii}", &[0xaa, 0x21, 0x01, 0x02, 0x06])
-            .expect_err("control bytes are not a version string");
-        assert_eq!(error.code(), "reply_mismatch");
-    }
-
-    #[test]
-    fn a_reply_that_stops_before_its_text_is_refused() {
-        let error =
-            read("AA 21 ${version:ascii}", &[0xaa, 0x21]).expect_err("nothing left to read");
-        assert_eq!(error.code(), "reply_mismatch");
-    }
-
-    #[test]
-    fn a_reply_of_padding_alone_is_refused() {
-        let mut frame = vec![0xaa, 0x21];
-        frame.resize(20, 0);
-        let error = read("AA 21 ${version:ascii}", &frame).expect_err("padding is not text");
-        assert_eq!(error.code(), "reply_mismatch");
-    }
-
-    #[test]
-    fn a_reply_too_short_for_the_layout_is_refused() {
-        let error = read("AA 40 ${count:16}", &[0xaa, 0x40, 0x00]).expect_err("one byte short");
-        assert_eq!(error.code(), "reply_mismatch");
-    }
-
-    #[test]
-    fn bytes_past_the_layout_are_ignored() {
-        let captured = read("AA 01 ${on}", &[0xaa, 0x01, 0x01, 0, 0, 0]).unwrap();
-        assert_eq!(captured.get("on"), Some(&ArgValue::Int(1)));
-    }
-
-    #[test]
-    fn a_layout_that_builds_bytes_is_not_a_reply() {
-        for source in [
-            "AA 01 ${on} <xor>",
-            "AA <len:16> <op:01>",
-            "(${c}:rgb)×${n}",
-        ] {
-            let error = Layout::parse("x", source).expect_err("capture-only");
-            assert_eq!(error.code(), "reply_syntax");
-        }
-    }
-
-    #[test]
-    fn text_that_reads_to_the_end_has_to_be_last() {
-        let error = Layout::parse("x", "AA ${v:ascii} ${on}").expect_err("nothing follows it");
-        assert_eq!(error.code(), "reply_syntax");
-    }
-
-    #[test]
-    fn one_name_is_captured_once() {
-        let error = Layout::parse("x", "AA ${on} ${on}").expect_err("captured twice");
-        assert_eq!(error.code(), "reply_syntax");
-    }
-
-    #[test]
-    fn rejects_an_unknown_field_shape() {
-        let error = Layout::parse("x", "AA ${v:str8}").expect_err("not a capture shape");
-        assert_eq!(error.code(), "reply_syntax");
-    }
-}
+mod tests;
