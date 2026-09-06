@@ -16,7 +16,7 @@ with the same set of changes.
 | A package's public API, features, behavior | `packages/<pkg>/CHANGELOG.md` |
 | `devices/*.yaml`, `devices/schema.yaml`, the conformance vectors | `CHANGELOG.md` |
 
-The catalogue is shared, so its changelog is shared: one entry serves the three
+The catalog is shared, so its changelog is shared: one entry serves the three
 packages that embed it, rather than the same device fix described three times.
 The root file also keeps the index of the packages and the version each manifest
 carries.
@@ -30,7 +30,7 @@ or a `devices/*.yaml` fails without a changed `CHANGELOG.md`, and the
 `no-changelog` label is the exception. A branch that touches none of them owes
 nothing — say so and stop rather than inventing an entry.
 
-A change that touches both a package and the catalogue gets an entry in each,
+A change that touches both a package and the catalog gets an entry in each,
 written from that file's point of view — the package entry names the API, the
 root entry names the data. Never the same sentence twice.
 
@@ -55,8 +55,8 @@ of its own, and no link to a specification.
 - In a package file, one `##` heading per version: `## [X.Y.Z] — YYYY-MM-DD`,
   newest first. A version the manifest already declares carries its number with
   no date, and gains the date on the day it is tagged.
-- In the root file, the catalogue's headings are dates — `### 2026-09-05`,
-  newest first, sections at `####`. The catalogue has no version of its own: a
+- In the root file, the catalog's headings are dates — `### 2026-09-05`,
+  newest first, sections at `####`. The catalog has no version of its own: a
   package embeds it at build time, so the date is what a release pins.
 - In a package file, entries for work whose version is not settled sit under
   their `###` sections at the top, above the newest `##` heading. Cutting the
