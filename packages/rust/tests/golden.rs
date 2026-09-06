@@ -33,9 +33,26 @@ struct Vector {
     name: String,
     command: String,
     args: BTreeMap<String, serde_json::Value>,
-    message: serde_json::Value,
+    /// The envelope, where the mode wraps the command in one.
+    #[serde(default)]
+    message: Option<serde_json::Value>,
+    /// One frame, for a command that sends one.
     #[serde(default)]
     frame_hex: Option<String>,
+    /// Every frame, in order, for a command that sends several.
+    #[serde(default)]
+    frames_hex: Option<Vec<String>>,
+}
+
+impl Vector {
+    /// The frames the vector expects, however it spells them.
+    fn expected_frames(&self) -> Vec<String> {
+        match (&self.frames_hex, &self.frame_hex) {
+            (Some(frames), _) => frames.clone(),
+            (None, Some(frame)) => vec![frame.clone()],
+            (None, None) => Vec::new(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -131,13 +148,14 @@ fn vectors_match() {
                 vector.name
             );
 
-            let actual_hex = encoded
-                .frame
-                .as_ref()
-                .map(|f| f.iter().map(|b| format!("{b:02x}")).collect::<String>());
+            let actual: Vec<String> = encoded
+                .frames
+                .iter()
+                .map(|f| f.iter().map(|b| format!("{b:02x}")).collect::<String>())
+                .collect();
             assert_eq!(
-                actual_hex.as_deref(),
-                vector.frame_hex.as_deref(),
+                actual,
+                vector.expected_frames(),
                 "{file} / {}: frame bytes",
                 vector.name
             );
