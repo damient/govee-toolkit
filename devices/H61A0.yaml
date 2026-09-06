@@ -1,7 +1,4 @@
-# H61A0 — 3m RGBIC LED Neon Rope Lights.
-# On Govee's official LAN-control list (see ../docs/lan-supported-devices.md).
-# Verified over `lan`, including the undocumented segment channel, and over
-# `ble` apart from Wi-Fi provisioning — see `verified:` at the bottom.
+# On Govee's official LAN-control list — see ../docs/lan-supported-devices.md.
 
 schema_version: 1
 
@@ -9,11 +6,11 @@ sku: "H61A0"
 family: "rgbic-neon-rope"
 name: "3m RGBIC LED Neon Rope Lights"
 aliases: []
-candidate_aliases:      # same product in other lengths — NOT verified, do not
-  - H61A1               # assume identical behavior: segment count and native
-  - H61A2               # resolution both depend on length. 2 m, 5 m, 4 m and
-  - H61A3               # 10 m respectively — see ../docs/lan-supported-devices.md.
-  - H61A5               # The outdoor rope, H61A8 and H61A9, is another product.
+candidate_aliases:      # the same product at 2 m, 5 m, 4 m and 10 m. NOT
+  - H61A1               # verified: segment count and native resolution both
+  - H61A2               # depend on the length. The outdoor rope, H61A8 and
+  - H61A3               # H61A9, is another product. See
+  - H61A5               # ../docs/lan-supported-devices.md.
 
 capabilities:
   power:
@@ -44,7 +41,7 @@ modes:
     unreachable:
       scenes: unimplemented
     notes: >-
-      Reaches power, brightness, colour, colour temperature and both per-zone
+      Reaches power, brightness, color, color temperature and both per-zone
       channels without the device being on the network. Segments are narrower
       here than over lan: zones are addressed through a mask 15 bits wide,
       against the 42 individually addressable ICs the lan raw channel reaches,
@@ -77,7 +74,7 @@ commands:
       documented: true
       payload: { value: "${level}" }
       args:
-        level: { type: int, range: [1, 100] }   # 0 is clamped to 1, it does not turn off
+        level: { type: int, range: [1, 100] }   # the firmware clamps 0 to 1 and does not turn off
       capture: ""         # TODO
 
     color:
@@ -105,7 +102,7 @@ commands:
     status:
       cmd: "devStatus"
       documented: true
-      role: status        # the entry fire-and-verify issues on its own
+      role: status
       payload: {}
       args: {}
       capture: ""         # TODO
@@ -140,20 +137,19 @@ commands:
       frame: "BB <len:16> <op:B0> ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
       payload: { pt: "${frame}" }
       args:
-        gradient: { type: int, range: [0, 1], role: gradient }   # 0 = hard zones, 1 = interpolated + wraps
-        nb_seg: { type: int, range: [1, 255] }                   # derived from colors when omitted
-        colors: { type: rgb_list, max_len: 255, role: colors }   # one triple per zone
+        gradient: { type: int, range: [0, 1], role: gradient }   # 0 = hard zones, 1 = interpolated and wraps
+        nb_seg: { type: int, range: [1, 255] }
+        colors: { type: rgb_list, max_len: 255, role: colors }
       notes: >-
         len counts the payload only, 16-bit, header and checksum excluded. An
         inconsistent length is dropped in silence. See docs/protocol/lan.md 2.3.
       capture: ""         # TODO
 
-  # Every frame here is exactly 20 bytes: proType, commandType, payload, and a
-  # XOR of the nineteen bytes before it. Hence the `<pad:20> <xor>` every layout
-  # ends on. See docs/protocol/ble.md 1.2.
+  # Every frame here is 20 bytes: proType, commandType, payload, then a XOR of
+  # the 19 bytes before it. See docs/protocol/ble.md 1.2.
   #
-  # No ble capture has been redacted and committed yet, so every `capture:`
-  # below is empty. TODO: capture and redact one per command.
+  # No ble capture is redacted and committed yet, so every `capture:` below is
+  # empty. TODO: capture and redact one per command.
   ble:
     power:
       documented: false
@@ -178,11 +174,11 @@ commands:
       frame: "33 05 15 01 (${colors}:rgb)×${nb} 00 00 00 00 00 ${zones:mask16} <pad:20> <xor>"
       args:
         colors: { type: rgb_list, max_len: 1, role: colors }
-        nb: { type: int, range: [1, 1] }        # derived from colors when omitted
+        nb: { type: int, range: [1, 1] }
         zones: { type: zones, count: 15, role: zones }
       notes: >-
-        Paints one colour over the zones the mask names. The kelvin and white
-        fields stay zero: colour and white are mutually exclusive, and a
+        Paints one color over the zones the mask names. The kelvin and white
+        fields stay zero: color and white are mutually exclusive, and a
         non-zero kelvin is what turns this frame into the colortemp one. A
         saturated mask looks exactly like an ignored mask, so painting every
         zone proves nothing about the mask being read — paint a subset, as the
@@ -245,14 +241,14 @@ commands:
         back to the first; 0 gives hard-edged zones. The same user setting as
         the `gradient` argument of the lan segment channel, which has no room
         for it here and so carries it in a frame of its own. It is not a fade
-        over time: alternating two colours looks the same either way, and what
+        over time: alternating two colors looks the same either way, and what
         changes is the boundary between two zones painted differently. See
         docs/protocol/ble.md 2.6.
       capture: ""         # TODO
 
     status:
       documented: false
-      role: status        # the entry fire-and-verify issues on its own
+      role: status
       frames:
         - send:  "AA 01 <pad:20> <xor>"
           reply: "AA 01 ${on}"
@@ -340,16 +336,13 @@ commands:
       args:
         group: { type: int, range: [1, 5] }
       notes: >-
-        Brightness and colour for three zones, groups 1-based. Declares no
+        Brightness and color for three zones, groups 1-based. Declares no
         `reply:` for two reasons: the byte layout of the answer was not
-        established, and what it reports is the stored colour sub-mode rather
+        established, and what it reports is the stored color sub-mode rather
         than what is lit, so it is not a way to read back what `color` painted.
         See docs/protocol/ble.md 3.
       capture: ""         # TODO
 
-    # Never sent to a device. The layout below was read out of the other
-    # direction only, and the golden vectors behind it pin this encoder, not
-    # the firmware. See docs/protocol/ble.md 4.
     wifi_provision:
       documented: false
       body: "${network:str8} ${password:str8} ${run_mode} ${timezone_hours} ${iot_version} ${timezone_minutes}"
@@ -362,15 +355,15 @@ commands:
         network: { type: string, max_len: 32 }
         password: { type: string, max_len: 63 }
         run_mode: { type: int, range: [0, 255] }          # 0 in production
-        timezone_hours: { type: int, range: [0, 255] }    # hours and minutes are
-        timezone_minutes: { type: int, range: [0, 59] }   # separate bytes
+        timezone_hours: { type: int, range: [0, 255] }
+        timezone_minutes: { type: int, range: [0, 59] }
         iot_version: { type: int, range: [0, 255] }       # 0 in production
       notes: >-
         Plaintext: no encryption, no key exchange, no session token, so anything
         in radio range during provisioning sees the password. An empty password
         is the single byte 0x00. What a negative timezone offset looks like was
         not observed. NEVER SENT TO A DEVICE — see docs/protocol/ble.md 4.
-      capture: ""         # never captured: nothing was ever sent
+      capture: ""         # nothing was ever sent to a device
 
     wifi_provision_with_api:
       documented: false
@@ -393,12 +386,12 @@ commands:
         `read_dynamic_api` answers with a type. There is no optional field in
         this language, so the block is a separate entry rather than an argument
         left out. NEVER SENT TO A DEVICE — see docs/protocol/ble.md 4.
-      capture: ""         # never captured: nothing was ever sent
+      capture: ""         # nothing was ever sent to a device
 
   cloud: {}               # TODO
 
-# Measured on one physical unit. Anything here depends on that unit's LENGTH as
-# much as on the SKU — see docs/protocol/lan.md 2.3 and 2.7.
+# Measured on one physical unit. These numbers depend on the unit's LENGTH as
+# much as on the SKU. See docs/protocol/lan.md 2.3 and 2.7.
 measurements:
   unit_length_m: 3
   native_pixels: 42         # one addressable LED every ~7 cm
@@ -411,28 +404,27 @@ measurements:
     max: 39
     loss: "0/30 requests"
 
-  # Taken on the same unit, over the 20-byte GATT frame — see
+  # Taken on the same unit, over the 20-byte GATT frame. See
   # docs/protocol/ble.md 5.
   ble:
     read_round_trip_ms: 63          # against 16 ms over lan
     sustained_writes_hz: 130        # spread over seconds
     write_budget_hz: 100            # what the transport paces itself to
-    burst_frames_before_stall: 100  # roughly, in one burst
-    burst_recovery_s: 20            # unresponsive for about this long after one
+    burst_frames_before_stall: 100  # approximate, in one burst
+    burst_recovery_s: 20            # approximate, after one burst
     addressable_zones: 15           # by mask, against the 42 ICs above
 
   frame_rate:
-    # Sustainable frame rate for the razer segment channel, by zone count.
+    # Measured on the razer segment channel.
     lan:
       - { zones: 20,  payload_bytes: 62,  clean_hz: 40, breaks_at_hz: 45 }
       - { zones: 60,  payload_bytes: 182, clean_hz: 25, breaks_at_hz: 30 }
       - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
-    # No ble rows. A ble frame is always 20 bytes and one frame paints one
-    # colour, so dividing the write budget above by the zone count gives a
-    # figure — but that is arithmetic, not a stutter test on the rope, and a
-    # caller cannot tell a derived row from a measured one. TODO: run the
-    # stutter test over ble and record what the strip renders cleanly. Until
-    # then a stream over ble falls back to the configured rate.
+    # No ble rows. A ble frame is 20 bytes and paints one color, so the write
+    # budget above divided by the zone count gives a figure. That is
+    # arithmetic, not a stutter test on the rope. TODO: run the stutter test
+    # over ble and record what the strip renders cleanly. Until then a stream
+    # over ble falls back to the configured rate.
 
 verified:
   by: "damient"
