@@ -13,6 +13,8 @@ See [`../docs/modes.md`](../docs/modes.md).
 - [`schema.yaml`](schema.yaml) — reference schema, field by field
 - [`H61A0.yaml`](H61A0.yaml) — RGBIC LED Neon Rope Lights, verified over `lan`
   including the undocumented segment channel
+- [`H6114.yaml`](H6114.yaml) — RGB Car LED Strip Lights, a `ble`-only device
+  with no command probed yet
 
 For **which devices work**, rather than how to declare one, see
 [`../docs/compatibility.md`](../docs/compatibility.md), the readable view of

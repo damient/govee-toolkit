@@ -65,15 +65,17 @@ such in the device file until someone verifies them.
 <!-- generated: support-by-sku -->
 | SKU | Family | Name | `lan` | `ble` | `cloud` | Verified |
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
+| [H6114](../devices/H6114.yaml) | rgb-car-strip | RGB Car LED Strip Lights | none | partial | none | ✅ 2026-09-06 |
 | [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | partial | partial | partial | ✅ 2026-09-06 |
 <!-- /generated -->
 
 ## Capabilities by SKU
 
 <!-- generated: capabilities-by-sku -->
-| SKU | brightness | color | colortemp | power | scenes | segment_brightness | segments |
-| --- | ---------- | ----- | --------- | ----- | ------ | ------------------ | -------- |
-| H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| SKU | brightness | color | colortemp | music | power | scenes | segment_brightness | segments |
+| --- | ---------- | ----- | --------- | ----- | ----- | ------ | ------------------ | -------- |
+| H6114 | ✅ | ✅ | — | ✅ | ✅ | ✅ | — | — |
+| H61A0 | ✅ | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ |
 <!-- /generated -->
 
 Capabilities are hardware facts; what is reachable depends on the active mode.

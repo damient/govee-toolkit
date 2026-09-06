@@ -22,6 +22,38 @@ at.
 
 ### 2026-09-06
 
+#### Added
+
+- `devices/H6114.yaml` declares the RGB Car LED Strip Lights, a 12 V interior
+  car light with four 22 cm strips and 48 LEDs. The four strips carry one
+  colour: the hardware is RGB, so the file declares power, brightness, colour,
+  scenes and music, and no zone capability. `lan` and `cloud` are `none`,
+  because Govee gives the model one radio, Bluetooth.
+- `modes.ble` is `partial`, verified on the unit against soft version 2.03.11
+  and hard version 2.01.01. The commands are power, brightness, colour and the
+  scene sub-mode, plus four reads: power, brightness, the live sub-mode and the
+  two versions. Music is `unimplemented`. Each command is `documented: false`
+  and points to the section of [`docs/protocol/ble.md`](docs/protocol/ble.md)
+  that describes it.
+- The colour sub-mode of this family is `13`, and its payload carries a 16-bit
+  kelvin field between the two RGB triplets. Sub-mode `2`, which an older
+  dialect uses, is acknowledged with a success code and then ignored.
+- Brightness takes the whole byte, `0..255`, and not the percent the other
+  family takes. `0` renders nothing and does **not** turn the device off: it
+  reports itself on with a brightness of 0.
+- The file declares no `colortemp`. The colour frame carries a kelvin field and
+  the firmware renders no temperature: a frame naming a temperature and no RGB
+  leaves the strips dark, and one naming a temperature and a green triplet
+  lights them green.
+
+#### Note
+
+The firmware fades from one colour to the next and fades in at power on. `33 A3`,
+which sets zone interpolation on a device that has zones, is accepted here and
+changes nothing observable. Scene identifiers were not enumerated. Music, DIY
+and Wi-Fi provisioning were not exercised. No BLE capture has been redacted and
+committed yet, so every `capture:` in the file is empty.
+
 #### Changed
 
 - `devices/H61A0.yaml`: the `ble` entry `fade` becomes `gradient`, and it

@@ -9,10 +9,11 @@ depends on the SKU family and is usually narrower than `lan`.
 
 ## Status
 
-Everything below comes from one physical unit. The device file records that
-unit: the SKU, the firmware versions and every number measured. Nobody has
-checked it against another model, and an older SKU family can use a different
-dialect.
+Everything below comes from physical units. The device file records the unit
+it was taken on: the SKU, the firmware versions and every number measured. Two
+families are covered so far, and they do not speak the same dialect. Where they
+differ, this page gives both layouts and the device file says which one its unit
+takes. A third family can differ again.
 
 One exception: **the write direction of Wi-Fi provisioning (§4) has never been
 sent to a device.** The layout comes from the other direction of the transfer
@@ -75,6 +76,20 @@ An advertisement carries the Bluetooth address, and the rest of this project
 identifies a device by its Wi-Fi MAC. Nothing observed relates the two, so the
 transport asks the caller to bind them.
 
+### 1.4 What a write answers
+
+The device answers a `0x33` write on the notify characteristic, under the two
+bytes it was sent with:
+
+```
+33 <commandType> <status>
+```
+
+A status of `00` says the firmware accepted the frame. It does **not** say the
+firmware applied it: a sub-mode the device does not implement is acknowledged
+with `00` and then played by nothing. To know that a write took effect, watch
+the device or read the state back with §3.
+
 ## 2. Writes — `proType` `0x33`
 
 Every frame below is padded with zeros to byte 18, and byte 19 is the BCC.
@@ -88,22 +103,40 @@ Every frame below is padded with zeros to byte 18, and byte 19 is the BCC.
 ### 2.2 Brightness
 
 ```
-33 04 <1..100>
+33 04 <level>
 ```
 
-Percent on the unit measured. Other families are reported to take 0..255 here;
-that was not checked. The device file carries the range it takes.
+One byte, and the scale is a property of the family. One family takes percent,
+`1..100`. Another takes the whole byte, `0..255`. The device file carries the
+range its unit takes, and nothing derives one scale from the other.
 
-### 2.3 Color and white, by zone mask
+Where the field takes the whole byte, `0` is a level and not an off switch: the
+device goes dark and still reports itself on, so only §2.1 turns it off.
+
+The vendor app drives this field over a narrower band than the firmware accepts.
+What the app offers is therefore not evidence of the range.
+
+### 2.3 Color and white
+
+The byte after the command type is the sub-mode, and it decides the layout of
+what follows. Three layouts are known:
 
 ```
-33 05 15 01 <R G B> <K_hi K_lo> <Rw Gw Bw> <mask>
+33 05 15 01 <R G B> <K_hi K_lo> <Rw Gw Bw> <mask>   zones, by mask
+33 05 0d    <R G B> <K_hi K_lo> <Rw Gw Bw>          one colour for the device
+33 05 02    <R G B> <flag>      <Rw Gw Bw>          older, a flag in place of
+                                                    the kelvin field
 ```
+
+A device answers a sub-mode it does not implement with a success code and then
+plays nothing — see §1.4. Read §3 back to tell the two apart.
 
 Color and white are mutually exclusive. A color temperature zeroes the leading
 RGB triplet and carries the RGB **rendering** of that temperature in the second
 triplet. The firmware does not compute that rendering. The host must send both:
 the kelvin value alone leaves the strip dark. Kelvin range 2000..9000.
+
+The layouts with no mask carry one colour for the whole device.
 
 The mask is one bit per zone, least significant bit first, `ceil(count / 8)`
 bytes wide. The field has room for 56 bits, and the firmware answers to fewer:
@@ -149,6 +182,21 @@ it a frame of its own. This is not a fade over time: two colors sent one after
 the other cut to each other either way. The setting changes the boundary between
 two zones painted differently.
 
+A device with no zones accepts this frame and changes nothing observable, in
+either position. Where a firmware fades from one colour to the next, this is not
+the frame that turns the fade off, and no frame that does was found.
+
+### 2.7 Scene sub-mode
+
+```
+33 05 04 <identifier>
+```
+
+Plays a scene the firmware carries. The identifiers are firmware data rather
+than protocol, and the names the vendor app gives them do not match what a
+device plays. Nothing here maps an identifier to an effect: a device file
+records the ones somebody watched on its unit.
+
 ## 3. Reads — `proType` `0xAA`
 
 Each read is answered on the notify characteristic, under the same two leading
@@ -160,21 +208,33 @@ bytes it was asked with.
 | `aa 04` | `aa 04 <1..100>` — brightness |
 | `aa 0f` | segment count, one byte |
 | `aa 40` | IC count, 16-bit big-endian; matches the LAN native resolution |
+| `aa 05` | the live sub-mode, then its payload |
 | `aa 14` | Wi-Fi MAC, 6 bytes |
 | `aa 20` | hard version, ASCII |
 | `aa 21` | soft version, ASCII |
+| `aa 06` | soft version, ASCII, on a family that answers nothing at `aa 21` |
+| `aa 07 03` | hard version, ASCII. The `03` is part of the request, and the answer repeats it |
 | `aa ab` | dynamic API type, see §4 |
 | `aa a5 <group>` | brightness and color for three zones. Groups are 1-based, five of them |
 
+A read frame can carry a sub-type byte, as `aa 07 03` does. The same frame
+without it gets no answer at all, which looks exactly like an unimplemented
+read — see §7.
+
 Three of these are traps:
 
-- **`aa 05` does not report what is lit.** It mirrors back codes the device
-  never played, and this repository declares no command for it.
+- **What `aa 05` reports depends on the family.** On one it mirrors back codes
+  the device never played, and the device file declares no command for it. On
+  another it reports what is playing: a colour write moves it to the colour
+  sub-mode carrying that colour, and a scene write moves it to the scene
+  sub-mode carrying that identifier. The device file says which.
 - **`aa a5` reports the stored color sub-mode**, not the live render. Nobody
   established the byte layout of its answer, so the device file sends the read
   and declares no `reply:` for it.
-- **`aa 07 11` gets no reply at all.** That is indistinguishable from an
-  unimplemented feature — see §7.
+- **`aa 07 11` gets no reply at all**, on the family where `aa 20` carries the
+  hard version. That is indistinguishable from an unimplemented feature — see
+  §7. The sub-type is what the answer depends on: `aa 07 03` answers on the
+  other family.
 
 ## 4. Wi-Fi provisioning — `proType` `0xA1`, `commandType` `0x11`
 
