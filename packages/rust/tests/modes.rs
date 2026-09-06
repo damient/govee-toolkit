@@ -103,7 +103,7 @@ async fn a_second_mode_is_reported_rather_than_silently_skipped() {
     let error = device
         .send("power", &Args::new().int("on", 1))
         .await
-        .expect_err("ble has no transport yet");
+        .expect_err("this rig carries no ble transport");
     assert_eq!(error.code(), "mode_not_implemented");
     assert!(error.to_string().contains("ble"), "{error}");
 }

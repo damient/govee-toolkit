@@ -7,11 +7,22 @@ trade-offs, and **the user chooses which ones to enable, per device**.
 | Mode | Latency | Range | Capabilities | Requires |
 | ---- | ------- | ----- | ------------ | -------- |
 | `lan` | lowest | same network | full, including the undocumented segment channel; not internal scenes | LAN Control enabled in the Govee Home app |
-| `ble` | low | Bluetooth range | partial, depends on SKU family | a BLE adapter on the host |
+| `ble` | low | Bluetooth range | partial, depends on SKU family | a BLE adapter on the host, and the device not already connected to something else |
 | `cloud` | highest (internet round-trip) | anywhere | reduced: power / brightness / color | a Govee API key, subject to rate limits |
 
 Details per mode: [`protocol/lan.md`](protocol/lan.md),
 [`protocol/ble.md`](protocol/ble.md), [`protocol/cloud.md`](protocol/cloud.md).
+
+Two `ble` constraints change what an application can do with it:
+
+- **One connection at a time.** A connected device stops advertising, so a phone
+  or another host holding the link makes the device invisible to a scan, and a
+  device this SDK holds is unreachable to anything else until the link closes.
+- **Writes are paced.** The firmware accepts only so many writes a second, and a
+  burst past that leaves it unresponsive for seconds rather than dropping a
+  single frame. The transport paces writes against a budget, so a source that
+  outruns the budget waits instead of being served at its own rate. The numbers
+  live in the `measurements.ble` block of each device file.
 
 ## Two levels
 

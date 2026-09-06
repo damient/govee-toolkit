@@ -1,7 +1,8 @@
 # govee-toolkit
 
-Control Govee devices over the LAN from Rust, including undocumented commands
-found through reverse engineering. Unofficial, and not affiliated with Govee.
+Control Govee devices from Rust over the LAN or Bluetooth, including
+undocumented commands found through reverse engineering. Unofficial, and not
+affiliated with Govee.
 
 This is the reference implementation. Protocol logic lives here once, and every
 other language reaches it through a binding rather than a port — see
@@ -14,8 +15,13 @@ cargo add govee-toolkit
 ```
 
 Async, on Tokio. The `lan` feature is on by default and brings the UDP
-transport with it; turn it off and what is left is the codec alone — arguments
-in, bytes out, no socket and no runtime.
+transport with it. `ble` is off by default and brings the GATT transport, which
+needs a Bluetooth adapter on the host. Turn every feature off and what is left
+is the codec alone — arguments in, bytes out, no socket and no runtime.
+
+```bash
+cargo add govee-toolkit --features ble
+```
 
 ## Quick start
 
@@ -133,8 +139,10 @@ devices:
 what the configuration got wrong without failing the whole load. The full model
 is [`docs/modes.md`][modes].
 
-`ble` and `cloud` are declared modes with no transport yet. Enabling one is
-reported as `ModeNotImplemented` — never silently skipped, never substituted.
+Enabling `ble` needs the crate built with the `ble` feature; enabling `cloud`
+has no transport to serve it. Either way, an enabled mode this build cannot
+carry is reported as `ModeNotImplemented` — never silently skipped, never
+substituted.
 
 ## What this crate will not do to you
 
@@ -169,7 +177,9 @@ the one thing this project keeps in `devices/*.yaml`.
 | Layer | Where | Contents |
 | ----- | ----- | -------- |
 | Codec | [`src/codec/`](src/codec) | Device catalog, command encoding, raw frame codec. No I/O. |
-| Transport | [`src/lan/`](src/lan) | UDP: discovery, device cache, reused socket, per-device circuit breaker |
+| Transport | [`src/transport/`](src/transport) | What every mode shares: the `Transport` trait, device identity, errors, the per-device circuit breaker |
+| `lan` | [`src/lan/`](src/lan) | UDP: discovery, device cache, reused socket |
+| `ble` | [`src/ble/`](src/ble) | GATT: scan, one connection per device, paced writes |
 | Stream | [`src/stream/`](src/stream) | The segment channel: armed once, fed frames on a clock |
 | Facade | [`src/`](src) | Configuration, mode selection, events |
 
@@ -180,7 +190,7 @@ Two more live beside it and are never published:
 The layering is deliberate even though it is one crate. The codec does no I/O,
 so every protocol decision is testable without hardware and without a network —
 `tools/check-no-io.sh` fails the build if anything under `src/codec/` imports a
-socket, a runtime or the filesystem. The transport carries bytes for one mode
+socket, a runtime or the filesystem. A transport carries bytes for one mode
 and never chooses between modes. Choosing is the facade's job, and it chooses
 from breaker state already recorded, never by trying a mode and waiting for a
 timeout.

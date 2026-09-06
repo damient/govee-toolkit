@@ -26,7 +26,11 @@ devices/*.yaml             data — what a SKU does, and the bytes for it
        │
 src/codec/                 codec — no I/O, no SKU names, no command names
        │
-src/lan/                   transport — UDP, discovery, device cache, breaker
+src/transport/             shared by every mode — the Transport trait, device
+       │                   identity, errors, the breaker
+       │
+src/lan/                   transport — UDP, discovery, device cache
+src/ble/                   transport — GATT, scan, one link, paced writes
        │
 src/stream/                segment channel — armed once, fed frames on a clock
        │
@@ -39,7 +43,8 @@ node       python
 
 **One crate, `govee-toolkit`**, at `packages/rust`. The layers are modules of
 it, and what is optional is a cargo feature rather than a separate package:
-`lan` is on by default, `ble` and `cloud` join it as they land. Two crates live
+`lan` is on by default, `ble` is opt-in, and `cloud` joins them when it lands.
+Two crates live
 beside it and are never published: `crates/sim`, the device simulator, and
 `crates/xtask`, which generates the distributable catalogue.
 

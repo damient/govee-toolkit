@@ -1,6 +1,6 @@
 [package]
 name = "govee-toolkit"
-description = "Control Govee devices over the LAN, including undocumented commands. Unofficial."
+description = "Control Govee devices over the LAN or Bluetooth, including undocumented commands. Unofficial."
 version = "0.2.1"
 edition = "2024"
 rust-version = "1.88"
