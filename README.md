@@ -35,8 +35,9 @@ reverse engineering and written up in
 ## Where the project is
 
 The engine is working and verified on real hardware: discovery, on/off,
-brightness, color, per-segment color and live animation. It is usable today
-from Rust.
+brightness, color, per-segment color and live animation, over `lan` and over
+`ble`. It is usable today from Rust. Wi-Fi provisioning over `ble` is the one
+part that is written but has never been sent to a device.
 
 What comes next is the packaging around it — first the Python and Node.js
 packages, then a web page and a desktop app with actual buttons, then Home
@@ -109,9 +110,13 @@ core rather than re-implementing it. Reasoning in
   Command names, byte layouts and measured limits live here, never in code.
 - [`packages/rust/src/codec`](packages/rust/src/codec) — device file plus
   arguments in, exact bytes out. No networking, so it is testable on its own.
+- [`packages/rust/src/transport`](packages/rust/src/transport) — what every
+  mode shares: the `Transport` trait, the device identity, the errors and the
+  per-device health state.
 - [`packages/rust/src/lan`](packages/rust/src/lan) — discovery, a device cache
-  so a command never waits for a scan, one reused socket, and a per-device
-  health state.
+  so a command never waits for a scan, and one reused socket.
+- [`packages/rust/src/ble`](packages/rust/src/ble) — the GATT surface, the scan,
+  one connection per device, and writes paced to what the firmware sustains.
 - [`packages/rust/src/stream`](packages/rust/src/stream) — the segment channel,
   armed once and fed frames at the resolution and rate measured on the unit.
 - [`packages/rust/crates/sim`](packages/rust/crates/sim) — a fake Govee device
