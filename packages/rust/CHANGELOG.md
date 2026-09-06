@@ -53,6 +53,26 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   out-of-range write budget is refused, never moved to the nearest value it
   could serve — and `no_reply_layout` where there is nothing to read.
 
+### Fixed
+
+- `ble` addressed a peripheral by its Bluetooth address, which macOS does not
+  expose: `CoreBluetooth` reports every peripheral as `00:00:00:00:00:00`, so a
+  scan collapsed every device on the air into one entry and a command connected
+  to whichever unrelated peripheral the adapter listed first. A device is now
+  tracked under the handle the platform addresses it by, and a handle carried by
+  more than one peripheral is refused rather than resolved to one of them.
+  `Advertised::address` is `Advertised::endpoint`, and `Transport::bind` takes
+  the same handle.
+- `ble::Options::connect_timeout` was declared and never applied: a peripheral
+  that never answered left the connection pending indefinitely, holding every
+  other command behind it. Connecting now fails with `unreachable` once the
+  timeout is up.
+- A `ble` command could only be sent while the peripheral from the last scan was
+  still held by the platform. macOS releases it the moment a link drops, so an
+  idle connection left every later command failing until the process was
+  restarted. The transport now scans again when the handle is gone, and only
+  then.
+
 ### Changed
 
 - A command declaring a `frame:` no longer has to name it with `${frame}` in a

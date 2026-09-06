@@ -83,32 +83,32 @@ impl Transport {
         Shared::scan(&self.shared, window).await
     }
 
-    /// Say that the device known by `id` is the one answering at `address`.
+    /// Say that the device known by `id` is the one answering at `endpoint`.
     ///
-    /// A device is identified by its Wi-Fi MAC everywhere in this crate, and
-    /// an advertisement carries the Bluetooth address instead. The two are
-    /// different addresses of one unit, and **nothing here infers one from the
-    /// other**: a scan reports a device under its Bluetooth address until
-    /// somebody who knows better says otherwise. This is how they are said to
-    /// be the same unit, and it is what lets one configuration entry cover a
-    /// device reachable over both `lan` and `ble`.
+    /// A device is identified by its Wi-Fi MAC everywhere in this crate, and a
+    /// scan reports the handle the platform addresses the peripheral by
+    /// instead. The two name one unit, and **nothing here infers one from the
+    /// other**: a scan reports a device under that handle until somebody who
+    /// knows better says otherwise. This is how they are said to be the same
+    /// unit, and it is what lets one configuration entry cover a device
+    /// reachable over both `lan` and `ble`.
     ///
     /// The device keeps everything already recorded about it, health included.
     ///
     /// # Errors
     ///
-    /// [`Error::UnknownDevice`] if no scan has heard that address: there is
+    /// [`Error::UnknownDevice`] if no scan has heard that handle: there is
     /// nothing to relate the identity to yet.
-    pub fn bind(&self, id: &DeviceId, address: &str) -> Result<()> {
+    pub fn bind(&self, id: &DeviceId, endpoint: &str) -> Result<()> {
         let mut devices = self.shared.devices.lock().map_err(|_| Error::ShutDown)?;
         let known = devices.iter().find_map(|(known, tracked)| {
             tracked
-                .address
-                .eq_ignore_ascii_case(address)
+                .endpoint
+                .eq_ignore_ascii_case(endpoint)
                 .then(|| known.clone())
         });
         let known = known.ok_or_else(|| Error::UnknownDevice {
-            id: DeviceId::new(address),
+            id: DeviceId::new(endpoint),
         })?;
         if &known == id {
             return Ok(());
@@ -122,8 +122,8 @@ impl Transport {
     /// Every device the transport knows, from a scan.
     ///
     /// Empty until one has run: an advertisement is the only thing that
-    /// relates a device to an address, and this mode caches nothing across
-    /// restarts.
+    /// relates a device to a handle to connect to, and this mode caches
+    /// nothing across restarts.
     #[must_use]
     pub fn devices(&self) -> Vec<KnownDevice> {
         let now = Instant::now();
@@ -134,7 +134,7 @@ impl Transport {
             .iter()
             .map(|(id, tracked)| KnownDevice {
                 id: id.clone(),
-                endpoint: tracked.address.clone(),
+                endpoint: tracked.endpoint.clone(),
                 sku: tracked.sku.clone(),
                 health: health_of(&tracked.breaker, now),
             })
@@ -263,15 +263,15 @@ impl Transport {
 
     /// Record a device the caller already knows how to reach.
     ///
-    /// The seam a test uses, and a host that discovered the address some other
+    /// The seam a test uses, and a host that discovered the handle some other
     /// way.
     #[cfg(test)]
-    pub(crate) fn insert(&self, id: &DeviceId, address: &str, sku: &str) {
+    pub(crate) fn insert(&self, id: &DeviceId, endpoint: &str, sku: &str) {
         if let Ok(mut devices) = self.shared.devices.lock() {
             devices.insert(
                 id.clone(),
                 Tracked::new(
-                    address.to_owned(),
+                    endpoint.to_owned(),
                     sku.to_owned(),
                     &self.shared.options,
                     self.shared.budget,
