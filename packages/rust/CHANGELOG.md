@@ -9,6 +9,16 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 
 ### Added
 
+- `govee_toolkit::ble::wire` — the seam between the protocol and a Bluetooth
+  stack, as an `Adapter` and a `Peripheral` trait. `ble::Radio` implements them
+  over the platform's radio, and `ble::Transport::with_adapter` takes another
+  one. Nothing above the seam names `btleplug`.
+- `govee_toolkit_sim::ble` — a fake peripheral on GATT and the radio that finds
+  it. It takes one connection, refuses a frame whose length or BCC is wrong,
+  answers a write and answers a read the test registered. Beside the faults the
+  `lan` device carries, it refuses a connection and it stalls under a burst.
+  The `ble` transport is thus tested end to end on a machine with no Bluetooth:
+  see `tests/ble_sim.rs`.
 - `govee_toolkit::transport` — what every mode shares, moved out of the facade:
   the `Transport` trait a mode implements, the transport-neutral error, the
   circuit breaker, `DeviceStatus` and the event types. `lan` re-exports all of
@@ -148,7 +158,7 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   does not know, so a file still carrying `lan.stream_fallback_hz` fails to
   load: move the key rather than deleting it, or the fallback returns to 10 Hz.
 
-## [0.3.0] — 2026-09-06
+## [0.3.0] — 2026-09-07
 
 `ble` is a mode with a transport behind it. It is opt-in and off by default, and
 it does not change `lan`. The trait that the two modes now share moved several

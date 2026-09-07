@@ -1,4 +1,7 @@
-//! A fake Govee device on UDP.
+//! A fake Govee device on UDP, and a fake one on GATT.
+//!
+//! The `lan` device is below. The `ble` one is [`ble`], and it is a separate
+//! device: the two modes share no wire.
 //!
 //! It exists so the transport can be tested in CI, where there is no hardware:
 //! it answers `scan` on the discovery port and answers status requests on the
@@ -290,6 +293,8 @@ impl Simulator {
         }
     }
 }
+
+pub mod ble;
 
 mod serve;
 

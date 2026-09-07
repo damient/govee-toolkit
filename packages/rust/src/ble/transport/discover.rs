@@ -3,13 +3,11 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use btleplug::api::{Central as _, Peripheral as _, ScanFilter};
-use btleplug::platform::Adapter;
-
 use crate::ble::link::adapter as adapter_error;
 use crate::ble::pace::Pacer;
 use crate::ble::scan::Advertised;
 use crate::ble::transport::shared::{Shared, Tracked, id_at};
+use crate::ble::wire::Adapter;
 use crate::codec::Mode;
 use crate::transport::DeviceId;
 use crate::transport::error::Result;
@@ -26,11 +24,11 @@ impl Shared {
     /// [`Error::Io`](crate::transport::Error::Io) if no adapter is available
     /// or the scan cannot be started.
     pub(super) async fn scan(&self, window: Duration) -> Result<Vec<Discovered>> {
-        let adapter = self.adapter().await?;
+        let adapter = self.adapter.as_ref();
         adapter
-            .start_scan(ScanFilter::default())
+            .start_scan()
             .await
-            .map_err(|e| adapter_error("ble", "starting a scan", &e))?;
+            .map_err(|e| adapter_error("ble", "starting a scan", e))?;
 
         tokio::time::sleep(window).await;
         let mut seen = collect(adapter).await?;
@@ -96,34 +94,15 @@ impl Shared {
     }
 }
 
-/// Read the advertisements the adapter holds.
-///
-/// A peripheral is recorded under the handle the platform addresses it by, not
-/// under its Bluetooth address: macOS exposes no address and reports every
-/// peripheral as `00:00:00:00:00:00`.
-async fn collect(adapter: &Adapter) -> Result<Vec<Advertised>> {
-    let peripherals = adapter
-        .peripherals()
+/// Read the advertisements the adapter holds, and keep the ones this
+/// transport recognizes.
+async fn collect(adapter: &dyn Adapter) -> Result<Vec<Advertised>> {
+    let heard = adapter
+        .heard()
         .await
-        .map_err(|e| adapter_error("ble", "listing what the scan heard", &e))?;
-
-    let mut seen = Vec::new();
-    for peripheral in peripherals {
-        // A peripheral the platform has forgotten is not an error, only one
-        // fewer device on the air.
-        let Ok(Some(properties)) = peripheral.properties().await else {
-            continue;
-        };
-        let Some(name) = properties
-            .local_name
-            .or(properties.advertisement_name)
-            .filter(|name| !name.is_empty())
-        else {
-            continue;
-        };
-        if let Some(device) = Advertised::read(peripheral.id().to_string(), &name) {
-            seen.push(device);
-        }
-    }
-    Ok(seen)
+        .map_err(|e| adapter_error("ble", "listing what the scan heard", e))?;
+    Ok(heard
+        .into_iter()
+        .filter_map(|device| Advertised::read(device.endpoint, &device.name))
+        .collect())
 }
