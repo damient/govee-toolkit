@@ -24,6 +24,24 @@ at.
 
 #### Added
 
+- `music_effect` on `devices/H61A0.yaml`, the chunked music channel at `0xA3`
+  `0x41`. A transfer carries a color list and the parameters of one effect, and
+  a `33 05 13` frame after it plays what was transferred. This is the channel
+  that reaches the effects the single `music` frame acknowledges and renders
+  nothing for: effect 50 renders here. Six effect codes were driven on the unit
+  and all six rendered, each visibly different from the others. **None of the
+  six was matched to the label the vendor app gives its code** — the file, its
+  `verified:` block and
+  [`docs/protocol/ble.md`](docs/protocol/ble.md) 6 all state this. The
+  per-effect parameter tail is a `bytes` argument the codec does not interpret,
+  which the notes call out as the second place in that file where the no-clamp
+  guarantee does not hold.
+- [`docs/protocol/ble.md`](docs/protocol/ble.md) 6 describes the `0xA3` cutting
+  rather than leaving it open. The header carries payload bytes, the closing
+  frame carries the last piece, and the count byte in the header counts every
+  frame of the transfer. Scenes stay unimplemented: they ride the same
+  `proType` under another command type, and no scene transfer has been sent to
+  a device.
 - `devices/H61A0.yaml` declares `ble`, verified on the same unit. The commands
   are power, brightness, color, color temperature, brightness by zone mask,
   per-zone brightness and zone interpolation. The file also declares seven

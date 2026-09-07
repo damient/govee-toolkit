@@ -26,6 +26,18 @@ use govee_toolkit::{Args, Config, Error, Govee};
 /// trimmed: the firmware would drop the bit in silence.
 const ALL_ZONES: [u16; 15] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 
+/// The colors the vendor app sends a music effect with no saved palette. The
+/// list is the effect's own, not one zone each.
+const PALETTE: [[u8; 3]; 7] = [
+    [255, 0, 0],
+    [255, 127, 0],
+    [255, 255, 0],
+    [0, 255, 0],
+    [0, 0, 255],
+    [0, 255, 255],
+    [139, 0, 255],
+];
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let sku = std::env::var("GOVEE_SKU").unwrap_or_else(|_| "H61A0".to_owned());
@@ -128,6 +140,22 @@ async fn main() -> Result<(), Error> {
                 .int("b", 0),
         )
         .await?;
+
+    // The chunked channel. The transfer carries the colors and the parameters
+    // of one effect, and the frame the device file sends after it plays what
+    // was transferred. `params` is the tail that effect takes, and nothing
+    // here interprets it: the device file says what it is.
+    device
+        .send(
+            "music_effect",
+            &Args::new()
+                .int("effect", 50)
+                .rgb("colors", PALETTE)
+                .bytes("params", vec![3, 0, 99])
+                .int("sensitivity", 99),
+        )
+        .await?;
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
     read_everything(&device).await?;
     paint_zones(&device).await?;

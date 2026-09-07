@@ -61,7 +61,7 @@ The BCC is the XOR of bytes 0 to 18. `proType` says what kind of frame it is:
 | `0x33` | single write |
 | `0xAA` | single read, answered on the notify characteristic |
 | `0xA1` | multi-packet write, Wi-Fi provisioning |
-| `0xA3` | multi-packet write, scenes |
+| `0xA3` | multi-packet write, music effects and scenes |
 
 A device file writes the layout as a `frame:` that ends in `<pad:20> <xor>`,
 which is this shape.
@@ -341,12 +341,83 @@ about that device.
 A repaint over §2.3 costs one write per distinct color, so a frame rate over
 this mode falls with the number of colors in it.
 
-## 6. Scenes — `proType` `0xA3`
+## 6. Chunked writes — `proType` `0xA3`
 
-Not implemented. The chunking differs from §4: 17-byte pieces, and the header
-carries the first 14 payload bytes. The packet-count byte in that header does
-not follow from what was observed, and a guess would invent a verification
-nobody did.
+A payload too long for one frame travels here. The cutting differs from §4 in
+three ways, and each one is what makes a transfer built like §4 fail:
+
+- The header carries payload bytes. It does not open the transfer and stop.
+- The **closing frame carries the last piece.** Index `0xFF` is not an empty
+  end marker.
+- The count byte in the header is the number of frames in the transfer, the
+  header and the closing frame included. It does not count data frames.
+
+`commandType` `0x41` is a music effect, and §6.2 is that one. The vendor app
+names four more for scenes — `0x01`, `0x02`, `0x07` and `0x0A`, one per scene
+version. Scenes are not implemented: which cutter each version takes was not
+established, and no scene transfer has been sent to a device.
+
+### 6.1 The cutting
+
+The first byte of a frame is the `proType`, the second is the index. The header
+is index `0x00` and the closing frame is index `0xFF`:
+
+```
+A3 00 01 <frames> <commandType> <sub-command> <13 bytes>   header
+A3 <i>   <17 bytes>                                        i = 1..
+A3 FF    <last piece, up to 17 bytes>                      closing frame
+```
+
+Byte 2 of the header is `0x01` on every transfer seen here. Byte 3 counts the
+frames: `2` where the body fits the header and the closing frame, and one more
+per data frame after that. The header holds `15 - n` payload bytes, where `n`
+is the number of command bytes after byte 3 — two of them for music, so 13.
+
+Each piece is zero-padded out to its 17 bytes before the checksum, so a short
+last piece looks like a full one with zeros after it.
+
+A device file writes this as a `chunk:` block with a `head_size:`, a footer
+that reads `${chunk:bytes}`, and `${total}` in the header. See
+`devices/schema.yaml`.
+
+### 6.2 Music effects — `commandType` `0x41`
+
+The sub-command byte is the effect. The body is
+
+```
+[colour count][R G B]×count[per-effect parameters]
+```
+
+and the transfer stores it rather than plays it. What plays it is one frame of
+§2.8's sub-mode, carrying the effect and the sensitivity and nothing else:
+
+```
+33 05 13 <effect> <sensitivity>
+```
+
+This is why an effect the single §2.8 frame acknowledges can render nothing:
+that frame has no room for the parameters, and without a transfer before it the
+firmware has none to render. The seven fields §2.8 lists belong to the effects
+that need no transfer.
+
+The colour count is one byte and the vendor app allows 1 to 8 entries. Which
+parameters follow the colours is a property of the effect, not of the protocol:
+a device file records the ones somebody drove on its unit, and the codec passes
+them through uninterpreted.
+
+Status comes back on the notify characteristic as `A3 <commandType>
+<sub-command> <status>`; `0` means accepted. An accepted transfer is not a
+rendered effect — §7 — and neither is the sub-mode read of §3 echoing it back.
+
+Worked example — effect `0x32`, the seven-colour palette the vendor app sends
+with no saved one, and a three-byte tail:
+
+```
+body     07 ff0000 ff7f00 ffff00 00ff00 0000ff 00ffff 8b00ff 03 00 63
+header   a3000102413207ff0000ff7f00ffff0000ff0054
+closing  a3ff0000ff00ffff8b00ff0300630000000000b7
+plays it 3305133263000000000000000000000000000074
+```
 
 ## 7. Probing
 
