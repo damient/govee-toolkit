@@ -282,19 +282,13 @@ impl State {
             _ => return None,
         };
         answer.resize(FRAME_LEN, 0);
-        if let Some(last) = answer.last_mut() {
-            *last = 0;
-        }
         let sum = bcc(&answer);
         if let Some(last) = answer.last_mut() {
             *last = sum;
         }
 
         self.sent = self.sent.wrapping_add(1);
-        let dropped = self
-            .faults
-            .drop_one_in
-            .is_some_and(|n| n > 0 && self.sent.is_multiple_of(n));
+        let dropped = crate::drops(self.faults.drop_one_in, self.sent);
         (!dropped).then_some((answer, self.faults.latency))
     }
 }
