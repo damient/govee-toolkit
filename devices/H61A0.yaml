@@ -471,7 +471,7 @@ measurements:
 verified:
   by: "damient"
   firmware: "2.06.02"
-  date: "2026-09-06"
+  date: "2026-09-07"
   notes: >-
     lan mode fully exercised, including the undocumented razer segment channel
     at native resolution. ble mode exercised over GATT on the same unit, against

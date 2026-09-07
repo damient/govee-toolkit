@@ -22,20 +22,44 @@ at.
 
 ### 2026-09-07
 
-#### Changed
-
-- `measurements.ble.write_budget_hz` is the second entry of a `measurements:`
-  block that an SDK reads, beside `frame_rate`. It is the sustained rate the
-  `ble` transport paces its writes to, and it must be at or under the
-  `sustained_writes_hz` measured on the same unit. `cargo test` refuses a file
-  that breaks either rule. `burst_frames_before_stall` stays free-form: it
-  records the count that stalled a unit, and nothing derives a budget from it.
-  [`devices/schema.yaml`](devices/schema.yaml) says so where the block is
-  described.
-
-### 2026-09-06
-
 #### Added
+
+- `devices/H61A0.yaml` declares `ble`, verified on the same unit. The commands
+  are power, brightness, color, color temperature, brightness by zone mask,
+  per-zone brightness and zone interpolation. The file also declares seven
+  `0xAA` read commands and a `role: status` entry. That entry reads power and
+  brightness in two more exchanges. Each command is `documented: false`, and
+  each one points to the section of
+  [`docs/protocol/ble.md`](docs/protocol/ble.md) that describes it.
+- `modes.ble` moves from `unknown` to `partial`. Segments are reachable over
+  `ble`, but they are narrower than over `lan`: fifteen zones by mask, against
+  the unit's 42 individually addressable LEDs. Scenes are `unimplemented`.
+- Wi-Fi provisioning, as two chunked entries: one with the trailing API block
+  and one without it. The layout has no optional field. **Neither has ever been
+  sent to a device.** The layout was read from the other direction only. Its
+  notes, its `verified:` line and every one of its conformance vectors state
+  this, and the vectors pin this repository's encoder rather than the firmware.
+- `measurements.ble` — the read round trip, the sustained write rate, the burst
+  that makes the firmware unresponsive, the time that the firmware stays
+  unresponsive, and the fifteen addressable zones. All of these numbers come
+  from the same 3 m unit as the `lan` numbers. `frame_rate` carries no `ble`
+  rows. A division of the write budget by one write per color is arithmetic,
+  not a stutter test, and the file states this where the rows would go.
+- Conformance vectors in
+  [`tests/fixtures/golden/ble/H61A0.json`](tests/fixtures/golden/ble/H61A0.json)
+  for every `ble` command. The vectors include the refusals that prove that an
+  out-of-range value is an error and not a clamp. The refused values are a zone
+  past the width of the mask, a brightness of 0, and a color temperature under
+  the device's range.
+- `devices/schema.yaml` documents the `ble` command shape as the codec reads
+  it. The shape uses the same layout language as `lan`, with no `cmd:` and no
+  `payload:`. It adds the new frame tokens, the `string`, `zones` and `bytes`
+  argument types, `reply:` with `frames:`, `body:` with `chunk:`, and the
+  `segment_color_masked` role. The schema revision stays 1, which has a cost
+  worth stating: a build older than this one reads a `chunk:` command without
+  seeing the chunking, and encodes it to nothing rather than refusing the file.
+  Nothing can be done about builds already published; use a catalog no older
+  than the SDK reading it.
 
 - `devices/H61A0.yaml` declares the music sub-mode over `ble`, and `music`
   joins the capabilities the file lists. The sub-mode is `19` and the device
@@ -85,16 +109,6 @@ at.
   leaves the strips dark, and one naming a temperature and a green triplet
   lights them green.
 
-#### Note
-
-The firmware fades from one colour to the next and fades in at power on. `33 A3`,
-which sets zone interpolation on a device that has zones, is accepted here and
-changes nothing observable. Scene identifiers were not enumerated. DIY and
-Wi-Fi provisioning were not exercised. The firmware accepts an effect and a
-sensitivity past the ranges above and reads the value back, so those ranges are
-the ones the vendor app drives. No BLE capture has been redacted and committed
-yet, so every `capture:` in the file is empty.
-
 #### Changed
 
 - `devices/H6114.yaml`: the byte between the sensitivity and the colour mode of
@@ -113,77 +127,30 @@ yet, so every `capture:` in the file is empty.
   checksum. That checksum is not padding and it is not printable. Both reads
   thus failed on every attempt. `aa 20` answers `1.02.00` and `aa 21` answers
   `2.06.02` on the verified unit. The file already stated these two answers.
+- `measurements.ble.write_budget_hz` is the second entry of a `measurements:`
+  block that an SDK reads, beside `frame_rate`. It is the sustained rate the
+  `ble` transport paces its writes to, and it must be at or under the
+  `sustained_writes_hz` measured on the same unit. `cargo test` refuses a file
+  that breaks either rule. `burst_frames_before_stall` stays free-form: it
+  records the count that stalled a unit, and nothing derives a budget from it.
+  [`devices/schema.yaml`](devices/schema.yaml) says so where the block is
+  described.
 
 #### Note
 
-Every `ble` command in the file has been sent to the unit, and its effect or
+Every `ble` command in the two files has been sent to a unit, and its effect or
 its answer was observed. Wi-Fi provisioning is the exception. That one has
-still never been sent to a device. The `capture:` fields stay empty. No BLE
-capture has been redacted and committed yet.
+never been sent to a device.
 
-### 2026-09-06
+On the H6114 the firmware fades from one colour to the next and fades in at
+power on. `33 A3`, which sets zone interpolation on a device that has zones, is
+accepted there and changes nothing observable. Scene identifiers were not
+enumerated. DIY and Wi-Fi provisioning were not exercised. The firmware accepts
+an effect and a sensitivity past the ranges above and reads the value back, so
+those ranges are the ones the vendor app drives.
 
-#### Added
-
-- `devices/H61A0.yaml` declares `ble`, verified on the same unit. The commands
-  are power, brightness, color, color temperature, brightness by zone mask,
-  per-zone brightness and zone interpolation. The file also declares seven
-  `0xAA` read commands and a `role: status` entry. That entry reads power and
-  brightness in two more exchanges. Each command is `documented: false`, and
-  each one points to the section of
-  [`docs/protocol/ble.md`](docs/protocol/ble.md) that describes it.
-- `modes.ble` moves from `unknown` to `partial`. Segments are reachable over
-  `ble`, but they are narrower than over `lan`: fifteen zones by mask, against
-  the unit's 42 individually addressable LEDs. Scenes are `unimplemented`.
-- Wi-Fi provisioning, as two chunked entries: one with the trailing API block
-  and one without it. The layout has no optional field. **Neither has ever been
-  sent to a device.** The layout was read from the other direction only. Its
-  notes, its `verified:` line and every one of its conformance vectors state
-  this, and the vectors pin this repository's encoder rather than the firmware.
-- `measurements.ble` — the read round trip, the sustained write rate, the burst
-  that makes the firmware unresponsive, the time that the firmware stays
-  unresponsive, and the fifteen addressable zones. All of these numbers come
-  from the same 3 m unit as the `lan` numbers. `frame_rate` carries no `ble`
-  rows. A division of the write budget by one write per color is arithmetic,
-  not a stutter test, and the file states this where the rows would go.
-- Conformance vectors in
-  [`tests/fixtures/golden/ble/H61A0.json`](tests/fixtures/golden/ble/H61A0.json)
-  for every `ble` command. The vectors include the refusals that prove that an
-  out-of-range value is an error and not a clamp. The refused values are a zone
-  past the width of the mask, a brightness of 0, and a color temperature under
-  the device's range.
-- `devices/schema.yaml` documents the `ble` command shape as the codec reads
-  it. The shape uses the same layout language as `lan`, with no `cmd:` and no
-  `payload:`. It adds `reply:`, `frames:`, `body:` and `chunk:`. The schema
-  revision stays 1.
-
-#### Note
-
-No BLE capture is committed. A redaction is a step of its own. Every
-`capture:` in the `ble` table is thus empty, with a TODO beside it.
-
-### 2026-09-06
-
-#### Added
-
-- `devices/H61A0.yaml` declares `ble` as `partial`. The file carries the
-  command table, the numbers measured on the unit and a `verified:` block. That
-  block states what was exercised and what was not. Segments are reachable over
-  `ble`, but they are narrower than over `lan`: a fifteen-bit mask addresses
-  the zones, against the forty-two individually addressable ICs that the `lan`
-  raw channel reaches. The file states this limit and does not omit the
-  capability.
-- `tests/fixtures/golden/ble/H61A0.json` — conformance vectors for every `ble`
-  command. The `source` of each vector separates bytes exercised on hardware
-  from bytes worked out from the documented layout.
-- `devices/schema.yaml` documents the constructs that the `ble` work needed:
-  the new frame tokens, the `string`, `zones` and `bytes` argument types,
-  `body:` with `chunk:`, `reply:` with `frames:`, and the
-  `segment_color_masked` role. The schema revision stays 1, which has a cost
-  worth stating: a build older than this one reads a `chunk:` command without
-  seeing the chunking, and encodes it to nothing rather than refusing the file.
-  Nothing can be done about builds already published; use a catalog no older
-  than the SDK reading it.
+No BLE capture is committed. A redaction is a step of its own. Every `capture:`
+in the `ble` tables is thus empty, with a TODO beside it.
 
 ### 2026-09-05
 
