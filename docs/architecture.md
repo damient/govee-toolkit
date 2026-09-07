@@ -5,19 +5,15 @@ re-implementing it.
 
 ## Why one core
 
-The protocol is small and stable: UDP, a JSON envelope, and one variable-length
-raw frame with an XOR checksum ([`protocol/lan.md`](protocol/lan.md)). What
-actually changes is the data — new SKUs, new opcodes, new per-family
-capabilities. That split is what makes a single compiled core worth it: the part
-that would be duplicated barely moves, and the part that moves constantly is
-YAML anyone can write.
+The protocol is small and stable: UDP, a JSON envelope, and one
+variable-length raw frame with an XOR checksum
+([`protocol/lan.md`](protocol/lan.md)). What changes is the data — new SKUs,
+new opcodes, new per-family capabilities. So the part that would be duplicated
+barely moves, and the part that moves constantly is YAML anyone can write.
+Three ports of one protocol means three places a frame can be built wrong.
 
-Three ports of the same protocol means three places a frame can be built wrong.
-One core means one.
-
-Rust for the reasons the fast path needs: no garbage collector pausing a
-segment stream, a socket per device and a breaker per mode expressed without
-data races, and a single static binary to embed or ship.
+Rust for what the fast path needs: no garbage collector pausing a segment
+stream, no data races on a socket per device, and a single static binary.
 
 ## Layers
 
@@ -89,10 +85,9 @@ the user's explicit list; the trait only removes the repetition. See
 [`modes.md`](modes.md).
 
 `ble` adds a second seam under that trait, `ble::wire`: an adapter and a
-peripheral, in the terms GATT uses. Above it everything is protocol — frames,
-budgets, breakers. Below it is one platform's radio, and `ble::Radio` is the
-implementation that ships. `Transport::with_adapter` takes another, which is how
-`crates/sim` runs the whole send path with no Bluetooth on the machine.
+peripheral. Above it everything is protocol; below it is one platform's radio.
+`Transport::with_adapter` takes another, which is how `crates/sim` runs the
+whole send path with no Bluetooth on the machine.
 
 ## Bindings
 
@@ -110,12 +105,11 @@ revision it was generated at; CI builds it on every run and a release attaches
 it. A third-party tool reads that one file instead of walking a directory and
 parsing YAML. It is a build output, never committed.
 
-The crate still **compiles the catalog in**, at build time. That is what keeps
-the SDK a single artifact: no data file to install alongside it, no path to
-configure, nothing to go missing on a Raspberry Pi. Loading an external
-catalog at runtime is deliberately deferred — it is a way to ship a device fix
-without a release, and it is also a way for a file nobody reviewed to decide
-what bytes reach your hardware ([`security.md`](security.md)).
+The crate still **compiles the catalog in**, at build time, which keeps the
+SDK a single artifact: no data file to install, no path to configure. Loading
+an external catalog at runtime is deferred — it ships a device fix without a
+release, and it also lets a file nobody reviewed decide what bytes reach your
+hardware ([`security.md`](security.md)).
 
 `schema_version` is validated on the way in: an unknown version is a typed
 error, not a file read as if it were v1.

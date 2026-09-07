@@ -147,10 +147,11 @@ SKU.
 
 `packages/rust` is the reference implementation and the only place protocol
 logic exists. It is **one crate**, `govee-toolkit`, with the layers as modules:
-`src/codec/` (no I/O), `src/lan/` and `src/stream/` (behind the default `lan`
-feature) and the facade at the crate root. `crates/sim` and `crates/xtask` sit beside it and
-carry `publish = false`. A transport is a cargo feature — `ble` and `cloud` join
-`lan` as they land.
+`src/codec/` (no I/O), `src/transport/` (what every mode shares), `src/lan/`,
+`src/ble/`, `src/stream/` and the facade at the crate root. `crates/sim` and
+`crates/xtask` sit beside it and carry `publish = false`. A transport is a
+cargo feature — `lan` is on by default, `ble` is opt-in, and `cloud` joins them
+when it lands.
 
 The codec keeps building on its own (`cargo check --no-default-features`), and
 `tools/check-no-io.sh` fails the build if anything under `src/codec/` imports
@@ -170,9 +171,9 @@ In Rust: no `unsafe`, and no `panic` / `unwrap` / `expect` in library code. Out
 of range is an error, never a clamp — the firmware clamps in silence, and an SDK
 that did the same would report success for a value the device did not apply.
 
-Mode dispatch is a `match` in the facade. A `Transport` trait is the
-prerequisite for the BLE pull request, not something to add early — see
-`docs/architecture.md`.
+A mode is one implementation of the `Transport` trait in `src/transport/`. The
+facade holds one transport per mode and looks the mode up, so a new mode adds a
+module and no match arm — see `docs/architecture.md`.
 
 Format with `cargo +nightly fmt` — `rustfmt.toml` uses nightly-only options and
 stable rustfmt produces a different result. A Rust source file stays under 400

@@ -147,13 +147,16 @@ The Rust side is one published crate, `govee-toolkit`, rooted at
 | Path | What it is |
 | ---- | ---------- |
 | `src/codec/` | Codec: device file in, bytes out, no I/O |
-| `src/lan/` | Transport: UDP, discovery, breaker. Behind the `lan` feature |
+| `src/transport/` | What every mode shares: the `Transport` trait, the identity, the breaker, the errors |
+| `src/lan/` | Transport: UDP, discovery, device cache. Behind the `lan` feature |
+| `src/ble/` | Transport: GATT, scan, one link per device, paced writes. Behind the `ble` feature |
 | `src/stream/` | Segment channel: armed once, fed frames on a clock |
 | `src/` | Facade: modes, configuration, events |
 | `crates/sim/` | Device simulator. Never published |
 | `crates/xtask/` | Generates `dist/catalog.json`. Never published |
 
-`lan` is a default feature; `ble` and `cloud` join it as they land. With default
+`lan` is a default feature, `ble` is opt-in, and `cloud` joins them when it
+lands. With default
 features off the codec builds on its own, and CI checks that it still does.
 `tools/check-no-io.sh` is what keeps the codec free of sockets — under
 `src/codec/`, do not import `std::net`, `std::fs`, `std::thread`, `tokio` or
