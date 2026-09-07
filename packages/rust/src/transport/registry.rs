@@ -1,9 +1,8 @@
 //! The per-device table every transport keeps, and the answers it builds.
 //!
-//! A mode adds its own fields to a record — an address, a connection, a write
-//! budget — and this layer reads none of them. What it does own is the part
-//! every mode repeats: the breaker gate, the verification claim, and the three
-//! things a transport publishes.
+//! A mode adds its own fields to a record — an address, a link, a budget — and
+//! this layer reads none of them. It owns what every mode repeats: the breaker
+//! gate, the verification claim, and the three things a transport publishes.
 
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
@@ -20,13 +19,9 @@ use crate::transport::status::DeviceStatus;
 
 /// What a transport's per-device record exposes to be tracked here.
 pub(crate) trait Tracked {
-    /// The SKU the device reports.
     fn sku(&self) -> &str;
-    /// Its breaker.
     fn breaker(&self) -> &Breaker;
-    /// Its breaker, to feed.
     fn breaker_mut(&mut self) -> &mut Breaker;
-    /// The channel its status is published on.
     fn status(&self) -> &watch::Sender<Option<DeviceStatus>>;
     /// When verification last ran, so a burst of commands does not turn into a
     /// burst of probes.

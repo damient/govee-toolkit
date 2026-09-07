@@ -32,9 +32,8 @@ authors = ["damient"]
 # build, and `tools/check-no-io.sh` guards it.
 default = ["lan"]
 # A feature is public API (`docs/versioning.md`), so each transport spells its
-# dependencies out rather than shares an internal feature. `async-trait` puts
-# the shared `Transport` trait behind a `dyn`: its methods are async, and an
-# async fn in a dyn-safe trait needs boxed futures.
+# dependencies out rather than shares an internal feature. `async-trait` is
+# what puts the async `Transport` trait behind a `dyn`.
 lan = ["dep:socket2", "dep:async-trait", "dep:tokio", "dep:tracing"]
 ble = [
   "dep:btleplug",
@@ -68,9 +67,7 @@ tokio = { version = "1", features = [
 tracing = { version = "0.1", optional = true }
 uuid = { version = "1", optional = true }
 
-# The examples run against a real device, one per mode. These entries stop
-# `cargo build` from compiling the `ble` example into a build with no `ble`
-# transport.
+# The examples run against a real device, one per mode.
 [[example]]
 name = "lan_tour"
 required-features = ["lan"]
@@ -80,11 +77,10 @@ name = "ble_tour"
 required-features = ["ble"]
 
 [dev-dependencies]
-# The `Transport` trait is `#[async_trait]`, so every implementation needs the
-# same macro. The test that fakes a transport uses it as an application would.
+# The `Transport` trait is `#[async_trait]`, so the test that fakes one needs
+# the same macro.
 async-trait = "0.1"
-# What joins the simulator to `ble::wire`: a stream of frames, and the UUIDs
-# the two name a characteristic by.
+# What joins the simulator to `ble::wire`.
 futures-util = { version = "0.3", default-features = false }
 uuid = "1"
 # Path-only on purpose: `cargo package` drops a dev-dependency that carries no
@@ -126,8 +122,7 @@ pedantic = { level = "warn", priority = -1 }
 cargo = { level = "warn", priority = -1 }
 # Nothing in this workspace can act on a duplicate transitive version.
 multiple_crate_versions = "allow"
-# The SDK must fail explicitly rather than abort the host application: a panic
-# in a library crate is a bug, not an error path. See docs/modes.md.
+# A panic in a library crate is a bug, not an error path. See docs/modes.md.
 unwrap_used = "warn"
 expect_used = "warn"
 panic = "warn"

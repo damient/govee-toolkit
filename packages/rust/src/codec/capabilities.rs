@@ -1,10 +1,8 @@
 //! What a device can do, and what a mode reaches of it.
 //!
-//! Capability names are data. The codec reads one of them, [`SEGMENTS`], for
-//! the zone counts the segment stream needs, and treats every other as an
-//! opaque string — a device file may declare a capability no SDK has heard of.
-//! Parameters are the exception: one the codec does not know is refused rather
-//! than ignored.
+//! Capability names are data: the codec reads [`SEGMENTS`] for the zone
+//! counts a stream needs and treats every other name as an opaque string.
+//! Parameters are the exception — an unknown one is refused, not ignored.
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -15,10 +13,8 @@ use serde::{Deserialize, Deserializer};
 /// reads.
 pub const SEGMENTS: &str = "segments";
 
-/// Parameters qualifying one capability.
-///
-/// Each field belongs to the capability that declares it; the doc comment says
-/// which. All are optional, and an unknown one fails the file to load.
+/// Parameters qualifying one capability, named below. All optional, and an
+/// unknown one fails the file to load.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CapabilityParams {
@@ -29,15 +25,13 @@ pub struct CapabilityParams {
     /// Zones the Govee app exposes — `segments`.
     pub count: Option<u32>,
     /// Individually addressable LEDs, measured on a physical unit —
-    /// `segments`. Absent means nobody measured one: the number belongs to the
-    /// unit's length and is never extrapolated from another unit.
+    /// `segments`. Absent means nobody measured one; it is never
+    /// extrapolated.
     pub native_pixels: Option<u32>,
 }
 
-/// What the hardware can do, regardless of mode.
-///
-/// A capability the hardware does not have is **absent**, and one it has with
-/// nothing to qualify it carries empty parameters.
+/// What the hardware can do, regardless of mode. A capability it does not have
+/// is **absent**, never `false`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Capabilities(BTreeMap<String, CapabilityParams>);
 
@@ -99,10 +93,8 @@ pub enum ModeCapabilities {
 }
 
 impl ModeCapabilities {
-    /// The names this mode reaches, resolved against the hardware's set.
-    ///
-    /// A name the hardware does not declare is kept, so that a caller checking
-    /// the file sees it; `crate::codec::validate` reports it.
+    /// The names this mode reaches. One the hardware does not declare is kept
+    /// rather than dropped, and `crate::codec::validate` reports it.
     #[must_use]
     pub fn resolve<'a>(&'a self, hardware: &'a Capabilities) -> Vec<&'a str> {
         match self {

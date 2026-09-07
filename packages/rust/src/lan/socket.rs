@@ -1,13 +1,9 @@
 //! The one UDP socket the transport reuses.
 //!
-//! Everything goes through it: the multicast `scan`, the commands to
-//! `<device>:4003`, and the replies that come back. One socket rather than one
-//! per send, because a fresh socket per command is a syscall and a port
-//! allocation on the fast path for nothing — `docs/protocol/lan.md` §1, latency
-//! notes.
-//!
-//! Replies to `scan` and to `devStatus` arrive on the same port, so the socket
-//! is bound once and its receive loop dispatches on `msg.cmd`.
+//! The multicast `scan`, the commands to `<device>:4003` and the replies all
+//! go through it: a fresh socket per command costs a syscall and a port on the
+//! fast path (`docs/protocol/lan.md` §1). `scan` and `devStatus` answer on the
+//! same port, so the receive loop dispatches on `msg.cmd`.
 
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
@@ -31,9 +27,8 @@ pub(crate) struct Socket {
 impl Socket {
     /// Bind the receive port and join the discovery group.
     ///
-    /// `SO_REUSEADDR` — and `SO_REUSEPORT` where it exists — because port 4002
-    /// is fixed by the protocol: without it, a second process on the host
-    /// cannot start at all, and neither can two tests at once.
+    /// `SO_REUSEADDR`, and `SO_REUSEPORT` where it exists, because port 4002
+    /// is fixed by the protocol: without them a second process cannot start.
     pub(crate) fn bind(endpoints: &Endpoints) -> Result<Self> {
         let domain = Domain::for_address(endpoints.reply_bind);
         let socket = Socket2::new(domain, Type::DGRAM, Some(Protocol::UDP))
@@ -112,9 +107,8 @@ pub(crate) struct Reply {
 
 /// Read a datagram into a [`Reply`].
 ///
-/// Anything that is not the documented envelope is dropped. Devices on a
-/// network answer discovery requests that were not this crate's, and other
-/// software shares port 4002 — a datagram that does not parse is not an error.
+/// Anything that is not the documented envelope is dropped: port 4002 is
+/// shared, so a datagram that does not parse is not an error.
 pub(crate) fn parse_reply(from: SocketAddr, bytes: &[u8]) -> Option<Reply> {
     let mut value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
     let msg = value.get_mut("msg")?.as_object_mut()?;

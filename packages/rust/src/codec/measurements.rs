@@ -1,12 +1,9 @@
 //! Numbers taken from one physical unit.
 //!
-//! Segment count, native resolution and sustainable frame rate all depend on
-//! the LENGTH of the unit measured, not only on its SKU — two ropes sharing a
-//! model in different lengths share none of them. So these are records of an
-//! observation, never a property of the model. Nothing here is derived from
-//! anything else: an absent number stays absent.
-//!
-//! See `docs/protocol/lan.md` 2.3 and 2.7 for how they are measured.
+//! Segment count, native resolution and sustainable frame rate depend on the
+//! LENGTH of the unit, not only on its SKU, so each is an observation and not
+//! a property of the model. Nothing here is derived: an absent number stays
+//! absent. See `docs/protocol/lan.md` 2.3 and 2.7.
 
 use std::collections::BTreeMap;
 
@@ -31,9 +28,8 @@ pub struct FrameRate {
 
 /// Sustainable segment frame rates, as a device file records them.
 ///
-/// A bare list is the `lan` table. A mapping records one table per mode: the
-/// channels differ in frame size and in what the firmware does between writes,
-/// so a rate measured over one says nothing about another.
+/// A bare list is the `lan` table; a mapping records one table per mode. A
+/// rate measured over one mode says nothing about another.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum FrameRates {
@@ -75,9 +71,8 @@ pub struct Ble {
     /// Writes per second the transport paces itself to, at or under
     /// `sustained_writes_hz`. [`crate::codec::validate`] checks that.
     pub write_budget_hz: Option<f64>,
-    /// Frames in one burst that left the firmware unresponsive. Not a burst
-    /// allowance: it is the count that broke the unit, so nothing derives a
-    /// budget from it.
+    /// Frames in one burst that left the firmware unresponsive. The count
+    /// that broke the unit, never a burst allowance.
     pub burst_frames_before_stall: Option<u32>,
     /// How long the firmware stayed unresponsive after such a burst, in
     /// seconds.
@@ -114,10 +109,9 @@ impl Measurements {
     /// The measured rate for `zones` over `mode`, in hertz, or `None` if
     /// nothing was measured on this unit for that mode.
     ///
-    /// Answers with the smallest row that covers `zones`. Past the largest row
-    /// it answers with that row, the slowest rate anybody measured: the ceiling
-    /// only falls as frames grow, so that rate is an observed floor and not an
-    /// extrapolation. No rate crosses from one mode to another.
+    /// The smallest row that covers `zones`, or the largest row past that.
+    /// The ceiling only falls as frames grow, so the largest row is an
+    /// observed floor and not an extrapolation.
     #[must_use]
     pub fn clean_hz(&self, mode: Mode, zones: u32) -> Option<f64> {
         let rows = self.frame_rate.rows(mode);

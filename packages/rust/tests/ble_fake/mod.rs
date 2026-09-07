@@ -1,8 +1,7 @@
 //! The fixture device, and a transport that speaks to it instead of a radio.
 //!
-//! The `ble` transport needs hardware and CI has none, so the suites that
-//! cover the facade around it attach this. It answers from
-//! `tests/fixtures/ble-device.yaml` and records every frame it is handed.
+//! Answers from `tests/fixtures/ble-device.yaml` and records every frame it
+//! is handed, so the suites around the facade need no hardware.
 
 #![allow(
     dead_code,
@@ -28,9 +27,7 @@ pub(crate) const DEVICE_FILE: &str = include_str!("../fixtures/ble-device.yaml")
 pub(crate) const SKU: &str = "HTEST4";
 pub(crate) const MAC: &str = "AA:BB:CC:DD:EE:FF";
 
-/// What the device answers, by the byte that names the request. A real radio
-/// carries these on the notify characteristic; the fixture's layouts read them
-/// either way.
+/// What the device answers, by the byte that names the request.
 pub(crate) fn answer(frame: &[u8]) -> Vec<u8> {
     let mut reply = match frame[1] {
         0x01 => vec![0xaa, 0x01, 0x01],

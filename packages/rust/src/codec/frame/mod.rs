@@ -1,37 +1,14 @@
 //! The `frame:` mini-language used by raw-channel commands.
 //!
-//! A device file describes a raw frame as a whitespace-separated token string.
-//! The byte layout stays next to the command that sends it, and the codec here
-//! stays generic: no SKU and no command name appears in this file.
+//! A device file writes a frame as a whitespace-separated token string, so the
+//! layout stays next to its command and no SKU name reaches this code.
+//! `devices/schema.yaml` lists the tokens.
 //!
-//! | Token | Emits |
-//! | ----- | ----- |
-//! | `BB` | that literal byte, two hex digits |
-//! | `${name}` | one byte, from the integer argument `name` |
-//! | `${name:16}` | two bytes, big-endian, from `name` |
-//! | `${name:str8}` | one length byte, then `name` as UTF-8 |
-//! | `${name:str16}` | two big-endian length bytes, then `name` as UTF-8 |
-//! | `${name:mask8}` | one byte of zone bits, least significant bit first |
-//! | `${name:mask16}` | two bytes of zone bits, least significant bit first |
-//! | `${name:bytes}` | the bytes of `name`, as they are |
-//! | `<op:B0>` | the opcode, one or more literal bytes, marked as the opcode |
-//! | `<len:16>` | the payload length, big-endian, filled in once the frame is built |
-//! | `<pad:20>` | zeros, so that the whole frame is 20 bytes once `<xor>` is appended |
-//! | `(${list}:rgb)×${count}` | `count` RGB triples, taken from the list argument `list` |
-//! | `<xor>` | the XOR of every preceding byte |
-//!
-//! `<len:16>` counts the bytes after `<op:…>`, up to but excluding the
-//! checksum — the payload alone, as `docs/protocol/lan.md` 2.3 defines it. A
-//! frame that declares `<len:16>` must put `<op:…>` immediately after it, so
-//! the file states the boundary the length measures from.
-//!
-//! A string longer than its length prefix can count, and a zone index past the
-//! width of its mask, are both errors: the field would carry something other
-//! than what the caller asked for.
-//!
-//! `<xor>`, when present, must be the last token, and `<pad:…>` the one before
-//! it: padding that is not at the end would be followed by bytes the declared
-//! size does not account for.
+//! Three rules, each of them an error. `<len:16>` counts the bytes after
+//! `<op:...>` up to but excluding the checksum, so a layout declaring it must
+//! put `<op:...>` immediately after. `<xor>` comes last and `<pad:...>`
+//! immediately before it. And a string past what its length prefix counts, or
+//! a zone past the width of its mask, is refused.
 
 use crate::codec::error::{Error, Result};
 

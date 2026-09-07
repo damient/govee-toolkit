@@ -3,14 +3,12 @@
 //! - `xtask catalog [path]` — the distributable catalog.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //!
-//! The device files are the source of truth, and the Rust build compiles them
-//! in. Everything else — a third-party tool, anyone who wants the catalog
-//! without a YAML parser — reads this one generated file instead of the
-//! directory. It is a build output: never committed, produced by CI and
-//! attached to a release. See `docs/architecture.md`.
+//! The catalog is a build output for anyone who wants the device files without
+//! a YAML parser: never committed, produced by CI, attached to a release. See
+//! `docs/architecture.md`.
 //!
-//! A repository task fails the build loudly; the no-panic rule that applies to
-//! the library does not apply here.
+//! A repository task fails the build loudly; the library's no-panic rule does
+//! not apply here.
 #![allow(
     clippy::expect_used,
     clippy::panic,

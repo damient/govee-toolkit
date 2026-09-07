@@ -40,17 +40,16 @@ modes:
     capabilities: [power, brightness, color, scenes, music]
     unreachable: {}
     notes: >-
-      Reaches every capability the hardware has, plus the reads below. The color
-      sub-mode is 13 and its payload carries a 16-bit kelvin field between the
-      two RGB triplets. The music sub-mode is 19. See docs/protocol/ble.md.
+      The color sub-mode is 13, and its payload carries a 16-bit kelvin field
+      between the two RGB triplets. The music sub-mode is 19. See
+      docs/protocol/ble.md.
   cloud:
     support: none
     capabilities: []
     unreachable: {}
     notes: >-
-      Follows from the same fact as lan: with no network interface the device
-      never reaches AWS IoT, and it is registered to the Govee account over
-      Bluetooth only.
+      With no network interface the device never reaches AWS IoT. It is
+      registered to the Govee account over Bluetooth.
 
 commands:
   # Every frame here is 20 bytes: proType, commandType, payload, then a XOR of

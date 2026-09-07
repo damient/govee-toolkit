@@ -20,9 +20,8 @@ mod start;
 pub(crate) struct Inner {
     pub(crate) catalog: Catalog,
     pub(crate) config: Config,
-    /// One transport per mode it serves. A mode absent here has no transport in
-    /// this build — the feature is off, or nothing implements it yet — and the
-    /// SDK reports that rather than substitute another mode.
+    /// One transport per mode. A mode absent here has none in this build, and
+    /// the SDK reports that rather than substitute another.
     pub(crate) transports: BTreeMap<Mode, Arc<dyn Transport>>,
     pub(crate) events: broadcast::Sender<Event>,
     /// Encoded status requests, by mode then SKU. See
@@ -30,10 +29,8 @@ pub(crate) struct Inner {
     status_requests: Mutex<HashMap<Mode, HashMap<String, Arc<crate::codec::Encoded>>>>,
 }
 
-/// The SDK.
-///
-/// Cheap to clone; every clone shares one catalog, one configuration and one
-/// set of transports.
+/// The SDK. Cheap to clone; every clone shares one catalog, one configuration
+/// and one set of transports.
 #[derive(Clone)]
 pub struct Govee {
     pub(crate) inner: Arc<Inner>,
@@ -68,7 +65,9 @@ impl Govee {
         &self.inner.catalog
     }
 
-    /// The modes this build carries a transport for, in preference order.
+    /// The modes this build carries a transport for. Not a preference order:
+    /// that is each device's own configuration, on
+    /// [`DeviceHandle::modes`](crate::DeviceHandle::modes).
     #[must_use]
     pub fn modes(&self) -> Vec<Mode> {
         self.inner.transports.keys().copied().collect()
@@ -76,18 +75,14 @@ impl Govee {
 
     /// Run a discovery scan on every transport and return what answered.
     ///
-    /// Each transport listens for its own window: how long a scan must wait is
-    /// a property of the wire, and one mode's window reports a device that is
-    /// there as absent on another.
-    ///
-    /// Nothing on the send path calls this: it runs at startup and on the
-    /// background interval. See `docs/protocol/lan.md` §1, latency notes.
+    /// Each transport listens for its own window, which is a property of the
+    /// wire. Nothing on the send path calls this.
     ///
     /// # Errors
     ///
     /// [`Error::Transport`] if a request cannot be sent. One transport failing
-    /// fails the call: a scan that quietly covered fewer modes than asked would
-    /// read as a device that is not there.
+    /// fails the call: a scan covering fewer modes than asked would read as a
+    /// device that is not there.
     pub async fn scan(&self) -> Result<Vec<Device>> {
         let mut found: BTreeMap<DeviceId, String> = BTreeMap::new();
         for transport in self.inner.transports.values() {
@@ -101,10 +96,8 @@ impl Govee {
             .collect())
     }
 
-    /// Every device known, from discovery or from a cache, across every mode.
-    ///
-    /// One device reachable over two modes appears once: the identity is the
-    /// MAC, and it is the same unit.
+    /// Every device known, across every mode. One reachable over two modes
+    /// appears once: the identity is the MAC.
     #[must_use]
     pub fn devices(&self) -> Vec<Device> {
         let mut known: BTreeMap<DeviceId, String> = BTreeMap::new();
@@ -200,16 +193,14 @@ impl Govee {
         self.inner.config.sku_for(id).unwrap_or(reported).to_owned()
     }
 
-    /// The first enabled mode the device can be reached over right now.
-    ///
-    /// Decided from recorded state alone. Nothing here touches an adapter: a
-    /// trial send would cost the fast path a round-trip on every command.
+    /// The first enabled mode the device can be reached over right now, from
+    /// recorded state alone. Nothing here touches an adapter.
     pub(crate) fn choose(&self, id: &DeviceId) -> Result<Mode> {
         let modes = self.inner.config.modes_for(id);
         let mut unknown_to_every_transport = true;
         for &mode in modes {
-            // Reached only when a preferred mode was unavailable, which is
-            // exactly when a silent substitution would be wrong.
+            // An enabled mode this build has no transport for fails here. To
+            // move on to the next one would substitute a mode in silence.
             let Some(transport) = self.inner.transports.get(&mode) else {
                 return Err(Error::ModeNotImplemented {
                     id: id.clone(),
@@ -261,16 +252,11 @@ impl Govee {
         Ok(crate::codec::encode(device, mode, command, args)?)
     }
 
-    /// The status request for a SKU, built from its device file.
+    /// The entry the file marks `role: status` for this mode, encoded. A file
+    /// naming none gives [`Error::NoRoleCommand`].
     ///
-    /// The command is the one the file marks `role: status` for this mode — no
-    /// command name lives here. A file that names none has no status request,
-    /// and [`Error::NoRoleCommand`] says so rather than a guess failing later.
-    ///
-    /// Encoded once per mode and SKU, then shared: it takes no arguments and
-    /// the device file does not change at runtime, so the bytes never change.
-    /// Every [`DeviceHandle::send`] asks for one, and most discard it, so a
-    /// fresh encode would put a frame parse on the send path for nothing.
+    /// Cached per mode and SKU: the bytes never change, and every send asks
+    /// for one, so a fresh encode would put a frame parse on the send path.
     pub(crate) fn status_request(
         &self,
         sku: &str,

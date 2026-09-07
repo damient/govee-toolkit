@@ -1,31 +1,18 @@
 //! The `ble` transport: GATT over Bluetooth Low Energy.
 //!
-//! Carries the frames [`crate::codec`] produces over one vendor service: one
-//! characteristic to write to, one to be notified on. The bytes come from
-//! `devices/*.yaml`.
+//! Carries the frames [`crate::codec`] produces over one vendor service, and
+//! implements [`crate::transport::Transport`] under `docs/modes.md`.
 //!
-//! The UUIDs and the frame length below were observed on one unit, the H61A0
-//! `devices/H61A0.yaml` describes, and on no other. `docs/protocol/ble.md` says
-//! what was exercised there and what was not — Wi-Fi provisioning was written
-//! from the read direction alone and has never been sent to a device.
+//! The UUIDs and the frame length below were observed on one H61A0 and on no
+//! other unit; `docs/protocol/ble.md` says what was exercised.
 //!
-//! It implements [`crate::transport::Transport`] under the rules in
-//! `docs/modes.md`.
+//! Three things are specific to this mode. A device takes one connection at a
+//! time and stops advertising while it is up, so the transport keeps one link
+//! per device. Writes are paced — see [`pace`]. And an advertisement carries
+//! the Bluetooth address, not the Wi-Fi MAC this crate identifies a device by:
+//! nothing relates the two, see [`transport::Transport::bind`].
 //!
-//! What is specific to this mode:
-//!
-//! - **One connection at a time.** A connected device stops advertising, so a
-//!   scan run while something else holds the link returns nothing. The
-//!   transport keeps one link per device and reuses it.
-//! - **Writes are paced.** The transport spends a write budget rather than
-//!   trusting a caller. See [`pace`].
-//! - **Identity is not observable from an advertisement.** A device is
-//!   identified by its Wi-Fi MAC everywhere in this crate, and an advertisement
-//!   carries the Bluetooth address instead. Nothing here relates the two — see
-//!   [`transport::Transport::bind`].
-//!
-//! No adapter is claimed until something needs one: starting the transport on
-//! a machine with no radio succeeds, and the first command is what fails.
+//! No adapter is claimed until something needs one.
 
 pub mod link;
 pub mod pace;

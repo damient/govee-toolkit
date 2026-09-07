@@ -1,16 +1,9 @@
 //! The on-disk device cache.
 //!
-//! Discovery is a multicast round-trip; a command must not pay for one. The
-//! cache is what makes that possible across restarts: addresses learned by a
-//! scan are written down, and the next process sends its first command without
-//! waiting for anything (`docs/protocol/lan.md` §1, latency notes).
-//!
-//! It holds only what discovery reports — address, identity, SKU, firmware. It
-//! is a hint, not a source of truth: a cached address that has stopped
-//! answering is the circuit breaker's problem, not the cache's.
-//!
-//! This module carries no policy about *where* the file lives. A caller passes
-//! a path or uses [`Cache::in_memory`].
+//! Discovery is a multicast round-trip and a command must not pay for one, so
+//! a scan's addresses are written down and the next process sends its first
+//! command without waiting (`docs/protocol/lan.md` §1). A hint, not a source
+//! of truth: a cached address that stopped answering is the breaker's problem.
 
 use std::collections::BTreeMap;
 use std::net::IpAddr;
@@ -78,14 +71,13 @@ impl Cache {
 
     /// Read the cache at `path`, if it exists.
     ///
-    /// A missing file is an empty cache, not an error: the first run of any
-    /// installation has no cache.
+    /// A missing file is an empty cache, not an error.
     ///
     /// # Errors
     ///
     /// [`Error::Cache`] if the file exists but cannot be read. A file that
-    /// cannot be *parsed* is not an error — it is discarded and rebuilt by the
-    /// next scan, since a corrupt cache must not stop an SDK from starting.
+    /// cannot be *parsed* is discarded and rebuilt by the next scan: a corrupt
+    /// cache must not stop the SDK from starting.
     pub fn load(path: impl Into<PathBuf>) -> Result<Self> {
         let path = path.into();
         let bytes = match std::fs::read(&path) {
@@ -196,9 +188,8 @@ impl Cache {
 
     /// Forget every device not seen for `age`. Returns what was dropped.
     ///
-    /// An entry going stale says nothing about the device: it may be off.
-    /// Pruning keeps the cache from growing without bound across a lifetime of
-    /// DHCP leases — nothing more.
+    /// A stale entry says nothing about the device, which may be off. This
+    /// only stops the file growing across a lifetime of DHCP leases.
     pub fn prune(&mut self, now: SystemTime, age: std::time::Duration) -> Vec<CachedDevice> {
         let cutoff = seconds(now).saturating_sub(age.as_secs());
         let stale: Vec<DeviceId> = self
@@ -215,8 +206,8 @@ impl Cache {
 
     /// Write the cache out, if it is backed by a file.
     ///
-    /// Writes to a temporary file and renames it, so a process killed mid-write
-    /// leaves the previous cache intact rather than a truncated one.
+    /// Writes to a temporary file and renames it, so a process killed
+    /// mid-write leaves the previous cache intact.
     ///
     /// # Errors
     ///

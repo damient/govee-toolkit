@@ -2,44 +2,33 @@
 //! commands.
 //!
 //! Unofficial, and not affiliated with Govee. The protocol is implemented once,
-//! here; every other language binds to this crate rather than porting it — see
-//! `docs/architecture.md`.
+//! here; every other language binds to this crate — see `docs/architecture.md`.
 //!
 //! # Layers
 //!
 //! - [`codec`] — `devices/*.yaml` in, exact bytes out. No I/O, no SKU name, no
-//!   command name. Available with no features enabled.
-//! - [`transport`] — what every mode has in common: the `Transport` trait, the
-//!   device identity, the circuit breaker and the errors.
-//! - [`lan`] — the UDP transport: discovery, a device cache, one shared socket
-//!   and a per-device circuit breaker. Behind the `lan` feature, on by default.
-//! - [`ble`] — the GATT transport: one connection per device, a paced write
-//!   budget and the same per-device breaker. Behind the `ble` feature.
-//! - [`stream`] — the raw segment channel. It arms once, then takes frames at
-//!   the rate the device file records.
+//!   command name.
+//! - [`transport`] — what every mode shares: the `Transport` trait, the device
+//!   identity, the breaker and the errors.
+//! - [`lan`] — UDP: discovery, a device cache, one shared socket.
+//! - [`ble`] — GATT: one connection per device, and paced writes.
+//! - [`stream`] — the raw segment channel, armed once and fed frames.
 //! - The facade, at the crate root — configuration, mode selection and events.
-//!
-//! `cloud` is a declared mode with no transport yet. The SDK reports it as
-//! such: it never skips the mode in silence, and never substitutes another one.
 //!
 //! # Features
 //!
-//! - `lan` *(default)* — the UDP transport and the facade above it.
-//! - `ble` — the GATT transport, and the facade above it.
-//!
-//! With default features off, what remains is the codec alone: no socket, no
-//! async runtime, no `tokio`. Every binding encodes through that build, so it
-//! is the one the conformance vectors pin.
+//! `lan` is on by default and `ble` is opt-in. With both off, what remains is
+//! the codec alone: no socket and no async runtime. Every binding encodes
+//! through that build, so it is the one the conformance vectors pin.
 //!
 //! # Choosing a mode
 //!
-//! The SDK chooses the mode from breaker state it already holds, before it
-//! encodes anything — never by a trial send that waits for a timeout. It
-//! chooses among the modes the user enabled for that device and nothing else:
-//! modes are explicit, never a fallback chain. A device it cannot reach is an
-//! error. A command the chosen mode does not carry fails, and the SDK never
-//! approximates it. Every command reports which mode served it. The rules are
-//! `docs/modes.md`.
+//! The SDK picks among the modes the user enabled for that device, from
+//! breaker state it already holds. It never sends a trial command and waits
+//! for a timeout. A device no enabled mode reaches is an error, and a command
+//! the chosen mode does not carry fails rather than being approximated.
+//! `cloud` has no transport yet and is reported as such. Every command reports
+//! which mode served it — `docs/modes.md`.
 //!
 //! ```no_run
 //! use govee_toolkit::{Args, Config, Govee};

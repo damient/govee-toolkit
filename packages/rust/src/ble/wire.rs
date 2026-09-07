@@ -1,17 +1,13 @@
 //! The two seams between the protocol and a Bluetooth stack.
 //!
-//! Above these traits everything is protocol: frames, budgets, breakers and
-//! the device files. Below them is one platform's radio. [`radio`] is the
-//! implementation that ships, and [`Transport::with_adapter`] takes another:
-//! `crates/sim` carries a fake peripheral, so the transport is exercised on a
-//! machine with no adapter.
+//! Above these traits everything is protocol; below them is one platform's
+//! radio. [`Transport::with_adapter`] takes an adapter that is not a radio,
+//! which is how `crates/sim` runs the send path on a machine with none.
 //!
-//! [`radio`]: super::radio
+//! A method answers [`std::io::Error`]: an implementation reports what the
+//! platform said, and the caller names the device.
+//!
 //! [`Transport::with_adapter`]: super::Transport::with_adapter
-//!
-//! A method answers [`std::io::Error`], not this crate's error type. An
-//! implementation reports what the platform said, and the caller names the
-//! device it was talking to.
 
 use std::pin::Pin;
 use std::sync::Arc;

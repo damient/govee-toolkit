@@ -2,11 +2,9 @@
 //!
 //! A transport carries the bytes [`crate::codec`] produced to one device and
 //! reports what came back. It must **not** choose a mode: this layer has no
-//! fallback. A device it cannot reach produces an error, and the facade decides
-//! what to do about it, from the user's configuration — `docs/modes.md`.
-//!
-//! The trait removes repetition in the facade and nothing else: the transports
-//! a device may use stay the user's explicit list.
+//! fallback, and a device it cannot reach produces an error. The facade
+//! decides what to do about that, from the user's explicit list of modes —
+//! `docs/modes.md`.
 
 pub mod breaker;
 pub mod error;
@@ -42,25 +40,18 @@ pub(crate) fn millis(d: std::time::Duration) -> u64 {
 #[derive(Debug, Clone)]
 pub enum Verify {
     /// Nothing. The breaker learns nothing from this command, which is right
-    /// for a stream of frames: the verification traffic would compete with the
-    /// frames.
+    /// for a stream of frames: verification traffic would compete with them.
     None,
-    /// Ask the device for its status afterwards, and record the answer, or its
-    /// absence, against the breaker. The caller supplies the request, because
-    /// to build it is to read the device file, which is the codec's job. It is
-    /// shared rather than copied: the verification runs on its own task, and
-    /// the bytes are the same on every send.
+    /// Ask for the device's status afterwards, and record the answer or its
+    /// absence against the breaker. The caller supplies the request, shared
+    /// rather than copied.
     With(Arc<Encoded>),
 }
 
-/// One way of reaching devices.
+/// One way of reaching devices. Every method answers for its own mode.
 ///
-/// Implement it once per mode. Every method answers for that mode and for no
-/// other; the facade holds several transports and picks between them.
-///
-/// The read-only methods must answer from recorded state and must touch no
-/// adapter: to choose a mode by a trial would cost the fast path a round-trip
-/// on every command.
+/// The read-only methods must answer from recorded state and touch no adapter:
+/// choosing a mode by a trial would cost the fast path a round-trip.
 #[async_trait]
 pub trait Transport: Debug + Send + Sync + 'static {
     /// The mode this transport serves.
@@ -86,12 +77,9 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// A subscription requests nothing; use [`Transport::status`] for that.
     fn watch_status(&self, id: &DeviceId) -> Option<watch::Receiver<Option<DeviceStatus>>>;
 
-    /// How long a scan on this mode must listen.
-    ///
-    /// The window is a property of the wire, not of the caller: `lan` waits for
-    /// replies to a request it sent, and `ble` waits for advertisements that
-    /// arrive on each device's own interval. A window taken from another mode
-    /// reports a device that is there as absent.
+    /// How long a scan on this mode must listen. A property of the wire: a
+    /// window taken from another mode reports a device that is there as
+    /// absent.
     fn scan_window(&self) -> Duration;
 
     /// Look for devices for `window`, and return what answered.
@@ -129,9 +117,7 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// Run a command's exchanges and return what its `reply:` layouts
     /// captured.
     ///
-    /// A value the SDK does not model — a segment count, a MAC, a firmware
-    /// version — reaches the caller this way. The device file says which bytes
-    /// carry it and under what name; neither lives in this crate.
+    /// How a value the SDK does not model reaches a caller — see [`Reply`].
     ///
     /// # Errors
     ///
@@ -143,14 +129,10 @@ pub trait Transport: Debug + Send + Sync + 'static {
 
 /// A device's identity: the MAC address it reports.
 ///
-/// An address is not an identity: a DHCP lease renews and the same device sits
-/// at a different one, and the same unit answers on an unrelated Bluetooth
-/// address. The cache, the breaker and the user's configuration all key on the
-/// MAC, so one configuration entry covers a device reachable over several
-/// modes.
-///
-/// [`DeviceId::new`] normalizes to uppercase. Firmwares are not consistent
-/// about case, and two spellings would otherwise be two devices.
+/// Not its address — a DHCP lease renews, and the same unit answers on an
+/// unrelated Bluetooth address. Everything keys on the MAC, so one
+/// configuration entry covers a device reachable over several modes.
+/// [`DeviceId::new`] normalizes to uppercase: firmwares are not consistent.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(from = "String", into = "String")]
 pub struct DeviceId(String);

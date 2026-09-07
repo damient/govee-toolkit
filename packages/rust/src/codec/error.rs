@@ -26,8 +26,7 @@ pub enum Error {
         mode: Mode,
     },
 
-    /// The mode is supported but does not carry this command. Never approximate
-    /// it with another mode — see `docs/modes.md`.
+    /// The mode is supported but does not carry this command.
     #[error("{sku}: command `{command}` is not reachable over `{mode}`")]
     UnknownCommand {
         /// The device.
@@ -162,10 +161,7 @@ pub enum Error {
     },
 
     /// A reply does not match the layout the device file declares for it.
-    ///
-    /// The codec discards what it captured before the mismatch. A frame that
-    /// does not match is another command's answer, or a firmware that does not
-    /// do what the file says.
+    /// Whatever was captured before the mismatch is discarded.
     #[error("{command}: the reply does not match the layout: {reason}")]
     ReplyMismatch {
         /// The command the codec reads.
@@ -219,11 +215,8 @@ pub enum Error {
         source: Box<serde_norway::Error>,
     },
 
-    /// A device file was written against a schema revision this build does not
-    /// know.
-    ///
-    /// A newer file needs a newer build. Read as the current revision, the file
-    /// would be interpreted by rules it was not written for.
+    /// A device file was written against a schema revision this build does
+    /// not know. A newer file needs a newer build.
     #[error("device file `{file}`: schema_version {found}, but this build knows {supported}")]
     SchemaVersion {
         /// The file name.
@@ -250,11 +243,9 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl Error {
-    /// A stable, language-neutral identifier for this failure.
-    ///
-    /// Ports and bindings surface the same code for the same condition, so the
-    /// conformance vectors in `tests/fixtures/golden/` can assert on failures
-    /// as well as on bytes.
+    /// A stable, language-neutral identifier for this failure. Every port
+    /// surfaces the same code, so `tests/fixtures/golden/` asserts on
+    /// failures as well as on bytes.
     #[must_use]
     pub fn code(&self) -> &'static str {
         match self {

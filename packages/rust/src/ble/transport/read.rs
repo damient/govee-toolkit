@@ -1,12 +1,9 @@
 //! Requests to a device, and the answers.
 //!
-//! A read is a run of exchanges: write one frame, wait for the notification
-//! its `reply:` layout matches, write the next. The wire carries no request
-//! id, so the layout is the correlation. A notification the layout does not
-//! match is skipped.
-//!
-//! Every caller sends its own frames, because nothing tells two callers of one
-//! request apart. The write budget holds the result to a rate.
+//! A read is a run of exchanges: write a frame, wait for the notification its
+//! `reply:` layout matches, write the next. The layout is the only
+//! correlation, so an unmatched notification is skipped. Every caller sends
+//! its own frames, since nothing tells two callers of one request apart.
 
 use std::time::{Duration, Instant};
 
@@ -77,8 +74,7 @@ impl Shared {
     /// Ask a device for its state and wait for the answer.
     ///
     /// The command's `reply:` layouts say which bytes carry what, and its
-    /// argument roles say which of those the SDK models. No field name reaches
-    /// this code.
+    /// argument roles say which of those the SDK models.
     ///
     /// # Errors
     ///

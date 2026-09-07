@@ -1,8 +1,7 @@
 //! Runs the conformance vectors in `tests/fixtures/golden/`.
 //!
-//! These files are the contract between implementations: the Rust core and its
-//! bindings must all produce the same envelope and the same frame bytes for the
-//! same arguments. An implementation that drifts fails here first.
+//! The contract between implementations: the same arguments must produce the
+//! same envelope and the same frame bytes in every port.
 
 #![allow(
     clippy::unwrap_used,
@@ -99,8 +98,8 @@ fn golden_files() -> Vec<(String, GoldenFile)> {
 /// JSON says how a value is written; the device file says what it means.
 ///
 /// A list of numbers is zone indices to one command and opaque bytes to
-/// another, so the declared type decides. The `unknown_arg` cases declare no
-/// type, so their JSON shape decides, and the codec refuses them by name.
+/// another, so the declared type decides. An `unknown_arg` case declares
+/// none, so its JSON shape decides and the codec refuses it by name.
 fn to_args(spec: Option<&Command>, raw: &BTreeMap<String, serde_json::Value>) -> Args {
     let mut args = Args::new();
     for (name, value) in raw {
@@ -238,10 +237,8 @@ fn every_golden_file_names_a_known_device() {
 }
 
 /// The reverse direction: every command in the catalog must have a vector.
-///
-/// An implementation can get a command with no vector wrong, and nothing fails
-/// until the bytes reach hardware. CLAUDE.md requires one vector per command;
-/// this test enforces it.
+/// Without one, a port gets it wrong and nothing fails until the bytes reach
+/// hardware.
 #[test]
 fn every_catalog_command_has_a_vector() {
     let catalog = Catalog::embedded().expect("embedded catalog");

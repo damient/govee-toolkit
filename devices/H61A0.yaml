@@ -43,8 +43,7 @@ modes:
     unreachable:
       scenes: unimplemented
     notes: >-
-      Reaches power, brightness, color, color temperature, music and both
-      per-zone channels without the device being on the network. Music runs off
+      Reaches these without the device being on the network. Music runs off
       the device's own microphone, at sub-mode 19, over two channels: one frame
       for the effects that need no parameters, and a chunked transfer for the
       ones that do. Segments are narrower here than over lan: zones are
@@ -230,10 +229,8 @@ commands:
         zones it does not cover to zero rather than leaving them alone. The
         bytes are not interpreted here, so nothing checks each one against the
         1..100 the firmware takes: a 0 or a 200 in the list reaches the device
-        and the firmware clamps it in silence. This command is the one place in
-        this file where the no-clamp guarantee does not hold. TODO: give the
-        `bytes` type a per-element range so each level is checked, then drop
-        this paragraph and add the error vector it makes writable.
+        and the firmware clamps it in silence. TODO: give the `bytes` type a
+        per-element range, then add the error vector it makes writable.
         See docs/protocol/ble.md 2.5.
       capture: ""         # TODO
 
@@ -244,12 +241,11 @@ commands:
       args:
         on: { type: int, range: [0, 1], role: gradient }
       notes: >-
-        Whether the firmware interpolates between zones, wrapping from the last
-        back to the first; 0 gives hard-edged zones. The same user setting as
-        the `gradient` argument of the lan segment channel, which has no room
-        for it here and so carries it in a frame of its own. It is not a fade
-        over time: alternating two colors looks the same either way, and what
-        changes is the boundary between two zones painted differently. See
+        Whether the firmware interpolates between zones, wrapping from the
+        last back to the first; 0 gives hard-edged zones. The same setting the
+        lan segment channel carries as its `gradient` argument. It is not a
+        fade over time: alternating two colors looks the same either way, and
+        what changes is the boundary between two zones painted differently. See
         docs/protocol/ble.md 2.6.
       capture: ""         # TODO
 
@@ -303,10 +299,9 @@ commands:
 
         `params` is the per-effect tail, and the codec does not interpret it:
         which bytes follow the colors is a property of the effect, so nothing
-        checks its length or each byte against what that effect takes. It is
-        the second place in this file where the no-clamp guarantee does not
-        hold. Nothing established a cap on it either; 32 is what this file
-        allows, against the 9 bytes of the longest tail the vendor app sends.
+        checks its length or each byte. Nothing established a cap either; 32 is
+        what this file allows, against the 9 bytes of the longest tail the
+        vendor app sends.
 
         The color list runs 1 to 8 entries, which is the vendor app's bound.
         See docs/protocol/ble.md 6.
@@ -371,9 +366,8 @@ commands:
       args:
         mac: { type: bytes, max_len: 6 }
       notes: >-
-        The Wi-Fi MAC, which is how the rest of this project identifies a
-        device — an advertisement carries the Bluetooth address instead. See
-        docs/protocol/ble.md 3.
+        The Wi-Fi MAC. An advertisement carries the Bluetooth address instead.
+        See docs/protocol/ble.md 3.
       capture: ""         # TODO
 
     read_hardware_version:

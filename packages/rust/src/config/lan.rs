@@ -1,9 +1,8 @@
 //! Transport tuning for `lan`.
 //!
-//! The SDK reads this section whatever transports the build carries, so one
-//! configuration file works against all of them. The conversion to
-//! `crate::lan::Options` sits behind the `lan` feature. The test at the bottom
-//! keeps these numbers and the transport's own defaults in step.
+//! Read whatever transports the build carries, so one configuration file
+//! works against all of them. Only the conversion to `crate::lan::Options`
+//! sits behind the `lan` feature.
 
 use std::path::PathBuf;
 

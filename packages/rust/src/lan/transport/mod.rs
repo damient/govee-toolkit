@@ -1,20 +1,13 @@
 //! Discovery, the socket, the cache and the breaker, tied together.
 //!
-//! The send path:
+//! The send path resolves the device from what is already known, asks the
+//! breaker, and writes. Neither step touches the socket, and **no scan is ever
+//! issued for a command**. Verification follows on its own task and feeds the
+//! breaker — the fire-and-verify of `docs/protocol/lan.md` §1.
 //!
-//! 1. resolve the device from what is already known — cache or a past scan,
-//!    **never** a scan issued for this command;
-//! 2. ask the breaker, which answers from recorded state and touches no socket;
-//! 3. write the datagram and return.
-//!
-//! Verification runs after the fact, on its own task: a `devStatus` request
-//! whose answer — or absence — feeds the breaker. This is the fire-and-verify
-//! of `docs/protocol/lan.md` §1, and it keeps a round-trip off the send path.
-//!
-//! Replies carry no request id. The source address is the only correlation
-//! there is, so each device owns a [`tokio::sync::watch`] channel holding its
-//! last known status: a caller waiting for one waits for that value to change,
-//! and every waiter is woken by the same reply.
+//! Replies carry no request id, and the source address is the only
+//! correlation. Each device owns a [`tokio::sync::watch`] channel holding its
+//! last status, so one reply wakes every waiter.
 
 mod impl_transport;
 mod inbound;

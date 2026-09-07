@@ -12,9 +12,8 @@
 //!     reply: "AA 04 ${level}"
 //! ```
 //!
-//! The pairs go out in the order they are written, and their captures merge
-//! into one set of fields. One entry reads several values, and no field name
-//! appears in SDK code.
+//! The pairs go out in order and their captures merge into one set of fields,
+//! so one entry reads several values and no field name reaches SDK code.
 
 use std::sync::OnceLock;
 

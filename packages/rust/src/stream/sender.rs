@@ -1,9 +1,8 @@
 //! The task that puts frames on the wire.
 //!
-//! It owns the cadence and nothing else. The colors it sends are the ones the
-//! writers last left, and a tick that finds them unchanged sends nothing. An
-//! idle stream therefore costs no traffic, on a channel it shares with the
-//! status requests the breaker reads health from.
+//! It owns the cadence and nothing else. A tick that finds the colors
+//! unchanged sends nothing, so an idle stream costs no traffic on a channel it
+//! shares with the breaker's status requests.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -24,23 +23,18 @@ use crate::transport::{DeviceId, Transport, Verify};
 pub(crate) struct Shared {
     pub(crate) govee: Govee,
     pub(crate) id: DeviceId,
-    /// The mode chosen when the stream opened, and fixed for its life: the
-    /// device file names its commands per mode, so a stream that changed mode
-    /// would be sending another file's bytes.
+    /// Fixed for the stream's life: commands are named per mode, so a change
+    /// would send another table's bytes.
     pub(crate) mode: Mode,
-    /// The SKU resolved when the stream opened. Carried so a frame does not
-    /// re-take the transport's lock to look it up again.
+    /// Resolved once, so no frame re-takes the transport's lock for it.
     pub(crate) sku: String,
-    /// The transport serving [`Shared::mode`], resolved when the stream opened
-    /// so that a frame does not look it up again.
+    /// The transport serving [`Shared::mode`], resolved once.
     pub(crate) transport: Arc<dyn Transport>,
-    /// The device file entry that arms and disarms the channel, and the
-    /// argument the flag goes in. `None` where the file declares none for this
-    /// mode: nothing is armed, and nothing is disarmed on close.
+    /// The entry that arms and disarms the channel, and the argument the flag
+    /// goes in. `None` where the file declares none for this mode.
     pub(crate) enable: Option<Enable>,
-    /// The entry that sets zone interpolation and the value to send, where the
-    /// mode carries that setting outside the painting frame. `None` where the
-    /// painting frame carries it, or where the file names neither.
+    /// The entry that sets zone interpolation and the value to send, where
+    /// the mode carries it outside the painting frame.
     pub(crate) gradient: Option<(Enable, i64)>,
     /// How the device file paints zones over this mode, and the arguments it
     /// names for it.
@@ -58,8 +52,8 @@ pub(crate) struct Shared {
     pub(crate) superseded: AtomicU64,
     /// What stopped the task.
     pub(crate) failure: Mutex<Option<Arc<Error>>>,
-    /// Raised by the handle to end the stream. Signalling rather than aborting
-    /// is what lets the task send the disarming frame itself.
+    /// Raised by the handle to end the stream. A signal rather than an abort,
+    /// so the task can send the disarming frame itself.
     pub(crate) stop: Notify,
 }
 
@@ -98,9 +92,8 @@ async fn send_flag(shared: &Shared, command: &Enable, value: i64) -> Result<()> 
 
 /// Emit the current colors at the stream's rate, then disarm the channel.
 ///
-/// The disarm belongs to this task rather than to the handle, which cannot
-/// await a frame from a `Drop`. Returns whether that frame went out, which
-/// [`SegmentStream::close`](crate::SegmentStream::close) reports.
+/// The disarm belongs here because a handle cannot await a frame from `Drop`.
+/// Returns whether that frame went out.
 pub(crate) async fn run(shared: Arc<Shared>) -> Result<()> {
     emit(&shared).await;
     send_enable(&shared, 0).await
@@ -147,21 +140,16 @@ async fn emit(shared: &Shared) {
                 Ok(()) => {
                     shared.sent.fetch_add(1, Ordering::Relaxed);
                 }
-                // Transient by nature: the device is unreachable or the breaker
-                // is refusing it, and both are answered by carrying on — the
-                // next tick costs a lock and a refusal decided from recorded
-                // state.
+                // Transient: the next tick costs a lock and a refusal decided
+                // from recorded state.
                 Err(e) => tracing::warn!(id = %shared.id, error = %e, "segment frame not sent"),
             }
         }
     }
 }
 
-/// Every frame one repaint takes: one for a whole-frame command, one per
-/// distinct color for a masked one.
-///
-/// All of them are encoded before any goes out, so a repaint the codec refuses
-/// leaves the previous picture on the device rather than half of the new one.
+/// Every frame one repaint takes, all encoded before any goes out: a repaint
+/// the codec refuses leaves the previous picture, not half of the new one.
 fn encode_repaint(shared: &Shared, colors: Vec<[u8; 3]>) -> Result<Vec<Encoded>> {
     paint::frames(&shared.painter, colors)?
         .iter()
@@ -175,8 +163,7 @@ fn encode(shared: &Shared, command: &str, args: &Args) -> Result<Encoded> {
 
 /// Write a frame, over whichever mode the stream was opened on.
 ///
-/// Nothing is verified: the channel never answers, so a status request would
-/// only be traffic competing with the frames it checks.
+/// Nothing is verified: the channel never answers.
 async fn write(shared: &Shared, encoded: &Encoded) -> Result<()> {
     shared
         .transport

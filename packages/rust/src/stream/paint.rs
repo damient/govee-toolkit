@@ -13,9 +13,8 @@ use crate::stream::resolve::Painter;
 /// bounded when the stream opens, so this is unreachable from a stream.
 pub(super) fn frames(painter: &Painter, colors: Vec<[u8; 3]>) -> Result<Vec<Args>> {
     match painter {
-        // The repeat count is left out on purpose: the codec derives it from
-        // the list, which is the one place it cannot disagree with the colors
-        // actually sent.
+        // The repeat count is left out: the codec derives it from the list,
+        // where it cannot disagree with the colors sent.
         Painter::Whole {
             colors: name,
             gradient,
@@ -37,8 +36,8 @@ pub(super) fn frames(painter: &Painter, colors: Vec<[u8; 3]>) -> Result<Vec<Args
 
 /// One frame per distinct color, each naming every zone that uses it.
 ///
-/// Zones that share a color go in one frame even when they are not adjacent.
-/// The frames go out in the order the colors first appear.
+/// Zones sharing a color go in one frame even when they are not adjacent, in
+/// the order the colors first appear.
 fn masked(color_arg: &str, zone_arg: &str, colors: &[[u8; 3]]) -> Result<Vec<Args>> {
     let mut runs: Vec<([u8; 3], Vec<u16>)> = Vec::new();
     for (index, color) in colors.iter().enumerate() {

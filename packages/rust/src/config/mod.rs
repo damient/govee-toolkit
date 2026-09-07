@@ -1,12 +1,10 @@
 //! The runtime configuration: which modes the user enables, per device.
 //!
-//! This is the second of the two levels in `docs/modes.md`. What the hardware
-//! supports is `devices/<SKU>.yaml` and is not editable here; what is *enabled*
-//! is this file, and enabling a mode the hardware does not support is a
-//! configuration error reported at startup rather than a surprise at send time.
+//! The second of the two levels in `docs/modes.md`. What the hardware supports
+//! is `devices/<SKU>.yaml` and is not editable here. Enabling a mode the
+//! hardware does not support is reported at startup, not at send time.
 //!
-//! YAML, at `~/.config/govee-toolkit/config.yaml` — the same language as the
-//! device files, so a contributor reads one syntax and not two.
+//! YAML, at `~/.config/govee-toolkit/config.yaml`:
 //!
 //! ```yaml
 //! catalog:
@@ -25,12 +23,9 @@
 //!     modes: [lan, ble]         # lan preferred, may switch to ble
 //! ```
 //!
-//! Unknown keys are refused. A misspelled option that was silently ignored
-//! would read as a setting that did not work.
-//!
-//! The fallback frame rate is `stream.fallback_hz`. It applies to whichever
-//! mode a stream opens on, so `lan` does not hold it: `lan.stream_fallback_hz`
-//! is an unknown key, and the load fails.
+//! Unknown keys are refused: a misspelled option that was ignored would read
+//! as a setting that did not work. `stream.fallback_hz` applies to whichever
+//! mode a stream opens on, so `lan.stream_fallback_hz` is an unknown key.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -61,10 +56,7 @@ pub struct Config {
     pub devices: BTreeMap<DeviceId, DeviceConfig>,
 }
 
-/// Segment streaming settings.
-///
-/// A stream picks its mode from what the device enables, and this section
-/// applies to whichever mode it picked.
+/// Segment streaming settings, applying to whichever mode a stream opens on.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct StreamConfig {
@@ -81,12 +73,9 @@ impl Default for StreamConfig {
     }
 }
 
-/// Where device files come from.
-///
-/// The catalog compiled into the build is the normal source. A local directory
-/// serves someone who reverse-engineers their own unit, and it is **opt-in**:
-/// what one person measured on one device must not silently become what
-/// everyone's device is assumed to do.
+/// Where device files come from. The compiled-in catalog is the normal
+/// source; a local directory is **opt-in**, so that what one person measured
+/// does not become what everyone's device is assumed to do.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CatalogConfig {
@@ -122,9 +111,7 @@ pub struct DeviceConfig {
     /// The enabled modes, in preference order. Unset falls back to
     /// [`Defaults::modes`].
     pub modes: Option<Vec<Mode>>,
-    /// The SKU to read the device file under, instead of the one discovery
-    /// reports. For a device whose reported SKU is not in the catalog but
-    /// which is known to behave like one that is.
+    /// The SKU to read the device file under, instead of the reported one.
     pub sku: Option<String>,
     /// A name for logs and user interfaces. Nothing reads it as identity.
     pub name: Option<String>,
@@ -206,11 +193,9 @@ impl Config {
         self.devices.get(id).and_then(|d| d.name.as_deref())
     }
 
-    /// What is wrong with the configuration on its own terms.
-    ///
-    /// Checks that do not need to know which devices exist. Whether a device
-    /// supports an enabled mode is checked separately, once its SKU is known —
-    /// see [`crate::Govee::problems`].
+    /// What is wrong with the configuration on its own terms. Whether a
+    /// device supports an enabled mode needs its SKU — see
+    /// [`crate::Govee::problems`].
     #[must_use]
     pub fn problems(&self) -> Vec<Problem> {
         let mut problems = Vec::new();

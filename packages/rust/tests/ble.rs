@@ -1,15 +1,7 @@
 //! Dispatch to a mode that is not `lan`, through a transport that is not a
-//! radio.
-//!
-//! These tests cover what the facade does around the `ble` transport:
-//!
-//! - the transport that claims the enabled mode serves the device;
-//! - the frames the codec built reach it, with nothing wrapped around them;
-//! - fire-and-verify follows;
-//! - a scan listens for the window that transport asks for.
-//!
-//! The fixture device and the transport that answers for it are in
-//! [`ble_fake`].
+//! radio: the transport claiming the enabled mode serves the device, the
+//! codec's frames reach it unwrapped, fire-and-verify follows, and a scan uses
+//! that transport's own window. The fixture is [`ble_fake`].
 
 #![allow(
     clippy::unwrap_used,
@@ -24,8 +16,7 @@ use govee_toolkit::{Args, Mode};
 
 use self::ble_fake::{Fake, MAC, SCAN_WINDOW, SKU, enabling_ble, govee, id};
 
-/// The power frame the fixture declares, at `on = 1`: two literal bytes, the
-/// argument, zeros to twenty bytes, and the checksum.
+/// The power frame the fixture declares, at `on = 1`.
 const POWER_ON: [u8; 20] = [
     0x33, 0x01, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x33,
 ];

@@ -9,8 +9,7 @@
 //! ```
 //!
 //! It walks the H61A0's table. Another SKU names its own commands and
-//! arguments: nothing here knows a command name that `devices/*.yaml` did not
-//! give it.
+//! arguments.
 
 // The no-print lint is the library's rule. An example reports to the person who
 // runs it.

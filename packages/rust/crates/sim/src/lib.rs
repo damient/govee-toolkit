@@ -3,20 +3,17 @@
 //! The `lan` device is below. The `ble` one is [`ble`], and it is a separate
 //! device: the two modes share no wire.
 //!
-//! It exists so the transport can be tested in CI, where there is no hardware:
-//! it answers `scan` on the discovery port and answers status requests on the
-//! control port, and it can be told to go silent, to answer late, or to drop
-//! replies — which is what the circuit breaker's transitions need to be
-//! exercised end to end.
+//! It exists so the transport can be tested in CI, where there is no hardware.
+//! It answers `scan` on the discovery port and status requests on the control
+//! port, and it can be told to go silent, to answer late, or to drop replies —
+//! which is what the breaker's transitions need to be exercised end to end.
 //!
 //! **It plays the wire, not the firmware.** It does not interpret writes: a
-//! command that is not a request for status is recorded and acknowledged with
-//! nothing, which is exactly what a real device does
-//! (`docs/protocol/lan.md` §2.1). Modelling what each write means would be
-//! re-implementing per-SKU semantics in Rust, which is the one thing this
-//! project keeps in `devices/*.yaml`. Tests assert on [`Simulator::received`]
-//! instead, and the status a device reports is set explicitly with
-//! [`Simulator::set_status`].
+//! command that is not a status request is recorded and acknowledged with
+//! nothing, which is what a real device does (`docs/protocol/lan.md` §2.1). To
+//! model what each write means would put per-SKU semantics in Rust, which this
+//! project keeps in `devices/*.yaml`. Assert on [`Simulator::received`], and
+//! set the status a device reports with [`Simulator::set_status`].
 //!
 //! ```no_run
 //! # async fn example() -> std::io::Result<()> {
@@ -256,10 +253,8 @@ impl Simulator {
         }
     }
 
-    /// Set what the device reports when asked for its status.
-    ///
-    /// This is `msg.data` verbatim, so a test decides exactly what a firmware
-    /// answers — including a partial or unexpected shape.
+    /// Set what the device reports when asked for its status: `msg.data`
+    /// verbatim, so a test can answer a partial or unexpected shape.
     pub fn set_status(&self, status: serde_json::Value) {
         if let Ok(mut state) = self.inner.state.lock() {
             state.status = status;
