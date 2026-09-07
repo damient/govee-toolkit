@@ -2,11 +2,11 @@
 
 Which Govee devices work, in which [modes](modes.md), and how far.
 
-> 🚧 One device verified so far, the **H61A0**: `lan` mode fully exercised,
-> including the undocumented segment channel, and `ble` mode everywhere except
-> Wi-Fi provisioning, which has never been sent to a device. The other 270
-> models on Govee's list are untested rather than unsupported — they need
-> someone with the hardware to confirm them.
+> 🚧 The table below lists every verified device, and how far each mode goes on
+> it. `lan` mode is fully exercised, including the undocumented segment channel,
+> and `ble` mode everywhere except Wi-Fi provisioning, which has never been sent
+> to a device. The other models on Govee's list are untested rather than
+> unsupported — they need someone with the hardware to confirm them.
 
 The authoritative data lives in [`../devices/`](../devices/), one YAML file per
 SKU or SKU family. This page is the human-readable view of it — the YAML wins on
@@ -83,9 +83,9 @@ The columns are the capabilities the device files declare, so one no file
 declares has no column.
 Where the undocumented `razer` channel is implemented, `lan` reaches per-segment
 color beyond the 10 zones the Govee app exposes, but neither internal scenes nor
-per-segment brightness. On the H61A0 `ble` reaches per-segment brightness and a
-narrower per-segment color — fifteen zones by mask, against the unit's 42
-individually addressable LEDs.
+per-segment brightness. Where it is implemented, `ble` reaches per-segment
+brightness and a narrower per-segment color — fifteen zones by mask, fewer than
+the LEDs the unit addresses individually. The device file carries the counts.
 
 ## Prerequisites per mode
 
@@ -100,7 +100,8 @@ individually addressable LEDs.
 
 ## Known limitations
 
-Verified on H61A0 only — confirm before generalizing:
+Verified on the devices in the table above — confirm before generalizing to
+another:
 
 - **Internal scenes and DIY scenes are cloud-only.** They travel over MQTT to
   AWS IoT, not over UDP. See [`protocol/lan.md`](protocol/lan.md) § 2.5.

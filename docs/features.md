@@ -49,8 +49,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | 🔜 | **Web playground** — device list with per-mode state badges, power / brightness / color / scenes controls, latency log |
 | 🔜 | **Raw payload field** — send a custom JSON command straight to a device, to try a discovery before you formalize it |
 | 🔜 | **Desktop app (Electron)** — same backend and UI as the playground, auto-discovery on launch, tray icon |
-| 🚧 | **Device simulator** (`packages/rust/crates/sim`) — fake `lan` device on UDP with fault injection, so tests run without hardware |
-| ✅ | **BLE simulator** — a fake peripheral on GATT, with the same faults plus the burst that stalls a firmware, so a `ble` test runs without an adapter |
+| ✅ | **Device simulator** (`packages/rust/crates/sim`) — a fake `lan` device on UDP and a fake `ble` peripheral on GATT, both with fault injection, so tests run without hardware or an adapter |
 | 🔜 | **Art-Net / DMX bridge** — maps DMX channels to Govee devices and segments |
 
 ## Integrations
