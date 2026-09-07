@@ -123,9 +123,35 @@ commands:
   #     data:   "A1 <op:11> ${index} ${chunk:bytes} <pad:20> <xor>"
   #     footer: "A1 <op:11> FF <pad:20> <xor>"
   #
-  # The codec fills in `count`, `index` and `chunk`: the number of data frames,
-  # the index of this one, and the slice it carries. `args:` must not declare
-  # an argument with any of those three names.
+  # The codec fills in four names, and `args:` must declare none of them:
+  #
+  #   count      the number of data frames
+  #   total      the number of frames in the transfer, the header and the
+  #              footer included
+  #   index      which data frame this is, counting from 1
+  #   chunk      the slice of the body this frame carries
+  #
+  # Two more keys, for a wire that cuts a body the other way. Both are optional
+  # and both default to off:
+  #
+  #   head_size: 13    body bytes the HEADER carries, before the first data
+  #                    frame. The header layout must then read `${chunk:bytes}`,
+  #                    and a layout that reads it must set this. Omit both and
+  #                    the header carries no body.
+  #   then: "…"        one frame sent AFTER the footer, for a wire that stores
+  #                    the transfer and plays it with a second frame.
+  #
+  # A footer layout that reads `${chunk:bytes}` carries the LAST slice, so that
+  # slice is not a data frame. A footer that reads none closes the transfer
+  # empty. Nothing declares this: the footer layout says it.
+  #
+  #   chunk:
+  #     size: 17
+  #     head_size: 13
+  #     header: "A3 00 01 ${total} 41 ${effect} ${chunk:bytes} <pad:20> <xor>"
+  #     data:   "A3 ${index} ${chunk:bytes} <pad:20> <xor>"
+  #     footer: "A3 FF ${chunk:bytes} <pad:20> <xor>"
+  #     then:   "33 05 13 ${effect} ${sensitivity} <pad:20> <xor>"
   #
   # `reply:` — the layout of the answer a `frame:` asks for, in the same
   # grammar in the matching direction. It only matches bytes, so it refuses the
@@ -195,7 +221,7 @@ commands:
     #   reply: ""                     # the answer that frame asks for
     #   frames: [ { send, reply } ]   # several exchanges instead of one frame
     #   body: ""                      # a payload longer than one frame…
-    #   chunk: { size, header, data, footer }   # …and how to cut it
+    #   chunk: { size, head_size, header, data, footer, then }  # …how to cut it
     #   args: { <name>: { type, range, role } }
     #   notes: ""                     # behavior worth knowing before calling it;
     #                                 # required when documented is false, and it
@@ -249,7 +275,7 @@ commands:
     #   reply: ""                     # the answer that frame asks for
     #   frames: [ { send, reply } ]   # several exchanges instead of one frame
     #   body: ""                      # a payload longer than one frame…
-    #   chunk: { size, header, data, footer }   # …and how to cut it
+    #   chunk: { size, head_size, header, data, footer, then }  # …how to cut it
     #   args: { <name>: { type, range, role } }
     #   notes: ""                     # must point at ../docs/protocol/ble.md
     #                                 # when documented is false
