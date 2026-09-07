@@ -1,7 +1,7 @@
 # Documentation
 
 - [`features.md`](features.md) — everything the toolkit does or is meant to do
-- [`roadmap.md`](roadmap.md) — what is done, what is next
+- [`roadmap.md`](roadmap.md) — what is next
 - [`architecture.md`](architecture.md) — one Rust core, bindings around it, and
   the conformance vectors that hold them together
 - [`compatibility.md`](compatibility.md) — which devices work, in which modes
