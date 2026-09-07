@@ -24,7 +24,7 @@ use std::sync::OnceLock;
 
 use serde::Deserialize;
 
-use crate::codec::args::Args;
+use crate::codec::args::{ArgValue, Args};
 use crate::codec::error::{Error, Result};
 use crate::codec::frame::Frame;
 
@@ -57,9 +57,9 @@ pub struct Chunk {
     pub data: String,
     /// The frame that closes the transfer.
     pub footer: String,
-    /// A frame sent after the transfer. Empty where the transfer is the whole
-    /// command.
-    pub then: String,
+    /// A frame sent after the transfer. Absent where the transfer is the
+    /// whole command.
+    pub then: Option<String>,
 }
 
 /// A `chunk:` block and its `body:`, tokenized.
@@ -71,6 +71,8 @@ pub struct Layout {
     header: Frame,
     data: Frame,
     footer: Frame,
+    /// The footer reads `${chunk:bytes}`, so it takes the last slice.
+    footer_takes_slice: bool,
     then: Option<Frame>,
 }
 
@@ -102,15 +104,20 @@ impl Layout {
                 "`head_size:` is set, but the header layout reads no `${chunk:bytes}`",
             ));
         }
+        let footer = Frame::parse(command, &chunk.footer)?;
+        let footer_takes_slice = footer.arg_names().any(|arg| arg == CHUNK);
         Ok(Self {
             size: chunk.size,
             head_size: chunk.head_size,
             body: Frame::parse(command, body)?,
             header,
             data: Frame::parse(command, &chunk.data)?,
-            footer: Frame::parse(command, &chunk.footer)?,
-            then: (!chunk.then.trim().is_empty())
-                .then(|| Frame::parse(command, &chunk.then))
+            footer_takes_slice,
+            footer,
+            then: chunk
+                .then
+                .as_deref()
+                .map(|then| Frame::parse(command, then))
                 .transpose()?,
         })
     }
@@ -122,11 +129,10 @@ impl Layout {
     }
 
     /// Every layout in the block, the body included.
-    #[must_use]
-    pub fn frames(&self) -> Vec<&Frame> {
-        let mut out = vec![&self.body, &self.header, &self.data, &self.footer];
-        out.extend(self.then.as_ref());
-        out
+    pub fn frames(&self) -> impl Iterator<Item = &Frame> {
+        [&self.body, &self.header, &self.data, &self.footer]
+            .into_iter()
+            .chain(self.then.as_ref())
     }
 
     /// Build the header, one data frame per slice of the body, the footer, and
@@ -142,29 +148,29 @@ impl Layout {
 
         // A footer that reads the slice takes the last piece, so it is not a
         // data frame. With no piece at all it carries an empty one.
-        let (data, in_footer): (&[&[u8]], &[u8]) = if self.footer.arg_names().any(|a| a == CHUNK) {
+        let (data, in_footer): (&[&[u8]], &[u8]) = if self.footer_takes_slice {
             pieces.split_last().map_or((&[], &[]), |(l, d)| (d, l))
         } else {
             (&pieces, &[])
         };
         let count = i64::try_from(data.len()).unwrap_or(i64::MAX);
-        let total = count.saturating_add(2);
-        let filled = |args: Args| args.int(COUNT, count).int(TOTAL, total);
-
         let mut frames = Vec::with_capacity(data.len() + 3);
-        frames.push(
-            self.header
-                .build(command, &filled(args.clone()).bytes(CHUNK, in_header))?,
-        );
+        let total = i64::try_from(data.len() + 2).unwrap_or(i64::MAX);
+
+        // One value carries every frame: the slice and the index are replaced
+        // per frame, so the caller's arguments are cloned once and not once
+        // per slice.
+        let mut filled = args.clone().int(COUNT, count).int(TOTAL, total);
+        filled.insert(CHUNK, ArgValue::Bytes(in_header.to_vec()));
+        frames.push(self.header.build(command, &filled)?);
         for (i, piece) in data.iter().enumerate() {
             let index = i64::try_from(i + 1).unwrap_or(i64::MAX);
-            let args = filled(args.clone()).int(INDEX, index).bytes(CHUNK, *piece);
-            frames.push(self.data.build(command, &args)?);
+            filled.insert(INDEX, ArgValue::Int(index));
+            filled.insert(CHUNK, ArgValue::Bytes((*piece).to_vec()));
+            frames.push(self.data.build(command, &filled)?);
         }
-        frames.push(
-            self.footer
-                .build(command, &filled(args.clone()).bytes(CHUNK, in_footer))?,
-        );
+        filled.insert(CHUNK, ArgValue::Bytes(in_footer.to_vec()));
+        frames.push(self.footer.build(command, &filled)?);
         if let Some(then) = &self.then {
             frames.push(then.build(command, args)?);
         }
@@ -191,10 +197,7 @@ mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used, clippy::format_collect)]
 
     use super::*;
-
-    fn hex(bytes: &[u8]) -> String {
-        bytes.iter().map(|b| format!("{b:02x}")).collect()
-    }
+    use crate::codec::hex;
 
     fn wifi() -> Layout {
         Layout::parse(
@@ -271,7 +274,7 @@ mod tests {
                 header: "A3 00 01 ${total} 41 ${effect} ${chunk:bytes} <pad:20> <xor>".to_owned(),
                 data: "A3 ${index} ${chunk:bytes} <pad:20> <xor>".to_owned(),
                 footer: "A3 FF ${chunk:bytes} <pad:20> <xor>".to_owned(),
-                then: "33 05 13 ${effect} ${sensitivity} <pad:20> <xor>".to_owned(),
+                then: Some("33 05 13 ${effect} ${sensitivity} <pad:20> <xor>".to_owned()),
             },
         )
         .expect("the layouts parse")
