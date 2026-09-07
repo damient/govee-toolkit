@@ -94,13 +94,16 @@ at.
   kelvin field between the two RGB triplets. Sub-mode `2`, which an older
   dialect uses, is acknowledged with a success code and then ignored.
 - The music sub-mode of this family is `19`. The device listens on its own
-  microphone. The frame carries `effect`, `sensitivity`, one byte nobody
-  explained, a colour mode and an RGB triplet. `effect` is `0` for the dynamic
-  rendering and `1` for the calm one. `sensitivity` runs `1..100`. The colour
-  mode is `0` to leave the colours to the firmware, which then ignores the
-  triplet and keeps the last one it was given, and `1` to impose the triplet.
-  Sub-modes `14`, `17`, `3` and `22`, which other dialects use, are acknowledged
-  with a success code and then ignored.
+  microphone. The frame carries `effect`, `sensitivity`, `soft`, a colour mode
+  and an RGB triplet. `effect` selects the rendering: `0` and `1` each render a
+  music effect, `2` renders a fixed white, and `3..7` render nothing and leave
+  the strips dark. Nothing told `0` apart from `1` on the unit, so neither
+  identifier maps to an effect. `soft` changes nothing observable there.
+  `sensitivity` runs `1..100`. The colour mode is `0` to leave the colours to
+  the firmware, which then ignores the triplet and keeps the last one it was
+  given, and `1` to impose the triplet. Sub-modes `14`, `17`, `3` and `22`,
+  which other dialects use, are acknowledged with a success code and then
+  ignored.
 - Brightness takes the whole byte, `0..255`, and not the percent the other
   family takes. `0` renders nothing and does **not** turn the device off: it
   reports itself on with a brightness of 0.
@@ -113,8 +116,11 @@ at.
 
 - `devices/H6114.yaml`: the byte between the sensitivity and the colour mode of
   the music frame is the `soft` flag of
-  [`docs/protocol/ble.md`](docs/protocol/ble.md) 2.8. The file keeps it a
-  literal `0`: nobody varied it on that unit.
+  [`docs/protocol/ble.md`](docs/protocol/ble.md) 2.8, and the file declares it
+  as an argument over `0..1`. The unit stores it and reads it back at `aa 05`,
+  and the two values render the same thing there. The vendor app drives this
+  device at sub-mode `3`, which carries neither a `soft` byte nor an `effect`
+  byte, so neither field has a value the app writes to compare against.
 - `devices/H61A0.yaml`: the `ble` entry `fade` becomes `gradient`, and it
   declares the new `role: segment_gradient`. `33 a3` is not a fade over time.
   It is the same zone interpolation that the `lan` segment channel carries as
@@ -146,8 +152,10 @@ On the H6114 the firmware fades from one colour to the next and fades in at
 power on. `33 A3`, which sets zone interpolation on a device that has zones, is
 accepted there and changes nothing observable. Scene identifiers were not
 enumerated. DIY and Wi-Fi provisioning were not exercised. The firmware accepts
-an effect and a sensitivity past the ranges above and reads the value back, so
-those ranges are the ones the vendor app drives.
+a value past every music range above and reads it back, so a read that echoes a
+value is not evidence that the device plays it. Between two identifiers the
+device must be turned off: one that the firmware renders nothing for otherwise
+reads as the rendering it kept.
 
 No BLE capture is committed. A redaction is a step of its own. Every `capture:`
 in the `ble` tables is thus empty, with a TODO beside it.

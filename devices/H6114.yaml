@@ -112,25 +112,25 @@ commands:
 
     music:
       documented: false
-      frame: "33 05 13 ${effect} ${sensitivity} 00 ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
+      frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
       args:
         effect: { type: int, range: [0, 1] }
         sensitivity: { type: int, range: [1, 100] }
+        soft: { type: int, range: [0, 1] }
         color_mode: { type: int, range: [0, 1] }
         r: { type: int, range: [0, 255] }
         g: { type: int, range: [0, 255] }
         b: { type: int, range: [0, 255] }
       notes: >-
-        Sub-mode 19. The device listens on its own microphone. `effect` 0 is the
-        dynamic rendering and 1 is the calm one. `color_mode` 0 lets the
-        firmware choose the colors and ignores the triplet, which the device
-        keeps stored from the last frame that carried one; 1 plays the triplet.
-        The byte between the sensitivity and the color mode is the `soft` flag
-        of docs/protocol/ble.md 2.8. It is 0 in every frame the vendor app
-        writes and nobody varied it on this unit, so it stays a literal here.
-        The firmware also accepts a value past the two ranges above and reads
-        it back: those ranges are the ones the vendor app drives. See
-        docs/protocol/ble.md 2.8.
+        Sub-mode 19. The device listens on its own microphone. `effect` selects
+        the rendering, and the range above is what renders a music effect: 0 and
+        1 each render one, 2 renders a fixed white, and 3 to 7 render nothing and
+        leave the strips dark. Nothing told 0 apart from 1 on this unit, so
+        neither identifier maps to an effect. `soft` changes nothing observable
+        here. `color_mode` 0 lets the firmware choose the colors and ignores the
+        triplet, which the device keeps stored from the last frame that carried
+        one; 1 plays the triplet. The firmware accepts a value past every range
+        above and reads it back. See docs/protocol/ble.md 2.8.
       capture: ""         # TODO
 
     status:
@@ -214,9 +214,20 @@ verified:
     is accepted here and changes nothing observable, over six alternations
     spaced four seconds apart in each position. The music sub-mode is 19: 14,
     17, 3 and 22, which other dialects use, are acknowledged with a success code
-    and then ignored, and the live sub-mode stays where it was. Every music
-    field was sent to the unit and its effect observed, and each one was read
-    back at `aa 05` — both from a frame written here and from the state the
-    vendor app wrote. DIY and Wi-Fi provisioning were not exercised. Scene
+    and then ignored, and the live sub-mode stays where it was. Music was
+    exercised with sound in the room, one byte at a time, and the device was
+    turned off for 1.5 s between two values so that a value the firmware renders
+    nothing for reads as a dark strip and not as the rendering before it.
+    `effect` 0 and 1 each render a music effect, 2 renders a fixed white, and 3
+    to 7 render nothing; 0 and 1 were NOT told apart over three alternations,
+    since one identifier renders sharp flashes at one moment and fades at
+    another, so what changes there follows the sound. `soft` 0 and 1 give the
+    same rendering at the identifier 0, over three alternations, both with the
+    colors left to the firmware and with a red imposed. `color_mode` 1 plays the
+    triplet. Every music byte is stored and read back at `aa 05`, a 2 and a 255
+    in the `soft` byte included, which is not evidence that the device plays it.
+    The vendor app drives this device at sub-mode 3, which carries neither an
+    `effect` byte nor a `soft` byte, so neither field has a value the app writes
+    to compare against. DIY and Wi-Fi provisioning were not exercised. Scene
     identifiers were not enumerated. No ble capture has been redacted and
     committed yet, so every `capture:` above is empty.

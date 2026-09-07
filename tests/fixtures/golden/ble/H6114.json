@@ -1,5 +1,5 @@
 {
-  "description": "Conformance vectors for H6114 over ble. Every SDK \u2014 the Rust core, its bindings and any hand-written port \u2014 must produce exactly these bytes for these arguments. The wire carries no envelope here, so a vector states `frames_hex` and no `message`. See ../README.md.",
+  "description": "Conformance vectors for H6114 over ble. Every SDK — the Rust core, its bindings and any hand-written port — must produce exactly these bytes for these arguments. The wire carries no envelope here, so a vector states `frames_hex` and no `message`. See ../README.md.",
   "sku": "H6114",
   "mode": "ble",
   "vectors": [
@@ -12,7 +12,7 @@
       "frames_hex": [
         "3301010000000000000000000000000000000033"
       ],
-      "source": "docs/protocol/ble.md 2.1 \u2014 exercised on the unit"
+      "source": "docs/protocol/ble.md 2.1 — exercised on the unit"
     },
     {
       "name": "power off",
@@ -23,7 +23,7 @@
       "frames_hex": [
         "3301000000000000000000000000000000000032"
       ],
-      "source": "docs/protocol/ble.md 2.1 \u2014 exercised on the unit"
+      "source": "docs/protocol/ble.md 2.1 — exercised on the unit"
     },
     {
       "name": "brightness at the top of the byte",
@@ -34,7 +34,7 @@
       "frames_hex": [
         "3304ff00000000000000000000000000000000c8"
       ],
-      "source": "docs/protocol/ble.md 2.2 \u2014 exercised on the unit, which read the value back"
+      "source": "docs/protocol/ble.md 2.2 — exercised on the unit, which read the value back"
     },
     {
       "name": "brightness 0, which goes dark without turning the device off",
@@ -45,7 +45,7 @@
       "frames_hex": [
         "3304000000000000000000000000000000000037"
       ],
-      "source": "docs/protocol/ble.md 2.2 \u2014 exercised on the unit, which then reported itself on with a brightness of 0"
+      "source": "docs/protocol/ble.md 2.2 — exercised on the unit, which then reported itself on with a brightness of 0"
     },
     {
       "name": "colour green",
@@ -58,7 +58,7 @@
       "frames_hex": [
         "33050d00ff0000000000000000000000000000c4"
       ],
-      "source": "docs/protocol/ble.md 2.3 \u2014 exercised on the unit, which read back sub-mode 13 carrying 00 ff 00"
+      "source": "docs/protocol/ble.md 2.3 — exercised on the unit, which read back sub-mode 13 carrying 00 ff 00"
     },
     {
       "name": "colour blue",
@@ -71,7 +71,7 @@
       "frames_hex": [
         "33050d0000ff00000000000000000000000000c4"
       ],
-      "source": "docs/protocol/ble.md 2.3 \u2014 exercised on the unit"
+      "source": "docs/protocol/ble.md 2.3 — exercised on the unit"
     },
     {
       "name": "the scene that blinks through changing colours",
@@ -82,14 +82,15 @@
       "frames_hex": [
         "330504080000000000000000000000000000003a"
       ],
-      "source": "docs/protocol/ble.md 2.7 \u2014 exercised on the unit"
+      "source": "docs/protocol/ble.md 2.7 — exercised on the unit"
     },
     {
-      "name": "music, the dynamic effect at the top sensitivity, colours left to the firmware",
+      "name": "music, the identifier 0 at the top sensitivity, colours left to the firmware",
       "command": "music",
       "args": {
         "effect": 0,
         "sensitivity": 100,
+        "soft": 0,
         "color_mode": 0,
         "r": 0,
         "g": 0,
@@ -98,14 +99,15 @@
       "frames_hex": [
         "3305130064000000000000000000000000000041"
       ],
-      "source": "docs/protocol/ble.md 2.8 \u2014 worked out from the layout; the vendor app set this state on the unit, which reported it at `aa 05` as 13 00 64 00 00"
+      "source": "docs/protocol/ble.md 2.8 — worked out from the layout; the vendor app set this state on the unit, which reported it at `aa 05` as 13 00 64 00 00"
     },
     {
-      "name": "music, the calm effect, colours left to the firmware",
+      "name": "music, the identifier 1, colours left to the firmware",
       "command": "music",
       "args": {
         "effect": 1,
         "sensitivity": 99,
+        "soft": 0,
         "color_mode": 0,
         "r": 0,
         "g": 0,
@@ -114,14 +116,15 @@
       "frames_hex": [
         "3305130163000000000000000000000000000047"
       ],
-      "source": "docs/protocol/ble.md 2.8 \u2014 exercised on the unit, which read the state back as 13 01 63 00 00"
+      "source": "docs/protocol/ble.md 2.8 — exercised on the unit, which read the state back as 13 01 63 00 00"
     },
     {
-      "name": "music, the calm effect at the lowest sensitivity, on a red the caller imposes",
+      "name": "music, the identifier 1 at the lowest sensitivity, on a red the caller imposes",
       "command": "music",
       "args": {
         "effect": 1,
         "sensitivity": 1,
+        "soft": 0,
         "color_mode": 1,
         "r": 255,
         "g": 0,
@@ -130,7 +133,24 @@
       "frames_hex": [
         "33051301010001ff0000000000000000000000db"
       ],
-      "source": "docs/protocol/ble.md 2.8 \u2014 worked out from the layout; the vendor app set this state on the unit, which reported it at `aa 05` as 13 01 01 00 01 ff 00 00"
+      "source": "docs/protocol/ble.md 2.8 — worked out from the layout; the vendor app set this state on the unit, which reported it at `aa 05` as 13 01 01 00 01 ff 00 00"
+    },
+    {
+      "name": "music, the soft byte set, which changes nothing this unit renders",
+      "command": "music",
+      "args": {
+        "effect": 0,
+        "sensitivity": 60,
+        "soft": 1,
+        "color_mode": 0,
+        "r": 0,
+        "g": 0,
+        "b": 0
+      },
+      "frames_hex": [
+        "330513003c010000000000000000000000000018"
+      ],
+      "source": "docs/protocol/ble.md 2.8 — exercised on the unit: the byte is stored and read back at `aa 05`, and 0 and 1 render the same thing there"
     },
     {
       "name": "status: power, then brightness",
@@ -140,7 +160,7 @@
         "aa010000000000000000000000000000000000ab",
         "aa040000000000000000000000000000000000ae"
       ],
-      "source": "docs/protocol/ble.md 3 \u2014 both reads exercised on the unit, which answered aa 01 and aa 04 in turn"
+      "source": "docs/protocol/ble.md 3 — both reads exercised on the unit, which answered aa 01 and aa 04 in turn"
     },
     {
       "name": "read the live sub-mode",
@@ -149,7 +169,7 @@
       "frames_hex": [
         "aa050000000000000000000000000000000000af"
       ],
-      "source": "docs/protocol/ble.md 3 \u2014 exercised on the unit, which answered sub-mode 13 and its eight payload bytes"
+      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered sub-mode 13 and its eight payload bytes"
     },
     {
       "name": "read the software version",
@@ -158,7 +178,7 @@
       "frames_hex": [
         "aa060000000000000000000000000000000000ac"
       ],
-      "source": "docs/protocol/ble.md 3 \u2014 exercised on the unit, which answered 2.03.11"
+      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered 2.03.11"
     },
     {
       "name": "read the hardware version",
@@ -167,7 +187,7 @@
       "frames_hex": [
         "aa070300000000000000000000000000000000ae"
       ],
-      "source": "docs/protocol/ble.md 3 \u2014 exercised on the unit, which answered 2.01.01"
+      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered 2.01.01"
     }
   ]
 }
