@@ -1,5 +1,9 @@
 # govee-toolkit
 
+[![crates.io](https://img.shields.io/crates/v/govee-toolkit?logo=rust&logoColor=white&label=crates.io)](https://crates.io/crates/govee-toolkit)
+[![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
+[![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
+
 Control Govee devices from Rust over the LAN or Bluetooth, including
 undocumented commands found through reverse engineering. Unofficial, and not
 affiliated with Govee.

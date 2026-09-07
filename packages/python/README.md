@@ -1,5 +1,9 @@
 # govee-toolkit (Python)
 
+[![PyPI](https://img.shields.io/pypi/v/govee-toolkit?logo=python&logoColor=white&label=PyPI)](https://pypi.org/project/govee-toolkit/)
+[![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
+[![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
+
 Control Govee devices over the LAN from Python, including undocumented commands
 found through reverse engineering. Unofficial, and not affiliated with Govee.
 

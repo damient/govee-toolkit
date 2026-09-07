@@ -8,6 +8,10 @@ official app does not expose.
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 
+[![crates.io](https://img.shields.io/crates/v/govee-toolkit?logo=rust&logoColor=white&label=crates.io)](https://crates.io/crates/govee-toolkit)
+[![PyPI](https://img.shields.io/pypi/v/govee-toolkit?logo=python&logoColor=white&label=PyPI)](https://pypi.org/project/govee-toolkit/)
+[![npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/govee-toolkit)
+
 > Community project. Not affiliated with, sponsored by or endorsed by Govee.
 
 <!-- TODO: demo GIF here — a strip running per-segment colors. -->
@@ -66,10 +70,11 @@ test on yours moves the project forward.
 | You want to | Start here | |
 | ----------- | ---------- | --- |
 | Control your lights from **Rust** | [`packages/rust`](packages/rust) — install, first commands, segment streaming | ✅ |
-| Control them from **Python** | [`packages/python`](packages/python) — what it will look like, and where it stands | 🚧 |
-| Control them from **Node.js / TypeScript** | [`packages/node`](packages/node) — same | 🚧 |
+| Control them from **Python** | [`packages/python`](packages/python) — what it will look like, and where it stands | 🔜 |
+| Control them from **Node.js** | [`packages/node`](packages/node) — same | 🔜 |
 | Tell us whether **your model works** | [`devices/README.md`](devices/README.md) — mostly filling in one file, no code | ✅ |
-| Understand the **protocol** itself | [`docs/protocol/lan.md`](docs/protocol/lan.md) | ✅ |
+| Understand the **protocol** itself, over Wi-Fi | [`docs/protocol/lan.md`](docs/protocol/lan.md) | ✅ |
+| Understand it over **Bluetooth** | [`docs/protocol/ble.md`](docs/protocol/ble.md) | ✅ |
 | Click buttons instead of writing code | The web page and the desktop app are on the [roadmap](docs/roadmap.md) | 🔜 |
 
 Whichever you pick, the commands you can send — `power`, `brightness`, `color`,
