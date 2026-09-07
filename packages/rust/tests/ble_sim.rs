@@ -19,25 +19,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use govee_toolkit::ble::{Options, Transport};
-use govee_toolkit::transport::DeviceId;
 use govee_toolkit::{Args, Config, Govee, Mode, State};
 use govee_toolkit_sim::ble::{BleAdapter, BleDevice, BleFaults, BleOptions, Stall};
 
-use self::ble_fake::{MAC, SKU, catalog, enabling_ble};
+use self::ble_fake::{ENDPOINT, POWER_ON, SKU, catalog, enabling_ble, id};
 use self::ble_wire::Radio;
-
-/// The handle the fake radio addresses the device by. Not the identity: the
-/// two are related by `bind`, as they are on hardware.
-const ENDPOINT: &str = "11:22:33:44:55:66";
-
-/// The power frame the fixture declares, at `on = 1`.
-const POWER_ON: [u8; 20] = [
-    0x33, 0x01, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x33,
-];
-
-fn id() -> DeviceId {
-    DeviceId::new(MAC)
-}
 
 /// Short enough that a test does not wait on a window, long enough for a task
 /// to run. Verification is off, so the device receives what the test sent.

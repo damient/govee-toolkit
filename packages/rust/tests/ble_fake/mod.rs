@@ -26,6 +26,14 @@ use tokio::sync::{broadcast, watch};
 pub(crate) const DEVICE_FILE: &str = include_str!("../fixtures/ble-device.yaml");
 pub(crate) const SKU: &str = "HTEST4";
 pub(crate) const MAC: &str = "AA:BB:CC:DD:EE:FF";
+/// The handle the radio addresses the device by. Not the identity: the two are
+/// related by `bind`, as they are on hardware.
+pub(crate) const ENDPOINT: &str = "11:22:33:44:55:66";
+
+/// The power frame the fixture declares, at `on = 1`.
+pub(crate) const POWER_ON: [u8; 20] = [
+    0x33, 0x01, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x33,
+];
 
 /// What the device answers, by the byte that names the request.
 pub(crate) fn answer(frame: &[u8]) -> Vec<u8> {
@@ -62,9 +70,9 @@ pub(crate) struct Fake {
 }
 
 impl Fake {
-    pub(crate) fn knowing(id: &DeviceId) -> Arc<Self> {
+    fn with(known: Option<DeviceId>) -> Arc<Self> {
         Arc::new(Self {
-            known: Some(id.clone()),
+            known,
             written: Mutex::new(Vec::new()),
             scanned: Mutex::new(Vec::new()),
             verified: Mutex::new(Vec::new()),
@@ -73,15 +81,12 @@ impl Fake {
         })
     }
 
+    pub(crate) fn knowing(id: &DeviceId) -> Arc<Self> {
+        Self::with(Some(id.clone()))
+    }
+
     pub(crate) fn knowing_nothing() -> Arc<Self> {
-        Arc::new(Self {
-            known: None,
-            written: Mutex::new(Vec::new()),
-            scanned: Mutex::new(Vec::new()),
-            verified: Mutex::new(Vec::new()),
-            events: broadcast::channel(16).0,
-            status: watch::Sender::new(None),
-        })
+        Self::with(None)
     }
 
     pub(crate) fn written(&self) -> Vec<Vec<u8>> {
@@ -116,7 +121,7 @@ impl Transport for Fake {
             .iter()
             .map(|id| KnownDevice {
                 id: id.clone(),
-                endpoint: "11:22:33:44:55:66".to_owned(),
+                endpoint: ENDPOINT.to_owned(),
                 sku: SKU.to_owned(),
                 health: Health {
                     state: State::Ok,
@@ -171,7 +176,7 @@ impl Transport for Fake {
             id: id.clone(),
             mode: Mode::Ble,
             cmd: command.cmd.clone(),
-            endpoint: "11:22:33:44:55:66".to_owned(),
+            endpoint: ENDPOINT.to_owned(),
         })
     }
 
