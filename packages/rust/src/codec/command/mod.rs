@@ -25,18 +25,15 @@ pub struct Encoded {
     /// The whole `{"msg":{"cmd":…,"data":…}}` envelope. `None` where the mode
     /// puts the frames on the wire with nothing wrapped around them.
     pub message: Option<serde_json::Value>,
-    /// The raw frames, in the order they go out: one for a command that
-    /// declares a `frame:`, several for a chunked one or for a list of
-    /// exchanges, none for a command that travels in its envelope alone. A
-    /// single frame also reaches `message` as base64 when the payload asks for
-    /// it; the bytes stay here for tests and captures.
+    /// The raw frames, in the order they go out. Empty for a command that
+    /// travels in its envelope alone. A single frame also reaches `message`
+    /// as base64 where the payload asks for it.
     pub frames: Vec<Vec<u8>>,
     /// The reply each frame expects, parallel to `frames`. Empty for a command
     /// that only writes.
     pub replies: Vec<Option<ReplyLayout>>,
-    /// The role each captured field carries, where `args:` marks one: a
-    /// transport builds a status from a reply without a field name reaching
-    /// this crate.
+    /// The role each captured field carries, where `args:` marks one, so a
+    /// transport reads a status without a field name reaching this crate.
     pub roles: BTreeMap<String, ArgRole>,
 }
 
@@ -45,9 +42,8 @@ impl Encoded {
     ///
     /// # Errors
     ///
-    /// [`Error::NoEnvelope`] for a command that carries none — a caller that
-    /// asks for one is on the wrong wire, and a silent empty payload would take
-    /// that as far as the device.
+    /// [`Error::NoEnvelope`] for a command that carries none: an empty
+    /// payload would reach the device as a command nobody wrote.
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
         let message = self.message.as_ref().ok_or_else(|| Error::NoEnvelope {
             command: self.cmd.clone(),
@@ -74,9 +70,7 @@ impl Encoded {
 ///
 /// # Errors
 ///
-/// See [`Error`]. Out-of-range values are rejected, never clamped: the firmware
-/// clamps in silence, and hiding that behind a successful call would make the
-/// SDK lie about what the device did.
+/// See [`Error`]. Out-of-range values are rejected, never clamped.
 pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result<Encoded> {
     use crate::codec::catalog::Support;
 

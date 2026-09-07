@@ -1,23 +1,14 @@
 //! The write budget.
 //!
-//! The transport paces itself rather than trusting a caller. A firmware
-//! written to faster than it can keep up does not answer with an error. It
-//! stops answering, and the caller sees a device that has gone away.
+//! A firmware written to faster than it keeps up does not answer with an
+//! error: it stops answering, and the caller sees a device that has gone away.
 //!
-//! What rate a device tolerates is a measurement, so it lives in the device
-//! file. [`Budgets::from_catalog`] reads `measurements.ble.write_budget_hz` for
-//! every SKU the catalog carries, and the transport writes to each device at
-//! its own rate. A device whose file records none falls back to
-//! [`Options::writes_per_second`](super::Options::writes_per_second), which is
-//! the one budget anybody measured and not a claim about that device.
-//!
-//! The burst never comes from the file:
-//! `measurements.ble.burst_frames_before_stall` records the count that broke a
-//! unit, not a count that is safe.
-//!
-//! A token bucket, with the tokens allowed to go negative. The bucket tells a
-//! caller that finds it empty how long to wait, so concurrent callers queue
-//! behind each other rather than wake together.
+//! The rate is a measurement, so it lives in the device file.
+//! [`Budgets::from_catalog`] reads `measurements.ble.write_budget_hz` per SKU;
+//! a file recording none falls back to
+//! [`Options::writes_per_second`](super::Options::writes_per_second). The
+//! burst never comes from the file: `burst_frames_before_stall` is the count
+//! that broke a unit, not one that is safe.
 
 use std::collections::BTreeMap;
 use std::sync::Mutex;
@@ -40,10 +31,8 @@ impl Budget {
     /// # Errors
     ///
     /// [`Error::Option`] if the rate is not finite and positive, or if the
-    /// burst is zero. Either describes a budget that never releases a write.
-    /// On this wire that is indistinguishable from a device that stopped
-    /// answering, so it is refused here, never raised to a value the caller
-    /// did not ask for.
+    /// burst is zero. Either is a budget that never releases a write, which on
+    /// this wire looks exactly like a device that stopped answering.
     pub fn new(per_second: f64, burst: u32) -> Result<Self> {
         check_rate(per_second)?;
         if burst == 0 {
@@ -82,16 +71,14 @@ fn check_rate(per_second: f64) -> Result<()> {
 
 /// The sustained write rate each device file records, in writes per second.
 ///
-/// Keyed by uppercased SKU, verified aliases included: a device advertises
-/// whichever of them its firmware carries.
+/// Keyed by uppercased SKU, verified aliases included.
 #[derive(Debug, Clone, Default)]
 pub struct Budgets(BTreeMap<String, f64>);
 
 impl Budgets {
     /// Every `measurements.ble.write_budget_hz` a catalog carries.
     ///
-    /// A device file that records none is absent here rather than defaulted: a
-    /// rate measured on one unit says nothing about another.
+    /// A file recording none is absent here rather than defaulted.
     #[must_use]
     pub fn from_catalog(catalog: &Catalog) -> Self {
         let mut rates = BTreeMap::new();
@@ -115,9 +102,9 @@ impl Budgets {
     ///
     /// # Errors
     ///
-    /// [`Error::Option`] if a device file records a rate no write could go out
-    /// under. `crate::codec::validate` refuses such a file, so this reports a
-    /// local device file that never went through it.
+    /// [`Error::Option`] if a device file records a rate no write could go
+    /// out under. `crate::codec::validate` refuses such a file, so this
+    /// catches a local one that never went through it.
     pub fn checked(&self, fallback: Budget) -> Result<BTreeMap<String, Budget>> {
         self.0
             .iter()
@@ -152,10 +139,8 @@ impl Pacer {
         }
     }
 
-    /// Claim one write, and return how long to wait before making it.
-    ///
-    /// The claim is taken immediately whatever the answer, so callers are
-    /// served in the order they asked.
+    /// Claim one write, and return how long to wait before making it. The
+    /// claim is taken immediately, so callers are served in order.
     #[must_use]
     pub fn claim(&self, now: Instant) -> Duration {
         let Ok(mut state) = self.state.lock() else {

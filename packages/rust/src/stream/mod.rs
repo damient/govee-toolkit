@@ -1,32 +1,28 @@
 //! Streaming colors to a device's zones over the raw segment channel.
 //!
 //! The channel is armed once, then fed frames — `docs/protocol/lan.md` 2.3.
+//! Nothing acknowledges a frame, and the firmware drops a malformed one in
+//! silence, so the stream verifies nothing. A rate above what the firmware
+//! accepts makes the light freeze, and that ceiling falls as frames grow: the
+//! rate comes from the zone count and from a value measured on a physical unit
+//! (`docs/protocol/lan.md` 2.7).
 //!
-//! - **It never answers.** Nothing acknowledges a frame, and the firmware drops
-//!   a malformed one in silence. The stream therefore verifies nothing and asks
-//!   for nothing back.
-//! - **It saturates.** A rate above what the firmware accepts makes the light
-//!   freeze or stutter. That limit falls as frames grow, so the rate comes from
-//!   the zone count and from a value measured on a physical unit and recorded
-//!   in its device file — `docs/protocol/lan.md` 2.7.
-//!
-//! What a frame costs depends on how the device file paints zones over the
-//! chosen mode. A `segment_color` command carries every zone in one frame. A
-//! `segment_color_masked` one carries a single color and the zones that use it,
-//! so a repaint costs one write per distinct color: a solid fill is one write,
-//! and a picture of fifteen colors is fifteen. That is what `ble` offers. No
-//! per-pixel channel sits behind it, so a stream there runs at the zone count
-//! the device file declares, not at native resolution. [`Zones::Native`] is
-//! refused there: sent as a mask, the firmware drops the high bits in silence.
+//! What a frame costs depends on how the device file paints zones. A
+//! `segment_color` command carries every zone in one frame. A
+//! `segment_color_masked` one carries a single color and the zones that use
+//! it, so a repaint costs one write per distinct color. That is what `ble`
+//! offers, and no per-pixel channel sits behind it: [`Zones::Native`] is
+//! refused there, since the firmware drops the high bits of such a mask in
+//! silence.
 //!
 //! On `ble` the transport paces, not the stream. Every write goes through the
-//! same budget, whether or not a stream opened it.
+//! same budget.
 //!
-//! Writes never block. The stream holds the current colors and an emitting task
-//! sends them on a fixed interval, so a source faster than the device is not
-//! throttled: its later frame replaces the earlier one and only the latest is
-//! sent. That is what an Art-Net universe or an audio spectrum needs, and it is
-//! why [`SegmentStream::frames_superseded`] exists rather than a queue.
+//! Writes never block. The stream holds the current colors and an emitting
+//! task sends them on a fixed interval, so a later frame replaces an unsent
+//! earlier one and only the latest goes out. That is what an Art-Net universe
+//! or an audio spectrum needs, and why [`SegmentStream::frames_superseded`]
+//! exists rather than a queue.
 //!
 //! ```no_run
 //! use govee_toolkit::{Args, Config, Govee};
@@ -65,15 +61,9 @@ use crate::error::{Error, Result};
 use crate::govee::Govee;
 use crate::transport::DeviceId;
 
-/// The rate used when a device file records no measurement for the mode a
-/// stream opens on, in hertz.
-///
-/// Below every rate measured so far: too fast stutters, too slow is only a
-/// coarser animation. It is a fallback and not a measurement, and it is the
-/// same number for every mode. A `ble` stream runs at it, because no device
-/// file records a rate measured over that mode. Measure the unit, record the
-/// value in its device file, and the stream uses that instead. Configurable as
-/// `stream.fallback_hz`.
+/// The rate a stream falls back to when the device file measured none for its
+/// mode, in hertz. Below every rate measured so far. Every `ble` stream runs
+/// at it. Configurable as `stream.fallback_hz`.
 pub const FALLBACK_HZ: f64 = 10.0;
 
 /// How many zones a stream carries.
@@ -83,10 +73,7 @@ pub enum Zones {
     #[default]
     App,
     /// Every addressable LED, from `capabilities.segments.native_pixels`.
-    ///
-    /// Fails when nobody measured it: that number belongs to the physical unit
-    /// and cannot be inferred from the SKU. Fails too on a mode that paints by
-    /// zone mask, which addresses zones and reaches no pixel behind them.
+    /// Fails when nobody measured it, and on a mode that paints by zone mask.
     Native,
     /// A count the caller picks. The firmware groups LEDs into blocks to serve
     /// it, so asking for more than the unit has refines nothing.
@@ -112,21 +99,14 @@ pub struct StreamOptions {
     pub zones: Zones,
     /// How fast to send.
     pub rate: Rate,
-    /// Ask the firmware to interpolate between zones, and wrap from the last
-    /// back to the first.
-    ///
-    /// `false`, the default, gives hard-edged zones — what a caller painting a
-    /// pattern wants, and the only sensible choice at native resolution, where
-    /// interpolation blurs exactly the detail that resolution buys. Which
-    /// default a model itself uses is a per-SKU fact no device file records.
+    /// Ask the firmware to interpolate between zones, wrapping from the last
+    /// back to the first. `false` gives hard-edged zones.
     pub gradient: bool,
 }
 
-/// An open segment channel.
-///
-/// It stays armed until [`SegmentStream::close`]. Dropping it asks the emitting
-/// task to disarm instead, which reports no failure and does nothing at all if
-/// the runtime is already gone.
+/// An open segment channel, armed until [`SegmentStream::close`]. Dropping it
+/// asks the emitting task to disarm, which reports no failure and does nothing
+/// once the runtime is gone.
 #[derive(Debug)]
 pub struct SegmentStream {
     shared: Arc<Shared>,
@@ -200,11 +180,8 @@ impl SegmentStream {
         self.shared.zones
     }
 
-    /// How often the stream repaints, in hertz.
-    ///
-    /// A repaint is one frame where the device file paints every zone at once,
-    /// and one frame per distinct color where it paints by mask — so frames
-    /// leave at this rate times the number of colors the picture holds.
+    /// How often the stream repaints, in hertz. A repaint is one frame on a
+    /// whole-frame command and one per distinct color on a masked one.
     #[must_use]
     pub fn rate_hz(&self) -> f64 {
         self.shared.hz
@@ -291,22 +268,15 @@ impl SegmentStream {
         self.shared.sent.load(Ordering::Relaxed)
     }
 
-    /// Writes replaced by a later one before a frame carried them.
-    ///
-    /// Expected, not an error: it is what a source faster than the device
-    /// costs, and the alternative is throttling that source.
+    /// Writes replaced by a later one before a frame carried them. Expected:
+    /// it is what a source faster than the device costs.
     #[must_use]
     pub fn frames_superseded(&self) -> u64 {
         self.shared.superseded.load(Ordering::Relaxed)
     }
 
-    /// What stopped the stream, if anything did.
-    ///
-    /// Only an encoding failure stops it: the arguments cannot become valid, so
-    /// retrying would send nothing forever, and the channel is disarmed there
-    /// and then. A transport failure does not — the breaker already refuses a
-    /// device that is down, cheaply, and a stream outlives a device that comes
-    /// back.
+    /// What stopped the stream. Only an encoding failure does: a transport
+    /// failure does not, since a stream outlives a device that comes back.
     #[must_use]
     pub fn error(&self) -> Option<Arc<Error>> {
         self.shared.failure.lock().ok().and_then(|e| e.clone())

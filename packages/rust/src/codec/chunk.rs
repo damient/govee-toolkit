@@ -2,10 +2,8 @@
 //!
 //! A mode whose frames are a fixed size carries a longer payload as a start
 //! frame, a run of data frames and an end frame. The device file writes the
-//! three layouts and the slice size; this module cuts the body and fills in the
-//! values the layouts need and the caller cannot know: how many data frames
-//! there are, how many frames the transfer is in total, which frame this is,
-//! and what it carries.
+//! three layouts and the slice size; this module cuts the body and fills in
+//! `count`, `total`, `index` and `chunk` — see `devices/schema.yaml`.
 //!
 //! ```yaml
 //! body: "${ssid:str8} ${password:str8}"
@@ -16,11 +14,11 @@
 //!   footer: "A1 <op:11> FF <pad:20> <xor>"
 //! ```
 //!
-//! Two dialects of the same wire differ in where the body starts and where it
-//! stops, so the block says so rather than assuming. A `head_size:` puts the
-//! first slice in the header, and a footer that reads `${chunk:bytes}` carries
-//! the last one. A `then:` frame goes out after the transfer, for a wire where
-//! what was transferred is stored and a second frame plays it.
+//! Where the body starts and stops is the layouts' to say, because two
+//! dialects of one wire differ: a `head_size:` puts the first slice in the
+//! header, and a footer that reads `${chunk:bytes}` carries the last. A
+//! `then:` frame goes out after the transfer, for a wire that stores what was
+//! transferred and plays it with a second frame.
 
 use std::sync::OnceLock;
 

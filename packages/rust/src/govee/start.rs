@@ -167,8 +167,6 @@ fn overlay_local_devices(catalog: &mut Catalog, config: &Config) -> Result<()> {
 
     let replaced = catalog.overlay(files.iter().map(|(f, y)| (f.as_str(), y.as_str())))?;
     for overridden in replaced {
-        // An override shadows what everyone else's build ships, so it must be
-        // visible on every run.
         tracing::warn!(
             sku = %overridden.sku,
             was = %overridden.was,

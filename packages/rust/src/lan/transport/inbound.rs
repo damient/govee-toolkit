@@ -65,10 +65,10 @@ impl Shared {
 
     /// Route one datagram.
     ///
-    /// A payload that carries an identity, an address and a SKU is a discovery
-    /// reply; anything else from a device already known is a status. Both the
-    /// documented `devStatus` and the undocumented `status` of
-    /// `docs/protocol/lan.md` §2.2 therefore land in the right place.
+    /// A payload carrying an identity, an address and a SKU is a discovery
+    /// reply; anything else from a known device is a status. That covers both
+    /// `devStatus` and the undocumented `status` (`docs/protocol/lan.md`
+    /// §2.2).
     fn dispatch(&self, from: SocketAddr, bytes: &[u8]) {
         let Some(reply) = parse_reply(from, bytes) else {
             return;
@@ -92,10 +92,8 @@ impl Shared {
         self.devices.publish_status(&self.events, Mode::Lan, status);
     }
 
-    /// Which device answers at this address.
-    ///
-    /// A scan over the tracked devices: a household holds a handful, and a
-    /// second index would have to be kept in step on every discovery.
+    /// Which device answers at this address. A scan over the tracked
+    /// devices: a household holds a handful.
     fn identify(&self, ip: IpAddr) -> Option<DeviceId> {
         let devices = self.devices.lock().ok()?;
         devices

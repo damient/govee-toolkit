@@ -18,9 +18,8 @@ pub const CONTROL_PORT: u16 = 4003;
 
 /// Where the transport sends and listens.
 ///
-/// The constants above are the protocol. These fields exist because a test and
-/// the simulator need ephemeral ports on the loopback. The defaults are what
-/// real hardware answers on; change them only for a test.
+/// The constants above are the protocol; these fields exist so a test or the
+/// simulator can use ephemeral ports on the loopback.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Endpoints {
     /// Where the `scan` request is sent.
@@ -55,8 +54,7 @@ pub fn scan_request() -> Vec<u8> {
 /// One device that answered a `scan`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiscoveredDevice {
-    /// The `device` field of the reply: the MAC, and the identity everything
-    /// else keys on. An IP address changes across a DHCP lease; this does not.
+    /// The `device` field of the reply: the MAC everything else keys on.
     pub id: DeviceId,
     /// Where to send commands.
     pub ip: IpAddr,
@@ -105,9 +103,8 @@ impl DiscoveredDevice {
 
     /// The same reply in the shape every mode reports discoveries in.
     ///
-    /// This carries only the Wi-Fi firmware, the one this transport talks to.
-    /// The BLE versions a `scan` reply also lists say nothing about the radio
-    /// `lan` uses.
+    /// Carries the Wi-Fi firmware alone. The BLE versions a `scan` reply also
+    /// lists say nothing about the radio `lan` uses.
     #[must_use]
     pub fn reported(&self, endpoints: &Endpoints) -> Discovered {
         Discovered {

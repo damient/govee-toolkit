@@ -1,35 +1,13 @@
 //! The `reply:` mini-language: reading the bytes a device answers with.
 //!
-//! The same shape as `frame:`, in the other direction. A layout is a
-//! whitespace-separated token string; a literal byte must be there, and a
-//! `${name}` field captures. Nothing is built, so the tokens that build —
-//! `<xor>`, `<len:16>`, `<op:…>`, `<pad:…>` and a repeat group — are refused:
-//! a `reply:` is capture-only.
+//! The `frame:` grammar in the other direction, capture-only, so the tokens
+//! that build bytes are refused. `devices/schema.yaml` lists what it takes.
 //!
-//! | Token | Reads |
-//! | ----- | ----- |
-//! | `BB` | that literal byte, which the reply must carry |
-//! | `${name}` | one byte, as an integer |
-//! | `${name:16}` | two bytes, big-endian, as an integer |
-//! | `${name:bytes:6}` | exactly six bytes, as they are |
-//! | `${name:ascii}` | the rest of the reply as text, trailing zeros trimmed |
-//! | `${name:ascii:17}` | exactly seventeen bytes, read the same way |
-//!
-//! Unbounded `${name:ascii}` reads to the end, so it comes last. Give it a
-//! length when the reply carries anything after the text. A wire that ends
-//! every frame on a checksum is the usual reason: a read to the end swallows
-//! that byte and fails on it as unprintable.
-//!
-//! Either way the field must keep at least one character once the padding is
-//! off. A reply that stops at the layout's last literal, and one that carries
-//! nothing but zeros, are both refused rather than captured as an empty
-//! string. What it keeps must be printable ASCII, `0x20` to `0x7e`: a binary
-//! answer of low bytes is a mismatch, not text. Bytes past the layout are
-//! ignored, since a wire whose frames are a fixed size pads a short reply out.
-//!
-//! A reply that does not carry a literal the layout requires is refused whole.
-//! Nothing partial is returned: a frame that does not match is another
-//! command's answer, or a firmware that does not do what the file says.
+//! Three traps. Unbounded `${name:ascii}` reads to the end, so it comes last
+//! and needs a length where the reply carries anything after the text. A text
+//! field must keep one printable character once the padding is off. And a
+//! reply missing a required literal is refused whole, since such a frame is
+//! another command's answer; bytes past the layout are ignored.
 
 use crate::codec::args::ArgValue;
 use crate::codec::error::{Error, Result};

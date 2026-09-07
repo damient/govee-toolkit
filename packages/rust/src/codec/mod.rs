@@ -1,19 +1,15 @@
 //! Device catalog and protocol codec.
 //!
-//! The single place where protocol logic lives. It does **no I/O**: it turns
-//! `devices/*.yaml` plus arguments into the exact bytes a transport sends, and
-//! nothing more. Transports, mode selection and the circuit breaker live in the
-//! modules above it, and `tools/check-no-io.sh` fails the build if anything
-//! network-shaped is imported here.
+//! The single place where protocol logic lives, and it does no I/O:
+//! `devices/*.yaml` plus arguments in, the exact bytes a transport sends out.
+//! `tools/check-no-io.sh` fails the build if anything network-shaped is
+//! imported here.
 //!
-//! Two rules shape the API:
-//!
-//! - **No SKU, no command name appears in this code.** A device file describes
-//!   its own commands; the codec interprets them. Adding a device is adding
-//!   YAML.
-//! - **Nothing is approximated.** An argument outside its declared range, a
-//!   command a mode does not carry, an unsupported mode — each is a typed
-//!   error. The firmware clamps in silence; this crate does not.
+//! Two rules shape the API. No SKU and no command name appears in this code —
+//! a device file describes its own commands, so adding a device is adding
+//! YAML. And nothing is approximated: an argument outside its declared range,
+//! or a command a mode does not carry, is a typed error. The firmware clamps
+//! in silence; this crate does not.
 //!
 //! ```
 //! use govee_toolkit::codec::{self, Args, Catalog, Mode};
@@ -60,9 +56,8 @@ include!(concat!(env!("OUT_DIR"), "/devices.rs"));
 
 /// The device-file schema revision this build implements.
 ///
-/// A file declaring anything else is refused rather than read as this one: the
-/// fields a later revision adds change what the fields it already had mean, and
-/// guessing which is which is how a device gets sent bytes nobody verified. See
+/// A file declaring anything else is refused rather than read as this one: a
+/// later revision can change what an existing field means. See
 /// `devices/schema.yaml` and `docs/versioning.md`.
 pub const SCHEMA_VERSION: u32 = 1;
 
@@ -127,13 +122,11 @@ impl Catalog {
     /// Replace catalog entries with locally supplied files.
     ///
     /// A file here replaces the one the build shipped for that SKU, wholesale.
-    /// This is not the default: a new SKU normally arrives with a release, so
-    /// that one person's device does not silently define the model for
-    /// everyone.
+    /// Not the default: a new SKU normally arrives with a release, so that one
+    /// person's device does not define the model for everyone.
     ///
-    /// Returns what was replaced, so a caller can report it. Two files in one
-    /// overlay that claim the same SKU is still an error: that is a mistake,
-    /// not an override.
+    /// Returns what was replaced. Two files in one overlay claiming the same
+    /// SKU is a mistake, not an override, and stays an error.
     ///
     /// # Errors
     ///

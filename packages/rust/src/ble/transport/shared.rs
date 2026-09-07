@@ -171,11 +171,9 @@ impl Shared {
         links.remove(id);
 
         // A handle is good only while the platform still holds the peripheral
-        // behind it, and macOS drops that when a link goes down: the device
-        // must be heard advertising again before anything can connect to it.
-        // The scan reaches the same device over the same mode, so it
-        // substitutes nothing. It costs seconds, so it runs only once the
-        // handle is gone.
+        // behind it, and macOS drops that when a link goes down. The device
+        // must advertise again before anything can connect to it. A scan costs
+        // seconds, so it runs only once the handle is gone.
         let peripheral = match self.peripheral(endpoint).await? {
             Some(peripheral) => peripheral,
             None => self.rediscover(endpoint).await?,
@@ -266,11 +264,10 @@ impl Shared {
             .record(&self.events, id, Mode::Ble, answered, now);
     }
 
-    /// The open connection to a device, opening one if there is none, and a
-    /// failure recorded against the breaker if it cannot be opened.
+    /// [`Shared::link`], with a failure recorded against the breaker.
     ///
-    /// A device that will not take a connection is unreachable, and a record
-    /// now spares the next command the same wait.
+    /// A device that will not take a connection is unreachable, and the record
+    /// spares the next command the same wait.
     ///
     /// # Errors
     ///

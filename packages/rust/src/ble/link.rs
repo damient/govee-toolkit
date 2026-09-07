@@ -1,10 +1,9 @@
 //! One connection to one device: the two characteristics, and the replies.
 //!
-//! A device accepts a single connection and stops advertising while it is up,
-//! so the link is opened once and kept. Replies arrive on the notify
-//! characteristic carrying no request id, so a caller subscribes before it
-//! writes and matches an answer against the `reply:` layout its command
-//! declares.
+//! A device takes one connection and stops advertising while it is up, so the
+//! link is opened once and kept. Replies carry no request id, so a caller
+//! subscribes before it writes and matches the answer against its command's
+//! `reply:` layout.
 
 use std::sync::Arc;
 

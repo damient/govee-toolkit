@@ -140,9 +140,8 @@ impl BleDevice {
 
     /// Take one frame.
     ///
-    /// Returns as soon as the frame is recorded. The answer, if there is one,
-    /// is notified after [`BleFaults::latency`]: this wire acknowledges
-    /// nothing, so a write never waits for it.
+    /// Returns as soon as the frame is recorded; any answer is notified after
+    /// [`BleFaults::latency`]. This wire acknowledges nothing.
     ///
     /// # Errors
     ///
@@ -269,19 +268,17 @@ impl State {
         }
         let (&kind, &command_type) = (frame.first()?, frame.get(1)?);
         let mut answer = match kind {
-            // A write is acknowledged under the two bytes it came with, and
-            // the status says the firmware took the frame, never that it
-            // applied it. See `docs/protocol/ble.md` §1.4.
+            // Acknowledged under the two bytes it came with. See
+            // `docs/protocol/ble.md` §1.4.
             WRITE => vec![WRITE, command_type, 0x00],
-            // A read the device does not implement answers nothing at all,
-            // which is a probe that fails and a capability nobody has.
+            // A read the device does not implement answers nothing at all.
             READ => {
                 let mut bytes = vec![READ, command_type];
                 bytes.extend_from_slice(self.answers.get(&command_type)?);
                 bytes
             }
-            // A multi-packet write is answered once it is complete, and
-            // nothing here reassembles one.
+            // A multi-packet write answers once complete, and nothing here
+            // reassembles one.
             _ => return None,
         };
         answer.resize(FRAME_LEN, 0);

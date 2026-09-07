@@ -141,9 +141,8 @@ async fn the_status_a_device_reports_reaches_the_caller() {
 
 #[tokio::test]
 async fn enabling_a_mode_the_hardware_lacks_is_reported() {
-    // `none` states that the hardware cannot do it, so the SDK must report the
-    // mistake. The embedded file declares `ble` as partial, so the overlay
-    // carries the claim.
+    // `none` states that the hardware cannot do it. The embedded file
+    // declares `ble` partial, so the overlay carries the claim.
     let mut catalog = Catalog::embedded().expect("catalog");
     catalog
         .overlay([(
@@ -234,9 +233,8 @@ async fn the_devices_listing_carries_the_configured_view() {
 
 #[tokio::test]
 async fn a_file_that_names_no_status_command_still_sends() {
-    // Nothing in the SDK knows what a status entry is called: the device file
-    // marks one `role: status`. A file that marks none has no status request,
-    // so the command goes out unverified and `status()` fails.
+    // A file marking no `role: status` has no status request, so the command
+    // goes out unverified and `status()` fails.
     let mut catalog = Catalog::embedded().expect("catalog");
     catalog
         .overlay([(

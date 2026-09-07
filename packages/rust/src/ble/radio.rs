@@ -1,8 +1,7 @@
 //! [`wire`](super::wire) over the platform's Bluetooth stack.
 //!
-//! This is the only module that names `btleplug`. It reports what the platform
-//! said and nothing else: no frame is read here, and no advertisement is
-//! parsed here.
+//! The only module that names `btleplug`. It reports what the platform said:
+//! no frame is read here, and no advertisement is parsed here.
 
 use std::sync::Arc;
 

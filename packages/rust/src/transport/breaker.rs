@@ -1,9 +1,8 @@
 //! The per-device, per-mode circuit breaker.
 //!
-//! Every method takes the current instant instead of a clock read, so the
-//! transitions in `docs/modes.md` are testable without a socket and without a
-//! wait. The breaker answers from the last recorded result, never from the
-//! network, so a mode costs no round-trip to choose.
+//! Every method takes the current instant instead of reading a clock, so the
+//! transitions in `docs/modes.md` are testable without a wait. It answers from
+//! the last recorded result, so choosing a mode costs no round-trip.
 
 use std::time::{Duration, Instant};
 
@@ -129,9 +128,8 @@ impl Breaker {
 
     /// Whether a command may be sent over this mode right now.
     ///
-    /// `Ok` always passes. `Degraded` and `Down` pass one command after their
-    /// cooldown, and refuse until then. That probe is the only route back to
-    /// `Ok`. No network round-trip is involved.
+    /// `Ok` always passes. `Degraded` and `Down` pass one probe after their
+    /// cooldown and refuse until then; that probe is the only route back.
     #[must_use]
     pub fn allows(&self, now: Instant) -> bool {
         match self.state {

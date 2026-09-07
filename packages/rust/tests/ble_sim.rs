@@ -1,11 +1,8 @@
 //! The `ble` transport, end to end against a simulated device.
 //!
-//! Everything here is the real send path: the facade, the transport, the
-//! budget, the breaker and the link. Only the radio is fake, so these run in
-//! CI, where there is none.
-//!
-//! The device is [`govee_toolkit_sim::ble`], and [`ble_wire`] is what joins it
-//! to the transport.
+//! The real send path throughout — facade, transport, budget, breaker, link —
+//! with only the radio faked, so these run in CI. The device is
+//! [`govee_toolkit_sim::ble`] and [`ble_wire`] joins it to the transport.
 
 #![cfg(feature = "ble")]
 #![allow(
@@ -42,9 +39,8 @@ fn id() -> DeviceId {
     DeviceId::new(MAC)
 }
 
-/// Timings short enough that a test does not wait on a window, and long enough
-/// for a task to run. Verification is off: a test that wants a read asks for
-/// one, so what reaches the device is what the test sent.
+/// Short enough that a test does not wait on a window, long enough for a task
+/// to run. Verification is off, so the device receives what the test sent.
 fn options() -> Options {
     Options {
         scan_window: Duration::from_millis(20),

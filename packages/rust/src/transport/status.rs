@@ -1,8 +1,8 @@
 //! What a device reports about itself.
 //!
 //! `devStatus` and the undocumented `status` of `docs/protocol/lan.md` §2.2
-//! both land here. Every field is optional, because this crate cannot know
-//! which ones a firmware fills in, and `raw` keeps what it did not recognize.
+//! both land here. Every field is optional, since no firmware fills them all
+//! in, and `raw` keeps what was not recognized.
 
 use std::collections::BTreeMap;
 
@@ -25,9 +25,8 @@ pub struct DeviceStatus {
     pub color: Option<[u8; 3]>,
     /// `colorTemInKelvin`. `0` means the device is in color mode.
     pub color_temp_kelvin: Option<i64>,
-    /// The whole reply: `msg.data` for a mode that answers JSON, every captured
-    /// field for one that answers frames. Undocumented fields stay reachable
-    /// here, the frozen `pt` descriptor of §2.2 among them.
+    /// The whole reply: `msg.data` on a mode that answers JSON, every
+    /// captured field on one that answers frames.
     pub raw: serde_json::Value,
 }
 
@@ -58,8 +57,8 @@ impl DeviceStatus {
 
     /// Read one out of what a command's `reply:` layouts captured.
     ///
-    /// `roles` says which captured field is which, so no field name reaches
-    /// this code. A field no role claims stays in `raw`.
+    /// `roles` says which field is which, so no field name reaches this code.
+    /// A field no role claims stays in `raw`.
     #[must_use]
     pub fn from_captured(
         id: DeviceId,
@@ -87,10 +86,8 @@ impl DeviceStatus {
         }
     }
 
-    /// Whether the device is in white mode rather than color mode.
-    ///
-    /// The two are mutually exclusive: a non-zero temperature means the color
-    /// in the same reply is not what is lit.
+    /// Whether the device is in white mode. Mutually exclusive with color, so
+    /// a non-zero temperature means the color in the same reply is not lit.
     #[must_use]
     pub fn is_white(&self) -> bool {
         self.color_temp_kelvin.is_some_and(|k| k > 0)

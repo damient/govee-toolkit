@@ -4,17 +4,14 @@
 //! remembers where they are, keeps one socket for everything and tracks each
 //! device's health.
 //!
-//! It is one implementation of [`crate::transport::Transport`]. The rules below
-//! are that trait's, and come from `docs/modes.md`:
+//! It implements [`crate::transport::Transport`] under the rules in
+//! `docs/modes.md`.
 //!
-//! - **It never chooses a mode.** There is nothing to fall back to here. A
-//!   device that cannot be reached produces an error, and what to do about it
-//!   is the facade's decision, made from the user's configuration.
-//! - **Health is state already known.** [`Transport::send`] never waits for a
-//!   timeout to decide whether to send; the breaker answers from what the last
-//!   commands did.
-//! - **Nothing is approximated.** Ranges are already enforced by the codec, and
-//!   this layer does not soften them.
+//! What is specific to this mode:
+//!
+//! - **Devices are cached on disk.** A command reaches a device the last scan
+//!   found, so no send waits for a scan.
+//! - **One socket carries everything.** Discovery and every command share it.
 //!
 //! The identity, the breaker, the error and the reported status live in
 //! [`crate::transport`], shared with every other mode. They are re-exported

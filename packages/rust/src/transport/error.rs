@@ -1,9 +1,7 @@
 //! Errors a transport can return, whichever mode it serves.
 //!
-//! No substitution recovers any of these. A device the transport cannot reach
-//! produces [`Error::Unreachable`] or [`Error::Unavailable`], and the caller
-//! gets that answer. Only the facade chooses another mode, from the user's
-//! configuration.
+//! No substitution recovers any of these: the caller gets the answer, and
+//! only the facade chooses another mode.
 
 use crate::codec::Mode;
 use crate::transport::DeviceId;
@@ -14,9 +12,7 @@ use crate::transport::breaker::State;
 #[non_exhaustive]
 pub enum Error {
     /// No device with this identity has been discovered, and none is cached.
-    ///
-    /// This is not a reason to scan: a scan on the send path costs a multicast
-    /// round-trip (`docs/protocol/lan.md` §1, latency notes).
+    /// Not a reason to scan: that costs a round-trip on the send path.
     #[error("no known device `{id}`; it has not been discovered and is not in the cache")]
     UnknownDevice {
         /// The identity that was asked for.
@@ -46,9 +42,8 @@ pub enum Error {
         timeout_ms: u64,
     },
 
-    /// An encoded command does not serialize into a datagram. It cannot happen
-    /// for a value [`crate::codec`] built; it exists so that no code path must
-    /// unwrap.
+    /// An encoded command does not serialize into a datagram. Unreachable for
+    /// a value [`crate::codec`] built; it exists so no path must unwrap.
     #[error("{cmd}: the encoded command is not serializable: {reason}")]
     Serialize {
         /// The command.
@@ -57,9 +52,8 @@ pub enum Error {
         reason: String,
     },
 
-    /// A transport option is outside the range the transport can honour. The
-    /// transport refuses it and never moves it to the nearest value it can
-    /// serve: an option quietly replaced is an option the caller never set.
+    /// A transport option is outside the range the transport can honour.
+    /// Refused, never moved to the nearest value it can serve.
     #[error("`{field}` is out of range: {reason}")]
     Option {
         /// The field, as it is named on the mode's options type.
@@ -106,10 +100,8 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl Error {
-    /// A stable, language-neutral identifier for this failure.
-    ///
-    /// Shares the namespace of [`crate::codec::Error::code`], so a binding
-    /// surfaces one flat set of codes whatever layer failed.
+    /// A stable, language-neutral identifier for this failure. One namespace
+    /// with [`crate::codec::Error::code`].
     #[must_use]
     pub fn code(&self) -> &'static str {
         match self {

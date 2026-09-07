@@ -70,8 +70,6 @@ pub(super) struct Plan {
 pub(super) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Result<Plan> {
     // A mode that names no arming entry has nothing to arm: over one that
     // paints by mask, the zones are addressable as soon as the device is on.
-    // Do not invent a frame here — only the device file says what a device
-    // does.
     let enable = match device.command_for(mode, Role::SegmentEnable) {
         Some(command) => Some(Enable {
             arg: arg_named(device, mode, command, ArgRole::Enable)?.to_owned(),
@@ -81,8 +79,7 @@ pub(super) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Resu
     };
     let painter = painter(device, mode, options.gradient)?;
     // Where the painting frame has no room for the setting, the file names a
-    // command that carries it alone. Without that command the option encodes
-    // into nothing, and the caller never gets the gradient it asked for.
+    // command that carries it alone.
     let gradient = match device.command_for(mode, Role::SegmentGradient) {
         Some(command) => Some((
             Enable {
@@ -142,10 +139,9 @@ fn painter(device: &Device, mode: Mode, gradient: bool) -> Result<Painter> {
 
 /// How many zones the mask carries, where the file bounds it.
 ///
-/// The `count:` on the zone argument is the bound; where the file declares
-/// none, the width of the mask field the layout writes it into is, since a bit
-/// past that field reaches no zone. `None` where the file says neither, and
-/// the stream then refuses to open.
+/// The `count:` on the zone argument, or the width of the mask field where the
+/// file declares none. `None` where it declares neither, and the stream then
+/// refuses to open.
 fn mask_limit(device: &Device, mode: Mode, command: &str) -> Option<usize> {
     let spec = device.commands.get(mode).get(command)?;
     let name = spec.arg_for(ArgRole::Zones)?;
@@ -175,9 +171,8 @@ fn mask_bits(command: &str, spec: &Command, arg: &str) -> Option<usize> {
 /// The zone count the stream carries, refused where the mode cannot address
 /// it.
 ///
-/// Zero means nobody recorded the count — for either capability, and for a
-/// caller who asked for none. A stream armed on it would send frames the codec
-/// refuses, and nothing reads that refusal.
+/// Zero means nobody recorded the count. A stream armed on it would send
+/// frames the codec refuses, and nothing reads that refusal.
 fn zone_count(device: &Device, mode: Mode, painter: &Painter, zones: Zones) -> Result<usize> {
     if let (Painter::Masked { .. }, Zones::Native) = (painter, zones) {
         return Err(Error::NativeZonesUnreachable {

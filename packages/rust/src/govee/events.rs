@@ -1,8 +1,8 @@
 //! Republish the transports' events on the facade's own stream.
 //!
-//! One task per transport; the tasks stop when the last [`Govee`](super::Govee)
-//! clone drops. A device the catalog cannot serve is reported here, because
-//! discovery is the first moment that is knowable.
+//! One task per transport, stopped when the last [`Govee`](super::Govee) clone
+//! drops. A device the catalog cannot serve is reported here: discovery is the
+//! first moment that is knowable.
 
 use std::sync::Arc;
 

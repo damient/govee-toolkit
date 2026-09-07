@@ -1,9 +1,8 @@
 //! What a transport reports: per-device health, discoveries, and the event
 //! stream every mode publishes into.
 //!
-//! No type here names a mode in its shape. A device carries an endpoint string
-//! the transport defines: a socket address over `lan`, a Bluetooth address over
-//! `ble`. An application shows that string; it does not parse it.
+//! No type here names a mode in its shape. An endpoint is a string the
+//! transport defines, and an application shows it rather than parses it.
 
 use std::time::Instant;
 
@@ -19,8 +18,8 @@ pub struct Sent {
     pub id: DeviceId,
     /// Which mode served it.
     pub mode: Mode,
-    /// What went out under the protocol's own name for it: the `msg.cmd` over
-    /// `lan`, the device file's entry name where the wire carries no name.
+    /// The `msg.cmd` over `lan`, or the device file's entry name where the
+    /// wire carries no name.
     pub cmd: String,
     /// Where it went.
     pub endpoint: String,

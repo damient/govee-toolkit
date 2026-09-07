@@ -10,8 +10,7 @@
 //! ```
 //!
 //! It walks the H61A0's table. Another SKU names its own commands and
-//! arguments: nothing here knows a command name that `devices/*.yaml` did not
-//! give it.
+//! arguments.
 
 // The no-print lint is the library's rule. An example reports to the person who
 // runs it.
@@ -165,9 +164,6 @@ async fn main() -> Result<(), Error> {
 }
 
 /// What the device answers, through the `reply:` layouts its file declares.
-///
-/// No field name below lives in the SDK. The device file names the frame, the
-/// bytes and the field.
 async fn read_everything(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(), Error> {
     // `status` is the entry marked `role: status`, which fire-and-verify sends
     // on its own. Over `ble` it takes two exchanges: no single frame reports
@@ -190,10 +186,8 @@ async fn read_everything(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(),
     Ok(())
 }
 
-/// The segment channel, armed once and fed frames on a clock.
-///
-/// A mode that paints by mask costs one write per distinct color. A solid
-/// fill takes one write; fifteen colors take fifteen.
+/// The segment channel, armed once and fed frames on a clock. This mode
+/// paints by mask, so a repaint costs one write per distinct color.
 async fn paint_zones(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(), Error> {
     let stream = device
         .open_stream(StreamOptions {

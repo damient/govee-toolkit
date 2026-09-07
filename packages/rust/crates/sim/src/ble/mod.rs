@@ -1,22 +1,12 @@
-//! A fake Govee peripheral on GATT, and the adapter that finds it.
-//!
-//! It exists so the `ble` transport can be tested in CI, where there is no
-//! radio: it advertises a name, takes one connection, accepts frames on the
-//! write characteristic and answers on the notify characteristic. It can be
-//! told to go silent, to answer late, to drop answers, to refuse the
-//! connection, and to stall under a burst the way real firmware does
+//! A fake Govee peripheral on GATT, and the adapter that finds it, so the
+//! `ble` transport can be tested in CI. It can be told to go silent, to answer
+//! late, to drop answers, to refuse the connection, and to stall under a burst
 //! (`docs/protocol/ble.md` §5).
 //!
-//! **It plays the wire, not the firmware.** It checks what the frame format
-//! makes checkable — the length and the BCC — and it answers a write with the
-//! acknowledgement the protocol documents (§1.4). It reads no payload: what a
-//! read answers is set explicitly with [`BleDevice::set_read_answer`], and
-//! tests assert on [`BleDevice::received`]. Modelling what each write means
-//! would put per-SKU semantics in Rust, which this project keeps in
-//! `devices/*.yaml`.
-//!
-//! The transport reaches this through its own `wire` traits. The crate under
-//! test carries the ten lines that join the two.
+//! It plays the wire and not the firmware, as the `lan` device does: it checks
+//! the length and the BCC and acknowledges a write (§1.4), but reads no
+//! payload. Set what a read answers with [`BleDevice::set_read_answer`], and
+//! assert on [`BleDevice::received`].
 
 mod device;
 
@@ -44,8 +34,8 @@ pub const READ: u8 = 0xaa;
 
 /// How many writes a second the firmware takes, and what it does past that.
 ///
-/// A device written to too fast does not refuse a frame. It stops answering
-/// for seconds. The numbers are a unit's, so a test states its own.
+/// A device written to too fast does not refuse a frame: it stops answering
+/// for seconds. The numbers are one unit's, so a test states its own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Stall {
     /// How many frames within [`Stall::within`] the firmware takes.
@@ -82,9 +72,8 @@ pub struct BleOptions {
     /// The name it advertises. `None` builds `GBK_<SKU>_0000`, the shape
     /// `docs/protocol/ble.md` §1.3 documents.
     pub name: Option<String>,
-    /// Whether it carries the vendor service. `false` is a device of another
-    /// family: it advertises, it connects, and the link then finds nothing to
-    /// write to.
+    /// Whether it carries the vendor service. `false` advertises and connects
+    /// but leaves the link nothing to write to.
     pub carries_service: bool,
     /// How it misbehaves.
     pub faults: BleFaults,
@@ -106,10 +95,8 @@ impl BleOptions {
 
 /// A fake radio, holding the devices on the air.
 ///
-/// A device is reachable only once a scan has heard it, as it is on hardware:
-/// the adapter addresses a peripheral it holds, and it holds none before a
-/// scan. A connected device stops advertising, so a scan does not hear it
-/// again while the link is up (`docs/protocol/ble.md` §1.1).
+/// A device is reachable only once a scan has heard it, as on hardware, and a
+/// connected device stops advertising (`docs/protocol/ble.md` §1.1).
 #[derive(Debug, Default)]
 pub struct BleAdapter {
     devices: Mutex<Vec<BleDevice>>,

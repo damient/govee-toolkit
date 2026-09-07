@@ -1,12 +1,9 @@
 //! The scan, the link, the budget and the breaker, tied together.
 //!
-//! The send path is the same shape as every other mode's: resolve the device
-//! from what is already known, ask the breaker, write. Between the last two
-//! this mode adds a connection, because a device answers nothing until one is
-//! up, and a write budget the firmware imposes.
-//!
-//! A reply carries no request id, so a read waits under an open subscription
-//! and matches the `reply:` layout the device file declares.
+//! The same shape as every other mode's send path — resolve, ask the breaker,
+//! write — with a connection and a write budget between the last two. A reply
+//! carries no request id, so a read waits under an open subscription and
+//! matches the device file's `reply:` layout.
 
 mod discover;
 mod impl_transport;
@@ -65,8 +62,7 @@ impl Transport {
     ///
     /// Everything above [`wire::Adapter`](crate::ble::wire::Adapter) is
     /// protocol, so an adapter that is not a radio runs the same send path.
-    /// `crates/sim` carries one, which is how the `ble` transport is tested on
-    /// a machine that has no Bluetooth.
+    /// `crates/sim` carries one.
     ///
     /// # Errors
     ///
@@ -111,12 +107,10 @@ impl Transport {
     /// Say that the device known by `id` is the one answering at `endpoint`.
     ///
     /// This crate identifies a device by its Wi-Fi MAC, and a scan reports the
-    /// handle the platform addresses the peripheral by. The two name one unit,
-    /// and **nothing here infers one from the other**: a scan reports a device
-    /// under that handle until a caller says otherwise. One configuration
-    /// entry can then cover a device reachable over both `lan` and `ble`.
-    ///
-    /// The device keeps everything already recorded about it, health included.
+    /// platform's handle for the peripheral. **Nothing infers one from the
+    /// other**, so a scan reports a device under that handle until a caller
+    /// says otherwise. The device keeps what was recorded about it, health
+    /// included.
     ///
     /// # Errors
     ///

@@ -16,7 +16,7 @@ pub enum ArgSpec {
     Int {
         /// `[min, max]`, both inclusive.
         range: [i64; 2],
-        /// What the SDK fills this argument with. See [`ArgRole`].
+        /// See [`ArgRole`].
         #[serde(default)]
         role: Option<ArgRole>,
     },
@@ -25,7 +25,7 @@ pub enum ArgSpec {
         /// Optional cap on the number of triples.
         #[serde(default)]
         max_len: Option<usize>,
-        /// What the SDK fills this argument with. See [`ArgRole`].
+        /// See [`ArgRole`].
         #[serde(default)]
         role: Option<ArgRole>,
     },
@@ -35,7 +35,7 @@ pub enum ArgSpec {
         /// counts bytes.
         #[serde(default)]
         max_len: Option<usize>,
-        /// What the SDK fills this argument with. See [`ArgRole`].
+        /// See [`ArgRole`].
         #[serde(default)]
         role: Option<ArgRole>,
     },
@@ -45,7 +45,7 @@ pub enum ArgSpec {
         /// dropped into a bit the firmware ignores.
         #[serde(default)]
         count: Option<usize>,
-        /// What the SDK fills this argument with. See [`ArgRole`].
+        /// See [`ArgRole`].
         #[serde(default)]
         role: Option<ArgRole>,
     },
@@ -54,7 +54,7 @@ pub enum ArgSpec {
         /// Optional cap on the length.
         #[serde(default)]
         max_len: Option<usize>,
-        /// What the SDK fills this argument with. See [`ArgRole`].
+        /// See [`ArgRole`].
         #[serde(default)]
         role: Option<ArgRole>,
     },
@@ -89,9 +89,8 @@ impl ArgSpec {
 /// What one declared argument carries, when the SDK fills it in or reads it
 /// back without being told a name.
 ///
-/// An argument the caller always passes needs no role. A field a `reply:`
-/// layout captures needs one only where the SDK models it: a transport's
-/// `DeviceStatus` models [`ArgRole::On`] and [`ArgRole::Brightness`].
+/// An argument the caller always passes needs no role, and a captured field
+/// needs one only where the SDK models it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ArgRole {
@@ -162,15 +161,12 @@ pub enum Role {
     /// [`ArgRole::Colors`]; one marked [`ArgRole::Gradient`] is supplied when
     /// declared.
     SegmentColor,
-    /// Paints one color over the zones a mask names. Must declare an argument
-    /// marked [`ArgRole::Colors`] and one marked [`ArgRole::Zones`].
-    ///
-    /// A frame carries one color, so a stream over such a command sends one
-    /// write per run of equal color rather than one per frame.
+    /// Paints one color over the zones a mask names, so a stream over it
+    /// costs one write per distinct color. Must declare an argument marked
+    /// [`ArgRole::Colors`] and one marked [`ArgRole::Zones`].
     SegmentColorMasked,
-    /// Sets whether the firmware interpolates between zones, on a mode that
-    /// carries that setting in a frame of its own rather than in the painting
-    /// one. Must declare an argument marked [`ArgRole::Gradient`].
+    /// Sets zone interpolation, on a mode that carries it in a frame of its
+    /// own. Must declare an argument marked [`ArgRole::Gradient`].
     SegmentGradient,
 }
 

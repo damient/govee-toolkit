@@ -1,8 +1,7 @@
 //! The transport against a simulated device.
 //!
-//! Everything here runs on the loopback with ephemeral ports, so it needs no
-//! hardware, no multicast and no privileges. A device that answers cannot show
-//! the behavior under test: a breaker that refuses without a wait.
+//! On the loopback with ephemeral ports, so it needs no hardware, no
+//! multicast and no privileges.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 

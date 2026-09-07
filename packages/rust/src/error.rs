@@ -26,17 +26,13 @@ pub enum Error {
         reason: String,
     },
 
-    /// The configuration enables something that cannot work.
-    ///
-    /// Reported at startup, as `docs/modes.md` requires: a mode the hardware
-    /// does not support is a mistake to fix, not a command to fail later.
+    /// The configuration enables something that cannot work. Reported at
+    /// startup, not on the command that would have failed.
     #[error("the configuration cannot be applied:\n  {}", .0.iter().map(ToString::to_string).collect::<Vec<_>>().join("\n  "))]
     Configuration(Vec<Problem>),
 
-    /// Every enabled mode is refused right now.
-    ///
-    /// Not a reason to try something else: the modes listed here are the ones
-    /// the user enabled, and there is nothing beyond them.
+    /// Every enabled mode is refused right now. There is nothing beyond the
+    /// modes listed here.
     #[error("{id}: none of the enabled modes is available ({})", .modes.iter().map(ToString::to_string).collect::<Vec<_>>().join(", "))]
     NoModeAvailable {
         /// The device.
@@ -45,10 +41,7 @@ pub enum Error {
         modes: Vec<Mode>,
     },
 
-    /// A mode the configuration enables has no transport yet.
-    ///
-    /// Explicit rather than skipped: silently moving on to the next mode would
-    /// be substituting one for another, which this SDK does not do.
+    /// A mode the configuration enables has no transport in this build.
     #[error("{id}: mode `{mode}` is enabled but not implemented yet")]
     ModeNotImplemented {
         /// The device.
@@ -59,11 +52,8 @@ pub enum Error {
 
     /// The device file names no command for a role the SDK invokes on its own.
     ///
-    /// The SDK does not guess an entry name: mark the right entry `role:
-    /// status`, `role: segment_enable`, `role: segment_color` or `role:
-    /// segment_color_masked` in `devices/<SKU>.yaml`. Fire-and-verify works
-    /// without a status command and says so; [`crate::DeviceHandle::status`]
-    /// fails instead.
+    /// Mark the right entry `role:` in `devices/<SKU>.yaml`. Fire-and-verify
+    /// runs without a `status` entry; [`crate::DeviceHandle::status`] fails.
     #[error("{sku}: no command in `commands.{mode}` is marked `role: {role}`")]
     NoRoleCommand {
         /// The SKU whose file is missing it.
@@ -74,13 +64,9 @@ pub enum Error {
         role: Role,
     },
 
-    /// A command the SDK invokes on its own does not mark the argument the SDK
-    /// has to fill.
-    ///
-    /// The device file names arguments, so a `role:` command must say which of
-    /// its own arguments carries what — `devices/schema.yaml`.
-    /// `crate::codec::validate` catches this too; this error covers a file that
-    /// reached the send path without it.
+    /// A command the SDK invokes on its own does not mark the argument the
+    /// SDK has to fill. Mark it with an argument `role:` —
+    /// `devices/schema.yaml`.
     #[error(
         "{sku}: `commands.{mode}.{command}` marks no argument `role: {arg_role}`, so there is nothing to put the value in"
     )]
@@ -97,10 +83,8 @@ pub enum Error {
 
     /// A stream was asked for a zone count nothing records.
     ///
-    /// A zone count is a property of the physical unit: no count substitutes
-    /// for another, and none follows from another. Measure it —
-    /// `docs/protocol/lan.md` 2.3 — and record it in the device file, or ask
-    /// for a zone count explicitly.
+    /// The count belongs to the physical unit, not to the SKU. Measure it
+    /// (`docs/protocol/lan.md` 2.3) and record it, or ask for a count.
     #[error("{sku}: the zone count asked for is not recorded for this unit")]
     ZoneCountUnknown {
         /// The SKU whose file leaves it at zero.
@@ -108,9 +92,8 @@ pub enum Error {
     },
 
     /// A frame carried a different number of colors than the stream streams.
-    ///
-    /// The zone count is fixed when the stream opens: the firmware reads it
-    /// from the frame, and a change mid-stream re-groups the LEDs.
+    /// The firmware reads the count off the frame, so a change mid-stream
+    /// re-groups the LEDs.
     #[error("this stream carries {expected} zones, not {got}")]
     ZoneCountMismatch {
         /// What the stream was opened with.
@@ -129,11 +112,8 @@ pub enum Error {
     },
 
     /// A stream was asked for native resolution over a mode that paints by
-    /// zone mask.
-    ///
-    /// Such a mode addresses zones, and the device file's zone count is what
-    /// its mask can name; there is no per-pixel channel behind it. Ask for
-    /// [`Zones::App`](crate::stream::Zones::App) or an explicit count instead.
+    /// zone mask. No per-pixel channel sits behind such a mode: ask for
+    /// [`Zones::App`](crate::stream::Zones::App) or an explicit count.
     #[error("{sku}: mode `{mode}` paints zones by mask and cannot reach native resolution")]
     NativeZonesUnreachable {
         /// The SKU asked for.
@@ -142,10 +122,9 @@ pub enum Error {
         mode: Mode,
     },
 
-    /// A stream was asked for more zones than the mode's mask can name.
-    ///
-    /// Refused rather than sent: the firmware drops a mask with bits past the
-    /// last zone in silence, so the frame would look sent and paint nothing.
+    /// A stream was asked for more zones than the mode's mask can name. The
+    /// firmware drops the bits past the last zone in silence, so such a frame
+    /// would look sent and paint nothing.
     #[error("{sku}: mode `{mode}` addresses {limit} zones, not {zones}")]
     ZoneCountUnsupported {
         /// The SKU asked for.
@@ -162,10 +141,8 @@ pub enum Error {
     /// nothing.
     ///
     /// The bound is the `count:` on the argument marked `role: zones`, or the
-    /// width of the mask field the layout writes it into. A file that declares
-    /// neither says nothing about how many zones the mask reaches, and a mask
-    /// the firmware drops looks exactly like one it applied, so the stream
-    /// refuses to arm.
+    /// width of the mask field. A dropped mask looks exactly like an applied
+    /// one, so a file declaring neither cannot arm a stream.
     #[error("{sku}: mode `{mode}`, command `{command}` bounds its zone mask by nothing")]
     ZoneMaskUnbounded {
         /// The SKU asked for.
@@ -176,10 +153,8 @@ pub enum Error {
         command: String,
     },
 
-    /// A stream was asked for a rate at or below zero.
-    ///
-    /// Out of range, not clamped: a rate is a division on the send path, and
-    /// the nearest legal value would flood the channel this stream paces.
+    /// A stream was asked for a rate at or below zero. Out of range, not
+    /// clamped: the nearest legal value would flood the channel.
     #[error("a stream rate must be above zero, not {hz}")]
     StreamRateOutOfRange {
         /// What the caller asked for, in hertz.
@@ -200,11 +175,9 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 impl Error {
-    /// A stable, language-neutral identifier for this failure.
-    ///
-    /// Shares the namespace of [`crate::codec::Error::code`] and
-    /// [`crate::transport::Error::code`], so a binding surfaces one flat set of
-    /// codes whatever layer failed.
+    /// A stable, language-neutral identifier for this failure. One namespace
+    /// with [`crate::codec::Error::code`] and
+    /// [`crate::transport::Error::code`].
     #[must_use]
     pub fn code(&self) -> &'static str {
         match self {

@@ -13,8 +13,7 @@ use crate::govee::Govee;
 use crate::stream::{SegmentStream, StreamOptions};
 use crate::transport::{DeviceId, DeviceStatus, Health, Reply, Verify};
 
-/// A borrow of the SDK and one identity. It holds no state: every call reads
-/// the configuration and the health recorded now.
+/// A borrow of the SDK and one identity, holding no state of its own.
 #[derive(Debug, Clone)]
 pub struct DeviceHandle<'a> {
     govee: &'a Govee,
@@ -51,10 +50,10 @@ impl DeviceHandle<'_> {
 
     /// Send a command, named as the device file names it.
     ///
-    /// The mode is chosen first, then the command is encoded **for that mode**.
-    /// A command the chosen mode does not carry fails with
-    /// [`crate::codec::Error::UnknownCommand`] rather than being approximated —
-    /// `docs/modes.md`, capability differences between modes.
+    /// The mode is chosen first, then the command is encoded **for that
+    /// mode**. A command that mode does not carry fails with
+    /// [`crate::codec::Error::UnknownCommand`] rather than being
+    /// approximated — `docs/modes.md`.
     ///
     /// # Errors
     ///
@@ -89,9 +88,8 @@ impl DeviceHandle<'_> {
     /// Open the raw segment channel and stream colors to it.
     ///
     /// Arms the channel and starts emitting; the writers on [`SegmentStream`]
-    /// never block. Power the device on first — `turn(1)` precedes arming
-    /// (`docs/protocol/lan.md` 2.3), and this crate names no command of its
-    /// own.
+    /// never block. Power the device on first: arming a dark strip paints
+    /// nothing (`docs/protocol/lan.md` 2.3).
     ///
     /// # Errors
     ///
@@ -131,9 +129,8 @@ impl DeviceHandle<'_> {
     /// Run a command's exchanges and return what its `reply:` layouts
     /// captured.
     ///
-    /// This is how a value the SDK does not model reaches a caller. The device
-    /// file names the frames that ask for it, the bytes that carry it and the
-    /// name it comes back under. None of that lives in this crate.
+    /// How a value the SDK does not model reaches a caller. The device file
+    /// names the frames, the bytes and the field; none of that lives here.
     ///
     /// # Errors
     ///
@@ -154,10 +151,9 @@ impl DeviceHandle<'_> {
 
     /// The last status heard, without asking for a new one.
     ///
-    /// Read from the mode that would serve a command right now. `None` if no
-    /// enabled mode can, or if that transport has heard nothing yet: a status
-    /// recorded by one transport handed back under another mode would be a
-    /// silent substitution.
+    /// Read from the mode that would serve a command right now, and never
+    /// from another. `None` if no enabled mode can, or if that transport has
+    /// heard nothing.
     #[must_use]
     pub fn last_status(&self) -> Option<DeviceStatus> {
         let mode = self.govee.choose(&self.id).ok()?;

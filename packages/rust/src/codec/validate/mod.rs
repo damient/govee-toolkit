@@ -1,12 +1,8 @@
 //! Structural checks on a device file.
 //!
-//! These are the conventions in `devices/README.md` and `CLAUDE.md`, made
-//! machine-checkable: a frame that does not parse, a placeholder with no
-//! argument behind it, an undocumented command with no note that points at the
-//! protocol documentation. They run in CI and in this crate's tests.
-//!
-//! They check the *shape* of a file, never whether a device really behaves that
-//! way — that stays a matter of capture and verification.
+//! The conventions in `devices/README.md` and `CLAUDE.md`, made
+//! machine-checkable and run in CI. They check the *shape* of a file, never
+//! whether a device behaves that way.
 
 use self::command::{check_command, check_role_args};
 use self::modes::check_mode_capabilities;
@@ -108,9 +104,8 @@ pub fn device(device: &Device) -> Vec<Problem> {
         );
     }
 
-    // The transport paces `ble` writes to this number, and a budget that never
-    // releases a write is indistinguishable from a device that stopped
-    // answering.
+    // The transport paces `ble` writes to this number, and a budget that
+    // never releases a write looks like a device that stopped answering.
     if let Some(budget) = device.measurements.ble.write_budget_hz {
         if !budget.is_finite() || budget <= 0.0 {
             problems.push(at(
