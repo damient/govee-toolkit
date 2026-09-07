@@ -108,6 +108,27 @@ pub fn device(device: &Device) -> Vec<Problem> {
         );
     }
 
+    // The transport paces `ble` writes to this number, and a budget that never
+    // releases a write is indistinguishable from a device that stopped
+    // answering.
+    if let Some(budget) = device.measurements.ble.write_budget_hz {
+        if !budget.is_finite() || budget <= 0.0 {
+            problems.push(at(
+                "measurements.ble.write_budget_hz",
+                format!("is {budget}; a budget must be finite and above zero"),
+            ));
+        } else if let Some(sustained) = device.measurements.ble.sustained_writes_hz
+            && budget > sustained
+        {
+            problems.push(at(
+                "measurements.ble.write_budget_hz",
+                format!(
+                    "is {budget}, above the {sustained} the unit sustained; a budget is at or under what was measured"
+                ),
+            ));
+        }
+    }
+
     if let (Some(measured), Some(declared)) = (
         device.measurements.native_pixels,
         device.capabilities.native_pixels(),

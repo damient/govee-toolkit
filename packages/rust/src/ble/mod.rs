@@ -32,7 +32,7 @@ pub mod pace;
 pub mod scan;
 pub mod transport;
 
-pub use pace::{Budget, Pacer};
+pub use pace::{Budget, Budgets, Pacer};
 pub use scan::Advertised;
 pub use transport::{Options, Transport};
 use uuid::Uuid;

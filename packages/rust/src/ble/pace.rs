@@ -4,21 +4,26 @@
 //! written to faster than it can keep up does not answer with an error. It
 //! stops answering, and the caller sees a device that has gone away.
 //!
-//! What rate a device tolerates is a measurement. `devices/H61A0.yaml` records
-//! about 130 writes per second sustained on one unit, and a burst of roughly a
-//! hundred frames that left the firmware unresponsive for twenty seconds. The
-//! default in [`Options`](super::Options) is that unit's budget.
+//! What rate a device tolerates is a measurement, so it lives in the device
+//! file. [`Budgets::from_catalog`] reads `measurements.ble.write_budget_hz` for
+//! every SKU the catalog carries, and the transport writes to each device at
+//! its own rate. A device whose file records none falls back to
+//! [`Options::writes_per_second`](super::Options::writes_per_second), which is
+//! the one budget anybody measured and not a claim about that device.
 //!
-//! TODO: read the budget out of the device file for the target device, so that
-//! a unit which tolerates less is not written to at another unit's rate.
+//! The burst never comes from the file:
+//! `measurements.ble.burst_frames_before_stall` records the count that broke a
+//! unit, not a count that is safe.
 //!
 //! A token bucket, with the tokens allowed to go negative. The bucket tells a
 //! caller that finds it empty how long to wait, so concurrent callers queue
 //! behind each other rather than wake together.
 
+use std::collections::BTreeMap;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use crate::codec::Catalog;
 use crate::transport::error::{Error, Result};
 
 /// A write budget that has been checked: a sustained rate in writes per second,
@@ -40,12 +45,7 @@ impl Budget {
     /// answering, so it is refused here, never raised to a value the caller
     /// did not ask for.
     pub fn new(per_second: f64, burst: u32) -> Result<Self> {
-        if !per_second.is_finite() || per_second <= 0.0 {
-            return Err(Error::Option {
-                field: "writes_per_second".to_owned(),
-                reason: format!("expected a finite rate above zero, got {per_second}"),
-            });
-        }
+        check_rate(per_second)?;
         if burst == 0 {
             return Err(Error::Option {
                 field: "burst".to_owned(),
@@ -56,6 +56,73 @@ impl Budget {
             per_second,
             burst: f64::from(burst),
         })
+    }
+
+    /// The same burst allowance, at another sustained rate.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Option`] if the rate is not finite and positive.
+    pub fn at_rate(self, per_second: f64) -> Result<Self> {
+        check_rate(per_second)?;
+        Ok(Self { per_second, ..self })
+    }
+}
+
+/// Refuse a rate no write could go out under.
+fn check_rate(per_second: f64) -> Result<()> {
+    if !per_second.is_finite() || per_second <= 0.0 {
+        return Err(Error::Option {
+            field: "writes_per_second".to_owned(),
+            reason: format!("expected a finite rate above zero, got {per_second}"),
+        });
+    }
+    Ok(())
+}
+
+/// The sustained write rate each device file records, in writes per second.
+///
+/// Keyed by uppercased SKU, verified aliases included: a device advertises
+/// whichever of them its firmware carries.
+#[derive(Debug, Clone, Default)]
+pub struct Budgets(BTreeMap<String, f64>);
+
+impl Budgets {
+    /// Every `measurements.ble.write_budget_hz` a catalog carries.
+    ///
+    /// A device file that records none is absent here rather than defaulted: a
+    /// rate measured on one unit says nothing about another.
+    #[must_use]
+    pub fn from_catalog(catalog: &Catalog) -> Self {
+        let mut rates = BTreeMap::new();
+        for sku in catalog.skus() {
+            if let Ok(device) = catalog.device(sku)
+                && let Some(hz) = device.measurements.ble.write_budget_hz
+            {
+                rates.insert(sku.to_uppercase(), hz);
+            }
+        }
+        Self(rates)
+    }
+
+    /// The rate recorded for `sku`, or `None` if its file records none.
+    #[must_use]
+    pub fn rate(&self, sku: &str) -> Option<f64> {
+        self.0.get(&sku.to_uppercase()).copied()
+    }
+
+    /// One budget per SKU: the rate its file records, at `fallback`'s burst.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Option`] if a device file records a rate no write could go out
+    /// under. `crate::codec::validate` refuses such a file, so this reports a
+    /// local device file that never went through it.
+    pub fn checked(&self, fallback: Budget) -> Result<BTreeMap<String, Budget>> {
+        self.0
+            .iter()
+            .map(|(sku, hz)| Ok((sku.clone(), fallback.at_rate(*hz)?)))
+            .collect()
     }
 }
 
@@ -157,6 +224,72 @@ mod tests {
             assert_eq!(pacer.claim(later), Duration::ZERO);
         }
         assert!(pacer.claim(later) > Duration::ZERO);
+    }
+
+    const MEASURED: &str = "
+schema_version: 1
+sku: \"HTEST1\"
+family: \"test\"
+name: \"A unit somebody measured\"
+aliases: [\"HTEST1A\"]
+capabilities:
+  power: {}
+measurements:
+  ble:
+    sustained_writes_hz: 60
+    write_budget_hz: 40
+";
+
+    const UNMEASURED: &str = "
+schema_version: 1
+sku: \"HTEST2\"
+family: \"test\"
+name: \"A unit nobody measured\"
+capabilities:
+  power: {}
+";
+
+    fn budgets(sources: &[(&str, &str)]) -> Budgets {
+        let catalog = Catalog::from_sources(sources.iter().copied()).expect("the files parse");
+        Budgets::from_catalog(&catalog)
+    }
+
+    #[test]
+    fn the_rate_comes_off_the_device_file_and_covers_its_verified_aliases() {
+        let budgets = budgets(&[("measured.yaml", MEASURED), ("unmeasured.yaml", UNMEASURED)]);
+        assert_eq!(budgets.rate("HTEST1"), Some(40.0));
+        assert_eq!(budgets.rate("htest1"), Some(40.0));
+        assert_eq!(budgets.rate("HTEST1A"), Some(40.0));
+    }
+
+    #[test]
+    fn a_unit_nobody_measured_gets_no_rate_from_another_one() {
+        let budgets = budgets(&[("measured.yaml", MEASURED), ("unmeasured.yaml", UNMEASURED)]);
+        assert_eq!(budgets.rate("HTEST2"), None);
+        assert_eq!(budgets.rate("H0000"), None);
+    }
+
+    #[test]
+    fn a_measured_rate_keeps_the_burst_it_is_checked_against() {
+        let fallback = Budget::new(100.0, 8).expect("a usable budget");
+        let checked = budgets(&[("measured.yaml", MEASURED)])
+            .checked(fallback)
+            .expect("40 writes a second is a budget");
+        let measured = checked.get("HTEST1").copied().expect("it is recorded");
+        assert!((measured.per_second - 40.0).abs() < 1e-6, "{measured:?}");
+        assert!(
+            (measured.burst - fallback.burst).abs() < 1e-6,
+            "the burst comes from the fallback, got {measured:?}"
+        );
+    }
+
+    #[test]
+    fn a_device_file_recording_a_rate_nothing_could_be_sent_under_is_refused() {
+        let broken = MEASURED.replace("write_budget_hz: 40", "write_budget_hz: 0");
+        let error = budgets(&[("broken.yaml", broken.as_str())])
+            .checked(Budget::new(100.0, 8).expect("a usable budget"))
+            .expect_err("a rate of zero is not a budget");
+        assert_eq!(error.code(), "out_of_range");
     }
 
     #[test]

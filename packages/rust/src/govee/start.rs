@@ -52,7 +52,10 @@ impl Govee {
 
         #[cfg(feature = "ble")]
         transports.push(Arc::new(crate::ble::Transport::start(
-            crate::ble::Options::default(),
+            crate::ble::Options {
+                budgets: crate::ble::Budgets::from_catalog(&catalog),
+                ..crate::ble::Options::default()
+            },
         )?));
 
         Self::attach(config, catalog, transports)
