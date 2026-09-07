@@ -63,6 +63,12 @@ pub struct Faults {
     pub latency: Duration,
 }
 
+/// Whether the answer numbered `count` is one [`Faults::drop_one_in`] drops.
+/// `None`, and zero, drop nothing.
+pub(crate) fn drops(drop_one_in: Option<u32>, count: u32) -> bool {
+    drop_one_in.is_some_and(|n| n > 0 && count.is_multiple_of(n))
+}
+
 /// How the simulator is set up.
 #[derive(Debug, Clone)]
 pub struct Options {

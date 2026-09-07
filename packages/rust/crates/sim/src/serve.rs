@@ -62,10 +62,7 @@ impl Inner {
                 if answer.is_some() {
                     state.replies = state.replies.wrapping_add(1);
                     let drop = state.faults.silent
-                        || state
-                            .faults
-                            .drop_one_in
-                            .is_some_and(|n| n > 0 && state.replies % n == 0);
+                        || crate::drops(state.faults.drop_one_in, state.replies);
                     if drop {
                         continue;
                     }
