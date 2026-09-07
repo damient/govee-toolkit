@@ -86,9 +86,19 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// A subscription requests nothing; use [`Transport::status`] for that.
     fn watch_status(&self, id: &DeviceId) -> Option<watch::Receiver<Option<DeviceStatus>>>;
 
+    /// How long a scan on this mode must listen.
+    ///
+    /// The window is a property of the wire, not of the caller: `lan` waits for
+    /// replies to a request it sent, and `ble` waits for advertisements that
+    /// arrive on each device's own interval. A window taken from another mode
+    /// reports a device that is there as absent.
+    fn scan_window(&self) -> Duration;
+
     /// Look for devices for `window`, and return what answered.
     ///
-    /// Nothing on the send path calls this.
+    /// Nothing on the send path calls this. [`Transport::scan_window`] is the
+    /// window for this mode; pass another only to ask for a shorter or a longer
+    /// one deliberately.
     ///
     /// # Errors
     ///

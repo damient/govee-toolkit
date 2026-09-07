@@ -3,7 +3,6 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
 use tokio::sync::broadcast;
 
@@ -77,6 +76,10 @@ impl Govee {
 
     /// Run a discovery scan on every transport and return what answered.
     ///
+    /// Each transport listens for its own window: how long a scan must wait is
+    /// a property of the wire, and one mode's window reports a device that is
+    /// there as absent on another.
+    ///
     /// Nothing on the send path calls this: it runs at startup and on the
     /// background interval. See `docs/protocol/lan.md` §1, latency notes.
     ///
@@ -86,10 +89,9 @@ impl Govee {
     /// fails the call: a scan that quietly covered fewer modes than asked would
     /// read as a device that is not there.
     pub async fn scan(&self) -> Result<Vec<Device>> {
-        let window = Duration::from_millis(self.inner.config.lan.scan_window_ms);
         let mut found: BTreeMap<DeviceId, String> = BTreeMap::new();
         for transport in self.inner.transports.values() {
-            for device in transport.scan(window).await? {
+            for device in transport.scan(transport.scan_window()).await? {
                 found.insert(device.id, device.sku);
             }
         }

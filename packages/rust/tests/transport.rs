@@ -74,6 +74,12 @@ impl Rig {
 }
 
 #[tokio::test]
+async fn a_transport_reports_the_window_its_own_mode_needs() {
+    let rig = Rig::start(Policy::default()).await;
+    assert_eq!(rig.transport.scan_window(), Duration::from_millis(200));
+}
+
+#[tokio::test]
 async fn a_scan_finds_the_device_and_records_where_it_is() {
     let rig = Rig::start(Policy::default()).await;
     rig.discover().await;
