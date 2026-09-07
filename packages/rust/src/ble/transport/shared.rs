@@ -122,7 +122,8 @@ impl Shared {
     /// rate crosses from the unit it was measured on to another device.
     pub(super) fn budget_for(&self, sku: &str) -> Budget {
         self.per_sku
-            .get(&sku.to_uppercase())
+            .get(sku)
+            .or_else(|| self.per_sku.get(&sku.to_uppercase()))
             .copied()
             .unwrap_or(self.budget)
     }

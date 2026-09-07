@@ -208,8 +208,11 @@ impl Catalog {
     ///
     /// [`Error::UnknownSku`] if nothing declares it.
     pub fn device(&self, sku: &str) -> Result<&Device> {
+        // The index is keyed uppercase, so a caller that already holds an
+        // uppercase SKU costs no allocation on the send path.
         self.index
-            .get(&sku.to_uppercase())
+            .get(sku)
+            .or_else(|| self.index.get(&sku.to_uppercase()))
             .and_then(|i| self.devices.get(*i))
             .ok_or_else(|| Error::UnknownSku {
                 sku: sku.to_owned(),
