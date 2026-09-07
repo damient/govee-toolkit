@@ -9,6 +9,12 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 
 ### Added
 
+- `chunk:` describes a second way of cutting a body. `head_size:` puts the
+  first slice in the header, a footer that reads `${chunk:bytes}` carries the
+  last one, `then:` sends one frame after the transfer, and `${total}` is the
+  frame count of the whole transfer beside the existing `${count}` of data
+  frames. This is what the `0xA3` channel of `docs/protocol/ble.md` 6 needs; a
+  body cut the way `0xA1` cuts it is unchanged.
 - `govee_toolkit::ble::wire` — the seam between the protocol and a Bluetooth
   stack, as an `Adapter` and a `Peripheral` trait. `ble::Radio` implements them
   over the platform's radio, and `ble::Transport::with_adapter` takes another
