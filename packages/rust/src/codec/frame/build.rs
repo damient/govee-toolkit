@@ -139,10 +139,7 @@ mod tests {
     )]
 
     use super::*;
-
-    fn hex(bytes: &[u8]) -> String {
-        bytes.iter().map(|b| format!("{b:02x}")).collect()
-    }
+    use crate::codec::hex;
 
     /// The one frame in the documentation that comes from a real capture.
     #[test]

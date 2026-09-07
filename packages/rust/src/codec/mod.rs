@@ -244,3 +244,13 @@ fn parse(file: &str, yaml: &str) -> Result<Device> {
     }
     Ok(device)
 }
+
+/// A frame as lowercase hex, for a test that compares against a capture.
+#[cfg(test)]
+pub(crate) fn hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
+    bytes.iter().fold(String::new(), |mut out, b| {
+        let _ = write!(out, "{b:02x}");
+        out
+    })
+}
