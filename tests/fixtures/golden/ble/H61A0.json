@@ -201,6 +201,57 @@
       "source": "docs/protocol/ble.md 3 — exercised on the unit"
     },
     {
+      "name": "music effect 50, with the parameters the vendor app computes for 42 ICs",
+      "command": "music_effect",
+      "args": {
+        "effect": 50,
+        "colors": [
+          [255, 0, 0],
+          [255, 127, 0],
+          [255, 255, 0],
+          [0, 255, 0],
+          [0, 0, 255],
+          [0, 255, 255],
+          [139, 0, 255]
+        ],
+        "colors_count": 7,
+        "params": [3, 0, 99],
+        "sensitivity": 99
+      },
+      "frames_hex": [
+        "a3000102413207ff0000ff7f00ffff0000ff0054",
+        "a3ff0000ff00ffff8b00ff0300630000000000b7",
+        "3305133263000000000000000000000000000074"
+      ],
+      "source": "docs/protocol/ble.md 6 \u2014 exercised on the unit, which rendered it; the shortest transfer, whose body fits the header and the closing frame, so no data frame goes out"
+    },
+    {
+      "name": "music effect 51, with the parameters the vendor app computes for 42 ICs",
+      "command": "music_effect",
+      "args": {
+        "effect": 51,
+        "colors": [
+          [255, 0, 0],
+          [255, 127, 0],
+          [255, 255, 0],
+          [0, 255, 0],
+          [0, 0, 255],
+          [0, 255, 255],
+          [139, 0, 255]
+        ],
+        "colors_count": 7,
+        "params": [1, 1, 1, 25, 98, 1, 3, 6, 17],
+        "sensitivity": 99
+      },
+      "frames_hex": [
+        "a3000103413307ff0000ff7f00ffff0000ff0054",
+        "a3010000ff00ffff8b00ff010101196201030657",
+        "a3ff11000000000000000000000000000000004d",
+        "3305133363000000000000000000000000000075"
+      ],
+      "source": "docs/protocol/ble.md 6 \u2014 exercised on the unit, which rendered it; a body past one piece, so one data frame goes out and the last byte rides in the closing frame"
+    },
+    {
       "name": "Wi-Fi provisioning, SSID Test, password abc, UTC+2",
       "command": "wifi_provision",
       "args": {
