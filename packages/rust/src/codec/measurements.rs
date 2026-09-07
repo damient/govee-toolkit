@@ -61,10 +61,39 @@ impl FrameRates {
     }
 }
 
+/// The `measurements.ble` block: what one unit did over Bluetooth.
+///
+/// [`Ble::write_budget_hz`] is the one field the SDK reads. The `ble` transport
+/// paces its writes to it.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct Ble {
+    /// Round trip of one read, in milliseconds.
+    pub read_round_trip_ms: Option<f64>,
+    /// Writes per second the unit held over seconds.
+    pub sustained_writes_hz: Option<f64>,
+    /// Writes per second the transport paces itself to, at or under
+    /// `sustained_writes_hz`. [`crate::codec::validate`] checks that.
+    pub write_budget_hz: Option<f64>,
+    /// Frames in one burst that left the firmware unresponsive. Not a burst
+    /// allowance: it is the count that broke the unit, so nothing derives a
+    /// budget from it.
+    pub burst_frames_before_stall: Option<u32>,
+    /// How long the firmware stayed unresponsive after such a burst, in
+    /// seconds.
+    pub burst_recovery_s: Option<f64>,
+    /// Zones the unit addressed by mask over this mode.
+    pub addressable_zones: Option<u32>,
+    /// Everything else the block records.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, serde_json::Value>,
+}
+
 /// Numbers taken from one physical unit.
 ///
-/// Only [`Measurements::frame_rate`] is read by the SDK; everything else a
-/// device file records lands in [`Measurements::extra`], untouched.
+/// The SDK reads [`Measurements::frame_rate`] and [`Ble::write_budget_hz`].
+/// Everything else a device file records lands in [`Measurements::extra`],
+/// untouched.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct Measurements {
@@ -74,6 +103,8 @@ pub struct Measurements {
     pub native_pixels: Option<u32>,
     /// Sustainable segment frame rates, by mode and zone count.
     pub frame_rate: FrameRates,
+    /// What one unit did over `ble`.
+    pub ble: Ble,
     /// Everything else the file records.
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
@@ -141,6 +172,21 @@ frame_rate:
         assert_eq!(m.frame_rate.rows(Mode::Lan).len(), 3);
         assert!(m.extra.contains_key("latency_idle_ms"));
         assert!(m.extra.contains_key("resolution_changepoints"));
+    }
+
+    #[test]
+    fn the_write_budget_is_read_off_the_unit_that_was_measured() {
+        let m = measured();
+        assert_eq!(m.ble.write_budget_hz, Some(100.0));
+        assert_eq!(m.ble.sustained_writes_hz, Some(130.0));
+        assert_eq!(m.ble.burst_frames_before_stall, Some(100));
+        assert!(m.ble.extra.is_empty());
+    }
+
+    #[test]
+    fn a_unit_nobody_measured_over_ble_records_no_budget() {
+        let m: Measurements = serde_norway::from_str("unit_length_m: 5").expect("parses");
+        assert_eq!(m.ble.write_budget_hz, None);
     }
 
     #[test]

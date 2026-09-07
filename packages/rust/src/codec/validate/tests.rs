@@ -302,3 +302,40 @@ fn two_captured_fields_claiming_one_role_leave_nothing_to_pick() {
     assert_eq!(problems.len(), 1, "{problems:?}");
     assert!(problems[0].message.contains("role: on"));
 }
+
+/// A device file whose only content is its `measurements.ble` block.
+fn measured(block: &str) -> Catalog {
+    let file = format!(
+        "schema_version: 1\nsku: HTEST\nfamily: test\nname: Test\n\
+         capabilities: {{}}\nmeasurements:\n  ble:\n{block}"
+    );
+    Catalog::from_sources([("HTEST.yaml", file.as_str())]).expect("the device file parses")
+}
+
+#[test]
+fn a_write_budget_a_unit_held_is_well_formed() {
+    let catalog = measured("    sustained_writes_hz: 130\n    write_budget_hz: 100\n");
+    let device = catalog.device("HTEST").expect("the SKU resolves");
+    assert_eq!(device.measurements.ble.write_budget_hz, Some(100.0));
+    assert!(super::device(device).is_empty());
+}
+
+#[test]
+fn a_write_budget_nothing_could_be_sent_under_is_refused() {
+    for rate in ["0", "-1", ".nan"] {
+        let catalog = measured(&format!("    write_budget_hz: {rate}\n"));
+        let device = catalog.device("HTEST").expect("the SKU resolves");
+        let problems = super::device(device);
+        assert_eq!(problems.len(), 1, "{rate} is not a budget");
+        assert_eq!(problems[0].at, "measurements.ble.write_budget_hz");
+    }
+}
+
+#[test]
+fn a_write_budget_above_what_the_unit_sustained_is_refused() {
+    let catalog = measured("    sustained_writes_hz: 60\n    write_budget_hz: 100\n");
+    let device = catalog.device("HTEST").expect("the SKU resolves");
+    let problems = super::device(device);
+    assert_eq!(problems.len(), 1);
+    assert!(problems[0].message.contains("above the 60"));
+}

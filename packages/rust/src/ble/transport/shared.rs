@@ -5,7 +5,7 @@
 //! differs: a device answers only over a connection, so the send path can have
 //! to open one, and it opens one connection per device at a time.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -84,8 +84,11 @@ pub(super) struct Route {
 
 pub(super) struct Shared {
     pub(super) options: Options,
-    /// The write budget, checked once when the transport was built.
-    pub(super) budget: Budget,
+    /// The write budget for a device whose file records none, checked once when
+    /// the transport was built.
+    budget: Budget,
+    /// One budget per SKU, from the device files, checked at the same time.
+    per_sku: BTreeMap<String, Budget>,
     /// Claimed on first use. The transport must start on a machine whose radio
     /// is off, so the first command is what reports it.
     adapter: OnceCell<Adapter>,
@@ -97,15 +100,32 @@ pub(super) struct Shared {
 }
 
 impl Shared {
-    pub(super) fn new(options: Options, budget: Budget, events: broadcast::Sender<Event>) -> Self {
+    pub(super) fn new(
+        options: Options,
+        budget: Budget,
+        per_sku: BTreeMap<String, Budget>,
+        events: broadcast::Sender<Event>,
+    ) -> Self {
         Self {
             options,
             budget,
+            per_sku,
             adapter: OnceCell::new(),
             devices: Devices::new(),
             links: tokio::sync::Mutex::new(HashMap::new()),
             events,
         }
+    }
+
+    /// The budget for a device that advertises `sku`.
+    ///
+    /// A SKU no device file records a rate for is written at the fallback: no
+    /// rate crosses from the unit it was measured on to another device.
+    pub(super) fn budget_for(&self, sku: &str) -> Budget {
+        self.per_sku
+            .get(&sku.to_uppercase())
+            .copied()
+            .unwrap_or(self.budget)
     }
 
     /// The adapter, claimed if it has not been already.

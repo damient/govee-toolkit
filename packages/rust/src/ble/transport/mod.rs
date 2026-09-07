@@ -53,13 +53,15 @@ impl Transport {
     ///
     /// # Errors
     ///
-    /// [`Error::Option`] if the write budget cannot be honoured — see
+    /// [`Error::Option`] if a write budget cannot be honoured, whether it comes
+    /// from `options` or from a device file — see
     /// [`Budget::new`](crate::ble::Budget::new).
     pub fn start(options: Options) -> Result<Self> {
         let budget = Budget::new(options.writes_per_second, options.burst)?;
+        let per_sku = options.budgets.checked(budget)?;
         let (events, _) = broadcast::channel(256);
         Ok(Self {
-            shared: Arc::new(Shared::new(options, budget, events)),
+            shared: Arc::new(Shared::new(options, budget, per_sku, events)),
         })
     }
 
@@ -229,7 +231,7 @@ impl Transport {
                     endpoint.to_owned(),
                     sku.to_owned(),
                     self.shared.options.policy,
-                    self.shared.budget,
+                    self.shared.budget_for(sku),
                 ),
             );
         }

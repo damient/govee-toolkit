@@ -329,6 +329,11 @@ properties of a unit, a host adapter and a radio environment. They are not
 properties of a SKU. They live in the `measurements.ble` block of the device
 file, and nowhere else.
 
+The transport reads `write_budget_hz` for the device it writes to, so two
+devices on one adapter are paced apart. A file that records none falls back to
+the one budget anybody measured, which is a starting point and not a claim
+about that device.
+
 A repaint over §2.3 costs one write per distinct color, so a frame rate over
 this mode falls with the number of colors in it.
 

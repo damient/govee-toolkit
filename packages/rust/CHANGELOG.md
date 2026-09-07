@@ -100,6 +100,23 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 
 ### Changed
 
+- The `ble` transport paces each device at the budget its own device file
+  records. `ble::Budgets::from_catalog` reads
+  `measurements.ble.write_budget_hz` for every SKU a catalog carries, verified
+  aliases included, and `ble::Options::budgets` holds the result. A device whose
+  file records no budget is written at `ble::Options::writes_per_second`, the
+  one rate anybody measured. The burst stays `ble::Options::burst` for every
+  device: `measurements.ble.burst_frames_before_stall` records the count that
+  stalled a unit, which is not a count that is safe. A device file recording a
+  rate no write could go out under fails `ble::Transport::start` with
+  `out_of_range`.
+- `Measurements::ble` types the `measurements.ble` block, exported as
+  `codec::BleMeasurements`. The fields the block carries are
+  `read_round_trip_ms`, `sustained_writes_hz`, `write_budget_hz`,
+  `burst_frames_before_stall`, `burst_recovery_s` and `addressable_zones`, and
+  anything else a file records stays in `BleMeasurements::extra`.
+  `codec::validate` refuses a `write_budget_hz` that is not finite and above
+  zero, or that is above the `sustained_writes_hz` beside it.
 - A command that declares a `frame:` does not have to name it with `${frame}` in
   a `payload:`. Only a mode that wraps the frame in an envelope must name it. A
   wire that carries the frame on its own has no payload to name it in.

@@ -2,6 +2,7 @@
 
 use std::time::Duration;
 
+use crate::ble::pace::Budgets;
 use crate::transport::breaker::Policy;
 
 /// Configuration for [`Transport`](super::Transport).
@@ -20,13 +21,19 @@ pub struct Options {
     /// The shortest interval between two verifications of the same device.
     /// `None` disables verification: the breaker then learns nothing.
     pub verify_interval: Option<Duration>,
-    /// Sustained write budget, in frames per second. Must be finite and above
-    /// zero. [`Transport::start`](super::Transport::start) refuses any other
-    /// value; it never clamps.
+    /// Sustained write budget for a device whose file records none, in frames
+    /// per second. Must be finite and above zero.
+    /// [`Transport::start`](super::Transport::start) refuses any other value;
+    /// it never clamps.
     pub writes_per_second: f64,
     /// How many frames may go out back to back before the budget applies. Must
-    /// be at least one.
+    /// be at least one. It applies to every device: the device files record
+    /// the count that stalled a unit, which is not a safe burst.
     pub burst: u32,
+    /// The sustained rate each device file records. Empty writes every device
+    /// at [`Options::writes_per_second`]; [`Budgets::from_catalog`] fills it
+    /// from the catalog.
+    pub budgets: Budgets,
 }
 
 impl Default for Options {
@@ -37,10 +44,11 @@ impl Default for Options {
             connect_timeout: Duration::from_secs(10),
             status_timeout: Duration::from_secs(1),
             verify_interval: Some(Duration::from_secs(1)),
-            // Measured on one H61A0, the only unit anybody measured. See
-            // `crate::ble::pace`.
+            // Measured on one H61A0, the only unit anybody measured, and a
+            // starting point for any other. See `crate::ble::pace`.
             writes_per_second: 100.0,
             burst: 16,
+            budgets: Budgets::default(),
         }
     }
 }

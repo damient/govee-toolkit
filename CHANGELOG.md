@@ -20,6 +20,19 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-07
+
+#### Changed
+
+- `measurements.ble.write_budget_hz` is the second entry of a `measurements:`
+  block that an SDK reads, beside `frame_rate`. It is the sustained rate the
+  `ble` transport paces its writes to, and it must be at or under the
+  `sustained_writes_hz` measured on the same unit. `cargo test` refuses a file
+  that breaks either rule. `burst_frames_before_stall` stays free-form: it
+  records the count that stalled a unit, and nothing derives a budget from it.
+  [`devices/schema.yaml`](devices/schema.yaml) says so where the block is
+  described.
+
 ### 2026-09-06
 
 #### Added

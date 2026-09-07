@@ -1,11 +1,13 @@
 //! Advertisement scans, and what the transport records from one.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use btleplug::api::{Central as _, Peripheral as _, ScanFilter};
 use btleplug::platform::Adapter;
 
 use crate::ble::link::adapter as adapter_error;
+use crate::ble::pace::Pacer;
 use crate::ble::scan::Advertised;
 use crate::ble::transport::shared::{Shared, Tracked, id_at};
 use crate::codec::Mode;
@@ -54,15 +56,24 @@ impl Shared {
                 Some(id) => (id, Change::Refreshed),
                 None => (DeviceId::new(&device.endpoint), Change::New),
             };
+            let budget = self.budget_for(&device.sku);
             devices
                 .entry(id.clone())
-                .and_modify(|tracked| device.sku.clone_into(&mut tracked.sku))
+                .and_modify(|tracked| {
+                    // A device that turns out to be another SKU must not keep a
+                    // budget taken from the wrong device file. Replacing the
+                    // pacer refills its bucket, so it happens only on a change.
+                    if tracked.sku != device.sku {
+                        device.sku.clone_into(&mut tracked.sku);
+                        tracked.pacer = Arc::new(Pacer::new(budget));
+                    }
+                })
                 .or_insert_with(|| {
                     Tracked::new(
                         device.endpoint.clone(),
                         device.sku.clone(),
                         self.options.policy,
-                        self.budget,
+                        budget,
                     )
                 });
 
