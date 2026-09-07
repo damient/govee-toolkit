@@ -108,8 +108,10 @@ one, driven by the per-device circuit breaker:
   the preferred one. Two consecutive answers bring it back to `OK`.
 - Six take it to `DOWN`, which is the same shape with a five-minute cooldown —
   a mode silent for minutes is not worth probing every 30 seconds.
-- The thresholds and both cooldowns are the defaults; `lan:` in the
-  configuration tunes them.
+- The thresholds and both cooldowns are the defaults. `lan:` in the
+  configuration tunes them for `lan`. The `ble` breaker takes the same
+  defaults, and a host changes them only by building `ble::Options` itself and
+  passing the transport to `Govee::attach`.
 - The mode is chosen from the breaker state already known, never from a fresh
   timeout on each call: a fresh timeout would cost the fast path a round-trip.
 
