@@ -3,7 +3,7 @@
 //! The only module that names `btleplug`. It reports what the platform said:
 //! no frame is read here, and no advertisement is parsed here.
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use async_trait::async_trait;
 use btleplug::api::{
@@ -123,49 +123,69 @@ impl crate::ble::wire::Adapter for Radio {
                 ),
             ));
         }
-        Ok(Some(Arc::new(Device(found))))
+        Ok(Some(Arc::new(Device::new(found))))
     }
 }
 
 /// One peripheral the platform holds.
 #[derive(Debug)]
-struct Device(Peer);
+struct Device {
+    peer: Peer,
+    /// What discovery found. `Peer::characteristics` clones the whole table on
+    /// every call, and a write runs at the device's budgeted rate, so the
+    /// table is read once and kept.
+    known: OnceLock<Vec<Characteristic>>,
+}
 
 impl Device {
+    fn new(peer: Peer) -> Self {
+        Self {
+            peer,
+            known: OnceLock::new(),
+        }
+    }
+
     /// The characteristic under a UUID, among those discovery found.
     fn characteristic(&self, uuid: Uuid) -> std::io::Result<Characteristic> {
-        self.0
-            .characteristics()
-            .into_iter()
-            .find(|c| c.uuid == uuid)
-            .ok_or_else(|| {
-                std::io::Error::new(
-                    std::io::ErrorKind::Unsupported,
-                    format!("the device carries no characteristic {uuid}"),
-                )
-            })
+        let found = match self.known.get() {
+            Some(known) => known.iter().find(|c| c.uuid == uuid).cloned(),
+            None => self
+                .peer
+                .characteristics()
+                .into_iter()
+                .find(|c| c.uuid == uuid),
+        };
+        found.ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::Unsupported,
+                format!("the device carries no characteristic {uuid}"),
+            )
+        })
     }
 }
 
 #[async_trait]
 impl crate::ble::wire::Peripheral for Device {
     async fn is_connected(&self) -> std::io::Result<bool> {
-        self.0.is_connected().await.map_err(|e| io(&e))
+        self.peer.is_connected().await.map_err(|e| io(&e))
     }
 
     async fn connect(&self) -> std::io::Result<()> {
-        self.0.connect().await.map_err(|e| io(&e))
+        self.peer.connect().await.map_err(|e| io(&e))
     }
 
     async fn discover(&self) -> std::io::Result<Vec<Uuid>> {
-        self.0.discover_services().await.map_err(|e| io(&e))?;
-        Ok(self.0.characteristics().iter().map(|c| c.uuid).collect())
+        self.peer.discover_services().await.map_err(|e| io(&e))?;
+        let known: Vec<Characteristic> = self.peer.characteristics().into_iter().collect();
+        let uuids = known.iter().map(|c| c.uuid).collect();
+        let _ = self.known.set(known);
+        Ok(uuids)
     }
 
     async fn subscribe(&self, characteristic: Uuid) -> std::io::Result<Notifications> {
         let subject = self.characteristic(characteristic)?;
-        self.0.subscribe(&subject).await.map_err(|e| io(&e))?;
-        let stream = self.0.notifications().await.map_err(|e| io(&e))?;
+        self.peer.subscribe(&subject).await.map_err(|e| io(&e))?;
+        let stream = self.peer.notifications().await.map_err(|e| io(&e))?;
         Ok(Box::pin(stream.filter_map(
             move |notification| async move {
                 (notification.uuid == characteristic).then_some(notification.value)
@@ -175,7 +195,7 @@ impl crate::ble::wire::Peripheral for Device {
 
     async fn write(&self, characteristic: Uuid, frame: &[u8]) -> std::io::Result<()> {
         let subject = self.characteristic(characteristic)?;
-        self.0
+        self.peer
             .write(&subject, frame, WriteType::WithoutResponse)
             .await
             .map_err(|e| io(&e))

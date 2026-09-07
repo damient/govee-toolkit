@@ -116,6 +116,11 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 
 ### Changed
 
+- The send path repeats less work. `ble::Radio` resolves the write and the
+  notify characteristic once, when discovery runs, rather than on every frame.
+  `Catalog::device` and the `ble` budget lookups take an uppercase SKU without
+  allocating one. A chunked command clones the caller's arguments once, not
+  once per slice.
 - The `ble` transport paces each device at the budget its own device file
   records. `ble::Budgets::from_catalog` reads
   `measurements.ble.write_budget_hz` for every SKU a catalog carries, verified

@@ -54,7 +54,6 @@ impl Shared {
                 Some(id) => (id, Change::Refreshed),
                 None => (DeviceId::new(&device.endpoint), Change::New),
             };
-            let budget = self.budget_for(&device.sku);
             devices
                 .entry(id.clone())
                 .and_modify(|tracked| {
@@ -63,7 +62,7 @@ impl Shared {
                     // pacer refills its bucket, so it happens only on a change.
                     if tracked.sku != device.sku {
                         device.sku.clone_into(&mut tracked.sku);
-                        tracked.pacer = Arc::new(Pacer::new(budget));
+                        tracked.pacer = Arc::new(Pacer::new(self.budget_for(&device.sku)));
                     }
                 })
                 .or_insert_with(|| {
@@ -71,7 +70,7 @@ impl Shared {
                         device.endpoint.clone(),
                         device.sku.clone(),
                         self.options.policy,
-                        budget,
+                        self.budget_for(&device.sku),
                     )
                 });
 

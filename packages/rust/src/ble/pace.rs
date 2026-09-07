@@ -86,7 +86,7 @@ impl Budgets {
             if let Ok(device) = catalog.device(sku)
                 && let Some(hz) = device.measurements.ble.write_budget_hz
             {
-                rates.insert(sku.to_uppercase(), hz);
+                rates.insert(sku.to_owned(), hz);
             }
         }
         Self(rates)
@@ -95,7 +95,10 @@ impl Budgets {
     /// The rate recorded for `sku`, or `None` if its file records none.
     #[must_use]
     pub fn rate(&self, sku: &str) -> Option<f64> {
-        self.0.get(&sku.to_uppercase()).copied()
+        self.0
+            .get(sku)
+            .or_else(|| self.0.get(&sku.to_uppercase()))
+            .copied()
     }
 
     /// One budget per SKU: the rate its file records, at `fallback`'s burst.

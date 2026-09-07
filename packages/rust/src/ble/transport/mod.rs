@@ -189,7 +189,7 @@ impl Transport {
             id: id.clone(),
             mode: Mode::Ble,
             cmd: command.cmd.clone(),
-            endpoint: route.endpoint.clone(),
+            endpoint: route.endpoint,
         };
         publish_sent(&self.shared.events, &sent);
 
