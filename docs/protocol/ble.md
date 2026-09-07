@@ -211,25 +211,29 @@ takes.
 
 The fields:
 
-- `effect` selects the rendering. How many identifiers a firmware renders is a
-  property of the family: one renders `0..7` and renders nothing at all above
-  that. An identifier is not a name — a device file records the ones somebody
-  watched on its unit, and this project maps none of them to an effect.
+- `effect` selects the rendering. Which identifiers a firmware renders is a
+  property of the family: one renders `0..7`, another renders a music effect at
+  `0` and at `1`, a fixed white at `2`, and nothing above that. An identifier is
+  not a name — a device file records the ones somebody watched on its unit, and
+  this project maps none of them to an effect.
 - `sensitivity` is how loud a sound must be to move the light. The vendor app
   drives it over a hundred values.
-- `soft` chooses between two renderings of the same effect. `0` is sharp on the
-  beat and `1` runs in fades. This was told apart on one family. A device file
-  that keeps the byte a literal is one whose unit nobody varied it on.
+- `soft` chooses between two renderings of the same effect: `0` is sharp on the
+  beat and `1` runs in fades. It was told apart on one family and changes
+  nothing observable on another. The device file says which.
 - The last flag chooses the colors. `0` lets the firmware choose them and
   ignores the triplet, which the device keeps stored. `1` plays the triplet.
 
-Two traps:
+Three traps:
 
 - the firmware stores every byte of this frame and reports it back at §3, an
   effect it does not render included. A read that echoes a value is not
   evidence that the device plays it;
 - the vendor app also offers the microphone of the phone as the source. That is
-  not a field of this frame. It is the channel of §8.
+  not a field of this frame. It is the channel of §8;
+- an identifier the firmware renders nothing for leaves the light on what the
+  frame before it rendered. Turn the device off between two identifiers, or a
+  value that renders nothing reads as the rendering it kept.
 
 ## 3. Reads — `proType` `0xAA`
 
