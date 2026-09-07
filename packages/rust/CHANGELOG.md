@@ -121,6 +121,9 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   `Catalog::device` and the `ble` budget lookups take an uppercase SKU without
   allocating one. A chunked command clones the caller's arguments once, not
   once per slice.
+- `codec::chunk::Chunk::then` is an `Option<String>`, and
+  `codec::chunk::Layout::frames` returns an iterator. A `chunk:` block that
+  declares no `then:` is `None` rather than an empty string.
 - The `ble` transport paces each device at the budget its own device file
   records. `ble::Budgets::from_catalog` reads
   `measurements.ble.write_budget_hz` for every SKU a catalog carries, verified
