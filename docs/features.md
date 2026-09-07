@@ -18,7 +18,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **`lan` mode, low latency** — reused UDP socket, fire-and-verify, no cloud round-trip |
 | ✅ | **Discovery** — multicast scan at startup, periodic background refresh, persistent on-disk cache |
 | 🚧 | **Undocumented LAN commands** — the raw segment channel is documented and verified on one device. Each further command needs the same treatment once somebody finds it |
-| ✅ | **Segment streaming** (`packages/rust/src/stream`) — the stream arms the raw segment channel once, then feeds it frames. The rate comes from the frame rate measured on the unit. A mode that paints whole frames reaches its native resolution. A mode that paints by zone mask reaches its zones |
+| ✅ | **Segment streaming** (`packages/rust/src/stream`) — frames over the raw segment channel, at the rate measured on the unit |
 | ✅ | **Per-device mode selection** — one mode for strict behavior, several for switching, see [`modes.md`](modes.md) |
 | ✅ | **Per-device, per-mode circuit breaker** — `OK` / `DEGRADED` / `DOWN`. The breaker decides from state it already holds, not from a fresh timeout per call |
 | ✅ | **Explicit failures** — a command a mode cannot serve fails and says so. The SDK never approximates one in silence |
@@ -28,7 +28,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | | Feature |
 | --- | ------- |
 | ✅ | **`lan`** — power, brightness, color and color temperature over UDP, plus per-segment color |
-| ✅ | **`ble`** — opt-in, works off-network within Bluetooth range, partial coverage per SKU family, one connection per device. A budget paces the writes. The transport ships behind the `ble` cargo feature, off by default. Power, brightness, color, color temperature, both per-zone channels and the reads are verified on one device, the H61A0. Power, brightness, color, the scene sub-mode, the music sub-mode and the reads are verified on a second one, the H6114, which speaks another dialect. Wi-Fi provisioning is encoded from the layout and has never been sent to a device. Scenes are not implemented |
+| ✅ | **`ble`** — power, brightness, color and color temperature over GATT, plus per-zone color. Off-network, within radio range, behind the `ble` cargo feature |
 | 🔜 | **`cloud`** — opt-in, reaches a device from anywhere, throttled, reduced to power / brightness / color |
 
 ## SDKs
@@ -49,7 +49,8 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | 🔜 | **Web playground** — device list with per-mode state badges, power / brightness / color / scenes controls, latency log |
 | 🔜 | **Raw payload field** — send a custom JSON command straight to a device, to try a discovery before you formalize it |
 | 🔜 | **Desktop app (Electron)** — same backend and UI as the playground, auto-discovery on launch, tray icon |
-| 🚧 | **Device simulator** (`packages/rust/crates/sim`) — fake Govee device on UDP with fault injection, so tests run without hardware. It serves `lan` only. It does not advertise a BLE peripheral, so a `ble` test still needs an adapter |
+| 🚧 | **Device simulator** (`packages/rust/crates/sim`) — fake `lan` device on UDP with fault injection, so tests run without hardware |
+| 🔜 | **BLE simulator** — a fake peripheral, so a `ble` test runs without an adapter |
 | 🔜 | **Art-Net / DMX bridge** — maps DMX channels to Govee devices and segments |
 
 ## Integrations
