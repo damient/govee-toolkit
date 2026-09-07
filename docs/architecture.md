@@ -88,6 +88,12 @@ The trait does not make modes implicit. Which transports a device may use stays
 the user's explicit list; the trait only removes the repetition. See
 [`modes.md`](modes.md).
 
+`ble` adds a second seam under that trait, `ble::wire`: an adapter and a
+peripheral, in the terms GATT uses. Above it everything is protocol — frames,
+budgets, breakers. Below it is one platform's radio, and `ble::Radio` is the
+implementation that ships. `Transport::with_adapter` takes another, which is how
+`crates/sim` runs the whole send path with no Bluetooth on the machine.
+
 ## Bindings
 
 - **Node** — `napi-rs`. Serves the playground, the Electron app and the

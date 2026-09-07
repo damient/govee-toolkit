@@ -9,13 +9,12 @@ use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use std::time::Instant;
 
-use btleplug::api::{Central as _, Manager as _, Peripheral as _};
-use btleplug::platform::{Adapter, Manager, Peripheral};
-use tokio::sync::{OnceCell, broadcast, watch};
+use tokio::sync::{broadcast, watch};
 
 use crate::ble::link::{Link, adapter as adapter_error};
 use crate::ble::pace::{Budget, Pacer};
 use crate::ble::transport::Options;
+use crate::ble::wire::{Adapter, Peripheral};
 use crate::codec::{Encoded, Mode};
 use crate::transport::DeviceId;
 use crate::transport::breaker::{Breaker, Policy};
@@ -89,9 +88,8 @@ pub(super) struct Shared {
     budget: Budget,
     /// One budget per SKU, from the device files, checked at the same time.
     per_sku: BTreeMap<String, Budget>,
-    /// Claimed on first use. The transport must start on a machine whose radio
-    /// is off, so the first command is what reports it.
-    adapter: OnceCell<Adapter>,
+    /// The radio every command goes out on.
+    pub(super) adapter: Arc<dyn Adapter>,
     pub(super) devices: Devices<Tracked>,
     /// One open connection per device, reused across commands. A device
     /// accepts only one, and a new connection costs seconds.
@@ -105,12 +103,13 @@ impl Shared {
         budget: Budget,
         per_sku: BTreeMap<String, Budget>,
         events: broadcast::Sender<Event>,
+        adapter: Arc<dyn Adapter>,
     ) -> Self {
         Self {
             options,
             budget,
             per_sku,
-            adapter: OnceCell::new(),
+            adapter,
             devices: Devices::new(),
             links: tokio::sync::Mutex::new(HashMap::new()),
             events,
@@ -126,33 +125,6 @@ impl Shared {
             .get(&sku.to_uppercase())
             .copied()
             .unwrap_or(self.budget)
-    }
-
-    /// The adapter, claimed if it has not been already.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::Io`] if the platform reports no usable adapter.
-    pub(super) async fn adapter(&self) -> Result<&Adapter> {
-        self.adapter
-            .get_or_try_init(|| async {
-                let manager = Manager::new()
-                    .await
-                    .map_err(|e| adapter_error("ble", "opening the Bluetooth manager", &e))?;
-                manager
-                    .adapters()
-                    .await
-                    .map_err(|e| adapter_error("ble", "listing Bluetooth adapters", &e))?
-                    .into_iter()
-                    .next()
-                    .ok_or_else(|| {
-                        Error::io(
-                            "ble: this machine reports no Bluetooth adapter",
-                            std::io::ErrorKind::NotFound.into(),
-                        )
-                    })
-            })
-            .await
     }
 
     /// Where to send, decided from recorded state alone.
@@ -235,7 +207,7 @@ impl Shared {
     ///
     /// [`Error::Io`] if the scan fails, or if nothing is advertising at the
     /// handle once it has run.
-    async fn rediscover(&self, endpoint: &str) -> Result<Peripheral> {
+    async fn rediscover(&self, endpoint: &str) -> Result<Arc<dyn Peripheral>> {
         self.scan(self.options.rescan_window).await?;
         self.peripheral(endpoint).await?.ok_or_else(|| {
             Error::io(
@@ -256,29 +228,11 @@ impl Shared {
     ///
     /// [`Error::Io`] if the adapter cannot be listed, or if more than one
     /// peripheral carries the handle.
-    async fn peripheral(&self, endpoint: &str) -> Result<Option<Peripheral>> {
-        let adapter = self.adapter().await?;
-        let peripherals = adapter
-            .peripherals()
+    async fn peripheral(&self, endpoint: &str) -> Result<Option<Arc<dyn Peripheral>>> {
+        self.adapter
+            .peripheral(endpoint)
             .await
-            .map_err(|e| adapter_error(endpoint, "listing known peripherals", &e))?;
-        let mut matching = peripherals
-            .into_iter()
-            .filter(|p| p.id().to_string().eq_ignore_ascii_case(endpoint));
-        let Some(found) = matching.next() else {
-            return Ok(None);
-        };
-        let others = matching.count();
-        if others > 0 {
-            return Err(Error::io(
-                format!(
-                    "{endpoint}: {} peripherals carry this handle, so it names none of them",
-                    others + 1
-                ),
-                std::io::ErrorKind::InvalidData.into(),
-            ));
-        }
-        Ok(Some(found))
+            .map_err(|e| adapter_error(endpoint, "listing known peripherals", e))
     }
 
     /// Write every frame of a command, at the device's budget.

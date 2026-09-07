@@ -24,6 +24,7 @@ pub use self::options::Options;
 use self::shared::Tracked;
 use self::shared::{Shared, id_at};
 use crate::ble::pace::Budget;
+use crate::ble::radio::Radio;
 use crate::codec::{Encoded, Mode};
 use crate::transport::error::{Error, Result};
 use crate::transport::registry::publish_sent;
@@ -46,7 +47,7 @@ impl std::fmt::Debug for Transport {
 }
 
 impl Transport {
-    /// Build the transport.
+    /// Build the transport on the machine's own radio.
     ///
     /// Claims no adapter. A scan or a command opens one, so this succeeds on a
     /// machine whose radio is off, and the first command reports it.
@@ -57,11 +58,28 @@ impl Transport {
     /// from `options` or from a device file — see
     /// [`Budget::new`](crate::ble::Budget::new).
     pub fn start(options: Options) -> Result<Self> {
+        Self::with_adapter(options, Arc::new(Radio::new()))
+    }
+
+    /// Build the transport on another adapter.
+    ///
+    /// Everything above [`wire::Adapter`](crate::ble::wire::Adapter) is
+    /// protocol, so an adapter that is not a radio runs the same send path.
+    /// `crates/sim` carries one, which is how the `ble` transport is tested on
+    /// a machine that has no Bluetooth.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Transport::start`].
+    pub fn with_adapter(
+        options: Options,
+        adapter: Arc<dyn crate::ble::wire::Adapter>,
+    ) -> Result<Self> {
         let budget = Budget::new(options.writes_per_second, options.burst)?;
         let per_sku = options.budgets.checked(budget)?;
         let (events, _) = broadcast::channel(256);
         Ok(Self {
-            shared: Arc::new(Shared::new(options, budget, per_sku, events)),
+            shared: Arc::new(Shared::new(options, budget, per_sku, events, adapter)),
         })
     }
 

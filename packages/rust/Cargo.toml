@@ -83,6 +83,10 @@ required-features = ["ble"]
 # The `Transport` trait is `#[async_trait]`, so every implementation needs the
 # same macro. The test that fakes a transport uses it as an application would.
 async-trait = "0.1"
+# What joins the simulator to `ble::wire`: a stream of frames, and the UUIDs
+# the two name a characteristic by.
+futures-util = { version = "0.3", default-features = false }
+uuid = "1"
 # Path-only on purpose: `cargo package` drops a dev-dependency that carries no
 # version, which keeps the simulator off crates.io.
 govee-toolkit-sim = { path = "crates/sim" }

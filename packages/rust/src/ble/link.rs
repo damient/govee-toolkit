@@ -6,12 +6,13 @@
 //! writes and matches an answer against the `reply:` layout its command
 //! declares.
 
-use btleplug::api::{Characteristic, Peripheral as _, WriteType};
-use btleplug::platform::Peripheral;
+use std::sync::Arc;
+
 use futures_util::StreamExt as _;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
+use crate::ble::wire::Peripheral;
 use crate::ble::{FRAME_LEN, NOTIFY_CHARACTERISTIC, WRITE_CHARACTERISTIC};
 use crate::transport::error::{Error, Result};
 
@@ -30,8 +31,7 @@ impl Drop for Listener {
 
 #[derive(Debug)]
 pub(crate) struct Link {
-    peripheral: Peripheral,
-    write: Characteristic,
+    peripheral: Arc<dyn Peripheral>,
     replies: broadcast::Sender<Vec<u8>>,
     _listener: Listener,
 }
@@ -44,60 +44,45 @@ impl Link {
     /// [`Error::Io`] if the device refuses the connection, if service
     /// discovery fails, or if it does not carry the characteristics this
     /// protocol needs.
-    pub(crate) async fn open(peripheral: Peripheral, endpoint: &str) -> Result<Self> {
+    pub(crate) async fn open(peripheral: Arc<dyn Peripheral>, endpoint: &str) -> Result<Self> {
         if !peripheral
             .is_connected()
             .await
-            .map_err(|e| adapter(endpoint, "reading the connection state", &e))?
+            .map_err(|e| adapter(endpoint, "reading the connection state", e))?
         {
             peripheral
                 .connect()
                 .await
-                .map_err(|e| adapter(endpoint, "connecting", &e))?;
+                .map_err(|e| adapter(endpoint, "connecting", e))?;
         }
-        peripheral
-            .discover_services()
+        let characteristics = peripheral
+            .discover()
             .await
-            .map_err(|e| adapter(endpoint, "discovering services", &e))?;
+            .map_err(|e| adapter(endpoint, "discovering services", e))?;
+        for uuid in [WRITE_CHARACTERISTIC, NOTIFY_CHARACTERISTIC] {
+            if !characteristics.contains(&uuid) {
+                return Err(Error::io(
+                    format!("{endpoint}: the device carries no characteristic {uuid}"),
+                    std::io::ErrorKind::Unsupported.into(),
+                ));
+            }
+        }
 
-        let characteristics = peripheral.characteristics();
-        let find = |uuid| {
-            characteristics
-                .iter()
-                .find(|c| c.uuid == uuid)
-                .cloned()
-                .ok_or_else(|| {
-                    Error::io(
-                        format!("{endpoint}: the device carries no characteristic {uuid}"),
-                        std::io::ErrorKind::Unsupported.into(),
-                    )
-                })
-        };
-        let write = find(WRITE_CHARACTERISTIC)?;
-        let notify = find(NOTIFY_CHARACTERISTIC)?;
-
-        peripheral
-            .subscribe(&notify)
-            .await
-            .map_err(|e| adapter(endpoint, "subscribing to notifications", &e))?;
         let mut stream = peripheral
-            .notifications()
+            .subscribe(NOTIFY_CHARACTERISTIC)
             .await
-            .map_err(|e| adapter(endpoint, "opening the notification stream", &e))?;
+            .map_err(|e| adapter(endpoint, "subscribing to notifications", e))?;
 
         let (replies, _) = broadcast::channel(REPLY_BACKLOG);
         let publish = replies.clone();
         let listener = Listener(tokio::spawn(async move {
-            while let Some(notification) = stream.next().await {
-                if notification.uuid == NOTIFY_CHARACTERISTIC {
-                    let _ = publish.send(notification.value);
-                }
+            while let Some(frame) = stream.next().await {
+                let _ = publish.send(frame);
             }
         }));
 
         Ok(Self {
             peripheral,
-            write,
             replies,
             _listener: listener,
         })
@@ -122,9 +107,9 @@ impl Link {
     pub(crate) async fn write_frame(&self, cmd: &str, endpoint: &str, frame: &[u8]) -> Result<()> {
         check_length(cmd, frame)?;
         self.peripheral
-            .write(&self.write, frame, WriteType::WithoutResponse)
+            .write(WRITE_CHARACTERISTIC, frame)
             .await
-            .map_err(|e| adapter(endpoint, "writing a frame", &e))
+            .map_err(|e| adapter(endpoint, "writing a frame", e))
     }
 }
 
@@ -147,11 +132,8 @@ pub(crate) fn check_length(cmd: &str, frame: &[u8]) -> Result<()> {
     })
 }
 
-pub(crate) fn adapter(endpoint: &str, doing: &str, source: &btleplug::Error) -> Error {
-    Error::io(
-        format!("{endpoint}: {doing}"),
-        std::io::Error::other(source.to_string()),
-    )
+pub(crate) fn adapter(endpoint: &str, doing: &str, source: std::io::Error) -> Error {
+    Error::io(format!("{endpoint}: {doing}"), source)
 }
 
 #[cfg(test)]
