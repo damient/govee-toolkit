@@ -86,7 +86,33 @@ The four non-negotiables are the standing exception: `CLAUDE.md` and
 caveat. Silent clamping, cloud-only features and explicit failures must stay
 unambiguous, and length is not the problem there. English throughout.
 
-Report a count: comments examined, deleted, compressed, kept.
+**The target is half.** Count the comment lines the branch added or changed:
+
+```bash
+git diff main...HEAD -U0 | grep -cE '^\+\s*(//|#)'
+```
+
+The pass is not done until what stands in their place is **at most half** that
+number. That is the calibration, not a quota to hit by deleting a fact: cut
+under the rules above until the number falls, and where a file genuinely
+cannot go further, say which file and why in the report. A branch that came in
+near half already is finished at whatever it reaches — the rule catches the
+usual case, which is prose two to three times longer than the fact it carries.
+
+Where the cut is hard to find, it is almost always one of these:
+
+- a doc comment whose second paragraph re-argues a rule `CLAUDE.md`,
+  `docs/modes.md` or the module header already states. Delete the paragraph and
+  keep the pointer;
+- a `//!` header that narrates the whole design. It owes the reader the traps
+  and the pointers, not a tour;
+- a `///` on a field whose type and name already say it. Under `missing_docs`,
+  cut it to the shortest line that satisfies the lint;
+- a sentence built as "X, because otherwise Y would Z". Keep X, drop the
+  counterfactual.
+
+Report a count: comment lines added by the branch, lines after the pass, the
+ratio, and how many comments were deleted outright rather than compressed.
 
 **4. No negative or historical framing.** Docs and comments describe the code
 as it is now. Refactored, renamed or deleted code leaves no trace in them.
@@ -120,6 +146,31 @@ Rewrite what breaks one:
 
 Cut first, rewrite second: a sentence that carries no fact is deleted under
 rule 3 and never rewritten into a shorter one.
+
+**6. Device file `notes:`.** Every `notes:` the branch added or changed, on a
+command, on a mode and in `verified:`. These are read by somebody deciding
+whether to trust a command, so they carry evidence and nothing else:
+
+- **what the firmware does**, in the terms the wire uses — which byte, which
+  field, what the device did when it received it;
+- **what was observed, and on what.** "Both were sent to the unit" is
+  evidence. "Should work" is not, and neither is a range read off the vendor's
+  app;
+- **the pointer**: `docs/protocol/<mode>.md` §N, required on `documented:
+  false`;
+- **a trap**: silent clamping, a field that must accompany another, a mask the
+  firmware drops without saying so;
+- **an open question**, as an explicit `TODO`.
+
+Delete from a `notes:`, do not reword: a restatement of the `frame:` above it
+token by token, a restatement of the argument's own `range:`, a sentence
+arguing why the SDK behaves as it does — that belongs in `docs/` and in the
+Rust — and any claim nobody established. `notes:` is not the place to teach
+the schema: the schema is `devices/schema.yaml`.
+
+The `verified:` block is the one place where length is a virtue, since it
+records exactly what somebody exercised and what they did not. Cut nothing
+from it that names an observation; cut everything from it that does not.
 
 ## Fix
 
