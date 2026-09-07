@@ -10,6 +10,8 @@ use crate::transport::breaker::Policy;
 pub struct Options {
     /// Circuit breaker thresholds.
     pub policy: Policy,
+    /// How long a scan listens when the caller names no window.
+    pub scan_window: Duration,
     /// How long the second scan pass listens when the first heard nothing. A
     /// device that has just dropped a connection takes seconds to advertise
     /// again.
@@ -40,6 +42,11 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             policy: Policy::default(),
+            // Nobody measured how long a Govee device takes to advertise, so
+            // the first pass listens as long as the second. A window too short
+            // reports a device that is there as absent, which costs more than
+            // the wait.
+            scan_window: Duration::from_secs(5),
             rescan_window: Duration::from_secs(5),
             connect_timeout: Duration::from_secs(10),
             status_timeout: Duration::from_secs(1),

@@ -117,6 +117,15 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   anything else a file records stays in `BleMeasurements::extra`.
   `codec::validate` refuses a `write_budget_hz` that is not finite and above
   zero, or that is above the `sustained_writes_hz` beside it.
+- **Breaking.** `Transport` gained `scan_window`, which answers how long a scan
+  on that mode must listen. `Govee::scan` asks each transport for its own window
+  instead of carrying `lan.scan_window_ms` to every mode: `lan` waits for
+  replies to a request it sent, `ble` waits for advertisements that arrive on
+  each device's own interval, and one mode's window reported a device that was
+  there as absent on another. `lan::Transport::scan_window` answers
+  `lan::Options::scan_window`, and the new `ble::Options::scan_window` is the
+  `ble` one. `Transport::scan` still takes a window, for a caller that wants a
+  shorter or a longer one deliberately.
 - A command that declares a `frame:` does not have to name it with `${frame}` in
   a `payload:`. Only a mode that wraps the frame in an envelope must name it. A
   wire that carries the frame on its own has no payload to name it in.

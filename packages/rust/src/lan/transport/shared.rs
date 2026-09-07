@@ -74,6 +74,7 @@ pub(super) struct Shared {
     pub(super) socket: Socket,
     pub(super) endpoints: Endpoints,
     pub(super) policy: Policy,
+    pub(super) scan_window: Duration,
     pub(super) status_timeout: Duration,
     pub(super) verify_interval: Option<Duration>,
     pub(super) devices: Devices<Tracked>,

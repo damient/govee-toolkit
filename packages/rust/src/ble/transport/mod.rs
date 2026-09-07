@@ -71,6 +71,12 @@ impl Transport {
         self.shared.events.subscribe()
     }
 
+    /// How long a scan listens when the caller names no window.
+    #[must_use]
+    pub fn scan_window(&self) -> Duration {
+        self.shared.options.scan_window
+    }
+
     /// Listen for advertisements and record what answered.
     ///
     /// Nothing on the send path calls this. This transport reports a device

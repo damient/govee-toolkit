@@ -92,6 +92,7 @@ impl Transport {
             socket,
             endpoints: options.endpoints,
             policy: options.policy,
+            scan_window: options.scan_window,
             status_timeout: options.status_timeout,
             verify_interval: options.verify_interval,
             devices: Devices::new(),
@@ -137,6 +138,12 @@ impl Transport {
     /// [`Error::Io`] if the socket cannot report it.
     pub fn local_addr(&self) -> Result<SocketAddr> {
         self.shared.socket.local_addr()
+    }
+
+    /// How long a scan collects replies when the caller names no window.
+    #[must_use]
+    pub fn scan_window(&self) -> Duration {
+        self.shared.scan_window
     }
 
     /// Send a discovery request and collect replies for `window`.
