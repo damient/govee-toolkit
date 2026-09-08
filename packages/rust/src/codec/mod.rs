@@ -43,7 +43,9 @@ use std::collections::BTreeMap;
 
 pub use args::{ArgValue, Args};
 pub use capabilities::{Capabilities, CapabilityParams, ModeCapabilities, Reason};
-pub use catalog::{ArgRole, ArgSpec, Command, Device, Mode, ModeSupport, Modes, Role, Support};
+pub use catalog::{
+    ArgRole, ArgSpec, Command, Device, Family, Mode, ModeSupport, Modes, Role, Support,
+};
 pub use chunk::Chunk;
 pub use command::{Encoded, encode};
 pub use error::{Error, Result};
@@ -83,6 +85,10 @@ pub struct Catalog {
     index: BTreeMap<String, usize>,
     /// Where each device came from, parallel to `devices`.
     origin: Vec<String>,
+    /// The shared command tables an `include:` resolves against, by name. An
+    /// overlay resolves against these too, so a local file includes what the
+    /// build shipped.
+    families: BTreeMap<String, Family>,
 }
 
 impl Catalog {
@@ -95,7 +101,7 @@ impl Catalog {
     /// [`Error::DeviceFile`] if an embedded file does not parse, or
     /// [`Error::DuplicateSku`] if two of them claim the same SKU.
     pub fn embedded() -> Result<Self> {
-        Self::from_sources(EMBEDDED.iter().copied())
+        Self::from_sources_with(EMBEDDED.iter().copied(), EMBEDDED_FAMILIES.iter().copied())
     }
 
     /// Build a catalog from `(file name, YAML)` pairs.
@@ -104,13 +110,36 @@ impl Catalog {
     ///
     /// See [`Catalog::embedded`].
     pub fn from_sources<'a>(sources: impl IntoIterator<Item = (&'a str, &'a str)>) -> Result<Self> {
+        Self::from_sources_with(sources, [])
+    }
+
+    /// Build a catalog from device files and the shared tables they include.
+    ///
+    /// Both are `(file name, YAML)` pairs. A device file naming a fragment
+    /// that is not here fails to load, rather than losing the commands it
+    /// expected to gain.
+    ///
+    /// # Errors
+    ///
+    /// See [`Catalog::embedded`], plus [`Error::UnknownFamily`] if an
+    /// `include:` names no fragment and [`Error::DuplicateCommand`] if a
+    /// fragment and the file both declare one command.
+    pub fn from_sources_with<'a, 'b>(
+        sources: impl IntoIterator<Item = (&'a str, &'a str)>,
+        families: impl IntoIterator<Item = (&'b str, &'b str)>,
+    ) -> Result<Self> {
         let mut catalog = Self {
             devices: Vec::new(),
             index: BTreeMap::new(),
             origin: Vec::new(),
+            families: BTreeMap::new(),
         };
+        for (file, yaml) in families {
+            let family = parse_family(file, yaml)?;
+            catalog.families.insert(family.family.clone(), family);
+        }
         for (file, yaml) in sources {
-            let device = parse(file, yaml)?;
+            let device = catalog.parse_device(file, yaml)?;
             let position = catalog.devices.len();
             catalog.claim_keys(&device, position, file)?;
             catalog.devices.push(device);
@@ -141,7 +170,7 @@ impl Catalog {
         let mut claimed: BTreeMap<String, String> = BTreeMap::new();
 
         for (file, yaml) in sources {
-            let device = parse(file, yaml)?;
+            let device = self.parse_device(file, yaml)?;
             let key = device.sku.to_uppercase();
             if let Some(first) = claimed.insert(key.clone(), file.to_owned()) {
                 return Err(Error::DuplicateSku {
@@ -177,6 +206,41 @@ impl Catalog {
         }
 
         Ok(replaced)
+    }
+
+    /// Parse a device file and merge in every table it includes.
+    ///
+    /// The merge happens here so that nothing downstream — validation, the
+    /// encoder, the generated catalog — can tell an included command from a
+    /// local one.
+    fn parse_device(&self, file: &str, yaml: &str) -> Result<Device> {
+        let mut device = parse(file, yaml)?;
+        for name in device.include.clone() {
+            let family = self
+                .families
+                .get(&name)
+                .ok_or_else(|| Error::UnknownFamily {
+                    file: file.to_owned(),
+                    family: name.clone(),
+                })?;
+            for mode in [Mode::Lan, Mode::Ble, Mode::Cloud] {
+                for (command, spec) in family.commands.get(mode) {
+                    let table = device.commands.get_mut(mode);
+                    // A silent override would let a fragment decide what bytes
+                    // reach a device that meant to declare its own.
+                    if table.contains_key(command) {
+                        return Err(Error::DuplicateCommand {
+                            file: file.to_owned(),
+                            family: name.clone(),
+                            mode,
+                            command: command.clone(),
+                        });
+                    }
+                    table.insert(command.clone(), spec.clone());
+                }
+            }
+        }
+        Ok(device)
     }
 
     /// Point every key a device answers to at `position`.
@@ -235,14 +299,28 @@ fn parse(file: &str, yaml: &str) -> Result<Device> {
         file: file.to_owned(),
         source: Box::new(e),
     })?;
-    if device.schema_version != SCHEMA_VERSION {
-        return Err(Error::SchemaVersion {
-            file: file.to_owned(),
-            found: device.schema_version,
-            supported: SCHEMA_VERSION,
-        });
-    }
+    check_version(file, device.schema_version)?;
     Ok(device)
+}
+
+fn parse_family(file: &str, yaml: &str) -> Result<Family> {
+    let family: Family = serde_norway::from_str(yaml).map_err(|e| Error::DeviceFile {
+        file: file.to_owned(),
+        source: Box::new(e),
+    })?;
+    check_version(file, family.schema_version)?;
+    Ok(family)
+}
+
+fn check_version(file: &str, found: u32) -> Result<()> {
+    if found == SCHEMA_VERSION {
+        return Ok(());
+    }
+    Err(Error::SchemaVersion {
+        file: file.to_owned(),
+        found,
+        supported: SCHEMA_VERSION,
+    })
 }
 
 /// A frame as lowercase hex, for a test that compares against a capture.

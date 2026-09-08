@@ -128,6 +128,13 @@ where the frames do. `src/provision.rs` holds the order and the delay;
 `devices/*.yaml` holds every byte. A new SKU tags its entries and adds no code,
 and a family whose frames differ changes its file alone.
 
+Where several SKUs speak one dialect to the byte, the table lives once under
+`devices/families/` and each file names it in `include:`. The loader merges it
+in, so the rest of the system sees one flat device. A fragment carries layout
+only: what a unit answered stays in that unit's file, under `verified:`. A
+clash between a fragment and the file that includes it is an error, never a
+silent override.
+
 ## Conformance vectors
 
 `tests/fixtures/golden/` holds arguments-in, bytes-out vectors. Every
