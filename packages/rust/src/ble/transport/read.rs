@@ -5,6 +5,7 @@
 //! correlation, so an unmatched notification is skipped. Every caller sends
 //! its own frames, since nothing tells two callers of one request apart.
 
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use tokio::sync::broadcast::Receiver;
@@ -96,13 +97,13 @@ impl Shared {
         &self,
         id: &DeviceId,
         route: &Route,
-        link: &Link,
+        link: &Arc<Link>,
         cmd: &str,
         frame: &[u8],
     ) -> Result<()> {
         route.pacer.acquire().await;
         if let Err(e) = link.write_frame(cmd, &route.endpoint, frame).await {
-            self.drop_link(id).await;
+            self.drop_link(id, link);
             self.record(id, false, Instant::now());
             return Err(e);
         }

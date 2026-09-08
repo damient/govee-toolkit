@@ -6,7 +6,9 @@
 
 #![allow(dead_code, clippy::expect_used)]
 
+use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use async_trait::async_trait;
 use govee_toolkit::ble::wire::{Adapter, Heard, Notifications, Peripheral};
@@ -16,23 +18,42 @@ use uuid::Uuid;
 
 /// The simulated radio, as the transport reaches it.
 #[derive(Debug)]
-pub(crate) struct Radio(pub(crate) Arc<BleAdapter>);
+pub(crate) struct Radio {
+    adapter: Arc<BleAdapter>,
+    /// How long a connection takes, by handle. Nothing else in this harness
+    /// spends time, and on hardware a connection costs seconds.
+    connect_delay: HashMap<String, Duration>,
+}
+
+impl Radio {
+    pub(crate) fn new(adapter: Arc<BleAdapter>) -> Self {
+        Self {
+            adapter,
+            connect_delay: HashMap::new(),
+        }
+    }
+
+    pub(crate) fn slow_to_connect(mut self, endpoint: &str, delay: Duration) -> Self {
+        self.connect_delay.insert(endpoint.to_owned(), delay);
+        self
+    }
+}
 
 #[async_trait]
 impl Adapter for Radio {
     async fn start_scan(&self) -> std::io::Result<()> {
-        self.0.start_scan();
+        self.adapter.start_scan();
         Ok(())
     }
 
     async fn stop_scan(&self) -> std::io::Result<()> {
-        self.0.stop_scan();
+        self.adapter.stop_scan();
         Ok(())
     }
 
     async fn heard(&self) -> std::io::Result<Vec<Heard>> {
         Ok(self
-            .0
+            .adapter
             .heard()
             .into_iter()
             .map(|(endpoint, name)| Heard { endpoint, name })
@@ -40,29 +61,38 @@ impl Adapter for Radio {
     }
 
     async fn peripheral(&self, endpoint: &str) -> std::io::Result<Option<Arc<dyn Peripheral>>> {
+        let delay = self
+            .connect_delay
+            .get(endpoint)
+            .copied()
+            .unwrap_or_default();
         Ok(self
-            .0
+            .adapter
             .peripheral(endpoint)
-            .map(|device| Arc::new(Peer(device)) as Arc<dyn Peripheral>))
+            .map(|device| Arc::new(Peer { device, delay }) as Arc<dyn Peripheral>))
     }
 }
 
 /// One simulated device, as the link reaches it.
 #[derive(Debug)]
-pub(crate) struct Peer(pub(crate) BleDevice);
+pub(crate) struct Peer {
+    device: BleDevice,
+    delay: Duration,
+}
 
 #[async_trait]
 impl Peripheral for Peer {
     async fn is_connected(&self) -> std::io::Result<bool> {
-        Ok(self.0.is_connected())
+        Ok(self.device.is_connected())
     }
 
     async fn connect(&self) -> std::io::Result<()> {
-        self.0.connect()
+        tokio::time::sleep(self.delay).await;
+        self.device.connect()
     }
 
     async fn discover(&self) -> std::io::Result<Vec<Uuid>> {
-        Ok(self.0.characteristics())
+        Ok(self.device.characteristics())
     }
 
     async fn subscribe(&self, characteristic: Uuid) -> std::io::Result<Notifications> {
@@ -72,7 +102,7 @@ impl Peripheral for Peer {
                 format!("the device notifies nothing on {characteristic}"),
             ));
         }
-        let replies = self.0.notifications();
+        let replies = self.device.notifications();
         Ok(Box::pin(futures_util::stream::unfold(
             replies,
             |mut replies| async move {
@@ -89,6 +119,6 @@ impl Peripheral for Peer {
     }
 
     async fn write(&self, characteristic: Uuid, frame: &[u8]) -> std::io::Result<()> {
-        self.0.write(characteristic, frame)
+        self.device.write(characteristic, frame)
     }
 }

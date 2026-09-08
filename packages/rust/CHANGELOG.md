@@ -137,6 +137,12 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 
 ### Changed
 
+- The `ble` send path locks per device. A command waits for its own device's
+  connection and for nothing else, where one lock over the whole table made a
+  command to a reachable device wait out another device's scan and connection.
+  Nothing probes the link before a write either: a connection the device
+  dropped is found by the write that fails on it, so the first command after a
+  device goes away returns `io` and the next one opens a connection.
 - The send path repeats less work. `ble::Radio` resolves the write and the
   notify characteristic once, when discovery runs, rather than on every frame.
   `Catalog::device` and the `ble` budget lookups take an uppercase SKU without
