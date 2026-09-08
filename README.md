@@ -39,8 +39,8 @@ reverse engineering and written up in
 
 The engine works over `lan` and over `ble`, verified on real hardware:
 discovery, on/off, brightness, color, per-segment color and live animation. It
-is usable today from Rust. Wi-Fi provisioning over `ble` is written, but nobody
-has sent it to a device.
+is usable today from Rust. `provision_wifi()` puts a device on a network over
+`ble`, which is how a device out of the box becomes reachable over `lan`.
 
 What comes next is the packaging around it — first the Python and Node.js
 packages, then a web page and a desktop app with actual buttons, then Home

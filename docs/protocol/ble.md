@@ -15,11 +15,9 @@ families are covered so far, and they do not speak the same dialect. Where they
 differ, this page gives both layouts and the device file says which one its unit
 takes. A third family can differ again.
 
-One exception: **the write direction of Wi-Fi provisioning (§4) has never been
-sent to a device.** The layout comes from the other direction of the transfer
-only. The golden vectors under `tests/fixtures/golden/ble/` reproduce it byte
-for byte. That is a statement about this repository's encoder, not about what
-the firmware accepts.
+One exception: **a hidden network (§4) has never been provisioned.** The
+trailing flag it takes comes from the vendor app, and no entry in a device file
+encodes it.
 
 `packages/rust/src/ble/` carries the transport, behind the cargo feature of the
 same name. The bytes come from `devices/*.yaml`. The code matches a reply
@@ -252,7 +250,7 @@ bytes it was asked with.
 | `aa 21` | soft version, ASCII |
 | `aa 06` | soft version, ASCII, on a family that answers nothing at `aa 21` |
 | `aa 07 03` | hard version, ASCII. The `03` is part of the request, and the answer repeats it |
-| `aa ab` | dynamic API type, see §4 |
+| `aa ab` | dynamic API type, then the hidden-network flag. Two bytes. See §4 |
 | `aa a5 <group>` | brightness and color for three zones. Groups are 1-based, five of them |
 
 A read frame can carry a sub-type byte, as `aa 07 03` does. The same frame
@@ -279,6 +277,18 @@ Three of these are traps:
 Plaintext. No encryption, no key exchange, no session token: anything within
 Bluetooth range during provisioning sees the network password.
 
+`provision_wifi()` runs the whole of this. Provisioning is four writes, in
+this order:
+
+1. `33 17 01` — wake the Wi-Fi module. See §2 for the `0x33` frame format.
+2. Wait 3 s.
+3. The `A1 11` transfer below.
+4. `33 17 00` — release the module.
+
+Step 1 is not optional. A transfer sent on its own left the unit off the
+network. The same transfer, 3 s after `33 17 01`, put it on the network and
+reached `lan` mode.
+
 The payload is
 
 ```
@@ -297,7 +307,13 @@ combined offset in minutes, and not a fraction. Nobody observed a negative
 offset.
 
 The API block is sent when `aa ab` (§3) answers with a type. Type 2 means
-`https://device.govee.com`.
+`https://device.govee.com`. Type 1 means `http://app.govee.com`.
+
+`aa ab` answers a second byte after the type: the hidden-network flag. A device
+that answers `1` takes one more byte at the end of the payload, `1` for a
+hidden network and `0` for a visible one. With no API block that byte is the
+third of `00 00 <flag>` instead. **Nobody provisioned a hidden network**, and no
+device file encodes the flag: the unit here answers `0`.
 
 Cut the payload into 16-byte pieces. The data of each piece starts at byte 3:
 
@@ -317,9 +333,9 @@ end      a111ff000000000000000000000000000000004f
 ```
 
 Status comes back on the notify characteristic as `A1 11 <status>`; `0` means
-accepted.
-
-**None of this has been sent to a device.** See Status above.
+accepted. The codec reads no `reply:` on a chunked command, so the SDK does not
+report this status. Whether the device joined the network is the only signal a
+caller gets today.
 
 ## 5. Throughput
 

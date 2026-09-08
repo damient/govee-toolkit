@@ -4,9 +4,9 @@ Which Govee devices work, in which [modes](modes.md), and how far.
 
 > 🚧 The table below lists every verified device, and how far each mode goes on
 > it. `lan` mode is fully exercised, including the undocumented segment channel,
-> and `ble` mode everywhere except Wi-Fi provisioning, which has never been sent
-> to a device. The other models on Govee's list are untested rather than
-> unsupported — they need someone with the hardware to confirm them.
+> and so is `ble` mode, Wi-Fi provisioning included. A hidden network is the one
+> case nobody provisioned. The other models on Govee's list are untested rather
+> than unsupported — they need someone with the hardware to confirm them.
 
 The authoritative data lives in [`../devices/`](../devices/), one YAML file per
 SKU or SKU family. This page is the human-readable view of it — the YAML wins on

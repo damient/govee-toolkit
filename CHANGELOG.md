@@ -24,6 +24,25 @@ at.
 
 #### Added
 
+- `devices/families/` and the `include:` key. A dialect several SKUs speak to
+  the byte lives in one fragment, and a device file names it instead of
+  repeating it. The loader merges the fragment's commands in, so validation,
+  the encoder and `catalog.json` all see one flat device. A fragment carries
+  layout only. Two clashes are errors rather than overrides: an `include:`
+  naming no fragment, and a command a file and its fragment both declare.
+- `devices/families/ble-wifi-provision.yaml`, the four entries
+  `provision_wifi()` runs: `read_dynamic_api` at `0xAA` `0xAB`,
+  `wifi_link_start` at `0x33` `0x17`, and the two `0xA1` `0x11` transfers.
+  `devices/H61A0.yaml` includes it and declares none of them itself.
+- `wifi_link_start` wakes the Wi-Fi module before provisioning and releases it
+  after. The module answers no provisioning transfer until it arrives: on the
+  H61A0 a transfer sent on its own left the unit off the network, and the same
+  transfer 3 s later put it on. The unit then answered over `lan`.
+- Four command roles and nine argument roles in
+  [`devices/schema.yaml`](devices/schema.yaml): `wifi_link`, `wifi_api_type`,
+  `wifi_provision` and `wifi_provision_with_api`, with the arguments an SDK
+  fills for each. A device file tags its entries and the SDK runs them in
+  order, so provisioning carries no command name in code.
 - `music_effect` on `devices/H61A0.yaml`, the chunked music channel at `0xA3`
   `0x41`. A transfer carries a color list and the parameters of one effect, and
   a `33 05 13` frame after it plays what was transferred. This is the channel
@@ -53,10 +72,9 @@ at.
   `ble`, but they are narrower than over `lan`: fifteen zones by mask, against
   the unit's 42 individually addressable LEDs. Scenes are `unimplemented`.
 - Wi-Fi provisioning, as two chunked entries: one with the trailing API block
-  and one without it. The layout has no optional field. **Neither has ever been
-  sent to a device.** The layout was read from the other direction only. Its
-  notes, its `verified:` line and every one of its conformance vectors state
-  this, and the vectors pin this repository's encoder rather than the firmware.
+  and one without it. The layout has no optional field. The entry carrying the
+  block put a unit on a network. The entry without it was not sent: the unit
+  asks for an endpoint.
 - `measurements.ble` — the read round trip, the sustained write rate, the burst
   that makes the firmware unresponsive, the time that the firmware stays
   unresponsive, and the fifteen addressable zones. All of these numbers come
@@ -132,6 +150,11 @@ at.
 
 #### Changed
 
+- `read_dynamic_api` reads a second byte: the hidden-network flag beside the
+  endpoint type. The H61A0 answers type 2 and flag 0. A device answering 1
+  takes a trailing flag byte that no entry encodes, and
+  [`docs/protocol/ble.md`](docs/protocol/ble.md) 4 says so.
+- `modes.ble` on `devices/H61A0.yaml` records Wi-Fi provisioning as working.
 - `devices/H6114.yaml`: the byte between the sensitivity and the colour mode of
   the music frame is the `soft` flag of
   [`docs/protocol/ble.md`](docs/protocol/ble.md) 2.8, and the file declares it
@@ -163,8 +186,7 @@ at.
 #### Note
 
 Every `ble` command in the two files has been sent to a unit, and its effect or
-its answer was observed. Wi-Fi provisioning is the exception. That one has
-never been sent to a device.
+its answer was observed.
 
 On the H6114 the firmware fades from one colour to the next and fades in at
 power on. `33 A3`, which sets zone interpolation on a device that has zones, is

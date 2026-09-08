@@ -184,7 +184,7 @@
       "command": "read_dynamic_api",
       "args": {},
       "frames_hex": ["aaab000000000000000000000000000000000001"],
-      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered 2"
+      "source": "docs/protocol/ble.md 3 — exercised on the unit, which answered api_type 2 and hide_ssid 0"
     },
     {
       "name": "read the first zone group",
@@ -252,6 +252,20 @@
       "source": "docs/protocol/ble.md 6 \u2014 exercised on the unit, which rendered it; a body past one piece, so one data frame goes out and the last byte rides in the closing frame"
     },
     {
+      "name": "wake the Wi-Fi module before provisioning",
+      "command": "wifi_link_start",
+      "args": { "on": 1 },
+      "frames_hex": ["3317010000000000000000000000000000000025"],
+      "source": "docs/protocol/ble.md 4 — exercised on the unit: the provisioning transfer that follows it joined the network, and the same transfer without it did not"
+    },
+    {
+      "name": "release the Wi-Fi module after provisioning",
+      "command": "wifi_link_start",
+      "args": { "on": 0 },
+      "frames_hex": ["3317000000000000000000000000000000000024"],
+      "source": "docs/protocol/ble.md 4 — exercised on the unit, which stayed on the network"
+    },
+    {
       "name": "Wi-Fi provisioning, SSID Test, password abc, UTC+2",
       "command": "wifi_provision",
       "args": {
@@ -267,7 +281,7 @@
         "a1110104546573740361626300020000000000e2",
         "a111ff000000000000000000000000000000004f"
       ],
-      "source": "docs/protocol/ble.md 4 — worked out from the documented layout, NOT captured and never sent to a device; this pins the encoder, not the firmware"
+      "source": "docs/protocol/ble.md 4 — worked out from the documented layout, NOT captured and not sent to a device; this pins the encoder, not the firmware"
     },
     {
       "name": "Wi-Fi provisioning with an empty password",
@@ -285,7 +299,7 @@
         "a111010454657374000002000000000000000081",
         "a111ff000000000000000000000000000000004f"
       ],
-      "source": "docs/protocol/ble.md 4 — worked out from the documented layout, never sent to a device; an empty password is the single byte 0x00"
+      "source": "docs/protocol/ble.md 4 — worked out from the documented layout, not sent to a device; an empty password is the single byte 0x00"
     },
     {
       "name": "Wi-Fi provisioning carrying the API block, three data frames",
@@ -306,7 +320,7 @@
         "a111037665652e636f6d0000000000000000008a",
         "a111ff000000000000000000000000000000004f"
       ],
-      "source": "docs/protocol/ble.md 4 — worked out from the documented layout, never sent to a device; the URL is what a device answering API type 2 is told to use"
+      "source": "docs/protocol/ble.md 4 — worked out from the documented layout; these arguments were not sent, but the entry was, and the unit joined the network"
     }
   ],
   "errors": [

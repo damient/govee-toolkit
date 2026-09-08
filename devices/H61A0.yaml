@@ -6,6 +6,9 @@ sku: "H61A0"
 family: "rgbic-neon-rope"
 name: "3m RGBIC LED Neon Rope Lights"
 aliases: []
+include:
+  - ble-wifi-provision
+
 candidate_aliases:      # the same product at 2 m, 5 m, 4 m and 10 m. NOT
   - H61A1               # verified: segment count and native resolution both
   - H61A2               # depend on the length. The outdoor rope, H61A8 and
@@ -51,8 +54,8 @@ modes:
       addressable ICs the lan raw channel reaches, and bits past the fifteenth
       reach nothing. Scenes ride the same chunked channel under another command
       type, and which cutter each scene version takes was not established.
-      Wi-Fi provisioning is declared here but has never been sent to a device.
-      One connection at a time: a connected device stops advertising. See
+      Wi-Fi provisioning works from here, through `provision_wifi()`. One
+      connection at a time: a connected device stops advertising. See
       docs/protocol/ble.md.
   cloud:
     support: partial
@@ -394,17 +397,6 @@ commands:
         docs/protocol/ble.md 3.
       capture: ""         # TODO
 
-    read_dynamic_api:
-      documented: false
-      frame: "AA AB <pad:20> <xor>"
-      reply: "AA AB ${api_type}"
-      args:
-        api_type: { type: int, range: [0, 255] }
-      notes: >-
-        Which API endpoint provisioning should hand the device. Answers 2 on
-        this unit. See docs/protocol/ble.md 3 and 4.
-      capture: ""         # TODO
-
     read_zone_state:
       documented: false
       frame: "AA A5 ${group} <pad:20> <xor>"
@@ -417,51 +409,6 @@ commands:
         than what is lit, so it is not a way to read back what `color` painted.
         See docs/protocol/ble.md 3.
       capture: ""         # TODO
-
-    wifi_provision:
-      documented: false
-      body: "${network:str8} ${password:str8} ${run_mode} ${timezone_hours} ${iot_version} ${timezone_minutes}"
-      chunk:
-        size: 16
-        header: "A1 11 00 ${count} 00 <pad:20> <xor>"
-        data:   "A1 11 ${index} ${chunk:bytes} <pad:20> <xor>"
-        footer: "A1 11 FF <pad:20> <xor>"
-      args:
-        network: { type: string, max_len: 32 }
-        password: { type: string, max_len: 63 }
-        run_mode: { type: int, range: [0, 255] }          # 0 in production
-        timezone_hours: { type: int, range: [0, 255] }
-        timezone_minutes: { type: int, range: [0, 59] }
-        iot_version: { type: int, range: [0, 255] }       # 0 in production
-      notes: >-
-        Plaintext: no encryption, no key exchange, no session token, so anything
-        in radio range during provisioning sees the password. An empty password
-        is the single byte 0x00. What a negative timezone offset looks like was
-        not observed. NEVER SENT TO A DEVICE — see docs/protocol/ble.md 4.
-      capture: ""         # nothing was ever sent to a device
-
-    wifi_provision_with_api:
-      documented: false
-      body: "${network:str8} ${password:str8} ${run_mode} ${timezone_hours} ${iot_version} ${timezone_minutes} ${api_url:str16}"
-      chunk:
-        size: 16
-        header: "A1 11 00 ${count} 00 <pad:20> <xor>"
-        data:   "A1 11 ${index} ${chunk:bytes} <pad:20> <xor>"
-        footer: "A1 11 FF <pad:20> <xor>"
-      args:
-        network: { type: string, max_len: 32 }
-        password: { type: string, max_len: 63 }
-        run_mode: { type: int, range: [0, 255] }
-        timezone_hours: { type: int, range: [0, 255] }
-        timezone_minutes: { type: int, range: [0, 59] }
-        iot_version: { type: int, range: [0, 255] }
-        api_url: { type: string, max_len: 255 }
-      notes: >-
-        The same transfer with the trailing API block, which is sent when
-        `read_dynamic_api` answers with a type. There is no optional field in
-        this language, so the block is a separate entry rather than an argument
-        left out. NEVER SENT TO A DEVICE — see docs/protocol/ble.md 4.
-      capture: ""         # nothing was ever sent to a device
 
   cloud: {}               # TODO
 
@@ -525,10 +472,13 @@ verified:
     else. `sensitivity` is stored and read back, and 0, 99 and 255 all reacted —
     what the value changes was NOT told apart on this unit. The sub-mode read at
     0xAA 0x05 answered 21 before any music frame and 19 after each one, with
-    every field of the frame it was given. Wi-Fi provisioning over 0xA1 was NOT
-    exercised: its layout was read out of the other direction only, and no frame
-    of it has ever been sent to a device — its golden vectors pin this encoder,
-    not the firmware.
+    every field of the frame it was given. Wi-Fi provisioning over 0xA1 was exercised on this
+    unit. `read_dynamic_api` answered api_type 2 and hide_ssid 0. A transfer
+    sent on its own left the unit off the network; the same transfer 3 s after
+    `wifi_link_start` `on` 1 put it on, and the unit then answered a lan scan
+    and a lan `colorwc`. Only `wifi_provision_with_api` ran: the unit asks for
+    an endpoint, so `wifi_provision` was never sent. A hidden network was NOT
+    provisioned.
     The chunked music channel at 0xA3 0x41 was exercised on the same unit, over
     raw GATT. Effects 50 to 55 were each sent as a transfer followed by the
     sub-mode frame, with the parameters the vendor app computes for 42 ICs. All
