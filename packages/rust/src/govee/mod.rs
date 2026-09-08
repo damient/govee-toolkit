@@ -4,6 +4,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
 
+use futures_util::future::try_join_all;
 use tokio::sync::broadcast;
 
 use crate::codec::{Args, Catalog, Mode};
@@ -76,7 +77,8 @@ impl Govee {
     /// Run a discovery scan on every transport and return what answered.
     ///
     /// Each transport listens for its own window, which is a property of the
-    /// wire. Nothing on the send path calls this.
+    /// wire. The windows run at the same time, so the call takes the longest
+    /// one and not their sum. Nothing on the send path calls this.
     ///
     /// # Errors
     ///
@@ -84,11 +86,17 @@ impl Govee {
     /// fails the call: a scan covering fewer modes than asked would read as a
     /// device that is not there.
     pub async fn scan(&self) -> Result<Vec<Device>> {
+        let windows = self
+            .inner
+            .transports
+            .values()
+            .map(|transport| transport.scan(transport.scan_window()));
+        // In mode order, whatever the order the answers arrive in: two modes
+        // that report one MAC must always agree on which SKU wins.
+        let per_mode = try_join_all(windows).await?;
         let mut found: BTreeMap<DeviceId, String> = BTreeMap::new();
-        for transport in self.inner.transports.values() {
-            for device in transport.scan(transport.scan_window()).await? {
-                found.insert(device.id, device.sku);
-            }
+        for device in per_mode.into_iter().flatten() {
+            found.insert(device.id, device.sku);
         }
         Ok(found
             .into_iter()

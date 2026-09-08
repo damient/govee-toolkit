@@ -34,7 +34,13 @@ default = ["lan"]
 # A feature is public API (`docs/versioning.md`), so each transport spells its
 # dependencies out rather than shares an internal feature. `async-trait` is
 # what puts the async `Transport` trait behind a `dyn`.
-lan = ["dep:socket2", "dep:async-trait", "dep:tokio", "dep:tracing"]
+lan = [
+  "dep:futures-util",
+  "dep:socket2",
+  "dep:async-trait",
+  "dep:tokio",
+  "dep:tracing",
+]
 ble = [
   "dep:btleplug",
   "dep:futures-util",
@@ -53,9 +59,12 @@ thiserror = "2"
 
 async-trait = { version = "0.1", optional = true }
 btleplug = { version = "0.13", optional = true }
-# btleplug returns notifications as a `futures` stream, and this crate reads
-# one. `default-features = false` keeps the executor and the compat shims out.
-futures-util = { version = "0.3", default-features = false, optional = true }
+# What runs the per-mode scans at the same time, and what reads the `futures`
+# stream btleplug returns notifications on. `default-features = false` keeps the
+# executor and the compat shims out; `alloc` is what `try_join_all` needs.
+futures-util = { version = "0.3", default-features = false, features = [
+  "alloc",
+], optional = true }
 socket2 = { version = "0.6", features = ["all"], optional = true }
 tokio = { version = "1", features = [
   "macros",

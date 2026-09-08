@@ -12,9 +12,14 @@
 
 mod ble_fake;
 
-use govee_toolkit::{Args, Mode};
+use std::sync::Arc;
+use std::time::Duration;
 
-use self::ble_fake::{Fake, MAC, POWER_ON, SCAN_WINDOW, SKU, enabling_ble, govee, id};
+use govee_toolkit::transport::Transport;
+use govee_toolkit::{Args, Mode};
+use tokio::time::Instant;
+
+use self::ble_fake::{Fake, MAC, POWER_ON, SCAN_WINDOW, SKU, attach, enabling_ble, govee, id};
 /// The two frames of the entry the fixture marks `role: status`.
 const POWER_READ: [u8; 20] = [
     0xaa, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xab,
@@ -179,6 +184,25 @@ async fn a_scan_listens_for_each_transport_s_own_window() {
     govee.scan().await.expect("the scan runs");
 
     assert_eq!(ble.scanned(), vec![SCAN_WINDOW]);
+}
+
+/// A window is time on the wire, so two modes spend theirs at the same time.
+#[tokio::test(start_paused = true)]
+async fn a_scan_spends_the_windows_at_the_same_time() {
+    let long = Duration::from_secs(9);
+    let ble = Fake::claiming(Mode::Ble, SCAN_WINDOW);
+    let lan = Fake::claiming(Mode::Lan, long);
+    let govee = attach(&[
+        Arc::clone(&ble) as Arc<dyn Transport>,
+        Arc::clone(&lan) as Arc<dyn Transport>,
+    ]);
+
+    let start = Instant::now();
+    govee.scan().await.expect("the scan runs");
+
+    assert_eq!(start.elapsed(), long);
+    assert_eq!(ble.scanned(), vec![SCAN_WINDOW]);
+    assert_eq!(lan.scanned(), vec![long]);
 }
 
 /// The wake frame the fixture declares, at `on = 1` and `on = 0`.
