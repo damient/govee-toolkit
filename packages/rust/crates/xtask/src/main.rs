@@ -17,6 +17,7 @@
     clippy::format_push_string
 )]
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
@@ -43,9 +44,11 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
     let out = out.unwrap_or_else(|| root.join("dist/catalog.json"));
 
     let entries = load(&devices);
+    let families = load_families(&devices);
 
     let mut catalog = Vec::with_capacity(entries.len());
-    for (path, value) in entries {
+    for (path, mut value) in entries {
+        resolve_includes(&path, &mut value, &families);
         let declared = value
             .get("schema_version")
             .and_then(serde_json::Value::as_u64);
@@ -111,6 +114,99 @@ fn compat(root: &Path, check: bool) {
 }
 
 /// Every device file, parsed, sorted by path — which sorts by SKU.
+/// The shared command tables, by the `family:` each declares.
+///
+/// The generated catalog is flat: an `include:` is resolved here, so a reader
+/// of `catalog.json` never has to.
+fn load_families(devices: &Path) -> BTreeMap<String, serde_json::Value> {
+    let dir = devices.join("families");
+    let Ok(entries) = fs::read_dir(&dir) else {
+        return BTreeMap::new();
+    };
+    let mut families = BTreeMap::new();
+    let mut paths: Vec<PathBuf> = entries
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.extension().is_some_and(|e| e == "yaml"))
+        .collect();
+    paths.sort();
+    for path in paths {
+        let text = fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+        let value: serde_json::Value =
+            serde_norway::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let name = value
+            .get("family")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_else(|| panic!("{}: no `family:`", path.display()))
+            .to_owned();
+        families.insert(name, value);
+    }
+    families
+}
+
+/// Merge in every table a device file includes, and drop the `include:` key.
+///
+/// The same rule the crate applies: an unknown family and a command declared
+/// twice are both errors, so the generated catalog cannot disagree with what
+/// the SDK loaded.
+fn resolve_includes(
+    path: &Path,
+    device: &mut serde_json::Value,
+    families: &BTreeMap<String, serde_json::Value>,
+) {
+    let Some(object) = device.as_object_mut() else {
+        return;
+    };
+    let Some(include) = object.remove("include") else {
+        return;
+    };
+    let names: Vec<String> = include
+        .as_array()
+        .map(|list| {
+            list.iter()
+                .filter_map(|v| v.as_str().map(ToOwned::to_owned))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    for name in names {
+        let family = families
+            .get(&name)
+            .unwrap_or_else(|| panic!("{}: no family `{name}`", path.display()));
+        let Some(from) = family
+            .get("commands")
+            .and_then(serde_json::Value::as_object)
+        else {
+            continue;
+        };
+        let commands = object
+            .entry("commands")
+            .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
+        let Some(commands) = commands.as_object_mut() else {
+            continue;
+        };
+        for (mode, table) in from {
+            let Some(table) = table.as_object() else {
+                continue;
+            };
+            let into = commands
+                .entry(mode.clone())
+                .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
+            let Some(into) = into.as_object_mut() else {
+                continue;
+            };
+            for (command, spec) in table {
+                assert!(
+                    !into.contains_key(command),
+                    "{}: `{mode}.{command}` is declared here and in `{name}`",
+                    path.display()
+                );
+                into.insert(command.clone(), spec.clone());
+            }
+        }
+    }
+}
+
 fn load(dir: &Path) -> Vec<(PathBuf, serde_json::Value)> {
     let mut entries: Vec<PathBuf> = fs::read_dir(dir)
         .unwrap_or_else(|e| panic!("cannot read {}: {e}", dir.display()))

@@ -227,6 +227,31 @@ pub enum Error {
         supported: u32,
     },
 
+    /// A device file includes a shared table that no fragment declares.
+    #[error("{file}: `include:` names `{family}`, and no family fragment declares it")]
+    UnknownFamily {
+        /// The device file.
+        file: String,
+        /// The name it asked for.
+        family: String,
+    },
+
+    /// A device file and a table it includes both declare one command.
+    #[error(
+        "{file}: `{mode}.{command}` is declared here and in the `{family}` family; \
+         drop one, or do not include that family"
+    )]
+    DuplicateCommand {
+        /// The device file.
+        file: String,
+        /// The fragment it includes.
+        family: String,
+        /// The mode whose table clashes.
+        mode: crate::codec::Mode,
+        /// The command both declare.
+        command: String,
+    },
+
     /// Two device files claim the same SKU or alias.
     #[error("`{sku}` is declared by both `{first}` and `{second}`")]
     DuplicateSku {
@@ -270,6 +295,8 @@ impl Error {
             Self::DeviceFile { .. } => "device_file",
             Self::SchemaVersion { .. } => "schema_version",
             Self::DuplicateSku { .. } => "duplicate_sku",
+            Self::UnknownFamily { .. } => "unknown_family",
+            Self::DuplicateCommand { .. } => "duplicate_command",
         }
     }
 }

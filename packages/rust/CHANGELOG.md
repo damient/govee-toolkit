@@ -24,6 +24,12 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   stay in the device file and the order lives in the crate: wake the module,
   wait, transfer, release. A device file tags its entries, so a family whose
   frames differ changes its file and no code.
+- A device file can pull in a shared command table with `include:`, naming a
+  fragment under `devices/families/`. `Catalog::from_sources_with` takes the
+  device files and the fragments; `Catalog::embedded` and an overlay resolve
+  against what the build shipped. The merge happens on load, so `Device` and
+  everything reading it see one flat table. `Error::UnknownFamily` and
+  `Error::DuplicateCommand` are the two ways it refuses.
 
 - `chunk:` describes a second way of cutting a body. `head_size:` puts the
   first slice in the header, a footer that reads `${chunk:bytes}` carries the

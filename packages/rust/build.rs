@@ -31,22 +31,46 @@ fn main() {
         devices.display()
     );
 
-    let mut out = String::from("pub(crate) static EMBEDDED: &[(&str, &str)] = &[\n");
-    for path in &entries {
+    let mut out = list("EMBEDDED", &entries);
+    out.push_str(&list("EMBEDDED_FAMILIES", &family_files(&devices)));
+
+    let dest = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR")).join("devices.rs");
+    fs::write(&dest, out).expect("write devices.rs");
+}
+
+/// The shared command tables under `devices/families/`, which a device file
+/// pulls in with `include:`. An absent directory is not an error: a catalog
+/// whose files include nothing needs none.
+fn family_files(devices: &Path) -> Vec<PathBuf> {
+    let dir = devices.join("families");
+    let Ok(entries) = fs::read_dir(&dir) else {
+        return Vec::new();
+    };
+    println!("cargo:rerun-if-changed={}", dir.display());
+    let mut files: Vec<PathBuf> = entries
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.extension().is_some_and(|e| e == "yaml"))
+        .collect();
+    files.sort();
+    files
+}
+
+/// One `static NAME: &[(file name, contents)]`, with the files included.
+fn list(name: &str, paths: &[PathBuf]) -> String {
+    let mut out = format!("pub(crate) static {name}: &[(&str, &str)] = &[\n");
+    for path in paths {
         println!("cargo:rerun-if-changed={}", path.display());
-        let name = path
+        let file = path
             .file_name()
             .and_then(|n| n.to_str())
             .expect("utf-8 file name");
         out.push_str(&format!(
-            "    ({name:?}, include_str!({:?})),\n",
+            "    ({file:?}, include_str!({:?})),\n",
             path.display().to_string()
         ));
     }
     out.push_str("];\n");
-
-    let dest = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR")).join("devices.rs");
-    fs::write(&dest, out).expect("write devices.rs");
+    out
 }
 
 /// `GOVEE_DEVICES_DIR` wins, so a vendored copy can be used when the crate is

@@ -169,6 +169,15 @@ pub struct Commands {
 }
 
 impl Commands {
+    /// The table for `mode`, mutably.
+    pub(crate) fn get_mut(&mut self, mode: Mode) -> &mut BTreeMap<String, Command> {
+        match mode {
+            Mode::Lan => &mut self.lan,
+            Mode::Ble => &mut self.ble,
+            Mode::Cloud => &mut self.cloud,
+        }
+    }
+
     /// The command table for `mode`.
     #[must_use]
     pub fn get(&self, mode: Mode) -> &BTreeMap<String, Command> {
@@ -194,6 +203,25 @@ pub struct Verified {
     pub notes: String,
 }
 
+/// One `devices/families/<name>.yaml` file: commands several SKUs share.
+///
+/// A fragment carries no SKU and no capability. It exists because a dialect is
+/// a property of a family and not of a model, so a table identical across
+/// twenty files is written once and included twenty times.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Family {
+    /// Schema revision the fragment was written against.
+    pub schema_version: u32,
+    /// What a device file names in its `include:`.
+    pub family: String,
+    /// Why the fragment exists and what it covers.
+    #[serde(default)]
+    pub description: String,
+    /// The command tables it contributes.
+    #[serde(default)]
+    pub commands: Commands,
+}
+
 /// One `devices/<SKU>.yaml` file.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Device {
@@ -212,6 +240,11 @@ pub struct Device {
     /// deliberately do **not** resolve: a lookup for one is an unknown SKU.
     #[serde(default)]
     pub candidate_aliases: Vec<String>,
+    /// Shared command tables to pull in, by the `family:` each declares. The
+    /// commands they carry are merged into [`Device::commands`] on load, so
+    /// nothing downstream can tell an included entry from a local one.
+    #[serde(default)]
+    pub include: Vec<String>,
     /// What the hardware can do.
     pub capabilities: Capabilities,
     /// Which modes the hardware supports.
