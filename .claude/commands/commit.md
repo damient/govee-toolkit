@@ -52,8 +52,11 @@ both.
   touches — `feat(lan)`, `fix(codec)`, `docs`, `ci`, `chore`.
 - Two commits on the same subject mean one commit. Two subjects sharing a type
   are still two commits.
-- Order them so each one is a tree that stands on its own: a rename before what
-  uses the new name, a device file before the vector that replays it.
+- Order them so each one reads in sequence: a rename before what uses the new
+  name, a device file before the vector that replays it. Order is for the
+  reader. Do not check out or test an intermediate commit to prove it builds:
+  the branch lands as a pull request, CI runs on the tip, and no intermediate
+  tree is ever deployed.
 - Above four or five commits for one working tree, stop and say what the groups
   are before committing — the tree probably holds more than one branch's worth
   of work.
@@ -96,7 +99,8 @@ Before each commit, and only when that commit touches the area:
 - A changelog entry when it stages `packages/*/src/`, a `build.rs` or a device
   file — `/changelog` writes it. CI fails without one.
 
-`tools/qa.sh` is not part of committing. Run `/qa` before pushing.
+`tools/qa.sh` is not part of committing, and it runs once on the finished tree
+rather than once per commit. Run `/qa` before pushing.
 
 ## Finish
 
