@@ -11,8 +11,11 @@ enabled — that is a user choice, made per device in the runtime configuration.
 See [`../docs/modes.md`](../docs/modes.md).
 
 - [`schema.yaml`](schema.yaml) — reference schema, field by field
+- [`families/`](families/) — command tables several SKUs share, pulled in by
+  `include:`
 - [`H61A0.yaml`](H61A0.yaml) — RGBIC LED Neon Rope Lights, verified over `lan`
-  including the undocumented segment channel
+  including the undocumented segment channel, and over `ble` including Wi-Fi
+  provisioning
 - [`H6114.yaml`](H6114.yaml) — RGB Car LED Strip Lights, a `ble`-only device,
   verified over `ble` including the music sub-mode
 
@@ -90,6 +93,11 @@ When several SKUs share the same protocol behavior in every mode, keep one
 file and list the others under `aliases`. Split into separate files as soon as
 any command differs.
 
+When several SKUs speak part of a dialect to the byte, put that part in
+[`families/<name>.yaml`](families/) and name it in each file's `include:`. A
+fragment carries the layout and nothing else: what one unit answered stays in
+the SKU file, under `verified:`. [`schema.yaml`](schema.yaml) has the rules.
+
 ## Validation
 
 Device files are checked in CI by `cargo test` in
@@ -106,7 +114,9 @@ whether a file is well-formed, never whether a device really behaves that way:
   the arguments that role has an SDK fill;
 - a probed mode either reaches every capability the hardware has or explains
   each one it does not, and names none the file did not declare;
-- `aliases` resolve on lookup and `candidate_aliases` deliberately do not.
+- `aliases` resolve on lookup and `candidate_aliases` deliberately do not;
+- every name in `include:` matches a fragment, and no command is declared both
+  by a file and by a family it includes.
 
 Add a conformance vector alongside a new command —
 [`../tests/fixtures/README.md`](../tests/fixtures/README.md). One vector per

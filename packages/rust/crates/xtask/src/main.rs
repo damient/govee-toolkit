@@ -113,7 +113,6 @@ fn compat(root: &Path, check: bool) {
     );
 }
 
-/// Every device file, parsed, sorted by path — which sorts by SKU.
 /// The shared command tables, by the `family:` each declares.
 ///
 /// The generated catalog is flat: an `include:` is resolved here, so a reader
@@ -146,9 +145,9 @@ fn load_families(devices: &Path) -> BTreeMap<String, serde_json::Value> {
 
 /// Merge in every table a device file includes, and drop the `include:` key.
 ///
-/// The same rule the crate applies: an unknown family and a command declared
-/// twice are both errors, so the generated catalog cannot disagree with what
-/// the SDK loaded.
+/// An unknown family and a command declared twice are errors here as they are
+/// in the crate, so the generated catalog cannot disagree with what the SDK
+/// loaded.
 fn resolve_includes(
     path: &Path,
     device: &mut serde_json::Value,
@@ -207,6 +206,7 @@ fn resolve_includes(
     }
 }
 
+/// Every device file, parsed, sorted by path — which sorts by SKU.
 fn load(dir: &Path) -> Vec<(PathBuf, serde_json::Value)> {
     let mut entries: Vec<PathBuf> = fs::read_dir(dir)
         .unwrap_or_else(|e| panic!("cannot read {}: {e}", dir.display()))

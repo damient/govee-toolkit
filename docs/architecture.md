@@ -105,8 +105,8 @@ revision it was generated at; CI builds it on every run and a release attaches
 it. A third-party tool reads that one file instead of walking a directory and
 parsing YAML. It is a build output, never committed.
 
-The crate still **compiles the catalog in**, at build time, which keeps the
-SDK a single artifact: no data file to install, no path to configure. Loading
+The crate **compiles the catalog in**, at build time, which keeps the SDK a
+single artifact: no data file to install, no path to configure. Loading
 an external catalog at runtime is deferred — it ships a device fix without a
 release, and it also lets a file nobody reviewed decide what bytes reach your
 hardware ([`security.md`](security.md)).
