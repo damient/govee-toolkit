@@ -2,7 +2,6 @@
 
 use std::time::Duration;
 
-use crate::ble::pace::Budgets;
 use crate::transport::breaker::Policy;
 
 /// Configuration for [`Transport`](super::Transport).
@@ -24,7 +23,8 @@ pub struct Options {
     /// `None` disables verification: the breaker then learns nothing.
     pub verify_interval: Option<Duration>,
     /// Sustained write budget for a device whose file records none, in frames
-    /// per second. Must be finite and above zero.
+    /// per second. A file that records one wins over this value. Must be
+    /// finite and above zero.
     /// [`Transport::start`](super::Transport::start) refuses any other value;
     /// it never clamps.
     pub writes_per_second: f64,
@@ -32,10 +32,6 @@ pub struct Options {
     /// be at least one. It applies to every device: the device files record
     /// the count that stalled a unit, which is not a safe burst.
     pub burst: u32,
-    /// The sustained rate each device file records. Empty writes every device
-    /// at [`Options::writes_per_second`]; [`Budgets::from_catalog`] fills it
-    /// from the catalog.
-    pub budgets: Budgets,
 }
 
 impl Default for Options {
@@ -55,7 +51,6 @@ impl Default for Options {
             // starting point for any other. See `crate::ble::pace`.
             writes_per_second: 100.0,
             burst: 16,
-            budgets: Budgets::default(),
         }
     }
 }

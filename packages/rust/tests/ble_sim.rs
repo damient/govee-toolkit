@@ -41,8 +41,8 @@ fn options() -> Options {
 /// One device on the air, an SDK attached to it, and the scan already run.
 async fn rig(device: &BleDevice, options: Options) -> Govee {
     let adapter = BleAdapter::holding([device.clone()]);
-    let ble =
-        Transport::with_adapter(options, Arc::new(Radio::new(adapter))).expect("the budget holds");
+    let ble = Transport::with_adapter(options, Arc::new(Radio::new(adapter)), &catalog())
+        .expect("the budget holds");
 
     let config: Config = serde_norway::from_str(&enabling_ble()).expect("the configuration parses");
     let govee = Govee::attach(config, catalog(), [Arc::new(ble.clone()) as Arc<_>])
@@ -218,6 +218,7 @@ async fn rig_two(devices: [&BleDevice; 2], connect_delay: Duration) -> Govee {
             ..options()
         },
         Arc::new(radio),
+        &catalog(),
     )
     .expect("the budget holds");
 

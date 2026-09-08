@@ -21,9 +21,9 @@ pub use self::options::Options;
 #[cfg(test)]
 use self::shared::Tracked;
 use self::shared::{Shared, id_at};
-use crate::ble::pace::Budget;
+use crate::ble::pace::{Budget, Budgets};
 use crate::ble::radio::Radio;
-use crate::codec::{Encoded, Mode};
+use crate::codec::{Catalog, Encoded, Mode};
 use crate::transport::error::{Error, Result};
 use crate::transport::registry::publish_sent;
 use crate::transport::status::DeviceStatus;
@@ -50,13 +50,17 @@ impl Transport {
     /// Claims no adapter. A scan or a command opens one, so this succeeds on a
     /// machine whose radio is off, and the first command reports it.
     ///
+    /// `catalog` carries the write budgets: the transport paces each device at
+    /// the rate its file records. It takes the catalog rather than the rates
+    /// so that no caller can build a transport that ignores them.
+    ///
     /// # Errors
     ///
     /// [`Error::Option`] if a write budget cannot be honoured, whether it comes
     /// from `options` or from a device file — see
     /// [`Budget::new`](crate::ble::Budget::new).
-    pub fn start(options: Options) -> Result<Self> {
-        Self::with_adapter(options, Arc::new(Radio::new()))
+    pub fn start(options: Options, catalog: &Catalog) -> Result<Self> {
+        Self::with_adapter(options, Arc::new(Radio::new()), catalog)
     }
 
     /// Build the transport on another adapter.
@@ -71,9 +75,10 @@ impl Transport {
     pub fn with_adapter(
         options: Options,
         adapter: Arc<dyn crate::ble::wire::Adapter>,
+        catalog: &Catalog,
     ) -> Result<Self> {
         let budget = Budget::new(options.writes_per_second, options.burst)?;
-        let per_sku = options.budgets.checked(budget)?;
+        let per_sku = Budgets::from_catalog(catalog).checked(budget)?;
         let (events, _) = broadcast::channel(256);
         Ok(Self {
             shared: Arc::new(Shared::new(options, budget, per_sku, events, adapter)),
@@ -264,7 +269,8 @@ mod tests {
     use super::*;
 
     fn transport() -> Transport {
-        Transport::start(Options::default()).expect("the default budget is usable")
+        let catalog = Catalog::from_sources([]).expect("an empty catalog builds");
+        Transport::start(Options::default(), &catalog).expect("the default budget is usable")
     }
 
     #[test]
@@ -297,7 +303,31 @@ mod tests {
             writes_per_second: 0.0,
             ..Options::default()
         };
-        let error = Transport::start(options).expect_err("a rate of zero is not a budget");
+        let catalog = Catalog::from_sources([]).expect("an empty catalog builds");
+        let error =
+            Transport::start(options, &catalog).expect_err("a rate of zero is not a budget");
+        assert_eq!(error.code(), "out_of_range");
+    }
+
+    /// The rate a device file records must reach the send path from every way
+    /// of building the transport, not only from [`crate::Govee::start`].
+    #[test]
+    fn the_write_budgets_come_off_the_catalog() {
+        let measured = "
+schema_version: 1
+sku: \"HTEST1\"
+family: \"test\"
+name: \"A unit somebody measured\"
+capabilities:
+  power: {}
+measurements:
+  ble:
+    write_budget_hz: 0
+";
+        let catalog =
+            Catalog::from_sources([("measured.yaml", measured)]).expect("the file parses");
+        let error = Transport::start(Options::default(), &catalog)
+            .expect_err("a rate of zero is not a budget");
         assert_eq!(error.code(), "out_of_range");
     }
 
