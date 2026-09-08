@@ -7,205 +7,7 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 
 ## [Unreleased]
 
-### Added
-
-- `DeviceHandle::provision_wifi` puts a device on a Wi-Fi network over `ble`,
-  which is how a device out of the box becomes reachable over `lan`. It takes
-  `WifiCredentials`: the network, the password and the device's UTC offset as
-  hours and minutes. The SDK does not read the host clock, and what a negative
-  offset looks like on the wire was never observed. The password travels in
-  plaintext, so anything in Bluetooth range during provisioning reads it. `ble`
-  must be enabled for the device, as for every other call. The call reports
-  what the writes did: the device answers a status byte, the codec reads no
-  reply on a chunked command, and whether the device joined is what says it
-  worked.
-- Four command roles — `wifi_link`, `wifi_api_type`, `wifi_provision` and
-  `wifi_provision_with_api` — and the argument roles that fill them. The bytes
-  stay in the device file and the order lives in the crate: wake the module,
-  wait, transfer, release. A device file tags its entries, so a family whose
-  frames differ changes its file and no code.
-- A device file can pull in a shared command table with `include:`, naming a
-  fragment under `devices/families/`. `Catalog::from_sources_with` takes the
-  device files and the fragments; `Catalog::embedded` and an overlay resolve
-  against what the build shipped. The merge happens on load, so `Device` and
-  everything reading it see one flat table. `Error::UnknownFamily` and
-  `Error::DuplicateCommand` are the two ways it refuses.
-
-- `chunk:` describes a second way of cutting a body. `head_size:` puts the
-  first slice in the header, a footer that reads `${chunk:bytes}` carries the
-  last one, `then:` sends one frame after the transfer, and `${total}` is the
-  frame count of the whole transfer beside the existing `${count}` of data
-  frames. This is what the `0xA3` channel of `docs/protocol/ble.md` 6 needs; a
-  body cut the way `0xA1` cuts it is unchanged.
-- `govee_toolkit::ble::wire` — the seam between the protocol and a Bluetooth
-  stack, as an `Adapter` and a `Peripheral` trait. `ble::Radio` implements them
-  over the platform's radio, and `ble::Transport::with_adapter` takes another
-  one. Nothing above the seam names `btleplug`.
-- `govee_toolkit_sim::ble` — a fake peripheral on GATT and the radio that finds
-  it. It takes one connection, refuses a frame whose length or BCC is wrong,
-  answers a write and answers a read the test registered. Beside the faults the
-  `lan` device carries, it refuses a connection and it stalls under a burst.
-  The `ble` transport is thus tested end to end on a machine with no Bluetooth:
-  see `tests/ble_sim.rs`.
-- `govee_toolkit::transport` — what every mode shares, moved out of the facade:
-  the `Transport` trait a mode implements, the transport-neutral error, the
-  circuit breaker, `DeviceStatus` and the event types. `lan` re-exports all of
-  it and keeps its own richer inherent surface.
-- `govee_toolkit::ble` — the `ble` transport, behind the new non-default `ble`
-  feature: a scan over advertised names, one held connection per device, a paced
-  write path and the same per-device circuit breaker. It sends the frames that
-  the codec built. It reads a reply through the layout that the device file
-  declares for it. The protocol is verified on one device, the H61A0, and on no
-  other family.
-- `ble::Transport::bind` relates a device's identity to the Bluetooth address
-  that a scan found. Nothing infers one from the other.
-- The device file can describe a fixed-size frame and a chunked write:
-  `<pad:N>` zero-fills a layout, `${name:str8}` / `${name:str16}`,
-  `${name:mask8}` / `${name:mask16}` and `${name:bytes}` are new field tokens,
-  and `chunk:` splits one payload across several frames. `Encoded` carries
-  `frames` beside an envelope that is now optional.
-- The device file can describe what a device answers with. A `reply:` layout
-  matches the bytes of one reply and captures fields out of them, in the same
-  grammar as `frame:` and capture-only. `frames:` lists send and reply pairs
-  that the transport issues in order, so one entry reads several values. A
-  captured field carries an argument `role:`. The roles `on` and `brightness`
-  join the roles that a transport assembles `DeviceStatus` from, and everything
-  else stays in `DeviceStatus.raw`.
-- `Transport::read` and `DeviceHandle::read` return what a command's `reply:`
-  layouts captured, as a map keyed by the names that the device file gave them.
-  That is how a segment count, a MAC or a firmware version reaches a caller with
-  no field name in this crate. `lan` refuses it, because its replies are JSON.
-- The segment stream runs over any mode whose device file declares a painting
-  command. A new command `role: segment_color_masked`, with argument roles
-  `colors` and `zones`, describes a frame that carries one color and the zones
-  that wear it. A repaint over such a frame costs one write per distinct color
-  rather than one write per frame. The stream refuses three conditions when it
-  opens:
-  - `Zones::Native` on such a mode, because a mask names zones and reaches no
-    pixel behind them;
-  - a zone count larger than what the mask reaches;
-  - a file that bounds its mask by nothing, through neither a `count:` nor the
-    width of the mask field.
-- `examples/lan_tour.rs` and `examples/ble_tour.rs` — one walkthrough per mode.
-  Each example sends every command of the H61A0's table to a real device in
-  order, and reads back everything that its file declares an answer for. The
-  same `--all-targets` lint that CI runs compiles them, so a signature that
-  changes breaks them the same day rather than leaving a stale snippet in a
-  document.
-- A command `role: segment_gradient`, with an argument marked `role: gradient`,
-  for a mode that carries zone interpolation in a frame of its own rather than
-  in the painting frame. A stream sends that command when it opens. Without it,
-  `StreamOptions::gradient` encoded into nothing over such a mode, and the crate
-  told a caller about a setting that the device never got. `ble` on the H61A0 is
-  such a mode.
-- `${name:ascii:N}` in a `reply:` layout — a text field of a given length. The
-  unbounded `${name:ascii}` reads to the end, and so it also takes whatever
-  follows the text. Every frame on this wire ends on a checksum, and that byte
-  is neither padding nor printable. The unbounded token broke two reads of a
-  firmware version, and both failed with `reply_mismatch` on every attempt.
-- Error codes `native_zones_unreachable`, `zone_count_unsupported` and
-  `zone_mask_unbounded` for those three refusals.
-- Error codes `field_too_long`, `frame_overflow`, `chunk_syntax`, `serialize`,
-  `no_envelope`, `reply_syntax`, `reply_mismatch` and, on a transport,
-  `out_of_range` for an option outside the range the mode can honor — an
-  out-of-range write budget is refused, never moved to the nearest value it
-  could serve — and `no_reply_layout` where there is nothing to read.
-
-### Fixed
-
-- `ble` addressed a peripheral by its Bluetooth address, which macOS does not
-  expose. `CoreBluetooth` reports every peripheral as `00:00:00:00:00:00`, so a
-  scan collapsed every device on the air into one entry, and a command connected
-  to whichever unrelated peripheral the adapter listed first. The transport now
-  tracks a device under the handle that the platform addresses it by. It refuses
-  a handle that more than one peripheral carries, rather than resolving it to
-  one of them. `Advertised::address` is `Advertised::endpoint`, and
-  `Transport::bind` takes the same handle.
-- `ble` declared `ble::Options::connect_timeout` and never applied it. A
-  peripheral that never answered left the connection pending indefinitely, and
-  held every other command behind it. A connection now fails with `unreachable`
-  once the timeout is up.
-- The transport could send a `ble` command only while the platform still held
-  the peripheral from the last scan. macOS releases that peripheral the moment a
-  link drops, so an idle connection left every later command in failure until
-  someone restarted the process. The transport now scans again when the handle
-  is gone, and only then.
-- A segment stream over a mode whose device file declares no
-  `role: segment_enable` no longer fails to open. The device file declares the
-  arming. A mode whose zones are always addressable has nothing to arm, and that
-  is the case over `ble`.
-
-### Changed
-
-- The `ble` send path locks per device. A command waits for its own device's
-  connection and for nothing else, where one lock over the whole table made a
-  command to a reachable device wait out another device's scan and connection.
-  Nothing probes the link before a write either: a connection the device
-  dropped is found by the write that fails on it, so the first command after a
-  device goes away returns `io` and the next one opens a connection.
-- The send path repeats less work. `ble::Radio` resolves the write and the
-  notify characteristic once, when discovery runs, rather than on every frame.
-  `Catalog::device` and the `ble` budget lookups take an uppercase SKU without
-  allocating one. A chunked command clones the caller's arguments once, not
-  once per slice.
-- `codec::chunk::Chunk::then` is an `Option<String>`, and
-  `codec::chunk::Layout::frames` returns an iterator. A `chunk:` block that
-  declares no `then:` is `None` rather than an empty string.
-- **Breaking.** `ble::Transport::start` and `ble::Transport::with_adapter` take
-  the `&Catalog` the caller builds the facade with. The transport reads the
-  write budgets from it, so a caller that binds its own adapter paces each
-  device at the same rate the facade does.
-- The `ble` transport paces each device at the budget its own device file
-  records. `ble::Budgets::from_catalog` reads
-  `measurements.ble.write_budget_hz` for every SKU a catalog carries, verified
-  aliases included. A device whose file records no budget is written at
-  `ble::Options::writes_per_second`, the one rate anybody measured. The burst
-  stays `ble::Options::burst` for every device:
-  `measurements.ble.burst_frames_before_stall` records the count that
-  stalled a unit, which is not a count that is safe. A device file recording a
-  rate no write could go out under fails `ble::Transport::start` with
-  `out_of_range`.
-- `Measurements::ble` types the `measurements.ble` block, exported as
-  `codec::BleMeasurements`. The fields the block carries are
-  `read_round_trip_ms`, `sustained_writes_hz`, `write_budget_hz`,
-  `burst_frames_before_stall`, `burst_recovery_s` and `addressable_zones`, and
-  anything else a file records stays in `BleMeasurements::extra`.
-  `codec::validate` refuses a `write_budget_hz` that is not finite and above
-  zero, or that is above the `sustained_writes_hz` beside it.
-- **Breaking.** `Transport` gained `scan_window`, which answers how long a scan
-  on that mode must listen. `Govee::scan` asks each transport for its own window
-  instead of carrying `lan.scan_window_ms` to every mode: `lan` waits for
-  replies to a request it sent, `ble` waits for advertisements that arrive on
-  each device's own interval, and one mode's window reported a device that was
-  there as absent on another. `lan::Transport::scan_window` answers
-  `lan::Options::scan_window`, and the new `ble::Options::scan_window` is the
-  `ble` one. `Transport::scan` still takes a window, for a caller that wants a
-  shorter or a longer one deliberately. `Govee::scan` spends the windows at the
-  same time, so a scan over several modes costs the longest window and not the
-  sum of them.
-- A command that declares a `frame:` does not have to name it with `${frame}` in
-  a `payload:`. Only a mode that wraps the frame in an envelope must name it. A
-  wire that carries the frame on its own has no payload to name it in.
-- The facade holds one transport per mode and looks the mode up, rather than
-  matching on it in every method. `Govee::attach` takes the transports and
-  refuses two that claim the same mode. `Device.lan_health` became
-  `Device.health`, one entry per mode.
-- **Breaking.** `Verify::With` carries an `Arc<Encoded>` and `Verify` has no
-  lifetime parameter. A verified send gives the request to the task that runs
-  the verification. A shared request costs one pointer copy, where a borrowed
-  one made the task copy the frames of every command.
-- `measurements.frame_rate` may be keyed by mode, with the rows it already used.
-  A bare list stays the `lan` table, and `Measurements::clean_hz` now takes the
-  mode: a rate measured over one channel is never carried to another.
-- **Breaking, and a config file to edit.** The fallback frame rate moved out of
-  `lan`: the configuration key is `stream.fallback_hz` and the field is
-  `Config::stream.fallback_hz` on the new `StreamConfig`, replacing
-  `LanConfig::stream_fallback_hz`. A stream picks whichever mode the device has
-  enabled, so the rate is not `lan`'s to hold. The `lan` section refuses keys it
-  does not know, so a file still carrying `lan.stream_fallback_hz` fails to
-  load: move the key rather than deleting it, or the fallback returns to 10 Hz.
-
-## [0.3.0] — 2026-09-07
+## [0.3.0] — 2026-09-08
 
 `ble` is a mode with a transport behind it. It is opt-in and off by default, and
 it does not change `lan`. The trait that the two modes now share moved several
@@ -218,39 +20,134 @@ the minor for.
   trait, the device identity, the circuit breaker, the reported status and the
   errors. None of it was ever specific to UDP; only its place in the module tree
   was. `docs/architecture.md` names this trait as the prerequisite for `ble`
-  rather than something to add early, and `ble` decided its shape.
+  rather than something to add early, and `ble` decided its shape. `lan`
+  re-exports all of it and keeps its own richer inherent surface.
 - `govee_toolkit::ble`, behind the non-default `ble` cargo feature — the GATT
-  surface, a scan that reads the SKU out of the advertised name, one connection
-  per device, and writes paced against a budget. The firmware does not drop a
-  frame that it cannot keep up with: it gives no answer for seconds. The
+  surface, a scan that reads the SKU out of the advertised name, one held
+  connection per device, writes paced against a budget, and the same per-device
+  circuit breaker. It sends the frames that the codec built, and it reads a
+  reply through the layout that the device file declares. The firmware does not
+  drop a frame that it cannot keep up with: it gives no answer for seconds. The
   transport therefore does the pacing, so a caller that bypasses the segment
-  stream still cannot cause that silence.
+  stream still cannot cause that silence. The protocol is verified on the H61A0
+  and the H6114, and on no other family.
+- `govee_toolkit::ble::wire` — the seam between the protocol and a Bluetooth
+  stack, as an `Adapter` and a `Peripheral` trait. `ble::Radio` implements them
+  over the platform's radio, and `ble::Transport::with_adapter` takes another
+  one. Nothing above the seam names `btleplug`.
 - `ble::Transport::bind` — this project keys a device by its Wi-Fi MAC
   everywhere, and an advertisement carries a Bluetooth address. No observation
   relates the two. The application therefore declares which is which, and this
-  crate does not guess it.
+  crate does not guess it. The handle a scan reports is `Advertised::endpoint`,
+  the handle that the platform addresses the peripheral by: macOS reports every
+  Bluetooth address as `00:00:00:00:00:00` and never exposes the real one. The
+  transport refuses a handle that more than one peripheral carries, rather than
+  resolving it to one of them.
+- `DeviceHandle::provision_wifi` puts a device on a Wi-Fi network over `ble`,
+  which is how a device out of the box becomes reachable over `lan`. It takes
+  `WifiCredentials`: the network, the password and the device's UTC offset as
+  hours and minutes. The SDK does not read the host clock, and what a negative
+  offset looks like on the wire was never observed. The password travels in
+  plaintext, so anything in Bluetooth range during provisioning reads it. `ble`
+  must be enabled for the device, as for every other call. The call reports what
+  the writes did: the device answers a status byte, the codec reads no reply on
+  a chunked command, and whether the device joined is what says it worked.
+- Four command roles — `wifi_link`, `wifi_api_type`, `wifi_provision` and
+  `wifi_provision_with_api` — and the argument roles that fill them. The bytes
+  stay in the device file and the order lives in the crate: wake the module,
+  wait, transfer, release. A device file tags its entries, so a family whose
+  frames differ changes its file and no code.
+- A device file can pull in a shared command table with `include:`, naming a
+  fragment under `devices/families/`. `Catalog::from_sources_with` takes the
+  device files and the fragments; `Catalog::embedded` and an overlay resolve
+  against what the build shipped. The merge happens on load, so `Device` and
+  everything reading it see one flat table. `Error::UnknownFamily` and
+  `Error::DuplicateCommand` are the two ways it refuses.
 - The `frame:` language gained `<pad:N>`, `${name:str8}`, `${name:str16}`,
   `${name:mask8}`, `${name:mask16}` and `${name:bytes}`, and arguments gained the
   `string`, `zones` and `bytes` types. A zone that the mask cannot carry is an
   error: the firmware drops those bits in silence, and the crate must never
-  report that as success.
-- `body:` with `chunk:` — a command whose payload is split across several frames,
-  described in the device file rather than in code. `${count}`, `${index}` and
-  `${chunk}` are reserved and supplied by the codec.
+  report that as success. Padding that is not at the end of a frame is refused.
+- `body:` with `chunk:` — a command whose payload is split across several
+  frames, described in the device file rather than in code. `${count}`,
+  `${index}` and `${chunk}` are reserved and supplied by the codec. A second way
+  of cutting a body rides the same block: `head_size:` puts the first slice in
+  the header, a footer that reads `${chunk:bytes}` carries the last one, `then:`
+  sends one frame after the transfer, and `${total}` is the frame count of the
+  whole transfer beside the `${count}` of data frames. This is what the `0xA3`
+  channel of `docs/protocol/ble.md` 6 needs; a body cut the way `0xA1` cuts it
+  is unchanged.
 - `reply:` and `frames:` — a command can declare what an answer looks like, and
-  can issue several exchanges in order. That is how one entry marked
-  `role: status` reads power and brightness over `ble` without either name
-  reaching this crate. `DeviceHandle::read` returns what a layout captured.
-- `role: segment_color_masked` — a segment channel that paints one color per
-  write over the zones a mask names, for a mode with no per-pixel channel.
-  `measurements.frame_rate` is keyed by mode, so the crate paces each mode from
-  what was measured on it.
+  can issue several exchanges in order. A `reply:` layout matches the bytes of
+  one reply and captures fields out of them, in the same grammar as `frame:` and
+  capture-only. That is how one entry marked `role: status` reads power and
+  brightness over `ble` without either name reaching this crate. A captured
+  field carries an argument `role:`; the roles `on` and `brightness` join the
+  roles that a transport assembles `DeviceStatus` from, and everything else
+  stays in `DeviceStatus.raw`.
+- `Transport::read` and `DeviceHandle::read` return what a command's `reply:`
+  layouts captured, as a map keyed by the names that the device file gave them.
+  That is how a segment count, a MAC or a firmware version reaches a caller with
+  no field name in this crate. `lan` refuses it, because its replies are JSON.
+- `${name:ascii:N}` in a `reply:` layout — a text field of a given length. The
+  unbounded `${name:ascii}` reads to the end, and so it also takes whatever
+  follows the text. Every frame on this wire ends on a checksum, and that byte
+  is neither padding nor printable.
+- `role: segment_color_masked`, with argument roles `colors` and `zones` — a
+  segment channel that paints one color per write over the zones a mask names,
+  for a mode with no per-pixel channel. A repaint over such a frame costs one
+  write per distinct color rather than one write per frame.
+  `measurements.frame_rate` may be keyed by mode, with the rows it already used,
+  so the crate paces each mode from what was measured on it. A bare list stays
+  the `lan` table, and `Measurements::clean_hz` takes the mode: a rate measured
+  over one channel is never carried to another. The stream refuses three
+  conditions when it opens:
+  - `Zones::Native` on such a mode, because a mask names zones and reaches no
+    pixel behind them;
+  - a zone count larger than what the mask reaches;
+  - a file that bounds its mask by nothing, through neither a `count:` nor the
+    width of the mask field.
+- A command `role: segment_gradient`, with an argument marked `role: gradient`,
+  for a mode that carries zone interpolation in a frame of its own rather than
+  in the painting frame. A stream sends that command when it opens. Without it,
+  `StreamOptions::gradient` encoded into nothing over such a mode, and the crate
+  told a caller about a setting that the device never got. `ble` on the H61A0 is
+  such a mode. The arming is the device file's too: a mode whose zones are
+  always addressable declares no `role: segment_enable`, and a stream over it
+  opens with nothing to arm.
+- `govee_toolkit_sim::ble` — a fake peripheral on GATT and the radio that finds
+  it. It takes one connection, refuses a frame whose length or BCC is wrong,
+  answers a write and answers a read the test registered. Beside the faults the
+  `lan` device carries, it refuses a connection and it stalls under a burst. The
+  `ble` transport is thus tested end to end on a machine with no Bluetooth: see
+  `tests/ble_sim.rs`.
+- `examples/lan_tour.rs` and `examples/ble_tour.rs` — one walkthrough per mode.
+  Each example sends every command of the H61A0's table to a real device in
+  order, and reads back everything that its file declares an answer for. The
+  same `--all-targets` lint that CI runs compiles them, so a signature that
+  changes breaks them the same day rather than leaving a stale snippet in a
+  document.
+- `Measurements::ble` types the `measurements.ble` block, exported as
+  `codec::BleMeasurements`. The fields the block carries are
+  `read_round_trip_ms`, `sustained_writes_hz`, `write_budget_hz`,
+  `burst_frames_before_stall`, `burst_recovery_s` and `addressable_zones`, and
+  anything else a file records stays in `BleMeasurements::extra`.
+  `codec::validate` refuses a `write_budget_hz` that is not finite and above
+  zero, or that is above the `sustained_writes_hz` beside it.
+- Error codes `native_zones_unreachable`, `zone_count_unsupported` and
+  `zone_mask_unbounded` for those three refusals.
+- Error codes `field_too_long`, `frame_overflow`, `chunk_syntax`, `serialize`,
+  `no_envelope`, `reply_syntax`, `reply_mismatch` and, on a transport,
+  `out_of_range` for an option outside the range the mode can honor — an
+  out-of-range write budget is refused, never moved to the nearest value it
+  could serve — and `no_reply_layout` where there is nothing to read.
 
 ### Changed
 
 - **Breaking.** `Govee::attach` takes an iterator of `Arc<dyn Transport>` rather
   than one `lan::Transport`, and refuses two that claim the same mode, because
-  one of them would never be reached.
+  one of them would never be reached. The facade holds one transport per mode
+  and looks the mode up, rather than matching on it in every method.
 - **Breaking.** `Encoded` is `{ cmd, message: Option<Value>, frames: Vec<Vec<u8>> }`.
   A `ble` command carries no JSON envelope, and a chunked one carries several
   frames.
@@ -261,6 +158,61 @@ the minor for.
   build carries.
 - **Breaking.** `Device.lan_health` is `Device.health`, one entry per enabled
   mode a transport knows the device in.
+- **Breaking.** `Transport` gained `scan_window`, which answers how long a scan
+  on that mode must listen. `Govee::scan` asks each transport for its own window
+  instead of carrying `lan.scan_window_ms` to every mode: `lan` waits for
+  replies to a request it sent, `ble` waits for advertisements that arrive on
+  each device's own interval, and one mode's window reported a device that was
+  there as absent on another. `lan::Transport::scan_window` answers
+  `lan::Options::scan_window`, and the new `ble::Options::scan_window` is the
+  `ble` one. `Transport::scan` still takes a window, for a caller that wants a
+  shorter or a longer one deliberately. `Govee::scan` spends the windows at the
+  same time, so a scan over several modes costs the longest window and not the
+  sum of them.
+- **Breaking.** `ble::Transport::start` and `ble::Transport::with_adapter` take
+  the `&Catalog` the caller builds the facade with. The transport reads the
+  write budgets from it, so a caller that binds its own adapter paces each
+  device at the same rate the facade does.
+- **Breaking.** `Verify::With` carries an `Arc<Encoded>` and `Verify` has no
+  lifetime parameter. A verified send gives the request to the task that runs
+  the verification. A shared request costs one pointer copy, where a borrowed
+  one made the task copy the frames of every command.
+- **Breaking, and a config file to edit.** The fallback frame rate moved out of
+  `lan`: the configuration key is `stream.fallback_hz` and the field is
+  `Config::stream.fallback_hz` on the new `StreamConfig`, replacing
+  `LanConfig::stream_fallback_hz`. A stream picks whichever mode the device has
+  enabled, so the rate is not `lan`'s to hold. The `lan` section refuses keys it
+  does not know, so a file still carrying `lan.stream_fallback_hz` fails to
+  load: move the key rather than deleting it, or the fallback returns to 10 Hz.
+- The `ble` transport paces each device at the budget its own device file
+  records. `ble::Budgets::from_catalog` reads
+  `measurements.ble.write_budget_hz` for every SKU a catalog carries, verified
+  aliases included. A device whose file records no budget is written at
+  `ble::Options::writes_per_second`, the one rate anybody measured. The burst
+  stays `ble::Options::burst` for every device:
+  `measurements.ble.burst_frames_before_stall` records the count that stalled a
+  unit, which is not a count that is safe. A device file recording a rate no
+  write could go out under fails `ble::Transport::start` with `out_of_range`.
+- The `ble` send path locks per device. A command waits for its own device's
+  connection and for nothing else, where one lock over the whole table made a
+  command to a reachable device wait out another device's scan and connection.
+  Nothing probes the link before a write either: a connection the device dropped
+  is found by the write that fails on it, so the first command after a device
+  goes away returns `io` and the next one opens a connection. The transport
+  scans again when the platform no longer holds the peripheral, and only then;
+  a connection that never answers fails with `unreachable` once
+  `ble::Options::connect_timeout` is up.
+- The send path repeats less work. `ble::Radio` resolves the write and the
+  notify characteristic once, when discovery runs, rather than on every frame.
+  `Catalog::device` and the `ble` budget lookups take an uppercase SKU without
+  allocating one. A chunked command clones the caller's arguments once, not once
+  per slice.
+- `codec::chunk::Chunk::then` is an `Option<String>`, and
+  `codec::chunk::Layout::frames` returns an iterator. A `chunk:` block that
+  declares no `then:` is `None` rather than an empty string.
+- A command that declares a `frame:` does not have to name it with `${frame}` in
+  a `payload:`. Only a mode that wraps the frame in an envelope must name it. A
+  wire that carries the frame on its own has no payload to name it in.
 - `lan` re-exports the moved types, so `crate::lan::DeviceId` and its neighbours
   still resolve, and keeps its own richer surface: a `lan` caller still gets the
   address and the four firmware strings a scan reply carries.
@@ -268,14 +220,16 @@ the minor for.
 
 ### Not in this release
 
-- Wi-Fi provisioning over `ble` is encoded and pinned by conformance vectors,
-  and **has never been sent to a device**. The vectors say so in their `source`;
-  they pin the encoder, not the firmware.
 - Scenes. The channel is a second chunked dialect. Its header count byte does
   not follow from what was observed, and a guess would be invented verification.
   `docs/protocol/ble.md` records what is known.
 - No `ble` capture is committed yet, so every `capture:` in the H61A0's `ble`
-  table is empty.
+  table is empty. That is a statement about the evidence this repository holds,
+  not about whether the commands work.
+- Wi-Fi provisioning put a unit on a network with the entry that carries the API
+  block. The entry without that block was never accepted by a device, and no
+  provisioning vector's bytes come from a capture: they pin the encoder, and
+  each one's `source` says which is which.
 
 ## [0.2.1] — 2026-09-05
 
