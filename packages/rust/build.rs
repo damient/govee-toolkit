@@ -1,4 +1,4 @@
-//! Embeds `devices/*.yaml` into the crate.
+//! Embeds `devices/*.yaml` and `devices/families/*.yaml` into the crate.
 //!
 //! The catalog is compiled in, so an SDK ships as a single artifact with no
 //! data directory to install. Adding a SKU therefore means rebuilding — the
@@ -38,9 +38,8 @@ fn main() {
     fs::write(&dest, out).expect("write devices.rs");
 }
 
-/// The shared command tables under `devices/families/`, which a device file
-/// pulls in with `include:`. An absent directory is not an error: a catalog
-/// whose files include nothing needs none.
+/// The shared command tables under `devices/families/`. An absent directory
+/// is not an error: a catalog whose files include nothing needs none.
 fn family_files(devices: &Path) -> Vec<PathBuf> {
     let dir = devices.join("families");
     let Ok(entries) = fs::read_dir(&dir) else {
@@ -55,7 +54,6 @@ fn family_files(devices: &Path) -> Vec<PathBuf> {
     files
 }
 
-/// One `static NAME: &[(file name, contents)]`, with the files included.
 fn list(name: &str, paths: &[PathBuf]) -> String {
     let mut out = format!("pub(crate) static {name}: &[(&str, &str)] = &[\n");
     for path in paths {

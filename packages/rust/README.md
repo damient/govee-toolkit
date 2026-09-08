@@ -231,7 +231,8 @@ the one thing this project keeps in `devices/*.yaml`.
 | Facade | [`src/`](src) | Configuration, mode selection, events |
 
 Two more live beside it and are never published:
-[`crates/sim`](crates/sim), a fake device on UDP with fault injection, and
+[`crates/sim`](crates/sim), a fake device on UDP and a fake peripheral on
+GATT, both with fault injection, and
 [`crates/xtask`](crates/xtask), which generates the distributable catalog.
 
 The layering is deliberate even though it is one crate. The codec does no I/O,
