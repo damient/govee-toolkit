@@ -86,8 +86,7 @@ pub struct Catalog {
     /// Where each device came from, parallel to `devices`.
     origin: Vec<String>,
     /// The shared command tables an `include:` resolves against, by name. An
-    /// overlay resolves against these too, so a local file includes what the
-    /// build shipped.
+    /// overlay resolves against these too.
     families: BTreeMap<String, Family>,
 }
 
@@ -209,10 +208,6 @@ impl Catalog {
     }
 
     /// Parse a device file and merge in every table it includes.
-    ///
-    /// The merge happens here so that nothing downstream — validation, the
-    /// encoder, the generated catalog — can tell an included command from a
-    /// local one.
     fn parse_device(&self, file: &str, yaml: &str) -> Result<Device> {
         let mut device = parse(file, yaml)?;
         for name in device.include.clone() {

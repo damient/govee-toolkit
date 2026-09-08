@@ -71,7 +71,6 @@ pub struct Layout {
     header: Frame,
     data: Frame,
     footer: Frame,
-    /// The footer reads `${chunk:bytes}`, so it takes the last slice.
     footer_takes_slice: bool,
     then: Option<Frame>,
 }
@@ -157,9 +156,8 @@ impl Layout {
         let mut frames = Vec::with_capacity(data.len() + 3);
         let total = i64::try_from(data.len() + 2).unwrap_or(i64::MAX);
 
-        // One value carries every frame: the slice and the index are replaced
-        // per frame, so the caller's arguments are cloned once and not once
-        // per slice.
+        // The slice and the index are replaced in place, so the caller's
+        // arguments are cloned once and not once per slice.
         let mut filled = args.clone().int(COUNT, count).int(TOTAL, total);
         filled.insert(CHUNK, ArgValue::Bytes(in_header.to_vec()));
         frames.push(self.header.build(command, &filled)?);

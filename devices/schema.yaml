@@ -14,25 +14,18 @@ candidate_aliases: []   # optional — SKUs that look like the same product, but
                         # aliases. A family resemblance is not evidence.
 
 # optional — shared command tables to pull in, by the `family:` each declares.
-# A fragment lives in `families/` and holds a dialect that several SKUs speak
-# to the byte: same frames, same ranges, same argument roles. The loader merges
-# its commands into `commands:` below, so nothing downstream — validation, the
-# encoder, `catalog.json` — can tell an included entry from a local one.
+# A fragment lives in `families/` and holds a dialect several SKUs speak to the
+# byte: same frames, same ranges, same argument roles, and no measurement. The
+# loader merges its commands into `commands:` below, so nothing downstream —
+# validation, the encoder, `catalog.json` — can tell an included entry from a
+# local one.
 #
 #   include:
 #     - ble-wifi-provision
 #
-# Two rules, both errors rather than warnings:
-#   - a name no fragment declares fails the load, so a file cannot quietly
-#     lose the commands it expected to gain;
-#   - a command this file and the fragment both declare fails the load. A
-#     silent override would let a fragment decide what bytes reach a device
-#     that meant to declare its own. Drop one, or do not include that family.
-#
-# What goes in a fragment: the layout. What never does: a measurement, a
-# firmware version, or what one unit answered — that is this file's job, and
-# `verified:` is where it is recorded. Include a family only where somebody
-# exercised it on this SKU.
+# Two errors, never warnings: a name no fragment declares, and a command this
+# file and the fragment both declare. Include a family only where somebody
+# exercised it on this SKU; what that unit answered stays under `verified:`.
 include: []
 
 capabilities:
@@ -273,22 +266,20 @@ commands:
     #                   Declare it there instead of a `role: gradient`
     #                   argument. An SDK sends it when a stream opens.
     #
-    # Four more put a device on a Wi-Fi network. An SDK runs them in order,
-    # because the order is the same whatever the frames look like and no key
-    # here expresses it: wake, wait, transfer, release. Declare all four or
-    # none — `provision_wifi()` fails on a file that claims some.
+    # Four more put a device on a Wi-Fi network. An SDK runs them in one
+    # order that no key here expresses: wake, wait, transfer, release. Declare
+    # all four or none — `provision_wifi()` fails on a file that claims some.
     #
     #   wifi_link       wakes the Wi-Fi module before the transfer, and
-    #                   releases it after. The SDK sends it twice.
+    #                   releases it after.
     #   wifi_api_type   reports which endpoint the device asks for. The SDK
     #                   maps the type to a URL. Unclaimed: the SDK provisions
     #                   with `wifi_provision`.
     #   wifi_provision  carries the credentials.
     #   wifi_provision_with_api
-    #                   the same, ending in that URL. There is no optional
-    #                   field in this language, so the two are separate
-    #                   entries, and the SDK picks by what `wifi_api_type`
-    #                   answered.
+    #                   the same, ending in that URL. This language carries no
+    #                   optional field, so the two are separate entries and the
+    #                   SDK picks by what `wifi_api_type` answered.
     #
     # An SDK knows no argument name either, so a role it fills arguments for
     # marks them with an argument `role:`:

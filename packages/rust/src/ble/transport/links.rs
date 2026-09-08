@@ -1,9 +1,8 @@
 //! The open connections, one slot per device.
 //!
-//! Opening a connection costs seconds: a scan, then the connection itself. A
-//! slot per device is what keeps that cost on the device that pays it. The map
-//! lock covers the lookup alone, so two devices connect at the same time, and
-//! two commands to one device queue on that device's slot.
+//! Opening a connection costs seconds: a scan, then the connection itself. The
+//! map lock covers the lookup alone, so two devices connect at the same time
+//! and two commands to one device queue on that device's slot.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};

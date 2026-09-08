@@ -51,8 +51,8 @@ impl Transport {
     /// machine whose radio is off, and the first command reports it.
     ///
     /// `catalog` carries the write budgets: the transport paces each device at
-    /// the rate its file records. It takes the catalog rather than the rates
-    /// so that no caller can build a transport that ignores them.
+    /// the rate its file records, and takes the catalog rather than the rates
+    /// so that no caller can bypass them.
     ///
     /// # Errors
     ///
@@ -309,8 +309,8 @@ mod tests {
         assert_eq!(error.code(), "out_of_range");
     }
 
-    /// The rate a device file records must reach the send path from every way
-    /// of building the transport, not only from [`crate::Govee::start`].
+    /// Every way of building the transport reads the rate the device file
+    /// records, not only [`crate::Govee::start`].
     #[test]
     fn the_write_budgets_come_off_the_catalog() {
         let measured = "

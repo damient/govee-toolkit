@@ -194,7 +194,6 @@ async fn the_write_budget_keeps_the_firmware_under_its_burst() {
     assert_eq!(device.stalls(), 0);
 }
 
-/// The second device, for what only two devices show.
 const OTHER_MAC: &str = "AA:BB:CC:DD:EE:00";
 const OTHER_ENDPOINT: &str = "11:22:33:44:55:77";
 

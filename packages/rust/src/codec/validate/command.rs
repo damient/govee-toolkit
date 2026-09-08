@@ -240,7 +240,6 @@ const WIFI_CREDENTIALS: [ArgRole; 6] = [
     ArgRole::IotVersion,
 ];
 
-/// The same, plus the endpoint.
 const WIFI_CREDENTIALS_WITH_API: [ArgRole; 7] = [
     ArgRole::Network,
     ArgRole::Password,

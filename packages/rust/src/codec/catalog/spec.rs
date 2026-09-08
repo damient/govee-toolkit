@@ -231,10 +231,8 @@ pub enum Role {
     /// [`ArgRole::TimezoneHours`], [`ArgRole::TimezoneMinutes`] and
     /// [`ArgRole::IotVersion`].
     WifiProvision,
-    /// The same, plus the endpoint. Must declare everything
-    /// [`Role::WifiProvision`] does and an argument marked
-    /// [`ArgRole::ApiUrl`]. The SDK sends this one when [`Role::WifiApiType`]
-    /// reports a type, since the language carries no optional field.
+    /// The same, plus an argument marked [`ArgRole::ApiUrl`]. The SDK sends
+    /// this one when [`Role::WifiApiType`] reports a type.
     WifiProvisionWithApi,
 }
 

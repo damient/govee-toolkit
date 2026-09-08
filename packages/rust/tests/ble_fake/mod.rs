@@ -99,7 +99,6 @@ impl Fake {
         Self::with(None)
     }
 
-    /// One that answers for `mode` and asks for `window`.
     pub(crate) fn claiming(mode: Mode, window: Duration) -> Arc<Self> {
         Self::build(mode, window, None)
     }

@@ -158,10 +158,9 @@ impl Shared {
 
     /// The open connection to a device, or a new one if the slot is empty.
     ///
-    /// The slot is not probed: a connection the device has dropped is found by
-    /// the write that fails on it, and that write empties the slot. So the
-    /// first command after a device goes away fails, and the next one opens a
-    /// connection.
+    /// The slot is not probed. A connection the device dropped is found by the
+    /// write that fails on it, so the first command after a device goes away
+    /// fails and the next one opens a connection.
     ///
     /// # Errors
     ///
