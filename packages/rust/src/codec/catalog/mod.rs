@@ -169,7 +169,6 @@ pub struct Commands {
 }
 
 impl Commands {
-    /// The table for `mode`, mutably.
     pub(crate) fn get_mut(&mut self, mode: Mode) -> &mut BTreeMap<String, Command> {
         match mode {
             Mode::Lan => &mut self.lan,
@@ -205,16 +204,15 @@ pub struct Verified {
 
 /// One `devices/families/<name>.yaml` file: commands several SKUs share.
 ///
-/// A fragment carries no SKU and no capability. It exists because a dialect is
-/// a property of a family and not of a model, so a table identical across
-/// twenty files is written once and included twenty times.
+/// A fragment carries no SKU and no capability: a dialect is a property of a
+/// family, and what one unit answered stays in that unit's file.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Family {
     /// Schema revision the fragment was written against.
     pub schema_version: u32,
     /// What a device file names in its `include:`.
     pub family: String,
-    /// Why the fragment exists and what it covers.
+    /// What the fragment covers.
     #[serde(default)]
     pub description: String,
     /// The command tables it contributes.
