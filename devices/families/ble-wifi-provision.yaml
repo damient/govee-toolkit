@@ -1,0 +1,84 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "ble-wifi-provision"
+
+description: >-
+  The four entries `provision_wifi()` runs: read the endpoint the device asks
+  for, wake the Wi-Fi module, send the credentials, release the module.
+  Include it only where somebody provisioned the SKU. See
+  ../../docs/protocol/ble.md 4.
+
+commands:
+  ble:
+    read_dynamic_api:
+      documented: false
+      frame: "AA AB <pad:20> <xor>"
+      reply: "AA AB ${api_type} ${hide_ssid}"
+      role: wifi_api_type
+      args:
+        api_type: { type: int, range: [0, 255], role: api_type }
+        hide_ssid: { type: int, range: [0, 1], role: hide_ssid }
+      notes: >-
+        Which endpoint provisioning must hand the device, then whether it must
+        carry the hidden-network flag. See ../../docs/protocol/ble.md 3 and 4.
+      capture: ""         # TODO
+
+    wifi_link_start:
+      documented: false
+      frame: "33 17 ${on} <pad:20> <xor>"
+      role: wifi_link
+      args:
+        on: { type: int, range: [0, 1], role: enable }
+      notes: >-
+        Trap: a provisioning transfer sent without this reaches a module that
+        is not listening. Send it through `provision_wifi()`, which sends both
+        halves. See ../../docs/protocol/ble.md 4.
+      capture: ""         # TODO
+
+    wifi_provision:
+      documented: false
+      body: "${network:str8} ${password:str8} ${run_mode} ${timezone_hours} ${iot_version} ${timezone_minutes}"
+      chunk:
+        size: 16
+        header: "A1 11 00 ${count} 00 <pad:20> <xor>"
+        data:   "A1 11 ${index} ${chunk:bytes} <pad:20> <xor>"
+        footer: "A1 11 FF <pad:20> <xor>"
+      role: wifi_provision
+      args:
+        network: { type: string, max_len: 32, role: network }
+        password: { type: string, max_len: 63, role: password }
+        run_mode: { type: int, range: [0, 255], role: run_mode }
+        timezone_hours: { type: int, range: [0, 255], role: timezone_hours }
+        timezone_minutes: { type: int, range: [0, 59], role: timezone_minutes }
+        iot_version: { type: int, range: [0, 255], role: iot_version }
+      notes: >-
+        The transfer a device asking for no endpoint takes. Trap: it needs
+        `wifi_link_start` around it, so send it through `provision_wifi()`.
+        See ../../docs/protocol/ble.md 4.
+      capture: ""         # TODO
+
+    wifi_provision_with_api:
+      documented: false
+      body: "${network:str8} ${password:str8} ${run_mode} ${timezone_hours} ${iot_version} ${timezone_minutes} ${api_url:str16}"
+      chunk:
+        size: 16
+        header: "A1 11 00 ${count} 00 <pad:20> <xor>"
+        data:   "A1 11 ${index} ${chunk:bytes} <pad:20> <xor>"
+        footer: "A1 11 FF <pad:20> <xor>"
+      role: wifi_provision_with_api
+      args:
+        network: { type: string, max_len: 32, role: network }
+        password: { type: string, max_len: 63, role: password }
+        run_mode: { type: int, range: [0, 255], role: run_mode }
+        timezone_hours: { type: int, range: [0, 255], role: timezone_hours }
+        timezone_minutes: { type: int, range: [0, 59], role: timezone_minutes }
+        iot_version: { type: int, range: [0, 255], role: iot_version }
+        api_url: { type: string, max_len: 255, role: api_url }
+      notes: >-
+        The transfer a device asking for an endpoint takes. Trap: it needs
+        `wifi_link_start` around it, so send it through `provision_wifi()`.
+        See ../../docs/protocol/ble.md 4.
+      capture: ""         # TODO
