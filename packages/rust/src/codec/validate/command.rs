@@ -230,15 +230,39 @@ fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {
     }
 }
 
+/// What every provisioning entry must mark, whatever its frames look like.
+const WIFI_CREDENTIALS: [ArgRole; 6] = [
+    ArgRole::Network,
+    ArgRole::Password,
+    ArgRole::RunMode,
+    ArgRole::TimezoneHours,
+    ArgRole::TimezoneMinutes,
+    ArgRole::IotVersion,
+];
+
+/// The same, plus the endpoint.
+const WIFI_CREDENTIALS_WITH_API: [ArgRole; 7] = [
+    ArgRole::Network,
+    ArgRole::Password,
+    ArgRole::RunMode,
+    ArgRole::TimezoneHours,
+    ArgRole::TimezoneMinutes,
+    ArgRole::IotVersion,
+    ArgRole::ApiUrl,
+];
+
 /// A role the SDK invokes on its own fills some of its arguments. The SDK knows
 /// no argument name, so the file must mark which ones. See
 /// `devices/schema.yaml`.
 pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
     let required: &[ArgRole] = match role {
-        Role::SegmentEnable => &[ArgRole::Enable],
+        Role::SegmentEnable | Role::WifiLink => &[ArgRole::Enable],
         Role::SegmentColor => &[ArgRole::Colors],
         Role::SegmentColorMasked => &[ArgRole::Colors, ArgRole::Zones],
         Role::SegmentGradient => &[ArgRole::Gradient],
+        Role::WifiApiType => &[ArgRole::ApiType],
+        Role::WifiProvision => &WIFI_CREDENTIALS,
+        Role::WifiProvisionWithApi => &WIFI_CREDENTIALS_WITH_API,
         Role::Status => &[],
     };
     required

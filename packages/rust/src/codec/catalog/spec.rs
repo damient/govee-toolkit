@@ -111,25 +111,67 @@ pub enum ArgRole {
     /// The device's brightness, captured from a reply, in whatever unit the
     /// firmware reports it.
     Brightness,
+    /// The network name to join, on a [`Role::WifiProvision`] command.
+    Network,
+    /// The password of that network. Plaintext on the wire.
+    Password,
+    /// The firmware's run mode. The SDK sends `0`, which is what production
+    /// takes.
+    RunMode,
+    /// The host's UTC offset, whole hours. Sent apart from the minutes, and
+    /// never as a combined offset.
+    TimezoneHours,
+    /// The remaining minutes of that offset, `0` on a whole-hour zone.
+    TimezoneMinutes,
+    /// The firmware's `IoT` protocol version. The SDK sends `0`.
+    IotVersion,
+    /// The endpoint the device must talk to, on a [`Role::WifiProvision`]
+    /// command that carries one. The SDK derives it from [`ArgRole::ApiType`].
+    ApiUrl,
+    /// Which endpoint the device asks for, captured from a
+    /// [`Role::WifiApiType`] reply.
+    ApiType,
+    /// Whether provisioning must carry the hidden-network flag, captured from
+    /// the same reply. No command encodes that flag yet.
+    HideSsid,
 }
 
 impl ArgRole {
-    pub(crate) const ALL: [Self; 6] = [
+    pub(crate) const ALL: [Self; 15] = [
         Self::Enable,
         Self::Colors,
         Self::Zones,
         Self::Gradient,
         Self::On,
         Self::Brightness,
+        Self::Network,
+        Self::Password,
+        Self::RunMode,
+        Self::TimezoneHours,
+        Self::TimezoneMinutes,
+        Self::IotVersion,
+        Self::ApiUrl,
+        Self::ApiType,
+        Self::HideSsid,
     ];
 
     /// The argument type a device file must declare for this role.
     #[must_use]
     pub fn type_name(self) -> &'static str {
         match self {
-            Self::Enable | Self::Gradient | Self::On | Self::Brightness => crate::codec::args::INT,
+            Self::Enable
+            | Self::Gradient
+            | Self::On
+            | Self::Brightness
+            | Self::RunMode
+            | Self::TimezoneHours
+            | Self::TimezoneMinutes
+            | Self::IotVersion
+            | Self::ApiType
+            | Self::HideSsid => crate::codec::args::INT,
             Self::Colors => crate::codec::args::RGB_LIST,
             Self::Zones => crate::codec::args::ZONES,
+            Self::Network | Self::Password | Self::ApiUrl => crate::codec::args::TEXT,
         }
     }
 }
@@ -143,6 +185,15 @@ impl fmt::Display for ArgRole {
             Self::Gradient => "gradient",
             Self::On => "on",
             Self::Brightness => "brightness",
+            Self::Network => "network",
+            Self::Password => "password",
+            Self::RunMode => "run_mode",
+            Self::TimezoneHours => "timezone_hours",
+            Self::TimezoneMinutes => "timezone_minutes",
+            Self::IotVersion => "iot_version",
+            Self::ApiUrl => "api_url",
+            Self::ApiType => "api_type",
+            Self::HideSsid => "hide_ssid",
         })
     }
 }
@@ -168,15 +219,36 @@ pub enum Role {
     /// Sets zone interpolation, on a mode that carries it in a frame of its
     /// own. Must declare an argument marked [`ArgRole::Gradient`].
     SegmentGradient,
+    /// Wakes the Wi-Fi module before provisioning, and releases it after. Must
+    /// declare an argument marked [`ArgRole::Enable`].
+    WifiLink,
+    /// Reports which endpoint the device asks provisioning for. Must capture a
+    /// field marked [`ArgRole::ApiType`]. A file that declares none makes the
+    /// SDK provision without an endpoint.
+    WifiApiType,
+    /// Carries the network credentials. Must declare arguments marked
+    /// [`ArgRole::Network`], [`ArgRole::Password`], [`ArgRole::RunMode`],
+    /// [`ArgRole::TimezoneHours`], [`ArgRole::TimezoneMinutes`] and
+    /// [`ArgRole::IotVersion`].
+    WifiProvision,
+    /// The same, plus the endpoint. Must declare everything
+    /// [`Role::WifiProvision`] does and an argument marked
+    /// [`ArgRole::ApiUrl`]. The SDK sends this one when [`Role::WifiApiType`]
+    /// reports a type, since the language carries no optional field.
+    WifiProvisionWithApi,
 }
 
 impl Role {
-    pub(crate) const CLAIMABLE: [Self; 5] = [
+    pub(crate) const CLAIMABLE: [Self; 9] = [
         Self::Status,
         Self::SegmentEnable,
         Self::SegmentColor,
         Self::SegmentColorMasked,
         Self::SegmentGradient,
+        Self::WifiLink,
+        Self::WifiApiType,
+        Self::WifiProvision,
+        Self::WifiProvisionWithApi,
     ];
 }
 
@@ -188,6 +260,10 @@ impl fmt::Display for Role {
             Self::SegmentColor => "segment_color",
             Self::SegmentColorMasked => "segment_color_masked",
             Self::SegmentGradient => "segment_gradient",
+            Self::WifiLink => "wifi_link",
+            Self::WifiApiType => "wifi_api_type",
+            Self::WifiProvision => "wifi_provision",
+            Self::WifiProvisionWithApi => "wifi_provision_with_api",
         })
     }
 }

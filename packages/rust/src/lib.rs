@@ -70,10 +70,13 @@ pub mod transport;
 
 #[cfg(any(feature = "lan", feature = "ble"))]
 mod device;
+
 #[cfg(any(feature = "lan", feature = "ble"))]
 mod event;
 #[cfg(any(feature = "lan", feature = "ble"))]
 mod govee;
+#[cfg(feature = "ble")]
+mod provision;
 
 pub use codec::{Args, Catalog, Mode};
 #[cfg(any(feature = "lan", feature = "ble"))]
@@ -86,6 +89,8 @@ pub use error::{Error, Result};
 pub use event::{Device, Event, Served};
 #[cfg(any(feature = "lan", feature = "ble"))]
 pub use govee::Govee;
+#[cfg(feature = "ble")]
+pub use provision::WifiCredentials;
 #[cfg(any(feature = "lan", feature = "ble"))]
 pub use stream::{Rate, SegmentStream, StreamOptions, Zones};
 #[cfg(any(feature = "lan", feature = "ble"))]

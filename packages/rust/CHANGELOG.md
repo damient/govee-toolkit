@@ -9,6 +9,22 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 
 ### Added
 
+- `DeviceHandle::provision_wifi` puts a device on a Wi-Fi network over `ble`,
+  which is how a device out of the box becomes reachable over `lan`. It takes
+  `WifiCredentials`: the network, the password and the device's UTC offset as
+  hours and minutes. The SDK does not read the host clock, and what a negative
+  offset looks like on the wire was never observed. The password travels in
+  plaintext, so anything in Bluetooth range during provisioning reads it. `ble`
+  must be enabled for the device, as for every other call. The call reports
+  what the writes did: the device answers a status byte, the codec reads no
+  reply on a chunked command, and whether the device joined is what says it
+  worked.
+- Four command roles — `wifi_link`, `wifi_api_type`, `wifi_provision` and
+  `wifi_provision_with_api` — and the argument roles that fill them. The bytes
+  stay in the device file and the order lives in the crate: wake the module,
+  wait, transfer, release. A device file tags its entries, so a family whose
+  frames differ changes its file and no code.
+
 - `chunk:` describes a second way of cutting a body. `head_size:` puts the
   first slice in the header, a footer that reads `${chunk:bytes}` carries the
   last one, `then:` sends one frame after the transfer, and `${total}` is the
@@ -34,8 +50,7 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   write path and the same per-device circuit breaker. It sends the frames that
   the codec built. It reads a reply through the layout that the device file
   declares for it. The protocol is verified on one device, the H61A0, and on no
-  other family. The device file declares Wi-Fi provisioning, and nobody has ever
-  sent it to a device.
+  other family.
 - `ble::Transport::bind` relates a device's identity to the Bluetooth address
   that a scan found. Nothing infers one from the other.
 - The device file can describe a fixed-size frame and a chunked write:

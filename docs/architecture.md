@@ -114,6 +114,20 @@ hardware ([`security.md`](security.md)).
 `schema_version` is validated on the way in: an unknown version is a typed
 error, not a file read as if it were v1.
 
+## Roles: how the SDK acts on its own
+
+Some operations the SDK starts by itself: it verifies a write, it opens a
+segment stream, it puts a device on a network. Each one needs a command, and
+no command name may live in code. A device file therefore marks the entry with
+a `role:`, and the entry's arguments with an argument `role:`. The SDK looks
+the entry up by role and fills what it must — `devices/schema.yaml` lists them.
+
+That is what keeps a multi-step operation generic. Wi-Fi provisioning is four
+writes in a fixed order, and the order does not change between devices even
+where the frames do. `src/provision.rs` holds the order and the delay;
+`devices/*.yaml` holds every byte. A new SKU tags its entries and adds no code,
+and a family whose frames differ changes its file alone.
+
 ## Conformance vectors
 
 `tests/fixtures/golden/` holds arguments-in, bytes-out vectors. Every
