@@ -180,3 +180,92 @@ async fn a_scan_listens_for_each_transport_s_own_window() {
 
     assert_eq!(ble.scanned(), vec![SCAN_WINDOW]);
 }
+
+/// The wake frame the fixture declares, at `on = 1` and `on = 0`.
+const LINK_ON: [u8; 20] = [
+    0x33, 0x17, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x25,
+];
+const LINK_OFF: [u8; 20] = [
+    0x33, 0x17, 0x00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x24,
+];
+const API_READ: [u8; 20] = [
+    0xaa, 0xab, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01,
+];
+
+fn credentials() -> govee_toolkit::WifiCredentials {
+    govee_toolkit::WifiCredentials {
+        network: "Net".to_owned(),
+        password: "pw".to_owned(),
+        utc_offset_hours: 1,
+        utc_offset_minutes: 30,
+    }
+}
+
+// `start_paused` runs the wake delay off the clock rather than waiting it out.
+#[tokio::test(start_paused = true)]
+async fn provisioning_wakes_the_module_transfers_and_releases_it_in_that_order() {
+    let ble = Fake::knowing(&id());
+    let govee = govee(&ble, &enabling_ble());
+
+    govee
+        .device(&id())
+        .provision_wifi(&credentials())
+        .await
+        .expect("every write goes out");
+
+    let written = ble.written();
+    // The endpoint is read first: which transfer entry to send depends on it.
+    assert_eq!(written.first().unwrap(), &API_READ.to_vec());
+    assert_eq!(written.get(1).unwrap(), &LINK_ON.to_vec());
+    assert_eq!(written.last().unwrap(), &LINK_OFF.to_vec());
+
+    // Everything between the two link frames is the transfer, and nothing else.
+    let transfer = &written[2..written.len() - 1];
+    assert!(
+        transfer.len() >= 3,
+        "a header, a body and a footer at least"
+    );
+    assert!(transfer.iter().all(|frame| frame[0..2] == [0xa1, 0x11]));
+}
+
+#[tokio::test(start_paused = true)]
+async fn provisioning_sends_the_endpoint_the_device_asked_for() {
+    let ble = Fake::knowing(&id());
+    let govee = govee(&ble, &enabling_ble());
+
+    govee
+        .device(&id())
+        .provision_wifi(&credentials())
+        .await
+        .expect("every write goes out");
+
+    // Type 2 selects an endpoint, so the entry carrying one is what went out.
+    // Its bytes ride the data frames: byte 2 numbers them, and the header and
+    // the footer take 0x00 and 0xff.
+    let body: Vec<u8> = ble
+        .written()
+        .iter()
+        .filter(|frame| frame[0..2] == [0xa1, 0x11] && !matches!(frame[2], 0x00 | 0xff))
+        .flat_map(|frame| frame[3..19].to_vec())
+        .collect();
+    let text = String::from_utf8_lossy(&body).into_owned();
+    assert!(text.contains("https://device.govee.com"), "got {text:?}");
+    assert!(text.contains("Net"));
+}
+
+#[tokio::test(start_paused = true)]
+async fn provisioning_refuses_a_device_that_does_not_enable_ble() {
+    let ble = Fake::knowing(&id());
+    let lan_only =
+        format!("defaults:\n  modes: [lan]\ndevices:\n  \"{MAC}\":\n    sku: \"{SKU}\"\n");
+    let govee = govee(&ble, &lan_only);
+
+    let error = govee
+        .device(&id())
+        .provision_wifi(&credentials())
+        .await
+        .expect_err("ble is not enabled for it");
+
+    assert_eq!(error.code(), "no_mode_available");
+    assert!(ble.written().is_empty(), "nothing may reach the radio");
+}

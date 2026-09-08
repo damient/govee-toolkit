@@ -16,7 +16,7 @@ use crate::transport::{DeviceId, DeviceStatus, Health, Reply, Verify};
 /// A borrow of the SDK and one identity, holding no state of its own.
 #[derive(Debug, Clone)]
 pub struct DeviceHandle<'a> {
-    govee: &'a Govee,
+    pub(crate) govee: &'a Govee,
     id: DeviceId,
 }
 

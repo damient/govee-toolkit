@@ -42,3 +42,58 @@ commands:
       args:
         version: { type: string }
       notes: "See docs/protocol/ble.md."
+
+    link:
+      documented: false
+      role: wifi_link
+      frame: "33 17 ${on} <pad:20> <xor>"
+      args:
+        on: { type: int, range: [0, 1], role: enable }
+      notes: "See docs/protocol/ble.md."
+
+    api:
+      documented: false
+      role: wifi_api_type
+      frame: "aa ab <pad:20> <xor>"
+      reply: "aa ab ${kind} ${hidden}"
+      args:
+        kind: { type: int, range: [0, 255], role: api_type }
+        hidden: { type: int, range: [0, 1], role: hide_ssid }
+      notes: "See docs/protocol/ble.md."
+
+    join:
+      documented: false
+      role: wifi_provision
+      body: "${network:str8} ${password:str8} ${mode} ${tz_h} ${iot} ${tz_m}"
+      chunk:
+        size: 16
+        header: "A1 11 00 ${count} 00 <pad:20> <xor>"
+        data:   "A1 11 ${index} ${chunk:bytes} <pad:20> <xor>"
+        footer: "A1 11 FF <pad:20> <xor>"
+      args:
+        network: { type: string, max_len: 32, role: network }
+        password: { type: string, max_len: 63, role: password }
+        mode: { type: int, range: [0, 255], role: run_mode }
+        tz_h: { type: int, range: [0, 255], role: timezone_hours }
+        iot: { type: int, range: [0, 255], role: iot_version }
+        tz_m: { type: int, range: [0, 59], role: timezone_minutes }
+      notes: "See docs/protocol/ble.md."
+
+    join_api:
+      documented: false
+      role: wifi_provision_with_api
+      body: "${network:str8} ${password:str8} ${mode} ${tz_h} ${iot} ${tz_m} ${url:str16}"
+      chunk:
+        size: 16
+        header: "A1 11 00 ${count} 00 <pad:20> <xor>"
+        data:   "A1 11 ${index} ${chunk:bytes} <pad:20> <xor>"
+        footer: "A1 11 FF <pad:20> <xor>"
+      args:
+        network: { type: string, max_len: 32, role: network }
+        password: { type: string, max_len: 63, role: password }
+        mode: { type: int, range: [0, 255], role: run_mode }
+        tz_h: { type: int, range: [0, 255], role: timezone_hours }
+        iot: { type: int, range: [0, 255], role: iot_version }
+        tz_m: { type: int, range: [0, 59], role: timezone_minutes }
+        url: { type: string, max_len: 255, role: api_url }
+      notes: "See docs/protocol/ble.md."

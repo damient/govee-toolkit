@@ -45,6 +45,8 @@ pub(crate) fn answer(frame: &[u8]) -> Vec<u8> {
             bytes.extend_from_slice(b"2.06.02");
             bytes
         }
+        // The endpoint type, then the hidden-network flag.
+        0xab => vec![0xaa, 0xab, 2, 0],
         other => panic!("the fixture declares no request {other:#04x}"),
     };
     reply.resize(20, 0);

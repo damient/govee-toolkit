@@ -193,6 +193,10 @@ impl Error {
                 | Role::SegmentColor
                 | Role::SegmentColorMasked
                 | Role::SegmentGradient => "no_segment_command",
+                Role::WifiLink
+                | Role::WifiApiType
+                | Role::WifiProvision
+                | Role::WifiProvisionWithApi => "no_provisioning_command",
             },
             Self::NoRoleArg { .. } => "no_role_arg",
             Self::ZoneCountUnknown { .. } => "zone_count_unknown",
