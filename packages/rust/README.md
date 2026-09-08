@@ -27,6 +27,11 @@ is the codec alone — arguments in, bytes out, no socket and no runtime.
 cargo add govee-toolkit --features ble
 ```
 
+On Linux the `ble` feature reaches the radio through BlueZ over D-Bus, so the
+build needs the dbus headers: `apt install libdbus-1-dev`, or the equivalent
+package for your distribution. macOS and Windows carry their radio stack in the
+platform SDK and need nothing.
+
 ## Quick start
 
 Discover what is on the network, then turn something on:
