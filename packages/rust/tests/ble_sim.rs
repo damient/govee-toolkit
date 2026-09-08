@@ -22,7 +22,7 @@ use govee_toolkit::ble::{Options, Transport};
 use govee_toolkit::{Args, Config, Govee, Mode, State};
 use govee_toolkit_sim::ble::{BleAdapter, BleDevice, BleFaults, BleOptions, Stall};
 
-use self::ble_fake::{ENDPOINT, POWER_ON, SKU, catalog, enabling_ble, id};
+use self::ble_fake::{ENDPOINT, MAC, POWER_ON, SKU, catalog, enabling_ble, id};
 use self::ble_wire::Radio;
 
 /// Short enough that a test does not wait on a window, long enough for a task
@@ -41,7 +41,8 @@ fn options() -> Options {
 /// One device on the air, an SDK attached to it, and the scan already run.
 async fn rig(device: &BleDevice, options: Options) -> Govee {
     let adapter = BleAdapter::holding([device.clone()]);
-    let ble = Transport::with_adapter(options, Arc::new(Radio(adapter))).expect("the budget holds");
+    let ble =
+        Transport::with_adapter(options, Arc::new(Radio::new(adapter))).expect("the budget holds");
 
     let config: Config = serde_norway::from_str(&enabling_ble()).expect("the configuration parses");
     let govee = Govee::attach(config, catalog(), [Arc::new(ble.clone()) as Arc<_>])
@@ -191,4 +192,112 @@ async fn the_write_budget_keeps_the_firmware_under_its_burst() {
 
     assert_eq!(device.received_count(), 20);
     assert_eq!(device.stalls(), 0);
+}
+
+/// The second device, for what only two devices show.
+const OTHER_MAC: &str = "AA:BB:CC:DD:EE:00";
+const OTHER_ENDPOINT: &str = "11:22:33:44:55:77";
+
+fn other_id() -> govee_toolkit::DeviceId {
+    govee_toolkit::DeviceId::new(OTHER_MAC)
+}
+
+fn enabling_both() -> String {
+    format!(
+        "defaults:\n  modes: [ble]\ndevices:\n  \"{MAC}\":\n    sku: \"{SKU}\"\n  \"{OTHER_MAC}\":\n    sku: \"{SKU}\"\n"
+    )
+}
+
+/// Two devices on the air, and the first of them slow to connect.
+async fn rig_two(devices: [&BleDevice; 2], connect_delay: Duration) -> Govee {
+    let adapter = BleAdapter::holding(devices.map(BleDevice::clone));
+    let radio = Radio::new(adapter).slow_to_connect(ENDPOINT, connect_delay);
+    let ble = Transport::with_adapter(
+        Options {
+            connect_timeout: Duration::from_secs(5),
+            ..options()
+        },
+        Arc::new(radio),
+    )
+    .expect("the budget holds");
+
+    let config: Config =
+        serde_norway::from_str(&enabling_both()).expect("the configuration parses");
+    let govee = Govee::attach(config, catalog(), [Arc::new(ble.clone()) as Arc<_>])
+        .expect("the configuration applies");
+
+    govee.scan().await.expect("the scan runs");
+    ble.bind(&id(), ENDPOINT).expect("the scan heard it");
+    ble.bind(&other_id(), OTHER_ENDPOINT)
+        .expect("the scan heard it");
+    govee
+}
+
+/// A connection costs seconds, and one device must not spend another
+/// device's time: the send path locks per device, not once for the table.
+#[tokio::test]
+async fn a_slow_connection_holds_up_only_its_own_device() {
+    let slow = device(BleFaults::default());
+    let quick = BleDevice::start(BleOptions::new(OTHER_ENDPOINT, SKU));
+    let govee = rig_two([&slow, &quick], Duration::from_secs(2)).await;
+
+    let connecting = {
+        let govee = govee.clone();
+        tokio::spawn(async move {
+            govee
+                .device(&id())
+                .send("power", &Args::new().int("on", 1))
+                .await
+        })
+    };
+    // Long enough for the spawned command to reach the connection it waits on.
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    let started = std::time::Instant::now();
+    govee
+        .device(&other_id())
+        .send("power", &Args::new().int("on", 1))
+        .await
+        .expect("the second device answers");
+    let waited = started.elapsed();
+
+    assert!(
+        waited < Duration::from_millis(500),
+        "the second device waited {waited:?} on the first device's connection"
+    );
+    connecting
+        .await
+        .expect("the task runs")
+        .expect("it connects");
+    assert_eq!(quick.received(), vec![POWER_ON.to_vec()]);
+}
+
+/// The link is not probed before a write, so a device that dropped the
+/// connection is found by the write that fails. The next command reconnects.
+#[tokio::test]
+async fn a_dropped_connection_fails_one_command_and_the_next_reconnects() {
+    let device = device(BleFaults::default());
+    let govee = rig(&device, options()).await;
+    let handle = govee.device(&id());
+
+    handle
+        .send("power", &Args::new().int("on", 1))
+        .await
+        .expect("the first command opens the link");
+
+    device.disconnect();
+    let error = handle
+        .send("power", &Args::new().int("on", 1))
+        .await
+        .expect_err("the write goes into a link that is gone");
+    assert_eq!(error.code(), "io");
+
+    handle
+        .send("power", &Args::new().int("on", 1))
+        .await
+        .expect("the next command opens a new link");
+    assert_eq!(
+        device.received(),
+        vec![POWER_ON.to_vec(), POWER_ON.to_vec()]
+    );
 }

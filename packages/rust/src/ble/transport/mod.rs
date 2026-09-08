@@ -7,6 +7,7 @@
 
 mod discover;
 mod impl_transport;
+mod links;
 mod options;
 mod read;
 mod shared;

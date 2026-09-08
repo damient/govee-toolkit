@@ -93,10 +93,6 @@ impl Link {
         self.replies.subscribe()
     }
 
-    pub(crate) async fn is_live(&self) -> bool {
-        self.peripheral.is_connected().await.unwrap_or(false)
-    }
-
     /// Write one frame, without waiting for a response.
     ///
     /// # Errors

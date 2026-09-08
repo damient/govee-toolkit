@@ -14,6 +14,7 @@ use tokio::sync::{broadcast, watch};
 use crate::ble::link::{Link, adapter as adapter_error};
 use crate::ble::pace::{Budget, Pacer};
 use crate::ble::transport::Options;
+use crate::ble::transport::links::Links;
 use crate::ble::wire::{Adapter, Peripheral};
 use crate::codec::{Encoded, Mode};
 use crate::transport::DeviceId;
@@ -93,7 +94,7 @@ pub(super) struct Shared {
     pub(super) devices: Devices<Tracked>,
     /// One open connection per device, reused across commands. A device
     /// accepts only one, and a new connection costs seconds.
-    links: tokio::sync::Mutex<HashMap<DeviceId, Arc<Link>>>,
+    links: Links,
     pub(super) events: broadcast::Sender<Event>,
 }
 
@@ -111,7 +112,7 @@ impl Shared {
             per_sku,
             adapter,
             devices: Devices::new(),
-            links: tokio::sync::Mutex::new(HashMap::new()),
+            links: Links::new(),
             events,
         }
     }
@@ -155,21 +156,25 @@ impl Shared {
         })
     }
 
-    /// The open connection to a device, or a new one if there is none.
+    /// The open connection to a device, or a new one if the slot is empty.
+    ///
+    /// The slot is not probed: a connection the device has dropped is found by
+    /// the write that fails on it, and that write empties the slot. So the
+    /// first command after a device goes away fails, and the next one opens a
+    /// connection.
     ///
     /// # Errors
     ///
+    /// [`Error::ShutDown`] if the slot table is poisoned,
     /// [`Error::Unreachable`] if the connection takes longer than
     /// [`Options::connect_timeout`], or [`Error::Io`] if nothing advertises at
     /// the handle after a scan, or if the connection fails.
     pub(super) async fn link(&self, id: &DeviceId, endpoint: &str) -> Result<Arc<Link>> {
-        let mut links = self.links.lock().await;
-        if let Some(link) = links.get(id)
-            && link.is_live().await
-        {
+        let slot = self.links.slot(id)?;
+        let mut open = slot.lock().await;
+        if let Some(link) = open.as_ref() {
             return Ok(Arc::clone(link));
         }
-        links.remove(id);
 
         // A handle is good only while the platform still holds the peripheral
         // behind it, and macOS drops that when a link goes down. The device
@@ -180,7 +185,7 @@ impl Shared {
             None => self.rediscover(endpoint).await?,
         };
         // A peripheral that never answers leaves `connect` pending for as long
-        // as the platform waits, and every caller behind this lock waits with
+        // as the platform waits, and every command to this device waits with
         // it.
         let timeout = self.options.connect_timeout;
         let link = tokio::time::timeout(timeout, Link::open(peripheral, endpoint))
@@ -191,13 +196,13 @@ impl Shared {
                 timeout_ms: crate::transport::millis(timeout),
             })??;
         let link = Arc::new(link);
-        links.insert(id.clone(), Arc::clone(&link));
+        *open = Some(Arc::clone(&link));
         Ok(link)
     }
 
     /// Forget a device's connection, so the next command opens a new one.
-    pub(super) async fn drop_link(&self, id: &DeviceId) {
-        self.links.lock().await.remove(id);
+    pub(super) fn drop_link(&self, id: &DeviceId, link: &Arc<Link>) {
+        self.links.forget(id, link);
     }
 
     /// Scan again, and answer with the peripheral that came back.
@@ -243,7 +248,7 @@ impl Shared {
         &self,
         id: &DeviceId,
         route: &Route,
-        link: &Link,
+        link: &Arc<Link>,
         command: &Encoded,
     ) -> Result<()> {
         check_frames(command)?;
