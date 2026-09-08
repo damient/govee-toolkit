@@ -151,13 +151,17 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 - `codec::chunk::Chunk::then` is an `Option<String>`, and
   `codec::chunk::Layout::frames` returns an iterator. A `chunk:` block that
   declares no `then:` is `None` rather than an empty string.
+- **Breaking.** `ble::Transport::start` and `ble::Transport::with_adapter` take
+  the `&Catalog` the caller builds the facade with. The transport reads the
+  write budgets from it, so a caller that binds its own adapter paces each
+  device at the same rate the facade does.
 - The `ble` transport paces each device at the budget its own device file
   records. `ble::Budgets::from_catalog` reads
   `measurements.ble.write_budget_hz` for every SKU a catalog carries, verified
-  aliases included, and `ble::Options::budgets` holds the result. A device whose
-  file records no budget is written at `ble::Options::writes_per_second`, the
-  one rate anybody measured. The burst stays `ble::Options::burst` for every
-  device: `measurements.ble.burst_frames_before_stall` records the count that
+  aliases included. A device whose file records no budget is written at
+  `ble::Options::writes_per_second`, the one rate anybody measured. The burst
+  stays `ble::Options::burst` for every device:
+  `measurements.ble.burst_frames_before_stall` records the count that
   stalled a unit, which is not a count that is safe. A device file recording a
   rate no write could go out under fails `ble::Transport::start` with
   `out_of_range`.
