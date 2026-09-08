@@ -60,9 +60,11 @@ pub(crate) fn id() -> DeviceId {
     DeviceId::new(MAC)
 }
 
-/// A transport that claims `ble` and records every frame it receives.
+/// A transport that claims one mode and records every frame it receives.
 #[derive(Debug)]
 pub(crate) struct Fake {
+    mode: Mode,
+    window: Duration,
     known: Option<DeviceId>,
     written: Mutex<Vec<Vec<u8>>>,
     scanned: Mutex<Vec<Duration>>,
@@ -73,7 +75,13 @@ pub(crate) struct Fake {
 
 impl Fake {
     fn with(known: Option<DeviceId>) -> Arc<Self> {
+        Self::build(Mode::Ble, SCAN_WINDOW, known)
+    }
+
+    fn build(mode: Mode, window: Duration, known: Option<DeviceId>) -> Arc<Self> {
         Arc::new(Self {
+            mode,
+            window,
             known,
             written: Mutex::new(Vec::new()),
             scanned: Mutex::new(Vec::new()),
@@ -89,6 +97,11 @@ impl Fake {
 
     pub(crate) fn knowing_nothing() -> Arc<Self> {
         Self::with(None)
+    }
+
+    /// One that answers for `mode` and asks for `window`.
+    pub(crate) fn claiming(mode: Mode, window: Duration) -> Arc<Self> {
+        Self::build(mode, window, None)
     }
 
     pub(crate) fn written(&self) -> Vec<Vec<u8>> {
@@ -111,7 +124,7 @@ impl Fake {
 #[async_trait]
 impl Transport for Fake {
     fn mode(&self) -> Mode {
-        Mode::Ble
+        self.mode
     }
 
     fn events(&self) -> broadcast::Receiver<Event> {
@@ -155,11 +168,14 @@ impl Transport for Fake {
     }
 
     fn scan_window(&self) -> Duration {
-        SCAN_WINDOW
+        self.window
     }
 
+    /// Listens for the window it is handed, so a suite can measure what the
+    /// facade does with two of them.
     async fn scan(&self, window: Duration) -> Result<Vec<Discovered>> {
         self.scanned.lock().unwrap().push(window);
+        tokio::time::sleep(window).await;
         Ok(Vec::new())
     }
 
@@ -176,7 +192,7 @@ impl Transport for Fake {
         }
         Ok(Sent {
             id: id.clone(),
-            mode: Mode::Ble,
+            mode: self.mode,
             cmd: command.cmd.clone(),
             endpoint: ENDPOINT.to_owned(),
         })
@@ -199,7 +215,7 @@ impl Transport for Fake {
         let exchanges = request.reads();
         if exchanges.is_empty() {
             return Err(govee_toolkit::transport::Error::NoReplyLayout {
-                mode: Mode::Ble,
+                mode: self.mode,
                 reason: "the fixture declares no `reply:` for this command".to_owned(),
             });
         }
@@ -234,6 +250,13 @@ pub(crate) fn govee(transport: &Arc<Fake>, yaml: &str) -> Govee {
         [Arc::clone(transport) as Arc<dyn Transport>],
     )
     .expect("the configuration applies")
+}
+
+/// A facade over transports the caller built, and no configured device.
+pub(crate) fn attach(transports: &[Arc<dyn Transport>]) -> Govee {
+    let config: Config =
+        serde_norway::from_str("defaults:\n  modes: [ble]\n").expect("the configuration parses");
+    Govee::attach(config, catalog(), transports.to_vec()).expect("the configuration applies")
 }
 
 pub(crate) fn enabling_ble() -> String {

@@ -176,7 +176,9 @@ Changes to `govee-toolkit`, the crate published to crates.io from
   there as absent on another. `lan::Transport::scan_window` answers
   `lan::Options::scan_window`, and the new `ble::Options::scan_window` is the
   `ble` one. `Transport::scan` still takes a window, for a caller that wants a
-  shorter or a longer one deliberately.
+  shorter or a longer one deliberately. `Govee::scan` spends the windows at the
+  same time, so a scan over several modes costs the longest window and not the
+  sum of them.
 - A command that declares a `frame:` does not have to name it with `${frame}` in
   a `payload:`. Only a mode that wraps the frame in an envelope must name it. A
   wire that carries the frame on its own has no payload to name it in.
