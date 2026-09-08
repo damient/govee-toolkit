@@ -214,6 +214,11 @@ tools/qa.sh              # every check ci.yml runs, in the same order
 tools/qa.sh clippy       # or one of them, by name
 ```
 
+On Linux, `--all-features` builds the `ble` transport against BlueZ over D-Bus,
+so install the dbus headers first: `apt install libdbus-1-dev`, or the
+equivalent package for your distribution. Without them the build stops at
+`pkg_config failed`, which names no package.
+
 `qa.sh` reports a check whose tool is not installed as **skipped**, and names
 the install command — a skip is not a pass, and it exits non-zero for one, so
 a missing toolchain is discovered here rather than on the pull request. The

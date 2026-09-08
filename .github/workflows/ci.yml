@@ -72,6 +72,12 @@ jobs:
         run: cargo fmt --all --check
         env:
           RUSTUP_TOOLCHAIN: nightly
+      # btleplug reaches BlueZ over D-Bus, so the `ble` feature needs the dbus
+      # headers to compile here. macOS and Windows carry their radio stack in
+      # the platform SDK and need nothing.
+      - name: D-Bus headers
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
       - name: Clippy
         if: matrix.os == 'ubuntu-latest'
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
@@ -113,6 +119,10 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: packages/rust
+      # btleplug reaches BlueZ over D-Bus, so `--all-features` needs the dbus
+      # headers to compile.
+      - name: D-Bus headers
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
       - run: cargo check --workspace --all-features
         env:
           RUSTUP_TOOLCHAIN: ${{ steps.msrv.outputs.version }}
@@ -277,6 +287,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # btleplug reaches BlueZ over D-Bus, so `--all-features` needs the dbus
+      # headers to compile.
+      - name: D-Bus headers
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
       # The baseline is the crate on crates.io. A change to the public API that
       # the version in Cargo.toml does not account for fails here rather than
       # on a registry that never takes a version back. Pre-1.0, the breaking
