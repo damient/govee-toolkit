@@ -1,0 +1,111 @@
+{
+  "description": "Conformance vectors for H61A0 over cloud. Every SDK — the Rust core, its bindings and any hand-written port — must produce exactly these bodies for these arguments. See ../README.md.",
+  "sku": "H61A0",
+  "mode": "cloud",
+  "vectors": [
+    {
+      "name": "power on",
+      "command": "power",
+      "args": { "on": 1 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.on_off",
+          "instance": "powerSwitch",
+          "value": 1
+        }
+      },
+      "source": "docs/protocol/cloud.md, the documented API; no capture"
+    },
+    {
+      "name": "power off",
+      "command": "power",
+      "args": { "on": 0 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.on_off",
+          "instance": "powerSwitch",
+          "value": 0
+        }
+      },
+      "source": "docs/protocol/cloud.md, the documented API; no capture"
+    },
+    {
+      "name": "brightness 50%",
+      "command": "brightness",
+      "args": { "level": 50 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.range",
+          "instance": "brightness",
+          "value": 50
+        }
+      },
+      "source": "docs/protocol/cloud.md, the documented API; no capture"
+    },
+    {
+      "name": "colour red, packed into one integer",
+      "command": "color",
+      "args": { "r": 255, "g": 0, "b": 0 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorRgb",
+          "value": 16711680
+        }
+      },
+      "source": "docs/protocol/cloud.md, the documented API; no capture"
+    },
+    {
+      "name": "colour blue, the low channel",
+      "command": "color",
+      "args": { "r": 0, "g": 0, "b": 255 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorRgb",
+          "value": 255
+        }
+      },
+      "source": "docs/protocol/cloud.md, the documented API; no capture"
+    },
+    {
+      "name": "colour temperature 4000 K",
+      "command": "colortemp",
+      "args": { "kelvin": 4000 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorTemperatureK",
+          "value": 4000
+        }
+      },
+      "source": "docs/protocol/cloud.md, the documented API; no capture"
+    },
+    {
+      "name": "status request",
+      "command": "status",
+      "args": {},
+      "reads": {
+        "brightness": "level",
+        "colorRgb": "color",
+        "colorTemperatureK": "kelvin",
+        "powerSwitch": "on"
+      },
+      "source": "docs/protocol/cloud.md, the documented API; no capture"
+    }
+  ],
+  "errors": [
+    {
+      "name": "brightness 0 is refused rather than clamped",
+      "command": "brightness",
+      "args": { "level": 0 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a channel past 255 is refused",
+      "command": "color",
+      "args": { "r": 256, "g": 0, "b": 0 },
+      "code": "out_of_range"
+    }
+  ]
+}

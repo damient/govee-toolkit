@@ -326,8 +326,37 @@ commands:
     # not a frame, so it takes neither.
   cloud:
     # <command-name>:
-    #   endpoint: ""
-    #   body: { }
+    #   documented: true | false
+    #   channel: http | iot           # http, the documented HTTPS API, is the
+    #                                 # default. `iot` marks a command only the
+    #                                 # account's MQTT channel carries; a
+    #                                 # transport asked for one fails, and no
+    #                                 # build sends one yet
+    #   capability:                   # what the API calls what this command
+    #     type: ""                    # writes, spelled as the API spells it
+    #     instance: ""
+    #   payload: "${name}"            # the capability value. The same language
+    #                                 # as above: a string that is exactly
+    #                                 # "${name}" is that argument, and every
+    #                                 # other value is a literal
+    #   role: status                  # same roles as above
+    #   reads:                        # on a `role: status` entry, which
+    #     - instance: ""              # argument each capability answers into.
+    #       arg: ""                   # The argument's `role:` says which field
+    #                                 # of the status it fills, so no instance
+    #                                 # name reaches an SDK
+    #   args: { <name>: { type, range, role } }
+    #   notes: ""                     # must point at ../docs/protocol/cloud.md
+    #                                 # when documented is false
+    #
+    # This wire carries neither a frame nor a `cmd:`: the API names one
+    # capability, and the request carries the value beside that name. An entry
+    # writes one capability or reads capabilities back, never both.
+    #
+    # `${r,g,b:rgb24}` is the one placeholder this table adds: the three
+    # channel arguments, packed into 0xRRGGBB, which is how this API carries a
+    # color. The three keep the names the `lan` and `ble` layouts give them, so
+    # one command takes the same arguments over every mode.
 
 measurements: {}        # optional — numbers taken from a physical unit:
                         # native_pixels, latency, sustainable frame rate…

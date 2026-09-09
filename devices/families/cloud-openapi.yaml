@@ -1,0 +1,79 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "cloud-openapi"
+
+description: >-
+  The five entries Govee's documented HTTPS API carries for a light: power,
+  brightness, color, white temperature, and the state read behind them. The
+  capability names are the API's own. Include it where the SKU's `modes.cloud`
+  claims those capabilities. See ../../docs/protocol/cloud.md.
+
+commands:
+  cloud:
+    power:
+      documented: true
+      capability:
+        type: "devices.capabilities.on_off"
+        instance: "powerSwitch"
+      payload: "${on}"
+      args:
+        on: { type: int, range: [0, 1] }
+
+    brightness:
+      documented: true
+      capability:
+        type: "devices.capabilities.range"
+        instance: "brightness"
+      payload: "${level}"
+      args:
+        level: { type: int, range: [1, 100] }
+      notes: >-
+        The API documents 0 as well. The range starts at 1 because the firmware
+        clamps 0 to 1 over `lan` rather than turn the device off, and an SDK
+        that passed 0 on would report success for a value the device did not
+        apply. Nobody probed 0 over this mode.
+
+    color:
+      documented: true
+      capability:
+        type: "devices.capabilities.color_setting"
+        instance: "colorRgb"
+      payload: "${r,g,b:rgb24}"
+      args:
+        r: { type: int, range: [0, 255] }
+        g: { type: int, range: [0, 255] }
+        b: { type: int, range: [0, 255] }
+      notes: >-
+        This API carries the color as one integer. The three arguments keep the
+        names the `lan` and `ble` layouts give them, so one call reads the same
+        over every mode.
+
+    colortemp:
+      documented: true
+      capability:
+        type: "devices.capabilities.color_setting"
+        instance: "colorTemperatureK"
+      payload: "${kelvin}"
+      args:
+        kelvin: { type: int, range: [2000, 9000] }
+
+    status:
+      documented: true
+      role: status
+      reads:
+        - { instance: "powerSwitch", arg: "on" }
+        - { instance: "brightness", arg: "level" }
+        - { instance: "colorRgb", arg: "color" }
+        - { instance: "colorTemperatureK", arg: "kelvin" }
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+        level: { type: int, range: [0, 100], role: brightness }
+        color: { type: int, range: [0, 16777215], role: color }
+        kelvin: { type: int, range: [0, 9000], role: color_temp }
+      notes: >-
+        The ranges here are what an answer may carry, not what a caller may
+        send: 0 brightness and 0 kelvin both reach a caller, and 0 kelvin
+        reports color mode rather than a temperature.
