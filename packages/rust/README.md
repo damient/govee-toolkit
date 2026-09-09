@@ -20,11 +20,12 @@ cargo add govee-toolkit
 
 Async, on Tokio. The `lan` feature is on by default and brings the UDP
 transport with it. `ble` is off by default and brings the GATT transport, which
-needs a Bluetooth adapter on the host. Turn every feature off and what is left
-is the codec alone — arguments in, bytes out, no socket and no runtime.
+needs a Bluetooth adapter on the host. `cloud` is off by default and brings the
+HTTPS transport, which needs a Govee API key. Turn every feature off and what
+is left is the codec alone — arguments in, bytes out, no socket and no runtime.
 
 ```bash
-cargo add govee-toolkit --features ble
+cargo add govee-toolkit --features ble,cloud
 ```
 
 On Linux the `ble` feature reaches the radio through BlueZ over D-Bus, so the
@@ -96,13 +97,15 @@ its controls from the catalog rather than hardcoding them. A name the device
 file does not define, or an argument outside its declared range, is an error
 before anything reaches the network.
 
-Two runnable examples send every command of one device file, in order, to a real
-device: [`examples/lan_tour.rs`](examples/lan_tour.rs) and
-[`examples/ble_tour.rs`](examples/ble_tour.rs).
+Three runnable examples send every command of one device file, in order, to a
+real device: [`examples/lan_tour.rs`](examples/lan_tour.rs),
+[`examples/ble_tour.rs`](examples/ble_tour.rs) and
+[`examples/cloud_tour.rs`](examples/cloud_tour.rs).
 
 ```bash
 cargo run --example lan_tour
 cargo run --example ble_tour --features ble
+GOVEE_API_KEY=… cargo run --example cloud_tour --features cloud
 ```
 
 ### Reading state
@@ -192,8 +195,9 @@ devices:
 what the configuration got wrong without failing the whole load. The full model
 is [`docs/modes.md`][modes].
 
-`ble` needs the crate built with the `ble` feature, and `cloud` has no transport
-at all. Either way, an enabled mode this build cannot carry is reported as
+`ble` and `cloud` each need the crate built with the feature of that name, and
+`cloud` also needs an API key, in `GOVEE_API_KEY` or in the file
+`cloud.key_file` names. An enabled mode this build cannot carry is reported as
 `ModeNotImplemented` — never silently skipped, never substituted.
 
 ## What this crate will not do to you

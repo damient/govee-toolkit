@@ -15,7 +15,7 @@ ask for. Open an issue if something matters to you.
 | 5 | Home Assistant custom component (LAN power + brightness first) | 🔜 Planned |
 | 6 | Homebridge plugin | 🔜 Planned |
 | 7 | Art-Net / DMX bridge | 🔜 Planned |
-| — | `cloud` mode | 🔜 Planned, after the `lan` core |
+| — | `cloud` mode — the documented HTTPS API | 🚧 Power, brightness, color, temperature and state. The account's MQTT channel is not carried |
 
 Undocumented LAN commands are documented and formalized continuously, in
 [`protocol/lan.md`](protocol/lan.md) and `devices/*.yaml`, as they are

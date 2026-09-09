@@ -1,13 +1,12 @@
 [package]
 name = "govee-toolkit"
-description = "Control Govee devices over the LAN or Bluetooth, including undocumented commands. Unofficial."
+description = "Control Govee devices over the LAN, over Bluetooth or through the cloud, including undocumented commands. Unofficial."
 version = "0.4.0"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
 repository = "https://github.com/damient/govee-toolkit"
 authors = ["damient"]
-readme = "README.md"
 keywords = ["govee", "led", "smart-home", "iot", "sdk"]
 categories = ["api-bindings", "hardware-support", "network-programming"]
 # `cargo package` cannot reach above the manifest, so the release workflow
@@ -51,6 +50,12 @@ lan = [
   "dep:tokio",
   "dep:tracing",
 ]
+cloud = [
+  "dep:reqwest",
+  "dep:async-trait",
+  "dep:tokio",
+  "dep:tracing",
+]
 ble = [
   "dep:btleplug",
   "dep:futures-util",
@@ -75,6 +80,14 @@ btleplug = { version = "0.13", optional = true }
 futures-util = { version = "0.3", default-features = false, features = [
   "alloc",
 ], optional = true }
+# `rustls-tls` rather than the platform's TLS: one behaviour on Linux, macOS
+# and Windows, and no OpenSSL headers to install in CI.
+reqwest = { version = "0.12", default-features = false, features = [
+  "charset",
+  "http2",
+  "json",
+  "rustls-tls",
+], optional = true }
 socket2 = { version = "0.6", features = ["all"], optional = true }
 tokio = { version = "1", features = [
   "macros",
@@ -94,6 +107,10 @@ required-features = ["lan"]
 [[example]]
 name = "ble_tour"
 required-features = ["ble"]
+
+[[example]]
+name = "cloud_tour"
+required-features = ["cloud"]
 
 [dev-dependencies]
 # The `Transport` trait is `#[async_trait]`, so the test that fakes one needs

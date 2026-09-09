@@ -12,6 +12,10 @@ confidence-threshold = 0.93
 # this core, bindings included.
 allow = [
   "MIT",
+  # `webpki-roots`, the root certificates the `cloud` feature verifies TLS
+  # against. Permissive and not copyleft: it grants the data, and it puts no
+  # condition on the software that reads it.
+  "CDLA-Permissive-2.0",
   "Apache-2.0",
   "Apache-2.0 WITH LLVM-exception",
   "BSD-2-Clause",

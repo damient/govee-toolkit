@@ -8,7 +8,7 @@ trade-offs, and **the user chooses which ones to enable, per device**.
 | ---- | ------- | ----- | ------------ | -------- |
 | `lan` | lowest | same network | full, including the undocumented segment channel; not internal scenes | LAN Control enabled in the Govee Home app |
 | `ble` | low | Bluetooth range | partial, depends on SKU family | a Bluetooth adapter on the host, and the device not already connected to something else |
-| `cloud` | highest (internet round-trip) | anywhere | reduced: power / brightness / color | a Govee API key, subject to rate limits |
+| `cloud` | highest (internet round-trip) | anywhere | reduced: power / brightness / color; throttled | a Govee API key, subject to rate limits |
 
 Details per mode: [`protocol/lan.md`](protocol/lan.md),
 [`protocol/ble.md`](protocol/ble.md), [`protocol/cloud.md`](protocol/cloud.md).
@@ -66,8 +66,19 @@ devices:
 A key the file does not define is refused rather than ignored: a misspelled
 option that was silently dropped would read as a setting that did not work.
 
-Two other sections are optional. `lan:` tunes the transport — scan window,
-refresh interval, cache location, breaker thresholds. `catalog:` decides whether
+Three other sections are optional. `lan:` tunes the transport — scan window,
+refresh interval, cache location, breaker thresholds. `cloud:` tunes the cloud
+transport — where the API lives, the request timeout, the throttle and the same
+breaker thresholds:
+
+```yaml
+cloud:
+  key_file: /etc/govee/api-key   # read when GOVEE_API_KEY is unset
+  min_interval_ms: 6000          # one request per device per interval
+  max_wait_ms: 15000             # past this a command fails, rather than waits
+```
+
+`catalog:` decides whether
 `~/.config/govee-toolkit/devices/*.yaml` may replace the device files the build
 shipped:
 
@@ -83,8 +94,10 @@ replaces one is logged, every run.
 ### The cloud API key does not live here
 
 `cloud` mode needs a Govee API key. It is read from the `GOVEE_API_KEY`
-environment variable, or from a separate file the configuration points at — one
-the operator can lock down on its own.
+environment variable, or from the file `cloud.key_file` points at — one the
+operator can lock down on its own. The environment wins, and a build that finds
+neither starts without the mode: `cloud` is then unavailable, and a device that
+enables it reports that.
 
 It is **never** stored in `config.yaml`. That file gets pasted into bug reports.
 The key is also never logged and never written to the device cache. See
@@ -108,10 +121,10 @@ one, driven by the per-device circuit breaker:
   the preferred one. Two consecutive answers bring it back to `OK`.
 - Six take it to `DOWN`, which is the same shape with a five-minute cooldown —
   a mode silent for minutes is not worth probing every 30 seconds.
-- The thresholds and both cooldowns are the defaults. `lan:` in the
-  configuration tunes them for `lan`. The `ble` breaker takes the same
-  defaults, and a host changes them only by building `ble::Options` itself and
-  passing the transport to `Govee::attach`.
+- The thresholds and both cooldowns are the defaults. `lan:` and `cloud:` in
+  the configuration tune them for those two modes. The `ble` breaker takes the
+  same defaults, and a host changes them only by building `ble::Options` itself
+  and passing the transport to `Govee::attach`.
 - The mode is chosen from the breaker state already known, never from a fresh
   timeout on each call: a fresh timeout would cost the fast path a round-trip.
 
