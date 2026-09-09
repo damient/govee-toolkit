@@ -5,8 +5,8 @@
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 
 Control Govee devices from Rust over the LAN or Bluetooth, including
-undocumented commands found through reverse engineering. Unofficial, and not
-affiliated with Govee.
+undocumented commands observed on the wire. Unofficial, and not affiliated
+with Govee.
 
 This is the reference implementation. Protocol logic lives here once, and every
 other language reaches it through a binding rather than a port — see

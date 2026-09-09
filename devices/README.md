@@ -36,8 +36,8 @@ these files.
    what each one claims. A mode you did not probe stays `unknown`: `none` says
    the hardware cannot do it, which is a claim, and a failed probe looks exactly
    like an unimplemented feature.
-4. Fill in the `commands` table. Set `documented: false` for any command found
-   through reverse engineering, and document it in
+4. Fill in the `commands` table. Set `documented: false` for any undocumented
+   command, and document it in
    [`../docs/protocol/lan.md`](../docs/protocol/lan.md) as well. Mark the entry
    that reports the device's state `role: status` — that is how an SDK finds it,
    since no command name lives in SDK code. A file that marks none simply has no

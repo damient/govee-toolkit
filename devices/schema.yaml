@@ -229,7 +229,7 @@ commands:
   lan:
     # <command-name>:
     #   cmd: <string sent in msg.cmd>
-    #   documented: true | false      # false = discovered by reverse engineering
+    #   documented: true | false      # false = not in Govee's documentation
     #   role: status                  # optional; see below. Default: no role.
     #   payload: { }                  # JSON structure, ${placeholders} for args
     #   frame: ""                     # for raw-channel commands, the byte layout

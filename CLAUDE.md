@@ -6,8 +6,8 @@ already made — follow them rather than re-deriving them.
 ## What this project is
 
 An unofficial, multi-language SDK to control Govee devices locally, built around
-**undocumented LAN commands** found through reverse engineering. `lan`, `ble`
-and `cloud` are three **modes** the user enables per device — never a fallback
+**undocumented LAN commands** observed on the wire. `lan`, `ble` and `cloud`
+are three **modes** the user enables per device — never a fallback
 chain, never implicit.
 
 The protocol is implemented **once**, in Rust (`packages/rust`). Node and Python

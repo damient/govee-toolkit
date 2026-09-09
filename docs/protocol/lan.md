@@ -4,7 +4,7 @@
 full capability coverage, and it never leaves the local network.
 
 Two parts: the LAN protocol documented by Govee, and the undocumented commands
-found through reverse engineering.
+observed on the wire.
 
 > **No authentication, no encryption.** Control frames carry no key and no
 > signature, payloads are plaintext, and a discovery reply can be sent by any
