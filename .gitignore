@@ -27,3 +27,9 @@ release/
 
 # Generated build outputs (the device catalog artifact).
 /dist/
+
+# Local credentials. `.env` carries the cloud API key in development; the
+# template is committed and the file is not. See CONTRIBUTING.md.
+.env
+.env.*
+!.env.example

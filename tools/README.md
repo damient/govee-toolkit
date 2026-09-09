@@ -8,6 +8,7 @@
 | Rust file length | [`check-file-length.sh`](check-file-length.sh) |
 | Codec layering | [`check-no-io.sh`](check-no-io.sh) |
 | Release notes from the changelog | [`release-notes.sh`](release-notes.sh) |
+| Local credentials into a command | [`with-env.sh`](with-env.sh) |
 | Generated catalog and tables | [`packages/rust/crates/xtask`](../packages/rust/crates/xtask) |
 
 The simulator is a Rust crate rather than a tool of its own: the transport tests
@@ -59,3 +60,11 @@ cargo run -p xtask                    # dist/catalog.json, the release artifact
 cargo run -p xtask -- compat          # the tables in docs/compatibility.md
 cargo run -p xtask -- compat --check  # fails when they have drifted
 ```
+
+`with-env.sh` runs a command with the repository's gitignored `.env` in its
+environment: `tools/with-env.sh cargo run --example cloud_tour --features
+cloud`. It finds the file at the repository root, so the working directory does
+not matter, and a variable already set in the caller's environment wins over
+the file. Every package reads its configuration from the environment, so one
+file serves the Rust, Python and Node packages. The convention, and what must
+never be committed, are in [`../CONTRIBUTING.md`](../CONTRIBUTING.md).

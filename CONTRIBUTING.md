@@ -205,6 +205,38 @@ A failed probe and an unimplemented feature look identical — the firmware
 answers nothing either way. Assume a malformed request before concluding a
 device lacks a capability, and say which of the two you observed.
 
+## Local credentials
+
+`cloud` mode needs a Govee API key. `lan` and `ble` need none, and the SDK
+starts fine without one.
+
+Keep the key in a `.env` file at the repository root:
+
+```bash
+cp .env.example .env        # then fill GOVEE_API_KEY in
+```
+
+`.env` is gitignored, and `.env.example` is the committed template. **Never
+commit a key.** Git keeps it after the fix, so a key that reaches a commit is
+revoked and reissued in the Govee Home app.
+
+Run a command with that file in its environment:
+
+```bash
+tools/with-env.sh cargo run --example cloud_tour --features cloud
+```
+
+The wrapper finds `.env` at the repository root, so the working directory does
+not matter. Every package reads its configuration from the environment, so one
+file serves the Rust, Python and Node packages. A variable already set in the
+caller's environment wins over the file.
+
+Two other paths reach the same key, and both are for an operator rather than a
+contributor: the `GOVEE_API_KEY` variable on its own, and a file of its own
+that `cloud.key_file` names in `~/.config/govee-toolkit/config.yaml`. The key
+never goes in `config.yaml` itself — people paste that file into bug reports.
+See [`docs/security.md`](docs/security.md).
+
 ## Tests
 
 Run the whole thing before pushing:

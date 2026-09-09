@@ -87,6 +87,10 @@ The only credential this project handles is the Govee cloud API key, used by
 - **It comes from the `GOVEE_API_KEY` environment variable, or from a separate
   file whose path the configuration names** — a file the operator can give
   restrictive permissions of its own.
+- **In development it lives in `.env` at the repository root**, which is
+  gitignored; `.env.example` is the committed template, and
+  `tools/with-env.sh <command>` puts the file in a command's environment. One
+  file serves the three packages, because each reads the environment.
 - **It never lives in `~/.config/govee-toolkit/config.yaml`.** People paste that
   file into bug reports and issues; a key in it leaks the day someone asks for
   help.
