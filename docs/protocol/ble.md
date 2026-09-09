@@ -163,6 +163,16 @@ All zones at once, one byte each, in zone order — as many bytes as the unit ha
 zones. There is no mask here: to leave a zone alone, the frame must repeat the
 current level of that zone.
 
+The firmware keeps these levels, and they are separate from the global
+brightness of §2.2. It applies them in the static color modes of §2.3, and it
+ignores them in a scene and in music mode, where it paints the zones itself.
+A unit whose levels hold a ramp therefore fades from one end to the other on a
+solid color, and looks correct on every animation.
+
+The vendor's app does not expose this setting, so the frame above is the only
+way to change it. Read the levels back with `aa a5 <group>` (§3) — three zones
+per group, and the only read that reports them.
+
 ### 2.6 Zone interpolation
 
 ```
