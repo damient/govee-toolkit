@@ -95,6 +95,16 @@ jobs:
         run: cargo doc --workspace --no-deps --all-features
         env:
           RUSTDOCFLAGS: -D warnings
+      # What docs.rs runs: the features and the flags from
+      # `[package.metadata.docs.rs]`, on the nightly rustdoc it builds with.
+      # `doc(cfg(...))` is nightly-only, so this step is where a broken
+      # published build is caught, rather than the docs.rs log after a release.
+      - name: docs.rs build
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo doc --no-deps --all-features
+        env:
+          RUSTUP_TOOLCHAIN: nightly
+          RUSTDOCFLAGS: --cfg docsrs -D warnings
 
   msrv:
     name: MSRV

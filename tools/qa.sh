@@ -63,8 +63,10 @@ have() { command -v "$1" >/dev/null 2>&1; }
 if have rustup && rustup toolchain list | grep -q '^nightly'; then
   # rustfmt.toml uses nightly-only options; stable rustfmt formats differently.
   check "rust fmt" env RUSTUP_TOOLCHAIN=nightly cargo fmt --all --check
+  nightly=yes
 else
   skip "rust fmt" "rustup toolchain install nightly"
+  nightly=no
 fi
 
 check "rust clippy" cargo clippy --workspace --all-targets --all-features -- -D warnings
@@ -72,6 +74,14 @@ check "rust test" cargo test --workspace --all-features
 # The codec has to keep building with no transport: no socket, no async runtime.
 check "codec alone" cargo check --no-default-features
 check "rust doc" env RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features
+# What docs.rs runs, from `[package.metadata.docs.rs]`. `doc(cfg(...))` is
+# nightly-only, so a stable pass above says nothing about the published build.
+if [ "$nightly" = yes ]; then
+  check "docs.rs build" env RUSTUP_TOOLCHAIN=nightly \
+    RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo doc --no-deps --all-features
+else
+  skip "docs.rs build" "rustup toolchain install nightly"
+fi
 check "device catalog" cargo run -q -p xtask
 check "compatibility tables" cargo run -q -p xtask -- compat --check
 

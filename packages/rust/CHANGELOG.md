@@ -5,6 +5,14 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 `publish = false`, and the same entries cover them. The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Changed
+
+- docs.rs builds the crate with `--all-features`, so `ble` and the crate-root
+  link to it are on the published pages, and every item carries a label naming
+  the feature that gates it. `[package.metadata.docs.rs]` sets it, and CI builds
+  the docs the same way so the published build is checked before a release
+  rather than after one.
+
 ### Removed
 
 - **Breaking:** `codec::Command::capture`. Read the provenance of a command's
