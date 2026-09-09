@@ -8,6 +8,7 @@ use self::command::{check_command, check_role_args};
 use self::modes::check_mode_capabilities;
 use crate::codec::catalog::{Command, Device, Mode, Role};
 
+mod cloud;
 mod command;
 mod modes;
 

@@ -329,6 +329,7 @@ mod tests {
             frames: Vec::new(),
             replies: Vec::new(),
             roles: std::collections::BTreeMap::new(),
+            request: None,
         };
         let error = check_frames(&command).expect_err("nothing to write");
         assert_eq!(error.code(), "serialize");

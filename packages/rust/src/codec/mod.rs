@@ -31,6 +31,7 @@ pub mod args;
 pub mod capabilities;
 pub mod catalog;
 pub mod chunk;
+pub mod cloud;
 pub mod command;
 pub mod error;
 pub mod exchange;

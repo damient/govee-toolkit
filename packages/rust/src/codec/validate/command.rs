@@ -11,6 +11,7 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
     problems.extend(check_reserved_args(command));
     problems.extend(check_documentation(mode, command));
     problems.extend(check_declaration(command));
+    problems.extend(super::cloud::check_cloud(mode, command));
 
     let exchanges = match Exchanges::parse(
         name,
@@ -44,7 +45,7 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
         }
     }
 
-    if command.cmd.is_empty() && exchanges.is_none() && chunked.is_none() {
+    if mode != Mode::Cloud && command.cmd.is_empty() && exchanges.is_none() && chunked.is_none() {
         problems
             .push("declares neither a `cmd:` nor a frame layout, so it sends nothing".to_owned());
     }
@@ -203,7 +204,9 @@ fn check_payload(mode: Mode, command: &Command, has_frame: bool) -> Vec<String> 
     if has_frame && wrapped && !placeholders.iter().any(|p| p == "frame") {
         problems.push("declares a `frame:` the payload never carries with `${frame}`".to_owned());
     }
-    if command.cmd.is_empty() && !command.payload.is_null() {
+    // A cloud payload is the capability's value, and the `capability:` carries
+    // it.
+    if mode != Mode::Cloud && command.cmd.is_empty() && !command.payload.is_null() {
         problems.push("declares a `payload:` but no `cmd:` to carry it".to_owned());
     }
     problems
@@ -213,7 +216,10 @@ fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {
     match value {
         serde_json::Value::String(s) => {
             if let Some(inner) = crate::codec::command::placeholder(s) {
-                out.push(inner.to_owned());
+                match crate::codec::command::packed_rgb(inner) {
+                    Some(channels) => out.extend(channels.iter().map(|c| (*c).to_owned())),
+                    None => out.push(inner.to_owned()),
+                }
             }
         }
         serde_json::Value::Object(map) => {
