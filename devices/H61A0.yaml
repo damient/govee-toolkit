@@ -63,7 +63,11 @@ modes:
       music: unprobed
     notes: >-
       This mode is the documented HTTPS API. It requires a Govee account and
-      internet. See docs/protocol/cloud.md.
+      internet. The state endpoint names segmentedColorRgb and
+      segmentedBrightness, which the control endpoint was never asked for.
+      TODO: send both, then record whether `segments` and `segment_brightness`
+      are unreachable over this transport or merely unprobed. See
+      docs/protocol/cloud.md.
 
 commands:
   lan:
@@ -423,7 +427,7 @@ measurements:
 verified:
   by: "damient"
   firmware: "2.06.02"
-  date: "2026-09-07"
+  date: "2026-09-09"
   notes: >-
     lan mode fully exercised, including the undocumented razer segment channel
     at native resolution. ble mode exercised over GATT on the same unit, against
@@ -465,6 +469,19 @@ verified:
     Effect 51 exercised the three-frame case, so the cutting is pinned both for
     a body that fits the header and the closing frame and for one that does
     not. What `params` a firmware takes past those six codes was not probed.
-    The cloud table comes from the `cloud-openapi` fragment and was NOT
-    exercised: no request has been sent to the Govee API for this unit. See
-    measurements above.
+    The cloud table was exercised against a live account on this unit, over
+    the documented HTTPS API. All five entries ran: power, brightness, color,
+    colortemp and status. The account list answered this device alone. A color
+    of 255, 40, 0 read back as 16721920. A colortemp of 4000 read back, and
+    colorRgb then reported 0; after a color write colorTemperatureK reported 0.
+    Color and white temperature are mutually exclusive over this API, as they
+    are over lan and ble.
+    `power` 1 restored the white temperature that the run before it left. The
+    device keeps its color setting through a power off — see
+    docs/protocol/state.md.
+    The state answer reported 12 keys, `online` included. Seven of them are
+    outside the table this file declares: segmentedBrightness,
+    segmentedColorRgb, musicMode, lightScene, diyScene, gradientToggle and
+    snapshot. Each answered an empty string. A capability the state endpoint
+    names is NOT evidence that the control endpoint writes it, and none of the
+    seven was sent. See measurements above.

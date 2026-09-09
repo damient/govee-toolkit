@@ -24,10 +24,10 @@ at.
 
 #### Added
 
-- `devices/families/cloud-openapi.yaml` — the five entries the documented HTTPS
-  API carries for a light: `power`, `brightness`, `color`, `colortemp` and
-  `status`. The capability names are the API's own; no unit was probed. `H61A0`
-  includes the fragment.
+- `devices/families/cloud-openapi.yaml` — the five entries the documented
+  HTTPS API carries for a light: `power`, `brightness`, `color`, `colortemp` and
+  `status`. The capability names are the API's own. `H61A0` includes the
+  fragment, and all five entries are verified on that unit.
 - The `cloud:` command table in `devices/schema.yaml`. An entry names one
   `capability:` and the `payload:` that is its value, or a `role: status` with
   the `reads:` that say which capability answers into which argument. This wire
@@ -40,10 +40,18 @@ at.
 
 #### Changed
 
-- `H61A0` — `modes.cloud` claims `power`, `brightness`, `color` and `colortemp`.
-  `segment_brightness` moves to `unreachable:` as `transport`: the documented
-  HTTPS API does not carry it. `modes.ble` becomes `full`, since it now reaches
+- `H61A0` — `modes.cloud` claims `power`, `brightness`, `color` and
+  `colortemp`, and every one is verified against a live account on the unit at
+  firmware 2.06.02. A color of 255, 40, 0 reads back as 16721920. Color and
+  white temperature exclude each other, as they do over `lan` and `ble`. The
+  state answer names a `segmentedColorRgb` instance and a `segmentedBrightness`
+  instance, and nobody sent either to the control endpoint: `segments` and
+  `segment_brightness` stay `unreachable:` as `transport`, and the file carries
+  a `TODO` to settle them. `modes.ble` becomes `full`, since it now reaches
   every capability the file declares.
+- A device stores its color setting through a power off, and `power` with `on`
+  = 1 restores it. `power` on is not a full state write. See
+  [`docs/protocol/state.md`](docs/protocol/state.md).
 
 #### Removed
 
