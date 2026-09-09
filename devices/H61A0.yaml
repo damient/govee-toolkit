@@ -21,7 +21,6 @@ capabilities:
   brightness:  { range: [1, 100] }
   color:
   colortemp:   { range_kelvin: [2000, 9000] }
-  scenes:
   music:
   segment_brightness:
   segments:
@@ -33,7 +32,6 @@ modes:
     support: partial
     capabilities: [power, brightness, color, colortemp, segments]
     unreachable:
-      scenes: transport
       segment_brightness: transport
       music: unprobed
     notes: >-
@@ -42,10 +40,9 @@ modes:
       global here: the segment channel carries color only. See
       docs/protocol/lan.md 2.5.
   ble:
-    support: partial
+    support: full
     capabilities: [power, brightness, color, colortemp, segments, segment_brightness, music]
-    unreachable:
-      scenes: unimplemented
+    unreachable: {}
     notes: >-
       Reaches these without the device being on the network. Music runs off
       the device's own microphone, at sub-mode 19, over two channels: one frame
@@ -53,20 +50,19 @@ modes:
       ones that do. Segments are narrower here than over lan: zones are
       addressed through a mask 15 bits wide, against the 42 individually
       addressable ICs the lan raw channel reaches, and bits past the fifteenth
-      reach nothing. Scenes ride the same chunked channel under another command
-      type, and which cutter each scene version takes was not established.
-      Wi-Fi provisioning works from here, through `provision_wifi()`. One
-      connection at a time: a connected device stops advertising. See
+      reach nothing. Wi-Fi provisioning works from here, through
+      `provision_wifi()`. One connection at a time: a connected device stops
+      advertising. See
       docs/protocol/ble.md.
   cloud:
     support: partial
-    capabilities: [power, brightness, color, colortemp, scenes, segment_brightness]
+    capabilities: [power, brightness, color, colortemp]
     unreachable:
       segments: transport
+      segment_brightness: transport
       music: unprobed
     notes: >-
-      Internal scenes and per-segment brightness travel over MQTT to AWS IoT,
-      and the per-segment color channel does not. Requires a Govee account and
+      This mode is the documented HTTPS API. It requires a Govee account and
       internet. See docs/protocol/cloud.md.
 
 commands:
@@ -258,7 +254,7 @@ commands:
         1 imposes the triplet. The zone mask has no field here. Every byte is
         read back at `read_mode`, an effect the firmware does not render
         included, so a read that echoes a value is not evidence that the device
-        plays it. See docs/protocol/ble.md 2.8.
+        plays it. See docs/protocol/ble.md 2.7.
 
     music_effect:
       documented: false
@@ -469,8 +465,6 @@ verified:
     Effect 51 exercised the three-frame case, so the cutting is pinned both for
     a body that fits the header and the closing frame and for one that does
     not. What `params` a firmware takes past those six codes was not probed.
-    Scenes were not worked out: they ride the same 0xA3 under another command
-    type, and no scene transfer has been sent to a device.
     The cloud table comes from the `cloud-openapi` fragment and was NOT
     exercised: no request has been sent to the Govee API for this unit. See
     measurements above.

@@ -11,7 +11,7 @@ use serde::Deserialize;
 
 use crate::codec::capabilities::{Capabilities, ModeCapabilities, Reason};
 use crate::codec::chunk::Chunk;
-use crate::codec::cloud::{Capability, Channel, Read};
+use crate::codec::cloud::{Capability, Read};
 use crate::codec::exchange::{Exchanges, Step};
 use crate::codec::measurements::Measurements;
 
@@ -136,8 +136,6 @@ pub struct Command {
     /// Which capability answers into which argument, on a `cloud` command that
     /// reads a status.
     pub reads: Vec<Read>,
-    /// Which cloud channel carries it. `http` unless the file says otherwise.
-    pub channel: Channel,
 
     /// The exchanges, tokenized on first use, so the send path parses a
     /// layout once and not once per command.

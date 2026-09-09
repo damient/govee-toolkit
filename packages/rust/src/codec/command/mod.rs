@@ -179,7 +179,6 @@ fn cloud(spec: &Command, value: &serde_json::Value, roles: BTreeMap<String, ArgR
         replies: Vec::new(),
         roles,
         request: Some(Request {
-            channel: spec.channel,
             reads: spec
                 .reads
                 .iter()

@@ -91,32 +91,21 @@ every `min_interval` per device, and a command that must wait longer than
 command, so this mode sends no status request after a write. A second request
 would spend the quota to learn what the first one already said.
 
-## 5. What only the cloud can do
+## 5. What this mode does not carry
 
-Two features are **cloud-only** and cannot be reached over LAN, wherever this
-has been checked:
+`cloud` mode is the documented HTTPS API, and nothing else. It carries power,
+brightness, color and color temperature, plus the state read.
 
-- **Internal scenes and DIY scenes** — published over MQTT to AWS IoT, with an
-  account topic and a transaction id. The `pt`, `ptReal`, `ptIotOp` and `bulb`
-  commands belong to that channel; probing them over UDP stays silent, because
-  the command exists but not on that transport.
-- **Per-segment brightness.** Over LAN, brightness is global — the segment
-  channel carries color only.
+Two capabilities are outside it:
 
-The manufacturer's scene library therefore needs `cloud` mode enabled, account
-and internet included. See [`lan.md`](lan.md) § 2.5.
+- **Per-segment brightness.** This API does not carry it. It travels on a
+  separate account channel, which this SDK does not implement.
+- **Per-segment color, and its frame rate.** `lan` reaches both; this API does
+  not expose them.
 
-A device file marks such a command `channel: iot`. The transport refuses one
-rather than approximate it over HTTPS: this build carries the HTTPS channel
-alone.
-
-## 6. What the cloud cannot do
-
-The cloud API does not expose the per-segment color channel that `lan` reaches,
-nor its frame rate. A device reached in `cloud` mode is limited to power /
-brightness / color.
-
-When several modes are enabled and the SDK moves to `cloud`, a command outside
-that set **fails explicitly**; it is never approximated.
+A device file marks both `unreachable: transport` under `cloud`, and declares
+no `cloud` command for either. When
+several modes are enabled and the SDK moves to `cloud`, a command outside the
+carried set **fails explicitly**; it is never approximated.
 
 <!-- TODO: detailed per-capability table, mode by mode -->

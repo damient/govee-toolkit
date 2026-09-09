@@ -6,7 +6,7 @@ trade-offs, and **the user chooses which ones to enable, per device**.
 
 | Mode | Latency | Range | Capabilities | Requires |
 | ---- | ------- | ----- | ------------ | -------- |
-| `lan` | lowest | same network | full, including the undocumented segment channel; not internal scenes | LAN Control enabled in the Govee Home app |
+| `lan` | lowest | same network | full, including the undocumented segment channel | LAN Control enabled in the Govee Home app |
 | `ble` | low | Bluetooth range | partial, depends on SKU family | a Bluetooth adapter on the host, and the device not already connected to something else |
 | `cloud` | highest (internet round-trip) | anywhere | reduced: power / brightness / color; throttled | a Govee API key, subject to rate limits |
 
@@ -134,8 +134,8 @@ and every mode transition is an event the application can subscribe to.
 ## Capability differences between modes
 
 Modes are not interchangeable, and neither is a superset of the other: `cloud`
-does not expose the undocumented segment channel `lan` reaches, and `lan` does
-not reach the internal scenes or the per-segment brightness `cloud` carries
+does not expose the undocumented segment channel `lan` reaches, and `ble` does
+not reach the network at all
 ([`protocol/cloud.md`](protocol/cloud.md)). When several modes are enabled and
 the SDK switches, a command unsupported by the active mode **fails explicitly**
 rather than being silently approximated.

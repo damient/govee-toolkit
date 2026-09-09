@@ -14,7 +14,6 @@ capabilities:
   power:
   brightness:  { range: [0, 255] }
   color:
-  scenes:
   music:
   # No segments and no segment_brightness: the four strips are RGB, not RGBIC,
   # and they are wired in two lines off one control box. There is one color for
@@ -37,7 +36,7 @@ modes:
       model is absent from Govee's LAN-control list.
   ble:
     support: full
-    capabilities: [power, brightness, color, scenes, music]
+    capabilities: [power, brightness, color, music]
     unreachable: {}
     notes: >-
       The color sub-mode is 13, and its payload carries a 16-bit kelvin field
@@ -48,7 +47,7 @@ modes:
     capabilities: []
     unreachable: {}
     notes: >-
-      With no network interface the device never reaches AWS IoT. It is
+      With no network interface the device never reaches the cloud API. It is
       registered to the Govee account over Bluetooth.
 
 commands:
@@ -91,17 +90,6 @@ commands:
         fades from one color to the next rather than cutting, and no frame was
         found that turns that off. See docs/protocol/ble.md 2.3.
 
-    scene:
-      documented: false
-      frame: "33 05 04 ${scene} <pad:20> <xor>"
-      args:
-        scene: { type: int, range: [0, 255] }
-      notes: >-
-        Sub-mode 4. The identifiers were not enumerated: 4 renders a fixed white
-        and 8 blinks through changing colors on the unit. The vendor app's own
-        scene names do not match those two, so nothing here maps an identifier
-        to an effect. See docs/protocol/ble.md 2.7.
-
     music:
       documented: false
       frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
@@ -122,7 +110,7 @@ commands:
         here. `color_mode` 0 lets the firmware choose the colors and ignores the
         triplet, which the device keeps stored from the last frame that carried
         one; 1 plays the triplet. The firmware accepts a value past every range
-        above and reads it back. See docs/protocol/ble.md 2.8.
+        above and reads it back. See docs/protocol/ble.md 2.7.
 
     status:
       documented: false
@@ -149,9 +137,8 @@ commands:
         The live sub-mode and its eight payload bytes, left uninterpreted: their
         meaning depends on the sub-mode, and the color one and the music one are
         the two this file works out. This read reports what is playing — writing
-        a color moved it to 13 with that color, writing a scene moved it to 4
-        with that identifier, and writing music moved it to 19 with every field
-        of the frame. See docs/protocol/ble.md 3.
+        a color moved it to 13 with that color, and writing music moved it to 19
+        with every field of the frame. See docs/protocol/ble.md 3.
 
     read_software_version:
       documented: false
@@ -215,5 +202,4 @@ verified:
     in the `soft` byte included, which is not evidence that the device plays it.
     The vendor app drives this device at sub-mode 3, which carries neither an
     `effect` byte nor a `soft` byte, so neither field has a value the app writes
-    to compare against. DIY and Wi-Fi provisioning were not exercised. Scene
-    identifiers were not enumerated.
+    to compare against. DIY and Wi-Fi provisioning were not exercised.

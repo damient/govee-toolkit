@@ -17,7 +17,6 @@ use tokio::sync::{broadcast, watch};
 pub use self::options::Options;
 use self::shared::{Shared, Tracked};
 use crate::cloud::{api, status};
-use crate::codec::cloud::Channel;
 use crate::codec::{Encoded, Mode};
 use crate::transport::error::{Error, Result};
 use crate::transport::registry::{Devices, publish_sent};
@@ -224,7 +223,6 @@ impl Transport {
                     .to_owned(),
             });
         }
-        channel(request)?;
         let sku = self.shared.claim(id).await?;
 
         let outcome = self.shared.client.state(&sku, id.as_str()).await;
@@ -238,9 +236,14 @@ impl Transport {
     }
 }
 
-/// The capability object a write carries, and the channel it goes out on.
+/// The capability object a write carries.
 fn capability(command: &Encoded) -> Result<&serde_json::Value> {
-    channel(command)?;
+    if command.request.is_none() {
+        return Err(Error::Serialize {
+            cmd: command.cmd.clone(),
+            reason: "encoded for another mode: it carries no cloud request".to_owned(),
+        });
+    }
     command
         .message
         .as_ref()
@@ -249,23 +252,4 @@ fn capability(command: &Encoded) -> Result<&serde_json::Value> {
             cmd: command.cmd.clone(),
             reason: "the command carries no capability to write".to_owned(),
         })
-}
-
-/// A command on the account's MQTT channel is refused here rather than
-/// approximated over HTTPS — see `docs/protocol/cloud.md`.
-fn channel(command: &Encoded) -> Result<()> {
-    match command.request.as_ref().map(|request| request.channel) {
-        Some(Channel::Http) => Ok(()),
-        Some(Channel::Iot) => Err(Error::NoReplyLayout {
-            mode: Mode::Cloud,
-            reason: format!(
-                "`{}` travels on the account's MQTT channel, which this build does not carry",
-                command.cmd
-            ),
-        }),
-        None => Err(Error::Serialize {
-            cmd: command.cmd.clone(),
-            reason: "encoded for another mode: it carries no cloud request".to_owned(),
-        }),
-    }
 }

@@ -142,7 +142,7 @@
     },
     {
       "name": "a command this mode does not carry",
-      "command": "scene",
+      "command": "not_a_command",
       "args": {},
       "code": "unknown_command"
     }

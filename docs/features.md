@@ -31,7 +31,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | --- | ------- |
 | ✅ | **`lan`** — power, brightness, color and color temperature over UDP, plus per-segment color |
 | ✅ | **`ble`** — power, brightness, color and color temperature over GATT, plus per-zone color. Off-network, within radio range, behind the `ble` cargo feature |
-| 🚧 | **`cloud`** — opt-in, reaches any device the account owns from anywhere, throttled, reduced to power / brightness / color. Behind the `cloud` cargo feature. The account's MQTT channel, which carries the internal scenes, is not implemented |
+| 🚧 | **`cloud`** — opt-in, the documented HTTPS API. Reaches any device the account owns from anywhere, throttled, reduced to power / brightness / color / color temperature. Behind the `cloud` cargo feature |
 
 ## SDKs
 
@@ -48,7 +48,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 
 | | Feature |
 | --- | ------- |
-| 🔜 | **Web playground** — device list with per-mode state badges, power / brightness / color / scenes controls, latency log |
+| 🔜 | **Web playground** — device list with per-mode state badges, power / brightness / color controls, latency log |
 | 🔜 | **Raw payload field** — send a custom JSON command straight to a device, to try a discovery before you formalize it |
 | 🔜 | **Desktop app (Electron)** — same backend and UI as the playground, auto-discovery on launch, tray icon |
 | ✅ | **Device simulator** (`packages/rust/crates/sim`) — a fake `lan` device on UDP and a fake `ble` peripheral on GATT, both with fault injection, so tests run without hardware or an adapter |
@@ -59,5 +59,5 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | | Feature |
 | --- | ------- |
 | 🔜 | **Matter bridge** — one integration, reachable from any Matter controller |
-| 🔜 | **Home Assistant** — custom component distributable through HACS, carries the LAN scenes and segments Matter cannot express |
+| 🔜 | **Home Assistant** — custom component distributable through HACS, carries the LAN segment channel Matter cannot express |
 | 🔜 | **Homebridge** — HomeKit plugin |

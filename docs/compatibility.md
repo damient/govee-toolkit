@@ -66,26 +66,26 @@ such in the device file until someone verifies them.
 | SKU | Family | Name | `lan` | `ble` | `cloud` | Verified |
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
 | [H6114](../devices/H6114.yaml) | rgb-car-strip | RGB Car LED Strip Lights | none | full | none | ✅ 2026-09-07 |
-| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | partial | partial | partial | ✅ 2026-09-07 |
+| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | partial | full | partial | ✅ 2026-09-07 |
 <!-- /generated -->
 
 ## Capabilities by SKU
 
 <!-- generated: capabilities-by-sku -->
-| SKU | brightness | color | colortemp | music | power | scenes | segment_brightness | segments |
-| --- | ---------- | ----- | --------- | ----- | ----- | ------ | ------------------ | -------- |
-| H6114 | ✅ | ✅ | — | ✅ | ✅ | ✅ | — | — |
-| H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| SKU | brightness | color | colortemp | music | power | segment_brightness | segments |
+| --- | ---------- | ----- | --------- | ----- | ----- | ------------------ | -------- |
+| H6114 | ✅ | ✅ | — | ✅ | ✅ | — | — |
+| H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 <!-- /generated -->
 
 Capabilities are hardware facts; what is reachable depends on the active mode.
 The columns are the capabilities the device files declare, so one no file
 declares has no column.
 Where the undocumented `razer` channel is implemented, `lan` reaches per-segment
-color beyond the 10 zones the Govee app exposes, but neither internal scenes nor
-per-segment brightness. Where it is implemented, `ble` reaches per-segment
-brightness and a narrower per-segment color — fifteen zones by mask, fewer than
-the LEDs the unit addresses individually. The device file carries the counts.
+color beyond the 10 zones the Govee app exposes, but not per-segment brightness.
+Where it is implemented, `ble` reaches per-segment brightness and a narrower
+per-segment color — fifteen zones by mask, fewer than the LEDs the unit
+addresses individually. The device file carries the counts.
 
 ## Prerequisites per mode
 
@@ -103,10 +103,8 @@ the LEDs the unit addresses individually. The device file carries the counts.
 Verified on the devices in the table above — confirm before generalizing to
 another:
 
-- **Internal scenes and DIY scenes are cloud-only.** They travel over MQTT to
-  AWS IoT, not over UDP. See [`protocol/lan.md`](protocol/lan.md) § 2.5.
 - **Per-segment brightness does not travel over `lan`.** Brightness is global
-  there. `ble` carries it, per zone and by mask, and so does the cloud.
+  there. `ble` carries it, per zone and by mask.
 - **Nothing is ever rejected.** Out-of-range values are clamped in silence and
   unknown commands are ignored with no error — a failed probe looks exactly like
   an unsupported feature.

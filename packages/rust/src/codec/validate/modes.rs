@@ -94,16 +94,12 @@ mod tests {
     #[test]
     fn a_probed_mode_accounts_for_every_capability() {
         let found = problems(
-            "  power:\n  scenes:\n",
+            "  power:\n  music:\n",
             "    support: partial\n    capabilities: [power]\n\
              \n    unreachable: {}\n",
         );
         assert_eq!(found.len(), 2, "{found:?}");
-        assert!(
-            found
-                .iter()
-                .any(|m| m.contains("says nothing about scenes"))
-        );
+        assert!(found.iter().any(|m| m.contains("says nothing about music")));
         assert!(
             found
                 .iter()
@@ -114,9 +110,9 @@ mod tests {
     #[test]
     fn an_explained_capability_settles_it() {
         let found = problems(
-            "  power:\n  scenes:\n",
+            "  power:\n  music:\n",
             "    support: partial\n    capabilities: [power]\n\
-             \n    unreachable:\n      scenes: transport\n",
+             \n    unreachable:\n      music: transport\n",
         );
         assert!(found.is_empty(), "{found:?}");
     }
@@ -125,10 +121,10 @@ mod tests {
     fn a_mode_may_not_name_a_capability_the_device_lacks() {
         let found = problems(
             "  power:\n",
-            "    support: full\n    capabilities: [power, scenes]\n",
+            "    support: full\n    capabilities: [power, music]\n",
         );
         assert_eq!(found.len(), 1, "{found:?}");
-        assert!(found[0].contains("`scenes` is not a capability"));
+        assert!(found[0].contains("`music` is not a capability"));
     }
 
     #[test]
@@ -145,7 +141,7 @@ mod tests {
 
     #[test]
     fn an_unprobed_mode_owes_no_answer() {
-        let found = problems("  power:\n  scenes:\n", "    support: unknown\n");
+        let found = problems("  power:\n  music:\n", "    support: unknown\n");
         assert!(found.is_empty(), "{found:?}");
     }
 }

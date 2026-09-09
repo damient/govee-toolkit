@@ -41,7 +41,6 @@ capabilities:
   #   brightness:         { range: [1, 100] }
   #   colortemp:          { range_kelvin: [2000, 9000] }
   #   color:
-  #   scenes:
   #   segments:           { count: 10, native_pixels: 42 }
   #   segment_brightness:
   #   sensors:
@@ -327,11 +326,6 @@ commands:
   cloud:
     # <command-name>:
     #   documented: true | false
-    #   channel: http | iot           # http, the documented HTTPS API, is the
-    #                                 # default. `iot` marks a command only the
-    #                                 # account's MQTT channel carries; a
-    #                                 # transport asked for one fails, and no
-    #                                 # build sends one yet
     #   capability:                   # what the API calls what this command
     #     type: ""                    # writes, spelled as the API spells it
     #     instance: ""
