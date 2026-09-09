@@ -6,24 +6,27 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::codec::catalog::{ArgRole, Device, Mode};
+use crate::codec::catalog::{ArgRole, Command, Device, Mode};
+use crate::codec::cloud::Request;
 use crate::codec::error::{Error, Result};
 use crate::codec::reply::Layout as ReplyLayout;
 use crate::codec::{Args, chunk, exchange};
 
 mod resolve;
 
-pub(crate) use resolve::placeholder;
+pub(crate) use resolve::{packed_rgb, placeholder};
 use resolve::{resolve, substitute};
 
 /// A command ready to send.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Encoded {
-    /// The value carried in `msg.cmd`, empty where the wire carries no
-    /// envelope.
+    /// The value carried in `msg.cmd` over `lan`, the capability instance
+    /// over `cloud`, empty where the wire carries no name.
     pub cmd: String,
-    /// The whole `{"msg":{"cmd":…,"data":…}}` envelope. `None` where the mode
-    /// puts the frames on the wire with nothing wrapped around them.
+    /// The whole `{"msg":{"cmd":…,"data":…}}` envelope over `lan`, and the
+    /// `{"capability":…}` a `cloud` request carries. `None` where the mode
+    /// puts the frames on the wire with nothing wrapped around them, and on a
+    /// `cloud` command that only reads.
     pub message: Option<serde_json::Value>,
     /// The raw frames, in the order they go out. Empty for a command that
     /// travels in its envelope alone. A single frame also reaches `message`
@@ -35,6 +38,9 @@ pub struct Encoded {
     /// The role each captured field carries, where `args:` marks one, so a
     /// transport reads a status without a field name reaching this crate.
     pub roles: BTreeMap<String, ArgRole>,
+    /// What a `cloud` command needs beyond the body. `None` on every other
+    /// mode.
+    pub request: Option<Request>,
 }
 
 impl Encoded {
@@ -105,9 +111,12 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
         (None, Some(layout)) => vec![layout.body()],
         (None, None) => Vec::new(),
     };
-    let captured: BTreeSet<&str> = exchanges
+    // A `reply:` and a cloud `reads:` are the same claim: the device fills
+    // that argument in, so the caller supplies none.
+    let mut captured: BTreeSet<&str> = exchanges
         .map(|e| e.capture_names().collect())
         .unwrap_or_default();
+    captured.extend(spec.reads.iter().map(|read| read.arg.as_str()));
     let resolved = resolve(command, spec, &sends, &captured, args)?;
 
     let (frames, replies) = match (exchanges, chunked) {
@@ -123,13 +132,26 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
         .flatten();
     let data = substitute(command, &spec.payload, &resolved, single)?;
 
-    let roles = captured
+    let mut roles: BTreeMap<String, ArgRole> = captured
         .iter()
         .filter_map(|name| {
             let role = spec.args.get(*name)?.role()?;
             Some(((*name).to_owned(), role))
         })
         .collect();
+
+    if mode == Mode::Cloud {
+        for read in &spec.reads {
+            if let Some(role) = spec
+                .args
+                .get(&read.arg)
+                .and_then(crate::codec::ArgSpec::role)
+            {
+                roles.insert(read.arg.clone(), role);
+            }
+        }
+        return Ok(cloud(spec, &data, roles));
+    }
 
     Ok(Encoded {
         cmd: spec.cmd.clone(),
@@ -138,7 +160,33 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
         frames,
         replies,
         roles,
+        request: None,
     })
+}
+
+/// The cloud shape: one capability and its value, or a read that names the
+/// capabilities it wants back.
+fn cloud(spec: &Command, value: &serde_json::Value, roles: BTreeMap<String, ArgRole>) -> Encoded {
+    let capability = spec.capability.as_ref();
+    Encoded {
+        cmd: capability.map(|c| c.instance.clone()).unwrap_or_default(),
+        message: capability.map(|c| {
+            serde_json::json!({
+                "capability": { "type": c.kind, "instance": c.instance, "value": value },
+            })
+        }),
+        frames: Vec::new(),
+        replies: Vec::new(),
+        roles,
+        request: Some(Request {
+            channel: spec.channel,
+            reads: spec
+                .reads
+                .iter()
+                .map(|read| (read.instance.clone(), read.arg.clone()))
+                .collect(),
+        }),
+    }
 }
 
 #[cfg(test)]

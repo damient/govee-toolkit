@@ -72,6 +72,27 @@ pub enum Error {
         reason: String,
     },
 
+    /// The mode's API answered, and the answer is a refusal.
+    #[error("{endpoint}: the API answered {status}: {reason}")]
+    Api {
+        /// Where the request went.
+        endpoint: String,
+        /// The status it answered with, from the response or from the body.
+        status: u16,
+        /// What it said.
+        reason: String,
+    },
+
+    /// The quota is spent. Nothing was sent, and no other mode is tried: the
+    /// facade decides that.
+    #[error("`{mode}`: rate limited; {retry_after_ms} ms to wait")]
+    RateLimited {
+        /// The mode that is limited.
+        mode: Mode,
+        /// How long to wait. `0` where nothing said.
+        retry_after_ms: u64,
+    },
+
     /// The transport's receive loop is gone, so nothing can be sent or awaited.
     #[error("the transport has been shut down")]
     ShutDown,
@@ -111,6 +132,8 @@ impl Error {
             Self::Serialize { .. } => "serialize",
             Self::Option { .. } => "out_of_range",
             Self::NoReplyLayout { .. } => "no_reply_layout",
+            Self::Api { .. } => "api",
+            Self::RateLimited { .. } => "rate_limited",
             Self::ShutDown => "shut_down",
             Self::Io { .. } => "io",
             Self::Cache { .. } => "cache",

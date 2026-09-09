@@ -111,6 +111,11 @@ pub enum ArgRole {
     /// The device's brightness, captured from a reply, in whatever unit the
     /// firmware reports it.
     Brightness,
+    /// The lit color, captured from a reply, packed as `0xRRGGBB`.
+    Color,
+    /// The white temperature, captured from a reply, in kelvin. `0` reports a
+    /// device in color mode.
+    ColorTemp,
     /// The network name to join, on a [`Role::WifiProvision`] command.
     Network,
     /// The password of that network. Plaintext on the wire.
@@ -137,13 +142,15 @@ pub enum ArgRole {
 }
 
 impl ArgRole {
-    pub(crate) const ALL: [Self; 15] = [
+    pub(crate) const ALL: [Self; 17] = [
         Self::Enable,
         Self::Colors,
         Self::Zones,
         Self::Gradient,
         Self::On,
         Self::Brightness,
+        Self::Color,
+        Self::ColorTemp,
         Self::Network,
         Self::Password,
         Self::RunMode,
@@ -163,6 +170,8 @@ impl ArgRole {
             | Self::Gradient
             | Self::On
             | Self::Brightness
+            | Self::Color
+            | Self::ColorTemp
             | Self::RunMode
             | Self::TimezoneHours
             | Self::TimezoneMinutes
@@ -185,6 +194,8 @@ impl fmt::Display for ArgRole {
             Self::Gradient => "gradient",
             Self::On => "on",
             Self::Brightness => "brightness",
+            Self::Color => "color",
+            Self::ColorTemp => "color_temp",
             Self::Network => "network",
             Self::Password => "password",
             Self::RunMode => "run_mode",

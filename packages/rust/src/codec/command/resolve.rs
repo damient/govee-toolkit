@@ -172,6 +172,9 @@ pub(super) fn substitute(
                 }
                 return Ok(Value::String(s.clone()));
             };
+            if let Some(channels) = packed_rgb(name) {
+                return pack_rgb(command, channels, args);
+            }
             match (name, args.get(name)) {
                 ("frame", _) if frame.is_some() => {
                     Value::String(BASE64.encode(frame.unwrap_or_default()))
@@ -198,6 +201,45 @@ pub(super) fn substitute(
         ),
         other => other.clone(),
     })
+}
+
+/// The three arguments a `${r,g,b:rgb24}` placeholder names.
+///
+/// One integer, `0xRRGGBB`, out of the three channels a mode that carries a
+/// color as one number wants. The frame layouts name the same three
+/// arguments, so one command reads the same over every mode.
+pub(crate) fn packed_rgb(inner: &str) -> Option<[&str; 3]> {
+    let names = inner.strip_suffix(":rgb24")?;
+    let mut parts = names.split(',').map(str::trim);
+    let channels = [parts.next()?, parts.next()?, parts.next()?];
+    if parts.next().is_some() || channels.iter().any(|name| name.is_empty()) {
+        return None;
+    }
+    Some(channels)
+}
+
+/// The three channels, packed into `0xRRGGBB`.
+fn pack_rgb(command: &str, channels: [&str; 3], args: &Args) -> Result<serde_json::Value> {
+    let mut packed: i64 = 0;
+    for name in channels {
+        let Some(ArgValue::Int(value)) = args.get(name) else {
+            return Err(Error::UnresolvedPlaceholder {
+                command: command.to_owned(),
+                name: name.to_owned(),
+            });
+        };
+        if !(0..=255).contains(value) {
+            return Err(Error::OutOfRange {
+                command: command.to_owned(),
+                arg: name.to_owned(),
+                value: *value,
+                min: 0,
+                max: 255,
+            });
+        }
+        packed = (packed << 8) | *value;
+    }
+    Ok(serde_json::Value::from(packed))
 }
 
 /// The name inside a whole-string `${name}` placeholder.

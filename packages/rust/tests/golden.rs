@@ -41,6 +41,10 @@ struct Vector {
     /// Every frame, in order, for a command that sends several.
     #[serde(default)]
     frames_hex: Option<Vec<String>>,
+    /// Which argument each capability answers into, on a mode that reads a
+    /// status by capability.
+    #[serde(default)]
+    reads: BTreeMap<String, String>,
 }
 
 impl Vector {
@@ -189,6 +193,13 @@ fn vectors_match() {
                 "{file} / {}: envelope",
                 vector.name
             );
+
+            let reads = encoded
+                .request
+                .as_ref()
+                .map(|request| request.reads.clone())
+                .unwrap_or_default();
+            assert_eq!(reads, vector.reads, "{file} / {}: reads", vector.name);
 
             let actual: Vec<String> = encoded
                 .frames
