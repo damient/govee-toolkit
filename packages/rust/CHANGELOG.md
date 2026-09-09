@@ -44,6 +44,17 @@ for.
   into `0xRRGGBB`, which is how the cloud API carries a color. The three keep
   the names the frame layouts give them, so `color` takes the same arguments
   over every mode.
+- `Govee::shutdown()` — release what every transport holds, before the program
+  ends. Over `ble` it holds each open link open long enough for the last frame
+  to leave, since that wire acknowledges nothing. Every other mode does
+  nothing here. A transport serves commands again afterwards, at the cost of a
+  new connection.
+- `Transport::close()`, with a default that does nothing — the same seam for
+  an implementation of the trait. `ble::Transport::close()` overrides it.
+- `ble::Options::write_drain` — how long `close()` holds a link open for a unit
+  whose device file records no `measurements.ble.write_drain_ms`. 50 ms by
+  default. A device file that records the field wins over it.
+- `codec::measurements::Ble::write_drain_ms`, read off each device file.
 
 ### Changed
 
@@ -61,6 +72,11 @@ for.
 
 ### Fixed
 
+- A command written over `ble` reaches the device when the program ends right
+  after it. The write characteristic refuses a write with a response, so a
+  frame carries no acknowledgement, and a link dropped too early loses it in
+  silence. Call `Govee::shutdown()` before the program ends. See
+  [`../../docs/protocol/ble.md`](../../docs/protocol/ble.md) §1.4.
 - `Transport::last_status` reports a status that arrived while nothing was
   watching the device. The value is replaced rather than sent, so a mode that
   publishes a status outside a `status()` call keeps it.

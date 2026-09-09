@@ -28,6 +28,14 @@ pub struct Options {
     /// [`Transport::start`](super::Transport::start) refuses any other value;
     /// it never clamps.
     pub writes_per_second: f64,
+    /// How long [`Transport::close`](super::Transport::close) holds a link
+    /// open, so that the last frame written on it goes out. This wire takes no
+    /// acknowledgement: the write characteristic refuses a write with a
+    /// response, so nothing reports a frame the link dropped before it left.
+    ///
+    /// A device file that records `measurements.ble.write_drain_ms` wins over
+    /// this value, which serves a unit whose file records none.
+    pub write_drain: Duration,
     /// How many frames may go out back to back before the budget applies. Must
     /// be at least one. It applies to every device: the device files record
     /// the count that stalled a unit, which is not a safe burst.
@@ -47,6 +55,9 @@ impl Default for Options {
             connect_timeout: Duration::from_secs(10),
             status_timeout: Duration::from_secs(1),
             verify_interval: Some(Duration::from_secs(1)),
+            // A starting point for a unit nobody measured. One close pays it
+            // once. A device file that records `ble.write_drain_ms` wins.
+            write_drain: Duration::from_millis(50),
             // Measured on one H61A0, the only unit anybody measured, and a
             // starting point for any other. See `crate::ble::pace`.
             writes_per_second: 100.0,

@@ -125,6 +125,23 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// command declares no reply to read, or where the mode's replies are not
     /// frames at all.
     async fn read(&self, id: &DeviceId, request: &Encoded) -> Result<Reply>;
+
+    /// Release what this transport holds, before it is dropped.
+    ///
+    /// A mode whose wire takes no acknowledgement needs this: it cannot know
+    /// that a frame left, so it holds the link open long enough for the frame
+    /// to go out. The default does nothing, which is right for a mode that
+    /// writes to a socket the operating system owns.
+    ///
+    /// A transport answers commands again after this call. It releases what it
+    /// holds; it does not refuse later work.
+    ///
+    /// # Errors
+    ///
+    /// Whatever the mode reports.
+    async fn close(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// A device's identity: the MAC address it reports.

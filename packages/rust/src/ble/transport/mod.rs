@@ -6,6 +6,7 @@
 //! matches the device file's `reply:` layout.
 
 mod discover;
+mod drain;
 mod impl_transport;
 mod links;
 mod options;
@@ -17,6 +18,7 @@ use std::time::{Duration, Instant};
 
 use tokio::sync::{broadcast, watch};
 
+use self::drain::Drains;
 pub use self::options::Options;
 #[cfg(test)]
 use self::shared::Tracked;
@@ -79,9 +81,12 @@ impl Transport {
     ) -> Result<Self> {
         let budget = Budget::new(options.writes_per_second, options.burst)?;
         let per_sku = Budgets::from_catalog(catalog).checked(budget)?;
+        let drains = Drains::from_catalog(catalog);
         let (events, _) = broadcast::channel(256);
         Ok(Self {
-            shared: Arc::new(Shared::new(options, budget, per_sku, events, adapter)),
+            shared: Arc::new(Shared::new(
+                options, budget, per_sku, drains, events, adapter,
+            )),
         })
     }
 
@@ -170,6 +175,44 @@ impl Transport {
     #[must_use]
     pub fn last_status(&self, id: &DeviceId) -> Option<DeviceStatus> {
         self.shared.devices.last_status(id)
+    }
+
+    /// Drop every open link, and hold them open first for as long as the
+    /// slowest of them needs.
+    ///
+    /// The write characteristic of this wire refuses a write with a response,
+    /// so a frame carries no acknowledgement and a link dropped too early
+    /// loses it in silence. The wait is what a caller pays to know that the
+    /// last command went out. It comes from each device file's
+    /// `measurements.ble.write_drain_ms`, and from
+    /// [`Options::write_drain`] for a unit whose file records none.
+    ///
+    /// A command that arrives afterwards opens its own connection, which costs
+    /// seconds.
+    ///
+    /// # Errors
+    ///
+    /// Nothing. It answers a `Result` because the trait does.
+    pub async fn close(&self) -> Result<()> {
+        let taken = self.shared.take_links();
+        let mut open = Vec::with_capacity(taken.len());
+        let mut skus = Vec::with_capacity(taken.len());
+        for (id, slot) in &taken {
+            if let Some(link) = slot.lock().await.take() {
+                open.push(link);
+                skus.push(self.shared.devices.sku(id));
+            }
+        }
+        if open.is_empty() {
+            return Ok(());
+        }
+        let wait = self.shared.drains.longest(
+            skus.iter().map(Option::as_deref),
+            self.shared.options.write_drain,
+        );
+        tokio::time::sleep(wait).await;
+        drop(open);
+        Ok(())
     }
 
     /// Write a command out, one frame at a time and at the device's budget.

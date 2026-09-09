@@ -120,6 +120,32 @@ impl Govee {
             .collect()
     }
 
+    /// Release what every transport holds, before this handle is dropped.
+    ///
+    /// Call it before the program ends. The `ble` wire takes no
+    /// acknowledgement, so a link dropped too early loses the frame it was
+    /// carrying and reports nothing. This holds each link open long enough for
+    /// the frame to go out. Every other mode does nothing here.
+    ///
+    /// A transport answers commands again afterwards, at the cost of a new
+    /// connection.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Transport`] if a transport reports a failure while it
+    /// releases. Every transport is closed, whichever one fails.
+    pub async fn shutdown(&self) -> Result<()> {
+        let mut first = Ok(());
+        for transport in self.inner.transports.values() {
+            if let Err(e) = transport.close().await
+                && first.is_ok()
+            {
+                first = Err(Error::from(e));
+            }
+        }
+        first
+    }
+
     /// A handle for one device.
     #[must_use]
     pub fn device(&self, id: &DeviceId) -> DeviceHandle<'_> {

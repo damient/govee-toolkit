@@ -59,8 +59,9 @@ impl FrameRates {
 
 /// The `measurements.ble` block: what one unit did over Bluetooth.
 ///
-/// [`Ble::write_budget_hz`] is the one field the SDK reads. The `ble` transport
-/// paces its writes to it.
+/// [`Ble::write_budget_hz`] and [`Ble::write_drain_ms`] are the fields the SDK
+/// reads. The `ble` transport paces its writes to the first, and holds a link
+/// open for the second before it drops it.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct Ble {
@@ -71,6 +72,10 @@ pub struct Ble {
     /// Writes per second the transport paces itself to, at or under
     /// `sustained_writes_hz`. [`crate::codec::validate`] checks that.
     pub write_budget_hz: Option<f64>,
+    /// How long a link must stay open after a write, in milliseconds, for the
+    /// frame to leave. The wire takes no acknowledgement, so a link dropped
+    /// sooner loses the frame and reports nothing.
+    pub write_drain_ms: Option<u64>,
     /// Frames in one burst that left the firmware unresponsive. The count
     /// that broke the unit, never a burst allowance.
     pub burst_frames_before_stall: Option<u32>,
@@ -86,7 +91,8 @@ pub struct Ble {
 
 /// Numbers taken from one physical unit.
 ///
-/// The SDK reads [`Measurements::frame_rate`] and [`Ble::write_budget_hz`].
+/// The SDK reads [`Measurements::frame_rate`], [`Ble::write_budget_hz`] and
+/// [`Ble::write_drain_ms`].
 /// Everything else a device file records lands in [`Measurements::extra`],
 /// untouched.
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -144,6 +150,7 @@ ble:
   read_round_trip_ms: 63
   sustained_writes_hz: 130
   write_budget_hz: 100
+  write_drain_ms: 50
   burst_frames_before_stall: 100
   burst_recovery_s: 20
   addressable_zones: 15
@@ -172,6 +179,7 @@ frame_rate:
     fn the_write_budget_is_read_off_the_unit_that_was_measured() {
         let m = measured();
         assert_eq!(m.ble.write_budget_hz, Some(100.0));
+        assert_eq!(m.ble.write_drain_ms, Some(50));
         assert_eq!(m.ble.sustained_writes_hz, Some(130.0));
         assert_eq!(m.ble.burst_frames_before_stall, Some(100));
         assert!(m.ble.extra.is_empty());
@@ -181,6 +189,7 @@ frame_rate:
     fn a_unit_nobody_measured_over_ble_records_no_budget() {
         let m: Measurements = serde_norway::from_str("unit_length_m: 5").expect("parses");
         assert_eq!(m.ble.write_budget_hz, None);
+        assert_eq!(m.ble.write_drain_ms, None);
     }
 
     #[test]
