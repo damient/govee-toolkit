@@ -103,6 +103,19 @@ impl CloudConfig {
         Ok((!key.is_empty()).then_some(key))
     }
 
+    /// What to set when no key is available, or `None` when one is.
+    ///
+    /// A key file that cannot be read answers as a missing key. This is
+    /// consulted to explain a mode that has no transport, and
+    /// [`CloudConfig::key`] reports the read error on the path that needs the
+    /// key itself.
+    pub(crate) fn missing_key(&self) -> Option<&'static str> {
+        match self.key() {
+            Ok(Some(_)) => None,
+            Ok(None) | Err(_) => Some("set GOVEE_API_KEY or `cloud.key_file`"),
+        }
+    }
+
     /// The transport options this configuration asks for, or `None` where no
     /// key is available.
     ///
@@ -130,8 +143,50 @@ impl CloudConfig {
 
 #[cfg(all(test, feature = "cloud"))]
 mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used)]
+
     use super::*;
     use crate::transport::millis;
+
+    #[test]
+    fn a_configuration_with_no_key_names_what_to_set() {
+        let cloud = CloudConfig::default();
+        // `key()` reads the process environment, and this test cannot change
+        // it: `set_var` needs `unsafe`, which the workspace forbids. So assert
+        // the branch that the environment selects. Both are the behaviour
+        // under test, and `tools/with-env.sh cargo test` runs the first.
+        match std::env::var(KEY_ENV) {
+            Ok(key) if !key.trim().is_empty() => assert_eq!(cloud.missing_key(), None),
+            _ => {
+                let remedy = cloud.missing_key().expect("no key, so a remedy");
+                assert!(
+                    remedy.contains(KEY_ENV),
+                    "the remedy names {KEY_ENV}: {remedy}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_key_file_supplies_the_key() {
+        // Only meaningful with the environment unset: the environment wins.
+        if std::env::var(KEY_ENV).is_ok_and(|k| !k.trim().is_empty()) {
+            return;
+        }
+        let mut file = std::env::temp_dir();
+        file.push("govee-toolkit-test-key");
+        std::fs::write(&file, "  a-key\n").expect("the temporary file is writable");
+        let cloud = CloudConfig {
+            key_file: Some(file.clone()),
+            ..CloudConfig::default()
+        };
+        assert_eq!(
+            cloud.key().expect("the file reads"),
+            Some("a-key".to_owned())
+        );
+        assert_eq!(cloud.missing_key(), None);
+        std::fs::remove_file(&file).expect("the temporary file is removable");
+    }
 
     #[test]
     fn the_defaults_match_the_transport_they_configure() {

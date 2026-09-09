@@ -26,8 +26,13 @@ for.
   [`../../docs/protocol/cloud.md`](../../docs/protocol/cloud.md).
 - `CloudConfig`, the `cloud:` section of the configuration — where the API
   lives, the request timeout, the throttle and the breaker thresholds. A build
-  that finds no key starts without the mode and reports it as unavailable.
-  `config::KEY_ENV` names the environment variable.
+  that finds no key starts without the mode, and a device that enables it
+  fails with `Error::MissingCredential`. `config::KEY_ENV` names the
+  environment variable.
+- `Error::MissingCredential`, with the code `missing_credential` — a mode the
+  configuration enables whose credential the configuration does not carry. It
+  names what to set. `Config::missing_credential` answers the same question
+  for one mode, and a mode that needs no credential answers `None`.
 - `codec::cloud` — `Capability`, `Read` and `Request`: what a cloud entry
   declares beyond its value. `Encoded::request` carries it to the transport.
 - `ArgRole::Color` and `ArgRole::ColorTemp`, so a status answer reaches
@@ -42,6 +47,11 @@ for.
 
 ### Changed
 
+- **Breaking:** a mode that this build carries but that has no credential
+  fails with `Error::MissingCredential` rather than `Error::ModeNotImplemented`.
+  A caller that matches `ModeNotImplemented` to detect a missing API key
+  matches the new variant instead. `ModeNotImplemented` keeps its meaning: the
+  build carries no transport for the mode.
 - **Breaking:** `codec::Encoded` gains the `request` field. `codec::encode`
   fills it in; a struct literal that builds one by hand needs the new field.
 - **Breaking:** `codec::ArgRole` gains two variants. A match over it needs an

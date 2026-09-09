@@ -199,8 +199,9 @@ is [`docs/modes.md`][modes].
 `cloud` also needs an API key, in `GOVEE_API_KEY` or in the file
 `cloud.key_file` names. In this repository that key lives in a gitignored
 `.env` at the root, and `tools/with-env.sh <command>` supplies it. An enabled
-mode this build cannot carry is reported as `ModeNotImplemented` — never
-silently skipped, never substituted.
+mode this build cannot carry is reported as `ModeNotImplemented`, and one it
+carries without a credential as `MissingCredential` — never silently skipped,
+never substituted.
 
 ## What this crate will not do to you
 

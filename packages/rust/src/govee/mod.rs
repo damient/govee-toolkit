@@ -140,10 +140,23 @@ impl Govee {
         self.inner
             .transports
             .get(&mode)
-            .ok_or_else(|| Error::ModeNotImplemented {
+            .ok_or_else(|| self.no_transport(id, mode))
+    }
+
+    /// Why a mode has no transport: a credential the configuration does not
+    /// carry, or a mode this build does not implement.
+    fn no_transport(&self, id: &DeviceId, mode: Mode) -> Error {
+        match self.inner.config.missing_credential(mode) {
+            Some(remedy) => Error::MissingCredential {
                 id: id.clone(),
                 mode,
-            })
+                remedy,
+            },
+            None => Error::ModeNotImplemented {
+                id: id.clone(),
+                mode,
+            },
+        }
     }
 
     /// Check every known device's enabled modes against what its device file
@@ -210,10 +223,7 @@ impl Govee {
             // An enabled mode this build has no transport for fails here. To
             // move on to the next one would substitute a mode in silence.
             let Some(transport) = self.inner.transports.get(&mode) else {
-                return Err(Error::ModeNotImplemented {
-                    id: id.clone(),
-                    mode,
-                });
+                return Err(self.no_transport(id, mode));
             };
             match transport.health(id) {
                 Some(health) if health.available => return Ok(mode),
