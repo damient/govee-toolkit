@@ -172,7 +172,10 @@ impl<T: Tracked> Devices<T> {
         if let Ok(devices) = self.lock()
             && let Some(tracked) = devices.get(&status.id)
         {
-            let _ = tracked.status().send(Some(status.clone()));
+            // `send_replace` rather than `send`: the latter keeps the old
+            // value when nobody is watching, and `last_status` reads that
+            // value back.
+            tracked.status().send_replace(Some(status.clone()));
         }
         let _ = events.send(Event::Status { mode, status });
     }
