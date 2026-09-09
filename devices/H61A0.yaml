@@ -8,6 +8,7 @@ name: "3m RGBIC LED Neon Rope Lights"
 aliases: []
 include:
   - ble-wifi-provision
+  - cloud-openapi
 
 candidate_aliases:      # the same product at 2 m, 5 m, 4 m and 10 m. NOT
   - H61A1               # verified: segment count and native resolution both
@@ -383,7 +384,9 @@ commands:
         than what is lit, so it is not a way to read back what `color` painted.
         See docs/protocol/ble.md 3.
 
-  cloud: {}               # TODO
+  # From `cloud-openapi`, included above: what the documented HTTPS API carries
+  # for this device. Nobody probed it on this unit.
+  cloud: {}
 
 # Measured on one physical unit. These numbers depend on the unit's LENGTH as
 # much as on the SKU. See docs/protocol/lan.md 2.3 and 2.7.
@@ -467,5 +470,7 @@ verified:
     a body that fits the header and the closing frame and for one that does
     not. What `params` a firmware takes past those six codes was not probed.
     Scenes were not worked out: they ride the same 0xA3 under another command
-    type, and no scene transfer has been sent to a device. See measurements
-    above.
+    type, and no scene transfer has been sent to a device.
+    The cloud table comes from the `cloud-openapi` fragment and was NOT
+    exercised: no request has been sent to the Govee API for this unit. See
+    measurements above.

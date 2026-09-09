@@ -22,6 +22,24 @@ at.
 
 ### 2026-09-09
 
+#### Added
+
+- `devices/families/cloud-openapi.yaml` — the five entries the documented HTTPS
+  API carries for a light: `power`, `brightness`, `color`, `colortemp` and
+  `status`. The capability names are the API's own; no unit was probed. `H61A0`
+  includes the fragment, which its `modes.cloud` already claimed those
+  capabilities for.
+- The `cloud:` command table in `devices/schema.yaml`. An entry names one
+  `capability:` and the `payload:` that is its value, or a `role: status` with
+  the `reads:` that say which capability answers into which argument. This wire
+  carries no frame and no `cmd:`. `channel: iot` marks a command only the
+  account's MQTT channel carries.
+- `${r,g,b:rgb24}` in a `payload:` template — the three channel arguments
+  packed into one integer, which is how the cloud API carries a color.
+- `tests/fixtures/golden/cloud/H61A0.json` — the conformance vectors for that
+  table, worked out from the documented API rather than from a capture, which
+  each vector's `source` says.
+
 #### Removed
 
 - **Breaking:** `capture:`, the per-command key that pointed at a capture file.
