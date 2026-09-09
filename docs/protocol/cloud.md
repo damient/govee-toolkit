@@ -7,9 +7,9 @@ It reaches a device from anywhere, at the cost of an internet round-trip: high
 latency, rate limits and a reduced capability set. Use it for a device that is
 not on the local network, not for anything latency-sensitive.
 
-Nothing on this page was probed against a live account in this repository. It
-describes the API Govee documents, and it says where a number is theirs rather
-than a measurement.
+The three endpoints below, and the five entries a light carries, were probed
+against a live account. The rate limits were not: they are Govee's own figures,
+and this page says so where it states one.
 
 ## 1. Authentication
 
@@ -74,13 +74,23 @@ Three properties of this model differ from the `lan` envelope:
 - **`requestId` is echoed back.** Nothing correlates on it here: one request
   gets one answer on the same connection.
 
+A state answer also carries capabilities that this SDK models nothing of, each
+with an empty value. A capability that the state endpoint names is **not**
+evidence that the control endpoint writes it. Send it to establish that.
+
+What a device keeps between two commands is in [`state.md`](state.md), and
+applies to this mode as it does to the other two.
+
 ## 4. Rate limits
 
 Govee documents two limits. Neither was confirmed against a live account here:
 
 - **Per account:** 10 000 requests a day.
 - **Per device:** 10 requests a minute.
-- **Quota headers returned:** _TODO_ — confirm which headers the answers carry.
+- **Quota headers returned: none.** A device list answer and a state answer
+  both carried `date` and `content-type`, and no quota header of any kind. A
+  client cannot read how much quota it has left; it must count its own
+  requests.
 
 A refusal answers `429`, and its `Retry-After` header, when there is one, says
 how long to wait.
@@ -102,14 +112,21 @@ brightness, color and color temperature, plus the state read.
 
 Two capabilities are outside it:
 
-- **Per-segment brightness.** This API does not carry it. It travels on a
-  separate account channel, which this SDK does not implement.
-- **Per-segment color, and its frame rate.** `lan` reaches both; this API does
-  not expose them.
+- **Per-segment brightness.** Govee documents no write for it. `ble` reaches
+  it.
+- **Per-segment color, and its frame rate.** `lan` reaches both. Govee
+  documents no write for either, and the frame rate this mode allows is one
+  request every few seconds.
 
 A device file marks both `unreachable: transport` under `cloud`, and declares
 no `cloud` command for either. When
 several modes are enabled and the SDK moves to `cloud`, a command outside the
 carried set **fails explicitly**; it is never approximated.
+
+The state endpoint does name a `segmentedColorRgb` and a
+`segmentedBrightness` instance, so `transport` is what the documented API
+supports and not a property somebody established. Nobody sent either instance
+to the control endpoint. Send them to settle whether this mode reaches the
+segment channel.
 
 <!-- TODO: detailed per-capability table, mode by mode -->
