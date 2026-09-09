@@ -408,6 +408,7 @@ measurements:
     read_round_trip_ms: 63          # against 16 ms over lan
     sustained_writes_hz: 130        # spread over seconds
     write_budget_hz: 100            # what the transport paces itself to
+    write_drain_ms: 50
     burst_frames_before_stall: 100  # approximate, in one burst
     burst_recovery_s: 20            # approximate, after one burst
     addressable_zones: 15           # by mask, against the 42 ICs above

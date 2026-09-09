@@ -86,6 +86,17 @@ firmware applied it: a sub-mode the device does not implement is acknowledged
 with `00` and then played by nothing. To know that a write took effect, watch
 the device or read the state back with §3.
 
+That answer is not a GATT acknowledgement, and no write on this wire gets one:
+the write characteristic **refuses** a write with a response, with `Write Not
+Permitted`. A frame therefore leaves in one direction only, and a link that
+goes down too soon after a write loses it. Nothing reports the loss: the frame
+is gone, and the device holds its previous state.
+
+So a program that writes and then ends must hold the link open first. Measure
+the wait on the unit: write a value, drop the link after `n` ms, then read the
+value back. Record the result as `measurements.ble.write_drain_ms` in the
+device file.
+
 ## 2. Writes — `proType` `0x33`
 
 Every frame below is padded with zeros to byte 18, and byte 19 is the BCC.

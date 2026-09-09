@@ -66,4 +66,8 @@ impl Transport for BleTransport {
     async fn read(&self, id: &DeviceId, request: &Encoded) -> Result<Reply> {
         Self::read(self, id, request).await
     }
+
+    async fn close(&self) -> Result<()> {
+        Self::close(self).await
+    }
 }

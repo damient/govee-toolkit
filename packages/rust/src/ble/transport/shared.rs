@@ -14,7 +14,8 @@ use tokio::sync::{broadcast, watch};
 use crate::ble::link::{Link, adapter as adapter_error};
 use crate::ble::pace::{Budget, Pacer};
 use crate::ble::transport::Options;
-use crate::ble::transport::links::Links;
+use crate::ble::transport::drain::Drains;
+use crate::ble::transport::links::{Links, Slot};
 use crate::ble::wire::{Adapter, Peripheral};
 use crate::codec::{Encoded, Mode};
 use crate::transport::DeviceId;
@@ -89,6 +90,8 @@ pub(super) struct Shared {
     budget: Budget,
     /// One budget per SKU, from the device files, checked at the same time.
     per_sku: BTreeMap<String, Budget>,
+    /// How long a link stays open after the last write, per SKU.
+    pub(super) drains: Drains,
     /// The radio every command goes out on.
     pub(super) adapter: Arc<dyn Adapter>,
     pub(super) devices: Devices<Tracked>,
@@ -103,11 +106,13 @@ impl Shared {
         options: Options,
         budget: Budget,
         per_sku: BTreeMap<String, Budget>,
+        drains: Drains,
         events: broadcast::Sender<Event>,
         adapter: Arc<dyn Adapter>,
     ) -> Self {
         Self {
             options,
+            drains,
             budget,
             per_sku,
             adapter,
@@ -256,6 +261,11 @@ impl Shared {
                 .await?;
         }
         Ok(())
+    }
+
+    /// Take every open link, leaving the map empty.
+    pub(super) fn take_links(&self) -> Vec<(DeviceId, Arc<Slot>)> {
+        self.links.take_all()
     }
 
     /// Hand a status to the device's watchers and to the event stream.

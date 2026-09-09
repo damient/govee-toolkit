@@ -301,3 +301,64 @@ async fn a_dropped_connection_fails_one_command_and_the_next_reconnects() {
         vec![POWER_ON.to_vec(), POWER_ON.to_vec()]
     );
 }
+
+#[tokio::test]
+async fn a_close_holds_the_link_open_for_the_drain_and_the_next_command_reconnects() {
+    let device = device(BleFaults::default());
+    let drain = Duration::from_millis(60);
+    let govee = rig(
+        &device,
+        Options {
+            write_drain: drain,
+            ..options()
+        },
+    )
+    .await;
+    govee
+        .device(&id())
+        .send("power", &Args::new().int("on", 1))
+        .await
+        .expect("the command goes out");
+
+    let started = std::time::Instant::now();
+    govee.shutdown().await.expect("it releases");
+    assert!(
+        started.elapsed() >= drain,
+        "a close returned in {:?}, before the frame could leave",
+        started.elapsed()
+    );
+
+    // The transport still serves commands; it opens another connection for
+    // them.
+    govee
+        .device(&id())
+        .send("power", &Args::new().int("on", 1))
+        .await
+        .expect("the command goes out");
+    assert_eq!(
+        device.received(),
+        vec![POWER_ON.to_vec(), POWER_ON.to_vec()]
+    );
+}
+
+#[tokio::test]
+async fn a_close_with_no_link_open_waits_for_nothing() {
+    let device = device(BleFaults::default());
+    let govee = rig(
+        &device,
+        Options {
+            write_drain: Duration::from_secs(30),
+            ..options()
+        },
+    )
+    .await;
+
+    let started = std::time::Instant::now();
+    govee.shutdown().await.expect("it releases");
+
+    assert!(
+        started.elapsed() < Duration::from_secs(1),
+        "a close with nothing open waited {:?}",
+        started.elapsed()
+    );
+}

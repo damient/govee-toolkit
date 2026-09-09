@@ -31,6 +31,18 @@ impl Links {
         Ok(Arc::clone(links.entry(id.clone()).or_default()))
     }
 
+    /// Take every slot out of the map.
+    ///
+    /// A caller that closes the transport takes the links this way: a command
+    /// that arrives afterwards finds an empty map and opens its own
+    /// connection.
+    pub(super) fn take_all(&self) -> Vec<(DeviceId, Arc<Slot>)> {
+        let Ok(mut links) = self.0.lock() else {
+            return Vec::new();
+        };
+        links.drain().collect()
+    }
+
     /// Empty the device's slot, if it still holds `link`.
     ///
     /// A slot another caller holds is left alone: that caller is opening a

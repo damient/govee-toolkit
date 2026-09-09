@@ -24,6 +24,12 @@ at.
 
 #### Added
 
+- `measurements.ble.write_drain_ms` in `devices/schema.yaml` — how long the
+  `ble` transport holds a link open after the last write, in milliseconds. That
+  wire takes no acknowledgement, so a link dropped sooner loses the frame and
+  reports nothing. The schema says how to measure it.
+- `H61A0` records `measurements.ble.write_drain_ms: 50`. On that unit a link
+  dropped 10 ms after a write loses the frame, and 25 ms carries it.
 - `devices/families/cloud-openapi.yaml` — the five entries the documented
   HTTPS API carries for a light: `power`, `brightness`, `color`, `colortemp` and
   `status`. The capability names are the API's own. `H61A0` includes the
