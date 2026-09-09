@@ -1,7 +1,6 @@
 name: Undocumented command
 description: >-
-  A command found through reverse engineering that the project does not know
-  about.
+  A command outside Govee's documentation that the project does not know about.
 labels: [protocol, undocumented]
 body:
   - type: markdown

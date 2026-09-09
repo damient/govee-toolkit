@@ -31,8 +31,8 @@ to it the same way, directly.
 | **Animation in real time** | Feed a stream of frames and drive the strip frame by frame: music reactive, screen ambilight, or your own source. |
 | **Entirely on your network** | Commands go straight from your machine to the device. Govee's servers are not in the path. |
 
-The per-segment channel is not in Govee's documentation. It was found through
-reverse engineering and written up in
+The per-segment channel is not in Govee's documentation. It was observed on
+the wire and written up in
 [`docs/protocol/lan.md`](docs/protocol/lan.md).
 
 ## Where the project is

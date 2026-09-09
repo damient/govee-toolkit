@@ -5,8 +5,8 @@
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 
 Control Govee devices over the LAN from Node.js or TypeScript, including
-undocumented commands found through reverse engineering. Unofficial, and not
-affiliated with Govee.
+undocumented commands observed on the wire. Unofficial, and not affiliated
+with Govee.
 
 > 🚧 **Being built.** The version on npm today is a `0.0.0` placeholder holding
 > the name. What is described below is the interface this package ships with;

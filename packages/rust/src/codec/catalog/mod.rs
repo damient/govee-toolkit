@@ -108,7 +108,7 @@ pub struct Command {
     /// The value sent in `msg.cmd`, for `lan` and `cloud`. Empty where the mode
     /// puts the frame on the wire with no envelope around it.
     pub cmd: String,
-    /// `false` marks a command found through reverse engineering.
+    /// `false` marks a command that Govee does not document.
     pub documented: bool,
     /// The `msg.data` template. Placeholders are whole strings, `"${name}"`.
     pub payload: serde_json::Value,
