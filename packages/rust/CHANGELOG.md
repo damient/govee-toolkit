@@ -5,6 +5,12 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 `publish = false`, and the same entries cover them. The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.4.0] — 2026-09-09
+
+The device schema drops a key and the crate drops the public field that carried
+it, so this is the breaking bump that pre-1.0 reserves the minor for. The
+published documentation covers every feature.
+
 ### Changed
 
 - docs.rs builds the crate with `--all-features`, so `ble` and the crate-root
