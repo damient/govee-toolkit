@@ -232,6 +232,8 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo +nightly fmt --all                              # nightly: see below
 cargo deny check                                      # licenses and advisories
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features
+RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo +nightly doc --no-deps \
+  --all-features                                      # what docs.rs builds
 ../../tools/check-file-length.sh                      # 400 lines per Rust file
 ../../tools/check-captures.sh                         # capture redaction
 ```

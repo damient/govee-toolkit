@@ -48,24 +48,35 @@
 //! # }
 //! ```
 
+// `doc(cfg(...))` labels each item with the feature that carries it. It is a
+// nightly rustdoc feature, and `docsrs` is set by the docs.rs build alone.
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 pub mod codec;
 
 #[cfg(feature = "ble")]
+#[cfg_attr(docsrs, doc(cfg(feature = "ble")))]
 pub mod ble;
 #[cfg(feature = "lan")]
+#[cfg_attr(docsrs, doc(cfg(feature = "lan")))]
 pub mod lan;
 
 // The facade needs a transport, but not a particular one. Every gate here names
 // the modes that carry one, so `cloud` joins by widening the list.
 #[cfg(any(feature = "lan", feature = "ble"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "lan", feature = "ble"))))]
 pub mod config;
 #[cfg(any(feature = "lan", feature = "ble"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "lan", feature = "ble"))))]
 pub mod error;
 #[cfg(any(feature = "lan", feature = "ble"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "lan", feature = "ble"))))]
 pub mod paths;
 #[cfg(any(feature = "lan", feature = "ble"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "lan", feature = "ble"))))]
 pub mod stream;
 #[cfg(any(feature = "lan", feature = "ble"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "lan", feature = "ble"))))]
 pub mod transport;
 
 #[cfg(any(feature = "lan", feature = "ble"))]

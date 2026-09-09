@@ -14,6 +14,16 @@ categories = ["api-bindings", "hardware-support", "network-programming"]
 # copies `devices/` beside it first — see .github/workflows/rust-release.yml.
 include = ["src/**", "build.rs", "README.md", "devices/**"]
 
+# docs.rs builds with the default features, which carry `lan` alone.
+# `all-features` is what puts `ble`, and the crate-root link to it, on the
+# published pages. It needs `libdbus-1-dev` for `btleplug` on Linux, and the
+# build image carries it — `linux/packages.txt` in rust-lang/crates-build-env.
+# `--cfg docsrs` turns on the `doc(cfg(...))` feature labels, which need the
+# nightly rustdoc that docs.rs builds with.
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [workspace]
 resolver = "3"
 members = ["crates/sim", "crates/xtask"]
