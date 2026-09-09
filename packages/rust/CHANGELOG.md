@@ -5,6 +5,13 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 `publish = false`, and the same entries cover them. The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.5.0] — 2026-09-09
+
+`cloud` is a mode with a transport behind it. It is opt-in and off by default,
+and it changes neither `lan` nor `ble`. The codec grew the fields that mode
+needs, so this release is the breaking bump that pre-1.0 reserves the minor
+for.
+
 ### Added
 
 - `govee_toolkit::cloud`, behind the non-default `cloud` cargo feature — the

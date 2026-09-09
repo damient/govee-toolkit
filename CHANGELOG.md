@@ -9,7 +9,7 @@ shipped.
 
 | Package | Changelog | Version |
 | ------- | --------- | ------- |
-| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.4.0 |
+| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.5.0 |
 | `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 0.0.0 |
 | `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 0.0.0 |
 
