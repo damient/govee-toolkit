@@ -45,11 +45,10 @@ these files.
    SDK guessing an entry name. An entry whose arguments an SDK fills on its own
    marks those too, with an argument `role:`; no argument name lives in SDK code
    either. [`schema.yaml`](schema.yaml) lists both sets of roles.
-5. Add a real capture under `../tests/fixtures/lan-captures/<SKU>/` and point
-   `capture:` at it. **Redact it first** — a capture carries your MAC, your
-   IP, your SSID and possibly an account token, and git keeps them after the
-   fix.
-   The checklist and the placeholders to use are in
+5. Add a real capture under `../tests/fixtures/lan-captures/<SKU>/`. **Redact
+   it first** — a capture carries your MAC, your IP, your SSID and possibly an
+   account token, and git keeps them after the fix. The checklist and the
+   placeholders to use are in
    [`../tests/fixtures/README.md`](../tests/fixtures/README.md);
    `../tools/check-captures.sh` re-checks what it can.
 6. Add a conformance vector for every command, under

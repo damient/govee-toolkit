@@ -20,6 +20,19 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-09
+
+#### Removed
+
+- **Breaking:** `capture:`, the per-command key that pointed at a capture file.
+  The conformance vector's `source` carries the provenance instead, under
+  `tests/fixtures/golden/<mode>/<SKU>.json`: it says whether the bytes come from
+  a capture or were worked out from the documented layout. Captures keep their
+  place under `tests/fixtures/lan-captures/` and `tests/fixtures/ble-captures/`,
+  and the redaction checklist in `tests/fixtures/README.md` covers them. The key
+  goes from `devices/schema.yaml`, `devices/H6114.yaml`, `devices/H61A0.yaml`
+  and `devices/families/ble-wifi-provision.yaml`.
+
 ### 2026-09-07
 
 #### Added

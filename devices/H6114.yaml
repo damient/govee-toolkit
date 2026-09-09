@@ -54,9 +54,6 @@ modes:
 commands:
   # Every frame here is 20 bytes: proType, commandType, payload, then a XOR of
   # the 19 bytes before it. See docs/protocol/ble.md 1.2.
-  #
-  # No ble capture is redacted and committed yet, so every `capture:` below is
-  # empty. TODO: capture and redact one per command.
   lan: {}
 
   ble:
@@ -66,7 +63,6 @@ commands:
       args:
         on: { type: int, range: [0, 1] }
       notes: "See docs/protocol/ble.md 2.1."
-      capture: ""         # TODO
 
     brightness:
       documented: false
@@ -79,7 +75,6 @@ commands:
         reports itself on with a brightness of 0, so only `power` turns it off.
         The Govee app drives this field over 20..254, which is a choice of the
         app: 1 is dimmer than 20 on the unit. See docs/protocol/ble.md 2.2.
-      capture: ""         # TODO
 
     color:
       documented: false
@@ -95,7 +90,6 @@ commands:
         first, and the firmware renders no temperature of its own. The device
         fades from one color to the next rather than cutting, and no frame was
         found that turns that off. See docs/protocol/ble.md 2.3.
-      capture: ""         # TODO
 
     scene:
       documented: false
@@ -107,7 +101,6 @@ commands:
         and 8 blinks through changing colors on the unit. The vendor app's own
         scene names do not match those two, so nothing here maps an identifier
         to an effect. See docs/protocol/ble.md 2.7.
-      capture: ""         # TODO
 
     music:
       documented: false
@@ -130,7 +123,6 @@ commands:
         triplet, which the device keeps stored from the last frame that carried
         one; 1 plays the triplet. The firmware accepts a value past every range
         above and reads it back. See docs/protocol/ble.md 2.8.
-      capture: ""         # TODO
 
     status:
       documented: false
@@ -145,7 +137,6 @@ commands:
         level: { type: int, range: [0, 255], role: brightness }
       notes: >-
         Two reads: no single frame reports both. See docs/protocol/ble.md 3.
-      capture: ""         # TODO
 
     read_mode:
       documented: false
@@ -161,7 +152,6 @@ commands:
         a color moved it to 13 with that color, writing a scene moved it to 4
         with that identifier, and writing music moved it to 19 with every field
         of the frame. See docs/protocol/ble.md 3.
-      capture: ""         # TODO
 
     read_software_version:
       documented: false
@@ -172,7 +162,6 @@ commands:
       notes: >-
         ASCII, zero-padded out to the checksum; 2.03.11 on this unit. See
         docs/protocol/ble.md 3.
-      capture: ""         # TODO
 
     read_hardware_version:
       documented: false
@@ -184,7 +173,6 @@ commands:
         The 03 is part of the request and the answer repeats it; 2.01.01 on this
         unit. A frame of `AA 07` alone gets no answer at all. See
         docs/protocol/ble.md 3.
-      capture: ""         # TODO
 
   cloud: {}
 
@@ -228,5 +216,4 @@ verified:
     The vendor app drives this device at sub-mode 3, which carries neither an
     `effect` byte nor a `soft` byte, so neither field has a value the app writes
     to compare against. DIY and Wi-Fi provisioning were not exercised. Scene
-    identifiers were not enumerated. No ble capture has been redacted and
-    committed yet, so every `capture:` above is empty.
+    identifiers were not enumerated.

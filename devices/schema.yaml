@@ -241,7 +241,6 @@ commands:
     #   notes: ""                     # behavior worth knowing before calling it;
     #                                 # required when documented is false, and it
     #                                 # must point at ../docs/protocol/lan.md
-    #   capture: tests/fixtures/lan-captures/<sku>/<file>
     #
     # `role:` names an entry an SDK issues on its own initiative, so that no
     # command name lives in SDK code. At most one entry per mode can claim a
@@ -320,7 +319,6 @@ commands:
     #   args: { <name>: { type, range, role } }
     #   notes: ""                     # must point at ../docs/protocol/ble.md
     #                                 # when documented is false
-    #   capture: tests/fixtures/ble-captures/<sku>/<file>
     #
     # Every frame on this wire has a fixed size and carries its own checksum,
     # so each layout ends with `<pad:N> <xor>`, the three inside `chunk:`

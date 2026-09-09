@@ -127,8 +127,6 @@ pub struct Command {
     pub args: BTreeMap<String, ArgSpec>,
     /// Behavior worth knowing before calling it.
     pub notes: String,
-    /// Path to a real capture, relative to the repository root.
-    pub capture: String,
     /// What the SDK may use this command for on its own. See [`Role`].
     pub role: Option<Role>,
 

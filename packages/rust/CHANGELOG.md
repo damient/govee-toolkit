@@ -5,7 +5,11 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 `publish = false`, and the same entries cover them. The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
-## [Unreleased]
+### Removed
+
+- **Breaking:** `codec::Command::capture`. Read the provenance of a command's
+  bytes from its conformance vector's `source`, under `tests/fixtures/golden/`.
+  A device file declares no capture path.
 
 ## [0.3.0] — 2026-09-08
 
