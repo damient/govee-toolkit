@@ -56,6 +56,19 @@ impl Govee {
             &catalog,
         )?));
 
+        // No key is not an error: `cloud` is opt-in, and a build that carries
+        // it must start without an account. The mode is then reported as
+        // unavailable, the same as one this build has no transport for.
+        #[cfg(feature = "cloud")]
+        if let Some(options) = config.cloud.transport_options()? {
+            transports.push(Arc::new(crate::cloud::Transport::start(options)?));
+        } else {
+            tracing::info!(
+                "`cloud` carries no API key: set {} or `cloud.key_file`",
+                crate::config::KEY_ENV
+            );
+        }
+
         Self::attach(config, catalog, transports)
     }
 

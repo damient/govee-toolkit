@@ -92,7 +92,7 @@ per device.**
 | ---- | ----- | ----------------------- | --------------- | --- |
 | `lan` | fastest | the same Wi-Fi | everything, segments included | ✅ |
 | `ble` | fast | Bluetooth range, no Wi-Fi needed | depends on the model | ✅ |
-| `cloud` | slowest | anywhere with internet | on/off, brightness, color | 🔜 |
+| `cloud` | slowest | anywhere with internet | on/off, brightness, color, throttled | ✅ |
 
 Every command reports which mode served it. Allow several modes and the SDK
 switches between them. Allow one and it stays on that one: if the device is out

@@ -27,6 +27,8 @@ src/transport/             shared by every mode — the Transport trait, device
        │
 src/lan/                   transport — UDP, discovery, device cache
 src/ble/                   transport — GATT, scan, one link, paced writes
+src/cloud/                 transport — HTTPS, the account's device list,
+       │                   one request per device per interval
        │
 src/stream/                segment channel — armed once, fed frames on a clock
        │
@@ -39,7 +41,7 @@ node       python
 
 **One crate, `govee-toolkit`**, at `packages/rust`. The layers are modules of
 it, and what is optional is a cargo feature rather than a separate package:
-`lan` is on by default, `ble` is opt-in, and `cloud` joins them when it lands.
+`lan` is on by default, and `ble` and `cloud` are opt-in.
 Two crates live beside it and are never published: `crates/sim`, the device
 simulator, and `crates/xtask`, which generates the distributable catalog.
 
@@ -77,8 +79,8 @@ each keeps the inherent surface that the trait cannot express.
 The facade holds one transport per mode and looks the mode up rather than
 matching on it. `Govee::attach` takes the transports a host built and refuses
 two that claim the same mode. A build that carries no transport for an enabled
-mode reports the mode as unavailable, and `cloud` adds a module rather than a
-match arm in every call site.
+mode reports the mode as unavailable. `cloud` landed as a module and added no
+match arm to a call site, which is what the trait is for.
 
 The trait does not make modes implicit. Which transports a device may use stays
 the user's explicit list; the trait only removes the repetition. See

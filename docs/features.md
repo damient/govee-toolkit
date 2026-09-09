@@ -16,6 +16,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **Runtime configuration** — enabled modes per device, in YAML, see [`modes.md`](modes.md) |
 | ✅ | **Conformance vectors** (`tests/fixtures/golden/`) — the contract every implementation must match, so a port cannot drift unnoticed |
 | ✅ | **`lan` mode, low latency** — reused UDP socket, fire-and-verify, no cloud round-trip |
+| ✅ | **Per-device throttle on `cloud`** — one request per device per interval, and an explicit failure rather than an invisible queue |
 | ✅ | **Discovery** — multicast scan at startup, periodic background refresh, persistent on-disk cache |
 | 🚧 | **Undocumented LAN commands** — the raw segment channel is documented and verified on one device. Each further command needs the same treatment once somebody finds it |
 | ✅ | **Segment streaming** (`packages/rust/src/stream`) — frames over the raw segment channel, at the rate measured on the unit |
@@ -30,7 +31,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | --- | ------- |
 | ✅ | **`lan`** — power, brightness, color and color temperature over UDP, plus per-segment color |
 | ✅ | **`ble`** — power, brightness, color and color temperature over GATT, plus per-zone color. Off-network, within radio range, behind the `ble` cargo feature |
-| 🔜 | **`cloud`** — opt-in, reaches a device from anywhere, throttled, reduced to power / brightness / color |
+| 🚧 | **`cloud`** — opt-in, reaches any device the account owns from anywhere, throttled, reduced to power / brightness / color. Behind the `cloud` cargo feature. The account's MQTT channel, which carries the internal scenes, is not implemented |
 
 ## SDKs
 

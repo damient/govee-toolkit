@@ -36,8 +36,10 @@ use crate::codec::Mode;
 use crate::error::{Error, Result};
 use crate::transport::DeviceId;
 
+mod cloud;
 mod lan;
 
+pub use self::cloud::{CloudConfig, KEY_ENV};
 pub use self::lan::LanConfig;
 
 /// The whole configuration file.
@@ -50,6 +52,9 @@ pub struct Config {
     pub defaults: Defaults,
     /// Transport tuning for `lan`.
     pub lan: LanConfig,
+    /// Transport tuning for `cloud`. The API key is not here — see
+    /// [`CloudConfig`].
+    pub cloud: CloudConfig,
     /// Segment streaming settings.
     pub stream: StreamConfig,
     /// Per-device settings, keyed by the MAC the device reports.

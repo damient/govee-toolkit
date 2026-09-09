@@ -7,7 +7,6 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-readme = "README.md"
 keywords = ["govee", "simulator", "bluetooth", "testing", "smart-home"]
 categories = ["development-tools::testing", "network-programming"]
 # Never published: it is a test fixture, and `govee-toolkit` depends on it only

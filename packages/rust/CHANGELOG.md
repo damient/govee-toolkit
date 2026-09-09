@@ -5,6 +5,52 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 `publish = false`, and the same entries cover them. The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `govee_toolkit::cloud`, behind the non-default `cloud` cargo feature — the
+  documented HTTPS API as a `Transport`. It lists the account's devices, writes
+  one capability per command, reads a state back, and keeps one request per
+  device per `min_interval`. A command that must wait longer than `max_wait`
+  fails with `Error::RateLimited` rather than queue out of sight. The API says
+  whether it accepted a command, so this mode sends no verification request
+  after a write. Its key comes from `GOVEE_API_KEY` or from the file
+  `cloud.key_file` names, never from `config.yaml`. `examples/cloud_tour.rs`
+  runs the whole table against a real account. See
+  [`../../docs/protocol/cloud.md`](../../docs/protocol/cloud.md).
+- `CloudConfig`, the `cloud:` section of the configuration — where the API
+  lives, the request timeout, the throttle and the breaker thresholds. A build
+  that finds no key starts without the mode and reports it as unavailable.
+  `config::KEY_ENV` names the environment variable.
+- `codec::cloud` — `Capability`, `Channel`, `Read` and `Request`: what a cloud
+  entry declares beyond its value. `Encoded::request` carries it to the
+  transport. A command marked `channel: iot` travels on the account's MQTT
+  channel; this build carries the HTTPS channel alone and refuses one rather
+  than approximate it.
+- `ArgRole::Color` and `ArgRole::ColorTemp`, so a status answer reaches
+  `DeviceStatus::color` and `DeviceStatus::color_temp_kelvin` without a
+  capability name in code.
+- `transport::Error::Api` and `transport::Error::RateLimited`, with the codes
+  `api` and `rate_limited`.
+- `${r,g,b:rgb24}` in a `payload:` template — three channel arguments packed
+  into `0xRRGGBB`, which is how the cloud API carries a color. The three keep
+  the names the frame layouts give them, so `color` takes the same arguments
+  over every mode.
+
+### Changed
+
+- **Breaking:** `codec::Encoded` gains the `request` field. `codec::encode`
+  fills it in; a struct literal that builds one by hand needs the new field.
+- **Breaking:** `codec::ArgRole` gains two variants. A match over it needs an
+  arm for each, or a wildcard.
+- `Encoded::cmd` carries the capability instance over `cloud`, and still the
+  `msg.cmd` over `lan`. It stays empty where the wire carries no name.
+
+### Fixed
+
+- `Transport::last_status` reports a status that arrived while nothing was
+  watching the device. The value is replaced rather than sent, so a mode that
+  publishes a status outside a `status()` call keeps it.
+
 ## [0.4.0] — 2026-09-09
 
 The device schema drops a key and the crate drops the public field that carried
