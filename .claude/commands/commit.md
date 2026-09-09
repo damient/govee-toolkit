@@ -99,8 +99,9 @@ Before each commit, and only when that commit touches the area:
 - A changelog entry when it stages `packages/*/src/`, a `build.rs` or a device
   file — `/changelog` writes it. CI fails without one.
 
-`tools/qa.sh` is not part of committing, and it runs once on the finished tree
-rather than once per commit. Run `/qa` before pushing.
+`tools/qa.sh` is not part of committing, and this command never runs it —
+neither per commit nor before a push. CI runs those checks on the pull
+request. Run `/qa` when you want them locally.
 
 ## Finish
 
