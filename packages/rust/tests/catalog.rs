@@ -1,11 +1,6 @@
 //! Invariants every device file in the repository must hold.
 
-#![allow(
-    clippy::unwrap_used,
-    clippy::expect_used,
-    clippy::indexing_slicing,
-    clippy::print_stdout
-)]
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
 use govee_toolkit::codec::{Catalog, Mode, validate};
 
@@ -63,30 +58,6 @@ fn lookup_is_case_insensitive() {
     let catalog = Catalog::embedded().expect("embedded catalog");
     let sku = catalog.devices().next().expect("a device").sku.clone();
     assert_eq!(catalog.device(&sku.to_lowercase()).unwrap().sku, sku);
-}
-
-/// A capture is what turns a claim into a verified one. Nothing is attached yet
-/// — this test records how many are missing so the number can only go down.
-#[test]
-fn captures_still_missing() {
-    let catalog = Catalog::embedded().expect("embedded catalog");
-    let missing: Vec<String> = catalog
-        .devices()
-        .flat_map(|d| {
-            [Mode::Lan, Mode::Ble, Mode::Cloud]
-                .into_iter()
-                .flat_map(move |mode| {
-                    d.commands
-                        .get(mode)
-                        .iter()
-                        .filter(|(_, c)| c.capture.trim().is_empty())
-                        .map(move |(name, _)| format!("{}/{mode}/{name}", d.sku))
-                })
-        })
-        .collect();
-    // TODO: tighten to `assert!(missing.is_empty())` once captures are
-    // attached.
-    println!("commands without a capture: {}", missing.len());
 }
 
 /// A minimal, well-formed device file.

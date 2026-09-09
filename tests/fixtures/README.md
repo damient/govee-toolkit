@@ -7,9 +7,9 @@ lan-captures/<SKU>/<command>.json     # UDP payloads observed on 4001/4002/4003
 ble-captures/<SKU>/<command>.txt      # BLE frames, hex
 ```
 
-Every entry should be referenced from the matching `devices/<SKU>.yaml`
-(`capture:` field) and, for an undocumented command, from
-`docs/protocol/lan.md`.
+An undocumented command's capture should be referenced from
+`docs/protocol/lan.md`. A vector built from a capture says so in its `source`,
+under [Conformance vectors](#conformance-vectors) below.
 
 ## Redaction checklist
 

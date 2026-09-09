@@ -456,9 +456,3 @@ a5 02 83 <R G B>        one color
 A device answered the first frame with `a5 02 10 01`. Nothing else was
 established here: no frame of this channel was seen to change what a device
 renders.
-
-## Captures
-
-Real frames live under `tests/fixtures/ble-captures/<sku>/`. Nothing is
-committed there yet. Redact a capture by hand before you commit it; the
-checklist is in [`../../tests/fixtures/README.md`](../../tests/fixtures/README.md).

@@ -24,7 +24,6 @@ commands:
       notes: >-
         Which endpoint provisioning must hand the device, then whether it must
         carry the hidden-network flag. See ../../docs/protocol/ble.md 3 and 4.
-      capture: ""         # TODO
 
     wifi_link_start:
       documented: false
@@ -36,7 +35,6 @@ commands:
         Trap: a provisioning transfer sent without this reaches a module that
         is not listening. Send it through `provision_wifi()`, which sends both
         halves. See ../../docs/protocol/ble.md 4.
-      capture: ""         # TODO
 
     wifi_provision:
       documented: false
@@ -58,7 +56,6 @@ commands:
         The transfer a device asking for no endpoint takes. Trap: it needs
         `wifi_link_start` around it, so send it through `provision_wifi()`.
         See ../../docs/protocol/ble.md 4.
-      capture: ""         # TODO
 
     wifi_provision_with_api:
       documented: false
@@ -81,4 +78,3 @@ commands:
         The transfer a device asking for an endpoint takes. Trap: it needs
         `wifi_link_start` around it, so send it through `provision_wifi()`.
         See ../../docs/protocol/ble.md 4.
-      capture: ""         # TODO

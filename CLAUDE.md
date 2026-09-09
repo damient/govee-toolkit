@@ -115,8 +115,9 @@ SKU.
 - Undocumented commands get `documented: false`, plus a `notes:` line and a
   pointer to the matching section of `docs/protocol/lan.md`. This is enforced by
   `cargo test`.
-- Attach a real capture under `tests/fixtures/lan-captures/<SKU>/` and reference
-  it from `capture:`.
+- Attach a real capture under `tests/fixtures/lan-captures/<SKU>/`. Nothing
+  points at it from the device file: the conformance vector's `source` is where
+  a capture is claimed as the origin of the bytes.
 - `payload:` and `frame:` are **executable**, not descriptive — the core builds
   bytes straight from them. The two mini-languages are documented at the top of
   `devices/schema.yaml`.

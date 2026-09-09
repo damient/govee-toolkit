@@ -35,8 +35,7 @@ pub use crate::transport::{
 
 /// The vendor service commands travel on.
 ///
-/// Observed on one unit, and on no other family. TODO: redact a capture under
-/// `tests/fixtures/ble-captures/` and commit it as evidence.
+/// Observed on one unit, and on no other family.
 pub const SERVICE: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_1910);
 
 /// The characteristic frames are written to, without a response. Same
