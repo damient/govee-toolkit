@@ -27,6 +27,10 @@ file whose path the configuration names. Never
 key is never logged and never written to the device cache. See
 [`../security.md`](../security.md).
 
+In this repository, development keys live in a gitignored `.env` at the root,
+and `tools/with-env.sh <command>` puts it in a command's environment. See
+[`../../CONTRIBUTING.md`](../../CONTRIBUTING.md).
+
 ## 2. Endpoints
 
 | Role | Method | Path |

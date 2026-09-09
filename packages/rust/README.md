@@ -105,7 +105,7 @@ real device: [`examples/lan_tour.rs`](examples/lan_tour.rs),
 ```bash
 cargo run --example lan_tour
 cargo run --example ble_tour --features ble
-GOVEE_API_KEY=… cargo run --example cloud_tour --features cloud
+../../tools/with-env.sh cargo run --example cloud_tour --features cloud
 ```
 
 ### Reading state
@@ -197,8 +197,10 @@ is [`docs/modes.md`][modes].
 
 `ble` and `cloud` each need the crate built with the feature of that name, and
 `cloud` also needs an API key, in `GOVEE_API_KEY` or in the file
-`cloud.key_file` names. An enabled mode this build cannot carry is reported as
-`ModeNotImplemented` — never silently skipped, never substituted.
+`cloud.key_file` names. In this repository that key lives in a gitignored
+`.env` at the root, and `tools/with-env.sh <command>` supplies it. An enabled
+mode this build cannot carry is reported as `ModeNotImplemented` — never
+silently skipped, never substituted.
 
 ## What this crate will not do to you
 
