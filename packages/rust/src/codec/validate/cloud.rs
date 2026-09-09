@@ -4,7 +4,6 @@
 //! capabilities back, and every answer has an argument with a role to land in.
 
 use crate::codec::catalog::{Command, Mode, Role};
-use crate::codec::cloud::Channel;
 
 /// The cloud wire carries neither a frame nor an envelope of its own: an entry
 /// names one capability to write, or the capabilities a read asks back.
@@ -14,7 +13,6 @@ pub(super) fn check_cloud(mode: Mode, command: &Command) -> Vec<String> {
         for (field, declared) in [
             ("capability", command.capability.is_some()),
             ("reads", !command.reads.is_empty()),
-            ("channel", command.channel != Channel::Http),
         ] {
             if declared {
                 problems.push(format!("declares a `{field}:`, which only `cloud` carries"));

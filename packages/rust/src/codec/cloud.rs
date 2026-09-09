@@ -6,31 +6,8 @@
 //! same way a port is on `lan`.
 
 use std::collections::BTreeMap;
-use std::fmt;
 
 use serde::Deserialize;
-
-/// Which channel of the cloud carries a command.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Channel {
-    /// The documented HTTPS API. The default.
-    #[default]
-    Http,
-    /// The account's MQTT channel, which carries what the HTTPS API does not.
-    /// A command declares it; no build in this crate sends one, and a
-    /// transport asked for one fails rather than approximates it.
-    Iot,
-}
-
-impl fmt::Display for Channel {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Http => "http",
-            Self::Iot => "iot",
-        })
-    }
-}
 
 /// The capability a command writes.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -56,8 +33,6 @@ pub struct Read {
 /// What a transport needs beyond the body, for one encoded cloud command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Request {
-    /// The channel that carries it.
-    pub channel: Channel,
     /// Which argument each capability instance answers into. Empty on a
     /// command that only writes.
     pub reads: BTreeMap<String, String>,

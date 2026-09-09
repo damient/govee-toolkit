@@ -27,21 +27,31 @@ at.
 - `devices/families/cloud-openapi.yaml` — the five entries the documented HTTPS
   API carries for a light: `power`, `brightness`, `color`, `colortemp` and
   `status`. The capability names are the API's own; no unit was probed. `H61A0`
-  includes the fragment, which its `modes.cloud` already claimed those
-  capabilities for.
+  includes the fragment.
 - The `cloud:` command table in `devices/schema.yaml`. An entry names one
   `capability:` and the `payload:` that is its value, or a `role: status` with
   the `reads:` that say which capability answers into which argument. This wire
-  carries no frame and no `cmd:`. `channel: iot` marks a command only the
-  account's MQTT channel carries.
+  carries no frame and no `cmd:`.
 - `${r,g,b:rgb24}` in a `payload:` template — the three channel arguments
   packed into one integer, which is how the cloud API carries a color.
 - `tests/fixtures/golden/cloud/H61A0.json` — the conformance vectors for that
   table, worked out from the documented API rather than from a capture, which
   each vector's `source` says.
 
+#### Changed
+
+- `H61A0` — `modes.cloud` claims `power`, `brightness`, `color` and `colortemp`.
+  `segment_brightness` moves to `unreachable:` as `transport`: the documented
+  HTTPS API does not carry it. `modes.ble` becomes `full`, since it now reaches
+  every capability the file declares.
+
 #### Removed
 
+- **Breaking:** the `scenes` capability, and every command that wrote one. The
+  project does not carry scenes in any mode. `H6114` loses its `scene` entry
+  and its conformance vector, `H61A0` loses the capability, and
+  `docs/protocol/ble.md` loses the sub-mode it documented. A file that still
+  declares `scenes:` gets a column of its own and no SDK support.
 - **Breaking:** `capture:`, the per-command key that pointed at a capture file.
   The conformance vector's `source` carries the provenance instead, under
   `tests/fixtures/golden/<mode>/<SKU>.json`: it says whether the bytes come from

@@ -10,7 +10,7 @@ not `packages/`.
 ## Planned UI
 
 - Detected device list with a LAN_OK / LAN_DEGRADED / LAN_DOWN state badge
-- Per device: power toggle, brightness slider, color picker, effects/scenes
+- Per device: power toggle, brightness slider, color picker, effects
   dropdown (including undocumented commands)
 - Bottom log: every command sent, with timestamp and measured latency
 - **Raw payload field**: send a custom JSON command straight to a device, to

@@ -222,16 +222,14 @@ above; the only missing piece is audio capture, which is a host concern. On
 macOS, capturing *system* audio needs a loopback device; a microphone is
 directly accessible.
 
-### 2.5 Internal scenes, DIY and per-segment brightness — not on this transport
+### 2.5 Per-segment brightness — not on this transport
 
-The manufacturer's scene library does not travel over UDP. It is published over
-MQTT to AWS IoT, with an account topic and a transaction id, so it needs a Govee
-account and an internet connection. The `pt`, `ptReal`, `ptIotOp` and `bulb`
-commands belong to that cloud channel — probing them over LAN stays silent
-because the command exists, but not on this transport.
+Over LAN, brightness is global. The segment channel of 2.3 carries color only,
+and no command changes that.
 
-The same channel carries **per-segment brightness**, which the segment channel
-of 2.3 does not offer: over LAN, brightness is global and color is per-segment.
+The `pt`, `ptReal`, `ptIotOp` and `bulb` commands belong to a separate account
+channel of the vendor's cloud, which this SDK does not implement. Probing them
+over LAN stays silent because the command exists, but not on this transport.
 
 This is a real boundary of `lan` mode, not a gap waiting to be filled. See
 [`cloud.md`](cloud.md).

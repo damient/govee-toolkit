@@ -28,11 +28,8 @@ for.
   lives, the request timeout, the throttle and the breaker thresholds. A build
   that finds no key starts without the mode and reports it as unavailable.
   `config::KEY_ENV` names the environment variable.
-- `codec::cloud` — `Capability`, `Channel`, `Read` and `Request`: what a cloud
-  entry declares beyond its value. `Encoded::request` carries it to the
-  transport. A command marked `channel: iot` travels on the account's MQTT
-  channel; this build carries the HTTPS channel alone and refuses one rather
-  than approximate it.
+- `codec::cloud` — `Capability`, `Read` and `Request`: what a cloud entry
+  declares beyond its value. `Encoded::request` carries it to the transport.
 - `ArgRole::Color` and `ArgRole::ColorTemp`, so a status answer reaches
   `DeviceStatus::color` and `DeviceStatus::color_temp_kelvin` without a
   capability name in code.

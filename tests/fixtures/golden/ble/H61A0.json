@@ -16,7 +16,7 @@
         "b": 0
       },
       "frames_hex": ["3305130363000000000000000000000000000045"],
-      "source": "docs/protocol/ble.md 2.8 — exercised on the unit, which rendered it"
+      "source": "docs/protocol/ble.md 2.7 — exercised on the unit, which rendered it"
     },
     {
       "name": "music, the softer rendering",
@@ -31,7 +31,7 @@
         "b": 0
       },
       "frames_hex": ["3305130363010000000000000000000000000044"],
-      "source": "docs/protocol/ble.md 2.8 — exercised on the unit, told apart from soft 0 over three alternations"
+      "source": "docs/protocol/ble.md 2.7 — exercised on the unit, told apart from soft 0 over three alternations"
     },
     {
       "name": "music, the triplet imposed",
@@ -46,7 +46,7 @@
         "b": 0
       },
       "frames_hex": ["3305130363000100ff00000000000000000000bb"],
-      "source": "docs/protocol/ble.md 2.8 — exercised on the unit, which played it green and nothing else"
+      "source": "docs/protocol/ble.md 2.7 — exercised on the unit, which played it green and nothing else"
     },
     {
       "name": "read the live sub-mode",
@@ -400,7 +400,7 @@
     },
     {
       "name": "a command this mode does not carry",
-      "command": "scene",
+      "command": "not_a_command",
       "args": {},
       "code": "unknown_command"
     },

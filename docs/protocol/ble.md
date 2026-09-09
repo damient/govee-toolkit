@@ -24,8 +24,6 @@ same name. The bytes come from `devices/*.yaml`. The code matches a reply
 against the `reply:` layout that the device file declares for the command that
 asked for it, so it never guesses the correlation.
 
-Scenes (§6) are not implemented.
-
 One data point from the LAN work: the raw LAN channel uses a
 variable-length dialect prefixed `0xBB`, **distinct** from the 20-byte `0x33`
 frames used here. Frames do not port between the two.
@@ -59,7 +57,7 @@ The BCC is the XOR of bytes 0 to 18. `proType` says what kind of frame it is:
 | `0x33` | single write |
 | `0xAA` | single read, answered on the notify characteristic |
 | `0xA1` | multi-packet write, Wi-Fi provisioning |
-| `0xA3` | multi-packet write, music effects and scenes |
+| `0xA3` | multi-packet write, music effects |
 
 A device file writes the layout as a `frame:` that ends in `<pad:20> <xor>`,
 which is this shape.
@@ -184,18 +182,7 @@ A device with no zones accepts this frame and changes nothing observable, in
 either position. Where a firmware fades from one colour to the next, this is not
 the frame that turns the fade off, and no frame that does was found.
 
-### 2.7 Scene sub-mode
-
-```
-33 05 04 <identifier>
-```
-
-Plays a scene the firmware carries. The identifiers are firmware data rather
-than protocol, and the names the vendor app gives them do not match what a
-device plays. Nothing here maps an identifier to an effect: a device file
-records the ones somebody watched on its unit.
-
-### 2.8 Music sub-mode
+### 2.7 Music sub-mode
 
 ```
 33 05 <sub-mode> <effect> <sensitivity> <soft> <0|1> <R G B>
@@ -262,8 +249,7 @@ Three of these are traps:
 - **What `aa 05` reports depends on the family.** On one it mirrors back codes
   the device never played, and the device file declares no command for it. On
   another it reports what is playing: a colour write moves it to the colour
-  sub-mode carrying that colour, and a scene write moves it to the scene
-  sub-mode carrying that identifier. The device file says which.
+  sub-mode carrying that colour. The device file says which.
 - **`aa a5` reports the stored color sub-mode**, not the live render. Nobody
   established the byte layout of its answer, so the device file sends the read
   and declares no `reply:` for it.
@@ -368,10 +354,10 @@ three ways, and each one is what makes a transfer built like §4 fail:
 - The count byte in the header is the number of frames in the transfer, the
   header and the closing frame included. It does not count data frames.
 
-`commandType` `0x41` is a music effect, and §6.2 is that one. The vendor app
-names four more for scenes — `0x01`, `0x02`, `0x07` and `0x0A`, one per scene
-version. Scenes are not implemented: which cutter each version takes was not
-established, and no scene transfer has been sent to a device.
+`commandType` `0x41` is a music effect, and §6.2 is that one. Four more command
+types ride the same channel — `0x01`, `0x02`, `0x07` and `0x0A`. They are not
+implemented: which cutter each one takes was not established, and no transfer
+of that kind has been sent to a device.
 
 ### 6.1 The cutting
 
@@ -405,15 +391,15 @@ The sub-command byte is the effect. The body is
 ```
 
 and the transfer stores it rather than plays it. What plays it is one frame of
-§2.8's sub-mode, carrying the effect and the sensitivity and nothing else:
+§2.7's sub-mode, carrying the effect and the sensitivity and nothing else:
 
 ```
 33 05 13 <effect> <sensitivity>
 ```
 
-This is why an effect the single §2.8 frame acknowledges can render nothing:
+This is why an effect the single §2.7 frame acknowledges can render nothing:
 that frame has no room for the parameters, and without a transfer before it the
-firmware has none to render. The seven fields §2.8 lists belong to the effects
+firmware has none to render. The seven fields §2.7 lists belong to the effects
 that need no transfer.
 
 The colour count is one byte and the vendor app allows 1 to 8 entries. Which
