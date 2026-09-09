@@ -50,6 +50,22 @@ pub enum Error {
         mode: Mode,
     },
 
+    /// A mode the configuration enables needs a credential that the
+    /// configuration does not carry, so this build started without its
+    /// transport.
+    ///
+    /// This is not [`Error::ModeNotImplemented`]: the build carries the mode,
+    /// and the credential is what is absent.
+    #[error("{id}: mode `{mode}` is enabled but carries no credential — {remedy}")]
+    MissingCredential {
+        /// The device.
+        id: DeviceId,
+        /// The mode.
+        mode: Mode,
+        /// What to set to supply it.
+        remedy: &'static str,
+    },
+
     /// The device file names no command for a role the SDK invokes on its own.
     ///
     /// Mark the right entry `role:` in `devices/<SKU>.yaml`. Fire-and-verify
@@ -187,6 +203,7 @@ impl Error {
             Self::Configuration(_) => "configuration",
             Self::NoModeAvailable { .. } => "no_mode_available",
             Self::ModeNotImplemented { .. } => "mode_not_implemented",
+            Self::MissingCredential { .. } => "missing_credential",
             Self::NoRoleCommand { role, .. } => match role {
                 Role::Status => "no_status_command",
                 Role::SegmentEnable

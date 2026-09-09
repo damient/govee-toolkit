@@ -24,6 +24,26 @@ async fn rig_with(yaml: &str, catalog: Catalog) -> Rig {
 }
 
 #[tokio::test]
+async fn an_enabled_mode_with_no_transport_is_not_implemented() {
+    // A mode that needs no credential keeps `ModeNotImplemented`: the build
+    // is the absence to report, not a credential.
+    let config: Config =
+        serde_norway::from_str("defaults:\n  modes: [lan]\n").expect("the configuration parses");
+    let govee = Govee::attach(
+        config,
+        Catalog::embedded().expect("catalog"),
+        std::iter::empty(),
+    )
+    .expect("no transport is not a startup error");
+    let error = govee
+        .device(&id())
+        .send("power", &Args::new().int("on", 1))
+        .await
+        .expect_err("no lan transport, so no send");
+    assert_eq!(error.code(), "mode_not_implemented");
+}
+
+#[tokio::test]
 async fn a_command_reports_the_mode_that_served_it() {
     let rig = rig("defaults:\n  modes: [lan]\n").await;
     rig.simulator.clear();

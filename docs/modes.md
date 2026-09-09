@@ -96,8 +96,9 @@ replaces one is logged, every run.
 `cloud` mode needs a Govee API key. It is read from the `GOVEE_API_KEY`
 environment variable, or from the file `cloud.key_file` points at — one the
 operator can lock down on its own. The environment wins, and a build that finds
-neither starts without the mode: `cloud` is then unavailable, and a device that
-enables it reports that.
+neither starts without the mode: a device that enables `cloud` then fails with
+`MissingCredential`, which names what to set. That is a different error from
+`ModeNotImplemented`, which says the build carries no transport for the mode.
 
 It is **never** stored in `config.yaml`. That file gets pasted into bug reports.
 The key is also never logged and never written to the device cache. See

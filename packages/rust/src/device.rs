@@ -57,10 +57,10 @@ impl DeviceHandle<'_> {
     ///
     /// # Errors
     ///
-    /// [`Error::NoModeAvailable`] or [`Error::ModeNotImplemented`] if no
-    /// enabled mode can serve it, [`Error::Codec`] if the command or its
-    /// arguments are not valid for this device, [`Error::Transport`] if the
-    /// write fails.
+    /// [`Error::NoModeAvailable`], [`Error::ModeNotImplemented`] or
+    /// [`Error::MissingCredential`] if no enabled mode can serve it,
+    /// [`Error::Codec`] if the command or its arguments are not valid for this
+    /// device, [`Error::Transport`] if the write fails.
     pub async fn send(&self, command: &str, args: &Args) -> Result<Served> {
         let mode = self.govee.choose(&self.id)?;
         let sku = self.govee.sku(&self.id)?;
@@ -94,7 +94,8 @@ impl DeviceHandle<'_> {
     /// # Errors
     ///
     /// [`Error::ModeNotImplemented`] if this build carries no transport for
-    /// the chosen mode,
+    /// the chosen mode, [`Error::MissingCredential`] if it carries one that
+    /// has no credential,
     /// [`Error::NoRoleCommand`] if the device file marks no entry
     /// `role: segment_enable`, and none `role: segment_color` or
     /// `role: segment_color_masked`,

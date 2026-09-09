@@ -198,6 +198,25 @@ impl Config {
         self.devices.get(id).and_then(|d| d.name.as_deref())
     }
 
+    /// What to set for a mode whose credential the configuration does not
+    /// carry, or `None` where the mode needs none, already has one, or is not
+    /// in this build.
+    ///
+    /// The facade reports this instead of
+    /// [`Error::ModeNotImplemented`] when a
+    /// build that carries the transport started without its credential.
+    #[must_use]
+    pub fn missing_credential(&self, mode: Mode) -> Option<&'static str> {
+        // Exhaustive on purpose: a new mode must state whether it needs a
+        // credential. `cfg!` rather than an attribute, so that a mode this
+        // build does not carry stays `ModeNotImplemented` — the feature is
+        // then the absence to report, not the credential.
+        match mode {
+            Mode::Cloud if cfg!(feature = "cloud") => self.cloud.missing_key(),
+            Mode::Cloud | Mode::Lan | Mode::Ble => None,
+        }
+    }
+
     /// What is wrong with the configuration on its own terms. Whether a
     /// device supports an enabled mode needs its SKU — see
     /// [`crate::Govee::problems`].
@@ -242,6 +261,13 @@ mod tests {
 
     fn parse(yaml: &str) -> Config {
         serde_norway::from_str(yaml).expect("the configuration parses")
+    }
+
+    #[test]
+    fn a_mode_with_no_credential_reports_none_missing() {
+        let config = Config::default();
+        assert_eq!(config.missing_credential(Mode::Lan), None);
+        assert_eq!(config.missing_credential(Mode::Ble), None);
     }
 
     #[test]
