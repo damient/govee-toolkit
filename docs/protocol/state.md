@@ -33,3 +33,17 @@ renders nothing for.
 
 A read that echoes a value is therefore not evidence that the device applied
 it. To establish that a device applies a value, observe the device.
+
+## 4. A per-segment brightness outlives the commands after it
+
+The firmware keeps the per-segment brightness. A whole-device brightness
+write, a color write and a power cycle all keep it. Only another per-segment
+brightness write changes it.
+
+A per-segment color behaves the other way: the next whole-device color write
+clears it and paints every zone.
+
+The level is invisible until a static color lights that zone, so a unit that
+holds a low level on one zone looks like a hardware fault. A caller that dims
+a zone must put the level back. Over `cloud` nothing reads the levels: the
+state endpoint answers an empty value for the segment instances.
