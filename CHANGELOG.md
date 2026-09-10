@@ -52,6 +52,11 @@ at.
 - `H61A0` records `measurements.zone_0_end: controller` — zone 0 is the block
   at the controller and the power cable, and zone 14 the block at the free
   end. Established over `cloud` on that unit, and not over `lan` or `ble`.
+- `${name:mask32}` in a `frame:` layout — four bytes of zone bits, least
+  significant bit first. The masked zone frames of the `ble` dialect carry a
+  field that wide, so a unit with more than 16 zones declares its mask at full
+  width. `devices/schema.yaml` documents it beside `${name:mask16}`. See
+  [`docs/protocol/ble.md`](docs/protocol/ble.md) §2.4.
 
 #### Changed
 

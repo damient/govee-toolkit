@@ -48,6 +48,12 @@ for.
   indices, ascending and each index once, which is how the cloud API names the
   zones a capability writes. A frame layout carries the same argument as a
   mask, so one call names the same zones over every mode.
+- `${name:mask32}` in a `frame:` layout — a zone mask four bytes wide, least
+  significant bit first, reaching zone 31. It agrees with `${name:mask16}` on
+  every zone below 16, so widening the field leaves the bytes a device file
+  already sent unchanged. A zone past the width of its mask is still
+  `codec::Error::OutOfRange`: the firmware drops such a bit in silence, and a
+  saturated mask looks exactly like an ignored one.
 - `Govee::shutdown()` — release what every transport holds, before the program
   ends. Over `ble` it holds each open link open long enough for the last frame
   to leave, since that wire acknowledges nothing. Every other mode does

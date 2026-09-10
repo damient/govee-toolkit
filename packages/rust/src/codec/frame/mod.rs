@@ -247,6 +247,7 @@ fn parse_arg_ref(inner: &str) -> Option<Token> {
         "str16" => Token::Text { name, prefix: 2 },
         "mask8" => Token::Mask { name, width: 1 },
         "mask16" => Token::Mask { name, width: 2 },
+        "mask32" => Token::Mask { name, width: 4 },
         "bytes" => Token::Bytes { name },
         _ => return None,
     })

@@ -198,6 +198,22 @@ mod tests {
         assert_eq!(frame.build("x", &args).unwrap_err().code(), "out_of_range");
     }
 
+    /// A wider mask reaches further and agrees with a narrower one below it, so
+    /// a device file widens the field without changing the bytes it already
+    /// sent. See `docs/protocol/ble.md` 2.4.
+    #[test]
+    fn a_wider_mask_agrees_with_a_narrower_one() {
+        let args = Args::new().zones("z", vec![0, 1, 14]);
+        let narrow = Frame::parse("x", "${z:mask16}").unwrap();
+        let wide = Frame::parse("x", "${z:mask32}").unwrap();
+        assert_eq!(hex(&narrow.build("x", &args).unwrap()), "0340");
+        assert_eq!(hex(&wide.build("x", &args).unwrap()), "03400000");
+
+        let far = Args::new().zones("z", vec![31]);
+        assert_eq!(hex(&wide.build("x", &far).unwrap()), "00000080");
+        assert_eq!(narrow.build("x", &far).unwrap_err().code(), "out_of_range");
+    }
+
     #[test]
     fn padding_fills_the_frame_out_to_its_declared_size() {
         let frame = Frame::parse("x", "33 01 ${on} <pad:20> <xor>").unwrap();

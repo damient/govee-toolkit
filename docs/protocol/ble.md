@@ -164,6 +164,16 @@ Two traps:
 33 05 15 02 <level> <mask>
 ```
 
+Sets the zones the mask names to one level, and leaves the rest alone.
+
+The mask field is 4 bytes, least significant byte first: zone 0 is bit 0 of the
+first byte. The vendor's own app writes all four. A unit with 15 zones therefore
+leaves the last two bytes zero, which is what the zero padding of §1.2 holds
+anyway, so a 2-byte mask builds the same frame on such a unit. A longer unit of
+the same product has more zones, and the field is what says a firmware can
+address up to 32 of them. How many a given unit reads is a property of that
+unit — read it with `aa 0f` (§3) and record it in its device file.
+
 ### 2.5 Per-zone brightness
 
 ```
