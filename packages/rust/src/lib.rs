@@ -66,8 +66,8 @@ pub mod cloud;
 #[cfg_attr(docsrs, doc(cfg(feature = "lan")))]
 pub mod lan;
 
-// The facade needs a transport, but not a particular one. Every gate here names
-// the modes that carry one.
+// The facade needs a transport, but not a particular one: each gate below
+// names the modes that carry one.
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 #[cfg_attr(
     docsrs,

@@ -1,12 +1,8 @@
-//! What a `cloud` entry may declare, and what only that mode may.
-//!
-//! The rules the transport relies on: one entry writes one capability or reads
-//! capabilities back, and every answer has an argument with a role to land in.
+//! What a `cloud` entry may declare, and what only that mode may. Every rule
+//! here is one the transport relies on.
 
 use crate::codec::catalog::{Command, Mode, Role};
 
-/// The cloud wire carries neither a frame nor an envelope of its own: an entry
-/// names one capability to write, or the capabilities a read asks back.
 pub(super) fn check_cloud(mode: Mode, command: &Command) -> Vec<String> {
     let mut problems = Vec::new();
     if mode != Mode::Cloud {

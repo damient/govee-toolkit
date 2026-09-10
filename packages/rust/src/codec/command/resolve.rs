@@ -206,12 +206,8 @@ pub(super) fn substitute(
     })
 }
 
-/// Zone indices, ascending and each one once.
-///
-/// A mode that carries a mask holds a zone once by construction. This one
-/// carries a list, so the codec sorts and deduplicates it: one call then names
-/// the same zones over every mode. It also keeps the list inside the length an
-/// API bounds it by, which a repeated index could pass.
+/// Zone indices, ascending and each one once: a repeated index could pass the
+/// length an API bounds the list by.
 fn zone_array(zones: &[u16]) -> serde_json::Value {
     let mut zones: Vec<u16> = zones.to_vec();
     zones.sort_unstable();
@@ -220,10 +216,6 @@ fn zone_array(zones: &[u16]) -> serde_json::Value {
 }
 
 /// The three arguments a `${r,g,b:rgb24}` placeholder names.
-///
-/// One integer, `0xRRGGBB`, out of the three channels a mode that carries a
-/// color as one number wants. The frame layouts name the same three
-/// arguments, so one command reads the same over every mode.
 pub(crate) fn packed_rgb(inner: &str) -> Option<[&str; 3]> {
     let names = inner.strip_suffix(":rgb24")?;
     let mut parts = names.split(',').map(str::trim);

@@ -1,16 +1,8 @@
 #!/usr/bin/env bash
-# Removes the build artifacts that no later build reads.
-#
-# cargo keeps the artifacts of every earlier build: an older version of a
-# dependency, an earlier set of features, an earlier hash of the same example.
-# Nothing collects them, so `target` grows without a bound. One week of probe
-# runs left 388054 files and 50 GiB, and most of it was hash-suffixed example
-# binaries under target/debug/examples/. Cargo has no garbage collector for
-# `target`: `-Zgc` collects the registry cache in ~/.cargo and not this.
-#
-# cargo-sweep does have one. It reads the access time of each artifact, so it
-# removes the stale ones and keeps the artifacts that the last build touched.
-# That needs no threshold and costs no cold rebuild.
+# Removes the build artifacts that no later build reads. Cargo has no garbage
+# collector for `target`: `-Zgc` collects the registry cache in ~/.cargo and
+# not this. cargo-sweep reads the access time of each artifact, so it keeps
+# what the last build touched and costs no cold rebuild.
 #
 # Usage:
 #   tools/clean-target.sh --stamp      record the time, before a build
@@ -19,12 +11,8 @@
 #   tools/clean-target.sh --force      full cargo clean, whatever the size
 #   tools/clean-target.sh --dry-run    report what a run would remove
 #
-# tools/qa.sh stamps before the first check and sweeps after the last one, so a
-# passing run leaves the artifacts of that run and nothing older.
-#
 # Without cargo-sweep the script falls back to a full clean above
-# QA_CLEAN_ABOVE_GIB gibibytes (default 5), because the alternative is to let
-# the directory grow. Install the tool for the cheaper behaviour:
+# QA_CLEAN_ABOVE_GIB gibibytes (default 5):
 #   cargo install cargo-sweep
 
 set -euo pipefail

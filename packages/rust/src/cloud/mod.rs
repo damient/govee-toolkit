@@ -2,22 +2,10 @@
 //!
 //! Carries what [`crate::codec`] builds for [`Mode::Cloud`](crate::codec::Mode)
 //! — one capability and its value — to a device the account owns, wherever
-//! that device is. It implements [`crate::transport::Transport`] under the
-//! rules in `docs/modes.md`.
+//! that device is. Every call is an internet round-trip, and requests are
+//! throttled per device.
 //!
-//! What is specific to this mode:
-//!
-//! - **Every call is an internet round-trip.** Nothing runs in the background,
-//!   and a command spends one request.
-//! - **Requests are throttled**, per device. A command inside the interval
-//!   waits for its slot; one further away than `max_wait` fails.
-//! - **The answer is the verification.** The API reports whether it accepted
-//!   the command, so this mode sends no probe after a write.
-//! - **The capability set is reduced.** A command this API does not carry
-//!   fails, and is never approximated — see `docs/protocol/cloud.md`.
-//!
-//! The API key is never read from `config.yaml` and never logged. See
-//! `docs/security.md`.
+//! The API key is never read from `config.yaml` and never logged.
 //!
 //! ```no_run
 //! use govee_toolkit::cloud::{Options, Transport};

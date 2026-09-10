@@ -23,10 +23,9 @@ pub struct Encoded {
     /// The value carried in `msg.cmd` over `lan`, the capability instance
     /// over `cloud`, empty where the wire carries no name.
     pub cmd: String,
-    /// The whole `{"msg":{"cmd":…,"data":…}}` envelope over `lan`, and the
-    /// `{"capability":…}` a `cloud` request carries. `None` where the mode
-    /// puts the frames on the wire with nothing wrapped around them, and on a
-    /// `cloud` command that only reads.
+    /// The envelope over `lan`, and the capability object over `cloud`.
+    /// `None` where the mode puts the frames on the wire with nothing wrapped
+    /// around them, and on a `cloud` command that only reads.
     pub message: Option<serde_json::Value>,
     /// The raw frames, in the order they go out. Empty for a command that
     /// travels in its envelope alone. A single frame also reaches `message`
@@ -155,8 +154,6 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
     })
 }
 
-/// The cloud shape: one capability and its value, or a read that names the
-/// capabilities it wants back.
 fn cloud(spec: &Command, value: &serde_json::Value, roles: BTreeMap<String, ArgRole>) -> Encoded {
     let capability = spec.capability.as_ref();
     Encoded {

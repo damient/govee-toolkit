@@ -180,14 +180,10 @@ impl Transport {
     /// Drop every open link, and hold them open first for as long as the
     /// slowest of them needs.
     ///
-    /// The write characteristic of this wire refuses a write with a response,
-    /// so a frame carries no acknowledgement and a link dropped too early
-    /// loses it in silence. The wait is what a caller pays to know that the
-    /// last command went out. It comes from each device file's
-    /// `measurements.ble.write_drain_ms`, and from
-    /// [`Options::write_drain`] for a unit whose file records none.
-    ///
-    /// A command that arrives afterwards opens its own connection, which costs
+    /// A link dropped too early loses the last frame in silence. The wait
+    /// comes from each device file's `measurements.ble.write_drain_ms`, and
+    /// from [`Options::write_drain`] for a unit whose file records none. A
+    /// command that arrives afterwards opens its own connection, which costs
     /// seconds.
     ///
     /// # Errors

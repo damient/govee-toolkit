@@ -1,9 +1,4 @@
 //! The account, the throttle and the breaker, tied together.
-//!
-//! Every call here is an internet round-trip, so nothing runs in the
-//! background: no refresh loop, no verification probe. A scan spends a
-//! request, and the send path spends one. What the API answered to the
-//! command is what feeds the breaker.
 
 mod impl_transport;
 mod options;
@@ -23,18 +18,15 @@ use crate::transport::registry::{Devices, publish_sent};
 use crate::transport::status::DeviceStatus;
 use crate::transport::{DeviceId, Discovered, Event, Health, KnownDevice, Sent, Verify};
 
-/// The `cloud` transport.
-///
-/// Cheap to clone; every clone shares one HTTP client, one device table and
-/// one set of breakers.
+/// The `cloud` transport. Cheap to clone: every clone shares one HTTP client,
+/// one device table and one set of breakers.
 #[derive(Clone)]
 pub struct Transport {
     shared: Arc<Shared>,
 }
 
 impl std::fmt::Debug for Transport {
-    /// Prints no key. It must never reach a log or a bug report — see
-    /// `docs/security.md`.
+    /// Prints no key — see `docs/security.md`.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Transport")
             .field("api", &self.shared.client)
@@ -43,15 +35,12 @@ impl std::fmt::Debug for Transport {
 }
 
 impl Transport {
-    /// Build the client for one account.
-    ///
-    /// No request is made here, so a build with a key and no network starts
-    /// fine and fails at the first command.
+    /// Build the client for one account. It sends no request, so a build with
+    /// no network starts fine and fails at the first command.
     ///
     /// # Errors
     ///
-    /// [`Error::Option`] if the key is empty or the HTTP client cannot be
-    /// built.
+    /// [`Error::Option`] on an empty key.
     pub fn start(options: Options) -> Result<Self> {
         if options.key.trim().is_empty() {
             return Err(Error::Option {
@@ -87,23 +76,18 @@ impl Transport {
         self.shared.request_timeout
     }
 
-    /// List the account's devices.
-    ///
-    /// This is the whole of discovery in this mode: the API answers with what
-    /// the account owns, wherever those devices are. It spends a request, so
-    /// nothing calls it on the send path.
+    /// List the account's devices. This is the whole of discovery in this
+    /// mode, and it spends a request.
     ///
     /// # Errors
     ///
-    /// [`Error::Api`], [`Error::RateLimited`] or [`Error::Io`], as the request
-    /// fails.
+    /// [`Error::Api`], [`Error::RateLimited`] or [`Error::Io`].
     pub async fn scan(&self) -> Result<Vec<Discovered>> {
         let listed = self.shared.client.devices().await?;
         let endpoint = self.shared.client.endpoint("");
         let mut out = Vec::with_capacity(listed.len());
 
-        // One lock for the whole list: nothing here waits, so a scan takes it
-        // once rather than once per device.
+        // Nothing here waits, so one lock serves the whole list.
         let mut devices = self.shared.devices.lock()?;
         for device in listed {
             let id = DeviceId::new(&device.device);
@@ -171,18 +155,13 @@ impl Transport {
 
     /// Write one capability.
     ///
-    /// The API answers whether it accepted the command, so this mode needs no
-    /// verification request: [`Verify`] is read for nothing, and the answer
-    /// feeds the breaker. A second request would spend the quota to learn what
-    /// the first one already said.
+    /// The answer is the verification: [`Verify`] is read for nothing, and
+    /// what the API answered feeds the breaker.
     ///
     /// # Errors
     ///
-    /// [`Error::UnknownDevice`] if no scan has listed the device,
-    /// [`Error::Unavailable`] if the breaker refuses this mode,
-    /// [`Error::RateLimited`] if the quota is spent, [`Error::Serialize`] if
-    /// the command carries no capability, or [`Error::Api`] if the API
-    /// refuses it.
+    /// [`Error::UnknownDevice`], [`Error::Unavailable`],
+    /// [`Error::RateLimited`], [`Error::Serialize`] or [`Error::Api`].
     pub async fn send(&self, id: &DeviceId, command: &Encoded, _verify: Verify) -> Result<Sent> {
         let capability = capability(command)?;
         let sku = self.shared.claim(id).await?;
@@ -209,8 +188,8 @@ impl Transport {
     ///
     /// # Errors
     ///
-    /// As for [`Transport::send`], and [`Error::NoReplyLayout`] if the command
-    /// declares no `reads:` for the answer to land in.
+    /// As for [`Transport::send`], plus [`Error::NoReplyLayout`] on a command
+    /// that declares no `reads:`.
     pub async fn status(&self, id: &DeviceId, request: &Encoded) -> Result<DeviceStatus> {
         let reads = request
             .request
@@ -236,7 +215,6 @@ impl Transport {
     }
 }
 
-/// The capability object a write carries.
 fn capability(command: &Encoded) -> Result<&serde_json::Value> {
     if command.request.is_none() {
         return Err(Error::Serialize {

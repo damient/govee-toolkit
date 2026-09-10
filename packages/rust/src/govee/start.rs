@@ -56,9 +56,8 @@ impl Govee {
             &catalog,
         )?));
 
-        // No key is not an error: `cloud` is opt-in, and a build that carries
-        // it must start without an account. The mode is then reported as
-        // unavailable, the same as one this build has no transport for.
+        // No key is not an error: `cloud` is opt-in, so the mode is reported
+        // as unavailable, the same as one this build has no transport for.
         #[cfg(feature = "cloud")]
         if let Some(options) = config.cloud.transport_options()? {
             transports.push(Arc::new(crate::cloud::Transport::start(options)?));

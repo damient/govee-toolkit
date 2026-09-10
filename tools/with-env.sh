@@ -3,13 +3,8 @@
 #
 #   tools/with-env.sh cargo run --example cloud_tour --features cloud
 #
-# It finds `.env` at the repository root, so the working directory does not
-# matter. Every package reads its configuration from the environment, so this
-# one wrapper serves the Rust, Python and Node packages.
-#
-# A variable already set in the caller's environment wins: an explicit
-# `GOVEE_API_KEY=… tools/with-env.sh …` overrides the file. `GOVEE_ENV_FILE`
-# names another file to read instead.
+# `GOVEE_ENV_FILE` names another file to read instead. See CONTRIBUTING.md,
+# "Local credentials".
 
 set -euo pipefail
 
@@ -26,8 +21,7 @@ if [ ! -f "$env_file" ]; then
   exit 1
 fi
 
-# Collected rather than exported, so that `env` passes them to the command and
-# this script's own environment stays clean.
+# Collected rather than exported, so this script's own environment stays clean.
 declare -a vars=()
 while IFS= read -r line; do
   case "$line" in

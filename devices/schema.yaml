@@ -330,33 +330,24 @@ commands:
     #   capability:                   # what the API calls what this command
     #     type: ""                    # writes, spelled as the API spells it
     #     instance: ""
-    #   payload: "${name}"            # the capability value. The same language
-    #                                 # as above: a string that is exactly
-    #                                 # "${name}" is that argument, and every
-    #                                 # other value is a literal
+    #   payload: "${name}"            # the capability value, in the same
+    #                                 # language as above
     #   role: status                  # same roles as above
     #   reads:                        # on a `role: status` entry, which
     #     - instance: ""              # argument each capability answers into.
-    #       arg: ""                   # The argument's `role:` says which field
-    #                                 # of the status it fills, so no instance
-    #                                 # name reaches an SDK
+    #       arg: ""                   # That argument's `role:` says which
+    #                                 # field of the status it fills
     #   args: { <name>: { type, range, role } }
     #   notes: ""                     # must point at ../docs/protocol/cloud.md
     #                                 # when documented is false
     #
-    # This wire carries neither a frame nor a `cmd:`: the API names one
-    # capability, and the request carries the value beside that name. An entry
-    # writes one capability or reads capabilities back, never both.
+    # An entry writes one capability or reads capabilities back, never both.
     #
     # `${r,g,b:rgb24}` is the one placeholder this table adds: the three
-    # channel arguments, packed into 0xRRGGBB, which is how this API carries a
-    # color. The three keep the names the `lan` and `ble` layouts give them, so
-    # one command takes the same arguments over every mode.
-    #
-    # A `zones` argument becomes an array of zone indices here, ascending and
-    # each index once, because this wire carries a list where a frame carries a
-    # mask. One call then names the same zones over every mode, and the list
-    # stays inside the length the API bounds it by.
+    # channel arguments, packed into 0xRRGGBB. A `zones` argument becomes an
+    # array of zone indices, ascending and each index once, where a frame
+    # carries a mask. Both keep the argument names the `lan` and `ble` layouts
+    # give them, so one command takes the same arguments over every mode.
 
 measurements: {}        # optional — numbers taken from a physical unit:
                         # native_pixels, latency, sustainable frame rate…
@@ -375,11 +366,10 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         # allowance: it is the count that broke a unit.
                         #
                         # `ble.write_drain_ms` is how long the `ble` transport
-                        # holds a link open after the last write, before it
-                        # drops it. That wire takes no acknowledgement, so a
-                        # link dropped sooner loses the frame and reports
-                        # nothing. Measure it: write a value, close the link
-                        # after n ms, then read the value back.
+                        # holds a link open after the last write. A link
+                        # dropped sooner loses the frame in silence. Measure
+                        # it: write a value, close the link after n ms, then
+                        # read the value back.
                         #
                         # `frame_rate` paces the segment stream, so its rows
                         # have a fixed shape:

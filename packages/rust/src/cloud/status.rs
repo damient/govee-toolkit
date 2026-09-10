@@ -1,18 +1,12 @@
 //! What a state answer reports, in the shape every mode reports it.
-//!
-//! The device file says which capability answers into which argument, and
-//! that argument's `role:` says which field it fills. No capability name
-//! reaches this code.
 
 use crate::cloud::api::CapabilityState;
 use crate::codec::{ArgRole, Encoded};
 use crate::transport::{DeviceId, DeviceStatus};
 
-/// Read a status out of what the API answered.
-///
-/// `request` carries the instance-to-argument map the device file declares,
-/// and `roles` what each argument is. A capability nothing claims still
-/// reaches the caller, under [`DeviceStatus::raw`].
+/// Read a status out of what the API answered. `request` carries the
+/// instance-to-argument map the device file declares, and a capability
+/// nothing claims still reaches the caller under [`DeviceStatus::raw`].
 pub(crate) fn read(id: DeviceId, request: &Encoded, answered: &[CapabilityState]) -> DeviceStatus {
     let reads = request.request.as_ref().map(|request| &request.reads);
 

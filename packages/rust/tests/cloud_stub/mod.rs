@@ -11,7 +11,6 @@ use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
-/// One request the stub answered.
 #[derive(Debug, Clone)]
 pub(crate) struct Received {
     pub(crate) path: String,
@@ -19,7 +18,6 @@ pub(crate) struct Received {
     pub(crate) body: serde_json::Value,
 }
 
-/// What to answer next.
 #[derive(Debug, Clone)]
 pub(crate) struct Answer {
     pub(crate) status: u16,
@@ -49,8 +47,7 @@ pub(crate) struct Api {
 }
 
 impl Api {
-    /// Start on an ephemeral loopback port. Each request takes the next
-    /// answer, and the last one repeats.
+    /// Each request takes the next answer, and the last one repeats.
     pub(crate) async fn start(answers: Vec<Answer>) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
         let port = listener.local_addr().expect("address").port();
@@ -96,7 +93,7 @@ async fn serve(
         let Some((head, body)) = text.split_once("\r\n\r\n") else {
             continue;
         };
-        // One read is enough for these bodies, but not guaranteed to be.
+        // One read serves these bodies. A longer one can arrive in pieces.
         if body.len() >= content_length(head) {
             break (head.to_owned(), body.to_owned());
         }

@@ -1,19 +1,14 @@
 //! Every `cloud` command of a device file, sent to a real device in order.
 //!
-//! It needs a Govee account, an API key and internet. The device does not have
-//! to be on the same network.
+//! It needs a Govee account, an API key and internet. One request per
+//! interval per device, so the tour takes about a minute.
 //!
 //! ```bash
 //! GOVEE_API_KEY=… cargo run --example cloud_tour --features cloud
 //! GOVEE_API_KEY=… GOVEE_SKU=H61A0 cargo run --example cloud_tour --features cloud
 //! ```
-//!
-//! It spends one request per command, and the transport holds each device to
-//! one request per interval, so the tour takes about a minute. It walks the
-//! H61A0's table; another SKU names its own commands and arguments.
 
-// The no-print lint is the library's rule. An example reports to the person who
-// runs it.
+// The no-print lint is the library's rule; an example reports to its runner.
 #![allow(clippy::print_stdout)]
 
 use govee_toolkit::{Args, Config, Error, Govee};
@@ -22,8 +17,7 @@ use govee_toolkit::{Args, Config, Error, Govee};
 async fn main() -> Result<(), Error> {
     let sku = std::env::var("GOVEE_SKU").unwrap_or_else(|_| "H61A0".to_owned());
 
-    // This example names the mode, so that the user's configuration cannot
-    // change what runs below.
+    // Naming the mode keeps the user's configuration from changing this run.
     let config = Config {
         defaults: govee_toolkit::config::Defaults {
             modes: vec![govee_toolkit::Mode::Cloud],
@@ -45,8 +39,7 @@ async fn main() -> Result<(), Error> {
         .send("brightness", &Args::new().int("level", 60))
         .await?;
 
-    // The same three arguments as the other modes. This API carries them as
-    // one integer, and the device file packs them.
+    // The same three arguments as the other modes; the device file packs them.
     device
         .send("color", &Args::new().int("r", 255).int("g", 40).int("b", 0))
         .await?;
@@ -54,8 +47,7 @@ async fn main() -> Result<(), Error> {
         .send("colortemp", &Args::new().int("kelvin", 4000))
         .await?;
 
-    // The segment entries take an array of zones. This mode paints the zones
-    // that array names and leaves the rest alone.
+    // The segment entries leave the zones the array does not name alone.
     device
         .send(
             "segment_color",
@@ -73,8 +65,7 @@ async fn main() -> Result<(), Error> {
         )
         .await?;
 
-    // Music runs off the device's own microphone. The effect identifiers are
-    // the API's own, and the device file names them.
+    // Music runs off the device's own microphone.
     device
         .send(
             "music",
@@ -82,18 +73,14 @@ async fn main() -> Result<(), Error> {
         )
         .await?;
 
-    // `status` is the entry marked `role: status`. `raw` keeps every
-    // capability the account reported, including the ones the SDK models
-    // nothing of.
+    // `raw` keeps the capabilities the SDK models nothing of too.
     let status = device.status().await?;
     println!("on {:?}, brightness {:?}", status.on, status.brightness);
     println!("raw {}", status.raw);
 
-    // Per-segment brightness survives a power cycle, a color write and a
-    // whole-device brightness write, so the tour puts back what it dimmed. It
-    // is invisible until something paints that zone again, and the state
-    // endpoint reports nothing for it. Every other setting above is a
-    // whole-device one that the next command replaces.
+    // Only another per-zone write clears a per-zone brightness, so the tour
+    // puts back what it dimmed. Every other setting above is a whole-device
+    // one that the next command replaces.
     device
         .send(
             "segment_brightness",
