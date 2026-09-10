@@ -1,0 +1,86 @@
+# Publishes govee-toolkit-cli from packages/rust/crates/cli. Triggered by a
+# cli-vX.Y.Z tag.
+name: CLI release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["cli-v*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # crates.io trusted publishing
+      contents: write   # create the GitHub release
+    defaults:
+      run:
+        working-directory: packages/rust/crates/cli
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The tag, the manifest version and the changelog heading have to carry
+      # the same number before anything is built or published.
+      - name: Tag, manifest and changelog agree
+        if: github.event_name == 'push'
+        working-directory: .
+        run: |
+          tools/release-notes.sh cli "$GITHUB_REF_NAME" \
+            > "$RUNNER_TEMP/notes.md"
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+      # crates.io keeps a version forever, and a tag moved to a new commit
+      # reruns this job. A version already up is skipped rather than failing
+      # the run on an upload crates.io would refuse anyway.
+      - name: Is this version already on crates.io?
+        id: crate
+        run: |
+          version=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' Cargo.toml \
+            | head -1)
+          if curl -sfo /dev/null \
+            -H "User-Agent: govee-toolkit release (github.com/damient)" \
+            "https://crates.io/api/v1/crates/govee-toolkit-cli/$version"; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      # The dependency on `govee-toolkit` carries a path and a version. cargo
+      # uploads the version, so `cargo publish` fails on a core that is not up
+      # yet. Reading the registry first says which release is missing instead
+      # of failing inside the upload — publish `rust-vX.Y.Z` first.
+      - name: The core it needs is on crates.io
+        if: steps.crate.outputs.published == 'false'
+        run: |
+          core=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' ../../Cargo.toml \
+            | head -1)
+          if ! curl -sfo /dev/null \
+            -H "User-Agent: govee-toolkit release (github.com/damient)" \
+            "https://crates.io/api/v1/crates/govee-toolkit/$core"; then
+            echo "::error::govee-toolkit $core is not on crates.io" >&2
+            echo "Publish rust-v$core before this tag." >&2
+            exit 1
+          fi
+      # Trusted publishing: crates.io trades this job's OIDC identity for a
+      # short-lived token, so no registry token lives in the repository.
+      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+        id: auth
+        if: steps.crate.outputs.published == 'false'
+      - name: Publish
+        if: steps.crate.outputs.published == 'false'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish
+      - name: GitHub release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A tag moved to a new commit reruns this job against a release that
+          # already exists, which `create` reports as a validation failure.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --verify-tag \
+              --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag \
+              --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
+          fi

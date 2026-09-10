@@ -3,6 +3,7 @@
 # section for it — the body of the GitHub release.
 #
 #   tools/release-notes.sh rust rust-v0.3.0
+#   tools/release-notes.sh cli cli-v0.1.0
 #
 # The tag, the version in the manifest and the changelog heading carry the same
 # number. A tag pushed past a manifest nobody bumped would otherwise publish a
@@ -12,19 +13,30 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: ${0##*/} <rust|python|node> <tag>" >&2
+  echo "usage: ${0##*/} <rust|cli|python|node> <tag>" >&2
   exit 2
 }
 
 [ $# -eq 2 ] || usage
 pkg=$1 tag=$2
-dir=$(cd "$(dirname "$0")/../packages/$pkg" 2>/dev/null && pwd) || usage
+root=$(cd "$(dirname "$0")/.." && pwd)
+
+# `cli` is the one package that does not sit at packages/<pkg>: it is a crate
+# of the Rust workspace, and it releases apart from the crate it wraps.
+case $pkg in
+rust) subdir=packages/rust ;;
+cli) subdir=packages/rust/crates/cli ;;
+python) subdir=packages/python ;;
+node) subdir=packages/node ;;
+*) usage ;;
+esac
+
+dir=$(cd "$root/$subdir" 2>/dev/null && pwd) || usage
 
 case $pkg in
-rust) manifest=$dir/Cargo.toml ;;
+rust | cli) manifest=$dir/Cargo.toml ;;
 python) manifest=$dir/pyproject.toml ;;
 node) manifest=$dir/package.json ;;
-*) usage ;;
 esac
 
 case $pkg in
@@ -32,7 +44,7 @@ node) pattern='.*"version" *: *"\([^"]*\)".*' ;;
 *) pattern='^version *= *"\([^"]*\)".*' ;;
 esac
 
-# The Rust manifest carries the number twice, under [package] and under
+# The workspace manifest carries the number twice, under [package] and under
 # [workspace.package]; the first is the published one.
 version=$(sed -n "s/$pattern/\1/p" "$manifest" | head -1)
 [ -n "$version" ] || {
