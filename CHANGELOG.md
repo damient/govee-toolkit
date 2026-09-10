@@ -24,6 +24,13 @@ at.
 
 #### Added
 
+- Three command roles — `power`, `brightness` and `color` — and the argument
+  roles `red`, `green` and `blue` beside them. A role names what a command
+  does, so an SDK reaches it without a command name of its own. `H61A0`
+  claims the three under `lan`, and `power` and `brightness` under `ble`;
+  `H6114` claims the three under `ble`; the `cloud-openapi` family claims them
+  under `cloud`. `devices/schema.yaml` documents each one and the arguments it
+  must mark.
 - A `zones` argument in a `cloud` `payload:` — the zones a segment capability
   writes, carried as the array this API takes in place of a mask.
   `devices/schema.yaml` documents it beside `${r,g,b:rgb24}`.

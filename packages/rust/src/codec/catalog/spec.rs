@@ -113,6 +113,12 @@ pub enum ArgRole {
     Brightness,
     /// The lit color, captured from a reply, packed as `0xRRGGBB`.
     Color,
+    /// The red component to set, on a [`Role::Color`] command.
+    Red,
+    /// The green component of the same triple.
+    Green,
+    /// The blue component of the same triple.
+    Blue,
     /// The white temperature, captured from a reply, in kelvin. `0` reports a
     /// device in color mode.
     ColorTemp,
@@ -142,7 +148,7 @@ pub enum ArgRole {
 }
 
 impl ArgRole {
-    pub(crate) const ALL: [Self; 17] = [
+    pub(crate) const ALL: [Self; 20] = [
         Self::Enable,
         Self::Colors,
         Self::Zones,
@@ -150,6 +156,9 @@ impl ArgRole {
         Self::On,
         Self::Brightness,
         Self::Color,
+        Self::Red,
+        Self::Green,
+        Self::Blue,
         Self::ColorTemp,
         Self::Network,
         Self::Password,
@@ -171,6 +180,9 @@ impl ArgRole {
             | Self::On
             | Self::Brightness
             | Self::Color
+            | Self::Red
+            | Self::Green
+            | Self::Blue
             | Self::ColorTemp
             | Self::RunMode
             | Self::TimezoneHours
@@ -195,6 +207,9 @@ impl fmt::Display for ArgRole {
             Self::On => "on",
             Self::Brightness => "brightness",
             Self::Color => "color",
+            Self::Red => "red",
+            Self::Green => "green",
+            Self::Blue => "blue",
             Self::ColorTemp => "color_temp",
             Self::Network => "network",
             Self::Password => "password",
@@ -216,6 +231,15 @@ pub enum Role {
     /// Reports the device's state. This is what fire-and-verify sends after a
     /// command, and what a `status()` call encodes.
     Status,
+    /// Turns the device on and off. Must declare an argument marked
+    /// [`ArgRole::On`]. `1` turns on.
+    Power,
+    /// Sets the brightness. Must declare an argument marked
+    /// [`ArgRole::Brightness`], in the unit that argument's `range:` gives.
+    Brightness,
+    /// Sets one color over the whole device. Must declare arguments marked
+    /// [`ArgRole::Red`], [`ArgRole::Green`] and [`ArgRole::Blue`].
+    Color,
     /// Arms and disarms the raw segment channel. Must declare an argument
     /// marked [`ArgRole::Enable`].
     SegmentEnable,
@@ -248,8 +272,11 @@ pub enum Role {
 }
 
 impl Role {
-    pub(crate) const CLAIMABLE: [Self; 9] = [
+    pub(crate) const CLAIMABLE: [Self; 12] = [
         Self::Status,
+        Self::Power,
+        Self::Brightness,
+        Self::Color,
         Self::SegmentEnable,
         Self::SegmentColor,
         Self::SegmentColorMasked,
@@ -265,6 +292,9 @@ impl fmt::Display for Role {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Status => "status",
+            Self::Power => "power",
+            Self::Brightness => "brightness",
+            Self::Color => "color",
             Self::SegmentEnable => "segment_enable",
             Self::SegmentColor => "segment_color",
             Self::SegmentColorMasked => "segment_color_masked",
