@@ -194,22 +194,21 @@ impl Transport {
     ///
     /// Nothing. It answers a `Result` because the trait does.
     pub async fn close(&self) -> Result<()> {
-        let taken = self.shared.take_links();
+        let taken = self.shared.links.take_all();
+        let fallback = self.shared.options.write_drain;
         let mut open = Vec::with_capacity(taken.len());
-        let mut skus = Vec::with_capacity(taken.len());
+        // Links closed together are held open once, for the slowest of them.
+        let mut wait = Duration::ZERO;
         for (id, slot) in &taken {
             if let Some(link) = slot.lock().await.take() {
                 open.push(link);
-                skus.push(self.shared.devices.sku(id));
+                let sku = self.shared.devices.sku(id);
+                wait = wait.max(self.shared.drains.get(sku.as_deref(), fallback));
             }
         }
         if open.is_empty() {
             return Ok(());
         }
-        let wait = self.shared.drains.longest(
-            skus.iter().map(Option::as_deref),
-            self.shared.options.write_drain,
-        );
         tokio::time::sleep(wait).await;
         drop(open);
         Ok(())
