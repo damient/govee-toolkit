@@ -4,8 +4,8 @@
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 
-Control Govee devices from Rust over the LAN or Bluetooth, including
-undocumented commands observed on the wire. Unofficial, and not affiliated
+Control Govee devices from Rust over the LAN, over Bluetooth or through the
+cloud, including undocumented commands observed on the wire. Unofficial, and not affiliated
 with Govee.
 
 This is the reference implementation. Protocol logic lives here once, and every

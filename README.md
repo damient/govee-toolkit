@@ -37,9 +37,9 @@ the wire and written up in
 
 ## Where the project is
 
-The engine works over `lan` and over `ble`, verified on real hardware:
-discovery, on/off, brightness, color, per-segment color and live animation. It
-is usable today from Rust. `provision_wifi()` puts a device on a network over
+The engine works over `lan`, over `ble` and over `cloud`, verified on real
+hardware: discovery, on/off, brightness, color, per-segment color, and live
+animation over the two local modes. It is usable today from Rust. `provision_wifi()` puts a device on a network over
 `ble`, which is how a device out of the box becomes reachable over `lan`.
 
 What comes next is the packaging around it — first the Python and Node.js
@@ -92,7 +92,7 @@ per device.**
 | ---- | ----- | ----------------------- | --------------- | --- |
 | `lan` | fastest | the same Wi-Fi | everything, segments included | ✅ |
 | `ble` | fast | Bluetooth range, no Wi-Fi needed | depends on the model | ✅ |
-| `cloud` | slowest | anywhere with internet | on/off, brightness, color, throttled | ✅ |
+| `cloud` | slowest | anywhere with internet | on/off, brightness, color, segments; throttled, no animation | ✅ |
 
 Every command reports which mode served it. Allow several modes and the SDK
 switches between them. Allow one and it stays on that one: if the device is out
