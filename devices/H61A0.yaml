@@ -38,10 +38,9 @@ modes:
       Requires LAN Control enabled in the Govee Home app. Reaches the segment
       channel, including beyond the 10 zones the app exposes. Brightness is
       global here: the segment channel carries color only. See
-      docs/protocol/lan.md 2.5. This mode carries no music command either: the
-      device renders no music over lan, and a host that streams computed colors
-      over the segment channel is not this capability. See
-      docs/protocol/lan.md 2.4.
+      docs/protocol/lan.md 2.5. It carries no music command: the device renders
+      no music over lan, and a host that streams computed colors over the
+      segment channel is not this capability. See docs/protocol/lan.md 2.4.
   ble:
     support: full
     capabilities: [power, brightness, color, colortemp, segments, segment_brightness, music]
@@ -62,14 +61,12 @@ modes:
     capabilities: [power, brightness, color, colortemp, segments, segment_brightness, music]
     unreachable: {}
     notes: >-
-      This mode is the documented HTTPS API. It requires a Govee account and
-      internet. It reaches the segment channel, in color and in brightness.
-      Segments are narrower here than over lan: the API addresses 15 zones,
-      against the 42 individually addressable ICs the lan raw channel reaches.
-      Brightness is per zone here, which lan does not carry. Music runs off the
-      device's own microphone, over an effect the account list names among 11.
-      This mode opens no segment stream: it takes one request every few
-      seconds. See docs/protocol/cloud.md 5 and 6.
+      The documented HTTPS API, over a Govee account and internet. It reaches
+      the segment channel in color and in brightness: 15 zones, against the 42
+      individually addressable ICs the lan raw channel reaches, plus the
+      per-zone brightness lan does not carry. Music runs off the device's own
+      microphone. This mode opens no segment stream: it takes one request every
+      few seconds. See docs/protocol/cloud.md 5 and 6.
 
 commands:
   lan:
@@ -407,8 +404,7 @@ commands:
       notes: >-
         Paints one color over the zones the array names, and leaves the rest
         alone. This entry claims no painting role, so no stream opens over this
-        mode: the API takes one request every few seconds. See
-        docs/protocol/cloud.md 5.
+        mode. See docs/protocol/cloud.md 5.
 
     segment_brightness:
       documented: true
@@ -446,9 +442,9 @@ commands:
         matches one to what the rope renders. The identifiers are the API's
         own too: they are not the sub-mode codes the `ble` music frame takes.
 
-        The capability declares two more fields, `autoColor` and `rgb`. This
-        entry sends neither, because the device accepted both and played the
-        same colors — see `verified:` below. See docs/protocol/cloud.md 6.
+        The capability declares `autoColor` and `rgb` too. This entry sends
+        neither: the device accepted both and played the same colors — see
+        `verified:` below and docs/protocol/cloud.md 6.
 
 # Measured on one physical unit. These numbers depend on the unit's LENGTH as
 # much as on the SKU. See docs/protocol/lan.md 2.3 and 2.7.
@@ -456,10 +452,9 @@ measurements:
   unit_length_m: 3
   native_pixels: 42         # one addressable LED every ~7 cm
   segment_count_app: 10
-  zone_0_end: "controller"  # zone 0 is the block at the controller and the
-                            # power cable, and zone 14 the block at the free
-                            # end. Established over cloud on this unit, and
-                            # not over lan or ble.
+  zone_0_end: "controller"  # zone 0 at the controller and the power cable,
+                            # zone 14 at the free end. Established over cloud
+                            # on this unit, not over lan or ble.
   resolution_changepoints: [1, 2, 3, 4, 5, 6, 7, 9, 11, 14, 21, 42]
 
   latency_idle_ms:
@@ -474,7 +469,7 @@ measurements:
     read_round_trip_ms: 63          # against 16 ms over lan
     sustained_writes_hz: 130        # spread over seconds
     write_budget_hz: 100            # what the transport paces itself to
-    write_drain_ms: 50
+    write_drain_ms: 50              # 10 ms loses the frame, 25 ms carries it
     burst_frames_before_stall: 100  # approximate, in one burst
     burst_recovery_s: 20            # approximate, after one burst
     addressable_zones: 15           # by mask, against the 42 ICs above
@@ -581,3 +576,7 @@ verified:
     only `musicMode` and `sensitivity` is accepted. `musicMode` answers an
     empty string on the state endpoint while music plays, so this mode reads
     back no music state.
+    `write_drain_ms` was measured on this unit over raw GATT: a link dropped
+    10 ms after a write loses the frame, and one dropped 25 ms after it
+    carries it, both twice out of twice. The file records 50, which one close
+    pays once. The values between 10 and 25 ms were NOT bisected.

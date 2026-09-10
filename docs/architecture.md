@@ -79,8 +79,8 @@ each keeps the inherent surface that the trait cannot express.
 The facade holds one transport per mode and looks the mode up rather than
 matching on it. `Govee::attach` takes the transports a host built and refuses
 two that claim the same mode. A build that carries no transport for an enabled
-mode reports the mode as unavailable. `cloud` landed as a module and added no
-match arm to a call site, which is what the trait is for.
+mode reports the mode as unavailable. Each mode is a module, and none of them
+adds a match arm to a call site.
 
 The trait does not make modes implicit. Which transports a device may use stays
 the user's explicit list; the trait only removes the repetition. See

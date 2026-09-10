@@ -104,7 +104,7 @@ Verified on the devices in the table above — confirm before generalizing to
 another:
 
 - **Per-segment brightness does not travel over `lan`.** Brightness is global
-  there. `ble` carries it, per zone and by mask.
+  there. `ble` carries it per zone and by mask, and `cloud` per zone.
 - **Nothing is ever rejected.** Out-of-range values are clamped in silence and
   unknown commands are ignored with no error — a failed probe looks exactly like
   an unsupported feature.
