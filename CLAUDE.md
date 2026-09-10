@@ -27,7 +27,10 @@ chooses a transport.
 3. **`devices/*.yaml` is the single source of truth.** SDKs read it. They
    implement transports and generic parsing, never per-SKU protocol logic. No
    SKU name and no command name belongs in Rust code — if you are about to write
-   one, the device file is missing something instead.
+   one, the device file is missing something instead. `crates/cli` is the one
+   exception: a verb such as `on` or `brightness` is a name a person types. A
+   verb reaches the device file through a `role:`, so the CLI names a role and
+   the device file names the command. No SKU name reaches the CLI either way.
 4. **Never invent verification.** Do not fill `verified`, a capability, a
    measurement or a compatibility row from inference. Unverified is `?` or a
    `TODO`, and that is a perfectly good answer.
@@ -149,8 +152,9 @@ SKU.
 `packages/rust` is the reference implementation and the only place protocol
 logic exists. It is **one crate**, `govee-toolkit`, with the layers as modules:
 `src/codec/` (no I/O), `src/transport/` (what every mode shares), `src/lan/`,
-`src/ble/`, `src/stream/` and the facade at the crate root. `crates/sim` and
-`crates/xtask` sit beside it and carry `publish = false`. A transport is a
+`src/ble/`, `src/stream/` and the facade at the crate root. `crates/cli`
+publishes the `govee` binary as `govee-toolkit-cli` and holds no protocol
+logic; `crates/sim` and `crates/xtask` carry `publish = false`. A transport is a
 cargo feature — `lan` is on by default, `ble` is opt-in, and `cloud` joins them
 when it lands.
 
@@ -160,8 +164,8 @@ The codec keeps building on its own (`cargo check --no-default-features`), and
 check is what keeps the codec I/O-free in a single crate; do not weaken it.
 
 Node and Python wrap the crate (napi-rs, PyO3). Each package versions and
-releases independently (`rust-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) through
-the workflows in `.github/workflows/`. The policy is `docs/versioning.md`.
+releases independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `python-vX.Y.Z`,
+`node-vX.Y.Z`) through the workflows in `.github/workflows/`. The policy is `docs/versioning.md`.
 
 `govee-toolkit` is published on crates.io — the version is the one in
 `packages/rust/Cargo.toml`. The name is taken on PyPI and npm too, by a `0.0.0`

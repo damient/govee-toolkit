@@ -2,7 +2,9 @@
 
 Changes to `govee-toolkit`, the crate published to crates.io from
 `packages/rust`. `govee-toolkit-sim` and `xtask` are workspace crates with
-`publish = false`, and the same entries cover them. The policy is
+`publish = false`, and the same entries cover them. `govee-toolkit-cli`
+releases apart and keeps
+[its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
 ## [Unreleased]
