@@ -73,27 +73,30 @@ commands:
     power:
       cmd: "turn"
       documented: true
+      role: power
       payload: { value: "${on}" }
       args:
-        on: { type: int, range: [0, 1] }
+        on: { type: int, range: [0, 1], role: "on" }
 
     brightness:
       cmd: "brightness"
       documented: true
+      role: brightness
       payload: { value: "${level}" }
       args:
-        level: { type: int, range: [1, 100] }   # the firmware clamps 0 to 1 and does not turn off
+        level: { type: int, range: [1, 100], role: brightness }   # the firmware clamps 0 to 1 and does not turn off
 
     color:
       cmd: "colorwc"
       documented: true
+      role: color
       payload:
         color: { r: "${r}", g: "${g}", b: "${b}" }
         colorTemInKelvin: 0
       args:
-        r: { type: int, range: [0, 255] }
-        g: { type: int, range: [0, 255] }
-        b: { type: int, range: [0, 255] }
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
 
     colortemp:
       cmd: "colorwc"
@@ -151,16 +154,18 @@ commands:
   ble:
     power:
       documented: false
+      role: power
       frame: "33 01 ${on} <pad:20> <xor>"
       args:
-        on: { type: int, range: [0, 1] }
+        on: { type: int, range: [0, 1], role: "on" }
       notes: "See docs/protocol/ble.md 2.1."
 
     brightness:
       documented: false
+      role: brightness
       frame: "33 04 ${level} <pad:20> <xor>"
       args:
-        level: { type: int, range: [1, 100] }
+        level: { type: int, range: [1, 100], role: brightness }
       notes: >-
         Percent on this unit, not 0..255. See docs/protocol/ble.md 2.2.
 

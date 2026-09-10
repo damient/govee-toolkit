@@ -236,6 +236,10 @@ fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {
     }
 }
 
+/// What a `role: color` entry must mark. The wire carries the triple packed or
+/// spread, and the file marks the three components either way.
+const COLOR_COMPONENTS: [ArgRole; 3] = [ArgRole::Red, ArgRole::Green, ArgRole::Blue];
+
 /// What every provisioning entry must mark, whatever its frames look like.
 const WIFI_CREDENTIALS: [ArgRole; 6] = [
     ArgRole::Network,
@@ -261,6 +265,9 @@ const WIFI_CREDENTIALS_WITH_API: [ArgRole; 7] = [
 /// `devices/schema.yaml`.
 pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
     let required: &[ArgRole] = match role {
+        Role::Power => &[ArgRole::On],
+        Role::Brightness => &[ArgRole::Brightness],
+        Role::Color => &COLOR_COMPONENTS,
         Role::SegmentEnable | Role::WifiLink => &[ArgRole::Enable],
         Role::SegmentColor => &[ArgRole::Colors],
         Role::SegmentColorMasked => &[ArgRole::Colors, ArgRole::Zones],

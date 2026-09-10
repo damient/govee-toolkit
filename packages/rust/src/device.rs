@@ -63,6 +63,13 @@ impl DeviceHandle<'_> {
     /// device, [`Error::Transport`] if the write fails.
     pub async fn send(&self, command: &str, args: &Args) -> Result<Served> {
         let mode = self.govee.choose(&self.id)?;
+        self.send_on(mode, command, args).await
+    }
+
+    // A verb picks the mode to read the device file for, so it sends over that
+    // same mode: a second `choose` could answer differently and send bytes
+    // built for the first one.
+    pub(crate) async fn send_on(&self, mode: Mode, command: &str, args: &Args) -> Result<Served> {
         let sku = self.govee.sku(&self.id)?;
         let encoded = self.govee.encode(&sku, mode, command, args)?;
 

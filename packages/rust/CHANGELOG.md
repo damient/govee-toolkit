@@ -5,6 +5,22 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 `publish = false`, and the same entries cover them. The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [Unreleased]
+
+### Added
+
+- `DeviceHandle::power`, `DeviceHandle::brightness` and `DeviceHandle::color` —
+  the commands a person names, reached through the new `power`, `brightness`
+  and `color` roles. Each reads the entry the device file marks with that role
+  and fills the arguments it marks with an argument role, so no command name
+  and no argument name lives in this crate. A mode whose file claims no such
+  entry fails with `Error::NoRoleCommand`; nothing is approximated through
+  another command.
+- `Role::Power`, `Role::Brightness` and `Role::Color`, and the argument roles
+  `ArgRole::Red`, `ArgRole::Green` and `ArgRole::Blue`. `cargo test` refuses a
+  file where two entries of one mode claim the same role, or where a claiming
+  entry marks no argument for it.
+
 ## [0.5.0] — 2026-09-10
 
 `cloud` is a mode with a transport behind it. It is opt-in and off by default,

@@ -58,16 +58,18 @@ commands:
   ble:
     power:
       documented: false
+      role: power
       frame: "33 01 ${on} <pad:20> <xor>"
       args:
-        on: { type: int, range: [0, 1] }
+        on: { type: int, range: [0, 1], role: "on" }
       notes: "See docs/protocol/ble.md 2.1."
 
     brightness:
       documented: false
+      role: brightness
       frame: "33 04 ${level} <pad:20> <xor>"
       args:
-        level: { type: int, range: [0, 255] }
+        level: { type: int, range: [0, 255], role: brightness }
       notes: >-
         The whole byte, not percent: 0 and 255 both reach the firmware and both
         are applied. `0` renders nothing and does NOT turn the device off — it
@@ -77,11 +79,12 @@ commands:
 
     color:
       documented: false
+      role: color
       frame: "33 05 0D ${r} ${g} ${b} 00 00 00 00 00 <pad:20> <xor>"
       args:
-        r: { type: int, range: [0, 255] }
-        g: { type: int, range: [0, 255] }
-        b: { type: int, range: [0, 255] }
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
       notes: >-
         Sub-mode 13. The payload is the color triplet, a 16-bit kelvin field and
         a second triplet, and this command zeroes the last two: a non-zero

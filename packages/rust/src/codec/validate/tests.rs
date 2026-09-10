@@ -83,6 +83,36 @@ fn two_arguments_claiming_one_role_leave_nothing_to_pick() {
 }
 
 #[test]
+fn a_color_command_marks_the_three_components() {
+    let catalog = parse(
+        "    paint:\n      cmd: colorwc\n      documented: true\n\
+         \n      role: color\n      args:\n\
+         \n        r: { type: int, range: [0, 255], role: red }\n\
+         \n        g: { type: int, range: [0, 255], role: green }\n",
+    );
+    let device = catalog.device("HTEST").expect("the SKU resolves");
+    let problems = super::device(device);
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert!(problems[0].message.contains("role: blue"));
+}
+
+#[test]
+fn two_commands_claiming_the_power_role_leave_nothing_to_pick() {
+    let catalog = parse(
+        "    turn:\n      cmd: turn\n      documented: true\n\
+         \n      role: power\n      args:\n\
+         \n        on: { type: int, range: [0, 1], role: \"on\" }\n\
+         \n    switch:\n      cmd: turn\n      documented: true\n\
+         \n      role: power\n      args:\n\
+         \n        on: { type: int, range: [0, 1], role: \"on\" }\n",
+    );
+    let device = catalog.device("HTEST").expect("the SKU resolves");
+    let problems = super::device(device);
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert!(problems[0].message.contains("switch, turn"));
+}
+
+#[test]
 fn an_argument_role_is_fixed_to_one_type() {
     let catalog = parse(
         "    arm:\n      cmd: razer\n      documented: true\n\

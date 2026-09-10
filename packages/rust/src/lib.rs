@@ -108,6 +108,8 @@ mod event;
 mod govee;
 #[cfg(feature = "ble")]
 mod provision;
+#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+mod verbs;
 
 pub use codec::{Args, Catalog, Mode};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
