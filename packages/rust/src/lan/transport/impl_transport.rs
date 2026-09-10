@@ -74,12 +74,6 @@ impl Transport for LanTransport {
     /// it and there is nothing to match. A `lan` reply reaches a caller whole,
     /// under [`DeviceStatus::raw`].
     async fn read(&self, _id: &DeviceId, request: &Encoded) -> Result<Reply> {
-        Err(Error::NoReplyLayout {
-            mode: Mode::Lan,
-            reason: format!(
-                "`{}` answers in JSON; a `reply:` layout describes bytes on a frame wire",
-                request.cmd
-            ),
-        })
+        Err(Error::no_reply_layout(Mode::Lan, &request.cmd))
     }
 }
