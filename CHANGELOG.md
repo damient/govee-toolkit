@@ -1,7 +1,7 @@
 # Changelog
 
-This file records the device catalog in [`devices/`](devices/). All three
-packages read that catalog. Each package records what its own code does in
+This file records the device catalog in [`devices/`](devices/). Every package
+reads that catalog. Each package records what its own code does in
 its own file. The repository's
 [releases page](https://github.com/damient/govee-toolkit/releases) shows what
 each package published. A tag there carries the changelog section that it
@@ -10,6 +10,7 @@ shipped.
 | Package | Changelog | Version |
 | ------- | --------- | ------- |
 | `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.5.0 |
+| `govee-toolkit-cli` (Rust) | [`packages/rust/crates/cli/CHANGELOG.md`](packages/rust/crates/cli/CHANGELOG.md) | unreleased |
 | `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 0.0.0 |
 | `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 0.0.0 |
 
