@@ -1,6 +1,6 @@
 # Versioning and compatibility
 
-Three packages release independently off one shared core. This page is the rule
+Four packages release independently off one shared core. This page is the rule
 they follow, written before the first release rather than after the second one
 breaks.
 
@@ -8,10 +8,11 @@ breaks.
 
 Each package keeps its own —
 [`rust`](../packages/rust/CHANGELOG.md),
+[`cli`](../packages/rust/crates/cli/CHANGELOG.md),
 [`python`](../packages/python/CHANGELOG.md),
 [`node`](../packages/node/CHANGELOG.md). The root
 [`CHANGELOG.md`](../CHANGELOG.md) carries what belongs to no package — the
-device catalog, the documentation, the tooling and CI — and indexes the three.
+device catalog, the documentation, the tooling and CI — and indexes the four.
 
 ## Semver, and what pre-1.0 means
 
@@ -32,18 +33,29 @@ have survived `ble` and `cloud` landing — not on a date.
 | Tag | Package | Registry |
 | --- | ------- | -------- |
 | `rust-vX.Y.Z` | `govee-toolkit` | crates.io |
+| `cli-vX.Y.Z` | `govee-toolkit-cli` | crates.io |
 | `python-vX.Y.Z` | `govee-toolkit` | PyPI |
 | `node-vX.Y.Z` | `govee-toolkit` | npm |
 
-Versions are **not** kept in lockstep. Three packages that move at different
+Versions are **not** kept in lockstep. Four packages that move at different
 speeds and share a version number would mean publishing two no-op releases every
 time one of them changed.
 
 ## One crate, and what a feature means
 
-The Rust side is a single published crate, `govee-toolkit`. The codec, the
-transport and the facade are modules of it; `crates/sim` and `crates/xtask` are
-never published.
+The protocol lives in a single published crate, `govee-toolkit`. The codec, the
+transport and the facade are modules of it. `crates/cli` is published beside it
+as `govee-toolkit-cli` and holds no protocol logic; `crates/sim` and
+`crates/xtask` are never published.
+
+`govee-toolkit-cli` depends on `govee-toolkit` by version, so the core it needs
+is on crates.io before the CLI that wraps it. Release `rust-vX.Y.Z` first when
+one pull request changes both.
+
+The CLI's public surface is its command line, not a Rust API: the subcommands,
+the exit codes and the JSON output. A change to any of the three is breaking,
+and `cargo-semver-checks` cannot see it — the changelog entry is what records
+it.
 
 A transport is a **cargo feature**, and a feature is public API. `lan` is on by
 default. Adding a feature (`ble`, `cloud`) is a minor change. Removing one, or

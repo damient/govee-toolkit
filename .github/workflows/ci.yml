@@ -275,7 +275,7 @@ jobs:
         run: |
           changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
           needs_entry=$(printf '%s\n' "$changed" \
-            | grep -E '^(packages/[^/]+/(src/|build.rs)|devices/[^/]+\.yaml)' \
+            | grep -E '^(packages/[^/]+/(crates/[^/]+/)?(src/|build.rs)|devices/[^/]+\.yaml)' \
             || true)
           if [ -z "$needs_entry" ]; then
             echo "No code or catalog change in this range."
