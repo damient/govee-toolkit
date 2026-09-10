@@ -104,6 +104,7 @@ commands:
   #   ${name:str16}          two big-endian length bytes, then `name` as UTF-8
   #   ${name:mask8}          one byte of zone bits, least significant bit first
   #   ${name:mask16}         two bytes of the same
+  #   ${name:mask32}         four bytes of the same
   #   ${name:bytes}          the bytes of `name`, as they are
   #   <op:B0>                the opcode, one or more literal bytes. Marks where
   #                          the payload begins.
