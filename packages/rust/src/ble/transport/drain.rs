@@ -34,19 +34,6 @@ impl Drains {
             .copied()
             .unwrap_or(fallback)
     }
-
-    /// The longest wait among the SKUs, so links closed together are held open
-    /// once rather than one after the other.
-    pub(super) fn longest<'a>(
-        &self,
-        skus: impl IntoIterator<Item = Option<&'a str>>,
-        fallback: Duration,
-    ) -> Duration {
-        skus.into_iter()
-            .map(|sku| self.get(sku, fallback))
-            .max()
-            .unwrap_or(fallback)
-    }
 }
 
 #[cfg(test)]
@@ -71,18 +58,5 @@ mod tests {
         );
         assert_eq!(drains().get(Some("OTHER"), fallback), fallback);
         assert_eq!(drains().get(None, fallback), fallback);
-    }
-
-    #[test]
-    fn links_closed_together_wait_for_the_slowest_of_them() {
-        let fallback = Duration::from_millis(50);
-        let waits = drains().longest([Some("FAST"), Some("SLOW"), None], fallback);
-        assert_eq!(waits, Duration::from_millis(300));
-    }
-
-    #[test]
-    fn closing_nothing_waits_the_fallback() {
-        let fallback = Duration::from_millis(50);
-        assert_eq!(drains().longest([], fallback), fallback);
     }
 }

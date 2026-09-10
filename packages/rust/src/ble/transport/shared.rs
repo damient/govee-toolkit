@@ -15,7 +15,7 @@ use crate::ble::link::{Link, adapter as adapter_error};
 use crate::ble::pace::{Budget, Pacer};
 use crate::ble::transport::Options;
 use crate::ble::transport::drain::Drains;
-use crate::ble::transport::links::{Links, Slot};
+use crate::ble::transport::links::Links;
 use crate::ble::wire::{Adapter, Peripheral};
 use crate::codec::{Encoded, Mode};
 use crate::transport::DeviceId;
@@ -97,7 +97,7 @@ pub(super) struct Shared {
     pub(super) devices: Devices<Tracked>,
     /// One open connection per device, reused across commands. A device
     /// accepts only one, and a new connection costs seconds.
-    links: Links,
+    pub(super) links: Links,
     pub(super) events: broadcast::Sender<Event>,
 }
 
@@ -261,11 +261,6 @@ impl Shared {
                 .await?;
         }
         Ok(())
-    }
-
-    /// Take every open link, leaving the map empty.
-    pub(super) fn take_links(&self) -> Vec<(DeviceId, Arc<Slot>)> {
-        self.links.take_all()
     }
 
     /// Hand a status to the device's watchers and to the event stream.
