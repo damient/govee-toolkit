@@ -132,7 +132,7 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
         .flatten();
     let data = substitute(command, &spec.payload, &resolved, single)?;
 
-    let mut roles: BTreeMap<String, ArgRole> = captured
+    let roles: BTreeMap<String, ArgRole> = captured
         .iter()
         .filter_map(|name| {
             let role = spec.args.get(*name)?.role()?;
@@ -141,15 +141,6 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
         .collect();
 
     if mode == Mode::Cloud {
-        for read in &spec.reads {
-            if let Some(role) = spec
-                .args
-                .get(&read.arg)
-                .and_then(crate::codec::ArgSpec::role)
-            {
-                roles.insert(read.arg.clone(), role);
-            }
-        }
         return Ok(cloud(spec, &data, roles));
     }
 
