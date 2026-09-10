@@ -45,7 +45,6 @@ impl Answer {
 pub(crate) struct Api {
     pub(crate) base_url: String,
     pub(crate) received: Arc<Mutex<Vec<Received>>>,
-    answers: Arc<Mutex<Vec<Answer>>>,
     _task: tokio::task::JoinHandle<()>,
 }
 
@@ -56,11 +55,9 @@ impl Api {
         let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
         let port = listener.local_addr().expect("address").port();
         let received = Arc::new(Mutex::new(Vec::new()));
-        let queued = Arc::new(Mutex::new(answers));
-
         let task = tokio::spawn({
             let received = Arc::clone(&received);
-            let queued = Arc::clone(&queued);
+            let queued = Arc::new(Mutex::new(answers));
             async move {
                 while let Ok((stream, _)) = listener.accept().await {
                     serve(stream, &received, &queued).await;
@@ -71,7 +68,6 @@ impl Api {
         Self {
             base_url: format!("http://127.0.0.1:{port}"),
             received,
-            answers: queued,
             _task: task,
         }
     }

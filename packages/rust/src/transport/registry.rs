@@ -105,7 +105,7 @@ impl<T: Tracked> Devices<T> {
         mode: Mode,
         now: Instant,
         claim: Option<Duration>,
-        route_of: impl FnOnce(&T) -> R,
+        route_of: impl FnOnce(&mut T) -> R,
     ) -> Result<(R, bool)> {
         let mut devices = self.lock()?;
         let tracked = devices

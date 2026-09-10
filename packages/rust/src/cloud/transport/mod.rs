@@ -102,20 +102,20 @@ impl Transport {
         let endpoint = self.shared.client.endpoint("");
         let mut out = Vec::with_capacity(listed.len());
 
+        // One lock for the whole list: nothing here waits, so a scan takes it
+        // once rather than once per device.
+        let mut devices = self.shared.devices.lock()?;
         for device in listed {
             let id = DeviceId::new(&device.device);
-            {
-                let mut devices = self.shared.devices.lock()?;
-                let tracked = devices.entry(id.clone()).or_insert_with(|| {
-                    Tracked::new(
-                        device.sku.clone(),
-                        device.device_name.clone(),
-                        self.shared.policy,
-                    )
-                });
-                tracked.sku.clone_from(&device.sku);
-                tracked.name.clone_from(&device.device_name);
-            }
+            let tracked = devices.entry(id.clone()).or_insert_with(|| {
+                Tracked::new(
+                    device.sku.clone(),
+                    device.device_name.clone(),
+                    self.shared.policy,
+                )
+            });
+            tracked.sku.clone_from(&device.sku);
+            tracked.name.clone_from(&device.device_name);
             let found = Discovered {
                 id,
                 endpoint: endpoint.clone(),

@@ -86,34 +86,26 @@ impl Shared {
     /// [`Error::RateLimited`] if the slot is further away than
     /// [`Shared::max_wait`].
     pub(super) async fn claim(&self, id: &DeviceId) -> Result<String> {
-        let (sku, wait) = {
-            let mut devices = self.devices.lock()?;
-            let tracked = devices
-                .get_mut(id)
-                .ok_or_else(|| Error::UnknownDevice { id: id.clone() })?;
-            let now = Instant::now();
-            if !tracked.breaker.allows(now) {
-                return Err(Error::Unavailable {
-                    id: id.clone(),
-                    mode: Mode::Cloud,
-                    state: tracked.breaker.state(),
-                });
-            }
-            let wait = tracked
-                .last_request
-                .map(|at| self.min_interval.saturating_sub(now.duration_since(at)))
-                .unwrap_or_default();
-            if wait > self.max_wait {
-                return Err(Error::RateLimited {
-                    mode: Mode::Cloud,
-                    retry_after_ms: millis(wait),
-                });
-            }
-            // Claimed here rather than after the wait: a second caller then
-            // queues behind this slot instead of sharing it.
-            tracked.last_request = Some(now + wait);
-            (tracked.sku.clone(), wait)
-        };
+        let now = Instant::now();
+        let (throttled, _) =
+            self.devices
+                .route_and_claim(id, Mode::Cloud, now, None, |tracked| {
+                    let wait = tracked
+                        .last_request
+                        .map(|at| self.min_interval.saturating_sub(now.duration_since(at)))
+                        .unwrap_or_default();
+                    if wait > self.max_wait {
+                        return Err(Error::RateLimited {
+                            mode: Mode::Cloud,
+                            retry_after_ms: millis(wait),
+                        });
+                    }
+                    // Claimed here rather than after the wait: a second caller
+                    // then queues behind this slot instead of sharing it.
+                    tracked.last_request = Some(now + wait);
+                    Ok((tracked.sku.clone(), wait))
+                })?;
+        let (sku, wait) = throttled?;
 
         if !wait.is_zero() {
             tokio::time::sleep(wait).await;
