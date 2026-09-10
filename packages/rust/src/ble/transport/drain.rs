@@ -1,9 +1,6 @@
-//! How long a link stays open after the last frame written on it.
-//!
-//! The write characteristic takes no acknowledgement, so nothing reports a
-//! frame that the link dropped before it left. A device file records the wait
-//! its unit needed as `measurements.ble.write_drain_ms`; a file that records
-//! none falls back to [`Options::write_drain`](super::Options::write_drain).
+//! How long a link stays open after the last frame written on it, out of each
+//! device file's `measurements.ble.write_drain_ms`. A file that records none
+//! falls back to [`Options::write_drain`](super::Options::write_drain).
 
 use std::collections::BTreeMap;
 use std::time::Duration;

@@ -76,7 +76,9 @@ Three properties of this model differ from the `lan` envelope:
 
 A state answer also carries capabilities that this SDK models nothing of, each
 with an empty value. A capability that the state endpoint names is **not**
-evidence that the control endpoint writes it. Send it to establish that.
+evidence that the control endpoint writes it. Send the instance to the control
+endpoint to establish that, and **watch the device**: this API answers
+`success` for a capability it accepts, and acceptance is not application.
 
 What a device keeps between two commands is in [`state.md`](state.md), and
 applies to this mode as it does to the other two.
@@ -133,11 +135,6 @@ A device file that declares no command for an instance marks the capability
 the SDK moves to `cloud`, a command outside the carried set **fails
 explicitly**; it is never approximated.
 
-The state endpoint names an instance whether or not the control endpoint
-writes it. Send the instance to the control endpoint to establish that this
-mode writes it, and **watch the device**: this API answers `success` for a
-capability it accepts, and acceptance is not application.
-
 ## 6. Music over this mode
 
 This mode reaches music on a device whose account list declares the music
@@ -155,9 +152,8 @@ fields per device:
 
 Three limits hold here:
 
-- **A declared field is not an applied field.** The API answers `success` for a
-  field it accepts, and acceptance is not application. Send each optional field
-  and watch the device. A device file declares the fields that one unit
+- **A declared field is not an applied field.** Send each optional field and
+  watch the device (§3). A device file declares the fields that one unit
   applied, and its `verified:` block says what the others did.
 - **This mode reads back no music state.** The state endpoint answers an empty
   value for the music instance while the device plays music.

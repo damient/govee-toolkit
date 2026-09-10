@@ -200,17 +200,13 @@ impl Config {
 
     /// What to set for a mode whose credential the configuration does not
     /// carry, or `None` where the mode needs none, already has one, or is not
-    /// in this build.
-    ///
-    /// The facade reports this instead of
-    /// [`Error::ModeNotImplemented`] when a
-    /// build that carries the transport started without its credential.
+    /// in this build. The facade reports it in place of
+    /// [`Error::ModeNotImplemented`].
     #[must_use]
     pub fn missing_credential(&self, mode: Mode) -> Option<&'static str> {
         // Exhaustive on purpose: a new mode must state whether it needs a
-        // credential. `cfg!` rather than an attribute, so that a mode this
-        // build does not carry stays `ModeNotImplemented` — the feature is
-        // then the absence to report, not the credential.
+        // credential. `cfg!` rather than an attribute, so a mode this build
+        // does not carry stays `ModeNotImplemented`.
         match mode {
             Mode::Cloud if cfg!(feature = "cloud") => self.cloud.missing_key(),
             Mode::Cloud | Mode::Lan | Mode::Ble => None,

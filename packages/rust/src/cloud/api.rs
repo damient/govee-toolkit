@@ -1,9 +1,7 @@
 //! The HTTPS side of `cloud`: the routes, the header that authenticates them,
 //! and the two answers this mode reads.
 //!
-//! A route is a property of the transport, the way a port is on `lan`. No
-//! command name and no SKU appears here: what to write comes from
-//! [`crate::codec`], and this module carries it.
+//! A route is a property of the transport, the way a port is on `lan`.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
@@ -26,10 +24,9 @@ const KEY_HEADER: &str = "Govee-API-Key";
 pub struct ApiDevice {
     /// The model.
     pub sku: String,
-    /// The identity the API addresses it by. A MAC on a device that has
-    /// Wi-Fi.
+    /// The identity the API addresses it by. A MAC on a Wi-Fi device.
     pub device: String,
-    /// The name the account gave it. For logs and interfaces, never identity.
+    /// For logs and interfaces, never identity.
     #[serde(default, rename = "deviceName")]
     pub device_name: String,
 }
@@ -68,8 +65,8 @@ struct Answer<T> {
 }
 
 impl<T> Answer<T> {
-    /// The body's own verdict. The API answers `200` in the body of a request
-    /// it refused at another level, so both are checked.
+    /// The API answers `200` in the body of a request it refused at another
+    /// level, so the body's own verdict is checked too.
     fn into_payload(self, endpoint: &str) -> Result<Option<T>> {
         let reason = self
             .msg
@@ -92,7 +89,6 @@ struct StatePayload {
     capabilities: Vec<CapabilityState>,
 }
 
-/// The account's HTTPS client.
 pub(crate) struct Client {
     http: reqwest::Client,
     base: String,
@@ -102,8 +98,7 @@ pub(crate) struct Client {
 }
 
 impl std::fmt::Debug for Client {
-    /// Prints no key. It must never reach a log or a bug report — see
-    /// `docs/security.md`.
+    /// Prints no key — see `docs/security.md`.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Client")
             .field("base", &self.base)
@@ -112,11 +107,6 @@ impl std::fmt::Debug for Client {
 }
 
 impl Client {
-    /// Build a client for one account.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::Option`] if the HTTP client cannot be built.
     pub(crate) fn new(key: String, base: &str, timeout: Duration) -> Result<Self> {
         let http = reqwest::Client::builder()
             .timeout(timeout)
@@ -133,12 +123,9 @@ impl Client {
         })
     }
 
-    /// Every device the account owns.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::Api`] if the API refuses, [`Error::RateLimited`] if the quota
-    /// is spent, or [`Error::Io`] if the request does not complete.
+    /// Every device the account owns. Answers [`Error::Api`] on a refusal,
+    /// [`Error::RateLimited`] on a spent quota, [`Error::Io`] on a request
+    /// that does not complete.
     pub(crate) async fn devices(&self) -> Result<Vec<ApiDevice>> {
         let url = format!("{}{DEVICES}", self.base);
         let request = self.http.get(&url).header(KEY_HEADER, &self.key);
@@ -146,14 +133,8 @@ impl Client {
         Ok(answer.into_payload(DEVICES)?.unwrap_or_default())
     }
 
-    /// Write one capability.
-    ///
-    /// `capability` is what [`crate::codec`] built: the whole
-    /// `{"type":…,"instance":…,"value":…}` object.
-    ///
-    /// # Errors
-    ///
-    /// As for [`Client::devices`].
+    /// Write one capability. `capability` is the whole object
+    /// [`crate::codec`] built.
     pub(crate) async fn control(
         &self,
         sku: &str,
@@ -169,11 +150,6 @@ impl Client {
         Ok(())
     }
 
-    /// Read every capability the device reports.
-    ///
-    /// # Errors
-    ///
-    /// As for [`Client::devices`].
     pub(crate) async fn state(&self, sku: &str, device: &str) -> Result<Vec<CapabilityState>> {
         let body = serde_json::json!({
             "requestId": self.request_id(),
@@ -247,8 +223,8 @@ impl Client {
     }
 }
 
-/// What `Retry-After` asks for, in milliseconds. Zero where the answer carries
-/// none: the caller then waits on its own interval.
+/// What `Retry-After` asks for, in milliseconds. Zero where the answer
+/// carries none, and the caller then waits on its own interval.
 fn retry_after_ms(response: &reqwest::Response) -> u64 {
     response
         .headers()

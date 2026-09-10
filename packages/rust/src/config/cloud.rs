@@ -1,8 +1,6 @@
-//! Transport tuning for `cloud`, and where the API key comes from.
-//!
-//! Read whatever transports the build carries, so one configuration file works
-//! against all of them. Only the conversion to `crate::cloud::Options` sits
-//! behind the `cloud` feature.
+//! Transport tuning for `cloud`, and where the API key comes from. Read
+//! whatever transports the build carries, so one configuration file works
+//! against all of them.
 
 use std::path::PathBuf;
 
@@ -13,18 +11,14 @@ use crate::transport::breaker::Policy;
 /// The environment variable the key is read from.
 pub const KEY_ENV: &str = "GOVEE_API_KEY";
 
-/// Transport tuning for `cloud`.
-///
-/// The key itself is **not** a field here: `config.yaml` ends up in bug
-/// reports. It comes from [`KEY_ENV`], or from the file
-/// [`CloudConfig::key_file`] names — see `docs/security.md`.
+/// Transport tuning for `cloud`. The key itself is **not** a field here:
+/// `config.yaml` ends up in bug reports. See `docs/security.md`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CloudConfig {
-    /// A file holding the API key, and nothing else. Read when [`KEY_ENV`] is
-    /// unset.
+    /// A file holding the API key alone. Read when [`KEY_ENV`] is unset.
     pub key_file: Option<PathBuf>,
-    /// Where the API lives. Unset uses the documented base URL.
+    /// Unset uses the documented base URL.
     pub base_url: Option<String>,
     /// How long a request waits for its answer.
     pub request_timeout_ms: u64,
@@ -38,9 +32,9 @@ pub struct CloudConfig {
     pub down_after: u32,
     /// Consecutive answers that bring it back.
     pub recover_after: u32,
-    /// How long a degraded mode waits before letting a probe through.
+    /// How long a degraded mode waits before it lets a probe through.
     pub cooldown_seconds: u64,
-    /// How long a mode that is down waits.
+    /// The same, for a mode that is down.
     pub down_cooldown_seconds: u64,
 }
 
@@ -75,16 +69,14 @@ impl CloudConfig {
         }
     }
 
-    /// The API key, from the environment or from the file the configuration
-    /// names. `None` where neither carries one, which is not an error: this
-    /// mode is opt-in.
-    ///
-    /// The environment wins: it is the more explicit of the two at run time.
+    /// The API key, from [`KEY_ENV`] or from the file the configuration
+    /// names, in that order. `None` where neither carries one, which is not
+    /// an error: this mode is opt-in.
     ///
     /// # Errors
     ///
-    /// [`Error::LocalDevices`](crate::Error::LocalDevices) if the file cannot
-    /// be read.
+    /// [`Error::LocalDevices`](crate::Error::LocalDevices) on a file that
+    /// cannot be read.
     pub fn key(&self) -> crate::error::Result<Option<String>> {
         if let Ok(key) = std::env::var(KEY_ENV)
             && !key.trim().is_empty()
@@ -103,12 +95,8 @@ impl CloudConfig {
         Ok((!key.is_empty()).then_some(key))
     }
 
-    /// What to set when no key is available, or `None` when one is.
-    ///
-    /// A key file that cannot be read answers as a missing key. This is
-    /// consulted to explain a mode that has no transport, and
-    /// [`CloudConfig::key`] reports the read error on the path that needs the
-    /// key itself.
+    /// What to set when no key is available, or `None` when one is. A key
+    /// file that cannot be read answers as a missing key.
     pub(crate) fn missing_key(&self) -> Option<&'static str> {
         match self.key() {
             Ok(Some(_)) => None,
@@ -151,10 +139,8 @@ mod tests {
     #[test]
     fn a_configuration_with_no_key_names_what_to_set() {
         let cloud = CloudConfig::default();
-        // `key()` reads the process environment, and this test cannot change
-        // it: `set_var` needs `unsafe`, which the workspace forbids. So assert
-        // the branch that the environment selects. Both are the behaviour
-        // under test, and `tools/with-env.sh cargo test` runs the first.
+        // `set_var` needs `unsafe`, which the workspace forbids, so this test
+        // asserts the branch the environment selects. Both are under test.
         match std::env::var(KEY_ENV) {
             Ok(key) if !key.trim().is_empty() => assert_eq!(cloud.missing_key(), None),
             _ => {

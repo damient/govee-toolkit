@@ -50,12 +50,10 @@ pub enum Error {
         mode: Mode,
     },
 
-    /// A mode the configuration enables needs a credential that the
-    /// configuration does not carry, so this build started without its
-    /// transport.
-    ///
-    /// This is not [`Error::ModeNotImplemented`]: the build carries the mode,
-    /// and the credential is what is absent.
+    /// A mode the configuration enables needs a credential it does not carry,
+    /// so this build started without that transport. Not
+    /// [`Error::ModeNotImplemented`], which is a mode the build has no
+    /// transport for at all.
     #[error("{id}: mode `{mode}` is enabled but carries no credential — {remedy}")]
     MissingCredential {
         /// The device.

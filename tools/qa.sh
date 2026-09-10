@@ -9,10 +9,8 @@
 # rather than passed, because a skip that reads as a pass is how a red CI gets
 # discovered on the pull request instead of here.
 #
-# A run stamps the time before the first check and, when every check passes,
-# sweeps the artifacts that are older than the stamp. The build artifacts of the
-# run stay, so the next run is still warm. tools/clean-target.sh does the work
-# and runs alone to clean at another time.
+# A run that passes every check sweeps the artifacts older than its own, with
+# tools/clean-target.sh.
 
 set -uo pipefail
 
@@ -65,7 +63,7 @@ skip() {
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
-# The sweep at the end removes what is older than this.
+# The sweep at the end removes what is older than this stamp.
 "$root/tools/clean-target.sh" --stamp
 
 if have rustup && rustup toolchain list | grep -q '^nightly'; then

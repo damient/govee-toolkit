@@ -59,9 +59,9 @@ impl FrameRates {
 
 /// The `measurements.ble` block: what one unit did over Bluetooth.
 ///
-/// [`Ble::write_budget_hz`] and [`Ble::write_drain_ms`] are the fields the SDK
-/// reads. The `ble` transport paces its writes to the first, and holds a link
-/// open for the second before it drops it.
+/// The `ble` transport paces its writes to [`Ble::write_budget_hz`], and holds
+/// a link open for [`Ble::write_drain_ms`] before it drops it. It reads no
+/// other field here.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct Ble {
@@ -73,8 +73,7 @@ pub struct Ble {
     /// `sustained_writes_hz`. [`crate::codec::validate`] checks that.
     pub write_budget_hz: Option<f64>,
     /// How long a link must stay open after a write, in milliseconds, for the
-    /// frame to leave. The wire takes no acknowledgement, so a link dropped
-    /// sooner loses the frame and reports nothing.
+    /// frame to leave.
     pub write_drain_ms: Option<u64>,
     /// Frames in one burst that left the firmware unresponsive. The count
     /// that broke the unit, never a burst allowance.

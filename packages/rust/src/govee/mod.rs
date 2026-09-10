@@ -120,15 +120,9 @@ impl Govee {
             .collect()
     }
 
-    /// Release what every transport holds, before this handle is dropped.
-    ///
-    /// Call it before the program ends. The `ble` wire takes no
-    /// acknowledgement, so a link dropped too early loses the frame it was
-    /// carrying and reports nothing. This holds each link open long enough for
-    /// the frame to go out. Every other mode does nothing here.
-    ///
-    /// A transport answers commands again afterwards, at the cost of a new
-    /// connection.
+    /// Release what every transport holds. Call it before the program ends,
+    /// or `ble` loses the last frame it wrote. Every other mode does nothing
+    /// here, and a transport answers commands again afterwards.
     ///
     /// # Errors
     ///
@@ -169,8 +163,8 @@ impl Govee {
             .ok_or_else(|| self.no_transport(id, mode))
     }
 
-    /// Why a mode has no transport: a credential the configuration does not
-    /// carry, or a mode this build does not implement.
+    /// Why a mode has no transport: a missing credential, or a mode this
+    /// build does not implement.
     fn no_transport(&self, id: &DeviceId, mode: Mode) -> Error {
         match self.inner.config.missing_credential(mode) {
             Some(remedy) => Error::MissingCredential {

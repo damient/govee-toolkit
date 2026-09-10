@@ -83,8 +83,8 @@ pub enum Error {
         reason: String,
     },
 
-    /// The quota is spent. Nothing was sent, and no other mode is tried: the
-    /// facade decides that.
+    /// The quota is spent. Nothing was sent, and the facade decides whether
+    /// another mode is tried.
     #[error("`{mode}`: rate limited; {retry_after_ms} ms to wait")]
     RateLimited {
         /// The mode that is limited.

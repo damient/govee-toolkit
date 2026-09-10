@@ -78,9 +78,8 @@ impl DeviceStatus {
     }
 
     /// Read one out of what each [`ArgRole`] answered, whatever mode read it.
-    ///
-    /// `int` answers the value a role carries, or `None` when the reply left
-    /// that role out. [`ArgRole::Color`] arrives packed as `0xRRGGBB`.
+    /// `int` answers `None` for a role the reply left out, and
+    /// [`ArgRole::Color`] arrives packed as `0xRRGGBB`.
     #[must_use]
     pub(crate) fn from_roles(
         id: DeviceId,

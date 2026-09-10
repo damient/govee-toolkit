@@ -1,9 +1,5 @@
-//! `cloud` as one implementation of [`crate::transport::Transport`].
-//!
-//! Every method forwards to the inherent one on [`super::Transport`]. Two of
-//! them answer differently from the other modes, and both are properties of
-//! this wire: a scan is one request rather than a listen window, and nothing
-//! here reads frames.
+//! `cloud` as one implementation of [`crate::transport::Transport`]: every
+//! method forwards to the inherent one on [`super::Transport`].
 
 use std::time::Duration;
 
@@ -51,8 +47,8 @@ impl Transport for CloudTransport {
         Self::scan_window(self)
     }
 
-    /// Lists the account's devices. The window is ignored: the API answers
-    /// with everything the account owns, and there is nothing to listen for.
+    /// Lists the account's devices. The window is ignored: there is nothing
+    /// to listen for.
     async fn scan(&self, _window: Duration) -> Result<Vec<Discovered>> {
         Self::scan(self).await
     }
@@ -65,11 +61,9 @@ impl Transport for CloudTransport {
         Self::status(self, id, request).await
     }
 
-    /// Always fails.
-    ///
-    /// This mode answers in JSON, so no command declares a `reply:` layout for
-    /// it. What the API reported reaches a caller whole, under
-    /// [`DeviceStatus::raw`].
+    /// Always fails: this mode answers in JSON, so no command declares a
+    /// `reply:` layout for it. What the API reported reaches a caller whole,
+    /// under [`DeviceStatus::raw`].
     async fn read(&self, _id: &DeviceId, request: &Encoded) -> Result<Reply> {
         Err(Error::no_reply_layout(Mode::Cloud, &request.cmd))
     }

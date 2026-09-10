@@ -128,13 +128,10 @@ pub trait Transport: Debug + Send + Sync + 'static {
 
     /// Release what this transport holds, before it is dropped.
     ///
-    /// A mode whose wire takes no acknowledgement needs this: it cannot know
-    /// that a frame left, so it holds the link open long enough for the frame
-    /// to go out. The default does nothing, which is right for a mode that
-    /// writes to a socket the operating system owns.
-    ///
-    /// A transport answers commands again after this call. It releases what it
-    /// holds; it does not refuse later work.
+    /// A mode whose wire takes no acknowledgement holds the link open here,
+    /// long enough for the last frame to leave. The default does nothing,
+    /// which is right for a socket the operating system owns. A transport
+    /// answers commands again after this call.
     ///
     /// # Errors
     ///

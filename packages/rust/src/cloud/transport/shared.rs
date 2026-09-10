@@ -1,9 +1,8 @@
 //! The state every [`Transport`](super::Transport) clone shares, and the
 //! throttle in front of it.
 //!
-//! One device gets one request every [`Options::min_interval`]. The gate is
-//! taken before the request goes out and released when the slot is claimed,
-//! so two callers never spend two slots on one interval.
+//! The gate is taken before the request goes out, so two callers never spend
+//! two slots on one interval.
 
 use std::time::{Duration, Instant};
 
@@ -18,10 +17,9 @@ use crate::transport::registry::Devices;
 use crate::transport::status::DeviceStatus;
 use crate::transport::{DeviceId, millis};
 
-/// One device, as the transport tracks it.
 pub(super) struct Tracked {
     pub(super) sku: String,
-    /// The name the account gave it. Reported, never read as identity.
+    /// Reported, never read as identity.
     pub(super) name: String,
     pub(super) breaker: Breaker,
     pub(super) status: watch::Sender<Option<DeviceStatus>>,
@@ -76,15 +74,9 @@ pub(super) struct Shared {
 }
 
 impl Shared {
-    /// The SKU to address this device by, after the breaker has allowed it and
-    /// the throttle has been paid.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::UnknownDevice`] if no scan has listed the device,
-    /// [`Error::Unavailable`] if the breaker refuses this mode, or
-    /// [`Error::RateLimited`] if the slot is further away than
-    /// [`Shared::max_wait`].
+    /// The SKU to address this device by, once the breaker has allowed it and
+    /// the throttle is paid. [`Error::RateLimited`] where the slot is further
+    /// away than [`Shared::max_wait`].
     pub(super) async fn claim(&self, id: &DeviceId) -> Result<String> {
         let now = Instant::now();
         let (throttled, _) =
@@ -100,8 +92,8 @@ impl Shared {
                             retry_after_ms: millis(wait),
                         });
                     }
-                    // Claimed here rather than after the wait: a second caller
-                    // then queues behind this slot instead of sharing it.
+                    // Claimed before the wait, so a second caller queues
+                    // behind this slot instead of sharing it.
                     tracked.last_request = Some(now + wait);
                     Ok((tracked.sku.clone(), wait))
                 })?;
@@ -113,8 +105,7 @@ impl Shared {
         Ok(sku)
     }
 
-    /// Feed the breaker with what the API answered, and publish the
-    /// transition.
+    /// Feed the breaker with what the API answered.
     pub(super) fn record(&self, id: &DeviceId, answered: bool) {
         self.devices
             .record(&self.events, id, Mode::Cloud, answered, Instant::now());
