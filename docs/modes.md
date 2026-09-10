@@ -135,8 +135,8 @@ and every mode transition is an event the application can subscribe to.
 ## Capability differences between modes
 
 Modes are not interchangeable, and neither is a superset of the other: `cloud`
-does not expose the undocumented segment channel `lan` reaches, and `ble` does
-not reach the network at all
+does not expose the undocumented segment channel `lan` reaches, and it carries
+no segment stream at all, while `ble` does not reach the network
 ([`protocol/cloud.md`](protocol/cloud.md)). When several modes are enabled and
 the SDK switches, a command unsupported by the active mode **fails explicitly**
 rather than being silently approximated.

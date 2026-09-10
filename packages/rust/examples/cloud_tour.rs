@@ -54,6 +54,25 @@ async fn main() -> Result<(), Error> {
         .send("colortemp", &Args::new().int("kelvin", 4000))
         .await?;
 
+    // The segment entries take an array of zones. This mode paints the zones
+    // that array names and leaves the rest alone.
+    device
+        .send(
+            "segment_color",
+            &Args::new()
+                .zones("zones", vec![0, 1])
+                .int("r", 0)
+                .int("g", 255)
+                .int("b", 0),
+        )
+        .await?;
+    device
+        .send(
+            "segment_brightness",
+            &Args::new().zones("zones", vec![0, 1]).int("level", 10),
+        )
+        .await?;
+
     // `status` is the entry marked `role: status`. `raw` keeps every
     // capability the account reported, including the ones the SDK models
     // nothing of.

@@ -351,6 +351,11 @@ commands:
     # channel arguments, packed into 0xRRGGBB, which is how this API carries a
     # color. The three keep the names the `lan` and `ble` layouts give them, so
     # one command takes the same arguments over every mode.
+    #
+    # A `zones` argument becomes an array of zone indices here, ascending and
+    # each index once, because this wire carries a list where a frame carries a
+    # mask. One call then names the same zones over every mode, and the list
+    # stays inside the length the API bounds it by.
 
 measurements: {}        # optional — numbers taken from a physical unit:
                         # native_pixels, latency, sustainable frame rate…

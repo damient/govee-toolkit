@@ -56,18 +56,17 @@ modes:
       docs/protocol/ble.md.
   cloud:
     support: partial
-    capabilities: [power, brightness, color, colortemp]
+    capabilities: [power, brightness, color, colortemp, segments, segment_brightness]
     unreachable:
-      segments: transport
-      segment_brightness: transport
       music: unprobed
     notes: >-
       This mode is the documented HTTPS API. It requires a Govee account and
-      internet. The state endpoint names segmentedColorRgb and
-      segmentedBrightness, which the control endpoint was never asked for.
-      TODO: send both, then record whether `segments` and `segment_brightness`
-      are unreachable over this transport or merely unprobed. See
-      docs/protocol/cloud.md.
+      internet. It reaches the segment channel, in color and in brightness.
+      Segments are narrower here than over lan: the API addresses 15 zones,
+      against the 42 individually addressable ICs the lan raw channel reaches.
+      Brightness is per zone here, which lan does not carry. This mode opens
+      no segment stream: it takes one request every few seconds. See
+      docs/protocol/cloud.md 5.
 
 commands:
   lan:
@@ -384,9 +383,46 @@ commands:
         than what is lit, so it is not a way to read back what `color` painted.
         See docs/protocol/ble.md 3.
 
-  # From `cloud-openapi`, included above: what the documented HTTPS API carries
-  # for this device. Nobody probed it on this unit.
-  cloud: {}
+  # `power`, `brightness`, `color`, `colortemp` and `status` come from
+  # `cloud-openapi`, included above. The two entries here are local: the API
+  # declares the segment capability per device, and only an RGBIC unit carries
+  # it.
+  cloud:
+    segment_color:
+      documented: true
+      capability:
+        type: "devices.capabilities.segment_color_setting"
+        instance: "segmentedColorRgb"
+      payload:
+        segment: "${zones}"
+        rgb: "${r,g,b:rgb24}"
+      args:
+        zones: { type: zones, count: 15 }
+        r: { type: int, range: [0, 255] }
+        g: { type: int, range: [0, 255] }
+        b: { type: int, range: [0, 255] }
+      notes: >-
+        Paints one color over the zones the array names, and leaves the rest
+        alone. This entry claims no painting role, so no stream opens over this
+        mode: the API takes one request every few seconds. See
+        docs/protocol/cloud.md 5.
+
+    segment_brightness:
+      documented: true
+      capability:
+        type: "devices.capabilities.segment_color_setting"
+        instance: "segmentedBrightness"
+      payload:
+        segment: "${zones}"
+        brightness: "${level}"
+      args:
+        zones: { type: zones, count: 15 }
+        level: { type: int, range: [1, 100] }
+      notes: >-
+        Brightness of the zones the array names, leaving the rest alone. The
+        API documents 0 here, and the range starts at 1 for the reason the
+        `brightness` entry of `cloud-openapi` gives. See
+        docs/protocol/cloud.md 5.
 
 # Measured on one physical unit. These numbers depend on the unit's LENGTH as
 # much as on the SKU. See docs/protocol/lan.md 2.3 and 2.7.
@@ -428,7 +464,7 @@ measurements:
 verified:
   by: "damient"
   firmware: "2.06.02"
-  date: "2026-09-09"
+  date: "2026-09-10"
   notes: >-
     lan mode fully exercised, including the undocumented razer segment channel
     at native resolution. ble mode exercised over GATT on the same unit, against
@@ -484,5 +520,15 @@ verified:
     outside the table this file declares: segmentedBrightness,
     segmentedColorRgb, musicMode, lightScene, diyScene, gradientToggle and
     snapshot. Each answered an empty string. A capability the state endpoint
-    names is NOT evidence that the control endpoint writes it, and none of the
-    seven was sent. See measurements above.
+    names is NOT evidence that the control endpoint writes it, so two of the
+    seven went to the control endpoint. The account list declares both under
+    `devices.capabilities.segment_color_setting`. Each takes a `segment` array
+    of 1 to 18 elements, over the element range 0 to 14, and 15 zones is the
+    width the ble mask carries. `segmentedColorRgb` with segment [0] and rgb
+    65280 painted the first zone green, over a rope set red through
+    `colorRgb`. `segmentedBrightness` with segment [0] and brightness 10
+    dimmed the first zone, over a rope at brightness 100. Both answered
+    `"status":"success"`, and the effect of both was seen on the rope. The
+    other five instances were NOT sent. Which end of the rope holds zone 0 was
+    NOT established, and no zone above 0 was addressed. See measurements
+    above.
