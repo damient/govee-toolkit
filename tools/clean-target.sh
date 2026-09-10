@@ -89,12 +89,16 @@ before=$(size)
 printf 'target: %d MiB, %s files\n' "$before" \
   "$(find "$rust/target" -type f | wc -l | tr -d ' ')"
 
-if [ "$mode" = force ]; then
+full_clean() {
   if [ "$dry_run" = yes ]; then
     echo "would run: cargo clean"
     exit 0
   fi
   cd "$rust" && exec cargo clean
+}
+
+if [ "$mode" = force ]; then
+  full_clean
 fi
 
 if ! have_sweep; then
@@ -114,11 +118,7 @@ if ! have_sweep; then
     printf 'at or below the %s GiB threshold, keeping the cache\n' "$above"
     exit 0
   fi
-  if [ "$dry_run" = yes ]; then
-    echo "would run: cargo clean"
-    exit 0
-  fi
-  cd "$rust" && exec cargo clean
+  full_clean
 fi
 
 sweep=(cargo sweep)
