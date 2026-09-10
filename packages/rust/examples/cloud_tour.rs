@@ -89,6 +89,18 @@ async fn main() -> Result<(), Error> {
     println!("on {:?}, brightness {:?}", status.on, status.brightness);
     println!("raw {}", status.raw);
 
+    // Per-segment brightness survives a power cycle, a color write and a
+    // whole-device brightness write, so the tour puts back what it dimmed. It
+    // is invisible until something paints that zone again, and the state
+    // endpoint reports nothing for it. Every other setting above is a
+    // whole-device one that the next command replaces.
+    device
+        .send(
+            "segment_brightness",
+            &Args::new().zones("zones", vec![0, 1]).int("level", 100),
+        )
+        .await?;
+
     device.send("power", &Args::new().int("on", 0)).await?;
     Ok(())
 }
