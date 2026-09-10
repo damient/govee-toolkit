@@ -61,6 +61,10 @@ at.
   capability `lan` does not reach: that channel carries color only. The music
   capability also declares an `autoColor` flag and an `rgb` color: the unit
   accepted both and played the same colors, so the entry sends neither.
+- `H61A0` — `modes.lan` lists `music` unreachable for the `transport` reason.
+  That mode carries no music command: the device renders no music over `lan`,
+  and a host that streams computed colors over the segment channel is not this
+  capability. See [`docs/protocol/lan.md`](docs/protocol/lan.md) §2.4.
 
 ### 2026-09-09
 
