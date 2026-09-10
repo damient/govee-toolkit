@@ -131,6 +131,45 @@
         }
       },
       "source": "sent to the control endpoint on a live account, and the rope dimmed zone 0; no capture file"
+    },
+    {
+      "name": "music effect 1 at half sensitivity",
+      "command": "music",
+      "args": { "effect": 1, "sensitivity": 50 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.music_setting",
+          "instance": "musicMode",
+          "value": { "musicMode": 1, "sensitivity": 50 }
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the rope played and reacted to sound; no capture file"
+    },
+    {
+      "name": "music effect 11, the last value the API declares",
+      "command": "music",
+      "args": { "effect": 11, "sensitivity": 100 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.music_setting",
+          "instance": "musicMode",
+          "value": { "musicMode": 11, "sensitivity": 100 }
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the rope played and reacted to sound; no capture file"
+    },
+    {
+      "name": "music sensitivity 0 is a value, not an omission",
+      "command": "music",
+      "args": { "effect": 1, "sensitivity": 0 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.music_setting",
+          "instance": "musicMode",
+          "value": { "musicMode": 1, "sensitivity": 0 }
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the rope played and reacted to sound; no capture file"
     }
   ],
   "errors": [
@@ -156,6 +195,24 @@
       "name": "segment brightness 0 is refused rather than clamped",
       "command": "segment_brightness",
       "args": { "zones": [0], "level": 0 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "music effect 0 is outside the enum the API declares",
+      "command": "music",
+      "args": { "effect": 0, "sensitivity": 50 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "music effect past the eleventh is refused",
+      "command": "music",
+      "args": { "effect": 12, "sensitivity": 50 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "music sensitivity past 100 is refused rather than clamped",
+      "command": "music",
+      "args": { "effect": 1, "sensitivity": 101 },
       "code": "out_of_range"
     }
   ]

@@ -117,11 +117,14 @@ device applies them:
 - **Per-segment brightness.** The same capability, under a second instance.
   `ble` reaches this too. `lan` does not: that channel carries color only.
 
-Two limits hold here, and both are properties of this mode:
+Three limits hold here:
 
 - **The zone range is the API's own.** Read the accepted array length, and the
   range of a zone index, off the account list. That range can differ from the
   zones the Govee app exposes and from the addressable LEDs.
+- **Which end of the strip holds zone 0 is a property of the unit.** Paint one
+  zone at each end of the range to establish it, and record what you saw in the
+  device file. Do not carry the answer from one unit to another.
 - **There is no segment stream.** This mode takes one request every few
   seconds, so it cannot carry a moving pattern. Use `lan` or `ble` for that.
 
@@ -134,5 +137,32 @@ The state endpoint names an instance whether or not the control endpoint
 writes it. Send the instance to the control endpoint to establish that this
 mode writes it, and **watch the device**: this API answers `success` for a
 capability it accepts, and acceptance is not application.
+
+## 6. Music over this mode
+
+This mode reaches music on a device whose account list declares the music
+capability. The device listens on its own microphone: this mode sends no audio
+and carries no stream.
+
+The capability takes a structured value, and the account list declares its
+fields per device:
+
+- **The effect**, as an enum. The list gives each value a name. Those
+  identifiers belong to this API. They are not the sub-mode codes the `ble`
+  music frame takes, and nothing maps one set onto the other.
+- **The sensitivity**, as a percentage.
+- **Two optional fields**, an automatic-color flag and one packed color.
+
+Three limits hold here:
+
+- **A declared field is not an applied field.** The API answers `success` for a
+  field it accepts, and acceptance is not application. Send each optional field
+  and watch the device. A device file declares the fields that one unit
+  applied, and its `verified:` block says what the others did.
+- **This mode reads back no music state.** The state endpoint answers an empty
+  value for the music instance while the device plays music.
+- **A name is not a rendering.** The account list names each effect, and that
+  name is the API's own label. Match a name to what the device renders before
+  you repeat it.
 
 <!-- TODO: detailed per-capability table, mode by mode -->

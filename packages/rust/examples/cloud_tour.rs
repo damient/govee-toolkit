@@ -73,6 +73,15 @@ async fn main() -> Result<(), Error> {
         )
         .await?;
 
+    // Music runs off the device's own microphone. The effect identifiers are
+    // the API's own, and the device file names them.
+    device
+        .send(
+            "music",
+            &Args::new().int("effect", 1).int("sensitivity", 50),
+        )
+        .await?;
+
     // `status` is the entry marked `role: status`. `raw` keeps every
     // capability the account reported, including the ones the SDK models
     // nothing of.

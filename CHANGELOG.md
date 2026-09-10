@@ -38,13 +38,29 @@ at.
 - The conformance vectors for both, in
   `tests/fixtures/golden/cloud/H61A0.json`. The two single-zone vectors went
   to a live account and the rope applied them, which each `source` says.
+- `H61A0` declares `music` under `cloud` — the documented
+  `devices.capabilities.music_setting` capability, at its `musicMode`
+  instance. It takes an `effect` over 1 to 11, the enum the account list
+  declares, and a `sensitivity` over 0 to 100. The device listens on its own
+  microphone, and this mode carries no audio and no stream. The effect
+  identifiers are this API's own: they are not the sub-mode codes the `ble`
+  music frame takes. See [`docs/protocol/cloud.md`](docs/protocol/cloud.md)
+  §6.
+- The conformance vectors for `music`, in
+  `tests/fixtures/golden/cloud/H61A0.json`. All three went to a live account
+  and the rope played them, which each `source` says.
+- `H61A0` records `measurements.zone_0_end: controller` — zone 0 is the block
+  at the controller and the power cable, and zone 14 the block at the free
+  end. Established over `cloud` on that unit, and not over `lan` or `ble`.
 
 #### Changed
 
-- `H61A0` — `modes.cloud` reaches `segments` and `segment_brightness`, both
-  verified against a live account on the unit at firmware 2.06.02. Per-segment
-  brightness over `cloud` is a capability `lan` does not reach: that channel
-  carries color only. `music` stays `unprobed` over `cloud`.
+- `H61A0` — `modes.cloud` reaches `segments`, `segment_brightness` and
+  `music`, each verified against a live account on the unit at firmware
+  2.06.02, so that mode is `full`. Per-segment brightness over `cloud` is a
+  capability `lan` does not reach: that channel carries color only. The music
+  capability also declares an `autoColor` flag and an `rgb` color: the unit
+  accepted both and played the same colors, so the entry sends neither.
 
 ### 2026-09-09
 

@@ -55,18 +55,18 @@ modes:
       advertising. See
       docs/protocol/ble.md.
   cloud:
-    support: partial
-    capabilities: [power, brightness, color, colortemp, segments, segment_brightness]
-    unreachable:
-      music: unprobed
+    support: full
+    capabilities: [power, brightness, color, colortemp, segments, segment_brightness, music]
+    unreachable: {}
     notes: >-
       This mode is the documented HTTPS API. It requires a Govee account and
       internet. It reaches the segment channel, in color and in brightness.
       Segments are narrower here than over lan: the API addresses 15 zones,
       against the 42 individually addressable ICs the lan raw channel reaches.
-      Brightness is per zone here, which lan does not carry. This mode opens
-      no segment stream: it takes one request every few seconds. See
-      docs/protocol/cloud.md 5.
+      Brightness is per zone here, which lan does not carry. Music runs off the
+      device's own microphone, over an effect the account list names among 11.
+      This mode opens no segment stream: it takes one request every few
+      seconds. See docs/protocol/cloud.md 5 and 6.
 
 commands:
   lan:
@@ -424,12 +424,39 @@ commands:
         `brightness` entry of `cloud-openapi` gives. See
         docs/protocol/cloud.md 5.
 
+    music:
+      documented: true
+      capability:
+        type: "devices.capabilities.music_setting"
+        instance: "musicMode"
+      payload:
+        musicMode: "${effect}"
+        sensitivity: "${sensitivity}"
+      args:
+        effect: { type: int, range: [1, 11] }
+        sensitivity: { type: int, range: [0, 100] }
+      notes: >-
+        The device listens on its own microphone. `effect` is the enum the
+        account list declares: 1 Energic, 2 Rhythm, 3 Spectrum, 4 Rolling,
+        5 Separation, 6 Hopping, 7 PianoKeys, 8 Fountain, 9 DayAndNight,
+        10 Sprouting, 11 Shiny. Those names are the API's own, and nothing
+        matches one to what the rope renders. The identifiers are the API's
+        own too: they are not the sub-mode codes the `ble` music frame takes.
+
+        The capability declares two more fields, `autoColor` and `rgb`. This
+        entry sends neither, because the device accepted both and played the
+        same colors — see `verified:` below. See docs/protocol/cloud.md 6.
+
 # Measured on one physical unit. These numbers depend on the unit's LENGTH as
 # much as on the SKU. See docs/protocol/lan.md 2.3 and 2.7.
 measurements:
   unit_length_m: 3
   native_pixels: 42         # one addressable LED every ~7 cm
   segment_count_app: 10
+  zone_0_end: "controller"  # zone 0 is the block at the controller and the
+                            # power cable, and zone 14 the block at the free
+                            # end. Established over cloud on this unit, and
+                            # not over lan or ble.
   resolution_changepoints: [1, 2, 3, 4, 5, 6, 7, 9, 11, 14, 21, 42]
 
   latency_idle_ms:
@@ -529,6 +556,25 @@ verified:
     `colorRgb`. `segmentedBrightness` with segment [0] and brightness 10
     dimmed the first zone, over a rope at brightness 100. Both answered
     `"status":"success"`, and the effect of both was seen on the rope. The
-    other five instances were NOT sent. Which end of the rope holds zone 0 was
-    NOT established, and no zone above 0 was addressed. See measurements
-    above.
+    other five instances were NOT sent.
+    Zone 0 is the block at the controller: `segmentedColorRgb` painted
+    segment [0] green and segment [14] blue over a red rope, the green block
+    sits at the controller and the power cable, the blue one at the free end,
+    and the two blocks have the same length. The reduced brightness that an
+    earlier `segmentedBrightness` left on zones 0 and 1 was still there at the
+    start of this run — see docs/protocol/state.md. A `segmentedBrightness` of
+    100 on those two zones put the level back, and a `colorRgb` write after it
+    cleared the per-zone green and painted the whole rope one color.
+    `musicMode` was exercised on the same unit, with sound in the room.
+    Effects 1 and 11 both played and both reacted to the sound, and the two
+    renderings are visibly different. Neither was matched to the name the API
+    gives its value. `sensitivity` 0, 50 and 100 were told apart on effect 1:
+    0 reacts the least and 100 the most. The vendor app carries the same
+    parameter as a slider over 0 to 99, which it writes into the ble sub-mode
+    frame. `autoColor` 0 with `rgb` green was sent on effects 1 and 11: both
+    answered success, and both kept playing every color. The state read then
+    reported that green under `colorRgb`, so the field is stored and not
+    rendered. `autoColor` and `rgb` are optional, and a request that carries
+    only `musicMode` and `sensitivity` is accepted. `musicMode` answers an
+    empty string on the state endpoint while music plays, so this mode reads
+    back no music state.
