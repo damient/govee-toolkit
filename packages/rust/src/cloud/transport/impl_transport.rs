@@ -71,12 +71,6 @@ impl Transport for CloudTransport {
     /// it. What the API reported reaches a caller whole, under
     /// [`DeviceStatus::raw`].
     async fn read(&self, _id: &DeviceId, request: &Encoded) -> Result<Reply> {
-        Err(Error::NoReplyLayout {
-            mode: Mode::Cloud,
-            reason: format!(
-                "`{}` answers in JSON; a `reply:` layout describes bytes on a frame wire",
-                request.cmd
-            ),
-        })
+        Err(Error::no_reply_layout(Mode::Cloud, &request.cmd))
     }
 }

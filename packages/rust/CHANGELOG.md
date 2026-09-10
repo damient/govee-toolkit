@@ -79,6 +79,11 @@ for.
   arm for each, or a wildcard.
 - `Encoded::cmd` carries the capability instance over `cloud`, and still the
   `msg.cmd` over `lan`. It stays empty where the wire carries no name.
+- `DeviceStatus::from_captured` fills `color` and `color_temp_kelvin` from a
+  captured argument that carries `ArgRole::Color` or `ArgRole::ColorTemp`. It
+  answered `None` for both. Every mode assembles a status from the same
+  roles, so `cloud` and a frame wire report a color the same way. No device
+  file declares those roles on a `reply:` today.
 
 ### Fixed
 

@@ -65,7 +65,7 @@ impl DeviceStatus {
         captured: &Captured,
         roles: &BTreeMap<String, ArgRole>,
     ) -> Self {
-        let int = |role: ArgRole| {
+        Self::from_roles(id, captured.to_json(), |role| {
             roles
                 .iter()
                 .find(|(_, claimed)| **claimed == role)
@@ -74,15 +74,28 @@ impl DeviceStatus {
                     ArgValue::Int(v) => Some(*v),
                     _ => None,
                 })
-        };
+        })
+    }
 
+    /// Read one out of what each [`ArgRole`] answered, whatever mode read it.
+    ///
+    /// `int` answers the value a role carries, or `None` when the reply left
+    /// that role out. [`ArgRole::Color`] arrives packed as `0xRRGGBB`.
+    #[must_use]
+    pub(crate) fn from_roles(
+        id: DeviceId,
+        raw: serde_json::Value,
+        int: impl Fn(ArgRole) -> Option<i64>,
+    ) -> Self {
+        let channel = |packed: i64, shift: u32| u8::try_from((packed >> shift) & 0xff).unwrap_or(0);
         Self {
             id,
             on: int(ArgRole::On).map(|v| v != 0),
             brightness: int(ArgRole::Brightness),
-            color: None,
-            color_temp_kelvin: None,
-            raw: captured.to_json(),
+            color: int(ArgRole::Color)
+                .map(|packed| [channel(packed, 16), channel(packed, 8), channel(packed, 0)]),
+            color_temp_kelvin: int(ArgRole::ColorTemp),
+            raw,
         }
     }
 

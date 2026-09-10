@@ -140,6 +140,17 @@ impl Error {
         }
     }
 
+    /// The refusal a mode that answers JSON returns from `read`: a `reply:`
+    /// layout describes bytes, and this wire carries none.
+    pub(crate) fn no_reply_layout(mode: Mode, command: &str) -> Self {
+        Self::NoReplyLayout {
+            mode,
+            reason: format!(
+                "`{command}` answers in JSON; a `reply:` layout describes bytes on a frame wire"
+            ),
+        }
+    }
+
     pub(crate) fn io(context: impl Into<String>, source: std::io::Error) -> Self {
         Self::Io {
             context: context.into(),
