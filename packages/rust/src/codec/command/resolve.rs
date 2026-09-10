@@ -175,10 +175,12 @@ pub(super) fn substitute(
             if let Some(channels) = packed_rgb(name) {
                 return pack_rgb(command, channels, args);
             }
+            if name == "frame"
+                && let Some(bytes) = frame
+            {
+                return Ok(Value::String(BASE64.encode(bytes)));
+            }
             match (name, args.get(name)) {
-                ("frame", _) if frame.is_some() => {
-                    Value::String(BASE64.encode(frame.unwrap_or_default()))
-                }
                 (_, Some(ArgValue::Int(v))) => Value::from(*v),
                 (_, Some(ArgValue::Zones(zones))) => zone_array(zones),
                 _ => {
