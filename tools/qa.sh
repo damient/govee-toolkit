@@ -8,6 +8,11 @@
 # local mirror of it. A check whose tool is missing is reported as skipped
 # rather than passed, because a skip that reads as a pass is how a red CI gets
 # discovered on the pull request instead of here.
+#
+# A run stamps the time before the first check and, when every check passes,
+# sweeps the artifacts that are older than the stamp. The build artifacts of the
+# run stay, so the next run is still warm. tools/clean-target.sh does the work
+# and runs alone to clean at another time.
 
 set -uo pipefail
 
@@ -59,6 +64,9 @@ skip() {
 }
 
 have() { command -v "$1" >/dev/null 2>&1; }
+
+# The sweep at the end removes what is older than this.
+"$root/tools/clean-target.sh" --stamp
 
 if have rustup && rustup toolchain list | grep -q '^nightly'; then
   # rustfmt.toml uses nightly-only options; stable rustfmt formats differently.
@@ -126,6 +134,13 @@ for i in "${!names[@]}"; do
   esac
 done
 printf '%d failed, %d skipped, %d total\n' "$failed" "$skipped" "${#names[@]}"
+
+# A single-check run ($1 given) leaves the artifacts alone: it built a fraction
+# of them, so the sweep would remove what the other checks need.
+if [ "$failed" -eq 0 ] && [ -z "$only" ]; then
+  echo
+  "$root/tools/clean-target.sh"
+fi
 
 [ "$failed" -eq 0 ] || exit 1
 [ "$skipped" -eq 0 ] || exit 2

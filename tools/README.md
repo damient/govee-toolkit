@@ -4,6 +4,7 @@
 | ---- | ----- |
 | Device simulator | [`packages/rust/crates/sim`](../packages/rust/crates/sim) |
 | Local CI mirror | [`qa.sh`](qa.sh), or `/qa` in Claude Code |
+| Build artifact sweep | [`clean-target.sh`](clean-target.sh) |
 | Redaction check | [`check-captures.sh`](check-captures.sh) |
 | Rust file length | [`check-file-length.sh`](check-file-length.sh) |
 | Codec layering | [`check-no-io.sh`](check-no-io.sh) |
@@ -21,6 +22,31 @@ rather than passed, and names the install command. The three it leaves out —
 sign-off, commit convention and changelog entry — walk a pull request's commit
 range, which does not exist locally. The workflow stays the authority; this is
 a mirror of it kept in step by hand.
+
+`clean-target.sh` removes the build artifacts that no later build reads. cargo
+keeps the artifacts of every earlier build — an older version of a dependency,
+an earlier set of features, an earlier hash of the same example — and collects
+none of them, so `packages/rust/target` grows without a bound. One week of probe
+runs left 388054 files and 50 GiB.
+
+`cargo-sweep` does the work. It reads the access time of each artifact, so it
+removes the stale ones and keeps what the last build touched:
+
+```bash
+tools/clean-target.sh --stamp       # record the time, before a build
+tools/clean-target.sh               # remove what that build left behind
+tools/clean-target.sh --dry-run     # report what a run would remove
+tools/clean-target.sh --maxsize 5G  # remove the oldest until target fits
+tools/clean-target.sh --force       # full cargo clean
+```
+
+`qa.sh` stamps before its first check and sweeps after the last one, so a
+passing run keeps its own artifacts and drops everything older. A run for one
+check (`qa.sh clippy`) sweeps nothing: it builds a fraction of the artifacts.
+
+Install the tool with `cargo install cargo-sweep`. Without it the script falls
+back to a full clean above `QA_CLEAN_ABOVE_GIB` gibibytes, 5 by default, which
+costs a cold rebuild.
 
 `check-captures.sh` scans every tracked file under `tests/fixtures/` and
 `devices/` for what a packet capture carries out of a home network: a MAC that
