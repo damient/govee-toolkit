@@ -58,7 +58,32 @@ Nothing else survives. Delete, do not reword:
   "powerful", "carefully", "of course";
 - a comment that is true of the whole file repeated on each item;
 - a commented-out line of code. If it is a real alternative, say so in one
-  line; otherwise it goes.
+  line; otherwise it goes;
+- **detail the reader can read off the thing itself.** A comment that spells
+  out a value, a threshold, a field list, a token grammar or a step order that
+  the code, the device file or `devices/schema.yaml` states next to it is over
+  specific. The same holds for prose that walks through a mechanism the reader
+  has open in front of them. A number earns its place only where it is
+  measured, and then it goes in the device file with what it was measured on —
+  never a second time in the code.
+
+**The over-specific test.** For each fact in a comment or a doc, ask where
+that fact lives. If it lives in the code, the device file, the schema or
+another document, **delete it here** — and delete it outright: do not leave a
+pointer behind in its place. A cross-reference survives only where it saves a
+real search on its own, which is rare on a fact the reader is already looking
+at. If the fact lives nowhere else, keep it.
+
+Where two documents state one fact, the owner keeps it and the other one cuts
+it: `docs/protocol/*.md` owns the wire, `devices/*.yaml` owns what one unit
+did, `devices/schema.yaml` owns the two mini-languages, `docs/modes.md` owns
+the mode rules, and a doc comment owns what a caller cannot see from the
+signature.
+
+**Exempt from the test:** a device file's `verified:` block and its
+`measurements:`, which are the record of what somebody exercised; the `notes:`
+pointer that `documented: false` requires, which `cargo test` enforces; and
+the usage text a script prints as its own `--help`.
 
 **The `missing_docs` exception.** `packages/rust` sets `missing_docs = "warn"`
 and `qa.sh` runs with `-D warnings`, so every public item must carry a `///`:
