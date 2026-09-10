@@ -180,6 +180,7 @@ pub(super) fn substitute(
                     Value::String(BASE64.encode(frame.unwrap_or_default()))
                 }
                 (_, Some(ArgValue::Int(v))) => Value::from(*v),
+                (_, Some(ArgValue::Zones(zones))) => zone_array(zones),
                 _ => {
                     return Err(Error::UnresolvedPlaceholder {
                         command: command.to_owned(),
@@ -201,6 +202,19 @@ pub(super) fn substitute(
         ),
         other => other.clone(),
     })
+}
+
+/// Zone indices, ascending and each one once.
+///
+/// A mode that carries a mask holds a zone once by construction. This one
+/// carries a list, so the codec sorts and deduplicates it: one call then names
+/// the same zones over every mode. It also keeps the list inside the length an
+/// API bounds it by, which a repeated index could pass.
+fn zone_array(zones: &[u16]) -> serde_json::Value {
+    let mut zones: Vec<u16> = zones.to_vec();
+    zones.sort_unstable();
+    zones.dedup();
+    serde_json::Value::Array(zones.into_iter().map(serde_json::Value::from).collect())
 }
 
 /// The three arguments a `${r,g,b:rgb24}` placeholder names.

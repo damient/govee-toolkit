@@ -5,7 +5,7 @@ Changes to `govee-toolkit`, the crate published to crates.io from
 `publish = false`, and the same entries cover them. The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
-## [0.5.0] — 2026-09-09
+## [0.5.0] — 2026-09-10
 
 `cloud` is a mode with a transport behind it. It is opt-in and off by default,
 and it changes neither `lan` nor `ble`. The codec grew the fields that mode
@@ -44,6 +44,10 @@ for.
   into `0xRRGGBB`, which is how the cloud API carries a color. The three keep
   the names the frame layouts give them, so `color` takes the same arguments
   over every mode.
+- A `zones` argument in a `payload:` template becomes an array of zone
+  indices, ascending and each index once, which is how the cloud API names the
+  zones a capability writes. A frame layout carries the same argument as a
+  mask, so one call names the same zones over every mode.
 - `Govee::shutdown()` — release what every transport holds, before the program
   ends. Over `ble` it holds each open link open long enough for the last frame
   to leave, since that wire acknowledges nothing. Every other mode does

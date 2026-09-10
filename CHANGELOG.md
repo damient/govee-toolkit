@@ -20,6 +20,32 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-10
+
+#### Added
+
+- A `zones` argument in a `cloud` `payload:` — the zones a segment capability
+  writes, carried as the array this API takes in place of a mask.
+  `devices/schema.yaml` documents it beside `${r,g,b:rgb24}`.
+- `H61A0` declares `segment_color` and `segment_brightness` under `cloud` —
+  the documented `devices.capabilities.segment_color_setting` capability, at
+  its `segmentedColorRgb` and `segmentedBrightness` instances. Each takes an
+  array of zones and paints the zones it names, leaving the rest alone. The
+  zone range is 0 to 14, where the `lan` raw channel reaches 42 individually
+  addressable ICs. Neither entry claims a painting role, so no stream opens
+  over this mode: the API takes one request every few seconds. See
+  [`docs/protocol/cloud.md`](docs/protocol/cloud.md) §5.
+- The conformance vectors for both, in
+  `tests/fixtures/golden/cloud/H61A0.json`. The two single-zone vectors went
+  to a live account and the rope applied them, which each `source` says.
+
+#### Changed
+
+- `H61A0` — `modes.cloud` reaches `segments` and `segment_brightness`, both
+  verified against a live account on the unit at firmware 2.06.02. Per-segment
+  brightness over `cloud` is a capability `lan` does not reach: that channel
+  carries color only. `music` stays `unprobed` over `cloud`.
+
 ### 2026-09-09
 
 #### Added
@@ -49,12 +75,9 @@ at.
 - `H61A0` — `modes.cloud` claims `power`, `brightness`, `color` and
   `colortemp`, and every one is verified against a live account on the unit at
   firmware 2.06.02. A color of 255, 40, 0 reads back as 16721920. Color and
-  white temperature exclude each other, as they do over `lan` and `ble`. The
-  state answer names a `segmentedColorRgb` instance and a `segmentedBrightness`
-  instance, and nobody sent either to the control endpoint: `segments` and
-  `segment_brightness` stay `unreachable:` as `transport`, and the file carries
-  a `TODO` to settle them. `modes.ble` becomes `full`, since it now reaches
-  every capability the file declares.
+  white temperature exclude each other, as they do over `lan` and `ble`.
+  `modes.ble` becomes `full`, since it now reaches every capability the file
+  declares.
 - A device stores its color setting through a power off, and `power` with `on`
   = 1 restores it. `power` on is not a full state write. See
   [`docs/protocol/state.md`](docs/protocol/state.md).

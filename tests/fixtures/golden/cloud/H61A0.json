@@ -92,6 +92,45 @@
         "powerSwitch": "on"
       },
       "source": "docs/protocol/cloud.md, the documented API; no capture"
+    },
+    {
+      "name": "segment color on one zone",
+      "command": "segment_color",
+      "args": { "zones": [0], "r": 0, "g": 255, "b": 0 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.segment_color_setting",
+          "instance": "segmentedColorRgb",
+          "value": { "segment": [0], "rgb": 65280 }
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the rope painted zone 0 green; no capture file"
+    },
+    {
+      "name": "segment color holds a zone once, in ascending order",
+      "command": "segment_color",
+      "args": { "zones": [2, 1, 1], "r": 255, "g": 40, "b": 0 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.segment_color_setting",
+          "instance": "segmentedColorRgb",
+          "value": { "segment": [1, 2], "rgb": 16721920 }
+        }
+      },
+      "source": "docs/protocol/cloud.md, the documented API; no capture"
+    },
+    {
+      "name": "segment brightness on one zone",
+      "command": "segment_brightness",
+      "args": { "zones": [0], "level": 10 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.segment_color_setting",
+          "instance": "segmentedBrightness",
+          "value": { "segment": [0], "brightness": 10 }
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the rope dimmed zone 0; no capture file"
     }
   ],
   "errors": [
@@ -105,6 +144,18 @@
       "name": "a channel past 255 is refused",
       "command": "color",
       "args": { "r": 256, "g": 0, "b": 0 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a zone past the fifteenth is refused",
+      "command": "segment_color",
+      "args": { "zones": [15], "r": 0, "g": 255, "b": 0 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "segment brightness 0 is refused rather than clamped",
+      "command": "segment_brightness",
+      "args": { "zones": [0], "level": 0 },
       "code": "out_of_range"
     }
   ]

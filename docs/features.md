@@ -31,7 +31,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | --- | ------- |
 | ✅ | **`lan`** — power, brightness, color and color temperature over UDP, plus per-segment color |
 | ✅ | **`ble`** — power, brightness, color and color temperature over GATT, plus per-zone color. Off-network, within radio range, behind the `ble` cargo feature |
-| 🚧 | **`cloud`** — opt-in, the documented HTTPS API. Reaches any device the account owns from anywhere, throttled, reduced to power / brightness / color / color temperature. Behind the `cloud` cargo feature |
+| 🚧 | **`cloud`** — opt-in, the documented HTTPS API. Reaches any device the account owns from anywhere, throttled, with per-segment color and per-segment brightness where the account list declares them. It opens no segment stream. Behind the `cloud` cargo feature |
 
 ## SDKs
 

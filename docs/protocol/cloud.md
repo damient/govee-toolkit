@@ -105,28 +105,34 @@ every `min_interval` per device, and a command that must wait longer than
 command, so this mode sends no status request after a write. A second request
 would spend the quota to learn what the first one already said.
 
-## 5. What this mode does not carry
+## 5. The segment channel over this mode
 
-`cloud` mode is the documented HTTPS API, and nothing else. It carries power,
-brightness, color and color temperature, plus the state read.
+`cloud` mode carries power, brightness, color and color temperature, plus the
+state read. It also reaches the segment channel on a device whose account list
+declares the segment instances. The control endpoint takes them, and the
+device applies them:
 
-Two capabilities are outside it:
+- **Per-segment color.** One capability that carries an array of zone indices
+  and one packed color.
+- **Per-segment brightness.** The same capability, under a second instance.
+  `ble` reaches this too. `lan` does not: that channel carries color only.
 
-- **Per-segment brightness.** Govee documents no write for it. `ble` reaches
-  it.
-- **Per-segment color, and its frame rate.** `lan` reaches both. Govee
-  documents no write for either, and the frame rate this mode allows is one
-  request every few seconds.
+Two limits hold here, and both are properties of this mode:
 
-A device file marks both `unreachable: transport` under `cloud`, and declares
-no `cloud` command for either. When
-several modes are enabled and the SDK moves to `cloud`, a command outside the
-carried set **fails explicitly**; it is never approximated.
+- **The zone range is the API's own.** Read the accepted array length, and the
+  range of a zone index, off the account list. That range can differ from the
+  zones the Govee app exposes and from the addressable LEDs.
+- **There is no segment stream.** This mode takes one request every few
+  seconds, so it cannot carry a moving pattern. Use `lan` or `ble` for that.
 
-The state endpoint does name a `segmentedColorRgb` and a
-`segmentedBrightness` instance, so `transport` is what the documented API
-supports and not a property somebody established. Nobody sent either instance
-to the control endpoint. Send them to settle whether this mode reaches the
-segment channel.
+A device file that declares no command for an instance marks the capability
+`unreachable: unimplemented` under `cloud`. When several modes are enabled and
+the SDK moves to `cloud`, a command outside the carried set **fails
+explicitly**; it is never approximated.
+
+The state endpoint names an instance whether or not the control endpoint
+writes it. Send the instance to the control endpoint to establish that this
+mode writes it, and **watch the device**: this API answers `success` for a
+capability it accepts, and acceptance is not application.
 
 <!-- TODO: detailed per-capability table, mode by mode -->

@@ -75,8 +75,9 @@ impl Args {
 
     /// Add a list of zone indices, zero-based.
     ///
-    /// The codec emits a bitmask, least significant bit first. The device file
-    /// declares which zones exist.
+    /// A frame layout carries them as a bitmask, least significant bit first,
+    /// and a cloud `payload:` as an array. The device file declares which
+    /// zones exist.
     #[must_use]
     pub fn zones(mut self, name: impl Into<String>, zones: impl Into<Vec<u16>>) -> Self {
         self.0.insert(name.into(), ArgValue::Zones(zones.into()));
