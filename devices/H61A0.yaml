@@ -33,12 +33,15 @@ modes:
     capabilities: [power, brightness, color, colortemp, segments]
     unreachable:
       segment_brightness: transport
-      music: unprobed
+      music: transport
     notes: >-
       Requires LAN Control enabled in the Govee Home app. Reaches the segment
       channel, including beyond the 10 zones the app exposes. Brightness is
       global here: the segment channel carries color only. See
-      docs/protocol/lan.md 2.5.
+      docs/protocol/lan.md 2.5. This mode carries no music command either: the
+      device renders no music over lan, and a host that streams computed colors
+      over the segment channel is not this capability. See
+      docs/protocol/lan.md 2.4.
   ble:
     support: full
     capabilities: [power, brightness, color, colortemp, segments, segment_brightness, music]
