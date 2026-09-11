@@ -2,7 +2,9 @@
 //!
 //! ```text
 //! govee scan
-//! govee devices
+//! govee describe <device>
+//! govee status <device>
+//! govee segment <device> --zones 0,2 '#FF0000'
 //! govee send <device> <command> --arg brightness=50
 //! ```
 //!

@@ -74,3 +74,27 @@ fn modes(device: &Device, restrict: Option<Mode>) -> impl Iterator<Item = Mode> 
         .copied()
         .filter(move |mode| restrict.is_none_or(|only| only == *mode))
 }
+
+/// Report everything wrong with the configuration. Reads no hardware.
+pub(super) fn doctor(govee: &Govee, writer: &Writer) {
+    let problems = govee.problems();
+    let json = json!({
+        "problems": problems
+            .iter()
+            .map(|problem| json!({
+                "device": problem.device.as_ref().map(ToString::to_string),
+                "message": problem.message,
+            }))
+            .collect::<Vec<_>>(),
+    });
+    let text = if problems.is_empty() {
+        "no problem found".to_owned()
+    } else {
+        problems
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    writer.emit(&json, &text);
+}

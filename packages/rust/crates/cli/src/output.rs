@@ -65,11 +65,26 @@ impl From<Error> for Failure {
     fn from(error: Error) -> Self {
         let kind = error.code();
         let code = match kind {
-            "config" | "configuration" => CONFIG,
+            "config" | "configuration" | "local_devices" => CONFIG,
             "no_mode_available" | "mode_unavailable" | "unreachable" | "unknown_device" => {
                 UNREACHABLE
             }
             "mode_not_implemented" | "missing_credential" => UNSUPPORTED,
+            // A device file that declares nothing for what was asked, and a
+            // zone the mode cannot address, refuse the command. Nothing went
+            // out either way.
+            "no_status_command"
+            | "no_verb_command"
+            | "no_segment_command"
+            | "no_provisioning_command"
+            | "no_role_arg"
+            | "zone_count_unknown"
+            | "zone_count_mismatch"
+            | "zone_out_of_range"
+            | "zone_count_unsupported"
+            | "zone_mask_unbounded"
+            | "native_zones_unreachable"
+            | "stream_rate_out_of_range" => REFUSED,
             _ if matches!(error, Error::Codec(_)) => REFUSED,
             _ => INTERNAL,
         };
@@ -78,6 +93,14 @@ impl From<Error> for Failure {
             message: error.to_string(),
             code,
         }
+    }
+}
+
+impl From<govee_toolkit::codec::Error> for Failure {
+    // A codec error reaching the command line directly reports as the same
+    // kind it reports as through the library.
+    fn from(error: govee_toolkit::codec::Error) -> Self {
+        Self::from(Error::Codec(error))
     }
 }
 

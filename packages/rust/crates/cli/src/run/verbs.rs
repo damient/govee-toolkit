@@ -1,4 +1,4 @@
-//! The verbs a person types: `on`, `off`, `brightness`, `color`.
+//! The verbs a person types: `on`, `off`, `brightness`, `color`, `segment`.
 //!
 //! Each one calls the matching method of the crate, which reads the entry the
 //! device file marks with that `role:`. No command name reaches this file.
@@ -16,6 +16,15 @@ pub(super) enum Verb {
     Brightness(i64),
     /// Set one color over the whole device.
     Color([u8; 3]),
+    /// Paint one color over zones. `None` paints every zone.
+    Segment {
+        /// The zones to paint, zero-based.
+        zones: Option<Vec<u16>>,
+        /// The color.
+        rgb: [u8; 3],
+        /// Ask the firmware to interpolate between zones.
+        gradient: bool,
+    },
 }
 
 /// Run one verb and report the mode that served it.
@@ -30,26 +39,18 @@ pub(super) async fn run(
         Verb::Power(on) => handle.power(on).await,
         Verb::Brightness(level) => handle.brightness(level).await,
         Verb::Color(rgb) => handle.color(rgb).await,
+        Verb::Segment {
+            zones,
+            rgb,
+            gradient,
+        } => handle.segment(zones.as_deref(), rgb, gradient).await,
     }?;
     report(writer, &served);
     Ok(())
 }
 
-/// Read `#RRGGBB`, or the same six digits with no `#`.
-pub(super) fn rgb(text: &str) -> Result<[u8; 3], Failure> {
-    let digits = text.strip_prefix('#').unwrap_or(text);
-    let bytes = (digits.len() == 6)
-        .then(|| u32::from_str_radix(digits, 16).ok())
-        .flatten()
-        .ok_or_else(|| Failure::usage(format!("`{text}` is not a color; write `#RRGGBB`")))?;
-    Ok([
-        u8::try_from(bytes >> 16 & 0xFF).unwrap_or_default(),
-        u8::try_from(bytes >> 8 & 0xFF).unwrap_or_default(),
-        u8::try_from(bytes & 0xFF).unwrap_or_default(),
-    ])
-}
-
-fn report(writer: &Writer, served: &Served) {
+/// Report one served command.
+pub(super) fn report(writer: &Writer, served: &Served) {
     writer.emit(
         &json!({
             "id": served.id.to_string(),
