@@ -3,7 +3,7 @@
 //! Every method here goes through the mode the user enabled. Nothing falls back
 //! to another one — see `docs/modes.md`.
 
-use crate::codec::{Args, Mode};
+use crate::codec::{Args, Device, Mode};
 // Used by the doc comments only.
 #[cfg(doc)]
 use crate::error::Error;
@@ -46,6 +46,33 @@ impl DeviceHandle<'_> {
     #[must_use]
     pub fn health(&self, mode: Mode) -> Option<Health> {
         self.govee.transport(&self.id, mode).ok()?.health(&self.id)
+    }
+
+    /// The mode a command sent now would go over.
+    ///
+    /// Read from recorded state, as a send reads it, so a caller that must
+    /// know the mode before it builds arguments reads it here. The answer can
+    /// change before the next send: health is what decides it.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::send`], when no enabled mode can serve a
+    /// command.
+    pub fn serving_mode(&self) -> Result<Mode> {
+        self.govee.choose(&self.id)
+    }
+
+    /// What `devices/<SKU>.yaml` declares for this device: the modes, the
+    /// capabilities, the commands and their arguments. Reads no hardware.
+    ///
+    /// # Errors
+    ///
+    /// [`crate::transport::Error::UnknownDevice`] if no transport knows this
+    /// device and the configuration pins no SKU for it, or
+    /// [`crate::codec::Error::UnknownSku`] if no device file declares the SKU
+    /// it reports.
+    pub fn spec(&self) -> Result<&Device> {
+        Ok(self.govee.catalog().device(&self.govee.sku(&self.id)?)?)
     }
 
     /// Send a command, named as the device file names it.

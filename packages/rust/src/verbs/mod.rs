@@ -10,6 +10,8 @@
 //! Nothing is approximated: a mode that carries no `role: color` entry does
 //! not paint the color through another command — see `docs/modes.md`.
 
+mod segment;
+
 use crate::codec::catalog::Device;
 use crate::codec::{ArgRole, Args, Mode, Role};
 use crate::device::DeviceHandle;

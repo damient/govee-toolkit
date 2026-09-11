@@ -46,8 +46,8 @@
 //! # }
 //! ```
 
-mod paint;
-mod resolve;
+pub(crate) mod paint;
+pub(crate) mod resolve;
 mod sender;
 
 use std::sync::atomic::{AtomicU64, Ordering};

@@ -62,6 +62,17 @@ pub enum Support {
     Unknown,
 }
 
+impl fmt::Display for Support {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Full => "full",
+            Self::Partial => "partial",
+            Self::None => "none",
+            Self::Unknown => "unknown",
+        })
+    }
+}
+
 /// One entry of a device file's `modes:` table.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]

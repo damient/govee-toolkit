@@ -10,7 +10,7 @@ use crate::stream::{Rate, StreamOptions, Zones};
 
 /// How the device file paints zones over the chosen mode.
 #[derive(Debug, Clone)]
-pub(super) enum Painter {
+pub(crate) enum Painter {
     /// One frame carries every zone.
     Whole {
         /// The device file entry.
@@ -37,7 +37,7 @@ pub(super) enum Painter {
 }
 
 impl Painter {
-    pub(super) fn command(&self) -> &str {
+    pub(crate) fn command(&self) -> &str {
         match self {
             Self::Whole { command, .. } | Self::Masked { command, .. } => command,
         }
@@ -46,28 +46,28 @@ impl Painter {
 
 /// The entry that arms and disarms the channel, where the mode has one.
 #[derive(Debug, Clone)]
-pub(super) struct Enable {
+pub(crate) struct Enable {
     /// The device file entry.
-    pub(super) command: String,
+    pub(crate) command: String,
     /// The argument the arming flag goes in.
-    pub(super) arg: String,
+    pub(crate) arg: String,
 }
 
 /// The commands and the zone count a stream opens with.
 #[derive(Debug)]
-pub(super) struct Plan {
+pub(crate) struct Plan {
     /// `None` where the file declares no arming command for this mode, which
     /// is what a mode whose zones are always addressable looks like.
-    pub(super) enable: Option<Enable>,
+    pub(crate) enable: Option<Enable>,
     /// The entry that sets zone interpolation, where the mode carries it in a
     /// frame of its own, and the value to send.
-    pub(super) gradient: Option<(Enable, i64)>,
-    pub(super) painter: Painter,
-    pub(super) zones: usize,
+    pub(crate) gradient: Option<(Enable, i64)>,
+    pub(crate) painter: Painter,
+    pub(crate) zones: usize,
 }
 
 /// Everything the device file has to say about a stream over `mode`.
-pub(super) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Result<Plan> {
+pub(crate) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Result<Plan> {
     // A mode that names no arming entry has nothing to arm: over one that
     // paints by mask, the zones are addressable as soon as the device is on.
     let enable = match device.command_for(mode, Role::SegmentEnable) {
@@ -205,7 +205,7 @@ fn zone_count(device: &Device, mode: Mode, painter: &Painter, zones: Zones) -> R
 }
 
 /// The rate to send at, and a warning when nothing was measured for this mode.
-pub(super) fn rate_hz(
+pub(crate) fn rate_hz(
     device: &Device,
     sku: &str,
     mode: Mode,
