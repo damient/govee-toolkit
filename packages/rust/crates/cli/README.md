@@ -57,7 +57,8 @@ known costs no scan: the `lan` cache answers from disk.
 `provision` needs the `ble` feature. The password travels in plaintext, with no
 key exchange: anything in Bluetooth range while it runs reads it. Supply it
 with `--password`, or in `GOVEE_WIFI_PASSWORD`, or pass `--open` for a network
-that has none.
+that has none. The network name comes from `--ssid`, or from `GOVEE_WIFI_SSID`.
+The command line wins over the environment.
 
 ## Modes
 

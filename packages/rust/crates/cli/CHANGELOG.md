@@ -39,10 +39,12 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   enabled mode whose credential is missing and what can only be checked once
   devices are known. It reads no hardware.
 - `provision` puts a device on a Wi-Fi network over `ble`, behind the `ble`
-  cargo feature. The password comes from `--password`, from
-  `GOVEE_WIFI_PASSWORD`, or is empty with `--open`; it travels in plaintext,
-  so anything in Bluetooth range while the command runs reads it. Nothing
-  acknowledges the transfer, so the report says what was sent.
+  cargo feature. The network name comes from `--ssid` or from
+  `GOVEE_WIFI_SSID`. The password comes from `--password`, from
+  `GOVEE_WIFI_PASSWORD`, or is empty with `--open`; the command line wins over
+  the environment. The password travels in plaintext, so anything in Bluetooth
+  range while the command runs reads it. Nothing acknowledges the transfer, so
+  the report says what was sent.
 - A device file that claims no entry for what a command needs exits with code
   5, as a refused argument does. Nothing was sent either way.
 - A command scans first where no transport of an enabled mode knows the device

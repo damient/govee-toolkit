@@ -180,9 +180,10 @@ pub(crate) enum Command {
     Provision {
         /// The device identity.
         device: String,
-        /// The network name. 2.4 GHz: no Govee device joins a 5 GHz network.
+        /// The network name. `GOVEE_WIFI_SSID` supplies it when absent.
+        /// 2.4 GHz: no Govee device joins a 5 GHz network.
         #[arg(long, value_name = "SSID")]
-        ssid: String,
+        ssid: Option<String>,
         /// The password. `GOVEE_WIFI_PASSWORD` supplies it when absent.
         #[arg(long, value_name = "PASSWORD")]
         password: Option<String>,
