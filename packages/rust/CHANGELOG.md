@@ -22,6 +22,21 @@ releases apart and keeps
   `ArgRole::Red`, `ArgRole::Green` and `ArgRole::Blue`. `cargo test` refuses a
   file where two entries of one mode claim the same role, or where a claiming
   entry marks no argument for it.
+- `DeviceHandle::segment` — paint zones one color. A zone list paints those
+  zones and leaves the rest alone, which needs `role: segment_color_masked`:
+  a `role: segment_color` frame states the color of every zone, and this crate
+  does not hold what the other zones show, so it refuses the subset rather
+  than repaint them. No list paints every zone, over whichever painting role
+  the file marks, from `capabilities.segments.count`. The channel is armed
+  where the file marks `role: segment_enable`, and nothing disarms it. A
+  gradient the file can carry nowhere is refused rather than dropped.
+- `DeviceHandle::serving_mode` — the mode a command sent now would go over,
+  from the same recorded state a send reads. What a caller needs to read the
+  device file for the right mode before it builds arguments.
+- `DeviceHandle::spec` — what `devices/<SKU>.yaml` declares for this device.
+  Reads no hardware.
+- `Support` implements `Display`, so a mode's support level prints as the word
+  the device file carries.
 
 ## [0.5.0] — 2026-09-10
 

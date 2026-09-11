@@ -11,7 +11,7 @@ use crate::stream::resolve::Painter;
 ///
 /// [`Error::ZoneOutOfRange`] for a zone the mask cannot name. The zone count is
 /// bounded when the stream opens, so this is unreachable from a stream.
-pub(super) fn frames(painter: &Painter, colors: Vec<[u8; 3]>) -> Result<Vec<Args>> {
+pub(crate) fn frames(painter: &Painter, colors: Vec<[u8; 3]>) -> Result<Vec<Args>> {
     match painter {
         // The repeat count is left out: the codec derives it from the list,
         // where it cannot disagree with the colors sent.
