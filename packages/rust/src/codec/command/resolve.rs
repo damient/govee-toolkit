@@ -175,6 +175,9 @@ pub(super) fn substitute(
             if let Some(channels) = packed_rgb(name) {
                 return pack_rgb(command, channels, args);
             }
+            if let Some(list) = packed_rgb_list(name) {
+                return pack_rgb_list(command, list, args);
+            }
             if name == "frame"
                 && let Some(bytes) = frame
             {
@@ -224,6 +227,39 @@ pub(crate) fn packed_rgb(inner: &str) -> Option<[&str; 3]> {
         return None;
     }
     Some(channels)
+}
+
+/// The argument a `${colors:rgb24}` placeholder names.
+///
+/// The list form of the same packing: one mode spreads the color over three
+/// channel arguments, and another takes the list argument a painting role
+/// marks. `None` for the three-name form, which [`packed_rgb`] reads.
+pub(crate) fn packed_rgb_list(inner: &str) -> Option<&str> {
+    let name = inner.strip_suffix(":rgb24")?;
+    (!name.is_empty() && !name.contains(',')).then_some(name)
+}
+
+/// The one triple the list holds, packed into `0xRRGGBB`.
+fn pack_rgb_list(command: &str, name: &str, args: &Args) -> Result<serde_json::Value> {
+    let Some(ArgValue::Rgb(colors)) = args.get(name) else {
+        return Err(Error::UnresolvedPlaceholder {
+            command: command.to_owned(),
+            name: name.to_owned(),
+        });
+    };
+    // The placeholder is one integer, so it carries one color. A list of any
+    // other length is an error rather than a truncation.
+    let [rgb] = colors[..] else {
+        return Err(Error::OutOfRange {
+            command: command.to_owned(),
+            arg: name.to_owned(),
+            value: i64::try_from(colors.len()).unwrap_or(i64::MAX),
+            min: 1,
+            max: 1,
+        });
+    };
+    let packed = (i64::from(rgb[0]) << 16) | (i64::from(rgb[1]) << 8) | i64::from(rgb[2]);
+    Ok(serde_json::Value::from(packed))
 }
 
 /// The three channels, packed into `0xRRGGBB`.

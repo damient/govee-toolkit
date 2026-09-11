@@ -395,21 +395,24 @@ commands:
   cloud:
     segment_color:
       documented: true
+      role: segment_color_masked
       capability:
         type: "devices.capabilities.segment_color_setting"
         instance: "segmentedColorRgb"
       payload:
         segment: "${zones}"
-        rgb: "${r,g,b:rgb24}"
+        rgb: "${colors:rgb24}"
       args:
-        zones: { type: zones, count: 15 }
-        r: { type: int, range: [0, 255] }
-        g: { type: int, range: [0, 255] }
-        b: { type: int, range: [0, 255] }
+        zones: { type: zones, count: 15, role: zones }
+        colors: { type: rgb_list, max_len: 1, role: colors }
       notes: >-
         Paints one color over the zones the array names, and leaves the rest
-        alone. This entry claims no painting role, so no stream opens over this
-        mode. See docs/protocol/cloud.md 5.
+        alone. The arguments are the ones the `ble` masked entry takes, so one
+        command takes the same arguments over both modes. A stream over this
+        mode sends one request per distinct color, and the API's own interval
+        between two requests about one device is 6 seconds: the transport
+        refuses a frame that waits longer than `max_wait`. See
+        docs/protocol/cloud.md 5.
 
     segment_brightness:
       documented: true
