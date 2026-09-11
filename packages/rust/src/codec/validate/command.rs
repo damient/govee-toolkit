@@ -218,7 +218,11 @@ fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {
             if let Some(inner) = crate::codec::command::placeholder(s) {
                 match crate::codec::command::packed_rgb(inner) {
                     Some(channels) => out.extend(channels.iter().map(|c| (*c).to_owned())),
-                    None => out.push(inner.to_owned()),
+                    None => out.push(
+                        crate::codec::command::packed_rgb_list(inner)
+                            .unwrap_or(inner)
+                            .to_owned(),
+                    ),
                 }
             }
         }

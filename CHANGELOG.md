@@ -21,6 +21,26 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-11
+
+#### Added
+
+- `${<name>:rgb24}` in a `cloud` `payload:` — the one triple of an `rgb_list`
+  argument, packed into 0xRRGGBB. A list of any other length is an error. It
+  is what an entry marked `role: segment_color_masked` takes over that mode.
+  `devices/schema.yaml` documents it beside `${r,g,b:rgb24}`.
+
+#### Changed
+
+- `H61A0` — `segment_color` under `cloud` claims `role: segment_color_masked`,
+  so the SDK paints zones over that mode by role. It takes `colors`, an
+  `rgb_list` of one color, and `zones`: the arguments the `ble` masked entry
+  takes, so one command takes the same arguments over both modes. The
+  conformance vectors in `tests/fixtures/golden/cloud/H61A0.json` carry the
+  same bodies under the new argument names. A stream over this mode sends one
+  request per distinct color, and the API takes one request every 6 seconds
+  about one device. See [`docs/protocol/cloud.md`](docs/protocol/cloud.md) §5.
+
 ### 2026-09-10
 
 #### Added

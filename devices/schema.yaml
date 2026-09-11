@@ -359,11 +359,14 @@ commands:
     #
     # An entry writes one capability or reads capabilities back, never both.
     #
-    # `${r,g,b:rgb24}` is the one placeholder this table adds: the three
-    # channel arguments, packed into 0xRRGGBB. A `zones` argument becomes an
-    # array of zone indices, ascending and each index once, where a frame
-    # carries a mask. Both keep the argument names the `lan` and `ble` layouts
-    # give them, so one command takes the same arguments over every mode.
+    # `${r,g,b:rgb24}` is the placeholder this table adds: the three channel
+    # arguments, packed into 0xRRGGBB. `${<name>:rgb24}` packs the one triple
+    # of an `rgb_list` argument the same way, which is what an entry marked
+    # `role: segment_color_masked` takes: the list holds exactly one color, and
+    # any other length is an error. A `zones` argument becomes an array of zone
+    # indices, ascending and each index once, where a frame carries a mask. All
+    # three keep the argument names the `lan` and `ble` layouts give them, so
+    # one command takes the same arguments over every mode.
 
 measurements: {}        # optional — numbers taken from a physical unit:
                         # native_pixels, latency, sustainable frame rate…

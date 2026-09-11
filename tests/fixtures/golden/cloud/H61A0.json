@@ -96,7 +96,7 @@
     {
       "name": "segment color on one zone",
       "command": "segment_color",
-      "args": { "zones": [0], "r": 0, "g": 255, "b": 0 },
+      "args": { "zones": [0], "colors": [[0, 255, 0]] },
       "message": {
         "capability": {
           "type": "devices.capabilities.segment_color_setting",
@@ -109,7 +109,7 @@
     {
       "name": "segment color holds a zone once, in ascending order",
       "command": "segment_color",
-      "args": { "zones": [2, 1, 1], "r": 255, "g": 40, "b": 0 },
+      "args": { "zones": [2, 1, 1], "colors": [[255, 40, 0]] },
       "message": {
         "capability": {
           "type": "devices.capabilities.segment_color_setting",
@@ -188,7 +188,7 @@
     {
       "name": "a zone past the fifteenth is refused",
       "command": "segment_color",
-      "args": { "zones": [15], "r": 0, "g": 255, "b": 0 },
+      "args": { "zones": [15], "colors": [[0, 255, 0]] },
       "code": "out_of_range"
     },
     {

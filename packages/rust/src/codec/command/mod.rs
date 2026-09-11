@@ -14,7 +14,7 @@ use crate::codec::{Args, chunk, exchange};
 
 mod resolve;
 
-pub(crate) use resolve::{packed_rgb, placeholder};
+pub(crate) use resolve::{packed_rgb, packed_rgb_list, placeholder};
 use resolve::{resolve, substitute};
 
 /// A command ready to send.
@@ -178,7 +178,9 @@ fn cloud(spec: &Command, value: &serde_json::Value, roles: BTreeMap<String, ArgR
 
 #[cfg(test)]
 mod tests {
-    #![allow(clippy::unwrap_used, clippy::expect_used)]
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
+
+    use serde_json::json;
 
     use crate::codec::args::{ArgValue, Args};
     use crate::codec::catalog::{ArgRole, Mode};
@@ -227,10 +229,42 @@ commands:
         level: { type: int, range: [0, 100], role: brightness }
 "#;
 
+    /// A cloud entry that packs the one color of a list into an integer.
+    const PACKED: &str = r#"
+schema_version: 1
+sku: HTEST
+family: test
+name: Test
+capabilities: {}
+commands:
+  cloud:
+    paint:
+      documented: true
+      role: segment_color_masked
+      capability:
+        type: "devices.capabilities.segment_color_setting"
+        instance: "segmentedColorRgb"
+      payload:
+        segment: "${zones}"
+        rgb: "${colors:rgb24}"
+      args:
+        zones: { type: zones, count: 15, role: zones }
+        colors: { type: rgb_list, max_len: 2, role: colors }
+"#;
+
     fn encode(source: &str, command: &str, args: &Args) -> crate::codec::Result<Encoded> {
+        encode_on(source, Mode::Ble, command, args)
+    }
+
+    fn encode_on(
+        source: &str,
+        mode: Mode,
+        command: &str,
+        args: &Args,
+    ) -> crate::codec::Result<Encoded> {
         let catalog = Catalog::from_sources([("HTEST.yaml", source)]).expect("the file parses");
         let device = catalog.device("HTEST").expect("the SKU resolves");
-        super::encode(device, Mode::Ble, command, args)
+        super::encode(device, mode, command, args)
     }
 
     #[test]
@@ -285,5 +319,28 @@ commands:
             .read("state", &[0xaa, 0x01, 0x01])
             .expect("it matches");
         assert_eq!(captured.get("lit"), Some(&ArgValue::Int(1)));
+    }
+
+    #[test]
+    fn a_colors_list_packs_into_one_integer() {
+        let args = Args::new()
+            .rgb("colors", vec![[0, 255, 0]])
+            .zones("zones", vec![1, 0]);
+        let encoded = encode_on(PACKED, Mode::Cloud, "paint", &args).expect("the command encodes");
+
+        let message = encoded.message.expect("a cloud entry carries a message");
+        assert_eq!(message["capability"]["value"]["rgb"], 65280);
+        assert_eq!(message["capability"]["value"]["segment"], json!([0, 1]));
+    }
+
+    /// The placeholder is one integer, so a second color has nowhere to go.
+    #[test]
+    fn a_colors_list_of_another_length_is_refused() {
+        for colors in [vec![], vec![[0, 255, 0], [255, 0, 0]]] {
+            let args = Args::new().rgb("colors", colors).zones("zones", vec![0]);
+            let err =
+                encode_on(PACKED, Mode::Cloud, "paint", &args).expect_err("only one color packs");
+            assert_eq!(err.code(), "out_of_range");
+        }
     }
 }

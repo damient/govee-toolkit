@@ -37,6 +37,9 @@ releases apart and keeps
   Reads no hardware.
 - `Support` implements `Display`, so a mode's support level prints as the word
   the device file carries.
+- A `cloud` `payload:` resolves `${<name>:rgb24}`: the one triple of an
+  `rgb_list` argument, packed into 0xRRGGBB. A list of any other length fails
+  with `Error::OutOfRange`.
 
 ## [0.5.0] — 2026-09-10
 
