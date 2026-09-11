@@ -11,6 +11,9 @@ use crate::output::{Failure, Writer};
 /// The environment variable that supplies the password.
 const PASSWORD_VAR: &str = "GOVEE_WIFI_PASSWORD";
 
+/// The environment variable that supplies the network name.
+const SSID_VAR: &str = "GOVEE_WIFI_SSID";
+
 /// What the caller typed about the password.
 pub(super) struct Secret<'a> {
     /// `--password`.
@@ -24,12 +27,13 @@ pub(super) async fn run(
     govee: &Govee,
     writer: &Writer,
     id: &DeviceId,
-    ssid: &str,
+    ssid: Option<&str>,
     secret: &Secret<'_>,
     utc_offset: (u8, u8),
 ) -> Result<(), Failure> {
+    let ssid = network(ssid)?;
     let credentials = WifiCredentials {
-        network: ssid.to_owned(),
+        network: ssid.clone(),
         password: password(secret)?,
         utc_offset_hours: utc_offset.0,
         utc_offset_minutes: utc_offset.1,
@@ -48,6 +52,15 @@ pub(super) async fn run(
         ),
     );
     Ok(())
+}
+
+/// The network name, from the command line or from the environment.
+fn network(ssid: Option<&str>) -> Result<String, Failure> {
+    match ssid {
+        Some(ssid) => Ok(ssid.to_owned()),
+        None => std::env::var(SSID_VAR)
+            .map_err(|_| Failure::usage(format!("supply `--ssid`, or set `{SSID_VAR}`"))),
+    }
 }
 
 /// The password, from the command line or from the environment.
@@ -72,6 +85,11 @@ fn password(secret: &Secret<'_>) -> Result<String, Failure> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_network_name_on_the_command_line_wins() {
+        assert_eq!(network(Some("home")).ok(), Some("home".to_owned()));
+    }
 
     #[test]
     fn an_open_network_takes_no_password() {

@@ -216,6 +216,10 @@ Keep the key in a `.env` file at the repository root:
 cp .env.example .env        # then fill GOVEE_API_KEY in
 ```
 
+`.env` also holds `GOVEE_WIFI_SSID` and `GOVEE_WIFI_PASSWORD`, which supply the
+network `govee provision` puts a device on. `--ssid` and `--password` override
+them.
+
 `.env` is gitignored, and `.env.example` is the committed template. **Never
 commit a key.** Git keeps it after the fix, so a key that reaches a commit is
 revoked and reissued in the Govee Home app.

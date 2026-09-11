@@ -107,7 +107,7 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
                 govee,
                 writer,
                 &DeviceId::new(device),
-                ssid,
+                ssid.as_deref(),
                 &secret,
                 (*utc_offset_hours, *utc_offset_minutes),
             )
