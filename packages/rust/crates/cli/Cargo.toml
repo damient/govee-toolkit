@@ -28,7 +28,13 @@ cloud = ["govee-toolkit/cloud"]
 clap = { version = "4", features = ["derive"] }
 govee-toolkit = { path = "../..", version = "0.5", default-features = false }
 serde_json.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread"] }
+tokio = { workspace = true, features = [
+  "io-std",
+  "io-util",
+  "rt-multi-thread",
+  "sync",
+  "time",
+] }
 
 [lints]
 workspace = true

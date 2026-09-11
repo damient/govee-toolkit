@@ -6,61 +6,194 @@ use govee_toolkit::{Config, DeviceId, Govee};
 use crate::cli::{Cli, Command};
 use crate::output::{Failure, Writer};
 
+mod args;
+mod describe;
 mod devices;
+#[cfg(feature = "ble")]
+mod provision;
+mod send;
+mod status;
+mod stream;
 mod verbs;
+mod watch;
 
 /// Run the subcommand the caller named.
 pub(crate) async fn dispatch(cli: &Cli, writer: &Writer) -> Result<(), Failure> {
+    let govee = Govee::start(configure(cli)?).await?;
+    let outcome = route(&govee, cli, writer).await;
+    // `ble` loses the last frame it wrote when nothing releases the adapter.
+    let released = govee.shutdown().await.map_err(Failure::from);
+    outcome.and(released)
+}
+
+async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure> {
     let restrict = cli.global.mode.map(Mode::from);
+    if let Some(device) = device_of(&cli.command) {
+        discover(govee, &DeviceId::new(device)).await?;
+    }
 
     match &cli.command {
-        Command::Scan { timeout_ms } => {
-            let mut config = load(cli)?;
-            config.lan.scan_window_ms = *timeout_ms;
-            let govee = start(config).await?;
-            devices::scan(&govee, writer, restrict).await
-        }
+        Command::Scan { .. } => devices::scan(govee, writer, restrict).await,
         Command::Devices => {
-            let govee = start(load(cli)?).await?;
-            devices::list(&govee, writer, restrict);
+            devices::list(govee, writer, restrict);
             Ok(())
         }
-        Command::Describe { .. } => Err(pending("describe")),
-        Command::Send { .. } => Err(pending("send")),
-        Command::Status { .. } => Err(pending("status")),
+        Command::Doctor => {
+            devices::doctor(govee, writer);
+            Ok(())
+        }
+        Command::Describe { target } => describe::run(govee, writer, target),
+        Command::Send {
+            device,
+            command,
+            args,
+        } => send::run(govee, writer, &DeviceId::new(device), command, args).await,
+        Command::Status { device } => status::run(govee, writer, &DeviceId::new(device)).await,
         Command::On { device } | Command::Off { device } => {
             let on = matches!(cli.command, Command::On { .. });
-            verb(cli, writer, device, verbs::Verb::Power(on)).await
+            verb(govee, writer, device, verbs::Verb::Power(on)).await
         }
         Command::Brightness { device, value } => {
-            verb(cli, writer, device, verbs::Verb::Brightness(*value)).await
+            verb(govee, writer, device, verbs::Verb::Brightness(*value)).await
         }
         Command::Color { device, color } => {
-            let rgb = verbs::rgb(color)?;
-            verb(cli, writer, device, verbs::Verb::Color(rgb)).await
+            let rgb = args::rgb(color)?;
+            verb(govee, writer, device, verbs::Verb::Color(rgb)).await
         }
-        Command::Segment { .. } => Err(pending("segment")),
+        Command::Segment {
+            device,
+            zones,
+            color,
+            gradient,
+        } => {
+            let verb_of = verbs::Verb::Segment {
+                zones: zones.as_deref().map(list).transpose()?,
+                rgb: args::rgb(color)?,
+                gradient: *gradient,
+            };
+            verb(govee, writer, device, verb_of).await
+        }
+        Command::Watch { rescan_ms } => watch::run(govee, writer, *rescan_ms).await,
+        Command::Stream {
+            device,
+            zones,
+            rate,
+            gradient,
+        } => {
+            stream::run(
+                govee,
+                writer,
+                &DeviceId::new(device),
+                zones,
+                *rate,
+                *gradient,
+            )
+            .await
+        }
+        #[cfg(feature = "ble")]
+        Command::Provision {
+            device,
+            ssid,
+            password,
+            open,
+            utc_offset_hours,
+            utc_offset_minutes,
+        } => {
+            let secret = provision::Secret {
+                password: password.as_deref(),
+                open: *open,
+            };
+            provision::run(
+                govee,
+                writer,
+                &DeviceId::new(device),
+                ssid,
+                &secret,
+                (*utc_offset_hours, *utc_offset_minutes),
+            )
+            .await
+        }
     }
 }
 
 /// Run one verb against one device.
-async fn verb(cli: &Cli, writer: &Writer, device: &str, verb: verbs::Verb) -> Result<(), Failure> {
-    let id = DeviceId::new(device);
+async fn verb(
+    govee: &Govee,
+    writer: &Writer,
+    device: &str,
+    verb: verbs::Verb,
+) -> Result<(), Failure> {
+    verbs::run(govee, writer, &DeviceId::new(device), verb).await
+}
+
+/// Find the device where no transport knows it yet.
+///
+/// `ble` relates a device to a handle through an advertisement alone, and
+/// keeps nothing across runs, so a command in a fresh process must discover it
+/// first. This costs the `lan` path nothing: its cache answers from disk, and
+/// a device already known is never scanned for.
+async fn discover(govee: &Govee, id: &DeviceId) -> Result<(), Failure> {
+    if govee.devices().iter().any(|device| device.id == *id) {
+        return Ok(());
+    }
+    govee.scan().await?;
+    Ok(())
+}
+
+/// Read zone indices, zero-based and comma-separated.
+fn list(text: &str) -> Result<Vec<u16>, Failure> {
+    args::list(text)
+        .map(|index| {
+            index.parse::<u16>().map_err(|_| {
+                Failure::usage(format!("`{index}` is not a zone index; they start at zero"))
+            })
+        })
+        .collect()
+}
+
+/// The configuration the run works from, narrowed by `--mode`.
+fn configure(cli: &Cli) -> Result<Config, Failure> {
     let mut config = load(cli)?;
+    if let Command::Scan { timeout_ms } = cli.command {
+        config.lan.scan_window_ms = timeout_ms;
+    }
 
     // `--mode` narrows what the configuration enables for this device, and
     // adds nothing. A mode the configuration leaves out is refused here, since
     // sending over another one would substitute a mode in silence.
-    if let Some(mode) = cli.global.mode.map(Mode::from) {
-        if !config.modes_for(&id).contains(&mode) {
-            return Err(Failure::unsupported(format!(
-                "`{id}` does not enable mode `{mode}`; the configuration decides which modes a device has"
-            )));
-        }
-        config.devices.entry(id.clone()).or_default().modes = Some(vec![mode]);
+    let (Some(mode), Some(device)) = (cli.global.mode.map(Mode::from), device_of(&cli.command))
+    else {
+        return Ok(config);
+    };
+    let id = DeviceId::new(device);
+    if !config.modes_for(&id).contains(&mode) {
+        return Err(Failure::unsupported(format!(
+            "`{id}` does not enable mode `{mode}`; the configuration decides which modes a device has"
+        )));
     }
+    config.devices.entry(id).or_default().modes = Some(vec![mode]);
+    Ok(config)
+}
 
-    verbs::run(&start(config).await?, writer, &id, verb).await
+/// The device one subcommand acts on, where it names one.
+fn device_of(command: &Command) -> Option<&str> {
+    match command {
+        Command::Send { device, .. }
+        | Command::Status { device }
+        | Command::On { device }
+        | Command::Off { device }
+        | Command::Brightness { device, .. }
+        | Command::Color { device, .. }
+        | Command::Segment { device, .. }
+        | Command::Stream { device, .. } => Some(device),
+        #[cfg(feature = "ble")]
+        Command::Provision { device, .. } => Some(device),
+        Command::Scan { .. }
+        | Command::Devices
+        | Command::Doctor
+        | Command::Describe { .. }
+        | Command::Watch { .. } => None,
+    }
 }
 
 /// Read the configuration the run works from.
@@ -70,13 +203,4 @@ fn load(cli: &Cli) -> Result<Config, Failure> {
         None => Config::load(),
     }?;
     Ok(config)
-}
-
-/// Bring the transports up.
-async fn start(config: Config) -> Result<Govee, Failure> {
-    Ok(Govee::start(config).await?)
-}
-
-fn pending(name: &str) -> Failure {
-    Failure::unsupported(format!("`{name}` is declared but not implemented yet"))
 }
