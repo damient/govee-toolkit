@@ -37,9 +37,19 @@ releases apart and keeps
   Reads no hardware.
 - `Support` implements `Display`, so a mode's support level prints as the word
   the device file carries.
+- `Govee::scan_on` — run a discovery scan on the modes named, and nothing on
+  the others. `Govee::scan` is every mode this build carries. A mode with no
+  transport contributes nothing and is not an error.
 - A `cloud` `payload:` resolves `${<name>:rgb24}`: the one triple of an
   `rgb_list` argument, packed into 0xRRGGBB. A list of any other length fails
   with `Error::OutOfRange`.
+
+### Fixed
+
+- `Govee::problems` reports an enabled mode whose credential the configuration
+  does not carry, so a caller reads it before it sends. It stays a problem and
+  not a startup error: the mode is unavailable, and a command over it fails
+  with `Error::MissingCredential`.
 
 ## [0.5.0] — 2026-09-10
 
