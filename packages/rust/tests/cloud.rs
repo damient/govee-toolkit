@@ -205,3 +205,24 @@ async fn a_key_is_the_one_thing_this_mode_cannot_start_without() {
     .expect_err("no key, no mode");
     assert_eq!(error.code(), "out_of_range");
 }
+
+#[tokio::test]
+async fn an_enabled_mode_with_no_key_is_a_problem_and_not_a_refusal_to_start() {
+    // `set_var` needs `unsafe`, which the workspace forbids: the test asserts
+    // the branch the environment selects, and both are under test.
+    if std::env::var(govee_toolkit::config::KEY_ENV).is_ok_and(|key| !key.trim().is_empty()) {
+        return;
+    }
+    let config: govee_toolkit::Config =
+        serde_norway::from_str("defaults:\n  modes: [cloud]\n").expect("the configuration parses");
+    let catalog = Catalog::embedded().expect("the embedded catalog");
+    let govee = govee_toolkit::Govee::attach(config, catalog, []).expect("a missing key starts");
+
+    let problems = govee.problems();
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert!(
+        problems[0].message.contains("cloud") && problems[0].message.contains("credential"),
+        "{}",
+        problems[0]
+    );
+}

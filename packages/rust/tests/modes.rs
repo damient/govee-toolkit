@@ -286,3 +286,21 @@ async fn a_file_that_names_no_status_command_still_sends() {
         .expect_err("nothing names a status command");
     assert_eq!(error.code(), "no_status_command");
 }
+
+#[tokio::test]
+async fn a_scan_on_another_mode_touches_no_wire_of_this_one() {
+    let rig = rig("defaults:\n  modes: [lan, cloud]\n").await;
+    rig.simulator.clear();
+
+    let found = rig
+        .govee
+        .scan_on(&[Mode::Cloud])
+        .await
+        .expect("a mode with no transport contributes nothing");
+    assert!(found.is_empty(), "{found:?}");
+    assert_eq!(
+        rig.simulator.received_count(),
+        0,
+        "a scan the caller ruled out must send nothing"
+    );
+}

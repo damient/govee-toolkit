@@ -86,11 +86,26 @@ impl Govee {
     /// fails the call: a scan covering fewer modes than asked would read as a
     /// device that is not there.
     pub async fn scan(&self) -> Result<Vec<Device>> {
+        let modes: Vec<Mode> = self.inner.transports.keys().copied().collect();
+        self.scan_on(&modes).await
+    }
+
+    /// Run a discovery scan on the modes named, and return what answered over
+    /// one of them.
+    ///
+    /// A mode this build carries no transport for contributes nothing, and is
+    /// not an error: the caller named the modes it wants covered.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Govee::scan`].
+    pub async fn scan_on(&self, modes: &[Mode]) -> Result<Vec<Device>> {
         let windows = self
             .inner
             .transports
-            .values()
-            .map(|transport| transport.scan(transport.scan_window()));
+            .iter()
+            .filter(|(mode, _)| modes.contains(mode))
+            .map(|(_, transport)| transport.scan(transport.scan_window()));
         // In mode order, whatever the order the answers arrive in: two modes
         // that report one MAC must always agree on which SKU wins.
         let per_mode = try_join_all(windows).await?;
@@ -151,8 +166,29 @@ impl Govee {
     #[must_use]
     pub fn problems(&self) -> Vec<Problem> {
         let mut problems = self.inner.config.problems();
+        problems.extend(self.missing_credentials());
         problems.extend(self.check_devices());
         problems
+    }
+
+    /// Every enabled mode whose credential the configuration does not carry.
+    ///
+    /// Not a startup error: the mode is reported as unavailable, and a command
+    /// over it fails with [`Error::MissingCredential`]. It is what `doctor`
+    /// answers before any command is sent.
+    fn missing_credentials(&self) -> Vec<Problem> {
+        self.inner
+            .config
+            .enabled_modes()
+            .into_iter()
+            .filter_map(|mode| {
+                let remedy = self.inner.config.missing_credential(mode)?;
+                Some(Problem {
+                    device: None,
+                    message: format!("`{mode}` is enabled but carries no credential — {remedy}"),
+                })
+            })
+            .collect()
     }
 
     /// The transport serving a mode, if this build carries one.
