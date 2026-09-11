@@ -73,7 +73,7 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
             };
             verb(govee, writer, device, verb_of).await
         }
-        Command::Watch { rescan_ms } => watch::run(govee, writer, *rescan_ms).await,
+        Command::Watch { rescan_ms } => watch::run(govee, writer, *rescan_ms, restrict).await,
         Command::Stream {
             device,
             zones,
@@ -126,17 +126,29 @@ async fn verb(
     verbs::run(govee, writer, &DeviceId::new(device), verb).await
 }
 
-/// Find the device where no transport knows it yet.
+/// Find the device where no transport of an enabled mode knows it yet.
 ///
 /// `ble` relates a device to a handle through an advertisement alone, and
-/// keeps nothing across runs, so a command in a fresh process must discover it
-/// first. This costs the `lan` path nothing: its cache answers from disk, and
-/// a device already known is never scanned for.
+/// `cloud` lists the account at startup, so neither keeps anything across
+/// runs: a command in a fresh process must discover the device first. The test
+/// is per mode, not per device. A device the `lan` cache answers for is still
+/// unknown to `cloud`, and a scan skipped on the strength of that cache would
+/// fail the command with `UnknownDevice`.
 async fn discover(govee: &Govee, id: &DeviceId) -> Result<(), Failure> {
-    if govee.devices().iter().any(|device| device.id == *id) {
+    let known = govee.devices().iter().any(|device| {
+        device.id == *id
+            && device
+                .modes
+                .iter()
+                .any(|mode| device.health.contains_key(mode))
+    });
+    if known {
         return Ok(());
     }
-    govee.scan().await?;
+    // Only the modes this device enables: a scan on another one costs a
+    // window and answers a question nobody asked.
+    let modes = govee.config().modes_for(id).to_vec();
+    govee.scan_on(&modes).await?;
     Ok(())
 }
 

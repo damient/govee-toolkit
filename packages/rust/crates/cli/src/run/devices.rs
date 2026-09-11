@@ -12,7 +12,11 @@ pub(super) async fn scan(
     writer: &Writer,
     restrict: Option<Mode>,
 ) -> Result<(), Failure> {
-    let found = govee.scan().await?;
+    // `--mode` restricts the wire the scan touches, and not only what is
+    // printed: a scan over another mode would send frames the caller ruled
+    // out.
+    let modes = restrict.map_or_else(|| govee.modes(), |mode| vec![mode]);
+    let found = govee.scan_on(&modes).await?;
     report(&found, writer, restrict);
     Ok(())
 }
@@ -24,6 +28,10 @@ pub(super) fn list(govee: &Govee, writer: &Writer, restrict: Option<Mode>) {
 
 fn report(devices: &[Device], writer: &Writer, restrict: Option<Mode>) {
     for device in devices {
+        // A device that does not enable the mode is not reported under it.
+        if restrict.is_some_and(|only| !device.modes.contains(&only)) {
+            continue;
+        }
         writer.emit(&as_json(device, restrict), &as_text(device, restrict));
     }
 }

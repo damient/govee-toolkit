@@ -5,6 +5,7 @@
 
 use std::time::Duration;
 
+use govee_toolkit::codec::Mode;
 use govee_toolkit::transport::Event as TransportEvent;
 use govee_toolkit::{Event, Govee};
 use serde_json::{Value, json};
@@ -13,16 +14,23 @@ use tokio::sync::broadcast::error::RecvError;
 use crate::output::{Failure, Writer};
 
 /// Print events until the stream closes or the process is interrupted.
-pub(super) async fn run(govee: &Govee, writer: &Writer, rescan_ms: u64) -> Result<(), Failure> {
+pub(super) async fn run(
+    govee: &Govee,
+    writer: &Writer,
+    rescan_ms: u64,
+    restrict: Option<Mode>,
+) -> Result<(), Failure> {
     // Subscribed before the scan, so that what the scan finds is reported.
     let mut events = govee.events();
-    govee.scan().await?;
+    let modes = restrict.map_or_else(|| govee.modes(), |mode| vec![mode]);
+    govee.scan_on(&modes).await?;
     if rescan_ms > 0 {
-        rescan(govee.clone(), rescan_ms);
+        rescan(govee.clone(), rescan_ms, modes);
     }
 
     loop {
         match events.recv().await {
+            Ok(event) if skipped(&event, restrict) => {}
             Ok(event) => writer.emit(&as_json(&event), &as_text(&event)),
             // The stream keeps the most recent events and drops the rest, so
             // a slow reader loses events rather than blocking the SDK.
@@ -37,16 +45,39 @@ pub(super) async fn run(govee: &Govee, writer: &Writer, rescan_ms: u64) -> Resul
 
 /// Scan again on a fixed interval. A failed scan is left to the next tick:
 /// one unreachable mode must not end the watch.
-fn rescan(govee: Govee, every_ms: u64) {
+fn rescan(govee: Govee, every_ms: u64, modes: Vec<Mode>) {
     tokio::spawn(async move {
         let mut ticker = tokio::time::interval(Duration::from_millis(every_ms));
         // The first tick completes at once, and the run already scanned.
         ticker.tick().await;
         loop {
             ticker.tick().await;
-            drop(govee.scan().await);
+            drop(govee.scan_on(&modes).await);
         }
     });
+}
+
+/// Whether `--mode` rules this event out. An event that names no mode is
+/// about the device itself, and every run reports it.
+fn skipped(event: &Event, restrict: Option<Mode>) -> bool {
+    let (Some(only), Some(mode)) = (restrict, mode_of(event)) else {
+        return false;
+    };
+    only != mode
+}
+
+/// The mode an event comes from, where it names one.
+fn mode_of(event: &Event) -> Option<Mode> {
+    match event {
+        Event::Transport(
+            TransportEvent::Discovered { mode, .. }
+            | TransportEvent::Forgotten { mode, .. }
+            | TransportEvent::Status { mode, .. }
+            | TransportEvent::HealthChanged { mode, .. },
+        ) => Some(*mode),
+        Event::Transport(TransportEvent::Sent(sent)) => Some(sent.mode),
+        _ => None,
+    }
 }
 
 fn as_json(event: &Event) -> Value {

@@ -35,8 +35,9 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   The run reports the frames sent and the frames a later write replaced.
 - `watch` prints events as they arrive. It scans once at the start, and
   `--rescan-ms` repeats the scan.
-- `doctor` reports everything wrong with the configuration, including what can
-  only be checked once devices are known. It reads no hardware.
+- `doctor` reports everything wrong with the configuration, including an
+  enabled mode whose credential is missing and what can only be checked once
+  devices are known. It reads no hardware.
 - `provision` puts a device on a Wi-Fi network over `ble`, behind the `ble`
   cargo feature. The password comes from `--password`, from
   `GOVEE_WIFI_PASSWORD`, or is empty with `--open`; it travels in plaintext,
@@ -44,13 +45,17 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   acknowledges the transfer, so the report says what was sent.
 - A device file that claims no entry for what a command needs exits with code
   5, as a refused argument does. Nothing was sent either way.
-- A command scans first where no transport knows the device yet. `ble` relates
-  a device to a handle through an advertisement alone and keeps nothing across
-  runs, so a one-shot command must discover it. A device already known costs
-  no scan, and the `lan` cache answers from disk.
+- A command scans first where no transport of an enabled mode knows the device
+  yet. `ble` relates a device to a handle through an advertisement alone, and
+  `cloud` lists the account at startup, so neither keeps anything across runs
+  and a one-shot command must discover the device. The test is per mode: the
+  `lan` cache answers from disk for `lan`, and costs a scan on the modes that
+  need one.
 - `--json` writes one object per line on stdout and an error object on stderr.
   That form is the contract, and the exit codes are in the README. The `kind`
   of an error is the core's own error code. The text form is for a person.
 - `--mode` restricts a run to one mode. It enables no mode the configuration
   leaves out: a device that does not enable the mode asked for is refused,
-  rather than served by another one.
+  rather than served by another one. It restricts the wire as well as the
+  report: `scan` and `watch` touch that mode alone, `devices` lists the devices
+  that enable it, and `watch` prints the events that mode raises.
