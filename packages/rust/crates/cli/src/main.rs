@@ -28,7 +28,9 @@ fn main() -> std::process::ExitCode {
     let cli = Cli::parse();
     let writer = Writer::new(cli.global.json);
 
-    let runtime = match tokio::runtime::Builder::new_multi_thread()
+    // One command is one send, and a stream is paced by a timer: the work
+    // never saturates a core, and a worker pool costs the spawns at startup.
+    let runtime = match tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
     {

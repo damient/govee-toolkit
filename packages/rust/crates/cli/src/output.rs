@@ -65,7 +65,7 @@ impl From<Error> for Failure {
     fn from(error: Error) -> Self {
         let kind = error.code();
         let code = match kind {
-            "config" | "configuration" | "local_devices" => CONFIG,
+            "config" | "configuration" | "local_devices" | "env" => CONFIG,
             "no_mode_available" | "mode_unavailable" | "unreachable" | "unknown_device" => {
                 UNREACHABLE
             }
@@ -142,4 +142,9 @@ impl Writer {
         }
         ExitCode::from(failure.code)
     }
+}
+
+/// What a value the device did not report prints as.
+pub(crate) fn option(value: Option<String>) -> String {
+    value.unwrap_or_else(|| "?".to_owned())
 }
