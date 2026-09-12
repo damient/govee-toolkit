@@ -4,9 +4,10 @@
 | ---- | ----- |
 | Device simulator | [`packages/rust/crates/sim`](../packages/rust/crates/sim) |
 | Local CI mirror | [`qa.sh`](qa.sh), or `/qa` in Claude Code |
+| Local CI mirror, site only | [`qa-site.sh`](qa-site.sh) |
 | Build artifact sweep | [`clean-target.sh`](clean-target.sh) |
 | Redaction check | [`check-captures.sh`](check-captures.sh) |
-| Rust file length | [`check-file-length.sh`](check-file-length.sh) |
+| File length, per language | [`check-file-length.sh`](check-file-length.sh) |
 | Codec layering | [`check-no-io.sh`](check-no-io.sh) |
 | Release notes from the changelog | [`release-notes.sh`](release-notes.sh) |
 | Generated catalog and tables | [`packages/rust/crates/xtask`](../packages/rust/crates/xtask) |
@@ -21,6 +22,21 @@ rather than passed, and names the install command. The three it leaves out —
 sign-off, commit convention and changelog entry — walk a pull request's commit
 range, which does not exist locally. The workflow stays the authority; this is
 a mirror of it kept in step by hand.
+
+`qa-site.sh` does the same for the site: it mirrors
+`.github/workflows/pages.yml` — the device catalog, the build, the three
+linters and the file length. `qa.sh` runs it as one check, so a full run covers
+the site too, and it runs on its own for the site alone:
+
+```bash
+tools/qa-site.sh            # every site check
+tools/qa-site.sh lint       # the checks whose name holds "lint"
+cd site && npm run qa       # the same script
+```
+
+It needs `site/node_modules`, which `cd site && npm install` writes, and it
+regenerates `dist/catalog.json` when cargo is there. Both exit codes are the
+ones `qa.sh` uses: 1 for a failed check, 2 for a skipped one.
 
 `clean-target.sh` removes the build artifacts that no later build reads. cargo
 keeps the artifacts of every earlier build and collects none of them, so

@@ -38,6 +38,10 @@ Then fix every failure, and re-run the affected check to confirm.
   splits into a word goes in `typos.toml`, as narrow an entry as will do.
 - `file length` — split the file along its responsibilities. Do not trim
   comments to get under the limit.
+- `site` — one check here, a script of its own: run `./tools/qa-site.sh` for
+  the per-check summary, and report that summary the same way. A linter
+  finding is fixed in the source, never by turning the rule off, unless the
+  rule is wrong for this repository — then say why in the configuration file.
 - `licenses and advisories` — a rejected license is a dependency to drop, not
   an entry to add to `deny.toml`; the repository is MIT with no copyleft
   dependencies.

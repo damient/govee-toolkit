@@ -288,7 +288,7 @@ cargo deny check                                      # licenses and advisories
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features
 RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo +nightly doc --no-deps \
   --all-features                                      # what docs.rs builds
-../../tools/check-file-length.sh                      # 400 lines per Rust file
+../../tools/check-file-length.sh                      # file length, per language
 ../../tools/check-captures.sh                         # capture redaction
 ```
 
@@ -296,10 +296,25 @@ RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo +nightly doc --no-deps \
 grouping and comment wrapping. CI formats with nightly, so `cargo fmt` on stable
 will disagree with it. Use `cargo +nightly fmt`.
 
-A Rust source file stays under **400 lines**. Rust has no such convention and
-rustfmt enforces nothing, so this is a repository rule: it is a prompt to split
-along responsibilities, not a target to hit. Per-function size is handled
-separately by `clippy::too_many_lines`.
+A Rust source file stays under **400 lines**, and a site source file under
+**300**. Neither language has such a convention and no formatter enforces one,
+so this is a repository rule: it is a prompt to split along responsibilities,
+not a target to hit. Per-function size is handled separately by
+`clippy::too_many_lines`.
+
+The site has checks of its own. `tools/qa-site.sh` mirrors
+`.github/workflows/pages.yml` the way `qa.sh` mirrors `ci.yml`: the device
+catalog, the build, oxlint, stylelint, html-validate and the file length, with
+the same pass/fail summary and the same exit codes. `qa.sh` runs it as one
+check, so a full run covers the site as well.
+
+```bash
+tools/qa-site.sh              # every site check
+tools/qa-site.sh lint         # one check, by substring
+cd site && npm run qa         # the same script
+```
+
+It needs `site/node_modules`: run `cd site && npm install` once.
 
 The MSRV in `packages/rust/Cargo.toml` is checked on every push. Raise it in the
 same commit as the feature that needs it, never after the fact.

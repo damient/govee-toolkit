@@ -44,18 +44,26 @@ record() {
   esac
 }
 
-# check <name> <command...> — runs the command with output captured, so a
-# passing check stays quiet and a failing one prints its log.
-check() {
-  local name=$1
-  shift
+# check_in <dir> <name> <command...> — runs the command in the directory, with
+# output captured, so a passing check stays quiet and a failing one prints its
+# log.
+check_in() {
+  local dir=$1 name=$2
+  shift 2
   if [ -n "$only" ] && [[ $name != *"$only"* ]]; then return; fi
   printf '%s\n' "$name"
-  if (cd "$rust" && "$@") >"$log" 2>&1; then
+  if (cd "$dir" && "$@") >"$log" 2>&1; then
     record "$name" pass
   else
     record "$name" fail
   fi
+}
+
+# check <name> <command...> — the same, in the Rust crate.
+check() {
+  local name=$1
+  shift
+  check_in "$rust" "$name" "$@"
 }
 
 skip() {
@@ -114,7 +122,20 @@ else
   skip "spelling" "cargo install typos-cli, or brew install typos-cli"
 fi
 
-check "file length" "$root/tools/check-file-length.sh"
+# The site has checks of its own, and a workflow of its own. One check here,
+# one script there: its summary prints inside this one when it fails. It
+# exits 2 when it skipped a check, which is a skip here as well.
+if [ -z "$only" ] || [[ site == *"$only"* ]]; then
+  printf '%s\n' "site"
+  "$root/tools/qa-site.sh" >"$log" 2>&1
+  case $? in
+  0) record "site" pass ;;
+  2) record "site" skip "a site check was skipped; run tools/qa-site.sh" ;;
+  *) record "site" fail ;;
+  esac
+fi
+
+check "file length" "$root/tools/check-file-length.sh" rust
 check "codec layering" "$root/tools/check-no-io.sh"
 check "capture redaction" "$root/tools/check-captures.sh"
 
