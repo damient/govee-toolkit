@@ -53,6 +53,11 @@ impl Transport for CloudTransport {
         Self::scan(self).await
     }
 
+    /// The window is ignored, for the reason [`Transport::scan`] gives.
+    async fn scan_for(&self, id: &DeviceId, _window: Duration) -> Result<Option<Discovered>> {
+        Self::scan_for(self, id).await
+    }
+
     async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent> {
         Self::send(self, id, command, verify).await
     }

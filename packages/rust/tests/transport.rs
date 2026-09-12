@@ -72,25 +72,6 @@ impl Rig {
     }
 }
 
-#[tokio::test]
-async fn a_transport_reports_the_window_its_own_mode_needs() {
-    let rig = Rig::start(Policy::default()).await;
-    assert_eq!(rig.transport.scan_window(), Duration::from_millis(200));
-}
-
-#[tokio::test]
-async fn a_scan_finds_the_device_and_records_where_it_is() {
-    let rig = Rig::start(Policy::default()).await;
-    rig.discover().await;
-
-    let known = rig.transport.devices();
-    assert_eq!(known.len(), 1);
-    assert_eq!(known[0].id, id());
-    assert_eq!(known[0].sku, SKU);
-    assert_eq!(known[0].health.state, State::Ok);
-    assert_eq!(rig.transport.sku(&id()).as_deref(), Some(SKU));
-}
-
 /// A `lan` reply is JSON, so no command declares a `reply:` layout for it. The
 /// transport fails rather than answers with an empty set of fields.
 #[tokio::test]

@@ -55,6 +55,10 @@ impl Transport for BleTransport {
         Self::scan(self, window).await
     }
 
+    async fn scan_for(&self, id: &DeviceId, window: Duration) -> Result<Option<Discovered>> {
+        Self::scan_for(self, id, window).await
+    }
+
     async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent> {
         Self::send(self, id, command, verify).await
     }

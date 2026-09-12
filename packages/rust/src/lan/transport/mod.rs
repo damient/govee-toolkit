@@ -151,6 +151,22 @@ impl Transport {
         self.shared.scan(window).await
     }
 
+    /// Send a discovery request and stop at the reply from one device.
+    ///
+    /// `window` is the longest this waits. Devices that answer before the one
+    /// asked for are recorded too. Nothing on the send path calls this.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Io`] if the request cannot be sent.
+    pub async fn scan_for(
+        &self,
+        id: &DeviceId,
+        window: Duration,
+    ) -> Result<Option<DiscoveredDevice>> {
+        self.shared.scan_for(id, window).await
+    }
+
     /// Every device the transport knows, from a scan or from the cache.
     #[must_use]
     pub fn devices(&self) -> Vec<KnownDevice> {

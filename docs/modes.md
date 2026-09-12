@@ -133,6 +133,24 @@ one, driven by the per-device circuit breaker:
 Switching is always observable: the SDK reports which mode served each command,
 and every mode transition is an event the application can subscribe to.
 
+## Before the first command
+
+A mode reaches a device only after it knows where the device is. `lan` keeps a
+cache, so a fresh process sends to a device the last scan found. `ble` relates a
+device to a handle through an advertisement, and `cloud` lists the account, so
+neither keeps anything between runs.
+
+A command never scans. A scan costs a window, and the send path must not pay it
+— that is what makes the `lan` fast path fast. A device no mode knows fails with
+`UnknownDevice` instead.
+
+`Govee::ensure_known` is where an application pays that cost, once, before the
+first command. It scans only where a scan is needed, and only over the modes
+that device enables. The modes look at the same time, and the answer is the
+first enabled mode in the list, whichever one answers first: the list is the
+user's preference, and a faster mode does not take the place of it. The `govee`
+CLI calls it for every subcommand that names a device.
+
 ## Capability differences between modes
 
 Modes are not interchangeable, and neither is a superset of the other. `cloud`
