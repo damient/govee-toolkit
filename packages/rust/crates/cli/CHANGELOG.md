@@ -77,8 +77,10 @@ command name and no SKU name lives in this crate.
 - `stream` feeds the segment channel one frame per line of stdin: one
   `#RRGGBB`, which fills every zone, or one per zone. `--resolution` takes
   `app`, `native` or a count, the same word `segment` uses, and `--rate`
-  overrides the rate measured for the unit. The run reports the frames sent and
-  the frames a later write replaced.
+  overrides the rate measured for the unit. `--gradient` interpolates between
+  zones, and fails and names the role over a mode whose device file carries the
+  setting nowhere. The run reports the frames sent and the frames a later write
+  replaced.
 - `scan` reports every device that answered, including one the configuration
   does not enable the scanned mode for. Such a device is printed as answering
   over that mode rather than with its modes, and the JSON form carries

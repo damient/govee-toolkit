@@ -145,7 +145,9 @@ impl DeviceHandle<'_> {
     /// has no credential,
     /// [`Error::NoRoleCommand`] if the device file marks no entry
     /// `role: segment_enable`, and none `role: segment_color` or
-    /// `role: segment_color_masked`,
+    /// `role: segment_color_masked`, or if
+    /// [`StreamOptions::gradient`](crate::StreamOptions::gradient) asks for
+    /// interpolation the mode carries nowhere,
     /// [`Error::ZoneCountUnknown`] if the count asked for is not recorded for
     /// this unit,
     /// [`Error::NativeZonesUnreachable`] or [`Error::ZoneCountUnsupported`] if

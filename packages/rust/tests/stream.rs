@@ -256,6 +256,30 @@ async fn native_resolution_nobody_measured_is_refused() {
     assert_eq!(error.code(), "zone_count_unknown");
 }
 
+/// The non-negotiable is that a mode serves the request or says it cannot. A
+/// stream that dropped the setting would paint hard-edged zones and report
+/// success.
+#[tokio::test]
+async fn a_gradient_no_frame_can_carry_is_refused_rather_than_dropped() {
+    const NO_GRADIENT: &str = include_str!("fixtures/no-gradient.yaml");
+
+    let catalog = Catalog::from_sources([("no-gradient.yaml", NO_GRADIENT)]).expect("catalog");
+    let rig = rig_with(catalog, "HTEST5").await;
+
+    let error = rig
+        .govee
+        .device(&id())
+        .open_stream(StreamOptions {
+            resolution: Resolution::App,
+            rate: Rate::Fixed(TEST_HZ),
+            gradient: true,
+        })
+        .await
+        .expect_err("the file carries the setting nowhere");
+    assert_eq!(error.code(), "no_segment_command");
+    assert!(frames(&rig.simulator).is_empty(), "nothing was armed");
+}
+
 #[tokio::test]
 async fn a_file_naming_no_segment_command_is_refused() {
     const NO_SEGMENTS: &str = include_str!("fixtures/no-segments.yaml");

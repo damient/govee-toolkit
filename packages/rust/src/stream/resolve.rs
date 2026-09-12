@@ -91,12 +91,32 @@ pub(crate) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Resu
         None => None,
     };
     let zones = zone_count(device, mode, &painter, options.resolution)?;
+    // A mode that can carry the setting nowhere fails rather than paint
+    // hard-edged zones under a caller that asked for interpolation.
+    if options.gradient && gradient.is_none() && !carries_gradient(&painter) {
+        return Err(Error::NoRoleCommand {
+            sku: device.sku.clone(),
+            mode,
+            role: Role::SegmentGradient,
+        });
+    }
     Ok(Plan {
         enable,
         gradient,
         painter,
         zones,
     })
+}
+
+/// Whether the painting frame itself carries the gradient setting.
+fn carries_gradient(painter: &Painter) -> bool {
+    matches!(
+        painter,
+        Painter::Whole {
+            gradient: Some(_),
+            ..
+        }
+    )
 }
 
 /// Whichever of the two painting roles the file declares for `mode`.

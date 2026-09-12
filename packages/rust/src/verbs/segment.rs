@@ -94,9 +94,6 @@ impl DeviceHandle<'_> {
                 ..StreamOptions::default()
             },
         )?;
-        if paint.gradient && plan.gradient.is_none() && !carries_gradient(&plan.painter) {
-            return Err(no_gradient(&sku, mode));
-        }
         let colors = colors(&sku, &plan, paint.colors)?;
 
         self.arm(mode, &sku, device).await?;
@@ -237,17 +234,6 @@ fn whole(plan: &Plan) -> usize {
         Painter::Masked { limit, .. } => limit,
         Painter::Whole { .. } => plan.zones,
     }
-}
-
-/// Whether the painting frame itself carries the gradient setting.
-fn carries_gradient(painter: &Painter) -> bool {
-    matches!(
-        painter,
-        Painter::Whole {
-            gradient: Some(_),
-            ..
-        }
-    )
 }
 
 fn no_gradient(sku: &str, mode: Mode) -> Error {
