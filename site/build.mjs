@@ -60,6 +60,9 @@ const pages = [
 // Markdown pages that surround it.
 const REFERENCE = { url: "reference/", title: "Reference", order: 4 };
 
+// Pages that the footer does not name.
+const FOOT_SKIP = new Set(["docs/configure/", "docs/troubleshooting/"]);
+
 // `planned` marks a package that has no code yet: its example shows the shape
 // the call will have, and the pane says so.
 const LANGUAGES = [
@@ -99,8 +102,11 @@ async function main() {
   ].sort((a, b) => a.order - b.order);
   // The docs entry point is the first page in the menu, not a hardcoded slug.
   const docsHome = nav[0].url;
-  // The footer names the same pages as the side menu, from the same list.
-  const docNav = nav.map((item) => navItem(base, item, null)).join("\n          ");
+  // The footer names a short list. The side menu keeps every page.
+  const docNav = nav
+    .filter((item) => !FOOT_SKIP.has(item.url))
+    .map((item) => navItem(base, item, null))
+    .join("\n          ");
   // `vars` is built once: every page fills its body with the same values.
   const ctx = { css, docsHome, docNav, vars: { base, repo: repoUrl, ...modeBadges() } };
 
