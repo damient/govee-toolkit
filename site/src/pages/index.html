@@ -1,7 +1,6 @@
 <section class="hero">
   <div class="shell">
     <div class="hero-text">
-      <p class="eyebrow">Unofficial toolkit · MIT · early development</p>
       <h1>Control your Govee lights from your own machine.</h1>
       <p class="lede">
         No internet, no Govee account, no cloud round-trip. The command goes
@@ -9,7 +8,7 @@
         Bluetooth. It also sends commands the official app does not expose.
       </p>
       <div class="cta-links">
-        <a class="btn" href="{{base}}docs/start/">Start here</a>
+        <a class="btn" href="{{base}}docs/start/">Take control of my lights</a>
         <a class="btn ghost" href="{{base}}devices/">Does my device work?</a>
       </div>
     </div>
@@ -28,75 +27,96 @@
   </div>
 </section>
 
+<section class="slab strip-demo">
+  <div class="shell">
+    <h2 class="big">Paint the zones, not the whole light.</h2>
+    <p class="lede">Move over the strip below. Each zone is one address on the
+    wire.</p>
+    <div class="strip" data-strip role="img" aria-label="A row of light zones that follow the pointer"></div>
+    <ul class="strip-points">
+      <li>
+        <h3>One zone at a time</h3>
+        <p>Address a single zone, a range or the whole strip, inside the same
+        frame.</p>
+      </li>
+      <li>
+        <h3>Build your own effects</h3>
+        <p>A wave, a gradient, a progress bar across the zones: you write the
+        animation, and the strip draws it.</p>
+      </li>
+      <li>
+        <h3>Frame after frame</h3>
+        <p>Hold the channel open and keep sending. Music, screen, a sensor:
+        the strip follows.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
 <section class="slab" id="what">
   <div class="shell">
-    <p class="eyebrow">What you get</p>
-    <div class="rows">
-      <div class="row">
-        <h2>On, off, brightness, color</h2>
+    <h2 class="big">Main features</h2>
+    <div class="cards two">
+      <div class="card">
+        <h3>On, off, brightness, color</h3>
         <p>One call, from a script, a keyboard shortcut or a home automation.
         Anything that can run code can drive the light.</p>
       </div>
-      <div class="row">
-        <h2>Every segment, one by one</h2>
+      <div class="card">
+        <h3>Every segment, one by one</h3>
         <p>The app offers a set of preset effects. Here you address the LED
         zones yourself, and on the fast path you reach more zones than the app
         shows.</p>
       </div>
-      <div class="row">
-        <h2>Animation in real time</h2>
+      <div class="card">
+        <h3>Animation in real time</h3>
         <p>Open the segment channel and feed it frames: music reactive, screen
         ambilight, or your own source.</p>
       </div>
-      <div class="row">
-        <h2>It fails out loud</h2>
-        <p>A value outside the range is refused, never adjusted. The firmware
-        clamps in silence; an SDK that did the same would report success for a
-        setting your device never applied.</p>
+      <div class="card">
+        <h3>A new device onto your Wi-Fi</h3>
+        <p>Over Bluetooth, the toolkit hands a device out of the box your
+        network name and password. That step is what makes it reachable over
+        Wi-Fi afterwards.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section class="slab strip-demo">
-  <div class="shell">
-    <p class="eyebrow">The segment channel</p>
-    <h2 class="big">Paint the zones, not the whole light.</h2>
-    <p class="lede">Move over the strip below. Each zone is one address on the
-    wire. On a verified 3 m rope the fast path reaches 42 of them.</p>
-    <div class="strip" data-strip role="img" aria-label="A row of light zones that follow the pointer"></div>
-    <pre class="snippet"><code>let stream = device.open_stream(StreamOptions::default()).await?;
-stream.set_zone(7, [255, 61, 0])?;</code></pre>
-  </div>
-</section>
-
 <section class="slab" id="languages">
   <div class="shell">
-    <p class="eyebrow">Four ways in</p>
     <h2 class="big">One engine, written once.</h2>
     <p class="lede">The protocol lives in Rust. Python and Node.js bind to that
     same core, so every language sends the same bytes.</p>
-    <div class="cards">
-      <a class="card" href="{{base}}docs/install/#command-line">
-        <span class="state ok">Available</span>
-        <h3>Command line</h3>
-        <p><code>govee scan</code>, <code>govee on</code>,
-        <code>govee color</code>. Nothing to write.</p>
-      </a>
+    <div class="cards two">
       <a class="card" href="{{base}}docs/install/#rust">
-        <span class="state ok">Available</span>
-        <h3>Rust</h3>
+        <div class="card-head">
+          <h3>Rust</h3>
+          <span class="state ok">Available</span>
+        </div>
         <p>The reference implementation, and the only place protocol logic
         exists.</p>
       </a>
+      <a class="card" href="{{base}}docs/install/#command-line">
+        <div class="card-head">
+          <h3>Command line</h3>
+          <span class="state ok">Available</span>
+        </div>
+        <p>Type one line in a terminal and the light answers. No code to
+        write.</p>
+      </a>
       <a class="card" href="{{base}}docs/install/#python">
-        <span class="state soon">Planned</span>
-        <h3>Python</h3>
+        <div class="card-head">
+          <h3>Python</h3>
+          <span class="state soon">Planned</span>
+        </div>
         <p>A PyO3 binding over the same core. The package name is reserved.</p>
       </a>
       <a class="card" href="{{base}}docs/install/#node-js">
-        <span class="state soon">Planned</span>
-        <h3>Node.js</h3>
+        <div class="card-head">
+          <h3>Node.js</h3>
+          <span class="state soon">Planned</span>
+        </div>
         <p>A napi-rs binding over the same core. The package name is
         reserved.</p>
       </a>
@@ -106,8 +126,7 @@ stream.set_zone(7, [255, 61, 0])?;</code></pre>
 
 <section class="slab modes">
   <div class="shell">
-    <p class="eyebrow">Three ways to reach a device</p>
-    <h2 class="big">You choose the path. It never changes it behind your back.</h2>
+    <h2 class="big">You choose the path.</h2>
     <div class="mode-cards">
       <div class="mode-card lan">
         <h3><code>lan</code></h3>
@@ -127,20 +146,6 @@ stream.set_zone(7, [255, 61, 0])?;</code></pre>
         <p>Through Govee's own API, with a key. Throttled, and no animation.</p>
       </div>
     </div>
-    <p class="note">Allow several modes and the toolkit switches between them.
-    Allow one and it stays on that one: if the device is out of reach, the
-    command fails and says so. <a href="{{base}}docs/modes/">How modes work</a>.</p>
-  </div>
-</section>
-
-<section class="slab devices-teaser">
-  <div class="shell">
-    <h2 class="big">Will it work with your device?</h2>
-    <p class="lede">
-      {{verified_count}} models are verified on real hardware so far. Govee
-      lists 271 models that carry a "LAN Control" switch; those are untested
-      rather than unsupported. A test on yours moves the project forward.
-    </p>
-    <a class="btn" href="{{base}}devices/">See the device list</a>
+    <a class="btn" href="{{base}}docs/modes/">How modes work</a>
   </div>
 </section>
