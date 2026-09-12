@@ -23,26 +23,17 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 
 # `cli` is the one package that does not sit at packages/<pkg>: it is a crate
 # of the Rust workspace, and it releases apart from the crate it wraps.
+pattern='^version *= *"\([^"]*\)".*'
 case $pkg in
-rust) subdir=packages/rust ;;
-cli) subdir=packages/rust/crates/cli ;;
-python) subdir=packages/python ;;
-node) subdir=packages/node ;;
+rust) subdir=packages/rust file=Cargo.toml ;;
+cli) subdir=packages/rust/crates/cli file=Cargo.toml ;;
+python) subdir=packages/python file=pyproject.toml ;;
+node) subdir=packages/node file=package.json pattern='.*"version" *: *"\([^"]*\)".*' ;;
 *) usage ;;
 esac
 
 dir=$(cd "$root/$subdir" 2>/dev/null && pwd) || usage
-
-case $pkg in
-rust | cli) manifest=$dir/Cargo.toml ;;
-python) manifest=$dir/pyproject.toml ;;
-node) manifest=$dir/package.json ;;
-esac
-
-case $pkg in
-node) pattern='.*"version" *: *"\([^"]*\)".*' ;;
-*) pattern='^version *= *"\([^"]*\)".*' ;;
-esac
+manifest=$dir/$file
 
 # The workspace manifest carries the number twice, under [package] and under
 # [workspace.package]; the first is the published one.
