@@ -23,6 +23,10 @@ const CAPS = [
 ];
 
 const CAP_LABELS = new Map(CAPS);
+const CAP_ORDER = new Map(CAPS.map(([key], at) => [key, at]));
+
+/** Sort rank of a capability key. An unknown key sorts last. */
+const order = (key) => CAP_ORDER.get(key) ?? CAPS.length;
 
 /** Sorts by SKU, so that two builds of one catalog give one page. */
 export function sorted(catalog) {
@@ -40,8 +44,8 @@ function label(key) {
 
 // --- The index --------------------------------------------------------------
 
-export function renderIndex(template, catalog) {
-  return fill(template, { devices_rows: sorted(catalog).map(row).join("\n") });
+export function renderIndex(template, devices) {
+  return fill(template, { devices_rows: devices.map(row).join("\n") });
 }
 
 function row(d) {
@@ -52,8 +56,8 @@ function row(d) {
     return `<td>${state === "none" ? '<span class="muted">—</span>' : pill(state)}</td>`;
   }).join("");
   const names = [d.sku, d.name, ...(d.aliases ?? [])].join(" ").toLowerCase();
-  return `          <tr data-search="${escapeAttr(names)}" data-sku="${d.sku}">
-            <th scope="row"><a href="{{base}}devices/${d.sku}/">${d.sku}</a></th>
+  return `          <tr data-search="${escapeAttr(names)}">
+            <th scope="row"><a href="{{base}}devices/${escapeAttr(d.sku)}/">${escapeHtml(d.sku)}</a></th>
             <td>${escapeHtml(d.name)}</td>${cells}
           </tr>`;
 }
@@ -142,38 +146,6 @@ function counts(key, value) {
     : "";
 }
 
-function order(key) {
-  const at = CAPS.findIndex(([name]) => name === key);
-  return at === -1 ? CAPS.length : at;
-}
-
-// A `range:` holds two bounds and reads as one. Every other list is a list,
-// and a device file writes lists of both kinds.
-const isRange = (key) => key === "range" || key.startsWith("range_");
-
-/**
- * Renders one value of a device file, whatever shape it has: a number, a
- * range, a list, or an object of objects. Nothing here knows what the key
- * means, so a field a device file adds tomorrow still reaches the page.
- */
-function render(key, value) {
-  if (value === null || value === undefined) return '<span class="muted">—</span>';
-  if (Array.isArray(value)) {
-    if (isRange(key) && value.length === 2) {
-      return `<code>${escapeHtml(value[0])} to ${escapeHtml(value[1])}</code>`;
-    }
-    if (value.every((item) => item === null || typeof item !== "object")) {
-      return value.map((item) => `<code>${escapeHtml(item)}</code>`).join(", ");
-    }
-    return `<ul class="facts">${value.map((item) => `<li>${render(key, item)}</li>`).join("")}</ul>`;
-  }
-  if (typeof value === "object") {
-    return `<ul class="facts">${Object.entries(value)
-      .map(([k, v]) => `<li><span class="fact-key">${escapeHtml(label(k))}</span> ${render(k, v)}</li>`)
-      .join("")}</ul>`;
-  }
-  return `<code>${escapeHtml(value)}</code>`;
-}
 
 // A mode that reaches nothing gets no block: the list is what the mode
 // reaches, and an empty one states nothing.
@@ -250,5 +222,5 @@ function verification(d) {
     : "";
   const by = d.verified.by ? ` by <code>${escapeHtml(d.verified.by)}</code>` : "";
   return `<h2 id="verification">Verification</h2>
-      <p>Verified${by} on <time datetime="${d.verified.date}">${d.verified.date}</time>${firmware}.</p>`;
+      <p>Verified${by} on <time datetime="${escapeAttr(d.verified.date)}">${escapeHtml(d.verified.date)}</time>${firmware}.</p>`;
 }
