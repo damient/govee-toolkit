@@ -1,6 +1,7 @@
 //! Dispatch to a mode that is not `lan`, through a transport that is not a
 //! radio. The fixture is [`ble_fake`].
 
+#![cfg(feature = "ble")]
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
