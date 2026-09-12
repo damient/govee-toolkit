@@ -64,7 +64,8 @@ release is therefore the breaking bump that pre-1.0 reserves the minor for.
   name — the `count:` on the zone argument, or the width of the mask field.
   Not `capabilities.segments.count`: that is what the vendor app exposes, and
   a frame reaching further would leave the zones past it holding the color
-  they had.
+  they had. A file that bounds the mask by neither fails with
+  `Error::ZoneMaskUnbounded`, as a stream over the same file does.
 - `codec::white::rgb` — the RGB rendering of a temperature. An approximation of
   the Planckian locus, sampled every 500 K and interpolated between samples. It
   is not the vendor's rendering: nobody captured what the Govee app sends for a

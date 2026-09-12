@@ -329,8 +329,11 @@ commands:
     #                   `role: white_green` and `role: white_blue`. Declare
     #                   all three or none. Where the frame names the zones it
     #                   applies to, one marked `role: zones` as well: the SDK
-    #                   fills it with every zone `capabilities.segments.count`
-    #                   declares.
+    #                   fills it with every zone the mask can name. That bound
+    #                   is the `count:` on the zone argument, or the width of
+    #                   the mask field where the file declares no `count:`. A
+    #                   mask the file bounds by nothing is an error, because
+    #                   the zones past the bound would hold the color they had.
     #   segment_enable  one argument marked `role: enable`
     #   segment_color   one marked `role: colors`. The SDK also supplies one
     #                   marked `role: gradient`, if this file declares one. The
