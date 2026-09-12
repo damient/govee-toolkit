@@ -21,14 +21,14 @@ and this page says so where it states one.
 The key is user-supplied configuration. It is never required to use `lan` or
 `ble` mode, and the SDK must start fine without one.
 
-**Where it is stored:** the `GOVEE_API_KEY` environment variable, or a separate
-file whose path the configuration names. Never
+**Where it is stored:** the `GOVEE_API_KEY` environment variable, a `.env`
+file, or a separate file whose path the configuration names. Never
 `~/.config/govee-toolkit/config.yaml` — that file ends up in bug reports. The
 key is never logged and never written to the device cache. See
 [`../security.md`](../security.md).
 
 In this repository, development keys live in a gitignored `.env` at the root,
-and `tools/with-env.sh <command>` puts it in a command's environment. See
+which the SDK finds on its own. See
 [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 ## 2. Endpoints

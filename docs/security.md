@@ -84,11 +84,16 @@ The only credential this project handles is the Govee cloud API key, used by
 `cloud` mode ([`protocol/cloud.md`](protocol/cloud.md)). It is never needed for
 `lan` or `ble`, and the SDK starts fine without one.
 
-- **It comes from the `GOVEE_API_KEY` environment variable, or from a separate
-  file whose path the configuration names** — a file the operator can give
-  restrictive permissions of its own.
-- **In development it lives in a gitignored `.env` at the repository root** —
-  see [`../CONTRIBUTING.md`](../CONTRIBUTING.md), "Local credentials".
+- **It comes from the `GOVEE_API_KEY` environment variable, from a `.env` file,
+  or from a separate file whose path the configuration names** — a file the
+  operator can give restrictive permissions of its own.
+- **In development it lives in a gitignored `.env` at the repository root**,
+  which the SDK finds on its own — see
+  [`../CONTRIBUTING.md`](../CONTRIBUTING.md), "Local credentials". The search
+  stops at the repository root, and it reads `GOVEE_*` names alone.
+- **It is never exported into the process environment.** The SDK holds the
+  variables in a value and reads through it, so nothing the process launches
+  inherits the key.
 - **It never lives in `~/.config/govee-toolkit/config.yaml`.** People paste that
   file into bug reports and issues; a key in it leaks the day someone asks for
   help.
