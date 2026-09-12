@@ -55,6 +55,13 @@ needs a mode whose device file marks `role: segment_color_masked`. Without
 marks. Nothing disarms the segment channel afterwards: a disarm ends the
 channel, and the colors with it.
 
+`scan` prints every device that answered. One the configuration does not
+enable the scanned mode for is printed as answering over that mode: it is on
+the air whatever the configuration says. Over `ble` that is every first scan,
+since the device is reported under the handle the platform gives the
+peripheral and nothing relates that handle to a Wi-Fi MAC — put it under
+`devices:` to send it anything. `devices` lists only what a command can go to.
+
 A command that names a device scans first where no transport knows it yet.
 `ble` relates a device to a handle through an advertisement alone and keeps
 nothing across runs, so a one-shot command has to discover it. A device already
