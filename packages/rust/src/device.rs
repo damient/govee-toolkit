@@ -98,11 +98,24 @@ impl DeviceHandle<'_> {
     // built for the first one.
     pub(crate) async fn send_on(&self, mode: Mode, command: &str, args: &Args) -> Result<Served> {
         let sku = self.govee.sku(&self.id)?;
-        let encoded = self.govee.encode(&sku, mode, command, args)?;
+        self.send_resolved(mode, &sku, command, args).await
+    }
+
+    // For a caller that read the device file to build `args`: it resolved the
+    // SKU to do so, and passes it here so the send path does not resolve it
+    // again.
+    pub(crate) async fn send_resolved(
+        &self,
+        mode: Mode,
+        sku: &str,
+        command: &str,
+        args: &Args,
+    ) -> Result<Served> {
+        let encoded = self.govee.encode(sku, mode, command, args)?;
 
         // Fire-and-verify needs a request to verify with. Without a status
         // command in the device file, the command still goes out, unverified.
-        let verification = self.govee.status_request(&sku, mode).ok();
+        let verification = self.govee.status_request(sku, mode).ok();
         let verify = verification.map_or(Verify::None, Verify::With);
 
         let sent = self

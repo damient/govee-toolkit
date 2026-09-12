@@ -18,8 +18,8 @@ mod white;
 pub use music::Music;
 pub use segment::Paint;
 
-use crate::codec::catalog::Device;
-use crate::codec::{ArgRole, Args, Mode, Role};
+use crate::codec::catalog::{Command, Device};
+use crate::codec::{ArgRole, ArgValue, Args, Mode, Role};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::Served;
@@ -33,9 +33,7 @@ impl DeviceHandle<'_> {
     /// device file marks no entry `role: power` for the chosen mode, and
     /// [`Error::NoRoleArg`] if that entry marks no argument `role: on`.
     pub async fn power(&self, on: bool) -> Result<Served> {
-        let value = i64::from(on);
-        self.send_verb(Role::Power, |args, name| args.int(name, value), ArgRole::On)
-            .await
+        self.one_arg(Role::Power, ArgRole::On, i64::from(on)).await
     }
 
     /// Set the brightness, in the unit the device file declares.
@@ -48,12 +46,8 @@ impl DeviceHandle<'_> {
     /// As for [`DeviceHandle::power`], for the command marked
     /// `role: brightness` and its argument marked `role: brightness`.
     pub async fn brightness(&self, level: i64) -> Result<Served> {
-        self.send_verb(
-            Role::Brightness,
-            |args, name| args.int(name, level),
-            ArgRole::Brightness,
-        )
-        .await
+        self.one_arg(Role::Brightness, ArgRole::Brightness, level)
+            .await
     }
 
     /// Set one color over the whole device.
@@ -63,51 +57,104 @@ impl DeviceHandle<'_> {
     /// As for [`DeviceHandle::power`], for `role: color` and the three
     /// components `role: red`, `role: green` and `role: blue`.
     pub async fn color(&self, rgb: [u8; 3]) -> Result<Served> {
-        let mode = self.govee.choose(self.id())?;
-        let sku = self.govee.sku(self.id())?;
-        let device = self.govee.catalog().device(&sku)?;
-        let command = command_for(&sku, device, mode, Role::Color)?.to_owned();
+        let entry = self.resolve(Role::Color)?;
 
         let mut args = Args::new();
-        for (role, value) in [
+        for (arg_role, value) in [
             (ArgRole::Red, rgb[0]),
             (ArgRole::Green, rgb[1]),
             (ArgRole::Blue, rgb[2]),
         ] {
-            let name = arg_for(&sku, device, mode, &command, role)?;
-            args.insert(name, crate::codec::ArgValue::Int(i64::from(value)));
+            let name = entry.arg(arg_role)?;
+            args.insert(name, ArgValue::Int(i64::from(value)));
         }
 
-        self.send_on(mode, &command, &args).await
+        entry.send(self, &args).await
     }
 
-    async fn send_verb(
-        &self,
-        role: Role,
-        fill: impl FnOnce(Args, &str) -> Args,
-        arg_role: ArgRole,
-    ) -> Result<Served> {
-        let mode = self.govee.choose(self.id())?;
+    /// Resolve `role` for the mode a send would go over now.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::send`], plus [`Error::NoRoleCommand`] if the
+    /// device file marks no entry for `role`.
+    fn resolve(&self, role: Role) -> Result<Resolved<'_>> {
+        let mode = self.serving_mode()?;
         let sku = self.govee.sku(self.id())?;
         let device = self.govee.catalog().device(&sku)?;
-        let command = command_for(&sku, device, mode, role)?.to_owned();
-        let name = arg_for(&sku, device, mode, &command, arg_role)?.to_owned();
+        let (command, spec) = device
+            .entry_for(mode, role)
+            .ok_or_else(|| Error::NoRoleCommand {
+                sku: sku.clone(),
+                mode,
+                role,
+            })?;
+        Ok(Resolved {
+            mode,
+            sku,
+            device,
+            command: command.to_owned(),
+            spec,
+        })
+    }
 
-        self.send_on(mode, &command, &fill(Args::new(), &name))
+    async fn one_arg(&self, role: Role, arg_role: ArgRole, value: i64) -> Result<Served> {
+        let entry = self.resolve(role)?;
+        let args = Args::new().int(entry.arg(arg_role)?, value);
+        entry.send(self, &args).await
+    }
+}
+
+/// One entry of a device file, resolved for the mode that will carry it.
+///
+/// Holds the SKU it was read for, so the send does not resolve it a second
+/// time.
+pub(crate) struct Resolved<'a> {
+    pub(crate) mode: Mode,
+    pub(crate) sku: String,
+    pub(crate) device: &'a Device,
+    pub(crate) command: String,
+    spec: &'a Command,
+}
+
+impl Resolved<'_> {
+    /// The name the entry gave the argument marked `arg_role`.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::NoRoleArg`] if the entry marks no such argument.
+    pub(crate) fn arg(&self, arg_role: ArgRole) -> Result<&str> {
+        self.marked(arg_role).ok_or_else(|| Error::NoRoleArg {
+            sku: self.sku.clone(),
+            mode: self.mode,
+            command: self.command.clone(),
+            arg_role,
+        })
+    }
+
+    /// As for [`Resolved::arg`], `None` where the entry marks no such
+    /// argument.
+    pub(crate) fn marked(&self, arg_role: ArgRole) -> Option<&str> {
+        self.spec.arg_for(arg_role)
+    }
+
+    /// Send the entry over the mode it was resolved for.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::send`].
+    pub(crate) async fn send(&self, handle: &DeviceHandle<'_>, args: &Args) -> Result<Served> {
+        handle
+            .send_resolved(self.mode, &self.sku, &self.command, args)
             .await
     }
 }
 
-fn command_for<'a>(sku: &str, device: &'a Device, mode: Mode, role: Role) -> Result<&'a str> {
-    device
-        .command_for(mode, role)
-        .ok_or_else(|| Error::NoRoleCommand {
-            sku: sku.to_owned(),
-            mode,
-            role,
-        })
-}
-
+/// The name of the argument `command` marks with `arg_role`.
+///
+/// # Errors
+///
+/// [`Error::NoRoleArg`] if the entry marks none.
 fn arg_for<'a>(
     sku: &str,
     device: &'a Device,
@@ -115,15 +162,19 @@ fn arg_for<'a>(
     command: &str,
     arg_role: ArgRole,
 ) -> Result<&'a str> {
+    marked(device, mode, command, arg_role).ok_or_else(|| Error::NoRoleArg {
+        sku: sku.to_owned(),
+        mode,
+        command: command.to_owned(),
+        arg_role,
+    })
+}
+
+/// As for [`arg_for`], `None` where the entry marks no such argument.
+fn marked<'a>(device: &'a Device, mode: Mode, command: &str, arg_role: ArgRole) -> Option<&'a str> {
     device
         .commands
         .get(mode)
         .get(command)
         .and_then(|spec| spec.arg_for(arg_role))
-        .ok_or_else(|| Error::NoRoleArg {
-            sku: sku.to_owned(),
-            mode,
-            command: command.to_owned(),
-            arg_role,
-        })
 }
