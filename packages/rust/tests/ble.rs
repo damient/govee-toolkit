@@ -332,3 +332,24 @@ async fn a_white_temperature_out_of_range_is_refused_rather_than_clamped() {
     assert_eq!(error.code(), "out_of_range");
     assert!(ble.written().is_empty());
 }
+
+/// The `role: segment_color_masked` entry of the fixture, painting red over
+/// every zone its mask names — six, against the four
+/// `capabilities.segments.count` exposes.
+const PAINT_RED: [u8; 20] = [
+    0x33, 0x05, 0x15, 0x01, 0xff, 0, 0, 0, 0, 0, 0, 0, 0x3f, 0, 0, 0, 0, 0, 0, 0xe2,
+];
+
+#[tokio::test]
+async fn painting_every_zone_covers_what_the_mask_reaches() {
+    let ble = Fake::knowing(&id());
+    let govee = govee(&ble, &enabling_ble());
+
+    govee
+        .device(&id())
+        .segment(None, [255, 0, 0], false)
+        .await
+        .expect("the command goes out");
+
+    assert_eq!(ble.written(), vec![PAINT_RED.to_vec()]);
+}
