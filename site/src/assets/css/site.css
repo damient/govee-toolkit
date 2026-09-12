@@ -5,12 +5,54 @@
    dark theme, light ground and dark text in the light one. Every color is a
    token; nothing below hard-codes one. */
 
+/* The two faces are served from this origin. A third-party font host costs a
+   DNS lookup, a TLS handshake and a render-blocking stylesheet before the
+   first character is drawn. The files carry the latin subset only, which is
+   the range the site writes in. IBM Plex is under the SIL Open Font License;
+   the text is beside the files, in assets/fonts/OFL.txt.
+
+   The addresses are absolute: the build inlines this file into every page, and
+   a relative one would then resolve against the page and not against here. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  /* One variable file covers the three weights the site uses. */
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/assets/fonts/ibm-plex-sans-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/fonts/ibm-plex-mono-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/assets/fonts/ibm-plex-mono-500-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/assets/fonts/ibm-plex-mono-600-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   color-scheme: dark;
 
-  --ink: #07080b;
-  --panel: #0d0f15;
-  --panel-2: #12141c;
+  --ink: #0a0d14;
+  --panel: #10141d;
+  --panel-2: #151a25;
   --line: rgba(255, 255, 255, 0.09);
   --line-strong: rgba(255, 255, 255, 0.16);
   --text: #eae8e5;
@@ -29,14 +71,14 @@
 
   /* The code surface. It carries its own line, dim and strong-line tokens,
      because every rule that draws on it must follow the ground it sits on. */
-  --code-bg: #0d0f15;
+  --code-bg: #10141d;
   --code-line: rgba(255, 255, 255, 0.09);
   --code-line-strong: rgba(255, 255, 255, 0.24);
   --code-text: #d8d5dd;
-  --code-dim: #6f6d78;
+  --code-dim: #82808c;
 
   /* A LED zone that is off. */
-  --zone-off: #171921;
+  --zone-off: #1a1f2b;
 
   /* Accents for a bar or a glow, never for text. They stay vivid in both
      themes, where --ember and friends darken to stay readable. */
@@ -80,7 +122,7 @@
     --code-line: rgba(16, 14, 20, 0.14);
     --code-line-strong: rgba(16, 14, 20, 0.30);
     --code-text: #16151a;
-    --code-dim: #6a6873;
+    --code-dim: #5c5a66;
     --zone-off: #e4e1de;
   }
 }
@@ -107,12 +149,15 @@
   --code-line: rgba(16, 14, 20, 0.14);
   --code-line-strong: rgba(16, 14, 20, 0.30);
   --code-text: #16151a;
-  --code-dim: #6a6873;
+  --code-dim: #5c5a66;
   --zone-off: #e4e1de;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Every anchor lands 90px under the top bar. This is the one offset: a
+   `scroll-margin-top` on a target adds to it, and the target then stops
+   below the line that `spy()` in `site.js` reads. */
 html { scroll-behavior: smooth; scroll-padding-top: 90px; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
@@ -133,12 +178,16 @@ p { margin: 0 0 1em; }
 a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
 a:hover { text-decoration-color: currentColor; }
 code, pre, kbd { font-family: var(--mono); font-size: .92em; }
+/* The faces carry no 700: name the weight that exists rather than let the
+   browser draw a synthetic bold. */
+strong, b { font-weight: 600; }
 :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
 img, svg { max-width: 100%; }
 
 .shell { width: 100%; max-width: var(--shell); margin-inline: auto; padding-inline: var(--gutter); }
 .shell.narrow { max-width: 760px; }
 .slab { padding-block: clamp(40px, 5.5vw, 72px); }
+.slab.tight { padding-top: clamp(16px, 2.2vw, 28px); }
 .eyebrow {
   font: 500 12px/1 var(--mono);
   letter-spacing: .14em;
@@ -181,18 +230,18 @@ img, svg { max-width: 100%; }
   padding-block: 6px;
 }
 .links a:hover, .links a[aria-current] { color: var(--text); }
-.links a[aria-current] { box-shadow: inset 0 -1px 0 0 var(--ember); }
+.links a[aria-current] { box-shadow: inset 0 -2px 0 0 var(--ember); }
 .links .ghost {
   color: var(--text); border: 1px solid var(--line-strong);
   padding: 7px 13px; border-radius: 8px;
 }
 
 .theme, .burger {
-  display: grid; place-items: center; width: 34px; height: 34px; padding: 0;
-  background: transparent; border: 1px solid var(--line); border-radius: 8px;
+  display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
+  background: transparent; border: 1px solid var(--line-strong); border-radius: 8px;
   color: var(--muted); cursor: pointer;
 }
-.theme:hover, .burger:hover { color: var(--text); border-color: var(--line-strong); }
+.theme:hover, .burger:hover { color: var(--text); }
 .theme svg, .burger svg { width: 17px; height: 17px; }
 .theme .sun, .theme .label-light { display: none; }
 :root[data-theme="light"] .theme .sun { display: block; }
@@ -318,13 +367,28 @@ img, svg { max-width: 100%; }
 .terminal pre { margin: 0; overflow-x: auto; }
 .terminal code { color: var(--code-text); line-height: 1.75; }
 .prompt { color: var(--ember); user-select: none; }
+/* One icon button, wherever a block of code can be copied. `copy()` in
+   `site.js` fills it: without the script there is nothing to press. */
 .copy {
-  position: absolute; top: 12px; right: 12px;
-  font: 500 12px/1 var(--mono); color: var(--code-dim);
-  background: transparent; border: 1px solid var(--code-line); border-radius: 7px;
-  padding: 6px 10px; cursor: pointer;
+  position: absolute; top: 10px; right: 10px;
+  display: grid; place-items: center; width: 30px; height: 30px;
+  color: var(--code-dim); background: var(--code-bg);
+  border: 1px solid var(--code-line); border-radius: 8px; padding: 0; cursor: pointer;
 }
+.copy svg { width: 15px; height: 15px; }
 .copy:hover { color: var(--code-text); border-color: var(--code-line-strong); }
+.copy[data-state="done"] { color: var(--ok); border-color: color-mix(in oklab, var(--ok) 45%, transparent); }
+.copy[data-state="failed"] { color: var(--ember); border-color: color-mix(in oklab, var(--ember) 45%, transparent); }
+
+/* Syntax colour. The classes arrive from the build, so the page carries no
+   highlighter of its own. Both themes follow the same tokens. */
+.hljs-comment, .hljs-quote { color: var(--code-dim); font-style: italic; }
+.hljs-keyword, .hljs-literal, .hljs-type, .hljs-variable.language_ { color: var(--violet); }
+.hljs-string, .hljs-regexp { color: var(--cyan); }
+.hljs-number { color: var(--amber); }
+.hljs-title, .hljs-title.class_, .hljs-title.function_ { color: var(--magenta); }
+.hljs-built_in, .hljs-meta { color: var(--ember); }
+.hljs-attr, .hljs-property, .hljs-params, .hljs-variable { color: var(--code-text); }
 
 /* --- Interactive strip -------------------------------------------------- */
 
@@ -417,21 +481,25 @@ img, svg { max-width: 100%; }
 .mode-card h3 { margin-bottom: .2em; }
 .mode-card .tag { font: 500 12px/1 var(--mono); letter-spacing: .06em; color: var(--muted); margin-bottom: 1em; }
 .mode-card p:last-child { color: var(--muted); font-size: .95rem; margin: 0; }
-.mode-card.lan { --accent: var(--accent-cyan); }
-.mode-card.ble { --accent: var(--accent-violet); }
-.mode-card.cloud { --accent: var(--accent-blue); }
+/* The card accent is the tint of the badge it carries. */
+.mode-card.lan { --accent: var(--accent-ember); }
+.mode-card.ble { --accent: var(--accent-cyan); }
+.mode-card.cloud { --accent: var(--accent-violet); }
 .mode-card.ble::before { animation-delay: -1.5s; }
 .mode-card.cloud::before { animation-delay: -3s; }
 
 
 /* --- Page head ---------------------------------------------------------- */
 
-.pagehead { padding-block: clamp(56px, 9vw, 104px) clamp(24px, 4vw, 48px); }
+.pagehead { padding-block: clamp(28px, 4vw, 48px) clamp(24px, 4vw, 48px); }
+/* The lede and the table read as one block, so the slab under a page head
+   drops most of its top padding. */
+.pagehead + .slab { padding-top: clamp(12px, 1.6vw, 20px); }
 .pagehead h1 { font-size: clamp(2rem, 1.3rem + 2.4vw, 3.1rem); }
 
 /* --- Install ------------------------------------------------------------ */
 
-.install { padding-block: 40px; border-top: 1px solid var(--line); scroll-margin-top: 90px; }
+.install { padding-block: 40px; border-top: 1px solid var(--line); }
 .install:first-child { border-top: 0; padding-top: 0; }
 .install header { display: flex; align-items: center; gap: 14px; margin-bottom: .8em; }
 .install header h2 { margin: 0; }
@@ -441,8 +509,9 @@ img, svg { max-width: 100%; }
 /* --- Devices ------------------------------------------------------------ */
 
 .toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 1.6em; }
+.search { flex: 1 1 380px; max-width: 460px; }
 .search input {
-  min-width: min(100%, 340px); padding: 11px 14px; border-radius: 10px;
+  width: 100%; padding: 11px 14px; border-radius: 10px;
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
   font: 400 15px/1 var(--sans);
 }
@@ -454,9 +523,14 @@ img, svg { max-width: 100%; }
 .matrix th, .matrix td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); }
 .matrix thead th { font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .matrix tbody tr:last-child th, .matrix tbody tr:last-child td { border-bottom: 0; }
+.matrix tbody tr { cursor: pointer; }
 .matrix tbody tr:hover { background: var(--panel); }
+.matrix tbody tr:hover th[scope="row"] a { color: var(--ember); }
 .matrix th[scope="row"] { font-family: var(--mono); font-weight: 500; }
-.matrix .tick { color: var(--ok); font: 500 12px/1 var(--mono); }
+/* The three mode columns hold one mark each: centered, they read as a row of
+   answers rather than as three ragged columns. */
+.matrix th:nth-child(n + 3), .matrix td:nth-child(n + 3) { text-align: center; }
+.matrix thead th:nth-child(n + 3) .mbadge { display: inline-flex; }
 .matrix time { color: var(--muted); font-size: .85em; }
 
 .pill {
@@ -468,6 +542,71 @@ img, svg { max-width: 100%; }
 .pill-none { color: var(--muted); }
 .pill-unknown { color: var(--muted); border-style: dashed; }
 
+/* --- One model, one page ------------------------------------------------ */
+
+.crumbs { font: 500 13px/1 var(--mono); color: var(--muted); margin-bottom: 1.6em; }
+.crumbs a { color: var(--muted); }
+.crumbs a:hover { color: var(--text); }
+
+.pagehead h1 { font-family: var(--mono); }
+.mode-line { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin: 0; }
+.mode-line > span:not(.badge) { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+/* The verification badges close the row, so they carry a wider gap in front. */
+.mode-line .badge:first-of-type { margin-left: clamp(6px, 2vw, 22px); }
+.mode-line .badge + .badge { margin-left: -8px; }
+/* The same box as `.mbadge`, so the two sit on one line without a step. */
+.badge {
+  display: inline-flex; align-items: center; font: 500 12px/1 var(--mono);
+  letter-spacing: .04em; padding: 5px 11px 5px 9px; border-radius: 999px;
+  border: 1px solid var(--line-strong); color: var(--muted);
+}
+.badge-ok { color: var(--cyan); border-color: color-mix(in oklab, var(--cyan) 45%, transparent); }
+.badge-icon { width: 14px; height: 14px; flex: none; margin-right: 7px; }
+
+/* The mode badge. One component wherever a mode is named: the icon and the
+   tint carry the mode, and the word beside the name says what it reaches
+   over. The tints are built from one accent each, so a theme change moves
+   them together. */
+.mbadge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 11px 5px 9px; border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--tint) 40%, transparent);
+  background: color-mix(in oklab, var(--tint) 12%, transparent);
+  color: var(--tint); font: 500 12px/1 var(--mono); letter-spacing: .04em;
+}
+.mbadge .mode-icon { width: 14px; height: 14px; flex: none; }
+/* A badge keeps its own case and weight inside a heading or a column head. */
+.mbadge { text-transform: none; }
+.mbadge-extra { display: inline-flex; gap: 7px; color: var(--muted); }
+.mbadge-extra [aria-hidden] { color: color-mix(in oklab, var(--tint) 45%, transparent); }
+/* The three accents of the footer dots, in the same order. */
+.mbadge-lan { --tint: var(--accent-ember); }
+.mbadge-ble { --tint: var(--accent-cyan); }
+.mbadge-cloud { --tint: var(--accent-violet); }
+.badge-unknown { border-style: dashed; }
+
+/* The command column holds identifiers. The head of a column is a label and
+   is set in capitals; a command name is not, and `dreamview_enable` reaches
+   the device in the case the device file writes. */
+.prose th[scope="row"] {
+  text-transform: none; letter-spacing: normal;
+  font: 400 .95rem/1.5 var(--sans); color: var(--text);
+}
+
+/* A measured value can be one number, or a table of numbers per zone count.
+   One rule draws every depth. */
+.facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.facts .facts { margin: 4px 0 8px 16px; padding-left: 12px; border-left: 1px solid var(--line); }
+.fact-key { color: var(--muted); font: 500 12px/1.6 var(--mono); }
+/* A model page holds tables and chip rows, not running text: it fills the
+   shell, like the model index. `--shell` is the one width every page uses. */
+.is-device .prose { max-width: none; }
+.is-device .prose h3 { display: flex; align-items: center; gap: 10px; }
+.is-device .prose .caps { margin-bottom: 1.2em; }
+.is-device .prose th .pill { margin-left: 8px; }
+.muted { color: var(--muted); }
+
+
 .legend { display: grid; gap: 10px; margin-top: 1.6em; }
 .legend > div { display: flex; gap: 12px; align-items: baseline; }
 .legend dt { min-width: 84px; }
@@ -475,7 +614,7 @@ img, svg { max-width: 100%; }
 
 .device {
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
-  padding: 24px; margin-bottom: 16px; scroll-margin-top: 90px;
+  padding: 24px; margin-bottom: 16px;
 }
 .device header h3 { font-family: var(--mono); margin-bottom: .2em; }
 .device header p { color: var(--muted); margin: 0 0 1.4em; }
@@ -483,9 +622,24 @@ img, svg { max-width: 100%; }
 @media (min-width: 820px) { .device-body { grid-template-columns: 1fr 1.25fr; } }
 .caps { list-style: none; margin: 0 0 1.2em; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .caps li {
+  display: inline-flex; align-items: center; gap: 7px;
   font: 400 12px/1 var(--mono); padding: 6px 9px; border-radius: 6px;
   background: var(--panel-2); border: 1px solid var(--line); color: var(--prose);
 }
+.cap-icon { width: 14px; height: 14px; flex: none; color: var(--muted); }
+/* One color per capability, so a reader finds the same icon by its color in
+   the mode lists below. */
+.cap-icon[data-cap="power"] { color: var(--ember); }
+.cap-icon[data-cap="color"] { color: var(--magenta); }
+.cap-icon[data-cap="colortemp"] { color: var(--cyan); }
+.cap-icon[data-cap="brightness"] { color: var(--amber); }
+.cap-icon[data-cap="music"] { color: var(--violet); }
+.cap-icon[data-cap="segments"] { color: var(--cyan); }
+.cap-icon[data-cap="segment_brightness"] { color: var(--amber); }
+/* `.prose ul` indents a list; a chip row is not one. */
+.prose .caps { padding-left: 0; gap: 8px; }
+.caps-lg li { font-size: 14px; padding: 10px 14px; border-radius: 8px; gap: 9px; }
+.caps-lg .cap-icon { width: 17px; height: 17px; }
 .mode-block { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
 .mode-block:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
 .mode-block h4 { display: flex; align-items: center; gap: 10px; margin-bottom: .5em; font-family: var(--mono); }
@@ -495,29 +649,43 @@ img, svg { max-width: 100%; }
 
 /* --- Documentation ------------------------------------------------------ */
 
-.doc-grid { display: grid; gap: 40px; max-width: var(--shell); margin-inline: auto; padding: clamp(32px, 5vw, 64px) var(--gutter) 96px; }
-@media (min-width: 900px) { .doc-grid { grid-template-columns: 240px minmax(0, 1fr); } }
-@media (min-width: 1180px) { .doc-grid { grid-template-columns: 240px minmax(0, 1fr) 200px; } }
-.doc-grid.is-reference { grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 900px) and (max-width: 1179px) {
-  /* Too narrow for three columns: the sommaire sits under the menu, and the
-     text takes the second column whole. */
-  .doc-grid.is-reference {
-    grid-template-columns: 240px minmax(0, 1fr);
-    /* The menu keeps its own height; the rest of the column is the sommaire's
-       to travel in. Without this the article, which spans both rows, makes the
-       first row tall and the two stick over each other. */
-    grid-template-rows: auto 1fr;
-  }
-  .is-reference .doc-nav { grid-column: 1; grid-row: 1; position: static; max-height: none; }
-  .is-reference .doc-toc {
-    display: block; grid-column: 1; grid-row: 2; margin-top: 8px;
-    position: sticky; top: 90px; align-self: start;
-    max-height: calc(100vh - 110px); overflow-y: auto;
-  }
-  .is-reference .prose { grid-column: 2; grid-row: 1 / span 2; }
+/* `minmax(0, 1fr)`, not the default `auto`: a track that sizes to its content
+   is as wide as the longest command line, and the page then scrolls sideways
+   on a phone. The column fills the shell and a wide code block scrolls inside
+   its own box. */
+.doc-grid {
+  display: grid; gap: 40px; grid-template-columns: minmax(0, 1fr);
+  max-width: var(--shell); margin-inline: auto;
+  padding: clamp(32px, 5vw, 64px) var(--gutter) 96px;
 }
-@media (min-width: 1180px) { .doc-grid.is-reference { grid-template-columns: 220px minmax(0, 1fr) 260px; } }
+@media (min-width: 1180px) { .doc-grid { grid-template-columns: 220px minmax(0, 1fr) 220px; } }
+
+/* The documentation menu as one control, under 900px. It reads as a select:
+   the page you are on in the closed state, every page and the headings of the
+   current one in the open state. */
+.doc-select { display: none; }
+.doc-select summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 10px;
+  background: var(--panel); cursor: pointer; list-style: none;
+}
+.doc-select summary::-webkit-details-marker { display: none; }
+.doc-select-here { font: 500 15px/1 var(--sans); color: var(--text); }
+.doc-select summary svg { width: 18px; height: 18px; color: var(--muted); transition: transform .15s ease; }
+.doc-select[open] summary { border-radius: 10px 10px 0 0; border-bottom-color: transparent; }
+.doc-select[open] summary svg { transform: rotate(180deg); }
+.doc-select > ul {
+  list-style: none; margin: 0; padding: 10px 14px 14px; display: grid; gap: 10px;
+  border: 1px solid var(--line-strong); border-top: 0; border-radius: 0 0 10px 10px;
+  background: var(--panel);
+}
+.doc-select a { color: var(--muted); text-decoration: none; font-size: .95rem; }
+.doc-select .on > a { color: var(--ember); font-weight: 600; }
+.doc-select-toc {
+  list-style: none; margin: 8px 0 2px; padding-left: 12px; display: grid; gap: 8px;
+  border-left: 1px solid var(--line); font-size: .9rem;
+}
+.doc-select-toc ul { list-style: none; margin: 6px 0 0; padding-left: 12px; display: grid; gap: 6px; }
 
 .doc-nav ul, .doc-toc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .doc-nav a, .doc-toc a { color: var(--muted); text-decoration: none; font-size: .95rem; }
@@ -530,19 +698,45 @@ img, svg { max-width: 100%; }
     max-height: calc(100vh - 110px); overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
+    padding-right: 10px;
   }
-  .doc-nav, .doc-toc { padding-right: 10px; }
   .doc-nav::-webkit-scrollbar, .doc-toc::-webkit-scrollbar { width: 6px; }
   .doc-nav::-webkit-scrollbar-thumb, .doc-toc::-webkit-scrollbar-thumb {
     background: var(--line-strong); border-radius: 3px;
   }
 }
-@media (max-width: 1179px) { .doc-grid:not(.is-reference) .doc-toc { display: none; } }
+
+/* One column: the two menus travel into the select over the article. */
+@media (max-width: 899px) {
+  .doc-select { display: block; }
+  .doc-nav, .doc-toc { display: none; }
+}
+
+/* Too narrow for three columns: the "On this page" menu sits under the
+   documentation menu, and the article takes the second column whole. This
+   block follows the sticky one, because it overrides part of it. */
+@media (min-width: 900px) and (max-width: 1179px) {
+  .doc-grid {
+    grid-template-columns: 240px minmax(0, 1fr);
+    /* The menu keeps its own height; the rest of the column is the "On this
+       page" menu's to travel in. Without this the article, which spans both
+       rows, makes the first row tall and the two stick over each other. */
+    grid-template-rows: auto 1fr;
+  }
+  .doc-nav { grid-column: 1; grid-row: 1; position: static; max-height: none; }
+  .doc-toc { grid-column: 1; grid-row: 2; margin-top: 8px; }
+  .doc-grid .prose { grid-column: 2; grid-row: 1 / span 2; }
+}
 
 .prose { max-width: 78ch; }
 .prose.reference { max-width: none; }
 .prose h1 { font-size: clamp(1.9rem, 1.4rem + 1.8vw, 2.6rem); margin-bottom: .5em; }
-.prose h2 { margin-top: 2em; padding-top: 1.4em; border-top: 1px solid var(--line); }
+.prose h2 { margin-top: 2em; }
+/* A heading that opens an article carries no space over it either. */
+.prose h2#what-the-hardware-does,
+.prose.reference .ref-group:first-of-type h2 { margin-top: 0; }
+.badge-count { display: inline-flex; gap: 8px; margin-left: 8px; color: var(--muted); }
+.badge-count [aria-hidden] { opacity: .45; }
 .prose h2 .anchor, .prose .anchor { text-decoration: none; }
 .prose h3 { margin-top: 1.8em; }
 .prose p, .prose li { color: var(--prose); }
@@ -550,11 +744,14 @@ img, svg { max-width: 100%; }
 .prose li { margin-bottom: .5em; }
 .prose code { background: var(--panel-2); border: 1px solid var(--line); padding: 2px 6px; border-radius: 5px; }
 .prose pre {
-  background: var(--code-bg); border: 1px solid var(--code-line); border-left: 2px solid var(--violet);
-  border-radius: var(--radius); padding: 16px 18px; overflow-x: auto; color: var(--code-text);
+  background: var(--code-bg); border: 1px solid var(--code-line);
+  border-radius: var(--radius); padding: 16px 18px; overflow-x: auto;
+  color: var(--code-text); line-height: 1.7;
 }
 .prose pre code { background: none; border: 0; padding: 0; }
-/* A terminal keeps its own frame inside prose. */
+/* A terminal keeps its own frame inside prose. The frame is a `div`, so it
+   carries the space a `pre` would have of its own. */
+.prose .terminal { margin-block: 1.4em; }
 .prose .terminal pre { background: none; border: 0; border-radius: 0; padding: 0; }
 /* A heading can carry a state badge. It rides beside the words, not under. */
 .prose h2 .state {
@@ -562,6 +759,13 @@ img, svg { max-width: 100%; }
   margin-left: 14px; transform: translateY(-2px);
 }
 .prose table { width: 100%; border-collapse: collapse; margin: 1.6em 0; font-size: .95rem; display: block; overflow-x: auto; }
+/* The command tables of the three modes hold the same two columns, so they
+   carry one column width and fill the article. `display: block` scrolls a
+   wide table but lets a narrow one shrink, so these lay out as tables and
+   wrap instead. */
+.is-device .prose table { display: table; table-layout: fixed; }
+.is-device .prose th, .is-device .prose td { overflow-wrap: break-word; }
+.is-device .prose th:first-child, .is-device .prose td:first-child { width: 38%; }
 .prose th, .prose td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .prose th { font: 500 12px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .prose td { color: var(--prose); }
@@ -606,26 +810,30 @@ img, svg { max-width: 100%; }
 .sitefoot .foot-legal { margin: 0 auto; max-width: 68ch; color: var(--muted); font-size: .85rem; }
 
 
-/* --- Reference ---------------------------------------------------------- */
+/* --- On this page ------------------------------------------------------- */
 
+/* The menu every page shares. It carries one level or two: a flat page names
+   its sections, and the reference names a group and the entries under it. */
 .sub { margin: 10px 0 4px; padding-left: 0; border-left: 1px solid var(--line); }
 .sub > li { padding-left: 12px; }
-.sub .sub-group > a {
-  font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
-  display: block; margin: 12px 0 8px;
-}
+/* A group names a section of the page, so it reads like the section a flat
+   menu names: the same face and the same size. The entries under it are the
+   level below, and their monospace face is what separates the two. */
+.sub .sub-group > a { display: block; margin: 12px 0 8px; }
 .sub ul { gap: 6px; }
 .sub a[aria-current] { color: var(--text); }
 .sub a[aria-current] code {
   background: var(--panel-2); border: 1px solid var(--line);
   padding: 2px 6px; border-radius: 5px;
 }
-.sub .sub-group > a[aria-current] { color: var(--ember); }
+/* A top-level entry marks the reader's place the way the menu beside it
+   does: the entry style alone is too quiet for it. */
+.sub > li > a[aria-current] { color: var(--ember); font-weight: 600; }
 .sub code { font-size: .85em; }
 
+/* --- Reference ---------------------------------------------------------- */
+
 .ref-group { margin-bottom: 24px; }
-.ref-group > h2 { margin-top: 2.4em; }
-.ref-group:first-of-type > h2 { margin-top: 1.6em; }
 
 /* The text and the code sit side by side only when the column that holds them
    is wide enough. The viewport says nothing useful here: two menus stand
@@ -634,7 +842,7 @@ img, svg { max-width: 100%; }
 
 .ref-entry {
   display: grid; gap: 20px; align-items: start;
-  padding: 28px 0; border-top: 1px solid var(--line); scroll-margin-top: 90px;
+  margin-top: 28px; padding-bottom: 28px;
 }
 @container (min-width: 820px) {
   .ref-entry { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 28px; }
@@ -662,13 +870,12 @@ img, svg { max-width: 100%; }
 .tabs button[aria-selected="true"] {
   color: var(--text); background: var(--panel-2); border-color: var(--line);
 }
-.dot-soon { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--soon); flex: none; }
+.pane { position: relative; }
 .pane pre {
   margin: 0; background: var(--code-bg); border: 1px solid var(--code-line);
-  border-left: 2px solid var(--violet); border-radius: var(--radius);
-  padding: 16px 18px; overflow-x: auto; color: var(--code-text); line-height: 1.7;
+  border-radius: var(--radius);
+  padding: 16px 52px 16px 18px; overflow-x: auto; color: var(--code-text); line-height: 1.7;
 }
 .pane .planned {
-  display: flex; align-items: center; gap: 7px;
   font: 400 12px/1.5 var(--mono); color: var(--muted); margin: 0 0 8px;
 }

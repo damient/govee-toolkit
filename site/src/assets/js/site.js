@@ -47,11 +47,29 @@ function rope(el) {
   paint(0);
   if (reduced) return;
 
+  // The rope repaints only while it is on the screen and the tab is the one
+  // the reader looks at. A timer that runs in a background tab costs battery
+  // and paints nothing anybody sees.
   let offset = 0;
-  setInterval(() => {
-    offset += 0.12;
-    paint(offset);
-  }, 900);
+  let timer = null;
+  let visible = true;
+  const start = () => {
+    if (timer || !visible || document.hidden) return;
+    timer = setInterval(() => {
+      offset += 0.12;
+      paint(offset);
+    }, 900);
+  };
+  const stop = () => {
+    clearInterval(timer);
+    timer = null;
+  };
+  new IntersectionObserver(([entry]) => {
+    visible = entry.isIntersecting;
+    visible ? start() : stop();
+  }).observe(el);
+  document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
+  start();
 }
 
 // --- The strip the pointer paints ------------------------------------------
@@ -98,16 +116,38 @@ function strip(el) {
 
 // --- Copy a command --------------------------------------------------------
 
+// Two sheets of paper, and the tick that answers a press.
+const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
+const DONE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5"/></svg>';
+
+// The button carries the icon and the label from here: a page without the
+// script then shows nothing to press.
 function copy(button) {
+  const label = button.textContent.trim() || "Copy";
+  const rest = () => {
+    button.innerHTML = COPY_ICON;
+    button.removeAttribute("data-state");
+    say(label);
+  };
+  const say = (text) => {
+    button.setAttribute("aria-label", text);
+    button.title = text;
+  };
+
+  let queued = null;
+  rest();
   button.addEventListener("click", async () => {
+    clearTimeout(queued);
     try {
       await navigator.clipboard.writeText(button.dataset.copy);
-      const previous = button.textContent;
-      button.textContent = "Copied";
-      setTimeout(() => { button.textContent = previous; }, 1600);
+      button.innerHTML = DONE_ICON;
+      button.dataset.state = "done";
+      say("Copied");
     } catch {
-      button.textContent = "Copy failed";
+      button.dataset.state = "failed";
+      say("Copy failed");
     }
+    queued = setTimeout(rest, 1600);
   });
 }
 
@@ -115,7 +155,6 @@ function copy(button) {
 
 function filter(input) {
   const rows = [...document.querySelectorAll("[data-rows] tr")];
-  const cards = [...document.querySelectorAll("[data-cards] .device")];
   const count = document.querySelector("[data-filter-count]");
   const total = rows.length;
 
@@ -126,9 +165,6 @@ function filter(input) {
       const match = !needle || row.dataset.search.includes(needle);
       row.hidden = !match;
       if (match) shown += 1;
-    }
-    for (const card of cards) {
-      card.hidden = Boolean(needle) && !card.dataset.search.includes(needle);
     }
     if (count) {
       count.textContent = needle
@@ -141,18 +177,54 @@ function filter(input) {
   apply();
 }
 
+// --- Open a device row ------------------------------------------------------
+
+// The link in the first cell stays the target: the keyboard and a middle click
+// reach the page through it, and a click anywhere on the row follows it. A
+// click that selects text, or that lands on another link, opens nothing.
+function rowLink(body) {
+  body.addEventListener("click", (event) => {
+    if (event.target.closest("a")) return;
+    if (String(getSelection())) return;
+    const row = event.target.closest("tr");
+    const link = row?.querySelector("a[href]");
+    if (link) link.click();
+  });
+}
+
+// --- The documentation select ----------------------------------------------
+
+// A pick closes the control, the way a select closes on a choice. A link to a
+// heading of the page you are on moves nothing else, so the close is the only
+// answer the reader gets.
+function docSelect(box) {
+  box.addEventListener("click", (event) => {
+    if (event.target.closest("a")) box.open = false;
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") box.open = false;
+  });
+}
+
 // --- Theme -----------------------------------------------------------------
 
-// The system setting decides, and the button switches away from it for as
-// long as the reader stays on the page. Nothing is stored: the next page
-// starts from the system setting again.
+// The system setting decides, and the button switches away from it. The
+// choice is kept in sessionStorage, so it follows the reader from page to
+// page and goes away with the tab. The head applies it before the first
+// paint; this module only writes it.
 function theme(button) {
   const system = matchMedia("(prefers-color-scheme: dark)");
   const current = () => document.documentElement.dataset.theme
     || (system.matches ? "dark" : "light");
 
   button.addEventListener("click", () => {
-    document.documentElement.dataset.theme = current() === "dark" ? "light" : "dark";
+    const next = current() === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try {
+      sessionStorage.setItem("theme", next);
+    } catch {
+      // A browser that refuses storage still switches the theme.
+    }
   });
 }
 
@@ -168,24 +240,44 @@ function tabs() {
     for (const group of groups) {
       const buttons = [...group.querySelectorAll(".tabs button")];
       const wanted = buttons.some((button) => button.dataset.lang === language);
+      const chosen = wanted ? language : buttons[0].dataset.lang;
       for (const button of buttons) {
-        const on = button.dataset.lang === (wanted ? language : buttons[0].dataset.lang);
+        const on = button.dataset.lang === chosen;
         button.setAttribute("aria-selected", String(on));
+        // One stop in the tab order per group: the arrow keys move inside it.
+        button.tabIndex = on ? 0 : -1;
       }
       for (const pane of group.querySelectorAll(".pane")) {
-        pane.hidden = pane.dataset.lang !== (wanted ? language : group.querySelector(".pane").dataset.lang);
+        pane.hidden = pane.dataset.lang !== chosen;
       }
     }
+  };
+
+  const choose = (language) => {
+    show(language);
+    try {
+      localStorage.setItem("language", language);
+    } catch { /* private mode: the choice lasts for this page only. */ }
   };
 
   for (const group of groups) {
     group.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-lang]");
+      if (button) choose(button.dataset.lang);
+    });
+    group.addEventListener("keydown", (event) => {
+      const button = event.target.closest("button[data-lang]");
       if (!button) return;
-      show(button.dataset.lang);
-      try {
-        localStorage.setItem("language", button.dataset.lang);
-      } catch { /* private mode: the choice lasts for this page only. */ }
+      const buttons = [...group.querySelectorAll(".tabs button")];
+      const step = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
+      let next = null;
+      if (step) next = buttons[(buttons.indexOf(button) + step + buttons.length) % buttons.length];
+      if (event.key === "Home") next = buttons[0];
+      if (event.key === "End") next = buttons[buttons.length - 1];
+      if (!next) return;
+      event.preventDefault();
+      choose(next.dataset.lang);
+      next.focus();
     });
   }
 
@@ -290,6 +382,8 @@ document.querySelectorAll("[data-rope]").forEach(rope);
 document.querySelectorAll("[data-strip]").forEach(strip);
 document.querySelectorAll("[data-copy]").forEach(copy);
 document.querySelectorAll("[data-filter]").forEach(filter);
+document.querySelectorAll("[data-rows]").forEach(rowLink);
+document.querySelectorAll("[data-doc-select]").forEach(docSelect);
 document.querySelectorAll("[data-theme-toggle]").forEach(theme);
 document.querySelectorAll("[data-menu-toggle]").forEach(menu);
 document.querySelectorAll("[data-spy]").forEach(spy);
