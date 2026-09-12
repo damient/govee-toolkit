@@ -293,3 +293,42 @@ async fn provisioning_refuses_a_device_that_does_not_enable_ble() {
     assert_eq!(error.code(), "no_mode_available");
     assert!(ble.written().is_empty(), "nothing may reach the radio");
 }
+
+/// The `role: color_temp` entry of the fixture, at 4000 K.
+///
+/// The kelvin value, the rendering the SDK computes for it, and a mask naming
+/// the six zones the fixture's zone argument bounds — not the four
+/// `capabilities.segments.count` exposes. A mask that stopped at the count
+/// would leave the zones past it holding the color they had.
+const WHITE_4000K: [u8; 20] = [
+    0x33, 0x05, 0x15, 0x01, 0, 0, 0, 0x0f, 0xa0, 0xff, 0xce, 0xa6, 0x3f, 0, 0, 0, 0, 0, 0, 0x25,
+];
+
+#[tokio::test]
+async fn a_white_temperature_carries_its_rendering_and_every_zone_the_mask_names() {
+    let ble = Fake::knowing(&id());
+    let govee = govee(&ble, &enabling_ble());
+
+    govee
+        .device(&id())
+        .color_temp(4000)
+        .await
+        .expect("the command goes out");
+
+    assert_eq!(ble.written(), vec![WHITE_4000K.to_vec()]);
+}
+
+#[tokio::test]
+async fn a_white_temperature_out_of_range_is_refused_rather_than_clamped() {
+    let ble = Fake::knowing(&id());
+    let govee = govee(&ble, &enabling_ble());
+
+    let error = govee
+        .device(&id())
+        .color_temp(1200)
+        .await
+        .expect_err("1200 K is outside the declared range");
+
+    assert_eq!(error.code(), "out_of_range");
+    assert!(ble.written().is_empty());
+}

@@ -60,6 +60,9 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
             let rgb = args::rgb(color)?;
             verb(govee, writer, device, verbs::Verb::Color(rgb)).await
         }
+        Command::Colortemp { device, kelvin } => {
+            verb(govee, writer, device, verbs::Verb::ColorTemp(*kelvin)).await
+        }
         Command::Segment {
             device,
             zones,
@@ -196,6 +199,7 @@ fn device_of(command: &Command) -> Option<&str> {
         | Command::Off { device }
         | Command::Brightness { device, .. }
         | Command::Color { device, .. }
+        | Command::Colortemp { device, .. }
         | Command::Segment { device, .. }
         | Command::Stream { device, .. } => Some(device),
         #[cfg(feature = "ble")]

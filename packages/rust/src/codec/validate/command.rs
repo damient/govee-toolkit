@@ -244,6 +244,11 @@ fn collect_placeholders(value: &serde_json::Value, out: &mut Vec<String>) {
 /// spread, and the file marks the three components either way.
 const COLOR_COMPONENTS: [ArgRole; 3] = [ArgRole::Red, ArgRole::Green, ArgRole::Blue];
 
+/// The RGB rendering of a temperature, on a `role: color_temp` entry. The
+/// frame carries all three or none: a rendering missing one channel is a color
+/// nobody asked for.
+const WHITE_COMPONENTS: [ArgRole; 3] = [ArgRole::WhiteRed, ArgRole::WhiteGreen, ArgRole::WhiteBlue];
+
 /// What every provisioning entry must mark, whatever its frames look like.
 const WIFI_CREDENTIALS: [ArgRole; 6] = [
     ArgRole::Network,
@@ -272,6 +277,7 @@ pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
         Role::Power => &[ArgRole::On],
         Role::Brightness => &[ArgRole::Brightness],
         Role::Color => &COLOR_COMPONENTS,
+        Role::ColorTemp => &[ArgRole::ColorTemp],
         Role::SegmentEnable | Role::WifiLink => &[ArgRole::Enable],
         Role::SegmentColor => &[ArgRole::Colors],
         Role::SegmentColorMasked => &[ArgRole::Colors, ArgRole::Zones],
@@ -281,11 +287,35 @@ pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
         Role::WifiProvisionWithApi => &WIFI_CREDENTIALS_WITH_API,
         Role::Status => &[],
     };
-    required
+    let mut problems: Vec<String> = required
         .iter()
         .filter(|arg_role| command.arg_for(**arg_role).is_none())
         .map(|arg_role| {
             format!("`role: {role}` must declare an argument marked `role: {arg_role}`")
+        })
+        .collect();
+    if role == Role::ColorTemp {
+        problems.extend(check_white_components(command));
+    }
+    problems
+}
+
+/// The three components of the rendering come together or not at all.
+fn check_white_components(command: &Command) -> Vec<String> {
+    let declared: Vec<ArgRole> = WHITE_COMPONENTS
+        .into_iter()
+        .filter(|arg_role| command.arg_for(*arg_role).is_some())
+        .collect();
+    if declared.is_empty() || declared.len() == WHITE_COMPONENTS.len() {
+        return Vec::new();
+    }
+    WHITE_COMPONENTS
+        .into_iter()
+        .filter(|arg_role| !declared.contains(arg_role))
+        .map(|arg_role| {
+            format!(
+                "declares part of the white rendering but no argument marked `role: {arg_role}`"
+            )
         })
         .collect()
 }

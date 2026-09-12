@@ -216,7 +216,9 @@ commands:
   #   colors      rgb_list  one triple per zone for a `segment_color` command;
   #                         the single triple a `segment_color_masked` frame
   #                         paints
-  #   zones       zones     which zones a `segment_color_masked` command paints
+  #   zones       zones     which zones a `segment_color_masked` command
+  #                         paints, and which a `color_temp` frame with a mask
+  #                         applies to
   #   gradient    int       whether the firmware interpolates between zones,
   #                         on a `segment_color` or `segment_gradient` command
   #   "on"        int       the flag a `power` command sets, and the field a
@@ -227,6 +229,12 @@ commands:
   #   red         int       the components a `color` command sets
   #   green       int
   #   blue        int
+  #   color_temp  int       the temperature in kelvin a `color_temp` command
+  #                         sets, and the field a reply reports it in: 0
+  #                         reports a device in color mode
+  #   white_red   int       the RGB rendering of that temperature, where the
+  #   white_green int       frame carries it. The SDK computes all three from
+  #   white_blue  int       the kelvin value
   #
   # Quote `role: "on"`: a YAML 1.1 reader takes a bare `on` for true.
   # A captured field with no role reaches the caller under the name this file
@@ -262,6 +270,9 @@ commands:
     #                   entry that paints the whole device from a triple, not
     #                   on one that paints a zone list: the SDK approximates
     #                   neither.
+    #   color_temp      sets the white temperature. White and color are
+    #                   mutually exclusive states, so this ends the color the
+    #                   device showed.
     #   segment_enable  arms and disarms the raw segment channel. Unclaimed:
     #                   nothing is armed, which is what a mode whose zones are
     #                   always addressable looks like.
@@ -299,6 +310,14 @@ commands:
     #   brightness      one marked `role: brightness`
     #   color           one each of `role: red`, `role: green` and
     #                   `role: blue`
+    #   color_temp      one argument marked `role: color_temp`. Where the
+    #                   firmware renders nothing and the frame carries the
+    #                   rendering, three more: `role: white_red`,
+    #                   `role: white_green` and `role: white_blue`. Declare
+    #                   all three or none. Where the frame names the zones it
+    #                   applies to, one marked `role: zones` as well: the SDK
+    #                   fills it with every zone `capabilities.segments.count`
+    #                   declares.
     #   segment_enable  one argument marked `role: enable`
     #   segment_color   one marked `role: colors`. The SDK also supplies one
     #                   marked `role: gradient`, if this file declares one. The

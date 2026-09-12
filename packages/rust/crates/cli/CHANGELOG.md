@@ -11,7 +11,7 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 - The crate, the `govee` binary and the command surface: `scan`, `devices`,
   `describe`, `doctor`, `status`, `on`, `off`, `brightness`, `color`,
-  `segment`, `send`, `stream`, `watch` and `provision`.
+  `colortemp`, `segment`, `send`, `stream`, `watch` and `provision`.
 - The verbs reach the device file through a `role:`, so no command name lives
   in this crate and a binding gets the same verb from the core. A device whose
   file claims no entry for the role fails and names the role.
@@ -29,6 +29,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   `role: segment_color_masked`; without it every zone takes the color. Nothing
   disarms the segment channel afterwards: a disarm ends the channel, and the
   colors with it.
+- `colortemp` sets the white temperature, in kelvin. White and color are
+  mutually exclusive states, so it ends the color the device showed. Where the
+  mode carries the RGB rendering of the temperature in the same frame, the core
+  computes it and sends both. A value outside the declared range is an error,
+  never a clamp.
 - `stream` feeds the segment channel one frame per line of stdin: one
   `#RRGGBB`, which fills every zone, or one per zone. `--zones` takes `app`,
   `native` or a count, and `--rate` overrides the rate measured for the unit.

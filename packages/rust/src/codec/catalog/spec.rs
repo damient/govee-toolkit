@@ -119,9 +119,17 @@ pub enum ArgRole {
     Green,
     /// The blue component of the same triple.
     Blue,
-    /// The white temperature, captured from a reply, in kelvin. `0` reports a
-    /// device in color mode.
+    /// The white temperature, in kelvin. What a [`Role::ColorTemp`] command
+    /// sets, and what a reply reports: `0` reports a device in color mode.
     ColorTemp,
+    /// The red component of the RGB rendering of that temperature, on a
+    /// [`Role::ColorTemp`] command. The SDK computes it from the kelvin
+    /// value. Optional: a command that declares none is sent none.
+    WhiteRed,
+    /// The green component of the same rendering.
+    WhiteGreen,
+    /// The blue component of the same rendering.
+    WhiteBlue,
     /// The network name to join, on a [`Role::WifiProvision`] command.
     Network,
     /// The password of that network. Plaintext on the wire.
@@ -148,7 +156,7 @@ pub enum ArgRole {
 }
 
 impl ArgRole {
-    pub(crate) const ALL: [Self; 20] = [
+    pub(crate) const ALL: [Self; 23] = [
         Self::Enable,
         Self::Colors,
         Self::Zones,
@@ -160,6 +168,9 @@ impl ArgRole {
         Self::Green,
         Self::Blue,
         Self::ColorTemp,
+        Self::WhiteRed,
+        Self::WhiteGreen,
+        Self::WhiteBlue,
         Self::Network,
         Self::Password,
         Self::RunMode,
@@ -184,6 +195,9 @@ impl ArgRole {
             | Self::Green
             | Self::Blue
             | Self::ColorTemp
+            | Self::WhiteRed
+            | Self::WhiteGreen
+            | Self::WhiteBlue
             | Self::RunMode
             | Self::TimezoneHours
             | Self::TimezoneMinutes
@@ -211,6 +225,9 @@ impl fmt::Display for ArgRole {
             Self::Green => "green",
             Self::Blue => "blue",
             Self::ColorTemp => "color_temp",
+            Self::WhiteRed => "white_red",
+            Self::WhiteGreen => "white_green",
+            Self::WhiteBlue => "white_blue",
             Self::Network => "network",
             Self::Password => "password",
             Self::RunMode => "run_mode",
@@ -240,6 +257,12 @@ pub enum Role {
     /// Sets one color over the whole device. Must declare arguments marked
     /// [`ArgRole::Red`], [`ArgRole::Green`] and [`ArgRole::Blue`].
     Color,
+    /// Sets the white temperature, and the white it renders. Must declare an
+    /// argument marked [`ArgRole::ColorTemp`]. Where the frame carries the
+    /// rendering, it must declare the three marked [`ArgRole::WhiteRed`],
+    /// [`ArgRole::WhiteGreen`] and [`ArgRole::WhiteBlue`], which the SDK
+    /// computes from the kelvin value.
+    ColorTemp,
     /// Arms and disarms the raw segment channel. Must declare an argument
     /// marked [`ArgRole::Enable`].
     SegmentEnable,
@@ -272,11 +295,12 @@ pub enum Role {
 }
 
 impl Role {
-    pub(crate) const CLAIMABLE: [Self; 12] = [
+    pub(crate) const CLAIMABLE: [Self; 13] = [
         Self::Status,
         Self::Power,
         Self::Brightness,
         Self::Color,
+        Self::ColorTemp,
         Self::SegmentEnable,
         Self::SegmentColor,
         Self::SegmentColorMasked,
@@ -295,6 +319,7 @@ impl fmt::Display for Role {
             Self::Power => "power",
             Self::Brightness => "brightness",
             Self::Color => "color",
+            Self::ColorTemp => "color_temp",
             Self::SegmentEnable => "segment_enable",
             Self::SegmentColor => "segment_color",
             Self::SegmentColorMasked => "segment_color_masked",

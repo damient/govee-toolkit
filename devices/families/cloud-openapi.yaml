@@ -56,12 +56,13 @@ commands:
 
     colortemp:
       documented: true
+      role: color_temp
       capability:
         type: "devices.capabilities.color_setting"
         instance: "colorTemperatureK"
       payload: "${kelvin}"
       args:
-        kelvin: { type: int, range: [2000, 9000] }
+        kelvin: { type: int, range: [2000, 9000], role: color_temp }
 
     status:
       documented: true

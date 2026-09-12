@@ -142,7 +142,7 @@ fn painter(device: &Device, mode: Mode, gradient: bool) -> Result<Painter> {
 /// The `count:` on the zone argument, or the width of the mask field where the
 /// file declares none. `None` where it declares neither, and the stream then
 /// refuses to open.
-fn mask_limit(device: &Device, mode: Mode, command: &str) -> Option<usize> {
+pub(crate) fn mask_limit(device: &Device, mode: Mode, command: &str) -> Option<usize> {
     let spec = device.commands.get(mode).get(command)?;
     let name = spec.arg_for(ArgRole::Zones)?;
     let declared = match spec.args.get(name)? {
