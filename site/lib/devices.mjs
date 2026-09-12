@@ -143,7 +143,7 @@ function modeSections(d) {
     const caps = [...(d.modes?.[m]?.capabilities ?? [])].sort((a, b) => order(a) - order(b));
     if (!caps.length) return "";
     const chips = caps.map((c) => `<li>${icon(c)}${escapeHtml(label(c))}</li>`).join("");
-    return `<h3 id="mode-${m}">${modeBadge(m, support(d, m))}</h3>
+    return `<h3 id="mode-${m}">${modeBadge(m)}</h3>
       <ul class="caps">${chips}</ul>`;
   }).filter(Boolean);
 
