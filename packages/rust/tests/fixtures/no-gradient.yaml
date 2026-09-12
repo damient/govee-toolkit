@@ -1,0 +1,39 @@
+# A device file whose painting frame has no room for the interpolation setting,
+# and which names no command that carries it alone. A caller that asks for a
+# gradient over this file is refused, because nothing can carry the request.
+schema_version: 1
+sku: "HTEST5"
+family: "test"
+name: "Segment device that cannot interpolate"
+
+capabilities:
+  segments:
+    count: 2
+
+modes:
+  lan:
+    support: full
+    capabilities: all
+
+commands:
+  lan:
+    arm:
+      cmd: "razer"
+      documented: false
+      role: segment_enable
+      frame: "BB <len:16> <op:B1> ${on} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        on: { type: int, range: [0, 1], role: enable }
+      notes: "See docs/protocol/lan.md 2.3."
+
+    paint:
+      cmd: "razer"
+      documented: false
+      role: segment_color
+      frame: "BB <len:16> <op:B0> ${count} (${colors}:rgb)×${count} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        count: { type: int, range: [1, 255] }
+        colors: { type: rgb_list, max_len: 255, role: colors }
+      notes: "See docs/protocol/lan.md 2.3."

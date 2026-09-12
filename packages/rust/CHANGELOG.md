@@ -167,6 +167,12 @@ release is therefore the breaking bump that pre-1.0 reserves the minor for.
 
 ### Fixed
 
+- `DeviceHandle::open_stream` refuses `StreamOptions::gradient` set to `true`
+  over a mode whose device file carries the setting nowhere, with
+  `Error::NoRoleCommand` and the code `no_segment_command`. The stream opened
+  and painted hard-edged zones, so the call reported success for a setting the
+  device never received. The refusal reads the device file, so
+  `DeviceHandle::segment` and `DeviceHandle::open_stream` refuse the same files.
 - `Govee::problems` reports an enabled mode whose credential the configuration
   does not carry, so a caller reads it before it sends. It stays a problem and
   not a startup error: the mode is unavailable, and a command over it fails

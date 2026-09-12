@@ -103,8 +103,10 @@ pub struct StreamOptions {
     pub resolution: Resolution,
     /// How fast to send.
     pub rate: Rate,
-    /// Ask the firmware to interpolate between zones, wrapping from the last
-    /// back to the first. `false` gives hard-edged zones.
+    /// Ask the firmware to interpolate between zones, and to wrap from the
+    /// last zone back to the first. `false` gives hard-edged zones. `true` is
+    /// refused where the device file can carry the setting nowhere, rather
+    /// than dropped.
     pub gradient: bool,
 }
 

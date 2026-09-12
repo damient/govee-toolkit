@@ -246,7 +246,8 @@ pub(crate) enum Command {
         #[arg(long, value_name = "HZ")]
         rate: Option<f64>,
         /// Interpolate between zones, and wrap from the last back to the
-        /// first.
+        /// first. Refused where the device file can carry the setting
+        /// nowhere.
         #[arg(long)]
         gradient: bool,
     },
