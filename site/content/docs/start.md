@@ -41,5 +41,5 @@ profile, then settings, then **Apply for API key**.
   example in each language.
 - [Modes]({{base}}docs/modes/) — Wi-Fi, Bluetooth or the cloud, and how you
   choose.
-- [When it does not work]({{base}}docs/troubleshooting/) — nothing answers the
+- [Troubleshooting]({{base}}docs/troubleshooting/) — nothing answers the
   scan, a command does nothing, a value is refused.
