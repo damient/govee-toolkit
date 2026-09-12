@@ -3,10 +3,7 @@
     <p class="eyebrow">Devices</p>
     <h1>Which models work.</h1>
     <p class="lede">
-      {{verified_count}} models are verified on real hardware. Govee lists 271
-      models that carry a "LAN Control" switch — those are untested rather than
-      unsupported. This page is built from the device files in the repository,
-      so it cannot disagree with them.
+      Find your model and see what the toolkit reaches on it.
     </p>
   </div>
 </section>
@@ -28,10 +25,9 @@
           <tr>
             <th scope="col">SKU</th>
             <th scope="col">Name</th>
-            <th scope="col"><code>lan</code></th>
-            <th scope="col"><code>ble</code></th>
-            <th scope="col"><code>cloud</code></th>
-            <th scope="col">Verified</th>
+            <th scope="col">{{badge_lan}}</th>
+            <th scope="col">{{badge_ble}}</th>
+            <th scope="col">{{badge_cloud}}</th>
           </tr>
         </thead>
         <tbody data-rows>
@@ -43,19 +39,13 @@
     <dl class="legend">
       <div><dt><span class="pill pill-full">full</span></dt><dd>Every capability the hardware has is reachable in this mode.</dd></div>
       <div><dt><span class="pill pill-partial">partial</span></dt><dd>Some capabilities are reachable. The device file lists which.</dd></div>
-      <div><dt><span class="pill pill-none">none</span></dt><dd>Somebody established that the hardware cannot do it.</dd></div>
-      <div><dt><span class="pill pill-unknown">?</span></dt><dd>Nobody looked yet. That is a different answer from <em>none</em>.</dd></div>
+      <div><dt><span class="pill pill-unknown">?</span></dt><dd>Nobody looked yet.</dd></div>
+      <div><dt><span class="muted">—</span></dt><dd>The hardware cannot do it in this mode.</dd></div>
     </dl>
   </div>
 </section>
 
-<section class="slab">
-  <div class="shell" data-cards>
-{{devices_cards}}
-  </div>
-</section>
-
-<section class="slab">
+<section class="slab tight">
   <div class="shell narrow">
     <h2>Your model is not listed</h2>
     <p>First check <a href="{{repo}}/blob/main/docs/lan-supported-devices.md">Govee's own list</a>.

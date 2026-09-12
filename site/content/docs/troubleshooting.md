@@ -1,7 +1,8 @@
 ---
 title: When it does not work
 slug: troubleshooting
-order: 5
+order: 6
+faq: true
 description: Nothing answers the scan, a command does nothing, a value is refused — what each one means.
 ---
 

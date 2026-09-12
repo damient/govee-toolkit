@@ -18,8 +18,8 @@ it. You do not have to write code to follow it.
 
 ## Turn on LAN Control
 
-Open the Govee Home app, select your device, open its settings, then turn on
-**LAN Control**. This switch lets your own network reach the device. Without
+{{badge_lan}} — open the Govee Home app, select your device, open its settings,
+then turn on **LAN Control**. This switch lets your own network reach the device. Without
 it, nothing on this site works over Wi-Fi.
 
 Not every model has the switch. Govee publishes the list of models that do, and
@@ -27,35 +27,16 @@ Not every model has the switch. Govee publishes the list of models that do, and
 
 ## API for cloud (optional)
 
-`cloud` mode goes through Govee's own API, so it needs an API key and the
-device registered to that account. Ask for the key in the Govee Home app:
+{{badge_cloud}} — this mode goes through Govee's own API, so it needs an API key
+and the device registered to that account. Ask for the key in the Govee Home app:
 profile, then settings, then **Apply for API key**.
-
-Give the key to the toolkit through the `GOVEE_API_KEY` environment variable:
-
-```bash
-export GOVEE_API_KEY="the key from the app"
-```
-
-A `.env` file works too, and it survives a new shell. The toolkit reads
-`~/.config/govee-toolkit/.env`, and a `.env` in the directory you work in or in
-any directory above it, up to the root of your project:
-
-```bash
-echo 'GOVEE_API_KEY=the key from the app' >> ~/.config/govee-toolkit/.env
-govee doctor                       # says which file the variables came from
-```
-
-Only `GOVEE_*` names are read, and a variable already in your environment wins.
-`govee --no-env` ignores every file.
-
-Never put the key in `config.yaml`. That file ends up in bug reports. The
-toolkit never logs the key and never writes it to the device cache.
 
 ## Where to go next
 
 - [Install]({{base}}docs/install/) — the command line, the Rust crate, and
   where Python and Node.js stand.
+- [Configure]({{base}}docs/configure/) — where the credentials live, and
+  which ones each mode needs.
 - [Reference]({{base}}reference/) — every command and every method, with an
   example in each language.
 - [Modes]({{base}}docs/modes/) — Wi-Fi, Bluetooth or the cloud, and how you

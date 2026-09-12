@@ -30,9 +30,9 @@
 <section class="slab strip-demo">
   <div class="shell">
     <h2 class="big">Paint the zones, not the whole light.</h2>
-    <p class="lede">Move over the strip below. Each zone is one address on the
-    wire.</p>
-    <div class="strip" data-strip role="img" aria-label="A row of light zones that follow the pointer"></div>
+    <p class="lede">The strip below draws one zone per address on the wire. A
+    pointer over it lights the zones it passes.</p>
+    <div class="strip" data-strip aria-hidden="true"></div>
     <ul class="strip-points">
       <li>
         <h3>One zone at a time</h3>
@@ -129,19 +129,19 @@
     <h2 class="big">You choose the path.</h2>
     <div class="mode-cards">
       <div class="mode-card lan">
-        <h3><code>lan</code></h3>
+        <h3>{{badge_lan}}</h3>
         <p class="tag">Fastest · same Wi-Fi</p>
         <p>Everything, segments included. Turn on "LAN Control" in the Govee
         app first.</p>
       </div>
       <div class="mode-card ble">
-        <h3><code>ble</code></h3>
+        <h3>{{badge_ble}}</h3>
         <p class="tag">Fast · Bluetooth range</p>
         <p>Works with no Wi-Fi at all. It also puts a new device on your
         network.</p>
       </div>
       <div class="mode-card cloud">
-        <h3><code>cloud</code></h3>
+        <h3>{{badge_cloud}}</h3>
         <p class="tag">Slowest · anywhere</p>
         <p>Through Govee's own API, with a key. Throttled, and no animation.</p>
       </div>

@@ -1,7 +1,7 @@
 ---
 title: Modes
 slug: modes
-order: 4
+order: 5
 description: Wi-Fi, Bluetooth or the cloud — what each path carries, and why the toolkit never changes path on its own.
 ---
 
@@ -12,9 +12,9 @@ to allow, for each device.
 
 | Mode | Speed | It reaches the device from | What it carries |
 | ---- | ----- | -------------------------- | --------------- |
-| `lan` | fastest | the same Wi-Fi | everything, segments included |
-| `ble` | fast | Bluetooth range, no Wi-Fi needed | it depends on the model |
-| `cloud` | slowest | anywhere with internet | on/off, brightness, color, segments. Throttled, and no animation |
+| {{badge_lan}} | fastest | the same Wi-Fi | everything, segments included |
+| {{badge_ble}} | fast | Bluetooth range, no Wi-Fi needed | it depends on the model |
+| {{badge_cloud}} | slowest | anywhere with internet | on/off, brightness, color, segments. Throttled, and no animation |
 
 ## One enabled mode means one mode
 
@@ -30,15 +30,15 @@ Neither happens here.
 
 ## What each mode needs
 
-**`lan`** — turn on "LAN Control" for the device in the Govee Home app, and put
+{{badge_lan}} — turn on "LAN Control" for the device in the Govee Home app, and put
 the device and your computer on the same network. Guest Wi-Fi and some mesh
 setups separate them.
 
-**`ble`** — a Bluetooth adapter on your computer, and the device within range.
+{{badge_ble}} — a Bluetooth adapter on your computer, and the device within range.
 One connection at a time: a connected device stops advertising, so a scan run
 while another app holds the link finds nothing.
 
-**`cloud`** — a Govee API key, and the device registered to that account.
+{{badge_cloud}} — a Govee API key, and the device registered to that account.
 
 ## Health
 
