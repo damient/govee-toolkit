@@ -9,6 +9,13 @@ releases apart and keeps
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-09-12
+
+A run reads its `GOVEE_*` variables from a `.env` file, and one painting
+states a color per zone. Both change public signatures: `CloudConfig::key`
+reads through an `Env`, and `stream::Zones` is `stream::Resolution`. This
+release is therefore the breaking bump that pre-1.0 reserves the minor for.
+
 ### Added
 
 - `Env` and `Config::env` — the `GOVEE_*` variables one run reads.
@@ -24,20 +31,6 @@ releases apart and keeps
 - `Error::Env`, code `env`, for a file that cannot be read or does not parse. A
   file that `GOVEE_ENV_FILE` or `Env::from_file` names is an error when it is
   absent: somebody asked for that file.
-
-### Changed
-
-- `paths::config_file_from` reads `GOVEE_CONFIG` from an `Env`, so `.env` can
-  name the configuration file. `Config::load` goes through it.
-  `paths::config_file` keeps reading the process environment alone.
-- `CloudConfig::key` and `CloudConfig::transport_options` take the `Env` to
-  read through, so the API key reaches them from `.env` as well as from the
-  environment. The environment still wins over `.env`, and `.env` over
-  `cloud.key_file`.
-- Only `GOVEE_*` names are read, and a blank value counts as a placeholder. The
-  values are never exported into the process environment: `Env` is a value the
-  caller reads through, so nothing a process launches inherits the key and a
-  test needs no process-wide variable.
 - `DeviceHandle::gradient` — set whether the firmware interpolates between
   zones, without painting, through the `segment_gradient` role. The
   interpolation wraps from the last zone back to the first. It needs a mode
@@ -144,6 +137,17 @@ releases apart and keeps
 
 ### Changed
 
+- `paths::config_file_from` reads `GOVEE_CONFIG` from an `Env`, so `.env` can
+  name the configuration file. `Config::load` goes through it.
+  `paths::config_file` keeps reading the process environment alone.
+- `CloudConfig::key` and `CloudConfig::transport_options` take the `Env` to
+  read through, so the API key reaches them from `.env` as well as from the
+  environment. The environment still wins over `.env`, and `.env` over
+  `cloud.key_file`.
+- Only `GOVEE_*` names are read, and a blank value counts as a placeholder. The
+  values are never exported into the process environment: `Env` is a value the
+  caller reads through, so nothing a process launches inherits the key and a
+  test needs no process-wide variable.
 - `stream::Zones` is `stream::Resolution`, and `StreamOptions::zones` is
   `StreamOptions::resolution`. One word, one meaning: a zone list names which
   zones a frame paints, and a resolution says how many zones it states.
