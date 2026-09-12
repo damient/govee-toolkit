@@ -37,6 +37,18 @@ Give the key to the toolkit through the `GOVEE_API_KEY` environment variable:
 export GOVEE_API_KEY="the key from the app"
 ```
 
+A `.env` file works too, and it survives a new shell. The toolkit reads
+`~/.config/govee-toolkit/.env`, and a `.env` in the directory you work in or in
+any directory above it, up to the root of your project:
+
+```bash
+echo 'GOVEE_API_KEY=the key from the app' >> ~/.config/govee-toolkit/.env
+govee doctor                       # says which file the variables came from
+```
+
+Only `GOVEE_*` names are read, and a variable already in your environment wins.
+`govee --no-env` ignores every file.
+
 Never put the key in `config.yaml`. That file ends up in bug reports. The
 toolkit never logs the key and never writes it to the device cache.
 

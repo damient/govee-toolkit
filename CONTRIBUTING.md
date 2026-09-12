@@ -224,16 +224,34 @@ them.
 commit a key.** Git keeps it after the fix, so a key that reaches a commit is
 revoked and reissued in the Govee Home app.
 
-Run a command with that file in its environment:
+Nothing else is needed to run a command:
 
 ```bash
-tools/with-env.sh cargo run --example cloud_tour --features cloud
+cargo run --example cloud_tour --features cloud
+govee doctor                       # says which file the variables came from
 ```
 
-The wrapper finds `.env` at the repository root, so the working directory does
-not matter. Every package reads its configuration from the environment, so one
-file serves the Rust, Python and Node packages. A variable already set in the
-caller's environment wins over the file.
+`Config::load` finds the file, so the `govee` command, the examples and any
+program that calls it all read the same one. The search starts in the working
+directory and goes up. It stops after the directory that holds `.git`, after
+your home directory, or at the root of the file system, and it reads
+`~/.config/govee-toolkit/.env` last. `GOVEE_ENV_FILE` names one file and
+replaces the search.
+
+Three rules apply to the file:
+
+- A variable already set in the environment wins over the file.
+- Only `GOVEE_*` names are read. A `.env` written for another project can hold
+  anything, and nothing outside that prefix reaches the toolkit.
+- A blank value is a placeholder, not a value, so `.env.example` can be copied
+  as it is.
+
+The values are never exported into the process: the SDK holds them in an
+[`Env`](packages/rust/src/env.rs) and reads through it, which keeps a test
+deterministic.
+
+`govee --no-env` reads no file, and `govee --env-file <PATH>` names one. A file
+named that way is an error when it is absent, because somebody asked for it.
 
 Two other paths reach the same key, and both are for an operator rather than a
 contributor: the `GOVEE_API_KEY` variable on its own, and a file of its own

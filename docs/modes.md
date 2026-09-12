@@ -45,7 +45,7 @@ The user picks **one or several** modes per device, as an ordered list. Order is
 preference order: the first entry is the preferred mode.
 
 YAML, at `~/.config/govee-toolkit/config.yaml` — `$XDG_CONFIG_HOME` and
-`GOVEE_CONFIG` both override it. Devices are keyed by the MAC they report in a
+`GOVEE_CONFIG` both override it, and `GOVEE_CONFIG` can live in `.env`. Devices are keyed by the MAC they report in a
 discovery reply, not by address: a DHCP lease renews and the device is at a
 different one, still the same device.
 
@@ -73,7 +73,7 @@ breaker thresholds:
 
 ```yaml
 cloud:
-  key_file: /etc/govee/api-key   # read when GOVEE_API_KEY is unset
+  key_file: /etc/govee/api-key   # read when GOVEE_API_KEY carries nothing
   min_interval_ms: 6000          # one request per device per interval
   max_wait_ms: 15000             # past this a command fails, rather than waits
 ```
@@ -94,9 +94,10 @@ replaces one is logged, every run.
 ### The cloud API key does not live here
 
 `cloud` mode needs a Govee API key. It is read from the `GOVEE_API_KEY`
-environment variable, or from the file `cloud.key_file` points at — one the
-operator can lock down on its own. The environment wins, and a build that finds
-neither starts without the mode: a device that enables `cloud` then fails with
+environment variable, from a `.env` file, or from the file `cloud.key_file`
+points at — one the operator can lock down on its own. The environment wins over
+`.env`, `.env` wins over the file, and a build that finds no key starts without
+the mode: a device that enables `cloud` then fails with
 `MissingCredential`, which names what to set. That is a different error from
 `ModeNotImplemented`, which says the build carries no transport for the mode.
 
