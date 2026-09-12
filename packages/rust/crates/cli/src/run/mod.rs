@@ -155,29 +155,14 @@ fn music(effect: i64, sensitivity: i64, soft: bool, color: Option<&str>) -> Resu
     })
 }
 
-/// Find the device where no transport of an enabled mode knows it yet.
+/// Make the device reachable before the subcommand sends anything.
 ///
 /// `ble` relates a device to a handle through an advertisement alone, and
 /// `cloud` lists the account at startup, so neither keeps anything across
-/// runs: a command in a fresh process must discover the device first. The test
-/// is per mode, not per device. A device the `lan` cache answers for is still
-/// unknown to `cloud`, and a scan skipped on the strength of that cache would
-/// fail the command with `UnknownDevice`.
+/// runs: a command in a fresh process must find the device first. A device no
+/// enabled mode finds is reported here rather than by the command.
 async fn discover(govee: &Govee, id: &DeviceId) -> Result<(), Failure> {
-    let known = govee.devices().iter().any(|device| {
-        device.id == *id
-            && device
-                .modes
-                .iter()
-                .any(|mode| device.health.contains_key(mode))
-    });
-    if known {
-        return Ok(());
-    }
-    // Only the modes this device enables: a scan on another one costs a
-    // window and answers a question nobody asked.
-    let modes = govee.config().modes_for(id).to_vec();
-    govee.scan_on(&modes).await?;
+    govee.ensure_known(id).await?;
     Ok(())
 }
 
