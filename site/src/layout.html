@@ -21,17 +21,15 @@
 <header class="topbar">
   <div class="rope" data-rope aria-hidden="true"></div>
   <div class="shell">
-    <a class="wordmark" href="{{base}}">
-      <span class="dot" aria-hidden="true"></span>
-      govee<span class="thin">-toolkit</span>
-    </a>
+    <a class="wordmark" href="{{base}}">govee-toolkit</a>
     <nav class="links" id="site-menu" aria-label="Main">
         {{nav}}
         <a class="ghost" href="{{repo}}">GitHub</a>
         <button class="theme in-menu" type="button" data-theme-toggle>
           <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>
           <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/></svg>
-          <span>Switch the theme</span>
+          <span class="label-dark">Dark mode</span>
+          <span class="label-light">Light mode</span>
         </button>
     </nav>
     <div class="controls">
@@ -55,21 +53,54 @@
 
 <footer class="sitefoot">
   <div class="shell">
-    <div>
-      <p class="eyebrow">govee-toolkit</p>
-      <p class="muted">Community project, MIT licensed. Not affiliated with, sponsored by or
-      endorsed by Govee. The "Govee" name identifies compatible devices and nothing else.</p>
-    </div>
-    <nav aria-label="Footer">
-      <ul>
-        <li><a href="{{base}}docs/install/">Install</a></li>
-        <li><a href="{{base}}docs/start/">Documentation</a></li>
-        <li><a href="{{base}}reference/">Reference</a></li>
-        <li><a href="{{base}}devices/">Devices</a></li>
-        <li><a href="{{repo}}">Source</a></li>
-        <li><a href="{{repo}}/blob/main/CONTRIBUTING.md">Contribute</a></li>
+    <div class="foot-brand">
+      <a class="wordmark" href="{{base}}">govee-toolkit</a>
+      <p class="muted">Control your Govee lights from your own machine, over your own
+      network. No internet, no account, no cloud round-trip.</p>
+      <ul class="foot-pkgs">
+        <li><a class="pkg" href="https://crates.io/crates/govee-toolkit">Rust</a></li>
+        <li><a class="pkg" href="https://pypi.org/project/govee-toolkit/">Python<span class="visually-hidden">, not released yet</span></a></li>
+        <li><a class="pkg" href="https://www.npmjs.com/package/govee-toolkit">Node.js<span class="visually-hidden">, not released yet</span></a></li>
       </ul>
+    </div>
+    <nav class="foot-nav" aria-label="Footer">
+      <div>
+        <p class="eyebrow">Documentation</p>
+        <ul>
+          <li><a href="{{base}}docs/start/">Start here</a></li>
+          <li><a href="{{base}}docs/install/">Install</a></li>
+          <li><a href="{{base}}docs/modes/">Modes</a></li>
+          <li><a href="{{base}}reference/">Reference</a></li>
+          <li><a href="{{base}}docs/troubleshooting/">When it does not work</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="eyebrow">Devices</p>
+        <ul>
+          <li><a href="{{base}}devices/">Device list</a></li>
+          <li><a href="{{repo}}/blob/main/docs/compatibility.md">Compatibility</a></li>
+          <li><a href="{{repo}}/blob/main/docs/lan-supported-devices.md">Models with a LAN switch</a></li>
+          <li><a href="{{repo}}/issues">Report a device</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="eyebrow">Project</p>
+        <ul>
+          <li><a href="{{repo}}">Source</a></li>
+          <li><a href="{{repo}}/blob/main/CHANGELOG.md">Changelog</a></li>
+          <li><a href="{{repo}}/blob/main/docs/roadmap.md">Roadmap</a></li>
+          <li><a href="{{repo}}/blob/main/CONTRIBUTING.md">Contribute</a></li>
+          <li><a href="{{repo}}/blob/main/CODE_OF_CONDUCT.md">Code of conduct</a></li>
+          <li><a href="{{repo}}/blob/main/SECURITY.md">Security</a></li>
+        </ul>
+      </div>
     </nav>
+  </div>
+  <div class="shell foot-base">
+    <p class="foot-line">Made for people who love light.</p>
+    <span class="foot-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <p class="foot-legal">MIT licensed. Not affiliated with, sponsored by or endorsed by
+    Govee.<br>The "Govee" name identifies compatible devices and nothing else.</p>
   </div>
 </footer>
 
