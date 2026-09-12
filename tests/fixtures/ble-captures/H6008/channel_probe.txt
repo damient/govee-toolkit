@@ -1,0 +1,26 @@
+# H6008 — the host colour channel request, docs/protocol/ble.md 8.
+# Captured 2026-09-12, same host and same characteristics as color.txt.
+#
+# Both units answered the same five bytes, so the answer is a property of the
+# firmware and not of the unit. Nobody established its layout.
+# The answer does not depend on the checksum: the fourth row carries a wrong
+# one and the unit answered it alike.
+#
+# > client -> device      < device -> client
+
+> a5029037
+< cdec505eb7
+
+> a5029037                # repeated five times in one link, same answer
+< cdec505eb7
+
+> a5029000                # wrong checksum
+< cdec505eb7
+
+# Byte 1 must be 02. None of these was answered.
+> a5009035
+> a5019036
+> a5039038
+> a5049039
+> a506903b
+> a59090c5

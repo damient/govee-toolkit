@@ -20,44 +20,44 @@ capabilities:
   brightness:  { range: [1, 100] }
   color:
   colortemp:   { range_kelvin: [2700, 6500] }   # measured, see verified below
-  music:
+  # No music: the bulb carries no microphone, so no mode renders sound. The
+  # Govee app offers this model no music screen. See verified below.
   # No segments and no segment_brightness: the bulb shows one color.
 
 modes:
   lan:
-    support: capped
+    support: full
     capabilities: [power, brightness, color, colortemp]
-    unreachable:
-      music: transport
+    unreachable: {}
     notes: >-
       Requires LAN Control enabled in the Govee Home app. The four documented
       commands answer, and the undocumented `status` command of
-      docs/protocol/lan.md 2.2 answers as well. The bulb renders no music over
-      lan: this transport carries no command for the device's own microphone.
-      See docs/protocol/lan.md 2.4.
+      docs/protocol/lan.md 2.2 answers as well.
   ble:
-    support: unknown
-    capabilities: []
+    support: partial
+    capabilities: [color]
+    unreachable:
+      power: unprobed
+      brightness: unprobed
+      colortemp: unprobed
+    notes: >-
+      Reaches one channel: the host colour frames of docs/protocol/ble.md 8.
+      The unit answers the channel request and renders the triplet it is sent.
+      Three limits come with that channel, and the `color` command below states
+      them: the render expires on its own, no read reports it, and the stored
+      brightness scales it. The 20-byte dialect of docs/protocol/ble.md 2 and 3
+      answers nothing on this unit and changes nothing that `lan` reads back.
+      That is an unanswered question, not a boundary — see
+      docs/protocol/ble.md 7. The advertised name is the `GV` form of
+      docs/protocol/ble.md 1.3, so a scan reports the unit and reads its SKU.
+  cloud:
+    support: full
+    capabilities: [power, brightness, color, colortemp]
     unreachable: {}
     notes: >-
-      The unit advertises, accepts one GATT link and carries the two vendor
-      characteristics. It answers no frame of the dialect in
-      docs/protocol/ble.md, and a power frame changes nothing that `lan` reads
-      back. That is an unanswered question, not a boundary: an unimplemented
-      command and a malformed one look the same here. The advertised name is
-      the `GV` form of docs/protocol/ble.md 1.3, so a scan reports the unit and
-      reads its SKU; what the unit answers is the open part.
-  cloud:
-    support: capped
-    capabilities: [power, brightness, color, colortemp]
-    unreachable:
-      music: transport
-    notes: >-
       Needs an API key. The account lists this model with four writable
-      capabilities and no `music_setting`, and the control endpoint answers
-      HTTP 400 `devices not support this instance` for it. See
-      docs/protocol/cloud.md 3. The white bounds are the ones the firmware
-      applies, not the ones the API declares: see the `colortemp` entry.
+      capabilities. The white bounds are the ones the firmware applies, not the
+      ones the API declares: see the `colortemp` entry.
 
 commands:
   lan:
@@ -124,6 +124,37 @@ commands:
       notes: >-
         Returns onOff, brightness and a frozen base64 `pt` capability
         descriptor. Read-only in practice. See docs/protocol/lan.md 2.2.
+
+  ble:
+    color:
+      documented: false
+      role: color
+      frame: "A5 02 83 ${r} ${g} ${b} <sum>"
+      args:
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: >-
+        The host colour channel, not the colour command the other two modes
+        carry. Three differences, each of them measured on this unit. The
+        firmware holds the colour for `measurements.ble.render_hold_ms` and
+        then returns to the state it stores, so a caller that wants the colour
+        to stay must send the frame again. No read reports the colour while it
+        plays: the `ble` reads answer nothing here, and the `lan` status keeps
+        reporting the stored state. The frame renders on a bulb whose stored
+        state is `off`, and leaves that state `off`. The stored brightness
+        scales the render, and `00 00 00` renders dark without turning the bulb
+        off. See docs/protocol/ble.md 8.
+
+    channel_probe:
+      documented: false
+      frame: "A5 02 90 <sum>"
+      args: {}
+      notes: >-
+        Asks whether the unit carries the channel above. It answers
+        `cd ec 50 5e b7`, the same five bytes on both units measured. Nobody
+        established the layout of that answer, so this entry declares no
+        `reply:`. See docs/protocol/ble.md 8.
 
   cloud:
     power:
@@ -194,6 +225,25 @@ commands:
         The ranges here are what an answer may carry, not what a caller may
         send: 0 kelvin reports color mode rather than a temperature.
 
+measurements:
+  # Taken on the unit whose versions `verified` names, over the host colour
+  # channel of ../docs/protocol/ble.md 8. The 20-byte dialect answers nothing
+  # here, so none of the numbers that dialect calls for were taken.
+  ble:
+    read_round_trip_ms: 49        # channel probe, median of 20, 39 ms at best
+    render_hold_ms: 60000         # measured against a stored state of on. A
+                                  # stored state of off ended no render, see
+                                  # `verified:`
+    write_drain_ms: 25            # the shortest wait that rendered. 20 ms lost
+                                  # the frame. One trial per step, so this is
+                                  # the edge and not a margin
+    # TODO: measure `render_hold_ms`, how long the firmware holds a colour from
+    # the host before it returns to its stored state. It held one for over a
+    # minute, timed by eye and not to a figure worth recording. Nothing reads
+    # the render back — the `ble` reads answer nothing, the `lan` status
+    # reports the stored state, and the advertisement carries a constant — so
+    # the measurement needs an eye on the bulb or a light sensor.
+
 verified:
   by: "damient"
   firmware: "1.01.12"
@@ -222,16 +272,68 @@ verified:
     9000 K for this model and the unit applies 2700 to 6500: the control
     endpoint answered success for 2000 K and for 9000 K, and the state
     endpoint then reported 2700 and 6500. So the same bounds hold over both
-    modes, and an answer of success is not an applied value. Music was tried
-    at `devices.capabilities.music_setting` / `musicMode` and refused with
-    HTTP 400 `devices not support this instance`; the account lists no such
-    capability for this model, while it lists one for the H61A0.
+    modes, and an answer of success is not an applied value.
 
-    ble mode was probed and answered nothing. The unit advertises as
-    `GVH6008` plus four hex digits, accepts one GATT link, and carries the
-    write and notify characteristics of docs/protocol/ble.md 1.1. It answered
-    no read frame — `AA 01`, `AA 04`, `AA 05` and `AA 06` — and a `33 01 00`
-    power frame left the unit on, read back over `lan`. Writes raised no
-    error. Nothing establishes that the hardware lacks BLE control: a
-    malformed frame and an unimplemented command are the same silence here.
-    Music was therefore not exercised over any mode.
+    The bulb carries no microphone. The owner established that in the Govee
+    Home app: the app offers this model no music screen. The cloud probe
+    agrees, and is the weaker of the two: the account lists no
+    `music_setting` capability for this model, while it lists one for the
+    H61A0, and the control endpoint answered HTTP 400 `devices not support
+    this instance` for it. So no mode carries music here, and the capability
+    is absent above rather than unreachable per mode.
+
+    ble mode reaches the host colour channel of docs/protocol/ble.md 8 and
+    nothing else. The unit advertises as `GVH6008` plus four hex digits, which
+    carry the last two bytes of its Wi-Fi MAC with the final byte one higher —
+    that held on both units. It accepts one GATT link and carries the write
+    and notify characteristics of docs/protocol/ble.md 1.1, and no `2b12`
+    characteristic.
+
+    The 20-byte dialect answers nothing. Every command type under `AA` was
+    walked, 0 to 255, and then every `proType` under command type `01`, 0 to
+    255: 512 frames, no notification, no error on any write. A `33 01 00`
+    power frame left the unit on, read back over `lan`. The notify
+    characteristic is not the silent part: it was subscribed for all 512
+    frames and it answers the channel probe below on the same subscription.
+    Nothing here establishes that the hardware lacks that dialect — a
+    malformed frame and an unimplemented command are the same silence, see
+    docs/protocol/ble.md 7.
+
+    The host colour channel works. `A5 02 90` answers `cd ec 50 5e b7`, the
+    same five bytes on both units, so those bytes are a property of the
+    firmware and not of the unit. `A5 02 83 <R G B>` renders the triplet: red,
+    green, blue, cold white and a dim green were each sent and watched on the
+    bulb, and `00 00 00` rendered dark. The second unit rendered orange from
+    the same frame. Byte 1 must be `02`: the probe under `00`, `01`, `03`,
+    `04`, `06` and `90` answered nothing.
+
+    The write is one direction only, and this unit shows it. A colour frame
+    whose link was dropped as soon as the write returned rendered nothing: the
+    bulb stayed dark and nothing reported the loss. The wait was then walked in
+    two passes, one frame per step, each step a colour of its own against a
+    stored state of green: 0 ms and 20 ms rendered nothing, and 25, 30, 35, 40,
+    45, 50, 100, 200 and 500 ms each rendered. So `write_drain_ms` is 25 here.
+    Each step was walked once, so that number is the shortest wait that
+    rendered and not one established to render every time. See
+    docs/protocol/ble.md 1.4.
+
+    Three properties of the render were watched on the bulb. It survived the
+    link going down. It lit a bulb whose stored state was `off`, and
+    `devStatus` kept reporting `on=false` through it. The stored brightness
+    scales it: the same `FF FF FF` was dimmer at brightness 10 than at 100.
+
+    What ends a render is the firmware asserting the state it stores, and the
+    hold above is how long it waits. Measured against a stored state of on and
+    green, with a white render over it: the bulb came back to green one minute
+    after the write, to the second. Against a stored state of `off` the same
+    render was still there several minutes later, and nothing was seen to end
+    it: there is no lit state for the firmware to come back to. Both readings
+    were taken with no `lan` and no `ble` traffic in between, since a read
+    would be a candidate cause. A `lan` colour write does end a render, and
+    that one is the write and not the timer.
+
+    One host note, since it cost a session. On macOS, CoreBluetooth refuses to
+    discover the descriptors of the commissioning characteristics this unit
+    also carries, with `CBErrorDomain Code=8`. A client that fails the whole
+    connection on that error never reaches the Govee service at all, and the
+    unit reads as dead over `ble`. Tolerate the error per characteristic.

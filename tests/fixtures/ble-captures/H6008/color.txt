@@ -1,0 +1,20 @@
+# H6008 — host colour frames, docs/protocol/ble.md 8.
+# Captured 2026-09-12 on a macOS host, over the write characteristic of
+# docs/protocol/ble.md 1.1, write without response. The notify characteristic
+# of the same section was subscribed throughout and answered none of these
+# writes. What each frame rendered was watched on the bulb.
+#
+# The frames carry no identity: no MAC, no address, no account. The peripheral
+# handle the host addressed is a per-host identifier and is left out.
+#
+# > client -> device      < device -> client
+
+> a50283ff000029          # red
+> a5028300ff0029          # green
+> a502830000ff29          # blue
+> a50283ffffff27          # cold white
+> a5028300280052          # a dim green
+> a502830000002a          # dark. The bulb stayed on, read back over lan
+> a50283ff00ff2a          # magenta. Held after the link went down, then the
+                          # firmware returned to its stored state after over a
+                          # minute

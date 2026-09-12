@@ -1,0 +1,42 @@
+{
+  "description": "Conformance vectors for H6008 over ble. Every SDK — the Rust core, its bindings and any hand-written port — must produce exactly these bytes for these arguments. The wire carries no envelope here, so a vector states `frames_hex` and no `message`. These frames are the host colour channel: they are short and their last byte is a sum, not the XOR the 20-byte frames carry. See ../README.md.",
+  "sku": "H6008",
+  "mode": "ble",
+  "vectors": [
+    {
+      "name": "colour, full red",
+      "command": "color",
+      "args": { "r": 255, "g": 0, "b": 0 },
+      "frames_hex": ["a50283ff000029"],
+      "source": "captured, tests/fixtures/ble-captures/H6008/color.txt — the unit rendered red"
+    },
+    {
+      "name": "colour, full green",
+      "command": "color",
+      "args": { "r": 0, "g": 255, "b": 0 },
+      "frames_hex": ["a5028300ff0029"],
+      "source": "captured, tests/fixtures/ble-captures/H6008/color.txt — the unit rendered green"
+    },
+    {
+      "name": "colour, cold white",
+      "command": "color",
+      "args": { "r": 255, "g": 255, "b": 255 },
+      "frames_hex": ["a50283ffffff27"],
+      "source": "captured, tests/fixtures/ble-captures/H6008/color.txt — the unit rendered a cold white"
+    },
+    {
+      "name": "colour, dark. The bulb stays on and renders nothing",
+      "command": "color",
+      "args": { "r": 0, "g": 0, "b": 0 },
+      "frames_hex": ["a502830000002a"],
+      "source": "captured, tests/fixtures/ble-captures/H6008/color.txt — the unit went dark and read back on over lan"
+    },
+    {
+      "name": "channel probe",
+      "command": "channel_probe",
+      "args": {},
+      "frames_hex": ["a5029037"],
+      "source": "captured, tests/fixtures/ble-captures/H6008/channel_probe.txt — both units answered cdec505eb7"
+    }
+  ]
+}
