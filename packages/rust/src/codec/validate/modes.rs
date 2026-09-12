@@ -1,5 +1,6 @@
 //! What a mode reaches, checked against the capability set it draws from.
 
+use crate::codec::capabilities::Reason;
 use crate::codec::catalog::{Device, Mode, Support};
 
 /// A mode's reach, checked against the capability set it draws from.
@@ -8,6 +9,10 @@ use crate::codec::catalog::{Device, Mode, Support};
 /// has is either reached or explained. A mode nobody probed
 /// ([`Support::Unknown`]) is exempt — an empty answer there is the honest one —
 /// and [`Support::None`] reaches nothing by definition.
+///
+/// The level follows from the reasons and is checked against them:
+/// [`Support::Capped`] where every capability out of reach is
+/// [`Reason::Transport`], [`Support::Partial`] where one is not.
 pub(super) fn check_mode_capabilities(device: &Device, mode: Mode) -> Vec<(&'static str, String)> {
     let mut problems = Vec::new();
     let support = device.modes.get(mode);
@@ -35,6 +40,13 @@ pub(super) fn check_mode_capabilities(device: &Device, mode: Mode) -> Vec<(&'sta
         }
     }
 
+    let mut blocked = support
+        .unreachable
+        .iter()
+        .filter(|(_, reason)| **reason != Reason::Transport)
+        .map(|(name, reason)| format!("`{name}` is `{reason}`"))
+        .peekable();
+
     match support.support {
         Support::None if !reached.is_empty() => problems.push((
             "capabilities",
@@ -44,14 +56,32 @@ pub(super) fn check_mode_capabilities(device: &Device, mode: Mode) -> Vec<(&'sta
             "support",
             "is `full`, but capabilities are listed unreachable".to_owned(),
         )),
+        Support::Capped if support.unreachable.is_empty() => problems.push((
+            "support",
+            "is `capped`, but nothing is listed unreachable".to_owned(),
+        )),
+        Support::Capped if blocked.peek().is_some() => problems.push((
+            "support",
+            format!(
+                "is `capped`, but {}; a capped mode reaches everything the transport carries, so that is `partial`",
+                blocked.collect::<Vec<_>>().join(", ")
+            ),
+        )),
         Support::Partial if support.unreachable.is_empty() => problems.push((
             "support",
             "is `partial`, but nothing is listed unreachable".to_owned(),
         )),
+        Support::Partial if blocked.peek().is_none() => problems.push((
+            "support",
+            "is `partial`, but every capability out of reach is `transport`; a boundary of the transport is `capped`".to_owned(),
+        )),
         _ => {}
     }
 
-    if matches!(support.support, Support::Full | Support::Partial) {
+    if matches!(
+        support.support,
+        Support::Full | Support::Capped | Support::Partial
+    ) {
         let unaccounted: Vec<&str> = device
             .capabilities
             .names()
@@ -112,9 +142,42 @@ mod tests {
         let found = problems(
             "  power:\n  music:\n",
             "    support: partial\n    capabilities: [power]\n\
+             \n    unreachable:\n      music: unimplemented\n",
+        );
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    #[test]
+    fn a_transport_boundary_alone_is_capped() {
+        let found = problems(
+            "  power:\n  music:\n",
+            "    support: capped\n    capabilities: [power]\n\
              \n    unreachable:\n      music: transport\n",
         );
         assert!(found.is_empty(), "{found:?}");
+    }
+
+    #[test]
+    fn a_transport_boundary_alone_is_not_partial() {
+        let found = problems(
+            "  power:\n  music:\n",
+            "    support: partial\n    capabilities: [power]\n\
+             \n    unreachable:\n      music: transport\n",
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found[0].contains("is `capped`"), "{found:?}");
+    }
+
+    #[test]
+    fn work_left_is_not_capped() {
+        let found = problems(
+            "  power:\n  music:\n  segments:\n",
+            "    support: capped\n    capabilities: [power]\n\
+             \n    unreachable:\n      music: transport\n      segments: unprobed\n",
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found[0].contains("`segments` is `unprobed`"), "{found:?}");
+        assert!(found[0].contains("that is `partial`"), "{found:?}");
     }
 
     #[test]

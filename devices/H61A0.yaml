@@ -29,7 +29,7 @@ capabilities:
 
 modes:
   lan:
-    support: partial
+    support: capped
     capabilities: [power, brightness, color, colortemp, segments]
     unreachable:
       segment_brightness: transport

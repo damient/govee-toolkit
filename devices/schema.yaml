@@ -54,10 +54,19 @@ modes:
   # Which modes the hardware SUPPORTS. The user enables supported modes per
   # device, in the runtime config. See ../docs/modes.md.
   #
-  # support: full | partial | none | unknown
+  # support: full | capped | partial | none | unknown
+  #   full    — the mode reaches every capability the hardware has
+  #   capped  — the mode reaches every capability the TRANSPORT carries, and
+  #             the transport carries less than the hardware has. Every name
+  #             under `unreachable` is `transport`. A boundary, not work left
+  #   partial — a name under `unreachable` is `unimplemented` or `unprobed`.
+  #             Work left on this device file
   #   none    — somebody established that the hardware cannot do this mode
   #   unknown — nobody probed it. This is the default. A failed probe and an
   #             unimplemented feature look identical from outside
+  #
+  # The level follows from the reasons, and `cargo test` checks it against
+  # them: do not write `partial` for a transport boundary.
   #
   # capabilities: the names above this mode reaches; "all" means every
   #               capability the hardware has.
@@ -65,9 +74,9 @@ modes:
   #               vocabulary is `transport` | `unimplemented` | `unprobed`, and
   #               ../docs/compatibility.md says what each one claims.
   #
-  # On a `full` or `partial` mode, the two lists must account for every
-  # capability above: `cargo test` fails on one that is neither reached nor
-  # explained. A mode left `unknown` is exempt.
+  # On a `full`, `capped` or `partial` mode, the two lists must account for
+  # every capability above: `cargo test` fails on one that is neither reached
+  # nor explained. A mode left `unknown` is exempt.
   lan:
     support: unknown
     capabilities: []

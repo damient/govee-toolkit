@@ -11,11 +11,18 @@ releases apart and keeps
 
 - `scan::sku_of` reads a `GV<SKU><4 hex digits>` advertised name, so `ble`
   discovers a device of that family. `GVH` and `GVR` join `NAME_PREFIXES`.
+- `Support::Capped` — a mode that reaches every capability the transport
+  carries, where the transport carries less than the hardware has.
 
 ### Changed
 
 - **Breaking:** `NAME_PREFIXES` is `[&str; 6]`. Bind it as a slice,
   `&NAME_PREFIXES`, rather than as an array of a fixed length.
+- **Breaking:** `Support` carries a fifth variant. Match `Support::Capped`
+  wherever a match on it is exhaustive.
+- Catalog validation reads the level off the reasons: a mode whose every
+  unreachable capability is `transport` must be `capped`, and one that names an
+  `unimplemented` or `unprobed` capability must be `partial`.
 
 ## [0.6.0] — 2026-09-12
 
