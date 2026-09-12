@@ -121,14 +121,19 @@ commands:
   #                          build. It counts the bytes after <op:…>, up to but
   #                          not including the checksum. A frame that uses it
   #                          must name its opcode with <op:…> right after.
-  #   <pad:20>               zeros, so that the frame is 20 bytes once <xor>
-  #                          follows. One per layout, and it comes second to
-  #                          last. A layout already past that size is an error,
-  #                          never a truncation.
+  #   <pad:20>               zeros, so that the frame is 20 bytes once the
+  #                          checksum follows. One per layout, and it comes
+  #                          second to last. A layout already past that size is
+  #                          an error, never a truncation.
   #   (${list}:rgb)×${n}     `n` RGB triples from the list argument `list`. Omit
   #                          `n` at call time and the codec derives it from the
   #                          list length. An ASCII `x` is accepted for `×`.
   #   <xor>                  XOR of every preceding byte. Must come last.
+  #   <sum>                  low byte of the sum of every preceding byte. Must
+  #                          come last. A layout carries <xor> or <sum>, never
+  #                          both. The wire decides which: the 20-byte frames
+  #                          take <xor> and the short host-audio frames take
+  #                          <sum>.
   #
   # Two errors, because the field would carry something other than what the
   # caller asked for:
@@ -386,10 +391,11 @@ commands:
     #   notes: ""                     # must point at ../docs/protocol/ble.md
     #                                 # when documented is false
     #
-    # Every frame on this wire has a fixed size and carries its own checksum,
-    # so each layout ends with `<pad:N> <xor>`, the three inside `chunk:`
-    # included. `body:` is the exception: it is the payload the codec cuts up,
-    # not a frame, so it takes neither.
+    # A frame on the 20-byte channel has a fixed size and carries its own
+    # checksum, so each layout ends with `<pad:N> <xor>`, the three inside
+    # `chunk:` included. The host-audio channel carries short frames instead:
+    # those take `<sum>` and no padding. `body:` is the exception to both: it
+    # is the payload the codec cuts up, not a frame, so it takes neither.
   cloud:
     # <command-name>:
     #   documented: true | false

@@ -44,7 +44,8 @@ discovery finds no device that is plainly there.
 
 ### 1.2 Frame format
 
-There is no MTU negotiation. Every frame is exactly 20 bytes:
+There is no MTU negotiation. A frame of every `proType` below but `0xA5` is
+exactly 20 bytes:
 
 ```
 | 0: proType | 1: commandType | 2..18: payload, zero-padded | 19: BCC |
@@ -58,9 +59,12 @@ The BCC is the XOR of bytes 0 to 18. `proType` says what kind of frame it is:
 | `0xAA` | single read, answered on the notify characteristic |
 | `0xA1` | multi-packet write, Wi-Fi provisioning |
 | `0xA3` | multi-packet write, music effects |
+| `0xA5` | colour from the host. Short frames, and a different checksum — see §8 |
 
 A device file writes the layout as a `frame:` that ends in `<pad:20> <xor>`,
-which is this shape.
+which is this shape. `0xA5` is the exception at both ends: its frames are
+short, and their last byte is a sum. A device file writes that layout as a
+`frame:` that ends in `<sum>` and carries no padding.
 
 ### 1.3 Discovery
 
@@ -473,17 +477,48 @@ nothing either way. Assume a malformed request before concluding that a device
 lacks a capability, and re-check after a firmware update — behavior changes
 without notice.
 
-## 8. Audio from the host — `proType` `0xA5`
+## 8. Colour from the host — `proType` `0xA5`
 
-Not implemented. The host computes a color from the audio it captures and
-writes one frame per color. The frames are shorter than 20 bytes and the last
-byte is the **sum** of the bytes before it, not the XOR of §1.2:
+The host computes a colour and writes one frame per colour. The frames are
+shorter than 20 bytes and the last byte is the **sum** of the bytes before it,
+not the XOR of §1.2:
 
 ```
 a5 02 90                request, does the device carry this channel
-a5 02 83 <R G B>        one color
+a5 02 83 <R G B>        one colour
 ```
 
-A device answered the first frame with `a5 02 10 01`. Nothing else was
-established here: no frame of this channel was seen to change what a device
-renders.
+Byte 1 is `0x02` on both frames. No device answered the request when that byte
+held another value, so the byte is part of the address of the channel and not a
+length.
+
+The answer to the request differs by family. One device answered `a5 02 10 01`.
+Another answered a five-byte constant that carries no `a5` and that two units
+of the same model gave alike, so it is a property of the firmware and not of
+the unit. Nobody established the layout of either answer. What the request
+establishes is that the device carries the channel: a device that carries none
+answers nothing.
+
+`a5 02 83` renders the triplet it carries. Four properties were measured, and
+each one is a trap for a caller that treats this as a colour command:
+
+- **The render is temporary.** It survives the link going down. What ends it
+  is the firmware asserting the state it stores, once a fixed hold runs out.
+  So a device whose stored state is off ends no render, and one whose stored
+  state is a colour comes back to that colour. Measure the hold against a
+  stored state that is on, and record it as
+  `measurements.ble.render_hold_ms` in the device file. Take the reading with
+  no other traffic on any mode: a read is a candidate cause, and a write on
+  another mode ends the render on its own.
+- **It lights a device whose stored state is off.** The power of §2.1 does not
+  gate it.
+- **Nothing reports it.** The state reads of §3 keep reporting the stored
+  state, and so does the LAN status channel. A read after a render reports what
+  the device played before it.
+- **The stored brightness scales it.** A triplet of `FF FF FF` is as bright as
+  the brightness of §2.2 that the device holds, and `00 00 00` renders dark
+  without turning the device off.
+
+A device can carry this channel and answer nothing at all on §2 and §3. The
+two are separate implementations in the firmware, so the silence of §7 on one
+says nothing about the other. Probe both before you record what a device does.

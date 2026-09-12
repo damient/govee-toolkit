@@ -30,7 +30,7 @@ impl Frame {
         let mut out: Vec<u8> = Vec::with_capacity(self.size_hint(args));
         let mut len_pos: Option<usize> = None;
         let mut payload_start: Option<usize> = None;
-        let has_xor = matches!(self.tokens.last(), Some(Token::Xor));
+        let checksum = self.trailing_checksum();
 
         for token in &self.tokens {
             match token {
@@ -68,7 +68,7 @@ impl Frame {
                 Token::Bytes { name } => {
                     out.extend_from_slice(bytes_arg(command, args, name)?);
                 }
-                Token::Pad(size) => pad(&mut out, command, *size, has_xor)?,
+                Token::Pad(size) => pad(&mut out, command, *size, checksum.is_some())?,
                 Token::Repeat { list, count, item } => {
                     let n = usize::try_from(int_arg(command, args, count)?).unwrap_or(0);
                     let colors = rgb_arg(command, args, list)?;
@@ -80,8 +80,9 @@ impl Frame {
                         }
                     }
                 }
-                // `<xor>` is validated as the last token, so nothing follows.
-                Token::Xor => break,
+                // A checksum is validated as the last token, so nothing
+                // follows.
+                Token::Xor | Token::Sum => break,
             }
         }
 
@@ -89,21 +90,28 @@ impl Frame {
             let len = out.len() - start;
             write_len(&mut out, pos, len);
         }
-        if has_xor {
-            out.push(out.iter().fold(0u8, |acc, b| acc ^ b));
+        match checksum {
+            Some(Token::Xor) => out.push(out.iter().fold(0u8, |acc, b| acc ^ b)),
+            Some(Token::Sum) => out.push(out.iter().fold(0u8, |acc, b| acc.wrapping_add(*b))),
+            _ => {}
         }
         Ok(out)
     }
 }
 
 impl Frame {
+    /// The checksum token a layout ends with, where it has one.
+    fn trailing_checksum(&self) -> Option<&Token> {
+        self.tokens.last().filter(|t| t.is_checksum())
+    }
+
     /// Bytes this layout emits, so one allocation is enough. `<pad:…>` sets the
     /// whole frame size on its own.
     fn size_hint(&self, args: &Args) -> usize {
         let mut size = 0usize;
         for token in &self.tokens {
             size += match token {
-                Token::Literal(_) | Token::Xor => 1,
+                Token::Literal(_) | Token::Xor | Token::Sum => 1,
                 Token::Len16 => 2,
                 Token::Opcode(bytes) => bytes.len(),
                 Token::Arg { bits, .. } => (*bits as usize).div_ceil(8),
@@ -220,6 +228,15 @@ mod tests {
         let bytes = frame.build("x", &Args::new().int("on", 1)).unwrap();
         assert_eq!(bytes.len(), 20);
         assert_eq!(hex(&bytes), "3301010000000000000000000000000000000033");
+    }
+
+    #[test]
+    fn sum_carries_the_low_byte_of_the_total_and_pads_nothing() {
+        let frame = Frame::parse("x", "A5 02 83 ${r} ${g} ${b} <sum>").unwrap();
+        let args = Args::new().int("r", 255).int("g", 0).int("b", 0);
+        let bytes = frame.build("x", &args).unwrap();
+        assert_eq!(bytes.len(), 7);
+        assert_eq!(hex(&bytes), "a50283ff000029");
     }
 
     #[test]

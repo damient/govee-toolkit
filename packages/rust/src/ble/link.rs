@@ -12,7 +12,7 @@ use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
 use crate::ble::wire::Peripheral;
-use crate::ble::{FRAME_LEN, NOTIFY_CHARACTERISTIC, WRITE_CHARACTERISTIC};
+use crate::ble::{FRAME_LEN, HOST_COLOR_PROTYPE, NOTIFY_CHARACTERISTIC, WRITE_CHARACTERISTIC};
 use crate::transport::error::{Error, Result};
 
 /// How many replies a subscriber may fall behind by before losing the oldest.
@@ -110,18 +110,24 @@ impl Link {
 
 /// Refuse a frame this wire cannot carry.
 ///
+/// The wire carries two shapes: [`FRAME_LEN`] bytes, and the shorter host
+/// colour frame under [`HOST_COLOR_PROTYPE`].
+///
 /// # Errors
 ///
-/// [`Error::Serialize`] for anything but exactly [`FRAME_LEN`] bytes. A short
-/// frame padded here would reach the device as a command nobody wrote.
+/// [`Error::Serialize`] for any other length. A short frame padded here would
+/// reach the device as a command nobody wrote.
 pub(crate) fn check_length(cmd: &str, frame: &[u8]) -> Result<()> {
     if frame.len() == FRAME_LEN {
+        return Ok(());
+    }
+    if frame.first() == Some(&HOST_COLOR_PROTYPE) && !frame.is_empty() && frame.len() < FRAME_LEN {
         return Ok(());
     }
     Err(Error::Serialize {
         cmd: cmd.to_owned(),
         reason: format!(
-            "the frame is {} bytes; this wire carries {FRAME_LEN}",
+            "the frame is {} bytes; this wire carries {FRAME_LEN}, or fewer under proType {HOST_COLOR_PROTYPE:#04x}",
             frame.len()
         ),
     })
@@ -144,5 +150,13 @@ mod tests {
             let error = check_length("power", &vec![0; len]).expect_err("the wrong length");
             assert_eq!(error.code(), "serialize");
         }
+    }
+
+    #[test]
+    fn a_short_host_color_frame_is_written_as_it_is() {
+        assert!(check_length("color", &[HOST_COLOR_PROTYPE, 0x02, 0x83, 0, 0, 0, 0x2a]).is_ok());
+        let long = vec![HOST_COLOR_PROTYPE; FRAME_LEN + 1];
+        let error = check_length("color", &long).expect_err("past the one length");
+        assert_eq!(error.code(), "serialize");
     }
 }

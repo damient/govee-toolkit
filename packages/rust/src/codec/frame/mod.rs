@@ -6,9 +6,10 @@
 //!
 //! Three rules, each of them an error. `<len:16>` counts the bytes after
 //! `<op:...>` up to but excluding the checksum, so a layout declaring it must
-//! put `<op:...>` immediately after. `<xor>` comes last and `<pad:...>`
-//! immediately before it. And a string past what its length prefix counts, or
-//! a zone past the width of its mask, is refused.
+//! put `<op:...>` immediately after. A checksum — `<xor>` or `<sum>`, and one
+//! of the two at most — comes last and `<pad:...>` immediately before it. And
+//! a string past what its length prefix counts, or a zone past the width of
+//! its mask, is refused.
 
 use crate::codec::error::{Error, Result};
 
@@ -52,7 +53,7 @@ pub enum Token {
     Opcode(Vec<u8>),
     /// The 16-bit payload length, big-endian.
     Len16,
-    /// Zeros, up to a frame of this many bytes once `<xor>` is appended.
+    /// Zeros, up to a frame of this many bytes once the checksum is appended.
     Pad(usize),
     /// `count` items drawn from a list argument.
     Repeat {
@@ -65,6 +66,15 @@ pub enum Token {
     },
     /// The XOR checksum of every preceding byte.
     Xor,
+    /// The low byte of the sum of every preceding byte.
+    Sum,
+}
+
+impl Token {
+    /// Whether this token is a trailing checksum.
+    fn is_checksum(&self) -> bool {
+        matches!(self, Self::Xor | Self::Sum)
+    }
 }
 
 /// The shape of one item in a repeat group.
@@ -88,8 +98,9 @@ impl Frame {
     /// # Errors
     ///
     /// [`Error::FrameSyntax`] if a token is unrecognized, if `<len:16>`,
-    /// `<op:…>`, `<pad:…>` or `<xor>` appear more than once or in an impossible
-    /// position, or if `<len:16>` is not immediately followed by `<op:…>`.
+    /// `<op:…>`, `<pad:…>` or a checksum appear more than once or in an
+    /// impossible position, if `<xor>` and `<sum>` appear together, or if
+    /// `<len:16>` is not immediately followed by `<op:…>`.
     pub fn parse(command: &str, source: &str) -> Result<Self> {
         let bad = |reason: String| Error::FrameSyntax {
             command: command.to_owned(),
@@ -108,7 +119,7 @@ impl Frame {
 
         let (len, len_repeats) = only(&tokens, |t| matches!(t, Token::Len16));
         let (_, op_repeats) = only(&tokens, |t| matches!(t, Token::Opcode(_)));
-        let (xor, xor_repeats) = only(&tokens, |t| matches!(t, Token::Xor));
+        let (checksum, checksum_repeats) = only(&tokens, Token::is_checksum);
         let (pad, pad_repeats) = only(&tokens, |t| matches!(t, Token::Pad(_)));
         if pad_repeats {
             return Err(bad("`<pad:…>` appears more than once".to_owned()));
@@ -119,19 +130,23 @@ impl Frame {
         if op_repeats {
             return Err(bad("`<op:…>` appears more than once".to_owned()));
         }
-        if xor_repeats {
-            return Err(bad("`<xor>` appears more than once".to_owned()));
+        if checksum_repeats {
+            return Err(bad(
+                "`<xor>` and `<sum>` carry one checksum between them, and it appears more than \
+                 once"
+                    .to_owned(),
+            ));
         }
-        if let Some(i) = xor
+        if let Some(i) = checksum
             && i + 1 != tokens.len()
         {
-            return Err(bad("`<xor>` must be the last token".to_owned()));
+            return Err(bad("a checksum must be the last token".to_owned()));
         }
         if let Some(i) = pad
-            && i + 1 + usize::from(xor.is_some()) != tokens.len()
+            && i + 1 + usize::from(checksum.is_some()) != tokens.len()
         {
             return Err(bad(
-                "`<pad:…>` must come last, before `<xor>` where there is one".to_owned(),
+                "`<pad:…>` must come last, before the checksum where there is one".to_owned(),
             ));
         }
         if let Some(i) = len
@@ -172,7 +187,8 @@ impl Frame {
                 | Token::Opcode(_)
                 | Token::Len16
                 | Token::Pad(_)
-                | Token::Xor => [None, None],
+                | Token::Xor
+                | Token::Sum => [None, None],
             })
             .flatten()
     }
@@ -192,6 +208,7 @@ fn parse_token(raw: &str) -> Option<Token> {
     match raw {
         "<len:16>" => return Some(Token::Len16),
         "<xor>" => return Some(Token::Xor),
+        "<sum>" => return Some(Token::Sum),
         _ => {}
     }
     if let Some(hex) = raw.strip_prefix("<op:").and_then(|r| r.strip_suffix('>')) {
@@ -292,6 +309,12 @@ mod tests {
     #[test]
     fn rejects_a_checksum_that_is_not_last() {
         let err = Frame::parse("x", "BB <xor> 01").expect_err("should not parse");
+        assert_eq!(err.code(), "frame_syntax");
+    }
+
+    #[test]
+    fn rejects_the_two_checksums_together() {
+        let err = Frame::parse("x", "BB <xor> <sum>").expect_err("should not parse");
         assert_eq!(err.code(), "frame_syntax");
     }
 

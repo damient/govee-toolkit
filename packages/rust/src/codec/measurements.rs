@@ -88,6 +88,9 @@ pub struct Ble {
     pub burst_recovery_s: Option<f64>,
     /// Zones the unit addressed by mask over this mode.
     pub addressable_zones: Option<u32>,
+    /// How long the firmware held a colour from the host channel before it
+    /// returned to its stored state, in milliseconds.
+    pub render_hold_ms: Option<u64>,
     /// Everything else the block records.
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
