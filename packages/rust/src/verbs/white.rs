@@ -28,8 +28,8 @@ impl DeviceHandle<'_> {
     ///
     /// As for [`DeviceHandle::power`], for the command marked
     /// `role: color_temp` and its argument marked `role: color_temp`, plus
-    /// [`Error::ZoneCountUnknown`] where the entry paints by zone mask and
-    /// nothing records how many zones this unit has.
+    /// [`Error::ZoneMaskUnbounded`] where the entry paints by zone mask and
+    /// nothing bounds that mask.
     pub async fn color_temp(&self, kelvin: i64) -> Result<Served> {
         let entry = self.resolve(Role::ColorTemp)?;
         let mut args = Args::new().int(entry.arg(ArgRole::ColorTemp)?, kelvin);
@@ -61,16 +61,12 @@ impl DeviceHandle<'_> {
 /// the vendor app exposes, and a mask that reaches further would leave the
 /// zones past it holding the color they had.
 fn every_zone(entry: &Resolved<'_>) -> Result<Vec<u16>> {
-    let count = mask_limit(entry.device, entry.mode, &entry.command)
-        .or_else(|| {
-            entry
-                .device
-                .capabilities
-                .segment_count()
-                .and_then(|count| usize::try_from(count).ok())
-        })
-        .ok_or_else(|| Error::ZoneCountUnknown {
+    let count = mask_limit(entry.device, entry.mode, &entry.command).ok_or_else(|| {
+        Error::ZoneMaskUnbounded {
             sku: entry.sku.clone(),
-        })?;
+            mode: entry.mode,
+            command: entry.command.clone(),
+        }
+    })?;
     Ok((0..u16::try_from(count).unwrap_or(u16::MAX)).collect())
 }

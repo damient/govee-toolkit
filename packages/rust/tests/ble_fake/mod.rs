@@ -274,10 +274,19 @@ pub(crate) fn catalog() -> Catalog {
 }
 
 pub(crate) fn govee(transport: &Arc<Fake>, yaml: &str) -> Govee {
+    govee_reading(transport, yaml, DEVICE_FILE)
+}
+
+/// The same, over a device file the caller patched.
+pub(crate) fn govee_reading(transport: &Arc<Fake>, yaml: &str, device_file: &str) -> Govee {
     let config: Config = serde_norway::from_str(yaml).expect("the configuration parses");
+    let mut catalog = Catalog::embedded().expect("catalog");
+    catalog
+        .overlay([("ble-device.yaml", device_file)])
+        .expect("the fixture parses");
     Govee::attach(
         config,
-        catalog(),
+        catalog,
         [Arc::clone(transport) as Arc<dyn Transport>],
     )
     .expect("the configuration applies")

@@ -63,7 +63,11 @@ at.
   `white_red`, `white_green` and `white_blue` beside it. A `color_temp` entry
   declares the kelvin argument, and the three white components where the frame
   carries the RGB rendering of the temperature. `cargo test` refuses an entry
-  that declares one or two of the three. `devices/schema.yaml` documents them.
+  that declares one or two of the three. Where the frame names the zones it
+  applies to, the entry declares an argument marked `role: zones` as well, and
+  it must bound that mask: the `count:` on the zone argument, or the width of
+  the mask field. An SDK fills the mask with every zone it can name, so a file
+  that bounds it by nothing is an error. `devices/schema.yaml` documents them.
 - `H61A0` records what the `color_temp` role answered on the unit: the three
   modes were exercised over the whole declared range, and every step renders.
   Over `ble` the mask has to name all 15 zones the frame addresses; the 10 the

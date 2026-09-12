@@ -319,6 +319,31 @@ async fn a_white_temperature_carries_its_rendering_and_every_zone_the_mask_names
 }
 
 #[tokio::test]
+async fn a_white_temperature_over_an_unbounded_mask_is_refused() {
+    // The same entry with nothing to say how far its mask reaches: no `count:`
+    // on the zone argument, and a frame that writes no mask field. Both edits
+    // land on the `color_temp` entry alone, which is the only one that names
+    // `white_b`.
+    let unbounded = ble_fake::DEVICE_FILE
+        .replace("${white_b} ${zones:mask8} <pad:20>", "${white_b} <pad:20>")
+        .replace(
+            "white_b: { type: int, range: [0, 255], role: white_blue }\n        zones: { type: zones, count: 6, role: zones }",
+            "white_b: { type: int, range: [0, 255], role: white_blue }\n        zones: { type: zones, role: zones }",
+        );
+    let ble = Fake::knowing(&id());
+    let govee = ble_fake::govee_reading(&ble, &enabling_ble(), &unbounded);
+
+    let error = govee
+        .device(&id())
+        .color_temp(4000)
+        .await
+        .expect_err("nothing says how far the mask reaches");
+
+    assert_eq!(error.code(), "zone_mask_unbounded");
+    assert!(ble.written().is_empty());
+}
+
+#[tokio::test]
 async fn a_white_temperature_out_of_range_is_refused_rather_than_clamped() {
     let ble = Fake::knowing(&id());
     let govee = govee(&ble, &enabling_ble());
