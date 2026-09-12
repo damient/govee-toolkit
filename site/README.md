@@ -26,7 +26,7 @@ The devices page reads `../dist/catalog.json`, which `xtask` generates from
 `devices/*.yaml`. Generate it first:
 
 ```bash
-cargo run -p xtask -- catalog
+npm run catalog
 npm install
 npm run build
 ```
