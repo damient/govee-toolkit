@@ -17,7 +17,7 @@ pages so that the header, the footer and the device tables exist once.
 | `content/docs/*.md` | The documentation pages. One file, one page. |
 | `public/` | Anything that must land at the root of the site, such as `CNAME`. |
 | `build.mjs` | The build. |
-| `tools/og.svg` | The source of the social preview image. |
+| `tools/og.py` | Draws the social preview image and the touch icon. It writes `tools/og.svg` and both PNGs. |
 | `dist/` | The output. It is not committed. |
 
 ## Build
@@ -101,9 +101,9 @@ The links are `Home`, `Docs` and `Devices`. The install page and the reference
 page both sit inside the documentation, so the top bar marks `Docs` while a
 reader is on either one.
 
-The theme follows the system setting. The button switches away from it for as
-long as the reader stays on the page, and nothing is stored: the next page
-starts from the system setting again.
+The theme follows the system setting. The button switches away from it, and
+the choice goes into `sessionStorage`: it follows the reader from page to page
+and ends with the tab. The next visit starts from the system setting again.
 
 Under 820 px the links fold into a panel that opens from a button on the
 right, and the theme control moves into that panel. Every rule of the folded
@@ -125,12 +125,15 @@ The two faces are served from this origin, under `src/assets/fonts/`. They
 carry the latin subset, which is the range the site writes in. IBM Plex is
 under the SIL Open Font License and the text sits beside the files.
 
-`tools/og.svg` is the social preview image. Its text is outlines, so it needs
-no font installed. Render the PNG the pages point at after a change:
+`tools/og.py` draws the social preview image and the touch icon. It writes
+`tools/og.svg` from the fonts under `src/assets/fonts/`, as outlines, so the
+card needs no font installed. It then writes both PNGs:
 
 ```bash
-rsvg-convert -w 1200 -h 630 -f png -o src/assets/og.png tools/og.svg
+python3 tools/og.py
 ```
+
+Edit `tools/og.py`, not `tools/og.svg`: the next run overwrites the SVG.
 
 ## The stylesheet
 
