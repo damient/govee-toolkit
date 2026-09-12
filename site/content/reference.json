@@ -139,6 +139,18 @@
             "python": "await device.segment([1, 2, 3], (255, 61, 0))",
             "node": "await device.segment([1, 2, 3], [255, 61, 0])"
           }
+        },
+        {
+          "id": "music",
+          "title": "music",
+          "summary": "Play an effect the device renders from its own microphone.",
+          "detail": "The device listens and nothing streams from your host. The effect identifiers belong to the mode: the same number names another effect over another mode, and `lan` carries no music command at all. Nothing stops the effect \u2014 set a color, a temperature or the power to end it.",
+          "examples": {
+            "cli": "govee music living-room 3 --sensitivity 60",
+            "rust": "device.music(&Music { effect: 3, sensitivity: 60, soft: false, color: None }).await?;",
+            "python": "await device.music(effect=3, sensitivity=60)",
+            "node": "await device.music({ effect: 3, sensitivity: 60 })"
+          }
         }
       ]
     },
