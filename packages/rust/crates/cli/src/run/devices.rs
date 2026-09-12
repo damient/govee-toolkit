@@ -122,7 +122,15 @@ fn modes(device: &Device, restrict: Option<Mode>) -> impl Iterator<Item = Mode> 
 /// Report everything wrong with the configuration. Reads no hardware.
 pub(super) fn doctor(govee: &Govee, writer: &Writer) {
     let problems = govee.problems();
+    // Where the variables came from: the first question when a credential the
+    // user believes they set is reported as missing.
+    let env_file = govee
+        .config()
+        .env
+        .source()
+        .map(|path| path.display().to_string());
     let json = json!({
+        "env_file": env_file,
         "problems": problems
             .iter()
             .map(|problem| json!({
@@ -131,14 +139,17 @@ pub(super) fn doctor(govee: &Govee, writer: &Writer) {
             }))
             .collect::<Vec<_>>(),
     });
-    let text = if problems.is_empty() {
-        "no problem found".to_owned()
-    } else {
-        problems
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join("\n")
+    let mut text = match &env_file {
+        Some(path) => format!("variables from `{path}`"),
+        None => "no `.env` was read".to_owned(),
     };
+    if problems.is_empty() {
+        text.push_str("\nno problem found");
+    } else {
+        for problem in problems {
+            text.push('\n');
+            text.push_str(&problem.to_string());
+        }
+    }
     writer.emit(&json, &text);
 }

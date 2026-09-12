@@ -1,7 +1,7 @@
 //! Turns one parsed invocation into one run.
 
 use govee_toolkit::codec::Mode;
-use govee_toolkit::{Config, DeviceId, Govee, Music};
+use govee_toolkit::{Config, DeviceId, Env, Govee, Music};
 
 use crate::cli::{Cli, Command};
 use crate::output::{Failure, Writer};
@@ -252,9 +252,14 @@ fn device_of(command: &Command) -> Option<&str> {
 
 /// Read the configuration the run works from.
 fn load(cli: &Cli) -> Result<Config, Failure> {
-    let config = match &cli.global.config {
-        Some(path) => Config::load_from(path.clone()),
-        None => Config::load(),
-    }?;
-    Ok(config)
+    let env = match (&cli.global.env_file, cli.global.no_env) {
+        (Some(path), _) => Env::from_file(path)?,
+        (None, true) => Env::process(),
+        (None, false) => Env::load()?,
+    };
+    let path = match &cli.global.config {
+        Some(path) => path.clone(),
+        None => govee_toolkit::paths::config_file_from(&env),
+    };
+    Ok(Config::load_from_with(path, env)?)
 }

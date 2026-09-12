@@ -79,7 +79,24 @@ known costs no scan: the `lan` cache answers from disk.
 key exchange: anything in Bluetooth range while it runs reads it. Supply it
 with `--password`, or in `GOVEE_WIFI_PASSWORD`, or pass `--open` for a network
 that has none. The network name comes from `--ssid`, or from `GOVEE_WIFI_SSID`.
-The command line wins over the environment.
+The command line wins over the variables.
+
+## Variables and `.env`
+
+Every subcommand reads the `GOVEE_*` variables — `GOVEE_API_KEY` for `cloud`,
+`GOVEE_WIFI_SSID` and `GOVEE_WIFI_PASSWORD` for `provision`. They come from the
+environment first, then from the first `.env` the search finds: it starts in the
+working directory and goes up, and it stops after the directory that holds
+`.git` or after your home directory. `~/.config/govee-toolkit/.env` is read
+last, which is where an installed command usually keeps them.
+
+A missing file is not an error. `govee doctor` says which file the variables
+came from.
+
+```bash
+govee --no-env doctor                 # the environment alone
+govee --env-file ~/other.env doctor   # one named file; absent is an error
+```
 
 ## Modes
 
