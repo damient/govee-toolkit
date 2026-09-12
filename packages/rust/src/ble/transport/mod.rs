@@ -115,6 +115,20 @@ impl Transport {
         Shared::scan(&self.shared, window).await
     }
 
+    /// Listen for advertisements until one device answers.
+    ///
+    /// `window` is the longest this listens. It reports the device under the
+    /// identity this mode can observe, so it finds nothing under a Wi-Fi MAC
+    /// until [`Transport::bind`] relates the two. Nothing on the send path
+    /// calls this.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Transport::scan`].
+    pub async fn scan_for(&self, id: &DeviceId, window: Duration) -> Result<Option<Discovered>> {
+        Shared::scan_for(&self.shared, id, window).await
+    }
+
     /// Say that the device known by `id` is the one answering at `endpoint`.
     ///
     /// This crate identifies a device by its Wi-Fi MAC, and a scan reports the

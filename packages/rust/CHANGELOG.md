@@ -134,6 +134,13 @@ release is therefore the breaking bump that pre-1.0 reserves the minor for.
 - `stream::reach` and `Reach` — how many zones one mode paints on one device,
   and whether that reaches every addressable LED. Read off the device file, no
   hardware. What `describe` reports per mode.
+- `Govee::ensure_known` — make one device reachable before the first command.
+  It scans only where a scan is needed, and only over the modes that device
+  enables. The modes look at the same time, and it answers the first mode in
+  that list that finds the device, whichever one answers first. A device a mode
+  already knows costs nothing, whatever its health. Nothing on the send path
+  calls it: a command still fails with `UnknownDevice` rather than pay for a
+  window. See [`../../docs/modes.md`](../../docs/modes.md).
 
 ### Changed
 
@@ -152,6 +159,11 @@ release is therefore the breaking bump that pre-1.0 reserves the minor for.
   `StreamOptions::resolution`. One word, one meaning: a zone list names which
   zones a frame paints, and a resolution says how many zones it states.
   `SegmentStream::zones` keeps its name — it answers a count.
+- **Breaking:** `Transport` carries `scan_for(id, window)`, which looks for one
+  device and answers as soon as it is found. Implement it on any transport
+  built outside this crate. `lan` returns at the device's reply, `ble` reads
+  what the adapter heard every 200 ms, and `cloud` lists the account, where one
+  request answers for every device and there is nothing earlier to wait for.
 
 ### Fixed
 

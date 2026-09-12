@@ -21,6 +21,28 @@ use crate::transport::status::DeviceStatus;
 
 impl Shared {
     pub(super) async fn scan(&self, window: Duration) -> Result<Vec<DiscoveredDevice>> {
+        self.collect_replies(window, None).await
+    }
+
+    /// Look for one device, and stop at its reply.
+    pub(super) async fn scan_for(
+        &self,
+        id: &DeviceId,
+        window: Duration,
+    ) -> Result<Option<DiscoveredDevice>> {
+        let found = self.collect_replies(window, Some(id)).await?;
+        Ok(found.into_iter().find(|device| &device.id == id))
+    }
+
+    /// Send one `scan` request and read the replies until `window` runs out.
+    ///
+    /// `until` names the device that ends the wait. Every reply is recorded
+    /// whether or not it is that one, because it arrived.
+    async fn collect_replies(
+        &self,
+        window: Duration,
+        until: Option<&DeviceId>,
+    ) -> Result<Vec<DiscoveredDevice>> {
         let mut replies = self.replies.subscribe();
         self.socket
             .send_to(&scan_request(), self.endpoints.scan_target)
@@ -32,7 +54,11 @@ impl Shared {
         loop {
             match tokio::time::timeout_at(deadline, replies.recv()).await {
                 Ok(Ok(device)) => {
+                    let wanted = until == Some(&device.id);
                     found.insert(device.id.clone(), device);
+                    if wanted {
+                        break;
+                    }
                 }
                 // A slow reader missing replies is not a failed scan; the next
                 // one will see the device again.

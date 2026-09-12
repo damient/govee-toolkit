@@ -93,6 +93,21 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// Whatever the mode's discovery can fail with.
     async fn scan(&self, window: Duration) -> Result<Vec<Discovered>>;
 
+    /// Look for one device, and answer as soon as it is found.
+    ///
+    /// What it reports for that device is what [`Transport::scan`] reports.
+    /// The window is the longest this waits, not how long it takes: a mode
+    /// that hears devices one by one returns at the first match. A mode whose
+    /// discovery answers for every device at once returns when that answer is
+    /// in, because there is nothing earlier to wait for.
+    ///
+    /// Nothing on the send path calls this.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Transport::scan`].
+    async fn scan_for(&self, id: &DeviceId, window: Duration) -> Result<Option<Discovered>>;
+
     /// Write a command out.
     ///
     /// Returns as soon as the bytes are gone. A successful return means the

@@ -60,6 +60,13 @@ impl Transport for LanTransport {
             .collect())
     }
 
+    async fn scan_for(&self, id: &DeviceId, window: Duration) -> Result<Option<Discovered>> {
+        let endpoints = self.endpoints();
+        Ok(Self::scan_for(self, id, window)
+            .await?
+            .map(|device| device.reported(&endpoints)))
+    }
+
     async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent> {
         Self::send(self, id, command, verify).await
     }

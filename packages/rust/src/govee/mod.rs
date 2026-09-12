@@ -16,6 +16,7 @@ use crate::govee::events::Forwarder;
 use crate::transport::{DeviceId, Health, Transport};
 
 mod events;
+mod resolve;
 mod start;
 
 pub(crate) struct Inner {

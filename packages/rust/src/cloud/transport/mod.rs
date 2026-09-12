@@ -116,6 +116,22 @@ impl Transport {
         Ok(out)
     }
 
+    /// List the account's devices, and pick one out.
+    ///
+    /// One request answers for every device, so there is nothing to return
+    /// early from: this costs what [`Transport::scan`] costs.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Transport::scan`].
+    pub async fn scan_for(&self, id: &DeviceId) -> Result<Option<Discovered>> {
+        Ok(self
+            .scan()
+            .await?
+            .into_iter()
+            .find(|device| &device.id == id))
+    }
+
     /// Every device the last scan listed.
     #[must_use]
     pub fn devices(&self) -> Vec<KnownDevice> {

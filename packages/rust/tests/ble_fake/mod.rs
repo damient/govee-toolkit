@@ -66,6 +66,9 @@ pub(crate) struct Fake {
     mode: Mode,
     window: Duration,
     known: Option<DeviceId>,
+    /// How long its scan takes to hear the device asked for. `None` means it
+    /// hears nothing, whatever it is asked for.
+    finds: Option<Duration>,
     written: Mutex<Vec<Vec<u8>>>,
     scanned: Mutex<Vec<Duration>>,
     verified: Mutex<Vec<Vec<u8>>>,
@@ -75,14 +78,20 @@ pub(crate) struct Fake {
 
 impl Fake {
     fn with(known: Option<DeviceId>) -> Arc<Self> {
-        Self::build(Mode::Ble, SCAN_WINDOW, known)
+        Self::build(Mode::Ble, SCAN_WINDOW, known, None)
     }
 
-    fn build(mode: Mode, window: Duration, known: Option<DeviceId>) -> Arc<Self> {
+    fn build(
+        mode: Mode,
+        window: Duration,
+        known: Option<DeviceId>,
+        finds: Option<Duration>,
+    ) -> Arc<Self> {
         Arc::new(Self {
             mode,
             window,
             known,
+            finds,
             written: Mutex::new(Vec::new()),
             scanned: Mutex::new(Vec::new()),
             verified: Mutex::new(Vec::new()),
@@ -100,7 +109,13 @@ impl Fake {
     }
 
     pub(crate) fn claiming(mode: Mode, window: Duration) -> Arc<Self> {
-        Self::build(mode, window, None)
+        Self::build(mode, window, None, None)
+    }
+
+    /// One that knows nothing until a scan runs, and hears the device it is
+    /// asked for after `after`.
+    pub(crate) fn finding(mode: Mode, window: Duration, after: Duration) -> Arc<Self> {
+        Self::build(mode, window, None, Some(after))
     }
 
     pub(crate) fn written(&self) -> Vec<Vec<u8>> {
@@ -178,6 +193,23 @@ impl Transport for Fake {
         Ok(Vec::new())
     }
 
+    /// Answers for the device it is asked for after the delay it was built
+    /// with, and listens for the whole window where it hears nothing.
+    async fn scan_for(&self, id: &DeviceId, window: Duration) -> Result<Option<Discovered>> {
+        self.scanned.lock().unwrap().push(window);
+        let Some(after) = self.finds else {
+            tokio::time::sleep(window).await;
+            return Ok(None);
+        };
+        tokio::time::sleep(after).await;
+        Ok(Some(Discovered {
+            id: id.clone(),
+            endpoint: ENDPOINT.to_owned(),
+            sku: SKU.to_owned(),
+            firmware: None,
+        }))
+    }
+
     async fn send(&self, id: &DeviceId, command: &Encoded, verify: Verify) -> Result<Sent> {
         self.written
             .lock()
@@ -253,8 +285,13 @@ pub(crate) fn govee(transport: &Arc<Fake>, yaml: &str) -> Govee {
 
 /// A facade over transports the caller built, and no configured device.
 pub(crate) fn attach(transports: &[Arc<dyn Transport>]) -> Govee {
-    let config: Config =
-        serde_norway::from_str("defaults:\n  modes: [ble]\n").expect("the configuration parses");
+    attach_enabling("ble", transports)
+}
+
+/// The same, with the modes the caller names enabled in that order.
+pub(crate) fn attach_enabling(modes: &str, transports: &[Arc<dyn Transport>]) -> Govee {
+    let config: Config = serde_norway::from_str(&format!("defaults:\n  modes: [{modes}]\n"))
+        .expect("the configuration parses");
     Govee::attach(config, catalog(), transports.to_vec()).expect("the configuration applies")
 }
 
