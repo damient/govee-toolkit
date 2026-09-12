@@ -15,7 +15,8 @@ dependencies = []
 keywords = ["govee", "led", "smart-home", "iot", "sdk"]
 
 [project.urls]
-Homepage = "https://github.com/damient/govee-toolkit"
+Homepage = "https://gvetk.com"
+Documentation = "https://gvetk.com/docs/start/"
 Repository = "https://github.com/damient/govee-toolkit"
 Issues = "https://github.com/damient/govee-toolkit/issues"
 Changelog = "https://github.com/damient/govee-toolkit/blob/main/packages/python/CHANGELOG.md"
