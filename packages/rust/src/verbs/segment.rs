@@ -8,7 +8,7 @@
 //! `role: segment_color_masked` command carries one color and the zones that
 //! take it, and leaves the rest alone.
 
-use super::{arg_for, command_for};
+use super::arg_for;
 use crate::codec::catalog::Device;
 use crate::codec::{ArgRole, Args, Mode, Role};
 use crate::device::DeviceHandle;
@@ -102,13 +102,14 @@ impl DeviceHandle<'_> {
         self.arm(mode, &sku, device).await?;
         if let Some((entry, value)) = &plan.gradient {
             let args = Args::new().int(entry.arg.as_str(), *value);
-            self.send_on(mode, &entry.command, &args).await?;
+            self.send_resolved(mode, &sku, &entry.command, &args)
+                .await?;
         }
 
         let command = plan.painter.command().to_owned();
         let mut served = None;
         for args in paint::frames(&plan.painter, colors)? {
-            served = Some(self.send_on(mode, &command, &args).await?);
+            served = Some(self.send_resolved(mode, &sku, &command, &args).await?);
         }
         // The plan refuses a zone count of zero, so one color gives one frame.
         served.ok_or(Error::ZoneCountUnknown { sku })
@@ -122,36 +123,36 @@ impl DeviceHandle<'_> {
             });
         };
         let gradient = paint.gradient;
-        let mode = self.serving_mode()?;
-        let sku = self.govee.sku(self.id())?;
-        let device = self.govee.catalog().device(&sku)?;
-
-        let command = command_for(&sku, device, mode, Role::SegmentColorMasked)?.to_owned();
-        let colors = arg_for(&sku, device, mode, &command, ArgRole::Colors)?.to_owned();
-        let mask = arg_for(&sku, device, mode, &command, ArgRole::Zones)?.to_owned();
+        let entry = self.resolve(Role::SegmentColorMasked)?;
+        let colors = entry.arg(ArgRole::Colors)?.to_owned();
+        let mask = entry.arg(ArgRole::Zones)?.to_owned();
 
         // The painting frame carries the setting on some modes, and a frame of
         // its own carries it on others.
-        let in_frame = device
-            .commands
-            .get(mode)
-            .get(&command)
-            .and_then(|spec| spec.arg_for(ArgRole::Gradient))
-            .map(ToOwned::to_owned);
-        let alone = device
-            .command_for(mode, Role::SegmentGradient)
+        let in_frame = entry.marked(ArgRole::Gradient).map(ToOwned::to_owned);
+        let alone = entry
+            .device
+            .command_for(entry.mode, Role::SegmentGradient)
             .map(ToOwned::to_owned);
         if gradient && in_frame.is_none() && alone.is_none() {
-            return Err(no_gradient(&sku, mode));
+            return Err(no_gradient(&entry.sku, entry.mode));
         }
 
-        self.arm(mode, &sku, device).await?;
+        self.arm(entry.mode, &entry.sku, entry.device).await?;
         if in_frame.is_none()
-            && let Some(entry) = alone
+            && let Some(command) = alone
         {
-            let arg = arg_for(&sku, device, mode, &entry, ArgRole::Gradient)?.to_owned();
+            let arg = arg_for(
+                &entry.sku,
+                entry.device,
+                entry.mode,
+                &command,
+                ArgRole::Gradient,
+            )?
+            .to_owned();
             let args = Args::new().int(arg, i64::from(gradient));
-            self.send_on(mode, &entry, &args).await?;
+            self.send_resolved(entry.mode, &entry.sku, &command, &args)
+                .await?;
         }
 
         let mut args = Args::new()
@@ -160,7 +161,7 @@ impl DeviceHandle<'_> {
         if let Some(arg) = in_frame {
             args = args.int(arg, i64::from(gradient));
         }
-        self.send_on(mode, &command, &args).await
+        entry.send(self, &args).await
     }
 
     /// Set whether the firmware interpolates between zones, without painting.
@@ -182,12 +183,8 @@ impl DeviceHandle<'_> {
     /// that entry marks no argument `role: gradient`, plus what
     /// [`DeviceHandle::send`] fails with.
     pub async fn gradient(&self, on: bool) -> Result<Served> {
-        self.send_verb(
-            Role::SegmentGradient,
-            |args, name| args.int(name, i64::from(on)),
-            ArgRole::Gradient,
-        )
-        .await
+        self.one_arg(Role::SegmentGradient, ArgRole::Gradient, i64::from(on))
+            .await
     }
 
     /// Arm the segment channel, where the mode has an entry that arms it.
@@ -202,7 +199,7 @@ impl DeviceHandle<'_> {
         };
         let command = command.to_owned();
         let arg = arg_for(sku, device, mode, &command, ArgRole::Enable)?.to_owned();
-        self.send_on(mode, &command, &Args::new().int(arg, 1))
+        self.send_resolved(mode, sku, &command, &Args::new().int(arg, 1))
             .await?;
         tokio::time::sleep(device.measurements.arm_settle()).await;
         Ok(())

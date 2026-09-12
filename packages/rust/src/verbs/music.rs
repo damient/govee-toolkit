@@ -5,7 +5,6 @@
 //! Nothing stops it on its own — no mode declares a command that leaves music
 //! and stays where it was. To end it, set a color, a temperature or the power.
 
-use super::{arg_for, command_for};
 use crate::codec::{ArgRole, Args, Role};
 use crate::device::DeviceHandle;
 use crate::error::Result;
@@ -42,20 +41,8 @@ impl DeviceHandle<'_> {
     /// and its argument marked `role: effect`. A value outside the declared
     /// range is an error, never a clamp.
     pub async fn music(&self, music: &Music) -> Result<Served> {
-        let mode = self.govee.choose(self.id())?;
-        let sku = self.govee.sku(self.id())?;
-        let device = self.govee.catalog().device(&sku)?;
-        let command = command_for(&sku, device, mode, Role::Music)?.to_owned();
-        let marked = |arg_role: ArgRole| {
-            device
-                .commands
-                .get(mode)
-                .get(&command)
-                .and_then(|spec| spec.arg_for(arg_role))
-        };
-
-        let effect = arg_for(&sku, device, mode, &command, ArgRole::Effect)?;
-        let mut args = Args::new().int(effect, music.effect);
+        let entry = self.resolve(Role::Music)?;
+        let mut args = Args::new().int(entry.arg(ArgRole::Effect)?, music.effect);
 
         let rgb = music.color.unwrap_or_default();
         let optional = [
@@ -67,11 +54,11 @@ impl DeviceHandle<'_> {
             (ArgRole::Blue, i64::from(rgb[2])),
         ];
         for (arg_role, value) in optional {
-            if let Some(name) = marked(arg_role) {
+            if let Some(name) = entry.marked(arg_role) {
                 args = args.int(name, value);
             }
         }
 
-        self.send_on(mode, &command, &args).await
+        entry.send(self, &args).await
     }
 }
