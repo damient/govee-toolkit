@@ -3,7 +3,7 @@
 use govee_toolkit::codec::Mode;
 use govee_toolkit::{Config, DeviceId, Env, Govee, Music};
 
-use crate::cli::{Cli, Command};
+use crate::cli::{self, Cli, Command};
 use crate::output::{Failure, Writer};
 
 mod args;
@@ -28,7 +28,7 @@ pub(crate) async fn dispatch(cli: &Cli, writer: &Writer) -> Result<(), Failure> 
 
 async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure> {
     let restrict = cli.global.mode.map(Mode::from);
-    if let Some(device) = device_of(&cli.command) {
+    if let Some(device) = cli.command.device() {
         discover(govee, &DeviceId::new(device)).await?;
     }
 
@@ -89,22 +89,22 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
             )
             .await
         }
-        other => one_verb(govee, writer, other).await,
+        Command::Verb(verb) => one_verb(govee, writer, verb).await,
     }
 }
 
 /// One verb a person types, with the values read under their types.
 ///
-/// Every arm names a device, so [`device_of`] has already discovered it.
-async fn one_verb(govee: &Govee, writer: &Writer, command: &Command) -> Result<(), Failure> {
-    let (device, played) = match command {
-        Command::On { device } => (device, verbs::Verb::Power(true)),
-        Command::Off { device } => (device, verbs::Verb::Power(false)),
-        Command::Brightness { device, value } => (device, verbs::Verb::Brightness(*value)),
-        Command::Color { device, color } => (device, verbs::Verb::Color(args::rgb(color)?)),
-        Command::Colortemp { device, kelvin } => (device, verbs::Verb::ColorTemp(*kelvin)),
-        Command::Gradient { device, state } => (device, verbs::Verb::Gradient((*state).into())),
-        Command::Segment {
+/// The verb names a device, which [`Command::device`] has already discovered.
+async fn one_verb(govee: &Govee, writer: &Writer, verb: &cli::Verb) -> Result<(), Failure> {
+    let (device, played) = match verb {
+        cli::Verb::On { device } => (device, verbs::Verb::Power(true)),
+        cli::Verb::Off { device } => (device, verbs::Verb::Power(false)),
+        cli::Verb::Brightness { device, value } => (device, verbs::Verb::Brightness(*value)),
+        cli::Verb::Color { device, color } => (device, verbs::Verb::Color(args::rgb(color)?)),
+        cli::Verb::Colortemp { device, kelvin } => (device, verbs::Verb::ColorTemp(*kelvin)),
+        cli::Verb::Gradient { device, state } => (device, verbs::Verb::Gradient((*state).into())),
+        cli::Verb::Segment {
             device,
             zones,
             resolution,
@@ -114,7 +114,7 @@ async fn one_verb(govee: &Govee, writer: &Writer, command: &Command) -> Result<(
             device,
             segment(zones.as_deref(), resolution, colors, *gradient).await?,
         ),
-        Command::Music {
+        cli::Verb::Music {
             device,
             effect,
             sensitivity,
@@ -124,7 +124,6 @@ async fn one_verb(govee: &Govee, writer: &Writer, command: &Command) -> Result<(
             device,
             verbs::Verb::Music(music(*effect, *sensitivity, *soft, color.as_deref())?),
         ),
-        other => return Err(Failure::internal(format!("{other:?} is not a verb"))),
     };
     verbs::run(govee, writer, &DeviceId::new(device), played).await
 }
@@ -184,8 +183,7 @@ fn configure(cli: &Cli) -> Result<Config, Failure> {
     // `--mode` narrows what the configuration enables for this device, and
     // adds nothing. A mode the configuration leaves out is refused here, since
     // sending over another one would substitute a mode in silence.
-    let (Some(mode), Some(device)) = (cli.global.mode.map(Mode::from), device_of(&cli.command))
-    else {
+    let (Some(mode), Some(device)) = (cli.global.mode.map(Mode::from), cli.command.device()) else {
         return Ok(config);
     };
     let id = DeviceId::new(device);
@@ -196,30 +194,6 @@ fn configure(cli: &Cli) -> Result<Config, Failure> {
     }
     config.devices.entry(id).or_default().modes = Some(vec![mode]);
     Ok(config)
-}
-
-/// The device one subcommand acts on, where it names one.
-fn device_of(command: &Command) -> Option<&str> {
-    match command {
-        Command::Send { device, .. }
-        | Command::Status { device }
-        | Command::On { device }
-        | Command::Off { device }
-        | Command::Brightness { device, .. }
-        | Command::Color { device, .. }
-        | Command::Colortemp { device, .. }
-        | Command::Segment { device, .. }
-        | Command::Gradient { device, .. }
-        | Command::Music { device, .. }
-        | Command::Stream { device, .. } => Some(device),
-        #[cfg(feature = "ble")]
-        Command::Provision { device, .. } => Some(device),
-        Command::Scan { .. }
-        | Command::Devices
-        | Command::Doctor
-        | Command::Describe { .. }
-        | Command::Watch { .. } => None,
-    }
 }
 
 /// Read the configuration the run works from.
