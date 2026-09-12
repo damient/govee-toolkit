@@ -65,6 +65,7 @@ such in the device file until someone verifies them.
 <!-- generated: support-by-sku -->
 | SKU | Family | Name | `lan` | `ble` | `cloud` | Verified |
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
+| [H6008](../devices/H6008.yaml) | rgbww-bulb | Smart LED Bulb RGBWW | partial | ? | partial | ✅ 2026-09-12 |
 | [H6114](../devices/H6114.yaml) | rgb-car-strip | RGB Car LED Strip Lights | none | full | none | ✅ 2026-09-07 |
 | [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | partial | full | full | ✅ 2026-09-10 |
 <!-- /generated -->
@@ -74,6 +75,7 @@ such in the device file until someone verifies them.
 <!-- generated: capabilities-by-sku -->
 | SKU | brightness | color | colortemp | music | power | segment_brightness | segments |
 | --- | ---------- | ----- | --------- | ----- | ----- | ------------------ | -------- |
+| H6008 | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
 | H6114 | ✅ | ✅ | — | ✅ | ✅ | — | — |
 | H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 <!-- /generated -->

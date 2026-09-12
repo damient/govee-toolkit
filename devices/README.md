@@ -18,6 +18,8 @@ See [`../docs/modes.md`](../docs/modes.md).
   provisioning
 - [`H6114.yaml`](H6114.yaml) — RGB Car LED Strip Lights, a `ble`-only device,
   verified over `ble` including the music sub-mode
+- [`H6008.yaml`](H6008.yaml) — Smart LED Bulb RGBWW, verified over `lan` on
+  two units, white range measured
 
 For **which devices work**, rather than how to declare one, see
 [`../docs/compatibility.md`](../docs/compatibility.md), the readable view of

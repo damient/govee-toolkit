@@ -1,0 +1,46 @@
+{
+  "description": "The documented status command on the H6008. The reply carries the mutually exclusive pair of docs/protocol/lan.md 2.1: a non-zero colorTemInKelvin reads with a zeroed color.",
+  "sku": "H6008",
+  "mode": "lan",
+  "captured": "2026-09-12",
+  "host": "192.0.2.2",
+  "exchanges": [
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "payload": { "msg": { "cmd": "devStatus", "data": {} } }
+    },
+    {
+      "direction": "device -> client",
+      "from": "192.0.2.10:4002",
+      "note": "white at 2700 K, the low bound of this model",
+      "payload": {
+        "msg": {
+          "cmd": "devStatus",
+          "data": {
+            "onOff": 1,
+            "brightness": 100,
+            "color": { "r": 0, "g": 0, "b": 0 },
+            "colorTemInKelvin": 2700
+          }
+        }
+      }
+    },
+    {
+      "direction": "device -> client",
+      "from": "192.0.2.10:4002",
+      "note": "after colorwc with a red triplet, which zeroes colorTemInKelvin",
+      "payload": {
+        "msg": {
+          "cmd": "devStatus",
+          "data": {
+            "onOff": 1,
+            "brightness": 100,
+            "color": { "r": 255, "g": 0, "b": 0 },
+            "colorTemInKelvin": 0
+          }
+        }
+      }
+    }
+  ]
+}

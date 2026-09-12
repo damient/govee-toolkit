@@ -1,0 +1,50 @@
+{
+  "description": "Discovery on the H6008. One multicast request, one unicast reply per unit. Redacted per ../../README.md: the two MACs and the two device addresses are placeholders, and the firmware versions are the ones the units answered.",
+  "sku": "H6008",
+  "mode": "lan",
+  "captured": "2026-09-12",
+  "host": "192.0.2.2",
+  "exchanges": [
+    {
+      "direction": "client -> devices",
+      "to": "239.255.255.250:4001",
+      "payload": { "msg": { "cmd": "scan", "data": { "account_topic": "reserve" } } }
+    },
+    {
+      "direction": "device -> client",
+      "from": "192.0.2.10:4002",
+      "payload": {
+        "msg": {
+          "cmd": "scan",
+          "data": {
+            "ip": "192.0.2.10",
+            "device": "AA:BB:CC:DD:EE:FF",
+            "sku": "H6008",
+            "bleVersionHard": "1.07.03",
+            "bleVersionSoft": "1.01.12",
+            "wifiVersionHard": "1.07.03",
+            "wifiVersionSoft": "1.01.12"
+          }
+        }
+      }
+    },
+    {
+      "direction": "device -> client",
+      "from": "192.0.2.11:4002",
+      "payload": {
+        "msg": {
+          "cmd": "scan",
+          "data": {
+            "ip": "192.0.2.11",
+            "device": "11:22:33:44:55:66",
+            "sku": "H6008",
+            "bleVersionHard": "1.07.03",
+            "bleVersionSoft": "1.01.12",
+            "wifiVersionHard": "1.07.03",
+            "wifiVersionSoft": "1.01.12"
+          }
+        }
+      }
+    }
+  ]
+}

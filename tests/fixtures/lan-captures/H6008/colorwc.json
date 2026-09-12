@@ -1,0 +1,81 @@
+{
+  "description": "Color and white temperature on the H6008. The white bounds were measured by anchoring the bulb at one temperature and then asking for another: a clamp reads as a move to the bound, a refusal reads as the anchor. This firmware clamps, to 2700 K and to 6500 K. Both units answered the same four numbers. Each row records the devStatus the client read back after the write.",
+  "sku": "H6008",
+  "mode": "lan",
+  "captured": "2026-09-12",
+  "host": "192.0.2.2",
+  "exchanges": [
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "payload": {
+        "msg": {
+          "cmd": "colorwc",
+          "data": { "color": { "r": 255, "g": 0, "b": 0 }, "colorTemInKelvin": 0 }
+        }
+      },
+      "read_back": { "color": { "r": 255, "g": 0, "b": 0 }, "colorTemInKelvin": 0 }
+    },
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "payload": {
+        "msg": {
+          "cmd": "colorwc",
+          "data": { "color": { "r": 0, "g": 0, "b": 0 }, "colorTemInKelvin": 4000 }
+        }
+      },
+      "read_back": { "color": { "r": 0, "g": 0, "b": 0 }, "colorTemInKelvin": 4000 }
+    },
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "anchor": { "colorTemInKelvin": 5000 },
+      "payload": {
+        "msg": {
+          "cmd": "colorwc",
+          "data": { "color": { "r": 0, "g": 0, "b": 0 }, "colorTemInKelvin": 2000 }
+        }
+      },
+      "read_back": { "colorTemInKelvin": 2700 }
+    },
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "anchor": { "colorTemInKelvin": 5000 },
+      "payload": {
+        "msg": {
+          "cmd": "colorwc",
+          "data": { "color": { "r": 0, "g": 0, "b": 0 }, "colorTemInKelvin": 2699 }
+        }
+      },
+      "read_back": { "colorTemInKelvin": 2700 },
+      "note": "2700 and 2701 are both applied, so 2700 is the low bound"
+    },
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "anchor": { "colorTemInKelvin": 3000 },
+      "payload": {
+        "msg": {
+          "cmd": "colorwc",
+          "data": { "color": { "r": 0, "g": 0, "b": 0 }, "colorTemInKelvin": 9000 }
+        }
+      },
+      "read_back": { "colorTemInKelvin": 6500 }
+    },
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "anchor": { "colorTemInKelvin": 3000 },
+      "payload": {
+        "msg": {
+          "cmd": "colorwc",
+          "data": { "color": { "r": 0, "g": 0, "b": 0 }, "colorTemInKelvin": 6501 }
+        }
+      },
+      "read_back": { "colorTemInKelvin": 6500 },
+      "note": "6499 and 6500 are both applied, so 6500 is the high bound"
+    }
+  ]
+}

@@ -25,6 +25,18 @@ at.
 
 #### Added
 
+- `H6008` — Smart LED Bulb RGBWW, verified over `lan` on two units. Power,
+  brightness, color, white and both status commands, from captured frames.
+- `H6008` carries the same four commands over `cloud`, exercised against a live
+  account. `music` is unreachable there: the account lists no such capability.
+- `H6008` declares the same 2700-6500 K range over `cloud` as over `lan`. The
+  account declares 2000-9000 K and the firmware clamps inside it.
+- `H6008` declares `colortemp` over 2700-6500 K, measured on both units. The
+  firmware clamps a value outside that range in silence.
+- `H6008` records that the firmware stores the brightness byte it receives: 0
+  reads back as 0, 101 as 101 and 200 as -56. The codec refuses all three.
+- `H6008` lists `H6004`, `H6006`, `H6009`, `H600A` and `H6010` as
+  `candidate_aliases`: Govee describes them alike, and nobody verified one.
 - `measurements.arm_settle_ms` — the delay the firmware needs after the arming
   frame, before a paint renders. See `devices/schema.yaml`.
 - A file that records no `arm_settle_ms` gets a conservative default, which is
