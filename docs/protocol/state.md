@@ -47,3 +47,29 @@ The level is invisible until a static color lights that zone, so a unit that
 holds a low level on one zone looks like a hardware fault. A caller that dims
 a zone must put the level back. Over `cloud` nothing reads the levels: the
 state endpoint answers an empty value for the segment instances.
+
+## 5. The zone interpolation is one setting, shared by every mode
+
+The firmware keeps one interpolation setting. It decides whether the rendering
+blends between two zones painted differently, and the blend wraps from the last
+zone back to the first, so one lit zone at one end also lights the other.
+
+Every mode reaches the same setting, by a different route. A mode carries it
+inside the frame that paints, or in a command of its own. Where a mode carries
+it alone, a caller changes the setting and leaves the colors as they are. Where
+a mode carries it in the painting frame, a caller cannot: nothing outside the
+firmware holds what the device shows, so the colors cannot be painted again
+under the other setting.
+
+The setting is not a fade over time. Two colors sent one after the other cut to
+each other under either value.
+
+## 6. A command over one mode can end the raw segment channel
+
+The raw segment channel of `lan` renders until something else takes the
+rendering back. A command over another mode is such a thing: the device then
+shows the color that its stored setting holds, and the zones the channel
+painted are gone.
+
+Re-arm the channel and paint again to get the zones back. Do not hold a paint
+over one mode and a setting over another: the second ends the first.

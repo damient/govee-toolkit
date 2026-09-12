@@ -30,9 +30,20 @@ at.
   the paint either way and answers nothing, so a frame sent too early is lost
   without an error. A file that records none gets a conservative default, which
   is never zero. `devices/schema.yaml` documents how to measure it.
+- `H61A0` declares a `gradient` entry under `cloud`, marked
+  `role: segment_gradient`, over the `devices.capabilities.toggle` capability
+  and the `gradientToggle` instance the account list declares. The control
+  endpoint writes it: both values were sent and both took effect on the unit,
+  which is what the account list declaring the instance does not establish. The
+  entry carries the setting alone and changes no color.
 - `H61A0` records what `gradient` does on the unit over `lan`: the
   interpolation wraps from the last zone back to the first, so one lit zone at
   the controller also lights the free end. See `verified:`.
+- `H61A0` records what the `segment_gradient` role did over `ble` and `cloud`,
+  and that a `ble` command ends the `lan` raw segment channel: the unit then
+  shows the color its stored setting holds. Whether the connection or the frame
+  ends the channel was not told apart. See `verified:` and
+  `docs/protocol/state.md` 6.
 - `H61A0` records `arm_settle_ms: 50`, measured on the unit over `lan`: 0 ms
   renders nothing 4 times out of 4, 20 ms renders once out of twice, and 50 ms
   and 100 ms each render once out of once. The values between 20 and 50 ms were

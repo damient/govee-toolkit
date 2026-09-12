@@ -31,6 +31,8 @@ pub(super) enum Verb {
         /// Ask the firmware to interpolate between zones.
         gradient: bool,
     },
+    /// Set whether the firmware interpolates between zones, without painting.
+    Gradient(bool),
     /// Play an effect the device renders from its own microphone.
     Music(Music),
 }
@@ -63,6 +65,7 @@ pub(super) async fn run(
                 })
                 .await
         }
+        Verb::Gradient(on) => handle.gradient(on).await,
         Verb::Music(music) => handle.music(&music).await,
     }?;
     report(writer, &served);
