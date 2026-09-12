@@ -5,8 +5,6 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
-## [Unreleased]
-
 ## [0.1.0] — 2026-09-12
 
 The first release of the `govee` binary. It wraps `govee-toolkit` and holds
@@ -15,103 +13,91 @@ command name and no SKU name lives in this crate.
 
 ### Added
 
+- The crate, the `govee` binary and its 17 subcommands, from `on` and `color` to
+  `segment`, `stream` and `provision`. The README lists them.
+- The verbs reach the device file through a `role:`, so no command name lives in
+  this crate. A device whose file claims no entry fails and names the role.
 - A subcommand that names a device discovers it first, and returns as soon as
-  that device answers rather than after the whole scan window. A device no
-  enabled mode finds fails with `unknown_device` before the command runs.
+  that device answers rather than after the whole scan window.
+- A device no enabled mode finds fails with `unknown_device`, before the command
+  runs.
+- A command scans first where no transport of an enabled mode knows the device
+  yet. The `lan` cache answers from disk; `ble` and `cloud` each cost a scan.
 - Every subcommand reads the `GOVEE_*` variables from a `.env` file, so no
-  wrapper script is needed to supply `GOVEE_API_KEY`, `GOVEE_WIFI_SSID` or
-  `GOVEE_WIFI_PASSWORD`. The search starts in the working directory and goes up
-  to the repository root, and it reads `~/.config/govee-toolkit/.env` last. A
-  variable already set in the environment wins, and a file that is absent is
-  not an error.
+  wrapper script supplies `GOVEE_API_KEY` or the Wi-Fi credential.
+- The search goes up from the working directory to the repository root, then
+  reads `~/.config/govee-toolkit/.env`. The environment wins over a file.
 - `--env-file <PATH>` names one file and replaces the search. A file named that
   way is an error when it is absent.
 - `--no-env` reads no file: the process environment supplies the variables
   alone.
-- `doctor` reports which file the variables came from, as `env_file` in JSON.
-- The crate, the `govee` binary and the command surface: `scan`, `devices`,
-  `describe`, `doctor`, `status`, `on`, `off`, `brightness`, `color`,
-  `colortemp`, `segment`, `gradient`, `music`, `send`, `stream`, `watch` and
-  `provision`.
-- The verbs reach the device file through a `role:`, so no command name lives
-  in this crate and a binding gets the same verb from the core. A device whose
-  file claims no entry for the role fails and names the role.
 - `send` names an entry of the device file, and works for a SKU this build has
-  never heard of. The entry declares the type of every argument, so
-  `--arg name=value` is read under that type; the range stays the codec's to
-  check.
-- `describe` reports what a device file declares — the modes, the capabilities,
-  the commands and their arguments — for a device identity or for a SKU typed
-  directly. Per mode, it reports how many zones one paint states and whether
-  that reaches every addressable LED, and for the unit, every count at which it
-  refines. It reads no hardware.
-- `status` asks the device for its state and reports the mode that answered.
-  A field the reply leaves out reads `?` in the text form and `null` in JSON.
+  never heard of. The entry declares the type of every `--arg name=value`.
+- `describe` reports what a device file declares for a device or a SKU: the
+  modes, the capabilities, the commands and the arguments. It reads no hardware.
+- `describe` reports, per mode, how many zones one paint states, whether that
+  reaches every addressable LED, and every count at which the unit refines.
+- `status` asks the device for its state and reports the mode that answered. A
+  field the reply leaves out reads `?` in the text form and `null` in JSON.
 - `gradient <device> on|off` sets whether the firmware interpolates between
-  zones, and paints nothing. The interpolation wraps from the last zone back to
-  the first, so one lit zone at one end also lights the other. Over a mode that
-  carries the setting inside its painting frame it fails and names the role:
-  nothing here holds the colors the device shows, so they cannot be painted
-  again under the other setting. Pass `--gradient` to `segment` there.
-- `segment` paints zones. One `#RRGGBB` fills every zone; a comma-separated
-  list states one zone each, which is how a mode that addresses every LED is
-  painted pixel by pixel. `-` reads that list from one line of stdin, so a
-  long list reaches the device from a file or a pipe. `--resolution` takes
-  `app`, `native` or a count, and says how many zones the frame states; the
-  list must be that long. A count the unit renders as a smaller one is refused,
-  and the message names the counts it refines at. `--zones` names the zones to
-  paint and leaves every other zone alone, which needs a mode whose file marks
-  `role: segment_color_masked` and takes one color. Nothing disarms the segment
-  channel afterwards: a disarm ends the channel, and the colors with it.
-- `colortemp` sets the white temperature, in kelvin. White and color are
-  mutually exclusive states, so it ends the color the device showed. Where the
-  mode carries the RGB rendering of the temperature in the same frame, the core
-  computes it and sends both. A value outside the declared range is an error,
-  never a clamp.
-- `music` plays an effect the device renders from its own microphone. The
-  device listens, and nothing streams from the host. `--sensitivity` says how
-  loud the sound must be, `--soft` renders in fades rather than on the beat,
-  and `--color` imposes a color the firmware would otherwise choose. The effect
-  identifiers belong to the mode, and `describe` reports the range each mode
-  takes. Nothing stops the effect: `on`, `off`, `color` or `colortemp` ends it.
-- `stream` feeds the segment channel one frame per line of stdin: one
-  `#RRGGBB`, which fills every zone, or one per zone. `--resolution` takes
-  `app`, `native` or a count, the same word `segment` uses, and `--rate`
-  overrides the rate measured for the unit. `--gradient` interpolates between
-  zones, and fails and names the role over a mode whose device file carries the
-  setting nowhere. The run reports the frames sent and the frames a later write
-  replaced.
+  zones, and paints nothing. The interpolation wraps around the last zone.
+- Over a mode that carries the gradient inside its painting frame, `gradient`
+  fails and names the role. Pass `--gradient` to `segment` there.
+- `segment` paints zones. One `#RRGGBB` fills every zone; a comma-separated list
+  states one zone each, which paints a per-LED mode pixel by pixel.
+- `segment -` reads the color list from one line of stdin, so a long list
+  reaches the device from a file or a pipe.
+- `segment --resolution` takes `app`, `native` or a count, and says how many
+  zones the frame states. The list must be that long.
+- A `--resolution` count the unit renders as a smaller one is refused, and the
+  message names the counts it refines at.
+- `segment --zones` paints the zones named and leaves the rest alone, which
+  needs a file marking `role: segment_color_masked`, and takes one color.
+- Nothing disarms the segment channel after a paint: a disarm ends the channel,
+  and the colors with it.
+- `colortemp` sets the white temperature, in kelvin, and ends the color the
+  device showed. A value outside the declared range is an error, never a clamp.
+- Where the mode carries the RGB rendering of the temperature in the same frame,
+  the core computes it and sends both halves.
+- `music` plays an effect the device renders from its own microphone. The device
+  listens, and nothing streams from the host.
+- `--sensitivity` says how loud the sound must be, `--soft` renders in fades
+  rather than on the beat, and `--color` imposes one color.
+- The music effect identifiers belong to the mode, and `describe` reports the
+  range each mode takes. `on`, `off`, `color` or `colortemp` ends the effect.
+- `stream` feeds the segment channel one frame per line of stdin: one `#RRGGBB`,
+  which fills every zone, or one per zone.
+- `stream --resolution` takes the same word `segment` uses, `--rate` overrides
+  the rate measured for the unit, and `--gradient` interpolates between zones.
+- `stream --gradient` fails and names the role over a mode whose device file
+  carries the setting nowhere.
+- `stream` reports the frames sent and the frames a later write replaced.
 - `scan` reports every device that answered, including one the configuration
-  does not enable the scanned mode for. Such a device is printed as answering
-  over that mode rather than with its modes, and the JSON form carries
-  `enabled: false`. `ble` reports a device under the handle the platform gives
-  the peripheral, so a first scan always finds one the configuration cannot
-  name yet. `devices` keeps listing only what a command can go to.
+  does not enable the scanned mode for, which carries `enabled: false` in JSON.
+- `ble` reports a device under the handle the platform gives the peripheral, so
+  a first scan always finds one the configuration cannot name yet.
+- `devices` lists only what a command can go to.
 - `watch` prints events as they arrive. It scans once at the start, and
   `--rescan-ms` repeats the scan.
-- `doctor` reports everything wrong with the configuration, including an
-  enabled mode whose credential is missing and what can only be checked once
-  devices are known. It reads no hardware.
+- `doctor` reports everything wrong with the configuration, an enabled mode
+  whose credential is missing included. It reads no hardware.
+- `doctor` reports which file the `GOVEE_*` variables came from, as `env_file`
+  in JSON.
 - `provision` puts a device on a Wi-Fi network over `ble`, behind the `ble`
-  cargo feature. The network name comes from `--ssid` or from
-  `GOVEE_WIFI_SSID`. The password comes from `--password`, from
-  `GOVEE_WIFI_PASSWORD`, or is empty with `--open`; the command line wins over
-  the environment. The password travels in plaintext, so anything in Bluetooth
-  range while the command runs reads it. Nothing acknowledges the transfer, so
-  the report says what was sent.
-- A device file that claims no entry for what a command needs exits with code
-  5, as a refused argument does. Nothing was sent either way.
-- A command scans first where no transport of an enabled mode knows the device
-  yet. `ble` relates a device to a handle through an advertisement alone, and
-  `cloud` lists the account at startup, so neither keeps anything across runs
-  and a one-shot command must discover the device. The test is per mode: the
-  `lan` cache answers from disk for `lan`, and costs a scan on the modes that
-  need one.
+  cargo feature. The network name comes from `--ssid` or `GOVEE_WIFI_SSID`.
+- The `provision` password comes from `--password`, from `GOVEE_WIFI_PASSWORD`,
+  or is empty with `--open`. The command line wins over the environment.
+- The `provision` password travels in plaintext, so anything in Bluetooth range
+  while the command runs reads it.
+- Nothing acknowledges the Wi-Fi transfer, so the `provision` report says what
+  was sent.
+- A device file that claims no entry for what a command needs exits with code 5,
+  as a refused argument does. Nothing was sent either way.
 - `--json` writes one object per line on stdout and an error object on stderr.
-  That form is the contract, and the exit codes are in the README. The `kind`
-  of an error is the core's own error code. The text form is for a person.
+  The `kind` of an error is the core's own error code.
+- The JSON form is the contract, and the exit codes are in the README. The text
+  form is for a person.
 - `--mode` restricts a run to one mode. It enables no mode the configuration
-  leaves out: a device that does not enable the mode asked for is refused,
-  rather than served by another one. It restricts the wire as well as the
-  report: `scan` and `watch` touch that mode alone, `devices` lists the devices
-  that enable it, and `watch` prints the events that mode raises.
+  leaves out: a device that does not enable that mode is refused.
+- `--mode` restricts the wire as well as the report: `scan` and `watch` touch
+  that mode alone, and `devices` lists the devices that enable it.

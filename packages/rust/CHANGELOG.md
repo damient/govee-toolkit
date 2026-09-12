@@ -7,8 +7,6 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
-## [Unreleased]
-
 ## [0.6.0] — 2026-09-12
 
 A run reads its `GOVEE_*` variables from a `.env` file, and one painting
@@ -19,172 +17,122 @@ release is therefore the breaking bump that pre-1.0 reserves the minor for.
 ### Added
 
 - `Env` and `Config::env` — the `GOVEE_*` variables one run reads.
-  `Config::load` collects them: the process environment first, then the first
-  `.env` the search finds. The search starts in the working directory and goes
-  up, it stops after the directory that holds `.git` or after the home
-  directory, and it reads `~/.config/govee-toolkit/.env` last.
-  `GOVEE_ENV_FILE` names one file and replaces the search. A file the search
-  does not find is not an error, since `lan` and `ble` need no credential.
+  `Config::load` reads the environment first, then the first `.env` it finds.
+- The `.env` search starts in the working directory and goes up to `.git` or the
+  home directory, and reads `~/.config/govee-toolkit/.env` last.
+- `GOVEE_ENV_FILE` names one file and replaces the search. A file the search
+  does not find is not an error: `lan` and `ble` need no credential.
 - `Env::process`, `Env::from_file` and `Env::from_pairs` build one without the
-  search, and `Config::load_from_with` takes it. `Config::with_env` replaces
-  the variables of a configuration already loaded.
+  search, and `Config::load_from_with` takes it.
+- `Config::with_env` replaces the variables of a configuration already loaded.
 - `Error::Env`, code `env`, for a file that cannot be read or does not parse. A
-  file that `GOVEE_ENV_FILE` or `Env::from_file` names is an error when it is
-  absent: somebody asked for that file.
+  file `GOVEE_ENV_FILE` or `Env::from_file` names is an error when it is absent.
 - `DeviceHandle::gradient` — set whether the firmware interpolates between
-  zones, without painting, through the `segment_gradient` role. The
-  interpolation wraps from the last zone back to the first. It needs a mode
-  whose file marks that role on a command carrying the setting alone; a mode
-  that carries it inside its painting frame fails with
-  `Error::NoRoleCommand`, because this crate does not hold what the device
-  shows and cannot repaint the same colors under the other setting. Pass
-  `Paint::gradient` there, which sets both at once.
-- `Measurements::arm_settle_ms` and `Measurements::arm_settle` — how long the
-  firmware needs after the arming frame of the segment channel, in
-  milliseconds. `arm_settle` answers what the device file records, or a
-  conservative default that is never zero, because a paint sent too early is
-  dropped in silence.
+  zones, without painting, through the `segment_gradient` role.
+- A mode that carries the gradient inside its painting frame fails with
+  `Error::NoRoleCommand`. Pass `Paint::gradient` there, which sets both at once.
+- `Measurements::arm_settle_ms` and `Measurements::arm_settle` — the delay the
+  firmware needs after the arming frame of the segment channel, in milliseconds.
+- `arm_settle` answers what the device file records, or a conservative default
+  that is never zero: a paint sent too early is dropped in silence.
 - `DeviceHandle::power`, `DeviceHandle::brightness` and `DeviceHandle::color` —
-  the commands a person names, reached through the new `power`, `brightness`
-  and `color` roles. Each reads the entry the device file marks with that role
-  and fills the arguments it marks with an argument role, so no command name
-  and no argument name lives in this crate. A mode whose file claims no such
-  entry fails with `Error::NoRoleCommand`; nothing is approximated through
-  another command.
+  the commands a person names, reached through the roles of the same names.
+- Each role reads the entry the device file marks and fills the arguments it
+  marks, so no command name and no argument name lives in this crate.
+- A mode whose file claims no entry for a role fails with
+  `Error::NoRoleCommand`. Nothing is approximated through another command.
 - `Role::Power`, `Role::Brightness` and `Role::Color`, and the argument roles
-  `ArgRole::Red`, `ArgRole::Green` and `ArgRole::Blue`. `cargo test` refuses a
-  file where two entries of one mode claim the same role, or where a claiming
-  entry marks no argument for it.
-- `DeviceHandle::color_temp` — set the white temperature, in kelvin, through
-  the new `color_temp` role. White and color are mutually exclusive states, so
-  the call ends the color the device showed. One call sets both halves of the
-  frame: where the file marks the white components, the SDK renders the
+  `ArgRole::Red`, `ArgRole::Green` and `ArgRole::Blue`.
+- `cargo test` refuses a file where two entries of one mode claim the same role,
+  or where a claiming entry marks no argument for it.
+- `DeviceHandle::color_temp` — set the white temperature, in kelvin, through the
+  `color_temp` role. It ends the color the device showed.
+- Where the file marks the white components, `color_temp` renders the
   temperature and fills them, because that firmware renders nothing itself.
-  Where it marks a zone mask, the SDK fills it with every zone that mask can
-  name — the `count:` on the zone argument, or the width of the mask field.
-  Not `capabilities.segments.count`: that is what the vendor app exposes, and
-  a frame reaching further would leave the zones past it holding the color
-  they had. A file that bounds the mask by neither fails with
-  `Error::ZoneMaskUnbounded`, as a stream over the same file does.
-- `codec::white::rgb` — the RGB rendering of a temperature. An approximation of
-  the Planckian locus, sampled every 500 K and interpolated between samples. It
-  is not the vendor's rendering: nobody captured what the Govee app sends for a
-  given temperature. To send another one, name the entry through
-  `DeviceHandle::send` and pass the components.
+- Where the file marks a zone mask, `color_temp` fills every zone the mask can
+  name. A mask bounded by nothing fails with `Error::ZoneMaskUnbounded`.
+- `codec::white::rgb` — the RGB rendering of a temperature, sampled every 500 K
+  off the Planckian locus. It is not the vendor's rendering.
 - `Role::ColorTemp`, and the argument roles `ArgRole::WhiteRed`,
-  `ArgRole::WhiteGreen` and `ArgRole::WhiteBlue`. `ArgRole::ColorTemp` now
-  names the kelvin value a command sets as well as the field a reply reports.
-  `cargo test` refuses a file whose `color_temp` entry declares one or two of
-  the three white components.
-- `DeviceHandle::segment` — paint zones. A zone list paints those zones and
-  leaves the rest alone, which needs `role: segment_color_masked`: a
-  `role: segment_color` frame states the color of every zone, and this crate
-  does not hold what the other zones show, so it refuses the subset rather
-  than repaint them. No list paints every zone, over whichever painting role
-  the file marks. Every zone is what the frame reaches: the bound of its mask
-  where it names its zones, and the count the resolution resolves where one
-  frame states them all. A mask stopping at
-  `capabilities.segments.count` would leave the zones past it holding the color
-  they had, and that count is what the vendor app exposes. The channel is armed
-  where the file marks `role: segment_enable`, and nothing disarms it. A
-  gradient the file can carry nowhere is refused rather than dropped.
-- `DeviceHandle::music` and `Music` — play an effect the device renders from
-  its own microphone, through the new `music` role. The device listens and the
-  host sends nothing per beat. `Music` carries the effect, the sensitivity,
-  whether the rendering fades rather than cutting on the beat, and the color to
-  impose; the SDK fills each one where the entry declares the argument for it.
-  The effect identifiers belong to the mode, and an identifier a file accepts
-  is not one the device renders: firmware takes a value, reads it back and
-  plays nothing. No entry stops an effect, so a caller ends it with `power`,
-  `color` or `color_temp`.
+  `ArgRole::WhiteGreen` and `ArgRole::WhiteBlue`.
+- `cargo test` refuses a `color_temp` entry that declares one or two of the
+  three white components.
+- `DeviceHandle::segment` — paint zones. No zone list paints every zone the
+  frame reaches, over whichever painting role the file marks.
+- A zone list paints those zones and leaves the rest alone, which needs
+  `role: segment_color_masked`. This crate holds no color to repaint.
+- `segment` arms the channel where the file marks `role: segment_enable`, and
+  nothing disarms it. A gradient the file carries nowhere is refused.
+- `DeviceHandle::music` and `Music` — play an effect the device renders from its
+  own microphone, through the `music` role. The host sends nothing per beat.
+- `Music` carries the effect, the sensitivity, the soft rendering and the color
+  to impose; the SDK fills each where the entry declares the argument.
+- An effect identifier a file accepts is not one the device renders. No entry
+  stops an effect, so a caller ends it with `power`, `color` or `color_temp`.
 - `Role::Music`, and the argument roles `ArgRole::Effect`,
   `ArgRole::Sensitivity`, `ArgRole::Soft` and `ArgRole::ColorMode`.
-  `ArgRole::Red`, `ArgRole::Green` and `ArgRole::Blue` now name the color a
-  `music` entry imposes as well as the one a `color` entry sets. `cargo test`
-  refuses a `music` entry that declares part of the imposed color.
-- `DeviceHandle::serving_mode` — the mode a command sent now would go over,
-  from the same recorded state a send reads. What a caller needs to read the
-  device file for the right mode before it builds arguments.
+- `ArgRole::Red`, `ArgRole::Green` and `ArgRole::Blue` name the color a `music`
+  entry imposes as well as the one a `color` entry sets.
+- `DeviceHandle::serving_mode` — the mode a command sent now would go over, from
+  the same recorded state a send reads.
 - `DeviceHandle::spec` — what `devices/<SKU>.yaml` declares for this device.
   Reads no hardware.
 - `Support` implements `Display`, so a mode's support level prints as the word
   the device file carries.
-- `Govee::scan_on` — run a discovery scan on the modes named, and nothing on
-  the others. `Govee::scan` is every mode this build carries. A mode with no
-  transport contributes nothing and is not an error.
-- A `cloud` `payload:` resolves `${<name>:rgb24}`: the one triple of an
-  `rgb_list` argument, packed into 0xRRGGBB. A list of any other length fails
-  with `Error::OutOfRange`.
+- `Govee::scan_on` — run a discovery scan on the modes named, and nothing on the
+  others. A mode with no transport contributes nothing and is not an error.
+- A `cloud` `payload:` resolves `${<name>:rgb24}`: one `rgb_list` triple, packed
+  into 0xRRGGBB. Any other length fails with `Error::OutOfRange`.
 - `Paint` — what one painting states: the zones, the colors, the zone count and
-  the gradient. `DeviceHandle::segment` takes it. One color paints every zone,
-  and a longer list states one zone each, which is how a mode with a per-LED
-  channel reaches one LED: ask for `Resolution::Native` and pass that many
-  colors. Only a `role: segment_color` entry states a color per zone; a masked
-  entry groups the zones that share a color, one frame each. A list that is
-  neither one color nor one per zone fails with `Error::ColorCountMismatch`,
-  and a zone list with more than one color with `Error::ZoneListColorCount`.
+  the gradient. `DeviceHandle::segment` takes it.
+- One color paints every zone, and a longer list states one zone each, which is
+  how a mode with a per-LED channel reaches one LED.
+- Only a `role: segment_color` entry states a color per zone; a masked entry
+  groups the zones that share a color, one frame each.
+- A color list that is neither one color nor one per zone fails with
+  `Error::ColorCountMismatch`.
+- A zone list with more than one color fails with `Error::ZoneListColorCount`.
 - `measurements.resolution_changepoints` — every zone count at which one unit
-  refines, read by `Measurements::renders_as`. A `Resolution::Exact` count that
-  the unit renders as a smaller one now fails with
-  `Error::ResolutionNotDistinct`, which names the counts the file records. The
-  firmware groups the LEDs to serve the count a frame states, so the colors
-  past that grouping reach no LED of their own, and the device would show a
-  frame the caller never asked for. `Resolution::App` and `Resolution::Native`
-  are counts the device file states and stay as they are. A file that records
-  no changepoints is checked against nothing.
+  refines, read by `Measurements::renders_as`.
+- A `Resolution::Exact` count the unit renders as a smaller one fails with
+  `Error::ResolutionNotDistinct`, which names the counts the file records.
 - `stream::reach` and `Reach` — how many zones one mode paints on one device,
-  and whether that reaches every addressable LED. Read off the device file, no
-  hardware. What `describe` reports per mode.
-- `Govee::ensure_known` — make one device reachable before the first command.
-  It scans only where a scan is needed, and only over the modes that device
-  enables. The modes look at the same time, and it answers the first mode in
-  that list that finds the device, whichever one answers first. A device a mode
-  already knows costs nothing, whatever its health. Nothing on the send path
-  calls it: a command still fails with `UnknownDevice` rather than pay for a
-  window. See [`../../docs/modes.md`](../../docs/modes.md).
+  and whether that reaches every addressable LED. Reads no hardware.
+- `Govee::ensure_known` — make one device reachable before the first command. It
+  scans only where a scan is needed, over the modes that device enables.
+- `ensure_known` looks over those modes at the same time and answers the first
+  mode in that list. See [`../../docs/modes.md`](../../docs/modes.md).
 
 ### Changed
 
 - `paths::config_file_from` reads `GOVEE_CONFIG` from an `Env`, so `.env` can
-  name the configuration file. `Config::load` goes through it.
-  `paths::config_file` keeps reading the process environment alone.
-- `CloudConfig::key` and `CloudConfig::transport_options` take the `Env` to
-  read through, so the API key reaches them from `.env` as well as from the
-  environment. The environment still wins over `.env`, and `.env` over
-  `cloud.key_file`.
-- Only `GOVEE_*` names are read, and a blank value counts as a placeholder. The
-  values are never exported into the process environment: `Env` is a value the
-  caller reads through, so nothing a process launches inherits the key and a
-  test needs no process-wide variable.
+  name the configuration file. `paths::config_file` reads the environment alone.
+- `CloudConfig::key` and `CloudConfig::transport_options` take the `Env` to read
+  through. The environment wins over `.env`, and `.env` over `cloud.key_file`.
+- Only `GOVEE_*` names are read, and a blank value counts as a placeholder.
+- The `.env` values never reach the process environment, so nothing a process
+  launches inherits the key and a test needs no process-wide variable.
 - `stream::Zones` is `stream::Resolution`, and `StreamOptions::zones` is
-  `StreamOptions::resolution`. One word, one meaning: a zone list names which
-  zones a frame paints, and a resolution says how many zones it states.
-  `SegmentStream::zones` keeps its name — it answers a count.
-- **Breaking:** `Transport` carries `scan_for(id, window)`, which looks for one
-  device and answers as soon as it is found. Implement it on any transport
-  built outside this crate. `lan` returns at the device's reply, `ble` reads
-  what the adapter heard every 200 ms, and `cloud` lists the account, where one
-  request answers for every device and there is nothing earlier to wait for.
+  `StreamOptions::resolution`. `SegmentStream::zones` keeps its name.
+- **Breaking:** `Transport` carries `scan_for(id, window)`, which answers as
+  soon as the device is found. Implement it on any transport of your own.
+- `lan` returns at the device's reply, `ble` reads what the adapter heard every
+  200 ms, and `cloud` lists the account, which answers for every device at once.
 
 ### Fixed
 
-- `DeviceHandle::open_stream` refuses `StreamOptions::gradient` set to `true`
-  over a mode whose device file carries the setting nowhere, with
-  `Error::NoRoleCommand` and the code `no_segment_command`. The stream opened
-  and painted hard-edged zones, so the call reported success for a setting the
-  device never received. The refusal reads the device file, so
-  `DeviceHandle::segment` and `DeviceHandle::open_stream` refuse the same files.
+- `DeviceHandle::open_stream` refuses `StreamOptions::gradient` over a mode
+  whose file carries the setting nowhere, with `Error::NoRoleCommand`.
+- `DeviceHandle::segment` and `DeviceHandle::open_stream` read the same device
+  file, so both refuse the same files rather than paint hard-edged zones.
 - `Govee::problems` reports an enabled mode whose credential the configuration
-  does not carry, so a caller reads it before it sends. It stays a problem and
-  not a startup error: the mode is unavailable, and a command over it fails
-  with `Error::MissingCredential`.
+  does not carry, so a caller reads it before it sends.
+- A mode with no credential stays a problem and not a startup error: a command
+  over it fails with `Error::MissingCredential`.
 - `DeviceHandle::segment` and `DeviceHandle::open_stream` wait for the segment
-  channel to arm before the first paint. The firmware renders nothing when a
-  paint follows the arming frame at once, and the channel answers nothing
-  either way, so the paint was lost and the call still reported the mode that
-  served it. The wait is `measurements.arm_settle_ms` of the device file, or a
-  conservative default where the file records none. A stream pays it once, at
-  the open, and not per frame.
+  channel to arm before the first paint, which the firmware needs to render it.
+- The wait is `measurements.arm_settle_ms`, or a conservative default. A stream
+  pays it once, at the open, and not per frame.
 
 ## [0.5.0] — 2026-09-10
 
