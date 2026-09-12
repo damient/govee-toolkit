@@ -235,6 +235,14 @@ commands:
   #   white_red   int       the RGB rendering of that temperature, where the
   #   white_green int       frame carries it. The SDK computes all three from
   #   white_blue  int       the kelvin value
+  #   effect      int       which effect a `music` command plays
+  #   sensitivity int       how loud the sound must be for that command to
+  #                         answer it
+  #   soft        int       whether that command renders in fades rather than
+  #                         on the beat
+  #   color_mode  int       whether that command imposes a color: 0 leaves the
+  #                         colors to the firmware, 1 plays the triple the
+  #                         same command marks red, green and blue
   #
   # Quote `role: "on"`: a YAML 1.1 reader takes a bare `on` for true.
   # A captured field with no role reaches the caller under the name this file
@@ -287,6 +295,11 @@ commands:
     #                   where the mode carries that outside the painting frame.
     #                   Declare it there instead of a `role: gradient`
     #                   argument. An SDK sends it when a stream opens.
+    #   music           plays an effect the device renders from its own
+    #                   microphone. The effect identifiers are the mode's own:
+    #                   the same number names another effect over another
+    #                   mode. No entry stops the effect — an SDK ends it with
+    #                   another command.
     #
     # Four more put a device on a Wi-Fi network. An SDK runs them in one
     # order that no key here expresses: wake, wait, transfer, release. Declare
@@ -329,6 +342,12 @@ commands:
     #                   mask with bits past the last zone in silence.
     #   segment_gradient
     #                   one marked `role: gradient`.
+    #   music           one argument marked `role: effect`. The SDK also
+    #                   supplies the ones marked `role: sensitivity`,
+    #                   `role: soft`, `role: color_mode`, `role: red`,
+    #                   `role: green` and `role: blue`, where this file
+    #                   declares them. Declare the last four together or not
+    #                   at all.
     #   wifi_link       one marked `role: enable`.
     #   wifi_api_type   one captured field marked `role: api_type`. A second,
     #                   `role: hide_ssid`, records whether the device wants the

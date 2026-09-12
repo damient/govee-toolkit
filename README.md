@@ -29,7 +29,7 @@ to it the same way, directly.
 | **On/off, brightness, color** | From a script, a keyboard shortcut, a home automation — anything that can run code. |
 | **Every segment of a strip, individually** | The app offers a set of preset effects. Here you address the LED zones yourself. |
 | **Animation in real time** | Feed a stream of frames and drive the strip frame by frame: music reactive, screen ambilight, or your own source. |
-| **Entirely on your network** | Commands go straight from your machine to the device. Govee's servers are not in the path. |
+| **A new device onto your Wi-Fi** | Over Bluetooth, hand a device out of the box your network name and password. That step is what makes it reachable over Wi-Fi. |
 
 The per-segment channel is not in Govee's documentation. It was observed on
 the wire and written up in
@@ -78,7 +78,7 @@ test on yours moves the project forward.
 | Click buttons instead of writing code | The web page and the desktop app are on the [roadmap](docs/roadmap.md) | 🔜 |
 
 Whichever you pick, the commands you can send — `power`, `brightness`, `color`,
-the white temperature, the segment channel — come from your device's file in [`devices/`](devices/),
+the white temperature, the segment channel, the music effects — come from your device's file in [`devices/`](devices/),
 not from names baked into an SDK. That is why adding support for a model is
 editing one file rather than writing code in three languages.
 
@@ -92,7 +92,7 @@ per device.**
 | ---- | ----- | ----------------------- | --------------- | --- |
 | `lan` | fastest | the same Wi-Fi | everything, segments included | ✅ |
 | `ble` | fast | Bluetooth range, no Wi-Fi needed | depends on the model | ✅ |
-| `cloud` | slowest | anywhere with internet | on/off, brightness, color, segments; throttled, no animation | ✅ |
+| `cloud` | slowest | anywhere with internet | on/off, brightness, color, segments, music; throttled, no animation | ✅ |
 
 Every command reports which mode served it. Allow several modes and the SDK
 switches between them. Allow one and it stays on that one: if the device is out

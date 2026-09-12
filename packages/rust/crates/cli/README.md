@@ -21,7 +21,8 @@ Two kinds of subcommand:
   never heard of, and it carries no command name in this crate. The entry
   declares the type of every argument, so `--arg name=value` is read under that
   type and the range stays the codec's to check.
-- The verbs — `on`, `brightness`, `color`, `colortemp`, `segment` — name one.
+- The verbs — `on`, `brightness`, `color`, `colortemp`, `segment`, `music` —
+  name one.
   Each verb reaches the device file through a `role:`, so that the Node and the
   Python packages get the same verb from the core and not from a second
   implementation. A device file that claims no entry for the role fails and
@@ -39,6 +40,7 @@ Two kinds of subcommand:
 | `on`, `off`, `brightness`, `color` | The verbs, by `role:`. |
 | `colortemp <device> <kelvin>` | Set the white temperature. |
 | `segment <device> [--zones] <color>` | Paint zones one color. |
+| `music <device> <effect>` | Play an effect from the device's own microphone. |
 | `send <device> <command> --arg n=v` | One device file entry, by name. |
 | `stream <device>` | Feed the segment channel, one frame per line of stdin. |
 | `watch` | Print events as they arrive. |
@@ -48,6 +50,12 @@ Two kinds of subcommand:
 exclusive states. Where the mode carries the RGB rendering of the temperature
 in the same frame, the SDK computes it and sends both. To send another
 rendering, name the entry with `send`.
+
+`music` starts an effect and sends nothing per beat: the device listens on its
+own microphone. The effect identifiers are the mode's own, so the same number
+names another effect over another mode, and `describe` reports the range each
+mode takes. Nothing stops the effect — `on`, `off`, `color` or `colortemp`
+ends it.
 
 `segment --zones` paints the zones it names and leaves the rest alone, which
 needs a mode whose device file marks `role: segment_color_masked`. Without

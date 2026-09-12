@@ -11,7 +11,7 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 - The crate, the `govee` binary and the command surface: `scan`, `devices`,
   `describe`, `doctor`, `status`, `on`, `off`, `brightness`, `color`,
-  `colortemp`, `segment`, `send`, `stream`, `watch` and `provision`.
+  `colortemp`, `segment`, `music`, `send`, `stream`, `watch` and `provision`.
 - The verbs reach the device file through a `role:`, so no command name lives
   in this crate and a binding gets the same verb from the core. A device whose
   file claims no entry for the role fails and names the role.
@@ -34,6 +34,12 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   mode carries the RGB rendering of the temperature in the same frame, the core
   computes it and sends both. A value outside the declared range is an error,
   never a clamp.
+- `music` plays an effect the device renders from its own microphone. The
+  device listens, and nothing streams from the host. `--sensitivity` says how
+  loud the sound must be, `--soft` renders in fades rather than on the beat,
+  and `--color` imposes a color the firmware would otherwise choose. The effect
+  identifiers belong to the mode, and `describe` reports the range each mode
+  takes. Nothing stops the effect: `on`, `off`, `color` or `colortemp` ends it.
 - `stream` feeds the segment channel one frame per line of stdin: one
   `#RRGGBB`, which fills every zone, or one per zone. `--zones` takes `app`,
   `native` or a count, and `--rate` overrides the rate measured for the unit.

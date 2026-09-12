@@ -1,7 +1,7 @@
 //! Turns one parsed invocation into one run.
 
 use govee_toolkit::codec::Mode;
-use govee_toolkit::{Config, DeviceId, Govee};
+use govee_toolkit::{Config, DeviceId, Govee, Music};
 
 use crate::cli::{Cli, Command};
 use crate::output::{Failure, Writer};
@@ -69,12 +69,18 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
             color,
             gradient,
         } => {
-            let verb_of = verbs::Verb::Segment {
-                zones: zones.as_deref().map(list).transpose()?,
-                rgb: args::rgb(color)?,
-                gradient: *gradient,
-            };
-            verb(govee, writer, device, verb_of).await
+            let painting = segment(zones.as_deref(), color, *gradient)?;
+            verb(govee, writer, device, painting).await
+        }
+        Command::Music {
+            device,
+            effect,
+            sensitivity,
+            soft,
+            color,
+        } => {
+            let playing = music(*effect, *sensitivity, *soft, color.as_deref())?;
+            verb(govee, writer, device, verbs::Verb::Music(playing)).await
         }
         Command::Watch { rescan_ms } => watch::run(govee, writer, *rescan_ms, restrict).await,
         Command::Stream {
@@ -117,6 +123,26 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
             .await
         }
     }
+}
+
+/// What a person typed for one painting, with the zones and the color read
+/// under their types.
+fn segment(zones: Option<&str>, color: &str, gradient: bool) -> Result<verbs::Verb, Failure> {
+    Ok(verbs::Verb::Segment {
+        zones: zones.map(list).transpose()?,
+        rgb: args::rgb(color)?,
+        gradient,
+    })
+}
+
+/// What a person typed for one music effect, with the color read as a color.
+fn music(effect: i64, sensitivity: i64, soft: bool, color: Option<&str>) -> Result<Music, Failure> {
+    Ok(Music {
+        effect,
+        sensitivity,
+        soft,
+        color: color.map(args::rgb).transpose()?,
+    })
 }
 
 /// Run one verb against one device.
@@ -201,6 +227,7 @@ fn device_of(command: &Command) -> Option<&str> {
         | Command::Color { device, .. }
         | Command::Colortemp { device, .. }
         | Command::Segment { device, .. }
+        | Command::Music { device, .. }
         | Command::Stream { device, .. } => Some(device),
         #[cfg(feature = "ble")]
         Command::Provision { device, .. } => Some(device),

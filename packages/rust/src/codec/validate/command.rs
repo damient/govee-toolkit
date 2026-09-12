@@ -286,6 +286,7 @@ pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
         Role::WifiProvision => &WIFI_CREDENTIALS,
         Role::WifiProvisionWithApi => &WIFI_CREDENTIALS_WITH_API,
         Role::Status => &[],
+        Role::Music => &[ArgRole::Effect],
     };
     let mut problems: Vec<String> = required
         .iter()
@@ -296,6 +297,9 @@ pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
         .collect();
     if role == Role::ColorTemp {
         problems.extend(check_white_components(command));
+    }
+    if role == Role::Music {
+        problems.extend(check_imposed_color(command));
     }
     problems
 }
@@ -316,6 +320,32 @@ fn check_white_components(command: &Command) -> Vec<String> {
             format!(
                 "declares part of the white rendering but no argument marked `role: {arg_role}`"
             )
+        })
+        .collect()
+}
+
+/// The color a `role: music` entry imposes, if it imposes one. The four come
+/// together: a triple with no switch is a color the firmware never plays, and
+/// a switch with no triple selects one the frame does not carry.
+fn check_imposed_color(command: &Command) -> Vec<String> {
+    let imposed = [
+        ArgRole::ColorMode,
+        ArgRole::Red,
+        ArgRole::Green,
+        ArgRole::Blue,
+    ];
+    let declared: Vec<ArgRole> = imposed
+        .into_iter()
+        .filter(|arg_role| command.arg_for(*arg_role).is_some())
+        .collect();
+    if declared.is_empty() || declared.len() == imposed.len() {
+        return Vec::new();
+    }
+    imposed
+        .into_iter()
+        .filter(|arg_role| !declared.contains(arg_role))
+        .map(|arg_role| {
+            format!("declares part of the imposed color but no argument marked `role: {arg_role}`")
         })
         .collect()
 }

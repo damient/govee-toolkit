@@ -2,9 +2,9 @@
 //!
 //! Two kinds of subcommand live here. `send` names a device file entry and
 //! carries no command name in this crate. The verbs — `on`, `brightness`,
-//! `colortemp`, `segment` — name one, and reach the device file through a
-//! `role:` where the schema declares one, so that Node and Python get the same
-//! verb from the core rather than a second implementation.
+//! `colortemp`, `segment`, `music` — name one, and reach the device file
+//! through a `role:` where the schema declares one, so that Node and Python get
+//! the same verb from the core rather than a second implementation.
 
 use std::path::PathBuf;
 
@@ -150,6 +150,29 @@ pub(crate) enum Command {
         /// nowhere.
         #[arg(long)]
         gradient: bool,
+    },
+
+    /// Play an effect the device renders from its own microphone.
+    ///
+    /// The device listens, and nothing streams from here. The effect
+    /// identifiers are the mode's own, and `describe` reports the range each
+    /// mode takes. Nothing stops the effect: set a color, a temperature or
+    /// the power to end it.
+    Music {
+        /// The device identity.
+        device: String,
+        /// Which effect. Out of range is an error, never a clamp.
+        effect: i64,
+        /// How loud the sound must be for the device to answer it. Sent where
+        /// the device file declares the argument.
+        #[arg(long, default_value_t = 50, value_name = "LEVEL")]
+        sensitivity: i64,
+        /// Render in fades rather than on the beat.
+        #[arg(long)]
+        soft: bool,
+        /// `#RRGGBB` to impose. The firmware chooses the colors when absent.
+        #[arg(long, value_name = "COLOR")]
+        color: Option<String>,
     },
 
     /// Report everything wrong with the configuration. Reads no hardware.

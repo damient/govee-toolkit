@@ -46,6 +46,20 @@ commands:
         zones: { type: zones, count: 6, role: zones }
       notes: "See docs/protocol/ble.md."
 
+    beat:
+      documented: false
+      role: music
+      frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${imposed} ${r} ${g} ${b} <pad:20> <xor>"
+      args:
+        effect: { type: int, range: [0, 7], role: effect }
+        sensitivity: { type: int, range: [0, 99], role: sensitivity }
+        soft: { type: int, range: [0, 1], role: soft }
+        imposed: { type: int, range: [0, 1], role: color_mode }
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: "See docs/protocol/ble.md."
+
     state:
       documented: false
       role: status

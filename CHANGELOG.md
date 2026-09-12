@@ -25,6 +25,17 @@ at.
 
 #### Added
 
+- The `music` command role, and the argument roles `effect`, `sensitivity`,
+  `soft` and `color_mode` beside it. A `music` entry declares the effect
+  argument, and the SDK fills the other four where the entry declares them.
+  `cargo test` refuses an entry that declares part of the imposed color:
+  `color_mode`, `red`, `green` and `blue` come together or not at all.
+  `devices/schema.yaml` documents them.
+- `H6114` and `H61A0` claim `role: music` on their `music` entry under `ble`,
+  and `H61A0` under `cloud` as well, so `music()` reaches the entry without a
+  command name. The effect identifiers belong to the mode: the `cloud` enum
+  runs 1 to 11 and the `ble` frame takes its own sub-mode codes, and nothing
+  matches one to the other. The `lan` entries carry no music command.
 - The `color_temp` command role, and the argument roles `color_temp`,
   `white_red`, `white_green` and `white_blue` beside it. A `color_temp` entry
   declares the kelvin argument, and the three white components where the frame

@@ -113,7 +113,8 @@ pub enum ArgRole {
     Brightness,
     /// The lit color, captured from a reply, packed as `0xRRGGBB`.
     Color,
-    /// The red component to set, on a [`Role::Color`] command.
+    /// The red component to set, on a [`Role::Color`] command, or the color a
+    /// [`Role::Music`] command imposes.
     Red,
     /// The green component of the same triple.
     Green,
@@ -153,10 +154,23 @@ pub enum ArgRole {
     /// Whether provisioning must carry the hidden-network flag, captured from
     /// the same reply. No command encodes that flag yet.
     HideSsid,
+    /// Which effect a [`Role::Music`] command plays. The identifiers are the
+    /// mode's own: the same number names another effect over another mode.
+    Effect,
+    /// How loud the sound must be for a [`Role::Music`] command to answer it,
+    /// in the unit that argument's `range:` gives.
+    Sensitivity,
+    /// Whether a [`Role::Music`] command renders in fades rather than on the
+    /// beat. `1` fades. Optional: a command that declares none is sent none.
+    Soft,
+    /// Whether a [`Role::Music`] command imposes a color. `0` leaves the
+    /// colors to the firmware, `1` plays the triple the same command marks
+    /// [`ArgRole::Red`], [`ArgRole::Green`] and [`ArgRole::Blue`]. Optional.
+    ColorMode,
 }
 
 impl ArgRole {
-    pub(crate) const ALL: [Self; 23] = [
+    pub(crate) const ALL: [Self; 27] = [
         Self::Enable,
         Self::Colors,
         Self::Zones,
@@ -180,6 +194,10 @@ impl ArgRole {
         Self::ApiUrl,
         Self::ApiType,
         Self::HideSsid,
+        Self::Effect,
+        Self::Sensitivity,
+        Self::Soft,
+        Self::ColorMode,
     ];
 
     /// The argument type a device file must declare for this role.
@@ -203,7 +221,11 @@ impl ArgRole {
             | Self::TimezoneMinutes
             | Self::IotVersion
             | Self::ApiType
-            | Self::HideSsid => crate::codec::args::INT,
+            | Self::HideSsid
+            | Self::Effect
+            | Self::Sensitivity
+            | Self::Soft
+            | Self::ColorMode => crate::codec::args::INT,
             Self::Colors => crate::codec::args::RGB_LIST,
             Self::Zones => crate::codec::args::ZONES,
             Self::Network | Self::Password | Self::ApiUrl => crate::codec::args::TEXT,
@@ -237,6 +259,10 @@ impl fmt::Display for ArgRole {
             Self::ApiUrl => "api_url",
             Self::ApiType => "api_type",
             Self::HideSsid => "hide_ssid",
+            Self::Effect => "effect",
+            Self::Sensitivity => "sensitivity",
+            Self::Soft => "soft",
+            Self::ColorMode => "color_mode",
         })
     }
 }
@@ -292,10 +318,16 @@ pub enum Role {
     /// The same, plus an argument marked [`ArgRole::ApiUrl`]. The SDK sends
     /// this one when [`Role::WifiApiType`] reports a type.
     WifiProvisionWithApi,
+    /// Plays an effect the device renders from its own microphone. Must
+    /// declare an argument marked [`ArgRole::Effect`]. The SDK fills the ones
+    /// marked [`ArgRole::Sensitivity`], [`ArgRole::Soft`],
+    /// [`ArgRole::ColorMode`], [`ArgRole::Red`], [`ArgRole::Green`] and
+    /// [`ArgRole::Blue`] where the entry declares them.
+    Music,
 }
 
 impl Role {
-    pub(crate) const CLAIMABLE: [Self; 13] = [
+    pub(crate) const CLAIMABLE: [Self; 14] = [
         Self::Status,
         Self::Power,
         Self::Brightness,
@@ -309,6 +341,7 @@ impl Role {
         Self::WifiApiType,
         Self::WifiProvision,
         Self::WifiProvisionWithApi,
+        Self::Music,
     ];
 }
 
@@ -328,6 +361,7 @@ impl fmt::Display for Role {
             Self::WifiApiType => "wifi_api_type",
             Self::WifiProvision => "wifi_provision",
             Self::WifiProvisionWithApi => "wifi_provision_with_api",
+            Self::Music => "music",
         })
     }
 }
