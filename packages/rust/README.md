@@ -1,41 +1,52 @@
 # govee-toolkit
 
-[![crates.io](https://img.shields.io/crates/v/govee-toolkit?logo=rust&logoColor=white&label=crates.io)](https://crates.io/crates/govee-toolkit)
+Control Govee devices from Rust over the LAN, over Bluetooth or through the
+cloud, including undocumented commands observed on the wire.
+
+**Documentation: [gvetk.com](https://gvetk.com)**
+
+[![govee-toolkit on crates.io](https://img.shields.io/crates/v/govee-toolkit?logo=rust&logoColor=white&label=crates.io)](https://crates.io/crates/govee-toolkit)
+[![docs.rs](https://img.shields.io/docsrs/govee-toolkit?logo=docsdotrs&logoColor=white&label=docs.rs)](https://docs.rs/govee-toolkit)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 
-Control Govee devices from Rust over the LAN, over Bluetooth or through the
-cloud, including undocumented commands observed on the wire. Unofficial, and not affiliated
-with Govee.
+> Community project. Not affiliated with, sponsored by or endorsed by Govee.
 
 This is the reference implementation. Protocol logic lives here once, and every
-other language reaches it through a binding rather than a port — see
-[`docs/architecture.md`][architecture].
+other language reaches it through a binding rather than a port.
+
+## Start here
+
+| You want to | Go to |
+| ----------- | ----- |
+| Install it and send a first command | [gvetk.com/docs/start](https://gvetk.com/docs/start/) |
+| Know whether your model works | [gvetk.com/devices](https://gvetk.com/devices/) |
+| Pick and configure the modes | [gvetk.com/docs/modes](https://gvetk.com/docs/modes/) |
+| Read every command and method | [gvetk.com/reference](https://gvetk.com/reference/) |
+| Read the API item by item | [docs.rs/govee-toolkit](https://docs.rs/govee-toolkit) |
+
+## What it does
+
+- Switch a device on and off, and set the brightness, the color and the white
+  temperature.
+- Address every segment of a strip on its own, not only the preset effects.
+- Drive a strip frame by frame in real time, over `lan` or over `ble`.
+- Put a device out of the box on your Wi-Fi over Bluetooth.
+- Read what a device answers, including the fields this crate does not model.
 
 ## Install
 
 ```bash
 cargo add govee-toolkit
-```
-
-Async, on Tokio. The `lan` feature is on by default and brings the UDP
-transport with it. `ble` is off by default and brings the GATT transport, which
-needs a Bluetooth adapter on the host. `cloud` is off by default and brings the
-HTTPS transport, which needs a Govee API key. Turn every feature off and what
-is left is the codec alone — arguments in, bytes out, no socket and no runtime.
-
-```bash
 cargo add govee-toolkit --features ble,cloud
 ```
 
-On Linux the `ble` feature reaches the radio through BlueZ over D-Bus, so the
-build needs the dbus headers: `apt install libdbus-1-dev`, or the equivalent
-package for your distribution. macOS and Windows carry their radio stack in the
-platform SDK and need nothing.
+Async, on Tokio. `lan` is on by default. `ble` needs a Bluetooth adapter, and
+the dbus headers on Linux (`apt install libdbus-1-dev`). `cloud` needs a Govee
+API key. Turn every feature off and what is left is the codec alone — arguments
+in, bytes out, no socket and no runtime.
 
 ## Quick start
-
-Discover what is on the network, then turn something on:
 
 ```rust
 use govee_toolkit::{Args, Config, Govee};
@@ -43,11 +54,8 @@ use govee_toolkit::{Args, Config, Govee};
 let govee = Govee::start(Config::load()?).await?;
 
 let devices = govee.scan().await?;
-for device in &devices {
-    println!("{} — {} — modes {:?}", device.id, device.sku, device.modes);
-}
-
 let id = devices[0].id.clone();
+
 let served = govee
     .device(&id)
     .send("power", &Args::new().int("on", 1))
@@ -56,204 +64,19 @@ let served = govee
 println!("served over {}", served.mode);
 ```
 
-`Served` carries the mode that ran the command, the device file entry that was
-sent and the `cmd` that went on the wire. With several modes enabled, a caller
-reads which mode served a command rather than guesses it.
+Command names — `power`, `brightness`, `color` — are entries in the device's
+YAML file in [`devices/`][devices], not identifiers in this crate. A name a
+device does not define, or an argument outside its declared range, is an error
+before anything reaches the network. A command carries the same name across
+modes; its arguments do not, because the frames differ.
 
-### The commands you can send
+`govee.catalog()` reports what a SKU declares for a mode, so a user interface
+builds its controls from the catalog rather than from a hardcoded list.
 
-Command names are entries in the device's YAML file, not identifiers in this
-crate. For the H61A0 over `lan`:
-
-```rust
-govee.device(&id).send("power",      &Args::new().int("on", 0)).await?;
-govee.device(&id).send("brightness", &Args::new().int("level", 60)).await?;
-govee.device(&id).send("color",      &Args::new().int("r", 255).int("g", 40).int("b", 0)).await?;
-govee.device(&id).send("colortemp",  &Args::new().int("kelvin", 4000)).await?;
-```
-
-**A command carries the same name across modes; its arguments do not.** The
-device file declares them per mode, because the frames differ. The SDK picks the
-mode before it encodes anything. The same four commands over `ble`:
-
-```rust
-let zones: Vec<u16> = (0..15).collect();
-
-govee.device(&id).send("power",      &Args::new().int("on", 0)).await?;
-govee.device(&id).send("brightness", &Args::new().int("level", 60)).await?;
-// One color over the zones a mask names, rather than the whole strip.
-govee.device(&id).send("color",      &Args::new().rgb("colors", [[255, 40, 0]]).zones("zones", zones.clone())).await?;
-// The firmware renders no temperature here: ship the kelvin value and its RGB
-// rendering in the same frame, or the zones go dark.
-govee.device(&id).send("colortemp",  &Args::new().int("kelvin", 4000).int("white_r", 255).int("white_g", 209).int("white_b", 163).zones("zones", zones)).await?;
-```
-
-Give the `ble` command the `lan` arguments and it fails before anything reaches
-the wire — `unknown_arg` for `r`, `missing_arg` for `zones`. It never sends a
-frame with a guessed field.
-
-`govee.catalog()` lists what a SKU declares **for a mode**, so a UI can build
-its controls from the catalog rather than hardcoding them. A name the device
-file does not define, or an argument outside its declared range, is an error
-before anything reaches the network.
-
-Three runnable examples send every command of one device file, in order, to a
-real device: [`examples/lan_tour.rs`](examples/lan_tour.rs),
+Three runnable examples send every command of one device file to a real device:
+[`examples/lan_tour.rs`](examples/lan_tour.rs),
 [`examples/ble_tour.rs`](examples/ble_tour.rs) and
 [`examples/cloud_tour.rs`](examples/cloud_tour.rs).
-
-```bash
-cargo run --example lan_tour
-cargo run --example ble_tour --features ble
-cargo run --example cloud_tour --features cloud   # the key comes from `.env`
-```
-
-### Reading state
-
-```rust
-let status = govee.device(&id).status().await?;   // round-trips to the device
-println!("{:?} at {:?}%", status.on, status.brightness);
-
-let cached = govee.device(&id).last_status();     // no I/O, may be None
-```
-
-`status.raw` keeps everything the answer carried — the whole `msg.data` on a
-mode that replies in JSON, every captured field on one that replies in frames —
-so a caller reaches undocumented fields this crate does not model.
-
-Anything the SDK does not model reaches a caller through `read`, on a mode whose
-device file declares the layout of an answer. The names below are the file's:
-
-```rust
-let reply = govee.device(&id).read("read_software_version", &Args::new()).await?;
-println!("{}", reply.fields.to_json());          // {"version":"2.06.02"}
-```
-
-The device file decides which frame asks for a value, which bytes carry it and
-under which name. `read` fails with `no_reply_layout` in two cases:
-
-- the command declares no answer to read;
-- the mode replies in JSON rather than in frames.
-
-### Painting zones
-
-One paint states the color of every zone, in one frame:
-
-```rust
-use govee_toolkit::{Paint, Resolution};
-
-// One color over every zone the Govee app exposes.
-govee.device(&id).segment(&Paint {
-    zones: None,
-    colors: &[[255, 61, 0]],
-    resolution: Resolution::App,
-    gradient: false,
-}).await?;
-
-// One color per LED, on a mode that addresses them.
-let colors: Vec<[u8; 3]> = (0..42).map(wheel).collect();
-govee.device(&id).segment(&Paint {
-    zones: None,
-    colors: &colors,
-    resolution: Resolution::Native,
-    gradient: false,
-}).await?;
-```
-
-- One color fills every zone. A longer list states one zone each, and must be
-  as long as the count the resolution resolves.
-- `zones: Some(&[0, 1, 2])` paints those zones and leaves the rest alone. That
-  needs a mode whose device file paints by mask, and it takes one color.
-- A count the unit renders as a smaller one fails with
-  `resolution_not_distinct`, which names the counts it refines at. The firmware
-  groups the LEDs to serve the count, and an SDK that let it do so would report
-  a frame the device never showed.
-
-### Segment streaming
-
-The segment channel is armed once and then fed frames. Writes never block: a
-source faster than the device replaces its own pending frame rather than waits
-behind it.
-
-```rust
-use govee_toolkit::{Rate, Resolution, StreamOptions};
-
-let stream = govee
-    .device(&id)
-    .open_stream(StreamOptions { resolution: Resolution::App, rate: Rate::Measured, gradient: false })
-    .await?;
-
-for step in 0.. {
-    let frame: Vec<[u8; 3]> = (0..stream.zones())
-        .map(|z| wheel(z + step))
-        .collect();
-    stream.set_all(&frame)?;
-}
-
-stream.close().await?;
-```
-
-- `Resolution::App` matches what the Govee app exposes. `Resolution::Native`
-  addresses every LED, and fails when nobody has measured that number on the
-  unit — it belongs to the physical strip, not to the SKU.
-  `Resolution::Exact(n)` picks a count, and fails where the unit renders it as a
-  smaller one.
-- `Rate::Measured` paces from `measurements.frame_rate` in the device file for
-  the mode the stream opens on, falling back to 10 Hz when it records none
-  there. That fallback is a starting point, not a finding: measure your unit and
-  record it.
-- A mode whose device file paints zones by mask carries one color per frame, so
-  a repaint costs one write per distinct color: a solid fill is one write. Such
-  a mode addresses the zones the device file declares, and refuses
-  `Resolution::Native`: the firmware would trim such a mask in silence.
-- `frames_sent()` and `frames_superseded()` tell you whether your source is
-  outrunning the device.
-
-## Configuration
-
-`Config::load()` reads `~/.config/govee-toolkit/config.yaml`
-(`$XDG_CONFIG_HOME` and `GOVEE_CONFIG` override the location, and `GOVEE_CONFIG`
-can live in `.env`). Devices are keyed
-by the MAC they report in a discovery reply, so a renewed DHCP lease does not
-lose them.
-
-```yaml
-defaults:
-  modes: [lan]
-
-devices:
-  "AA:BB:CC:DD:EE:FF":
-    modes: [lan]
-    name: "desk strip"
-```
-
-`Config::load_from(path)` takes an explicit file, and `govee.problems()` returns
-what the configuration got wrong without failing the whole load. The full model
-is [`docs/modes.md`][modes].
-
-`ble` and `cloud` each need the crate built with the feature of that name, and
-`cloud` also needs an API key, in `GOVEE_API_KEY`, in a `.env` file, or in the
-file `cloud.key_file` names. An enabled mode this build cannot carry is reported
-as `ModeNotImplemented`, and one it carries without a credential as
-`MissingCredential` — never silently skipped, never substituted.
-
-### Variables and `.env`
-
-`Config::load()` also collects the `GOVEE_*` variables into `config.env`. It
-reads the process environment, then the first `.env` the search finds: it starts
-in the working directory and goes up, it stops after the directory that holds
-`.git` or after the home directory, and it reads
-`~/.config/govee-toolkit/.env` last. `GOVEE_ENV_FILE` names one file and
-replaces the search.
-
-A missing file is not an error, since `lan` and `ble` need no credential. The
-process environment wins over the file, only `GOVEE_*` names are read, and a
-blank value counts as a placeholder.
-
-Nothing is exported into the process environment: `Env` is a value the caller
-reads through. `Config::load_from_with(path, env)` takes one the caller built —
-`Env::process()` ignores every file, `Env::from_file(path)` names one, and
-`Env::from_pairs` takes values from a store of your own.
 
 ## What this crate will not do to you
 
@@ -268,21 +91,6 @@ reads through. `Config::load_from_with(path, env)` takes one the caller built �
 - **It never overrides a device file silently.** `Catalog::overlay` returns
   everything it replaced.
 
-## Testing without hardware
-
-`govee-toolkit-sim` is a fake device on the loopback with ephemeral ports. It
-answers discovery and status requests, records everything else, and can be told
-to go silent, to answer late or to drop replies — which is how the breaker's
-transitions are exercised end to end in CI.
-
-```bash
-cargo run -p govee-toolkit-sim -- --sku H61A0 --ip 192.0.2.10   # on the real ports
-```
-
-It plays the wire, not the firmware: it does not interpret writes, because
-modelling what each command means would put per-SKU semantics in Rust, which is
-the one thing this project keeps in `devices/*.yaml`.
-
 ## Inside the crate
 
 | Layer | Where | Contents |
@@ -294,90 +102,29 @@ the one thing this project keeps in `devices/*.yaml`.
 | Stream | [`src/stream/`](src/stream) | The segment channel: armed once, fed frames on a clock |
 | Facade | [`src/`](src) | Configuration, mode selection, events |
 
-Two more live beside it and are never published:
-[`crates/sim`](crates/sim), a fake device on UDP and a fake peripheral on
-GATT, both with fault injection, and
-[`crates/xtask`](crates/xtask), which generates the distributable catalog.
-
-The layering is deliberate even though it is one crate. The codec does no I/O,
-so every protocol decision is testable without hardware and without a network —
-`tools/check-no-io.sh` fails the build if anything under `src/codec/` imports a
-socket, a runtime or the filesystem. A transport carries bytes for one mode
-and never chooses between modes. Choosing is the facade's job, and it chooses
-from breaker state already recorded, never by trying a mode and waiting for a
-timeout.
-
-```bash
-cargo check --no-default-features   # the codec alone, no lan feature
-```
-
-### The device catalog is compiled in
-
-`build.rs` embeds every `devices/*.yaml` into the binary, so an SDK ships as one
-artifact with no data directory to install. This is deliberate, and the
-trade-off is accepted: **a new SKU arrives with a release**, not with a file
-someone dropped on their disk, so what one person measured on one unit does not
-quietly become what everyone else's device is assumed to do.
-
-A file declaring a `schema_version` this build does not implement is refused
-outright — reading it under the rules of another revision is the silent kind of
-wrong this project does not do.
-
-`GOVEE_DEVICES_DIR` overrides where the files are read from at build time. It is
-also how the crate is built once published: `cargo package` cannot reach above
-the manifest, so the release vendors `devices/` in beside it first.
-
-```bash
-cargo run -p xtask            # writes dist/catalog.json
-```
-
-One generated JSON file holding every device, for anything that wants the
-catalog without a YAML parser. It is a build output: never committed, produced
-by CI, attached to a release.
-
-### Running a device file that has not shipped
-
-`Catalog::overlay()` replaces catalog entries with locally supplied files —
-someone probing a SKU that has not shipped yet, or correcting one that is wrong
-on their unit:
-
-```rust
-let mut catalog = Catalog::embedded()?;
-for replaced in catalog.overlay(local_files)? {
-    tracing::warn!(%replaced.sku, was = %replaced.was, now = %replaced.now, "device file overridden");
-}
-let govee = Govee::start_with(Config::load()?, catalog).await?;
-```
-
-It is **opt-in** — nothing reads a local directory on its own — and **visible**:
-`overlay` returns what it replaced, so an override can never go unnoticed.
+The codec does no I/O, so every protocol decision is testable without hardware
+and without a network. A transport carries bytes for one mode and never chooses
+between modes. [`docs/architecture.md`][architecture] explains why, and covers
+the compiled-in catalog and the device simulator that tests it.
 
 ## Working on it
 
 ```bash
 ../../tools/qa.sh                             # everything CI runs
+cargo run -p govee-toolkit-sim -- --sku H61A0 # a fake device, no hardware
 ```
 
-Individually:
+Two conventions to know before you open a pull request: no SKU and no command
+name appears in Rust code, and every command in the catalog carries a
+conformance vector under `tests/fixtures/golden/`.
+[`CONTRIBUTING.md`][contributing] covers the rest.
 
-```bash
-cargo test --workspace --all-features         # unit, conformance and doc tests
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo check --no-default-features             # the codec still builds alone
-cargo +nightly fmt --all --check              # nightly: rustfmt.toml needs it
-cargo deny check                              # licenses and advisories
-```
+## License
 
-`rust-toolchain.toml` pins the channel; `rustup` installs it on first build.
-`rustfmt.toml` uses options only nightly implements, so stable `cargo fmt` will
-disagree with CI.
-
-Two conventions to know before opening a pull request: no SKU and no command
-name appears in Rust code — everything specific to a device is in
-`devices/*.yaml` — and every command in the catalog has a conformance vector
-under `tests/fixtures/golden/`, with `cargo test` failing if one does not.
+[MIT](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 
 <!-- Absolute: this file is the crate description on crates.io, where a
      relative link out of the package directory is dead. -->
 [architecture]: https://github.com/damient/govee-toolkit/blob/main/docs/architecture.md
-[modes]: https://github.com/damient/govee-toolkit/blob/main/docs/modes.md
+[contributing]: https://github.com/damient/govee-toolkit/blob/main/CONTRIBUTING.md
+[devices]: https://github.com/damient/govee-toolkit/tree/main/devices

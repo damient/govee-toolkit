@@ -1,35 +1,26 @@
 # govee-toolkit (Node.js)
 
-[![npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/govee-toolkit)
+Control Govee devices over the LAN from Node.js or TypeScript, including
+undocumented commands observed on the wire.
+
+**Documentation: [gvetk.com](https://gvetk.com)**
+
+[![govee-toolkit on npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/govee-toolkit)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 
-Control Govee devices over the LAN from Node.js or TypeScript, including
-undocumented commands observed on the wire. Unofficial, and not affiliated
-with Govee.
+> Community project. Not affiliated with, sponsored by or endorsed by Govee.
 
 > 🚧 **Being built.** The version on npm today is a `0.0.0` placeholder holding
-> the name. What is described below is the interface this package ships with;
-> the engine it binds to is working and verified on hardware, in
+> the name. The engine it binds to is working and verified on hardware, in
 > [`packages/rust`][rust]. Watch the repository to hear when it lands.
 
 ## What it will be
 
 A napi-rs binding over the Rust core — not a reimplementation. The protocol is
 written once, so this package cannot drift from it: both are held to the same
-conformance vectors, arguments in and exact bytes out.
-
-Concretely that means no JavaScript-side protocol code, no `dgram` socket
-handling to maintain, and the same undocumented segment channel the Rust crate
-has. Types ship with the package.
-
-```bash
-npm install govee-toolkit   # 🔜 not yet — placeholder version on npm today
-```
-
-Prebuilt binaries per platform, so there is no Rust toolchain to install.
-
-## The shape it ships with
+conformance vectors, arguments in and exact bytes out. Prebuilt binaries per
+platform, so there is no Rust toolchain to install. Types ship with the package.
 
 ```ts
 // 🔜 Planned interface, mirroring the Rust API.
@@ -46,32 +37,29 @@ console.log("served over", served.mode);
 ```
 
 Command names — `power`, `brightness`, `color` — are entries in the device's
-YAML file in [`devices/`][devices], not identifiers in this package. A name a
-device does not define, or an argument outside its declared range, is an error
-before anything reaches the network.
+YAML file, not identifiers in this package. A name a device does not define, or
+an argument outside its declared range, is an error before anything reaches the
+network.
 
-## Modes
-
-`lan` is the default. `ble` and `cloud` are opt-in and enabled per device by the
-user, in the shared config file — see [`docs/modes.md`][modes]. Enabling a mode
-that has no transport yet is reported as such, never silently skipped.
-
-## Who else uses it
-
-This package is the transport for the rest of the JavaScript side:
+This package is also the transport for the rest of the JavaScript side:
 `apps/playground`, `apps/desktop`, `packages/artnet-dmx-bridge` and
-`integrations/homebridge`. None of them carry protocol code of their own — which
-is why they wait on this package rather than shipping first.
+`integrations/homebridge`. None of them carry protocol code of their own.
 
 ## Meanwhile
 
-- The same operations work today from Rust: [`packages/rust`][rust].
-- Confirming whether your own device model works needs no code at all:
-  [`devices/README.md`][devices-readme].
+| You want to | Go to |
+| ----------- | ----- |
+| Send a command today, from Rust or the terminal | [gvetk.com/docs/start](https://gvetk.com/docs/start/) |
+| Know whether your model works | [gvetk.com/devices](https://gvetk.com/devices/) |
+| Pick and configure the modes | [gvetk.com/docs/modes](https://gvetk.com/docs/modes/) |
+| Read every command and method | [gvetk.com/reference](https://gvetk.com/reference/) |
+| Report a device, or add one | [`devices/README.md`][devices-readme] |
+
+## License
+
+[MIT](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 
 <!-- Absolute: this file is the package description on npm, where a relative
      link out of the package directory is dead. -->
 [rust]: https://github.com/damient/govee-toolkit/tree/main/packages/rust
-[modes]: https://github.com/damient/govee-toolkit/blob/main/docs/modes.md
-[devices]: https://github.com/damient/govee-toolkit/tree/main/devices
 [devices-readme]: https://github.com/damient/govee-toolkit/blob/main/devices/README.md
