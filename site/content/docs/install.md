@@ -2,29 +2,13 @@
 title: Install
 slug: install
 order: 2
-description: The command line, the Rust crate, and where the Python and Node.js packages stand.
+description: The Rust crate, the command line, and where the Python and Node.js packages stand.
 ---
 
 # Install
 
-The command line needs no code. The Rust crate is the reference
-implementation. Python and Node.js bind to that same core and are not released
-yet.
-
-## Command line <span class="state ok">Available</span>
-
-The binary is `govee`. It holds no protocol logic: it reads the device files
-through the crate.
-
-<div class="terminal">
-<pre><code><span class="prompt">$</span> cargo install govee-toolkit-cli
-<span class="prompt">$</span> govee scan
-<span class="prompt">$</span> govee on living-room
-<span class="prompt">$</span> govee color living-room "#ff3d00"</code></pre>
-<button class="copy" type="button" data-copy="cargo install govee-toolkit-cli">Copy</button>
-</div>
-
-[Every command, with an example in each language]({{base}}reference/)
+The Rust crate is the reference implementation. The command line needs no
+code. Python and Node.js bind to that same core and are not released yet.
 
 ## Rust <span class="state ok">Available</span>
 
@@ -52,6 +36,21 @@ need nothing.
 
 [Crate documentation]({{repo}}/tree/main/packages/rust) ·
 [crates.io](https://crates.io/crates/govee-toolkit)
+
+## Command line <span class="state ok">Available</span>
+
+The binary is `govee`. It holds no protocol logic: it reads the device files
+through the crate.
+
+<div class="terminal">
+<pre><code><span class="prompt">$</span> cargo install govee-toolkit-cli
+<span class="prompt">$</span> govee scan
+<span class="prompt">$</span> govee on living-room
+<span class="prompt">$</span> govee color living-room "#ff3d00"</code></pre>
+<button class="copy" type="button" data-copy="cargo install govee-toolkit-cli">Copy</button>
+</div>
+
+[Every command, with an example in each language]({{base}}reference/)
 
 ## Python <span class="state soon">Planned</span>
 

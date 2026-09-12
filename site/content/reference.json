@@ -1,5 +1,5 @@
 {
-  "intro": "Every command the toolkit carries, with the same action in each language. Rust is released. The command line is released. Python and Node.js bind to the same core and are not released yet, so their examples show the shape they will have.",
+  "intro": "Every command the toolkit carries, with the same action in each language. Python and Node.js bind to the same core and are not released yet, so their examples show the shape they will have.",
   "groups": [
     {
       "id": "find",
