@@ -19,6 +19,9 @@ rust="$root/packages/rust"
 export PATH="$HOME/.cargo/bin:$PATH"
 export CARGO_TERM_COLOR=always
 export RUSTFLAGS=${RUSTFLAGS:--D warnings}
+# Each check builds the workspace once, so the incremental artifacts are never
+# read again. They are gibibytes per run.
+export CARGO_INCREMENTAL=${CARGO_INCREMENTAL:-0}
 
 MSRV=$(sed -n 's/^rust-version *= *"\([^"]*\)".*/\1/p' "$rust/Cargo.toml" | head -1)
 
@@ -133,9 +136,13 @@ for i in "${!names[@]}"; do
 done
 printf '%d failed, %d skipped, %d total\n' "$failed" "$skipped" "${#names[@]}"
 
+# The sweep runs whether or not a check failed: a failed run builds the same
+# artifacts as a run that passes, and a person who iterates on one failure
+# fills the disk.
+#
 # A single-check run ($1 given) leaves the artifacts alone: it built a fraction
 # of them, so the sweep would remove what the other checks need.
-if [ "$failed" -eq 0 ] && [ -z "$only" ]; then
+if [ -z "$only" ]; then
   echo
   "$root/tools/clean-target.sh"
 fi

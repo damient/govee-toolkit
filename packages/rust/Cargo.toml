@@ -170,6 +170,11 @@ dbg_macro = "warn"
 print_stdout = "warn"
 print_stderr = "warn"
 
+[profile.dev]
+# Full DWARF is three quarters of a debug rlib. The line tables keep a
+# backtrace readable and cost a fraction of the disk.
+debug = "line-tables-only"
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

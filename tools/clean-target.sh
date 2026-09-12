@@ -4,12 +4,20 @@
 # not this. cargo-sweep reads the access time of each artifact, so it keeps
 # what the last build touched and costs no cold rebuild.
 #
+# cargo-sweep reads the build artifacts only. It leaves `target/*/incremental/`
+# alone, and those session directories are the larger half of the cache, so
+# this script removes them itself. It keeps the QA_KEEP_INCREMENTAL most recent
+# sessions of each crate (default 1), because that cache is what makes the next
+# build after an edit fast. Every older session belongs to a build
+# configuration that nothing runs again.
+#
 # Usage:
 #   tools/clean-target.sh --stamp      record the time, before a build
 #   tools/clean-target.sh              remove what the stamped build left behind
 #   tools/clean-target.sh --maxsize 5G remove the oldest until target fits
 #   tools/clean-target.sh --force      full cargo clean, whatever the size
 #   tools/clean-target.sh --dry-run    report what a run would remove
+#   tools/clean-target.sh --keep-incremental 0   drop every incremental session
 #
 # Without cargo-sweep the script falls back to a full clean above
 # QA_CLEAN_ABOVE_GIB gibibytes (default 5):
@@ -22,6 +30,7 @@ rust="$root/packages/rust"
 export PATH="$HOME/.cargo/bin:$PATH"
 
 above=${QA_CLEAN_ABOVE_GIB:-5}
+keep_incremental=${QA_KEEP_INCREMENTAL:-1}
 mode=sweep
 maxsize=
 dry_run=no
@@ -45,6 +54,11 @@ while [ $# -gt 0 ]; do
     shift
     ;;
   --above=*) above=${1#*=} ;;
+  --keep-incremental)
+    keep_incremental=${2:-}
+    shift
+    ;;
+  --keep-incremental=*) keep_incremental=${1#*=} ;;
   -h | --help)
     awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"
     exit 0
@@ -57,7 +71,53 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+case $keep_incremental in
+'' | *[!0-9]*)
+  echo "$0: --keep-incremental wants a whole number, got: '$keep_incremental'" >&2
+  exit 2
+  ;;
+esac
+
 have_sweep() { cargo sweep --version >/dev/null 2>&1; }
+
+# Removes the incremental sessions, and keeps the newest of each crate. A
+# session directory is named `<crate>-<hash>`, where the hash covers the build
+# configuration: one crate has one session per configuration, and only the
+# configuration a person builds by hand is read again.
+prune_incremental() {
+  local dir session
+  for dir in "$rust"/target/*/incremental; do
+    [ -d "$dir" ] || continue
+    # ls -t sorts by the last use, newest first.
+    ls -t "$dir" | awk -v keep="$keep_incremental" '
+      { crate = $0; sub(/-[^-]*$/, "", crate); if (++seen[crate] > keep) print }
+    ' | while IFS= read -r session; do
+      if [ "$dry_run" = yes ]; then
+        printf '%s\n' "$dir/$session"
+      else
+        rm -rf "${dir:?}/${session:?}"
+      fi
+    done
+  done
+}
+
+# cargo-sweep takes a whole number of mebibytes. Accept the K, M and G suffixes
+# a person writes, and convert them.
+to_mib() {
+  local value=$1 number=${1%[KkMmGg]} suffix=${1#"${1%?}"}
+  case $value in
+  *[!0-9KkMmGg]* | '' | *[0-9]*[KkMmGg]*[0-9]*)
+    echo "$0: --maxsize wants a size, such as 5G" >&2
+    exit 2
+    ;;
+  esac
+  case $suffix in
+  K | k) printf '%d' "$((number / 1024))" ;;
+  M | m) printf '%d' "$number" ;;
+  G | g) printf '%d' "$((number * 1024))" ;;
+  *) printf '%d' "$value" ;;
+  esac
+}
 
 # The stamp is written before a build, so it runs whether or not target exists.
 if [ "$mode" = stamp ]; then
@@ -117,13 +177,17 @@ if [ "$mode" = maxsize ]; then
     echo "$0: --maxsize wants a size, such as 5G" >&2
     exit 2
   fi
-  sweep+=(--maxsize "$maxsize")
+  sweep+=(--maxsize "$(to_mib "$maxsize")")
+  prune_incremental
 elif [ -f "$rust/sweep.timestamp" ]; then
-  # Everything the stamped build did not touch.
+  # Everything the stamped build did not touch. The prune runs first: the
+  # sweep removes the stamp file.
+  prune_incremental
   sweep+=(--file)
 else
   # No stamp: keep what the installed toolchains built, drop the rest.
   echo "no sweep.timestamp, keeping the artifacts of the installed toolchains"
+  prune_incremental
   sweep+=(--installed)
 fi
 
