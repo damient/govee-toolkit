@@ -90,7 +90,8 @@ pub struct Ble {
 
 /// Numbers taken from one physical unit.
 ///
-/// The SDK reads [`Measurements::frame_rate`], [`Ble::write_budget_hz`] and
+/// The SDK reads [`Measurements::frame_rate`],
+/// [`Measurements::resolution_changepoints`], [`Ble::write_budget_hz`] and
 /// [`Ble::write_drain_ms`].
 /// Everything else a device file records lands in [`Measurements::extra`],
 /// untouched.
@@ -101,6 +102,13 @@ pub struct Measurements {
     pub unit_length_m: Option<f64>,
     /// Addressable LEDs counted on that unit.
     pub native_pixels: Option<u32>,
+    /// Every zone count at which the rendering of this unit refines.
+    ///
+    /// The firmware groups the LEDs into blocks to serve the count a frame
+    /// asks for, so a count between two of these values renders as the lower
+    /// one. Empty where nobody swept the counts. See
+    /// `docs/protocol/lan.md` 2.3.
+    pub resolution_changepoints: Vec<u32>,
     /// Sustainable segment frame rates, by mode and zone count.
     pub frame_rate: FrameRates,
     /// What one unit did over `ble`.
@@ -125,6 +133,23 @@ impl Measurements {
             .min_by_key(|row| row.zones)
             .or_else(|| rows.iter().max_by_key(|row| row.zones))
             .map(|row| row.clean_hz)
+    }
+
+    /// The largest count at or under `zones` that renders differently from
+    /// the one before it, where the unit was swept.
+    ///
+    /// `None` where nobody swept the counts, and `Some(zones)` where `zones`
+    /// is itself one of them. A smaller value than `zones` says the firmware
+    /// groups the LEDs the same way for both, so the frames past that count
+    /// state colors the unit cannot show apart.
+    #[must_use]
+    pub fn renders_as(&self, zones: u32) -> Option<u32> {
+        self.resolution_changepoints
+            .iter()
+            .filter(|point| **point <= zones)
+            .max()
+            .copied()
+            .or_else(|| self.resolution_changepoints.iter().min().copied())
     }
 }
 
@@ -171,7 +196,24 @@ frame_rate:
         assert_eq!(m.native_pixels, Some(42));
         assert_eq!(m.frame_rate.rows(Mode::Lan).len(), 3);
         assert!(m.extra.contains_key("latency_idle_ms"));
-        assert!(m.extra.contains_key("resolution_changepoints"));
+        assert_eq!(m.resolution_changepoints.first(), Some(&1));
+        assert_eq!(m.resolution_changepoints.last(), Some(&42));
+        assert!(!m.extra.contains_key("resolution_changepoints"));
+    }
+
+    #[test]
+    fn a_count_between_two_changepoints_renders_as_the_lower_one() {
+        let m = measured();
+        assert_eq!(m.renders_as(42), Some(42));
+        assert_eq!(m.renders_as(30), Some(21));
+        assert_eq!(m.renders_as(10), Some(9));
+        assert_eq!(m.renders_as(120), Some(42));
+    }
+
+    #[test]
+    fn a_unit_nobody_swept_answers_no_changepoint() {
+        let m: Measurements = serde_norway::from_str("unit_length_m: 5").expect("parses");
+        assert_eq!(m.renders_as(10), None);
     }
 
     #[test]

@@ -11,7 +11,7 @@
 //! `segment_color` command carries every zone in one frame. A
 //! `segment_color_masked` one carries a single color and the zones that use
 //! it, so a repaint costs one write per distinct color. That is what `ble`
-//! offers, and no per-pixel channel sits behind it: [`Zones::Native`] is
+//! offers, and no per-pixel channel sits behind it: [`Resolution::Native`] is
 //! refused there, since the firmware drops the high bits of such a mask in
 //! silence.
 //!
@@ -26,7 +26,7 @@
 //!
 //! ```no_run
 //! use govee_toolkit::{Args, Config, Govee};
-//! use govee_toolkit::stream::{StreamOptions, Zones};
+//! use govee_toolkit::stream::{StreamOptions, Resolution};
 //!
 //! # async fn example(govee: Govee, id: govee_toolkit::DeviceId) -> Result<(), govee_toolkit::Error> {
 //! let device = govee.device(&id);
@@ -34,7 +34,7 @@
 //!
 //! let stream = device
 //!     .open_stream(StreamOptions {
-//!         zones: Zones::Native,
+//!         resolution: Resolution::Native,
 //!         ..StreamOptions::default()
 //!     })
 //!     .await?;
@@ -47,6 +47,7 @@
 //! ```
 
 pub(crate) mod paint;
+mod reach;
 pub(crate) mod resolve;
 mod sender;
 
@@ -55,6 +56,7 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::Notify;
 
+pub use self::reach::{Reach, reach};
 use self::resolve::{plan, rate_hz};
 use self::sender::{Shared, send_enable};
 use crate::error::{Error, Result};
@@ -66,17 +68,19 @@ use crate::transport::DeviceId;
 /// at it. Configurable as `stream.fallback_hz`.
 pub const FALLBACK_HZ: f64 = 10.0;
 
-/// How many zones a stream carries.
+/// How many zones one paint or one stream states.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum Zones {
+pub enum Resolution {
     /// What the Govee app exposes, from `capabilities.segments.count`.
     #[default]
     App,
     /// Every addressable LED, from `capabilities.segments.native_pixels`.
     /// Fails when nobody measured it, and on a mode that paints by zone mask.
     Native,
-    /// A count the caller picks. The firmware groups LEDs into blocks to serve
-    /// it, so asking for more than the unit has refines nothing.
+    /// A count the caller picks. The firmware groups the LEDs to serve it, so
+    /// a count the unit renders as a smaller one fails with
+    /// [`Error::ResolutionNotDistinct`] where the file records
+    /// `measurements.resolution_changepoints`.
     Exact(u16),
 }
 
@@ -96,7 +100,7 @@ pub enum Rate {
 #[derive(Debug, Clone, Default)]
 pub struct StreamOptions {
     /// How many zones to carry.
-    pub zones: Zones,
+    pub resolution: Resolution,
     /// How fast to send.
     pub rate: Rate,
     /// Ask the firmware to interpolate between zones, wrapping from the last

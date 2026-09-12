@@ -135,6 +135,40 @@ under which name. `read` fails with `no_reply_layout` in two cases:
 - the command declares no answer to read;
 - the mode replies in JSON rather than in frames.
 
+### Painting zones
+
+One paint states the color of every zone, in one frame:
+
+```rust
+use govee_toolkit::{Paint, Resolution};
+
+// One color over every zone the Govee app exposes.
+govee.device(&id).segment(&Paint {
+    zones: None,
+    colors: &[[255, 61, 0]],
+    resolution: Resolution::App,
+    gradient: false,
+}).await?;
+
+// One color per LED, on a mode that addresses them.
+let colors: Vec<[u8; 3]> = (0..42).map(wheel).collect();
+govee.device(&id).segment(&Paint {
+    zones: None,
+    colors: &colors,
+    resolution: Resolution::Native,
+    gradient: false,
+}).await?;
+```
+
+- One color fills every zone. A longer list states one zone each, and must be
+  as long as the count the resolution resolves.
+- `zones: Some(&[0, 1, 2])` paints those zones and leaves the rest alone. That
+  needs a mode whose device file paints by mask, and it takes one color.
+- A count the unit renders as a smaller one fails with
+  `resolution_not_distinct`, which names the counts it refines at. The firmware
+  groups the LEDs to serve the count, and an SDK that let it do so would report
+  a frame the device never showed.
+
 ### Segment streaming
 
 The segment channel is armed once and then fed frames. Writes never block: a
@@ -142,11 +176,11 @@ source faster than the device replaces its own pending frame rather than waits
 behind it.
 
 ```rust
-use govee_toolkit::{Rate, StreamOptions, Zones};
+use govee_toolkit::{Rate, Resolution, StreamOptions};
 
 let stream = govee
     .device(&id)
-    .open_stream(StreamOptions { zones: Zones::App, rate: Rate::Measured, gradient: false })
+    .open_stream(StreamOptions { resolution: Resolution::App, rate: Rate::Measured, gradient: false })
     .await?;
 
 for step in 0.. {
@@ -159,10 +193,11 @@ for step in 0.. {
 stream.close().await?;
 ```
 
-- `Zones::App` matches what the Govee app exposes. `Zones::Native` addresses
-  every LED, and fails when nobody has measured that number on the unit — it
-  belongs to the physical strip, not to the SKU. `Zones::Exact(n)` picks a
-  count.
+- `Resolution::App` matches what the Govee app exposes. `Resolution::Native`
+  addresses every LED, and fails when nobody has measured that number on the
+  unit — it belongs to the physical strip, not to the SKU.
+  `Resolution::Exact(n)` picks a count, and fails where the unit renders it as a
+  smaller one.
 - `Rate::Measured` paces from `measurements.frame_rate` in the device file for
   the mode the stream opens on, falling back to 10 Hz when it records none
   there. That fallback is a starting point, not a finding: measure your unit and
@@ -170,7 +205,7 @@ stream.close().await?;
 - A mode whose device file paints zones by mask carries one color per frame, so
   a repaint costs one write per distinct color: a solid fill is one write. Such
   a mode addresses the zones the device file declares, and refuses
-  `Zones::Native`: the firmware would trim such a mask in silence.
+  `Resolution::Native`: the firmware would trim such a mask in silence.
 - `frames_sent()` and `frames_superseded()` tell you whether your source is
   outrunning the device.
 

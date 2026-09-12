@@ -411,9 +411,22 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         # Always record the unit's length with them. These are
                         # properties of a unit, not only of a SKU.
                         #
-                        # Free-form except for three entries an SDK reads:
-                        # `frame_rate`, `ble.write_budget_hz` and
-                        # `ble.write_drain_ms`.
+                        # Free-form except for four entries an SDK reads:
+                        # `frame_rate`, `resolution_changepoints`,
+                        # `ble.write_budget_hz` and `ble.write_drain_ms`.
+                        #
+                        # `resolution_changepoints` is every zone count at
+                        # which this unit refines, as a list:
+                        #
+                        #   resolution_changepoints: [1, 2, 3, 5, 7, 21, 42]
+                        #
+                        # The firmware groups the LEDs to serve the count a
+                        # frame states, so a count between two of these renders
+                        # as the lower one. The SDK refuses such a count rather
+                        # than let the firmware approximate the frame. Sweep
+                        # the counts to measure them — see
+                        # ../docs/protocol/lan.md 2.3 — and leave the list out
+                        # where nobody swept them.
                         #
                         # `ble.write_budget_hz` is the sustained rate the `ble`
                         # transport paces its writes to, at or under the

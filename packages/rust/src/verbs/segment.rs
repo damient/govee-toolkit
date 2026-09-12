@@ -1,11 +1,12 @@
-//! Paint one color over zones.
+//! Paint zones.
 //!
 //! Two roles paint, and the device file decides which one a mode carries. A
 //! `role: segment_color` command carries every zone in one frame, so it cannot
 //! paint a subset: the frame states the color of every zone, and this crate
-//! does not hold what the other zones show. A `role: segment_color_masked`
-//! command carries one color and the zones that take it, and leaves the rest
-//! alone.
+//! does not hold what the other zones show. It can state a color per zone,
+//! which is what reaches one LED at a time where the unit addresses them. A
+//! `role: segment_color_masked` command carries one color and the zones that
+//! take it, and leaves the rest alone.
 
 use super::{arg_for, command_for};
 use crate::codec::catalog::Device;
@@ -14,21 +15,47 @@ use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::Served;
 use crate::stream::resolve::{Painter, Plan, plan};
-use crate::stream::{StreamOptions, paint};
+use crate::stream::{Resolution, StreamOptions, paint};
+
+/// One painting of a device's zones.
+///
+/// The same three questions the `segment` verb of the CLI asks: which zones,
+/// which colors, and how many zones the frame states.
+#[derive(Debug, Clone, Copy)]
+pub struct Paint<'a> {
+    /// The zones to paint, zero-based, leaving every other zone alone. `None`
+    /// paints every zone. A list needs `role: segment_color_masked`, and takes
+    /// one color.
+    pub zones: Option<&'a [u16]>,
+    /// One color paints every zone. A longer list states one zone each, and
+    /// must be as long as the zone count [`Paint::resolution`] resolves.
+    pub colors: &'a [[u8; 3]],
+    /// How many zones the frame states. Read where the paint names no zone
+    /// list; a mode that paints by mask states what its mask names instead.
+    pub resolution: Resolution,
+    /// Ask the firmware to interpolate between zones, and to wrap from the
+    /// last zone back to the first.
+    pub gradient: bool,
+}
 
 impl DeviceHandle<'_> {
-    /// Paint zones one color.
+    /// Paint zones.
     ///
-    /// `zones` names the zones to paint, zero-based, and leaves every other
-    /// zone alone. Only `role: segment_color_masked` can do that. `None`
-    /// paints every zone, over whichever painting role the file marks. Every
-    /// zone is what the frame reaches: the bound of its mask where it names
-    /// its zones, and `capabilities.segments.count` where one frame states
-    /// them all.
+    /// One color in [`Paint::colors`] paints every zone. A longer list states
+    /// one zone each, which is how a mode with a per-LED channel reaches one
+    /// LED: ask for [`Resolution::Native`] and pass that many colors. Only
+    /// `role: segment_color` states a color per zone.
     ///
-    /// `gradient` asks the firmware to interpolate between zones and to wrap
-    /// from the last zone back to the first. `true` is refused where the file
-    /// can carry the setting nowhere, rather than dropped.
+    /// [`Paint::zones`] names the zones to paint and leaves every other zone
+    /// alone. Only `role: segment_color_masked` can do that, and it takes one
+    /// color. `None` paints every zone, over whichever painting role the file
+    /// marks. Every zone is what the frame reaches: the bound of its mask
+    /// where it names its zones, and the zone count
+    /// [`Paint::resolution`] resolves where one frame states them all.
+    ///
+    /// [`Paint::gradient`] asks the firmware to interpolate between zones and
+    /// to wrap from the last zone back to the first. `true` is refused where
+    /// the file can carry the setting nowhere, rather than dropped.
     ///
     /// The channel is armed where the file marks `role: segment_enable`.
     /// Nothing disarms it: a disarm ends the channel, and the colors with it.
@@ -38,23 +65,22 @@ impl DeviceHandle<'_> {
     /// [`Error::NoRoleCommand`] if the device file marks no painting entry the
     /// call needs, [`Error::NoRoleArg`] if such an entry marks no argument to
     /// put the color in, [`Error::ZoneCountUnknown`] if every zone was asked
-    /// for and nothing records the count, [`Error::Codec`] if a zone index is
+    /// for and nothing records the count, [`Error::ColorCountMismatch`] if the
+    /// color list is neither one color nor one per zone,
+    /// [`Error::ZoneListColorCount`] if a zone list came with more than one
+    /// color, [`Error::ResolutionNotDistinct`] if the unit renders the zone
+    /// count asked for as a smaller one, [`Error::Codec`] if a zone index is
     /// outside what the command declares, plus what
     /// [`DeviceHandle::send`] fails with.
-    pub async fn segment(
-        &self,
-        zones: Option<&[u16]>,
-        rgb: [u8; 3],
-        gradient: bool,
-    ) -> Result<Served> {
-        match zones {
-            Some(zones) => self.segment_zones(zones, rgb, gradient).await,
-            None => self.segment_all(rgb, gradient).await,
+    pub async fn segment(&self, paint: &Paint<'_>) -> Result<Served> {
+        match paint.zones {
+            Some(zones) => self.segment_zones(zones, paint).await,
+            None => self.segment_all(paint).await,
         }
     }
 
-    /// One color over every zone, over whichever painting role the file marks.
-    async fn segment_all(&self, rgb: [u8; 3], gradient: bool) -> Result<Served> {
+    /// Every zone, over whichever painting role the file marks.
+    async fn segment_all(&self, paint: &Paint<'_>) -> Result<Served> {
         let mode = self.serving_mode()?;
         let sku = self.govee.sku(self.id())?;
         let device = self.govee.catalog().device(&sku)?;
@@ -63,13 +89,15 @@ impl DeviceHandle<'_> {
             device,
             mode,
             &StreamOptions {
-                gradient,
+                resolution: paint.resolution,
+                gradient: paint.gradient,
                 ..StreamOptions::default()
             },
         )?;
-        if gradient && plan.gradient.is_none() && !carries_gradient(&plan.painter) {
+        if paint.gradient && plan.gradient.is_none() && !carries_gradient(&plan.painter) {
             return Err(no_gradient(&sku, mode));
         }
+        let colors = colors(&sku, &plan, paint.colors)?;
 
         self.arm(mode, &sku, device).await?;
         if let Some((entry, value)) = &plan.gradient {
@@ -79,7 +107,7 @@ impl DeviceHandle<'_> {
 
         let command = plan.painter.command().to_owned();
         let mut served = None;
-        for args in paint::frames(&plan.painter, vec![rgb; whole(&plan)])? {
+        for args in paint::frames(&plan.painter, colors)? {
             served = Some(self.send_on(mode, &command, &args).await?);
         }
         // The plan refuses a zone count of zero, so one color gives one frame.
@@ -87,7 +115,13 @@ impl DeviceHandle<'_> {
     }
 
     /// One color over the zones the caller names, leaving the rest alone.
-    async fn segment_zones(&self, zones: &[u16], rgb: [u8; 3], gradient: bool) -> Result<Served> {
+    async fn segment_zones(&self, zones: &[u16], paint: &Paint<'_>) -> Result<Served> {
+        let [rgb] = *paint.colors else {
+            return Err(Error::ZoneListColorCount {
+                colors: paint.colors.len(),
+            });
+        };
+        let gradient = paint.gradient;
         let mode = self.serving_mode()?;
         let sku = self.govee.sku(self.id())?;
         let device = self.govee.catalog().device(&sku)?;
@@ -139,6 +173,25 @@ impl DeviceHandle<'_> {
         self.send_on(mode, &command, &Args::new().int(arg, 1))
             .await?;
         Ok(())
+    }
+}
+
+/// The color of every zone, from what the caller supplied.
+///
+/// One color fills the frame. A longer list states the zones itself, and must
+/// state every one of them: the firmware reads the count off the frame and
+/// groups the LEDs around it, so a shorter list would re-group them rather
+/// than leave the rest alone.
+fn colors(sku: &str, plan: &Plan, supplied: &[[u8; 3]]) -> Result<Vec<[u8; 3]>> {
+    let expected = whole(plan);
+    match supplied {
+        [one] => Ok(vec![*one; expected]),
+        many if many.len() == expected => Ok(many.to_vec()),
+        many => Err(Error::ColorCountMismatch {
+            sku: sku.to_owned(),
+            expected,
+            got: many.len(),
+        }),
     }
 }
 

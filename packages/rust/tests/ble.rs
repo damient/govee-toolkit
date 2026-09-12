@@ -347,7 +347,12 @@ async fn painting_every_zone_covers_what_the_mask_reaches() {
 
     govee
         .device(&id())
-        .segment(None, [255, 0, 0], false)
+        .segment(&govee_toolkit::Paint {
+            zones: None,
+            colors: &[[255, 0, 0]],
+            resolution: govee_toolkit::Resolution::App,
+            gradient: false,
+        })
         .await
         .expect("the command goes out");
 

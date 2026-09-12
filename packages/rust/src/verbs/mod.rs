@@ -16,6 +16,7 @@ mod segment;
 mod white;
 
 pub use music::Music;
+pub use segment::Paint;
 
 use crate::codec::catalog::Device;
 use crate::codec::{ArgRole, Args, Mode, Role};

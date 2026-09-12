@@ -18,7 +18,7 @@
 
 use std::time::Duration;
 
-use govee_toolkit::stream::{Rate, StreamOptions, Zones};
+use govee_toolkit::stream::{Rate, Resolution, StreamOptions};
 use govee_toolkit::{Args, Config, Error, Govee};
 
 /// Every zone the H61A0's mask reaches. A zone past this is refused, not
@@ -191,9 +191,9 @@ async fn read_everything(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(),
 async fn paint_zones(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(), Error> {
     let stream = device
         .open_stream(StreamOptions {
-            // `Zones::Native` is refused here: a mask names zones and reaches
+            // `Resolution::Native` is refused here: a mask names zones and reaches
             // no pixel behind them.
-            zones: Zones::Exact(15),
+            resolution: Resolution::Exact(15),
             rate: Rate::Measured,
             gradient: false,
         })

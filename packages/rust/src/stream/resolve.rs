@@ -6,7 +6,7 @@
 use crate::codec::frame::Token;
 use crate::codec::{ArgRole, ArgSpec, Command, Device, Mode, Role};
 use crate::error::{Error, Result};
-use crate::stream::{Rate, StreamOptions, Zones};
+use crate::stream::{Rate, Resolution, StreamOptions};
 
 /// How the device file paints zones over the chosen mode.
 #[derive(Debug, Clone)]
@@ -90,7 +90,7 @@ pub(crate) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Resu
         )),
         None => None,
     };
-    let zones = zone_count(device, mode, &painter, options.zones)?;
+    let zones = zone_count(device, mode, &painter, options.resolution)?;
     Ok(Plan {
         enable,
         gradient,
@@ -103,7 +103,7 @@ pub(crate) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Resu
 ///
 /// A whole-frame command wins where both are declared: it paints the same
 /// zones in one write.
-fn painter(device: &Device, mode: Mode, gradient: bool) -> Result<Painter> {
+pub(crate) fn painter(device: &Device, mode: Mode, gradient: bool) -> Result<Painter> {
     if let Some(command) = device.command_for(mode, Role::SegmentColor) {
         return Ok(Painter::Whole {
             colors: arg_named(device, mode, command, ArgRole::Colors)?.to_owned(),
@@ -173,21 +173,39 @@ fn mask_bits(command: &str, spec: &Command, arg: &str) -> Option<usize> {
 ///
 /// Zero means nobody recorded the count. A stream armed on it would send
 /// frames the codec refuses, and nothing reads that refusal.
-fn zone_count(device: &Device, mode: Mode, painter: &Painter, zones: Zones) -> Result<usize> {
-    if let (Painter::Masked { .. }, Zones::Native) = (painter, zones) {
+fn zone_count(
+    device: &Device,
+    mode: Mode,
+    painter: &Painter,
+    resolution: Resolution,
+) -> Result<usize> {
+    if let (Painter::Masked { .. }, Resolution::Native) = (painter, resolution) {
         return Err(Error::NativeZonesUnreachable {
             sku: device.sku.clone(),
             mode,
         });
     }
-    let count = match zones {
-        Zones::App => device.capabilities.segment_count().unwrap_or(0),
-        Zones::Native => device.capabilities.native_pixels().unwrap_or(0),
-        Zones::Exact(n) => u32::from(n),
+    let count = match resolution {
+        Resolution::App => device.capabilities.segment_count().unwrap_or(0),
+        Resolution::Native => device.capabilities.native_pixels().unwrap_or(0),
+        Resolution::Exact(n) => u32::from(n),
     };
     if count == 0 {
         return Err(Error::ZoneCountUnknown {
             sku: device.sku.clone(),
+        });
+    }
+    // Only a count the caller picked. `App` and `Native` are counts the device
+    // file states, and the file is what says the unit renders them.
+    if let Resolution::Exact(_) = resolution
+        && let Some(rendered) = device.measurements.renders_as(count)
+        && rendered != count
+    {
+        return Err(Error::ResolutionNotDistinct {
+            sku: device.sku.clone(),
+            zones: usize::try_from(count).unwrap_or(usize::MAX),
+            rendered,
+            changepoints: device.measurements.resolution_changepoints.clone(),
         });
     }
     let count = usize::try_from(count).unwrap_or(usize::MAX);
@@ -258,14 +276,14 @@ mod tests {
         Catalog::from_sources([("masked-zones.yaml", MASKED)]).expect("the device file parses")
     }
 
-    fn planned(zones: Zones) -> Result<Plan> {
+    fn planned(resolution: Resolution) -> Result<Plan> {
         let catalog = catalog();
         let device = catalog.device("HTEST3").expect("the SKU resolves");
         plan(
             device,
             Mode::Ble,
             &StreamOptions {
-                zones,
+                resolution,
                 ..StreamOptions::default()
             },
         )
@@ -273,7 +291,7 @@ mod tests {
 
     #[test]
     fn a_file_declaring_only_the_masked_role_paints_by_mask() {
-        let plan = planned(Zones::App).unwrap();
+        let plan = planned(Resolution::App).unwrap();
         assert_eq!(plan.zones, 15);
         assert!(matches!(plan.painter, Painter::Masked { .. }));
         assert_eq!(plan.painter.command(), "paint");
@@ -283,15 +301,15 @@ mod tests {
     fn native_resolution_is_refused_rather_than_masked() {
         // 42 pixels behind 15 zones: a mask names zones, and the firmware drops
         // the bits past the last one in silence.
-        let error = planned(Zones::Native).expect_err("a mask reaches no pixel");
+        let error = planned(Resolution::Native).expect_err("a mask reaches no pixel");
         assert_eq!(error.code(), "native_zones_unreachable");
     }
 
     #[test]
     fn more_zones_than_the_mask_names_are_refused() {
-        let error = planned(Zones::Exact(20)).expect_err("the mask names 15");
+        let error = planned(Resolution::Exact(20)).expect_err("the mask names 15");
         assert_eq!(error.code(), "zone_count_unsupported");
-        assert_eq!(planned(Zones::Exact(15)).unwrap().zones, 15);
+        assert_eq!(planned(Resolution::Exact(15)).unwrap().zones, 15);
     }
 
     /// The same file with the mask bounded by nothing: no `count:` on the zone
