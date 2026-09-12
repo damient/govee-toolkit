@@ -15,6 +15,9 @@ command name and no SKU name lives in this crate.
 
 ### Added
 
+- A subcommand that names a device discovers it first, and returns as soon as
+  that device answers rather than after the whole scan window. A device no
+  enabled mode finds fails with `unknown_device` before the command runs.
 - Every subcommand reads the `GOVEE_*` variables from a `.env` file, so no
   wrapper script is needed to supply `GOVEE_API_KEY`, `GOVEE_WIFI_SSID` or
   `GOVEE_WIFI_PASSWORD`. The search starts in the working directory and goes up
