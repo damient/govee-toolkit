@@ -1,7 +1,5 @@
-// The frame every documentation page shares: the menu on the left, the page
-// in the middle, the "On this page" menu on the right. The Markdown pages and
-// the reference page differ in what they put in the middle, and in nothing
-// else.
+// The frame every documentation page shares. The Markdown pages and the
+// reference page differ in what they put in the middle, and in nothing else.
 
 import { escapeAttr, escapeHtml } from "./html.mjs";
 
@@ -22,11 +20,9 @@ export function docShell({ base, nav, current, toc, body, klass = "" }) {
     </div>`;
 }
 
-// The two menus, as one control, for a screen too narrow to carry a column on
-// each side. It reads as a select: the page you are on, and the pages you can
-// go to. The headings of the page you are on nest under it, so the "On this
-// page" menu stays where a reader looks for it instead of landing under the
-// article.
+// The two menus as one control, for a screen too narrow to carry a column on
+// each side. The headings of the current page nest under it, so the "On this
+// page" menu stays where a reader looks for it.
 function docSelect(base, nav, current, toc) {
   const here = nav.find((item) => item.url === current);
   const items = nav

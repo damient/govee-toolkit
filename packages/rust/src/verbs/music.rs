@@ -1,9 +1,9 @@
 //! Play an effect the device renders from its own microphone.
 //!
-//! The device listens, and the host sends nothing per beat: one command starts
-//! the effect and the firmware plays it until another command replaces it.
-//! Nothing stops it on its own — no mode declares a command that leaves music
-//! and stays where it was. To end it, set a color, a temperature or the power.
+//! The host sends nothing per beat: one command starts the effect and the
+//! firmware plays it until another command replaces it. No mode declares a
+//! command that ends music and stays where it was, so a color, a temperature
+//! or the power ends it.
 
 use crate::codec::{ArgRole, Args, Role};
 use crate::device::DeviceHandle;
@@ -13,14 +13,13 @@ use crate::event::Served;
 /// What to play, in the terms the device file declares.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Music {
-    /// Which effect. The identifiers are the mode's own, and the accepted ones
-    /// are what the argument's `range:` gives: the same number names another
-    /// effect over another mode, and no device file maps one to what the
+    /// Which effect, in the range the argument's `range:` gives. The
+    /// identifiers are the mode's own, and no device file maps one to what the
     /// device renders.
     pub effect: i64,
     /// How loud the sound must be for the device to answer it, in the unit the
-    /// argument's `range:` gives. Sent where the entry declares the argument,
-    /// and dropped where it does not.
+    /// argument's `range:` gives. Dropped where the entry declares no such
+    /// argument.
     pub sensitivity: i64,
     /// Render in fades rather than on the beat.
     pub soft: bool,
@@ -32,8 +31,8 @@ impl DeviceHandle<'_> {
     /// Play a music effect.
     ///
     /// An identifier the entry accepts is not one the device renders: firmware
-    /// takes a value, reads it back and plays nothing. See the `notes:` of the
-    /// entry for what one unit did.
+    /// takes a value, reads it back and plays nothing. The entry's `notes:`
+    /// record what one unit did.
     ///
     /// # Errors
     ///

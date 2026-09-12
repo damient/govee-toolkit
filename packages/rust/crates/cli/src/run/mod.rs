@@ -17,7 +17,6 @@ mod stream;
 mod verbs;
 mod watch;
 
-/// Run the subcommand the caller named.
 pub(crate) async fn dispatch(cli: &Cli, writer: &Writer) -> Result<(), Failure> {
     let govee = Govee::start(configure(cli)?).await?;
     let outcome = route(&govee, cli, writer).await;
@@ -93,9 +92,6 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
     }
 }
 
-/// One verb a person types, with the values read under their types.
-///
-/// The verb names a device, which [`Command::device`] has already discovered.
 async fn one_verb(govee: &Govee, writer: &Writer, verb: &cli::Verb) -> Result<(), Failure> {
     let (device, played) = match verb {
         cli::Verb::On { device } => (device, verbs::Verb::Power(true)),
@@ -128,8 +124,6 @@ async fn one_verb(govee: &Govee, writer: &Writer, verb: &cli::Verb) -> Result<()
     verbs::run(govee, writer, &DeviceId::new(device), played).await
 }
 
-/// What a person typed for one painting, with the zones, the colors and the
-/// resolution read under their types.
 async fn segment(
     zones: Option<&str>,
     resolution: &str,
@@ -144,7 +138,6 @@ async fn segment(
     })
 }
 
-/// What a person typed for one music effect, with the color read as a color.
 fn music(effect: i64, sensitivity: i64, soft: bool, color: Option<&str>) -> Result<Music, Failure> {
     Ok(Music {
         effect,
@@ -154,35 +147,27 @@ fn music(effect: i64, sensitivity: i64, soft: bool, color: Option<&str>) -> Resu
     })
 }
 
-/// Make the device reachable before the subcommand sends anything.
-///
-/// `ble` relates a device to a handle through an advertisement alone, and
-/// `cloud` lists the account at startup, so neither keeps anything across
-/// runs: a command in a fresh process must find the device first. A device no
-/// enabled mode finds is reported here rather than by the command.
+/// Make the device reachable before the subcommand sends anything. No mode
+/// keeps a record across runs, so a fresh process must find the device first.
 async fn discover(govee: &Govee, id: &DeviceId) -> Result<(), Failure> {
     govee.ensure_known(id).await?;
     Ok(())
 }
 
-/// The modes a run touches: the one `--mode` names, or every enabled mode.
-///
-/// `--mode` restricts the wire, and not only what is printed: a scan over
-/// another mode would send frames the caller ruled out.
+/// The modes a run touches. `--mode` restricts the wire and not only what is
+/// printed: a scan over another mode would send frames the caller ruled out.
 fn modes(govee: &Govee, restrict: Option<Mode>) -> Vec<Mode> {
     restrict.map_or_else(|| govee.modes(), |mode| vec![mode])
 }
 
-/// The configuration the run works from, narrowed by `--mode`.
 fn configure(cli: &Cli) -> Result<Config, Failure> {
     let mut config = load(cli)?;
     if let Command::Scan { timeout_ms } = cli.command {
         config.lan.scan_window_ms = timeout_ms;
     }
 
-    // `--mode` narrows what the configuration enables for this device, and
-    // adds nothing. A mode the configuration leaves out is refused here, since
-    // sending over another one would substitute a mode in silence.
+    // `--mode` narrows what the configuration enables and adds nothing:
+    // sending over another mode would substitute one in silence.
     let (Some(mode), Some(device)) = (cli.global.mode.map(Mode::from), cli.command.device()) else {
         return Ok(config);
     };
@@ -196,7 +181,6 @@ fn configure(cli: &Cli) -> Result<Config, Failure> {
     Ok(config)
 }
 
-/// Read the configuration the run works from.
 fn load(cli: &Cli) -> Result<Config, Failure> {
     let env = match (&cli.global.env_file, cli.global.no_env) {
         (Some(path), _) => Env::from_file(path)?,

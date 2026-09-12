@@ -1,12 +1,9 @@
-//! `status`: what the device reports about itself.
-
 use govee_toolkit::codec::Mode;
 use govee_toolkit::{DeviceId, DeviceStatus, Govee};
 use serde_json::{Value, json};
 
 use crate::output::{Failure, Writer, option};
 
-/// Ask the device for its state and report the answer.
 pub(super) async fn run(govee: &Govee, writer: &Writer, id: &DeviceId) -> Result<(), Failure> {
     let handle = govee.device(id);
     let mode = handle.serving_mode()?;

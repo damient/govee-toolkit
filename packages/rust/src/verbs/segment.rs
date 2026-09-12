@@ -1,12 +1,10 @@
 //! Paint zones.
 //!
 //! Two roles paint, and the device file decides which one a mode carries. A
-//! `role: segment_color` command carries every zone in one frame, so it cannot
-//! paint a subset: the frame states the color of every zone, and this crate
-//! does not hold what the other zones show. It can state a color per zone,
-//! which is what reaches one LED at a time where the unit addresses them. A
-//! `role: segment_color_masked` command carries one color and the zones that
-//! take it, and leaves the rest alone.
+//! `role: segment_color` command states the color of every zone in one frame,
+//! so it cannot paint a subset: this crate does not hold what the other zones
+//! show. A `role: segment_color_masked` command carries one color and the
+//! zones that take it, and leaves the rest alone.
 
 use super::arg_for;
 use crate::codec::catalog::Device;
@@ -18,9 +16,6 @@ use crate::stream::resolve::{Painter, Plan, plan};
 use crate::stream::{Resolution, StreamOptions, paint};
 
 /// One painting of a device's zones.
-///
-/// The same three questions the `segment` verb of the CLI asks: which zones,
-/// which colors, and how many zones the frame states.
 #[derive(Debug, Clone, Copy)]
 pub struct Paint<'a> {
     /// The zones to paint, zero-based, leaving every other zone alone. `None`
@@ -41,37 +36,22 @@ pub struct Paint<'a> {
 impl DeviceHandle<'_> {
     /// Paint zones.
     ///
-    /// One color in [`Paint::colors`] paints every zone. A longer list states
-    /// one zone each, which is how a mode with a per-LED channel reaches one
-    /// LED: ask for [`Resolution::Native`] and pass that many colors. Only
-    /// `role: segment_color` states a color per zone.
-    ///
-    /// [`Paint::zones`] names the zones to paint and leaves every other zone
-    /// alone. Only `role: segment_color_masked` can do that, and it takes one
-    /// color. `None` paints every zone, over whichever painting role the file
-    /// marks. Every zone is what the frame reaches: the bound of its mask
-    /// where it names its zones, and the zone count
-    /// [`Paint::resolution`] resolves where one frame states them all.
-    ///
-    /// [`Paint::gradient`] asks the firmware to interpolate between zones and
-    /// to wrap from the last zone back to the first. `true` is refused where
-    /// the file can carry the setting nowhere, rather than dropped.
+    /// A color per zone needs `role: segment_color`, and reaches one LED at a
+    /// time under [`Resolution::Native`]. A zone list needs
+    /// `role: segment_color_masked`. "Every zone" is the bound of the mask
+    /// where the frame names its zones, and the count [`Paint::resolution`]
+    /// resolves where one frame states them all.
     ///
     /// The channel is armed where the file marks `role: segment_enable`.
     /// Nothing disarms it: a disarm ends the channel, and the colors with it.
     ///
     /// # Errors
     ///
-    /// [`Error::NoRoleCommand`] if the device file marks no painting entry the
-    /// call needs, [`Error::NoRoleArg`] if such an entry marks no argument to
-    /// put the color in, [`Error::ZoneCountUnknown`] if every zone was asked
-    /// for and nothing records the count, [`Error::ColorCountMismatch`] if the
-    /// color list is neither one color nor one per zone,
-    /// [`Error::ZoneListColorCount`] if a zone list came with more than one
-    /// color, [`Error::ResolutionNotDistinct`] if the unit renders the zone
-    /// count asked for as a smaller one, [`Error::Codec`] if a zone index is
-    /// outside what the command declares, plus what
-    /// [`DeviceHandle::send`] fails with.
+    /// [`Error::NoRoleCommand`], [`Error::NoRoleArg`],
+    /// [`Error::ZoneCountUnknown`], [`Error::ColorCountMismatch`],
+    /// [`Error::ZoneListColorCount`], [`Error::ResolutionNotDistinct`],
+    /// [`Error::Codec`] for a zone index the command does not declare, plus
+    /// what [`DeviceHandle::send`] fails with.
     pub async fn segment(&self, paint: &Paint<'_>) -> Result<Served> {
         match paint.zones {
             Some(zones) => self.segment_zones(zones, paint).await,
@@ -79,7 +59,6 @@ impl DeviceHandle<'_> {
         }
     }
 
-    /// Every zone, over whichever painting role the file marks.
     async fn segment_all(&self, paint: &Paint<'_>) -> Result<Served> {
         let mode = self.serving_mode()?;
         let sku = self.govee.sku(self.id())?;
@@ -112,7 +91,6 @@ impl DeviceHandle<'_> {
         served.ok_or(Error::ZoneCountUnknown { sku })
     }
 
-    /// One color over the zones the caller names, leaving the rest alone.
     async fn segment_zones(&self, zones: &[u16], paint: &Paint<'_>) -> Result<Served> {
         let [rgb] = *paint.colors else {
             return Err(Error::ZoneListColorCount {
@@ -124,8 +102,8 @@ impl DeviceHandle<'_> {
         let colors = entry.arg(ArgRole::Colors)?.to_owned();
         let mask = entry.arg(ArgRole::Zones)?.to_owned();
 
-        // The painting frame carries the setting on some modes, and a frame of
-        // its own carries it on others.
+        // The painting frame carries the setting on some modes, and a frame
+        // of its own carries it on others.
         let in_frame = entry.marked(ArgRole::Gradient).map(ToOwned::to_owned);
         let alone = entry
             .device
@@ -164,20 +142,18 @@ impl DeviceHandle<'_> {
     /// Set whether the firmware interpolates between zones, without painting.
     ///
     /// The interpolation wraps from the last zone back to the first, so one
-    /// lit zone at one end also lights the other. `false` gives hard-edged
-    /// zones. The setting stays until something changes it.
+    /// lit zone at one end also lights the other. The setting stays until
+    /// something changes it — `docs/protocol/state.md` 5.
     ///
-    /// This needs a mode whose file marks `role: segment_gradient`, which is a
-    /// command that carries the setting alone. A mode that carries the setting
-    /// inside its painting frame cannot serve this call: the SDK does not hold
-    /// what the device shows, so it cannot repaint the same colors under the
-    /// other setting. Pass [`Paint::gradient`] there, which sets both at once.
+    /// This needs a mode whose file marks `role: segment_gradient`, a command
+    /// that carries the setting alone. A mode that carries it inside the
+    /// painting frame takes [`Paint::gradient`] instead, which sets both at
+    /// once: the SDK does not hold what the device shows, so it cannot repaint
+    /// the same colors under the other setting.
     ///
     /// # Errors
     ///
-    /// [`Error::NoRoleCommand`] if the device file marks no entry
-    /// `role: segment_gradient` for the chosen mode, [`Error::NoRoleArg`] if
-    /// that entry marks no argument `role: gradient`, plus what
+    /// [`Error::NoRoleCommand`], [`Error::NoRoleArg`], plus what
     /// [`DeviceHandle::send`] fails with.
     pub async fn gradient(&self, on: bool) -> Result<Served> {
         self.one_arg(Role::SegmentGradient, ArgRole::Gradient, i64::from(on))
@@ -186,9 +162,8 @@ impl DeviceHandle<'_> {
 
     /// Arm the segment channel, where the mode has an entry that arms it.
     ///
-    /// Waits for the firmware to switch channel before it returns. A paint
-    /// that follows the arming frame at once is dropped in silence, so the
-    /// wait is what makes the first paint render — see
+    /// A paint that follows the arming frame at once is dropped in silence, so
+    /// this waits for the firmware to switch channel before it returns — see
     /// `docs/protocol/lan.md` 2.3.
     async fn arm(&self, mode: Mode, sku: &str, device: &Device) -> Result<()> {
         let Some(command) = device.command_for(mode, Role::SegmentEnable) else {
@@ -205,10 +180,9 @@ impl DeviceHandle<'_> {
 
 /// The color of every zone, from what the caller supplied.
 ///
-/// One color fills the frame. A longer list states the zones itself, and must
-/// state every one of them: the firmware reads the count off the frame and
-/// groups the LEDs around it, so a shorter list would re-group them rather
-/// than leave the rest alone.
+/// A list must state every zone: the firmware reads the count off the frame
+/// and groups the LEDs around it, so a shorter list re-groups them rather than
+/// leaving the rest alone.
 fn colors(sku: &str, plan: &Plan, supplied: &[[u8; 3]]) -> Result<Vec<[u8; 3]>> {
     let expected = whole(plan);
     match supplied {
@@ -222,13 +196,9 @@ fn colors(sku: &str, plan: &Plan, supplied: &[[u8; 3]]) -> Result<Vec<[u8; 3]>> 
     }
 }
 
-/// How many zones "every zone" is, for a paint that covers the whole device.
-///
-/// A frame that names its zones covers what its mask can name, which is not
-/// `capabilities.segments.count`: the count is what the vendor app exposes,
-/// and the zones between it and the end of the mask would keep the color they
-/// had. A frame that states every zone at once covers the count the plan
-/// resolved, because its length is that count.
+/// How many zones "every zone" is. A masked frame covers what its mask can
+/// name, and not `capabilities.segments.count`: the zones between the two
+/// would keep the color they had.
 fn whole(plan: &Plan) -> usize {
     match plan.painter {
         Painter::Masked { limit, .. } => limit,

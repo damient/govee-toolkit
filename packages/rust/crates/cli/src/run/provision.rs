@@ -8,21 +8,15 @@ use serde_json::json;
 
 use crate::output::{Failure, Writer};
 
-/// The environment variable that supplies the password.
 const PASSWORD_VAR: &str = "GOVEE_WIFI_PASSWORD";
 
-/// The environment variable that supplies the network name.
 const SSID_VAR: &str = "GOVEE_WIFI_SSID";
 
-/// What the caller typed about the password.
 pub(super) struct Secret<'a> {
-    /// `--password`.
     pub(super) password: Option<&'a str>,
-    /// `--open`, for a network that has none.
     pub(super) open: bool,
 }
 
-/// Send the credentials, then report what went out.
 pub(super) async fn run(
     govee: &Govee,
     writer: &Writer,
@@ -55,7 +49,6 @@ pub(super) async fn run(
     Ok(())
 }
 
-/// The network name, from the command line or from the variables.
 fn network(env: &Env, ssid: Option<&str>) -> Result<String, Failure> {
     match ssid {
         Some(ssid) => Ok(ssid.to_owned()),
@@ -65,8 +58,6 @@ fn network(env: &Env, ssid: Option<&str>) -> Result<String, Failure> {
     }
 }
 
-/// The password, from the command line or from the environment.
-///
 /// An empty password joins an open network, so it is never a default: the
 /// caller asks for one with `--open`.
 fn password(env: &Env, secret: &Secret<'_>) -> Result<String, Failure> {

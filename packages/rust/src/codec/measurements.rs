@@ -12,12 +12,8 @@ use serde::Deserialize;
 
 use crate::codec::catalog::Mode;
 
-/// How long to wait after the arming frame where no device file states it.
-///
 /// A conservative default, not a measurement: the one unit anybody probed
-/// needed between 20 and 50 ms, and a paint sent sooner is dropped in silence.
-/// A file that measured its own unit states
-/// [`Measurements::arm_settle_ms`] and that value wins.
+/// needed between 20 and 50 ms. [`Measurements::arm_settle_ms`] wins over it.
 const DEFAULT_ARM_SETTLE: Duration = Duration::from_millis(50);
 
 /// One row of `measurements.frame_rate`: how fast one physical unit accepts
@@ -112,21 +108,16 @@ pub struct Measurements {
     pub unit_length_m: Option<f64>,
     /// Addressable LEDs counted on that unit.
     pub native_pixels: Option<u32>,
-    /// Every zone count at which the rendering of this unit refines.
-    ///
-    /// The firmware groups the LEDs into blocks to serve the count a frame
-    /// asks for, so a count between two of these values renders as the lower
-    /// one. Empty where nobody swept the counts. See
-    /// `docs/protocol/lan.md` 2.3.
+    /// Every zone count at which the rendering of this unit refines. The
+    /// firmware groups the LEDs into blocks to serve the count a frame asks
+    /// for, so a count between two of these values renders as the lower one.
+    /// Empty where nobody swept the counts. See `docs/protocol/lan.md` 2.3.
     pub resolution_changepoints: Vec<u32>,
     /// Sustainable segment frame rates, by mode and zone count.
     pub frame_rate: FrameRates,
     /// How long the firmware needs after the arming frame before it renders a
-    /// paint, in milliseconds.
-    ///
-    /// The channel accepts the paint either way and answers nothing, so a
-    /// frame sent too early is lost in silence. See
-    /// [`Measurements::arm_settle`].
+    /// paint, in milliseconds. The channel accepts the paint either way and
+    /// answers nothing, so a frame sent too early is lost in silence.
     pub arm_settle_ms: Option<u64>,
     /// What one unit did over `ble`.
     pub ble: Ble,
@@ -152,24 +143,17 @@ impl Measurements {
             .map(|row| row.clean_hz)
     }
 
-    /// How long to wait after the arming frame before the first paint.
-    ///
-    /// The value this unit was measured at, or a conservative default where
-    /// nobody measured it. Never zero: the one unit anybody probed renders
-    /// nothing at all when the paint follows the arming frame immediately.
+    /// [`Measurements::arm_settle_ms`], or [`DEFAULT_ARM_SETTLE`] where
+    /// nobody measured it. Never zero.
     #[must_use]
     pub fn arm_settle(&self) -> Duration {
         self.arm_settle_ms
             .map_or(DEFAULT_ARM_SETTLE, Duration::from_millis)
     }
 
-    /// The largest count at or under `zones` that renders differently from
-    /// the one before it, where the unit was swept.
-    ///
-    /// `None` where nobody swept the counts, and `Some(zones)` where `zones`
-    /// is itself one of them. A smaller value than `zones` says the firmware
-    /// groups the LEDs the same way for both, so the frames past that count
-    /// state colors the unit cannot show apart.
+    /// The largest count at or under `zones` that renders differently from the
+    /// one before it. `None` where nobody swept the counts. A value smaller
+    /// than `zones` says the unit cannot show the two counts apart.
     #[must_use]
     pub fn renders_as(&self, zones: u32) -> Option<u32> {
         self.resolution_changepoints

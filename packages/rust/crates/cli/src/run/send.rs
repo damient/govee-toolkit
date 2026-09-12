@@ -1,8 +1,6 @@
-//! `send`: one device file entry, named as the file names it.
-//!
-//! The entry decides the type of every argument, so the mode is resolved
-//! before the values are read: the same entry name can declare different
-//! arguments on two modes.
+//! `send`: one device file entry, named as the file names it. The mode is
+//! resolved before the values are read, because the same entry name can
+//! declare different arguments on two modes.
 
 use std::collections::BTreeMap;
 
@@ -13,7 +11,6 @@ use crate::output::{Failure, Writer};
 use crate::run::args;
 use crate::run::verbs::report;
 
-/// Send one named command with the arguments the caller supplied.
 pub(super) async fn run(
     govee: &Govee,
     writer: &Writer,
@@ -38,7 +35,6 @@ pub(super) async fn run(
     Ok(())
 }
 
-/// Read every `name=value` under the type the entry declares for that name.
 fn read(
     declared: &BTreeMap<String, ArgSpec>,
     mode: Mode,

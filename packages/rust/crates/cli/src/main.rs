@@ -1,12 +1,5 @@
-//! `govee` — the command line over `govee-toolkit`.
-//!
-//! ```text
-//! govee scan
-//! govee describe <device>
-//! govee status <device>
-//! govee segment <device> --zones 0,2 '#FF0000'
-//! govee send <device> <command> --arg brightness=50
-//! ```
+//! `govee` — the command line over `govee-toolkit`. `README.md` lists the
+//! subcommands.
 //!
 //! Every subcommand takes `--json`, which is the form a script and a model
 //! read. The text form is for a person and its layout is not stable.

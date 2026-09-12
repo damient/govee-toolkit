@@ -1,7 +1,5 @@
-//! What a `lan` scan finds, against a simulated device.
-//!
-//! On the loopback with ephemeral ports, so it needs no hardware, no
-//! multicast and no privileges.
+//! What a `lan` scan finds, against a simulated device. On the loopback with
+//! ephemeral ports: no hardware, no multicast and no privileges.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
@@ -14,7 +12,6 @@ mod common;
 
 use common::{SKU, id};
 
-/// A transport wired to one simulated device, and the device itself.
 struct Rig {
     transport: Transport,
     _simulator: Simulator,

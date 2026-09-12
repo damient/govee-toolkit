@@ -1,15 +1,9 @@
-//! The verbs a person types.
-//!
-//! Each one names a device and reaches the device file through a `role:` where
-//! the schema declares one, so that Node and Python get the same verb from the
-//! core rather than a second implementation. No command name lives here.
-//!
-//! The enum is flattened into [`Command`](super::Command), so a verb is typed
-//! directly: `govee on <device>`.
+//! The verbs a person types. Each one reaches the device file through a
+//! `role:`, so Node and Python get the same verb from the core rather than a
+//! second implementation. No command name lives here.
 
 use clap::{Subcommand, ValueEnum};
 
-/// A setting a person turns on or off.
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub(crate) enum Toggle {
     /// Turn the setting on.
@@ -24,7 +18,6 @@ impl From<Toggle> for bool {
     }
 }
 
-/// One verb, with the values as the person typed them.
 #[derive(Debug, Subcommand)]
 pub(crate) enum Verb {
     /// Turn the device on.
@@ -129,7 +122,6 @@ pub(crate) enum Verb {
 }
 
 impl Verb {
-    /// The device the verb acts on. Every verb names one.
     pub(crate) fn device(&self) -> &str {
         match self {
             Self::On { device }

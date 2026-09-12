@@ -87,10 +87,8 @@ impl ArgSpec {
 }
 
 /// What one declared argument carries, when the SDK fills it in or reads it
-/// back without being told a name.
-///
-/// An argument the caller always passes needs no role, and a captured field
-/// needs one only where the SDK models it.
+/// back without being told a name. An argument the caller always passes needs
+/// no role, and a captured field needs one only where the SDK models it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ArgRole {
@@ -113,8 +111,7 @@ pub enum ArgRole {
     Brightness,
     /// The lit color, captured from a reply, packed as `0xRRGGBB`.
     Color,
-    /// The red component to set, on a [`Role::Color`] command, or the color a
-    /// [`Role::Music`] command imposes.
+    /// The red component of the color a command sets or imposes.
     Red,
     /// The green component of the same triple.
     Green,
@@ -123,9 +120,8 @@ pub enum ArgRole {
     /// The white temperature, in kelvin. What a [`Role::ColorTemp`] command
     /// sets, and what a reply reports: `0` reports a device in color mode.
     ColorTemp,
-    /// The red component of the RGB rendering of that temperature, on a
-    /// [`Role::ColorTemp`] command. The SDK computes it from the kelvin
-    /// value. Optional: a command that declares none is sent none.
+    /// The red component of the RGB rendering of that temperature, which the
+    /// SDK computes from the kelvin value. Optional.
     WhiteRed,
     /// The green component of the same rendering.
     WhiteGreen,
@@ -154,18 +150,17 @@ pub enum ArgRole {
     /// Whether provisioning must carry the hidden-network flag, captured from
     /// the same reply. No command encodes that flag yet.
     HideSsid,
-    /// Which effect a [`Role::Music`] command plays. The identifiers are the
-    /// mode's own: the same number names another effect over another mode.
+    /// Which effect to play. The identifiers are the mode's own: the same
+    /// number names another effect over another mode.
     Effect,
-    /// How loud the sound must be for a [`Role::Music`] command to answer it,
-    /// in the unit that argument's `range:` gives.
+    /// How loud the sound must be for the device to answer it.
     Sensitivity,
-    /// Whether a [`Role::Music`] command renders in fades rather than on the
-    /// beat. `1` fades. Optional: a command that declares none is sent none.
+    /// Whether to render in fades rather than on the beat. `1` fades.
+    /// Optional.
     Soft,
-    /// Whether a [`Role::Music`] command imposes a color. `0` leaves the
-    /// colors to the firmware, `1` plays the triple the same command marks
-    /// [`ArgRole::Red`], [`ArgRole::Green`] and [`ArgRole::Blue`]. Optional.
+    /// Whether to impose the triple marked [`ArgRole::Red`],
+    /// [`ArgRole::Green`] and [`ArgRole::Blue`]. `0` leaves the colors to the
+    /// firmware. Optional.
     ColorMode,
 }
 
@@ -284,10 +279,8 @@ pub enum Role {
     /// [`ArgRole::Red`], [`ArgRole::Green`] and [`ArgRole::Blue`].
     Color,
     /// Sets the white temperature, and the white it renders. Must declare an
-    /// argument marked [`ArgRole::ColorTemp`]. Where the frame carries the
-    /// rendering, it must declare the three marked [`ArgRole::WhiteRed`],
-    /// [`ArgRole::WhiteGreen`] and [`ArgRole::WhiteBlue`], which the SDK
-    /// computes from the kelvin value.
+    /// argument marked [`ArgRole::ColorTemp`], plus the three white
+    /// components where the frame carries the rendering.
     ColorTemp,
     /// Arms and disarms the raw segment channel. Must declare an argument
     /// marked [`ArgRole::Enable`].
@@ -319,10 +312,8 @@ pub enum Role {
     /// this one when [`Role::WifiApiType`] reports a type.
     WifiProvisionWithApi,
     /// Plays an effect the device renders from its own microphone. Must
-    /// declare an argument marked [`ArgRole::Effect`]. The SDK fills the ones
-    /// marked [`ArgRole::Sensitivity`], [`ArgRole::Soft`],
-    /// [`ArgRole::ColorMode`], [`ArgRole::Red`], [`ArgRole::Green`] and
-    /// [`ArgRole::Blue`] where the entry declares them.
+    /// declare an argument marked [`ArgRole::Effect`]; the SDK fills the other
+    /// music arguments where the entry declares them.
     Music,
 }
 

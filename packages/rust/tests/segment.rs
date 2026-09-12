@@ -1,8 +1,6 @@
-//! Painting zones one frame at a time, against a simulated device.
-//!
-//! The raw channel never answers, so a paint is only observable as the
-//! datagrams it puts on the wire. `H61A0` paints over `lan` with one frame that
-//! states every zone, which is the frame that reaches one LED at a time.
+//! Painting zones one frame at a time, against a simulated device. The raw
+//! channel never answers, so a paint is only observable as the datagrams it
+//! puts on the wire.
 
 #![allow(
     clippy::unwrap_used,
@@ -32,8 +30,6 @@ async fn rig() -> Rig {
     .await
 }
 
-/// The frames the simulator has received once it holds `count` of them.
-///
 /// UDP on the loopback is fast but not synchronous: a send returns before the
 /// datagram arrives.
 async fn awaited(simulator: &Simulator, count: usize) -> Vec<String> {
@@ -45,7 +41,6 @@ async fn awaited(simulator: &Simulator, count: usize) -> Vec<String> {
     .unwrap_or_default()
 }
 
-/// Every raw frame the simulator has received, as hex.
 fn frames(simulator: &Simulator) -> Vec<String> {
     simulator
         .received()
@@ -101,11 +96,9 @@ async fn setting_the_gradient_alone_is_refused_where_only_a_paint_carries_it() {
     assert!(frames(&rig.simulator).is_empty(), "nothing was painted");
 }
 
-/// `measurements.arm_settle_ms` of `devices/H61A0.yaml`.
-///
 /// The firmware renders nothing when the paint follows the arming frame at
-/// once, and answers nothing either way, so this wait is what makes the first
-/// paint visible. See `docs/protocol/lan.md` 2.3.
+/// once, and answers nothing either way. See `docs/protocol/lan.md` 2.3 and
+/// `measurements.arm_settle_ms` of `devices/H61A0.yaml`.
 #[tokio::test]
 async fn the_first_paint_waits_for_the_channel_to_arm() {
     let rig = rig().await;

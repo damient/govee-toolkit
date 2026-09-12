@@ -1,9 +1,7 @@
 //! The one precondition a command has: the device must be known to a mode.
 //!
-//! A transport answers `UnknownDevice` for a device no scan has found and no
-//! cache holds. Nothing on the send path scans, because a scan costs a window
-//! — `docs/modes.md`. So a caller that starts a fresh process asks for the
-//! scan here, once, before it sends anything.
+//! Nothing on the send path scans, because a scan costs a window —
+//! `docs/modes.md`. A caller in a fresh process asks for the scan here, once.
 
 use futures_util::StreamExt;
 use futures_util::stream::FuturesOrdered;
@@ -19,15 +17,11 @@ impl Govee {
     /// Call it once per device before the first command, and never between
     /// commands: it is the precondition the send path refuses to pay for.
     ///
-    /// It looks over the modes the configuration enables for this device, and
-    /// only those. The modes run at the same time, and the answer is the
-    /// enabled mode that comes first in the configuration, whichever one
-    /// answers first: that order is the user's preference, and a faster mode
-    /// does not win over it.
+    /// The modes the configuration enables for this device scan at the same
+    /// time, and the answer is the one that comes first in the configuration,
+    /// not the one that answers first: that order is the user's preference.
     ///
-    /// A device a mode already knows costs nothing here, whatever its health:
-    /// this call establishes where a device is, and the breaker decides
-    /// whether to send to it.
+    /// A device a mode already knows costs nothing here, whatever its health.
     ///
     /// # Errors
     ///
@@ -51,9 +45,8 @@ impl Govee {
             })
             .collect();
 
-        // In the order the modes were pushed, which is the configuration's.
-        // Every scan keeps running while an earlier mode is awaited, so its
-        // answer is already recorded when its turn comes.
+        // Awaited in the configuration's order. Every scan keeps running
+        // while an earlier mode is awaited.
         while let Some((mode, found)) = scans.next().await {
             if found?.is_some() {
                 return Ok(mode);
@@ -64,11 +57,9 @@ impl Govee {
         }))
     }
 
-    /// The first of `modes` whose transport has a record for this device.
-    ///
     /// Per mode, not per device: a device the `lan` cache answers for is still
-    /// unknown to `cloud`, and a scan skipped on the strength of that cache
-    /// would fail the command with `UnknownDevice`.
+    /// unknown to `cloud`, and a scan skipped on that cache would fail the
+    /// command with `UnknownDevice`.
     fn first_mode_holding(&self, id: &DeviceId, modes: &[Mode]) -> Option<Mode> {
         modes.iter().copied().find(|mode| {
             self.inner

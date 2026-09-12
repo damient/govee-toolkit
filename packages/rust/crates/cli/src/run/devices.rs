@@ -1,12 +1,9 @@
-//! `scan` and `devices`: what answered, and what is already known.
-
 use govee_toolkit::codec::Mode;
 use govee_toolkit::{Device, Govee};
 use serde_json::{Value, json};
 
 use crate::output::{Failure, Writer};
 
-/// Discover devices and report them.
 pub(super) async fn scan(
     govee: &Govee,
     writer: &Writer,
@@ -16,10 +13,9 @@ pub(super) async fn scan(
     let found = govee.scan_on(&modes).await?;
     for device in &found {
         // A device that answered is on the air, whatever the configuration
-        // says about it. Printing only the ones it enables would hide a device
-        // the scan just heard: `ble` reports a device under the handle the
-        // platform gives the peripheral, and that handle is in no
-        // configuration until somebody puts it there.
+        // says: `ble` reports a device under the handle the platform gives the
+        // peripheral, and no configuration holds that handle until somebody
+        // puts it there.
         let enabled = device.modes.iter().any(|mode| modes.contains(mode));
         writer.emit(
             &heard_json(device, restrict, enabled),
@@ -29,8 +25,6 @@ pub(super) async fn scan(
     Ok(())
 }
 
-/// One device a scan heard, and whether the configuration enables the mode it
-/// answered over.
 fn heard_json(device: &Device, restrict: Option<Mode>, enabled: bool) -> Value {
     let mut json = as_json(device, restrict);
     if let Value::Object(fields) = &mut json {
@@ -53,13 +47,12 @@ fn heard_text(device: &Device, scanned: &[Mode], restrict: Option<Mode>, enabled
     )
 }
 
-/// Report the devices already known, without touching the network.
 pub(super) fn list(govee: &Govee, writer: &Writer, restrict: Option<Mode>) {
     report(&govee.devices(), writer, restrict);
 }
 
-/// What `devices` reports: the devices a command can go to, so one that does
-/// not enable the mode is left out. A scan reports what answered instead.
+/// The devices a command can go to, so one that does not enable the mode is
+/// left out. A scan reports what answered instead.
 fn report(devices: &[Device], writer: &Writer, restrict: Option<Mode>) {
     for device in devices {
         if restrict.is_some_and(|only| !device.modes.contains(&only)) {
@@ -106,8 +99,7 @@ fn as_text(device: &Device, restrict: Option<Mode>) -> String {
     )
 }
 
-// `--mode` narrows what is reported to one mode. It never adds a mode the
-// configuration leaves out.
+// `--mode` never adds a mode the configuration leaves out.
 fn modes(device: &Device, restrict: Option<Mode>) -> impl Iterator<Item = Mode> + '_ {
     device
         .modes
@@ -116,11 +108,10 @@ fn modes(device: &Device, restrict: Option<Mode>) -> impl Iterator<Item = Mode> 
         .filter(move |mode| restrict.is_none_or(|only| only == *mode))
 }
 
-/// Report everything wrong with the configuration. Reads no hardware.
 pub(super) fn doctor(govee: &Govee, writer: &Writer) {
     let problems = govee.problems();
-    // Where the variables came from: the first question when a credential the
-    // user believes they set is reported as missing.
+    // The first question when a credential the user believes they set is
+    // reported as missing.
     let env_file = govee
         .config()
         .env

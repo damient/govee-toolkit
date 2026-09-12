@@ -53,7 +53,6 @@ async fn open(rig: &Rig, options: StreamOptions) -> govee_toolkit::SegmentStream
     stream
 }
 
-/// Every raw frame the simulator has received, as hex.
 fn frames(simulator: &Simulator) -> Vec<String> {
     simulator
         .received()

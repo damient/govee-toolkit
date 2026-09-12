@@ -1,8 +1,5 @@
 //! Values a person types, read against the type the device file declares.
-//!
-//! The device file declares the type of every argument, so nothing here
-//! guesses one: `send` looks the argument up first, and this module reads the
-//! text under that type. The range stays the codec's to check.
+//! Nothing here guesses a type, and the range stays the codec's to check.
 
 use govee_toolkit::codec::{ArgSpec, ArgValue};
 use govee_toolkit::stream::Resolution;
@@ -10,7 +7,8 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::output::Failure;
 
-/// The type name `devices/schema.yaml` uses, for a message a person reads.
+// The name `devices/schema.yaml` uses, so a message names the type the file
+// names.
 pub(super) fn kind(spec: &ArgSpec) -> &'static str {
     match spec {
         ArgSpec::Int { .. } => "int",
@@ -21,13 +19,8 @@ pub(super) fn kind(spec: &ArgSpec) -> &'static str {
     }
 }
 
-/// Read one value under the type its argument declares.
-///
-/// # Errors
-///
-/// [`Failure::usage`] when the text does not read as that type. A value of the
-/// right type but outside the declared range reaches the codec, which refuses
-/// it there.
+// A value of the right type but outside the declared range reaches the codec,
+// which refuses it there.
 pub(super) fn parse(name: &str, spec: &ArgSpec, text: &str) -> Result<ArgValue, Failure> {
     match spec {
         ArgSpec::Int { .. } => text
@@ -45,11 +38,6 @@ pub(super) fn parse(name: &str, spec: &ArgSpec, text: &str) -> Result<ArgValue, 
     }
 }
 
-/// Read zone indices, zero-based and comma-separated.
-///
-/// # Errors
-///
-/// [`Failure::usage`] for an item that is not a zone index.
 pub(super) fn zones(text: &str) -> Result<Vec<u16>, Failure> {
     list(text)
         .map(|item| {
@@ -59,11 +47,6 @@ pub(super) fn zones(text: &str) -> Result<Vec<u16>, Failure> {
         .collect()
 }
 
-/// Read `#RRGGBB`, or the same six digits with no `#`.
-///
-/// # Errors
-///
-/// [`Failure::usage`] for anything else.
 pub(super) fn rgb(text: &str) -> Result<[u8; 3], Failure> {
     let text = text.trim();
     let digits = text.strip_prefix('#').unwrap_or(text);
@@ -75,24 +58,12 @@ pub(super) fn rgb(text: &str) -> Result<[u8; 3], Failure> {
     Ok([red, green, blue])
 }
 
-/// Read a color list: one `#RRGGBB` for every zone, or one per zone.
-///
-/// # Errors
-///
-/// [`Failure::usage`] for an item that is not a color.
 pub(super) fn colors(text: &str) -> Result<Vec<[u8; 3]>, Failure> {
     list(text).map(rgb).collect()
 }
 
-/// The same list, read from one line of stdin where the text is `-`.
-///
-/// One line is one paint, so a list of 42 colors reaches the device from a
-/// file or a pipe rather than from the command line.
-///
-/// # Errors
-///
-/// [`Failure::usage`] for an item that is not a color, and
-/// [`Failure::internal`] where stdin cannot be read.
+// `-` reads the list from one line of stdin, so a list of 42 colors reaches
+// the device from a file or a pipe rather than from the command line.
 pub(super) async fn colors_or_stdin(text: &str) -> Result<Vec<[u8; 3]>, Failure> {
     if text.trim() != "-" {
         return colors(text);
@@ -106,11 +77,6 @@ pub(super) async fn colors_or_stdin(text: &str) -> Result<Vec<[u8; 3]>, Failure>
     colors(&line)
 }
 
-/// Read how many zones a frame states: `app`, `native`, or a count.
-///
-/// # Errors
-///
-/// [`Failure::usage`] for anything else.
 pub(super) fn resolution(text: &str) -> Result<Resolution, Failure> {
     match text {
         "app" => Ok(Resolution::App),
@@ -123,16 +89,14 @@ pub(super) fn resolution(text: &str) -> Result<Resolution, Failure> {
     }
 }
 
-/// The items of a list, each trimmed. A comma or a space separates them, and
-/// an empty list has no items.
+// A comma, a space or a tab separates the items.
 pub(super) fn list(text: &str) -> impl Iterator<Item = &str> {
     text.split([',', ' ', '\t'])
         .map(str::trim)
         .filter(|item| !item.is_empty())
 }
 
-/// Read pairs of hexadecimal digits. Spaces and colons separate them, or
-/// nothing does.
+// Spaces and colons separate the pairs, or nothing does.
 fn bytes(name: &str, text: &str) -> Result<Vec<u8>, Failure> {
     let digits: String = text
         .chars()

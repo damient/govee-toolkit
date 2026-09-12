@@ -1,5 +1,3 @@
-//! What one mode's segment channel paints, read off the device file.
-
 use crate::codec::{ArgSpec, Device, Mode};
 use crate::stream::resolve::{Painter, painter};
 
@@ -12,11 +10,9 @@ pub struct Reach {
     pub native: bool,
 }
 
-/// What the mode's painting command reaches on this device.
-///
-/// The zone count is what one frame states: the bound of the color list where
-/// one frame states every zone, and the bound of the mask where the frame
-/// names the zones it paints.
+/// What the mode's painting command reaches, read off the device file. The
+/// zone count is the bound of the color list where one frame states every
+/// zone, and the bound of the mask where the frame names the zones it paints.
 #[must_use]
 pub fn reach(device: &Device, mode: Mode) -> Option<Reach> {
     let native = device.capabilities.native_pixels();
@@ -39,8 +35,6 @@ pub fn reach(device: &Device, mode: Mode) -> Option<Reach> {
     }
 }
 
-/// How many colors one whole-frame command carries, from the `max_len:` of its
-/// color argument.
 fn color_limit(device: &Device, mode: Mode, command: &str, arg: &str) -> Option<usize> {
     match device.commands.get(mode).get(command)?.args.get(arg)? {
         ArgSpec::RgbList { max_len, .. } => *max_len,
@@ -60,7 +54,6 @@ mod tests {
         let catalog = Catalog::embedded().expect("the catalog parses");
         let device = catalog.device("H61A0").expect("the SKU resolves");
 
-        // The `max_len:` of the color list, against the 42 LEDs measured.
         let lan = reach(device, Mode::Lan).expect("lan paints");
         assert_eq!(lan.zones, 255);
         assert!(lan.native);
