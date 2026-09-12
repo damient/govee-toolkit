@@ -604,7 +604,9 @@ verified:
     judged by eye and NOT read back. The mask must name every zone the frame
     can address: a mask stopping at the 10 zones the app exposes left zones 10
     to 14 — the last third of the rope — holding the color they had, and the
-    15 bits this file declares paint the whole rope.
+    15 bits this file declares paint the whole rope. Painting every zone one
+    color over ble was exercised the same way, at red, blue and green: all 15
+    zones take the color.
     `write_drain_ms` was measured on this unit over raw GATT: a link dropped
     10 ms after a write loses the frame, and one dropped 25 ms after it
     carries it, both twice out of twice. The file records 50, which one close

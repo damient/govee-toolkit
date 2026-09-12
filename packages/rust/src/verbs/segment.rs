@@ -13,7 +13,7 @@ use crate::codec::{ArgRole, Args, Mode, Role};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::Served;
-use crate::stream::resolve::{Painter, plan};
+use crate::stream::resolve::{Painter, Plan, plan};
 use crate::stream::{StreamOptions, paint};
 
 impl DeviceHandle<'_> {
@@ -21,8 +21,10 @@ impl DeviceHandle<'_> {
     ///
     /// `zones` names the zones to paint, zero-based, and leaves every other
     /// zone alone. Only `role: segment_color_masked` can do that. `None`
-    /// paints every zone, over whichever painting role the file marks, and
-    /// takes the zone count from `capabilities.segments.count`.
+    /// paints every zone, over whichever painting role the file marks. Every
+    /// zone is what the frame reaches: the bound of its mask where it names
+    /// its zones, and `capabilities.segments.count` where one frame states
+    /// them all.
     ///
     /// `gradient` asks the firmware to interpolate between zones and to wrap
     /// from the last zone back to the first. `true` is refused where the file
@@ -77,7 +79,7 @@ impl DeviceHandle<'_> {
 
         let command = plan.painter.command().to_owned();
         let mut served = None;
-        for args in paint::frames(&plan.painter, vec![rgb; plan.zones])? {
+        for args in paint::frames(&plan.painter, vec![rgb; whole(&plan)])? {
             served = Some(self.send_on(mode, &command, &args).await?);
         }
         // The plan refuses a zone count of zero, so one color gives one frame.
@@ -137,6 +139,20 @@ impl DeviceHandle<'_> {
         self.send_on(mode, &command, &Args::new().int(arg, 1))
             .await?;
         Ok(())
+    }
+}
+
+/// How many zones "every zone" is, for a paint that covers the whole device.
+///
+/// A frame that names its zones covers what its mask can name, which is not
+/// `capabilities.segments.count`: the count is what the vendor app exposes,
+/// and the zones between it and the end of the mask would keep the color they
+/// had. A frame that states every zone at once covers the count the plan
+/// resolved, because its length is that count.
+fn whole(plan: &Plan) -> usize {
+    match plan.painter {
+        Painter::Masked { limit, .. } => limit,
+        Painter::Whole { .. } => plan.zones,
     }
 }
 

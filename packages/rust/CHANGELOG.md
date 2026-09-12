@@ -47,7 +47,10 @@ releases apart and keeps
   a `role: segment_color` frame states the color of every zone, and this crate
   does not hold what the other zones show, so it refuses the subset rather
   than repaint them. No list paints every zone, over whichever painting role
-  the file marks, from `capabilities.segments.count`. The channel is armed
+  the file marks. Every zone is what the frame reaches: the bound of its mask
+  where it names its zones, and `capabilities.segments.count` where one frame
+  states them all. The count is what the vendor app exposes, and a mask that
+  stopped there would leave the zones past it holding the color they had. The channel is armed
   where the file marks `role: segment_enable`, and nothing disarms it. A
   gradient the file can carry nowhere is refused rather than dropped.
 - `DeviceHandle::serving_mode` — the mode a command sent now would go over,

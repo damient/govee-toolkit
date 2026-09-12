@@ -24,6 +24,16 @@ commands:
         on: { type: int, range: [0, 1] }
       notes: "See docs/protocol/ble.md."
 
+    paint:
+      documented: false
+      role: segment_color_masked
+      frame: "33 05 15 01 (${colors}:rgb)×${nb} 00 00 00 00 00 ${zones:mask8} <pad:20> <xor>"
+      args:
+        colors: { type: rgb_list, max_len: 1, role: colors }
+        nb: { type: int, range: [1, 1] }
+        zones: { type: zones, count: 6, role: zones }
+      notes: "See docs/protocol/ble.md."
+
     colortemp:
       documented: false
       role: color_temp
