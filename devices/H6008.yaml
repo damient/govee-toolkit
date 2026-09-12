@@ -34,21 +34,23 @@ modes:
       commands answer, and the undocumented `status` command of
       docs/protocol/lan.md 2.2 answers as well.
   ble:
-    support: partial
+    support: capped
     capabilities: [color]
     unreachable:
-      power: unprobed
-      brightness: unprobed
-      colortemp: unprobed
+      power: transport
+      brightness: transport
+      colortemp: transport
     notes: >-
       Reaches one channel: the host colour frames of docs/protocol/ble.md 8.
       The unit answers the channel request and renders the triplet it is sent.
-      Three limits come with that channel, and the `color` command below states
-      them: the render expires on its own, no read reports it, and the stored
-      brightness scales it. The 20-byte dialect of docs/protocol/ble.md 2 and 3
-      answers nothing on this unit and changes nothing that `lan` reads back.
-      That is an unanswered question, not a boundary — see
-      docs/protocol/ble.md 7. The advertised name is the `GV` form of
+      That channel carries a colour and nothing else, so power, brightness and
+      the white temperature are out of its reach: the two frames it defines are
+      the request and one colour. Three limits come with the channel, and the
+      `color` command below states them: the render expires on its own, no read
+      reports it, and the stored brightness scales it. The 20-byte dialect of
+      docs/protocol/ble.md 2 and 3, which carries those three capabilities on
+      the models that answer it, answers nothing on this unit and changes
+      nothing that `lan` reads back. The advertised name is the `GV` form of
       docs/protocol/ble.md 1.3, so a scan reports the unit and reads its SKU.
   cloud:
     support: full
@@ -237,12 +239,6 @@ measurements:
     write_drain_ms: 25            # the shortest wait that rendered. 20 ms lost
                                   # the frame. One trial per step, so this is
                                   # the edge and not a margin
-    # TODO: measure `render_hold_ms`, how long the firmware holds a colour from
-    # the host before it returns to its stored state. It held one for over a
-    # minute, timed by eye and not to a figure worth recording. Nothing reads
-    # the render back — the `ble` reads answer nothing, the `lan` status
-    # reports the stored state, and the advertisement carries a constant — so
-    # the measurement needs an eye on the bulb or a light sensor.
 
 verified:
   by: "damient"
