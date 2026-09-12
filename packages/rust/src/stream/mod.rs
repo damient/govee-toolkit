@@ -294,6 +294,10 @@ impl SegmentStream {
 
     /// Stop emitting and disarm the channel.
     ///
+    /// The disarm ends the colors with the channel: the device goes back to the
+    /// color it showed before the stream. Keep the stream open for as long as
+    /// the colors must stay.
+    ///
     /// # Errors
     ///
     /// [`Error::Transport`] if the disarming frame cannot be sent, or if the
