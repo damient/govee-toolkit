@@ -5,15 +5,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{title}}</title>
 <meta name="description" content="{{description}}">
+<link rel="canonical" href="{{canonical}}">
+{{robots}}
 <meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0a0d14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fbfaf9" media="(prefers-color-scheme: light)">
+
+<link rel="icon" href="{{base}}assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{base}}assets/apple-touch-icon.png">
+
+<!-- The two faces are served from this origin, so the only thing the page
+     waits for is this file. The sans covers the headline that is drawn
+     first. -->
+<link rel="preload" href="{{base}}assets/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+
+<meta property="og:site_name" content="govee-toolkit">
 <meta property="og:title" content="{{title}}">
 <meta property="og:description" content="{{description}}">
-<meta property="og:type" content="website">
-<link rel="icon" href="{{base}}assets/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="{{base}}assets/css/site.css">
+<meta property="og:type" content="{{og_type}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:image" content="{{site}}{{base}}assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="govee-toolkit — control your Govee lights from your own machine.">
+<meta property="og:locale" content="en">
+<meta name="twitter:card" content="summary_large_image">
+
+<!-- The stylesheet is inlined: the whole site is one small file, and an
+     external one costs a round trip before the first paint. -->
+<style>{{css}}</style>
+
+<!-- The theme the reader chose in this tab, applied before the first paint.
+     The module at the end of the body runs after the page is drawn. -->
+<script>try{var t=sessionStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+{{jsonld}}
 </head>
 <body class="{{bodyclass}}">
 <a class="skip" href="#main">Skip to content</a>
