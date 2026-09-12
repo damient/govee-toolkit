@@ -63,6 +63,8 @@
   --magenta: light-dark(#b52272, #ff5ea8);
   --cyan: light-dark(#0d7a6e, #45e3d0);
   --violet: light-dark(#5a3ed6, #8d6bff);
+  --green: light-dark(#1a7a3c, #4ade80);
+  --azure: light-dark(#1f5bc4, #7aa2ff);
 
   --ok: light-dark(#0d7a6e, #45e3d0);
   --soon: light-dark(#8a5a05, #ffb35c);

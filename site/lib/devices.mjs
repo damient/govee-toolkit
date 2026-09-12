@@ -19,6 +19,14 @@ const CAPS = [
   ["segment_brightness", "Segment brightness"],
 ];
 
+// Why a capability is out of a mode's reach. The vocabulary is
+// `docs/compatibility.md`; these are the same three reasons, for a reader.
+const REASONS = new Map([
+  ["transport", "this transport does not carry it"],
+  ["unimplemented", "the transport carries it, this device file does not declare it yet"],
+  ["unprobed", "nobody has checked"],
+]);
+
 const CAP_LABELS = new Map(CAPS);
 const CAP_ORDER = new Map(CAPS.map(([key], at) => [key, at]));
 
@@ -144,13 +152,29 @@ function modeSections(d) {
     if (!caps.length) return "";
     const chips = caps.map((c) => `<li>${icon(c)}${escapeHtml(label(c))}</li>`).join("");
     return `<h3 id="mode-${m}">${modeBadge(m, support(d, m))}</h3>
-      <ul class="caps">${chips}</ul>`;
+      <ul class="caps">${chips}</ul>${outOfReach(d, m)}`;
   }).filter(Boolean);
 
   // With one mode, the section would repeat the chips over the title.
   if (blocks.length < 2) return "";
   return `<h2 id="modes">What each mode reaches</h2>
       ${blocks.join("\n      ")}`;
+}
+
+// A `capped` or `partial` badge states that a mode falls short; this states of
+// what, and why. Without it the badge names a verdict and hides the evidence.
+function outOfReach(d, mode) {
+  const out = Object.entries(d.modes?.[mode]?.unreachable ?? {});
+  if (!out.length) return "";
+  const items = out
+    .sort(([a], [b]) => order(a) - order(b))
+    .map(([key, reason]) => {
+      const why = REASONS.get(reason) ?? reason;
+      return `<li><strong>${escapeHtml(label(key))}</strong> — ${escapeHtml(why)}</li>`;
+    })
+    .join("");
+  return `
+      <ul class="out-of-reach">${items}</ul>`;
 }
 
 function commands(d) {
