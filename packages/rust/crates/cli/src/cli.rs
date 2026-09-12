@@ -38,6 +38,21 @@ pub(crate) struct Global {
     pub config: Option<PathBuf>,
 }
 
+/// A setting a person turns on or off.
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub(crate) enum Toggle {
+    /// Turn the setting on.
+    On,
+    /// Turn the setting off.
+    Off,
+}
+
+impl From<Toggle> for bool {
+    fn from(toggle: Toggle) -> Self {
+        matches!(toggle, Toggle::On)
+    }
+}
+
 /// The mode names accepted on the command line.
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub(crate) enum ModeArg {
@@ -156,6 +171,21 @@ pub(crate) enum Command {
         /// nowhere.
         #[arg(long)]
         gradient: bool,
+    },
+
+    /// Set whether the firmware interpolates between zones, without painting.
+    ///
+    /// The interpolation wraps from the last zone back to the first, so one
+    /// lit zone at one end also lights the other. Refused over a mode that
+    /// carries the setting inside its painting frame: nothing here holds what
+    /// the device shows, so the colors cannot be repainted under the other
+    /// setting. Pass `--gradient` to `segment` there, which sets both at once.
+    Gradient {
+        /// The device identity.
+        device: String,
+        /// Whether to interpolate.
+        #[arg(value_enum)]
+        state: Toggle,
     },
 
     /// Play an effect the device renders from its own microphone.

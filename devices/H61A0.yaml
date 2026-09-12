@@ -438,6 +438,23 @@ commands:
         `brightness` entry of `cloud-openapi` gives. See
         docs/protocol/cloud.md 5.
 
+    gradient:
+      documented: true
+      role: segment_gradient
+      capability:
+        type: "devices.capabilities.toggle"
+        instance: "gradientToggle"
+      payload: "${on}"
+      args:
+        on: { type: int, range: [0, 1], role: gradient }
+      notes: >-
+        Whether the firmware interpolates between zones, wrapping from the last
+        back to the first. The same setting the lan segment channel carries as
+        its `gradient` argument and the ble `gradient` frame carries alone.
+        This entry carries it alone too, so it changes no color. The account
+        list declares the instance as an enum over 0 and 1. See
+        docs/protocol/cloud.md 5.
+
     music:
       documented: true
       role: music
@@ -528,7 +545,21 @@ verified:
     unit: one zone red at the controller and the nine others black leaves the
     free end dark at `gradient` 0, and lights it red at `gradient` 1. Five
     zones red and five blue, over the same two positions, render a hard
-    boundary and a blend. Music was exercised with sound in the
+    boundary and a blend.
+    The `segment_gradient` role was exercised on this unit over ble and over
+    cloud, through the CLI, as a setting sent on its own. Over ble, a rope
+    painted zone 0 red and the rest black under `gradient` 0 lit its free end
+    when `33 A3 01` followed, with no color frame between the two. Over cloud,
+    `gradientToggle` 0 and 1 were each sent to the control endpoint and each
+    took effect on the rope, in both directions; the endpoint answered
+    `"status":"success"` to both. This is what establishes that the control
+    endpoint writes the instance: the account list declaring it is not
+    evidence, and the state endpoint answers an empty string for it.
+    A ble command ended the lan raw segment channel on this unit: a `33 A3`
+    frame sent over ble, while the rope held zones painted over the lan razer
+    channel, left the rope showing the color its stored setting held. Whether
+    the BLE connection or the frame ends the channel was NOT told apart. See
+    docs/protocol/state.md 6. Music was exercised with sound in the
     room, one field at a time, and a white flash of the whole rope separated
     each rendering from the next so that the boundary was visible. `effect` 0 to
     7 each render one over this frame, and 8 to 15, 50 and 255 render nothing

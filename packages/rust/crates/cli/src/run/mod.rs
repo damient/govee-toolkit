@@ -49,40 +49,6 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
             args,
         } => send::run(govee, writer, &DeviceId::new(device), command, args).await,
         Command::Status { device } => status::run(govee, writer, &DeviceId::new(device)).await,
-        Command::On { device } | Command::Off { device } => {
-            let on = matches!(cli.command, Command::On { .. });
-            verb(govee, writer, device, verbs::Verb::Power(on)).await
-        }
-        Command::Brightness { device, value } => {
-            verb(govee, writer, device, verbs::Verb::Brightness(*value)).await
-        }
-        Command::Color { device, color } => {
-            let rgb = args::rgb(color)?;
-            verb(govee, writer, device, verbs::Verb::Color(rgb)).await
-        }
-        Command::Colortemp { device, kelvin } => {
-            verb(govee, writer, device, verbs::Verb::ColorTemp(*kelvin)).await
-        }
-        Command::Segment {
-            device,
-            zones,
-            resolution,
-            colors,
-            gradient,
-        } => {
-            let painting = segment(zones.as_deref(), resolution, colors, *gradient).await?;
-            verb(govee, writer, device, painting).await
-        }
-        Command::Music {
-            device,
-            effect,
-            sensitivity,
-            soft,
-            color,
-        } => {
-            let playing = music(*effect, *sensitivity, *soft, color.as_deref())?;
-            verb(govee, writer, device, verbs::Verb::Music(playing)).await
-        }
         Command::Watch { rescan_ms } => watch::run(govee, writer, *rescan_ms, restrict).await,
         Command::Stream {
             device,
@@ -123,7 +89,44 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
             )
             .await
         }
+        other => one_verb(govee, writer, other).await,
     }
+}
+
+/// One verb a person types, with the values read under their types.
+///
+/// Every arm names a device, so [`device_of`] has already discovered it.
+async fn one_verb(govee: &Govee, writer: &Writer, command: &Command) -> Result<(), Failure> {
+    let (device, played) = match command {
+        Command::On { device } => (device, verbs::Verb::Power(true)),
+        Command::Off { device } => (device, verbs::Verb::Power(false)),
+        Command::Brightness { device, value } => (device, verbs::Verb::Brightness(*value)),
+        Command::Color { device, color } => (device, verbs::Verb::Color(args::rgb(color)?)),
+        Command::Colortemp { device, kelvin } => (device, verbs::Verb::ColorTemp(*kelvin)),
+        Command::Gradient { device, state } => (device, verbs::Verb::Gradient((*state).into())),
+        Command::Segment {
+            device,
+            zones,
+            resolution,
+            colors,
+            gradient,
+        } => (
+            device,
+            segment(zones.as_deref(), resolution, colors, *gradient).await?,
+        ),
+        Command::Music {
+            device,
+            effect,
+            sensitivity,
+            soft,
+            color,
+        } => (
+            device,
+            verbs::Verb::Music(music(*effect, *sensitivity, *soft, color.as_deref())?),
+        ),
+        other => return Err(Failure::internal(format!("{other:?} is not a verb"))),
+    };
+    verb(govee, writer, device, played).await
 }
 
 /// What a person typed for one painting, with the zones, the colors and the
@@ -234,6 +237,7 @@ fn device_of(command: &Command) -> Option<&str> {
         | Command::Color { device, .. }
         | Command::Colortemp { device, .. }
         | Command::Segment { device, .. }
+        | Command::Gradient { device, .. }
         | Command::Music { device, .. }
         | Command::Stream { device, .. } => Some(device),
         #[cfg(feature = "ble")]

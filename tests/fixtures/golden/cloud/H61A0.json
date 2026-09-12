@@ -170,6 +170,32 @@
         }
       },
       "source": "sent to the control endpoint on a live account, and the rope played and reacted to sound; no capture file"
+    },
+    {
+      "name": "gradient on",
+      "command": "gradient",
+      "args": { "on": 1 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.toggle",
+          "instance": "gradientToggle",
+          "value": 1
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the rope lit its free end from one lit zone; no capture file"
+    },
+    {
+      "name": "gradient off",
+      "command": "gradient",
+      "args": { "on": 0 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.toggle",
+          "instance": "gradientToggle",
+          "value": 0
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the free end went dark; no capture file"
     }
   ],
   "errors": [

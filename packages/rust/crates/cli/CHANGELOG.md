@@ -11,7 +11,8 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 - The crate, the `govee` binary and the command surface: `scan`, `devices`,
   `describe`, `doctor`, `status`, `on`, `off`, `brightness`, `color`,
-  `colortemp`, `segment`, `music`, `send`, `stream`, `watch` and `provision`.
+  `colortemp`, `segment`, `gradient`, `music`, `send`, `stream`, `watch` and
+  `provision`.
 - The verbs reach the device file through a `role:`, so no command name lives
   in this crate and a binding gets the same verb from the core. A device whose
   file claims no entry for the role fails and names the role.
@@ -26,6 +27,12 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   refines. It reads no hardware.
 - `status` asks the device for its state and reports the mode that answered.
   A field the reply leaves out reads `?` in the text form and `null` in JSON.
+- `gradient <device> on|off` sets whether the firmware interpolates between
+  zones, and paints nothing. The interpolation wraps from the last zone back to
+  the first, so one lit zone at one end also lights the other. Over a mode that
+  carries the setting inside its painting frame it fails and names the role:
+  nothing here holds the colors the device shows, so they cannot be painted
+  again under the other setting. Pass `--gradient` to `segment` there.
 - `segment` paints zones. One `#RRGGBB` fills every zone; a comma-separated
   list states one zone each, which is how a mode that addresses every LED is
   painted pixel by pixel. `-` reads that list from one line of stdin, so a

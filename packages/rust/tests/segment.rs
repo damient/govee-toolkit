@@ -80,6 +80,27 @@ async fn one_color_fills_every_zone_the_resolution_names() {
     );
 }
 
+/// `lan` carries the interpolation setting inside the frame that paints, so it
+/// marks no `role: segment_gradient`. The call fails rather than repaint: the
+/// colors the device shows are not held here.
+#[tokio::test]
+async fn setting_the_gradient_alone_is_refused_where_only_a_paint_carries_it() {
+    let rig = rig().await;
+
+    let refused = rig
+        .govee
+        .device(&id())
+        .gradient(true)
+        .await
+        .expect_err("lan carries the setting in the painting frame");
+
+    assert!(
+        matches!(refused, govee_toolkit::Error::NoRoleCommand { .. }),
+        "{refused:?}"
+    );
+    assert!(frames(&rig.simulator).is_empty(), "nothing was painted");
+}
+
 /// `measurements.arm_settle_ms` of `devices/H61A0.yaml`.
 ///
 /// The firmware renders nothing when the paint follows the arming frame at

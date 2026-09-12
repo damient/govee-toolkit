@@ -11,6 +11,14 @@ releases apart and keeps
 
 ### Added
 
+- `DeviceHandle::gradient` — set whether the firmware interpolates between
+  zones, without painting, through the `segment_gradient` role. The
+  interpolation wraps from the last zone back to the first. It needs a mode
+  whose file marks that role on a command carrying the setting alone; a mode
+  that carries it inside its painting frame fails with
+  `Error::NoRoleCommand`, because this crate does not hold what the device
+  shows and cannot repaint the same colors under the other setting. Pass
+  `Paint::gradient` there, which sets both at once.
 - `Measurements::arm_settle_ms` and `Measurements::arm_settle` — how long the
   firmware needs after the arming frame of the segment channel, in
   milliseconds. `arm_settle` answers what the device file records, or a

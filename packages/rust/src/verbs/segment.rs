@@ -163,6 +163,33 @@ impl DeviceHandle<'_> {
         self.send_on(mode, &command, &args).await
     }
 
+    /// Set whether the firmware interpolates between zones, without painting.
+    ///
+    /// The interpolation wraps from the last zone back to the first, so one
+    /// lit zone at one end also lights the other. `false` gives hard-edged
+    /// zones. The setting stays until something changes it.
+    ///
+    /// This needs a mode whose file marks `role: segment_gradient`, which is a
+    /// command that carries the setting alone. A mode that carries the setting
+    /// inside its painting frame cannot serve this call: the SDK does not hold
+    /// what the device shows, so it cannot repaint the same colors under the
+    /// other setting. Pass [`Paint::gradient`] there, which sets both at once.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::NoRoleCommand`] if the device file marks no entry
+    /// `role: segment_gradient` for the chosen mode, [`Error::NoRoleArg`] if
+    /// that entry marks no argument `role: gradient`, plus what
+    /// [`DeviceHandle::send`] fails with.
+    pub async fn gradient(&self, on: bool) -> Result<Served> {
+        self.send_verb(
+            Role::SegmentGradient,
+            |args, name| args.int(name, i64::from(on)),
+            ArgRole::Gradient,
+        )
+        .await
+    }
+
     /// Arm the segment channel, where the mode has an entry that arms it.
     ///
     /// Waits for the firmware to switch channel before it returns. A paint
