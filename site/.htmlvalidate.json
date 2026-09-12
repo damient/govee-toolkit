@@ -1,0 +1,9 @@
+{
+  "extends": ["html-validate:recommended", "html-validate:document", "html-validate:a11y"],
+  "rules": {
+    "doctype-style": ["error", { "style": "lowercase" }],
+    "no-inline-style": "off",
+    "no-trailing-whitespace": "off",
+    "require-sri": ["error", { "target": "crossorigin" }]
+  }
+}
