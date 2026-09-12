@@ -11,13 +11,13 @@
 import { cp, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { createReadStream, existsSync, statSync, watch } from "node:fs";
 import { createServer } from "node:http";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Marked } from "marked";
 import { transform } from "esbuild";
 
 import { escapeAttr, escapeHtml, fill, inline, slugify } from "./lib/html.mjs";
-import { docShell } from "./lib/docs.mjs";
+import { docShell, navItem } from "./lib/docs.mjs";
 import { highlight } from "./lib/code.mjs";
 import { MODES, devicePage, renderIndex, sorted } from "./lib/devices.mjs";
 import { modeBadge } from "./lib/mode-badge.mjs";
@@ -39,6 +39,8 @@ const SITE_URL = "https://gvetk.com";
 const base = "/";
 const repoUrl = "https://github.com/damient/govee-toolkit";
 const catalogPath = join(repo, "dist/catalog.json");
+// The shape `lib/devices.mjs` reads. `xtask` writes it into every catalog.
+const CATALOG_SCHEMA = 1;
 
 const DESCRIPTION = "An unofficial toolkit that controls Govee lights over your own network, from Rust, Python, Node.js or the command line.";
 
@@ -49,6 +51,7 @@ const pages = [
     url: "devices/",
     nav: "devices",
     title: "Devices",
+    render: renderIndex,
     description: "Which Govee models the toolkit reaches, over Wi-Fi, over Bluetooth and over the cloud. Built from the device files, so it cannot disagree with them.",
   },
 ];
@@ -57,88 +60,111 @@ const pages = [
 // Markdown pages that surround it.
 const REFERENCE = { url: "reference/", title: "Reference", order: 4 };
 
+// `planned` marks a package that has no code yet: its example shows the shape
+// the call will have, and the pane says so.
 const LANGUAGES = [
-  { id: "cli", label: "Command line", state: "ok" },
-  { id: "rust", label: "Rust", state: "ok" },
-  { id: "python", label: "Python", state: "soon" },
-  { id: "node", label: "Node.js", state: "soon" },
+  { id: "cli", label: "Command line" },
+  { id: "rust", label: "Rust" },
+  { id: "python", label: "Python", planned: true },
+  { id: "node", label: "Node.js", planned: true },
 ];
-
-// Every page a crawler may index, in the order the build writes them. The
-// sitemap is this list; a page that carries `noindex` never joins it.
-let sitemap = [];
 
 async function main() {
   const catalog = await readCatalog();
-  sitemap = [];
   await rm(out, { recursive: true, force: true });
   await mkdir(out, { recursive: true });
 
-  const copy = { recursive: true, filter: (path) => !path.endsWith(".DS_Store") };
+  // `assets()` writes the stylesheet into the pages and the minified script
+  // into `assets/js`, so neither source is copied here.
+  const skip = join(root, "src/assets/css");
+  const copy = {
+    recursive: true,
+    filter: (path) => !path.endsWith(".DS_Store") && !path.startsWith(skip),
+  };
   await cp(join(root, "src/assets"), join(out, "assets"), copy);
   if (existsSync(join(root, "public"))) {
-    await cp(join(root, "public"), out, copy);
+    await cp(join(root, "public"), out, { recursive: true, filter: (path) => !path.endsWith(".DS_Store") });
   }
-  await writeFile(join(out, ".nojekyll"), "");
-  const css = await assets();
 
-  const layout = await readFile(join(root, "src/layout.html"), "utf8");
-  const docs = await readDocs();
-  const reference = JSON.parse(await readFile(join(root, "content/reference.json"), "utf8"));
+  const [, css, layout, docs, reference] = await Promise.all([
+    writeFile(join(out, ".nojekyll"), ""),
+    assets(),
+    readFile(join(root, "src/layout.html"), "utf8"),
+    readDocs(),
+    readFile(join(root, "content/reference.json"), "utf8").then(JSON.parse),
+  ]);
   const nav = [
     ...docs.map((d) => ({ url: `docs/${d.slug}/`, title: d.title, order: d.order })),
     REFERENCE,
   ].sort((a, b) => a.order - b.order);
-  const ctx = { css, catalog };
-
-  for (const page of pages) {
-    let body = await readFile(join(root, "src/pages", page.src), "utf8");
-    if (page.src === "devices.html") body = renderIndex(body, catalog);
-    await emit(layout, { jsonld: page.url === "" ? homeData() : [], ...page }, body, ctx);
-  }
+  // The docs entry point is the first page in the menu, not a hardcoded slug.
+  const docsHome = nav[0].url;
+  // The footer names the same pages as the side menu, from the same list.
+  const docNav = nav.map((item) => navItem(base, item, null)).join("\n          ");
+  // `vars` is built once: every page fills its body with the same values.
+  const ctx = { css, docsHome, docNav, vars: { base, repo: repoUrl, ...modeBadges() } };
 
   const devices = sorted(catalog);
-  for (const device of devices) {
-    const page = devicePage(device);
-    await emit(layout, {
-      url: page.url,
-      nav: "devices",
-      title: page.title,
-      description: page.description,
-      klass: "is-device",
-      jsonld: [breadcrumb(page.breadcrumb), deviceData(device, page)],
-    }, page.body, ctx);
-  }
+  const sources = await Promise.all(
+    pages.map((page) => readFile(join(root, "src/pages", page.src), "utf8")),
+  );
 
-  for (const doc of docs) {
-    await emit(layout, {
+  // One record per page, so a new field is added here and read in one place.
+  const all = [
+    ...pages.map((page, at) => ({
+      ...page,
+      jsonld: page.url === "" ? homeData() : [],
+      body: page.render ? page.render(sources[at], devices) : sources[at],
+    })),
+    ...devices.map((device) => {
+      const page = devicePage(device);
+      return {
+        url: page.url,
+        nav: "devices",
+        title: page.title,
+        description: page.description,
+        klass: "is-device",
+        jsonld: [breadcrumb(page.breadcrumb), deviceData(device, page)],
+        body: page.body,
+      };
+    }),
+    ...docs.map((doc) => ({
       url: `docs/${doc.slug}/`,
       nav: "docs",
       title: doc.title,
       description: doc.description,
       klass: "is-doc",
       jsonld: [
-        breadcrumb([["Docs", "docs/start/"], [doc.title, `docs/${doc.slug}/`]]),
+        breadcrumb([["Docs", docsHome], [doc.title, `docs/${doc.slug}/`]]),
         ...(doc.faq ? [faqData(doc)] : []),
       ],
-    }, docPage(doc, nav), ctx);
-  }
+      body: docPage(doc, nav),
+    })),
+    {
+      url: REFERENCE.url,
+      nav: "docs",
+      title: REFERENCE.title,
+      description: reference.intro,
+      klass: "is-doc",
+      jsonld: [breadcrumb([["Docs", docsHome], ["Reference", "reference/"]])],
+      body: referencePage(reference, nav),
+    },
+    {
+      url: "404.html",
+      nav: "",
+      title: "Page not found",
+      noindex: true,
+      body: `<section class="slab"><h1>Page not found</h1><p class="lede">That page does not exist. <a href="${base}">Go back to the start</a>.</p></section>`,
+    },
+  ];
 
-  await emit(layout, {
-    url: REFERENCE.url,
-    nav: "docs",
-    title: REFERENCE.title,
-    description: reference.intro,
-    klass: "is-doc",
-    jsonld: [breadcrumb([["Docs", "docs/start/"], ["Reference", "reference/"]])],
-  }, referencePage(reference, nav), ctx);
-
-  await emit(layout, { url: "404.html", nav: "", title: "Page not found", noindex: true },
-    `<section class="slab"><h1>Page not found</h1><p class="lede">That page does not exist. <a href="${base}">Go back to the start</a>.</p></section>`,
-    ctx);
+  // The pages do not depend on each other, so they are written together.
+  // `Promise.all` keeps the order, and the sitemap follows it.
+  const written = await Promise.all(all.map((page) => emit(layout, page, ctx)));
+  const sitemap = written.filter(Boolean);
 
   await writeFile(join(out, "robots.txt"), robots());
-  await writeFile(join(out, "sitemap.xml"), sitemapXml());
+  await writeFile(join(out, "sitemap.xml"), sitemapXml(sitemap));
 
   await publish();
   const clock = new Date().toTimeString().slice(0, 8);
@@ -149,14 +175,16 @@ async function main() {
 // weight. The script stays a file: it is deferred, and a second page reads it
 // from the cache.
 async function assets() {
-  const source = await readFile(join(root, "src/assets/css/site.css"), "utf8");
-  const css = await transform(source, { loader: "css", minify: true });
-  await rm(join(out, "assets/css"), { recursive: true, force: true });
-
-  const script = await readFile(join(root, "src/assets/js/site.js"), "utf8");
-  const min = await transform(script, { loader: "js", minify: true, target: "es2022" });
+  const [source, script] = await Promise.all([
+    readFile(join(root, "src/assets/css/site.css"), "utf8"),
+    readFile(join(root, "src/assets/js/site.js"), "utf8"),
+  ]);
+  const [css, min] = await Promise.all([
+    transform(source, { loader: "css", minify: true }),
+    transform(script, { loader: "js", minify: true, target: "es2022" }),
+  ]);
+  await mkdir(join(out, "assets/js"), { recursive: true });
   await writeFile(join(out, "assets/js/site.js"), min.code);
-
   return css.code;
 }
 
@@ -170,9 +198,9 @@ async function publish() {
   await rm(previous, { recursive: true, force: true });
 }
 
-async function emit(layout, page, body, ctx) {
+/** Writes one page and returns its canonical URL, or `null` when `noindex`. */
+async function emit(layout, page, ctx) {
   const canonical = `${SITE_URL}${base}${page.url}`;
-  if (!page.noindex) sitemap.push(canonical);
   const html = fill(layout, {
     base,
     site: SITE_URL,
@@ -188,8 +216,9 @@ async function emit(layout, page, body, ctx) {
       : '<meta name="robots" content="index, follow, max-image-preview:large">',
     css: ctx.css,
     jsonld: jsonLd(page.jsonld),
-    nav: topNav(page.nav),
-    content: fill(body, { base, repo: repoUrl, ...counts(ctx.catalog), ...modeBadges() }),
+    nav: topNav(page.nav, ctx.docsHome),
+    docnav: ctx.docNav,
+    content: fill(page.body, ctx.vars),
     year: String(new Date().getUTCFullYear()),
   });
   const file = page.url.endsWith(".html")
@@ -197,6 +226,7 @@ async function emit(layout, page, body, ctx) {
     : join(out, page.url, "index.html");
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, html);
+  return page.noindex ? null : canonical;
 }
 
 // `{{badge_lan}}` and friends, so a static page names a mode with the same
@@ -205,23 +235,18 @@ function modeBadges() {
   return Object.fromEntries(MODES.map((m) => [`badge_${m}`, modeBadge(m)]));
 }
 
-function counts(catalog) {
-  const verified = catalog.devices.filter((d) => d.verified?.date).length;
-  return { verified_count: String(verified), device_count: String(catalog.devices.length) };
-}
 
-function topNav(current) {
+// The reference page sits inside the documentation, so `key` marks Docs while
+// the reader is on it. One entry carries the three facts a link needs.
+function topNav(current, docsHome) {
   const items = [
-    ["", "Home"],
-    ["docs/start/", "Docs"],
-    ["devices/", "Devices"],
+    { url: "", key: "home", label: "Home" },
+    { url: docsHome, key: "docs", label: "Docs" },
+    { url: "devices/", key: "devices", label: "Devices" },
   ];
-  // The reference page sits inside the documentation, so the top bar marks
-  // Docs while the reader is on it.
-  const keys = { "": "home", "docs/start/": "docs", "devices/": "devices" };
   return items
-    .map(([url, label]) => {
-      const on = keys[url] === current ? ' aria-current="page"' : "";
+    .map(({ url, key, label }) => {
+      const on = key === current ? ' aria-current="page"' : "";
       return `<a href="${base}${url}"${on}>${label}</a>`;
     })
     .join("\n        ");
@@ -305,7 +330,7 @@ function robots() {
 
 // No `lastmod`: the build date is the date of the build and not the date the
 // page changed, and a wrong one is worse than none.
-function sitemapXml() {
+function sitemapXml(sitemap) {
   const urls = sitemap
     .map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`)
     .join("\n");
@@ -321,45 +346,44 @@ ${urls}
 async function readDocs() {
   const dir = join(root, "content/docs");
   const files = (await readdir(dir)).filter((f) => f.endsWith(".md"));
-  const docs = [];
-  for (const file of files) {
-    const raw = await readFile(join(dir, file), "utf8");
-    const { meta, body } = frontMatter(raw);
-    const headings = [];
-    const md = new Marked({ async: false });
-    md.use({
-      walkTokens(token) {
-        if (token.type === "heading" && token.depth === 2) {
-          const label = headingLabel(token.tokens);
-          headings.push({ id: slugify(label), text: label });
-        }
-      },
-      renderer: {
-        code({ text, lang }) {
-          const name = (lang ?? "").trim().split(/\s+/)[0];
-          return `<pre><code>${highlight(text, name)}</code></pre>\n`;
-        },
-        heading({ text, depth, tokens }) {
-          const inner = this.parser.parseInline(tokens);
-          if (depth !== 2) return `<h${depth}>${inner}</h${depth}>\n`;
-          const id = slugify(headingLabel(tokens));
-          return `<h2 id="${id}"><a class="anchor" href="#${id}">${inner}</a></h2>\n`;
-        },
-      },
-    });
-    const html = md.parse(fill(body, { base, repo: repoUrl, ...modeBadges() }));
-    docs.push({
-      slug: meta.slug ?? file.replace(/\.md$/, ""),
-      title: meta.title ?? file,
-      description: meta.description ?? "",
-      order: Number(meta.order ?? 99),
-      faq: meta.faq === "true",
-      headings,
-      html,
-      sections: sections(html, headings),
-    });
-  }
+  const raw = await Promise.all(files.map((f) => readFile(join(dir, f), "utf8")));
+  const docs = files.map((file, at) => renderDoc(file, raw[at]));
   return docs.sort((a, b) => a.order - b.order);
+}
+
+function renderDoc(file, raw) {
+  const { meta, body } = frontMatter(raw);
+  // The heading renderer fills this: the id it writes into the anchor is the
+  // id the table of contents links to, derived once.
+  const headings = [];
+  const md = new Marked({ async: false });
+  md.use({
+    renderer: {
+      code({ text, lang }) {
+        const name = (lang ?? "").trim().split(/\s+/)[0];
+        return `<pre><code>${highlight(text, name)}</code></pre>\n`;
+      },
+      heading({ depth, tokens }) {
+        const inner = this.parser.parseInline(tokens);
+        if (depth !== 2) return `<h${depth}>${inner}</h${depth}>\n`;
+        const label = headingLabel(tokens);
+        const id = slugify(label);
+        headings.push({ id, text: label });
+        return `<h2 id="${escapeAttr(id)}"><a class="anchor" href="#${escapeAttr(id)}">${inner}</a></h2>\n`;
+      },
+    },
+  });
+  const html = md.parse(fill(body, { base, repo: repoUrl, ...modeBadges() }));
+  return {
+    slug: meta.slug ?? file.replace(/\.md$/, ""),
+    title: meta.title ?? file,
+    description: meta.description ?? "",
+    order: Number(meta.order ?? 99),
+    faq: meta.faq === "true",
+    headings,
+    html,
+    sections: sections(html, headings),
+  };
 }
 
 // Cuts the rendered page at every second-level heading. The answer is the
@@ -442,7 +466,7 @@ ${reference.groups.map(referenceGroup).join("\n")}`,
 function referenceGroup(group) {
   const entries = group.entries.map(referenceEntry).join("\n");
   return `        <section class="ref-group">
-          <h2 id="${group.id}"><a class="anchor" href="#${group.id}">${escapeHtml(group.title)}</a></h2>
+          <h2 id="${escapeAttr(group.id)}"><a class="anchor" href="#${escapeAttr(group.id)}">${escapeHtml(group.title)}</a></h2>
 ${entries}
         </section>`;
 }
@@ -457,7 +481,7 @@ function referenceEntry(entry) {
     .join("");
   const panes = available
     .map((lang, index) => {
-      const planned = lang.state === "soon"
+      const planned = lang.planned
         ? `<p class="planned">Planned — the shape it will have.</p>`
         : "";
       const source = entry.examples[lang.id];
@@ -465,7 +489,7 @@ function referenceEntry(entry) {
     })
     .join("\n              ");
   const detail = entry.detail ? `<p>${inline(entry.detail)}</p>` : "";
-  return `          <article class="ref-entry" id="${entry.id}">
+  return `          <article class="ref-entry" id="${escapeAttr(entry.id)}">
             <div class="ref-text">
               <h3><a class="anchor" href="#${entry.id}"><code>${escapeHtml(entry.title)}</code></a></h3>
               <p class="summary">${escapeHtml(entry.summary)}</p>
@@ -488,7 +512,17 @@ async function readCatalog() {
     );
     process.exit(1);
   }
-  return JSON.parse(await readFile(catalogPath, "utf8"));
+  const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
+  if (catalog.schema_version !== CATALOG_SCHEMA) {
+    console.error(
+      `${relative(repo, catalogPath)} is schema ${catalog.schema_version}, ` +
+      `and the renderers read schema ${CATALOG_SCHEMA}.\n` +
+      `A field that moved renders as "?" and as "not verified", which states ` +
+      `something nobody established. Update lib/devices.mjs first.`,
+    );
+    process.exit(1);
+  }
+  return catalog;
 }
 
 // --- Local server ----------------------------------------------------------
@@ -513,7 +547,7 @@ function serve() {
     let file = join(dist, path);
     if (!file.startsWith(dist)) return send(response, 403, "Forbidden");
     if (existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
-    let ext = file.slice(file.lastIndexOf("."));
+    let ext = extname(file);
     if (!existsSync(file)) {
       file = join(dist, "404.html");
       if (!existsSync(file)) return send(response, 404, "Not found");

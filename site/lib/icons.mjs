@@ -24,11 +24,14 @@ const PATHS = {
   music: '<path d="M9 17.4V5.8l11-2v11.6"/><circle cx="6.4" cy="17.4" r="2.6"/><circle cx="17.4" cy="15.4" r="2.6"/>',
 };
 
+// The one box, stroke and fill every icon here is drawn on.
+const svg = (paths, klass, attrs = "") =>
+  `<svg class="${klass}"${attrs} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+
 /** The icon of one capability, or an empty string when the map holds none. */
 export function icon(key) {
   const paths = PATHS[key];
-  if (!paths) return "";
-  return `<svg class="cap-icon" data-cap="${key}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+  return paths ? svg(paths, "cap-icon", ` data-cap="${key}"`) : "";
 }
 
 // One icon per mode, on the same 24 box as the capability icons.
@@ -38,9 +41,8 @@ const MODE_PATHS = {
   cloud: '<path d="M7.4 18.6a4.6 4.6 0 0 1-.5-9.2 6 6 0 0 1 11.4 1.6 3.9 3.9 0 0 1-.8 7.6Z"/>',
 };
 
-/** The icon of one mode. */
+/** The icon of one mode, or an empty string when the map holds none. */
 export function modeIcon(mode) {
   const paths = MODE_PATHS[mode];
-  if (!paths) return "";
-  return `<svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+  return paths ? svg(paths, "mode-icon") : "";
 }

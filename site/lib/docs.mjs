@@ -31,11 +31,9 @@ function docSelect(base, nav, current, toc) {
   const here = nav.find((item) => item.url === current);
   const items = nav
     .map((item) => {
-      if (item.url !== current) {
-        return `<li><a href="${base}${item.url}">${escapeHtml(item.title)}</a></li>`;
-      }
-      const inner = toc.length ? `\n            ${tocList(toc, "doc-select-toc", 12)}` : "";
-      return `<li class="on"><a href="${base}${item.url}" aria-current="page">${escapeHtml(item.title)}</a>${inner}</li>`;
+      if (item.url !== current) return navItem(base, item, current);
+      const inner = toc.length ? `\n            ${tocList(toc, "doc-select-toc")}` : "";
+      return navItem(base, item, current, inner, "on");
     })
     .join("\n          ");
   return `<details class="doc-select" data-doc-select>
@@ -50,18 +48,23 @@ function docSelect(base, nav, current, toc) {
 }
 
 function sideNav(base, nav, current) {
-  const links = nav
-    .map((item) => {
-      const on = item.url === current ? ' aria-current="page"' : "";
-      return `<li><a href="${base}${item.url}"${on}>${escapeHtml(item.title)}</a></li>`;
-    })
-    .join("\n          ");
+  const links = nav.map((item) => navItem(base, item, current)).join("\n          ");
   return `<nav class="doc-nav" aria-label="Documentation">
         <p class="eyebrow">Documentation</p>
         <ul>
           ${links}
         </ul>
       </nav>`;
+}
+
+/**
+ * One entry of a documentation menu. `inner` nests under the link and `klass`
+ * goes on the item, so the two menus differ in those two and in nothing else.
+ */
+export function navItem(base, item, current, inner = "", klass = "") {
+  const on = item.url === current ? ' aria-current="page"' : "";
+  const cls = klass ? ` class="${klass}"` : "";
+  return `<li${cls}><a href="${base}${item.url}"${on}>${escapeHtml(item.title)}</a>${inner}</li>`;
 }
 
 /**
@@ -73,20 +76,17 @@ function sideNav(base, nav, current) {
 function pageToc(entries) {
   return `<aside class="doc-toc" aria-label="On this page" data-spy>
         <p class="eyebrow">On this page</p>
-        ${tocList(entries, "sub", 8)}
+        ${tocList(entries, "sub")}
       </aside>`;
 }
 
-function tocList(entries, klass, depth) {
-  const pad = " ".repeat(depth + 2);
+function tocList(entries, klass) {
   const items = entries.map((entry) => {
     const group = entry.children?.length;
-    const nested = group ? `\n${pad}${tocList(entry.children, "", depth + 2)}\n${pad}` : "";
-    return `${pad}<li${group ? ' class="sub-group"' : ""}>${tocLink(entry)}${nested}</li>`;
+    const nested = group ? tocList(entry.children, "") : "";
+    return `<li${group ? ' class="sub-group"' : ""}>${tocLink(entry)}${nested}</li>`;
   });
-  return `<ul${klass ? ` class="${klass}"` : ""}>
-${items.join("\n")}
-${" ".repeat(depth)}</ul>`;
+  return `<ul${klass ? ` class="${klass}"` : ""}>${items.join("")}</ul>`;
 }
 
 function tocLink(entry) {
