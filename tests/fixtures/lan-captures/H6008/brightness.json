@@ -1,0 +1,44 @@
+{
+  "description": "Brightness on the H6008, walked over its range and past both ends. This firmware stores the byte it receives and reports it back, so it clamps nothing: 200 reads as -56, the signed reading of the same byte. docs/protocol/lan.md 2.1 describes the clamping models. Each row records the devStatus the client read back after the write, with the anchor the walk started from.",
+  "sku": "H6008",
+  "mode": "lan",
+  "captured": "2026-09-12",
+  "host": "192.0.2.2",
+  "exchanges": [
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "payload": { "msg": { "cmd": "brightness", "data": { "value": 100 } } },
+      "read_back": { "brightness": 100 }
+    },
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "payload": { "msg": { "cmd": "brightness", "data": { "value": 50 } } },
+      "read_back": { "brightness": 50 }
+    },
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "anchor": { "brightness": 50 },
+      "payload": { "msg": { "cmd": "brightness", "data": { "value": 0 } } },
+      "read_back": { "brightness": 0 },
+      "note": "0 is stored, not raised to 1"
+    },
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "payload": { "msg": { "cmd": "brightness", "data": { "value": 101 } } },
+      "read_back": { "brightness": 101 },
+      "note": "101 is stored, not lowered to 100"
+    },
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "anchor": { "brightness": 50 },
+      "payload": { "msg": { "cmd": "brightness", "data": { "value": 200 } } },
+      "read_back": { "brightness": -56 },
+      "note": "the same byte, read as a signed value. Both units answered -56."
+    }
+  ]
+}

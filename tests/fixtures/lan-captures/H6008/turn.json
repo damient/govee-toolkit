@@ -1,0 +1,21 @@
+{
+  "description": "Power on the H6008. The write never answers, so each row records the devStatus the client read back after it.",
+  "sku": "H6008",
+  "mode": "lan",
+  "captured": "2026-09-12",
+  "host": "192.0.2.2",
+  "exchanges": [
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "payload": { "msg": { "cmd": "turn", "data": { "value": 0 } } },
+      "read_back": { "onOff": 0 }
+    },
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "payload": { "msg": { "cmd": "turn", "data": { "value": 1 } } },
+      "read_back": { "onOff": 1 }
+    }
+  ]
+}

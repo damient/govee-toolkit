@@ -1,0 +1,237 @@
+# On Govee's official LAN-control list — see ../docs/lan-supported-devices.md.
+# Govee's own list names it "Wi-Fi+BLE RGBWW LED Bulb".
+
+schema_version: 1
+
+sku: "H6008"
+family: "rgbww-bulb"
+name: "Smart LED Bulb RGBWW"
+aliases: []
+
+candidate_aliases:      # Govee's LAN list gives each of these the same
+  - H6004               # description as the H6008. Nobody verified one. The
+  - H6006               # white range is a property of the unit, so measure it
+  - H6009               # again on each. H6003 carries the same description and
+  - H600A               # is absent here: Govee gives that model one radio,
+  - H6010               # Wi-Fi.
+
+capabilities:
+  power:
+  brightness:  { range: [1, 100] }
+  color:
+  colortemp:   { range_kelvin: [2700, 6500] }   # measured, see verified below
+  music:
+  # No segments and no segment_brightness: the bulb shows one color.
+
+modes:
+  lan:
+    support: partial
+    capabilities: [power, brightness, color, colortemp]
+    unreachable:
+      music: transport
+    notes: >-
+      Requires LAN Control enabled in the Govee Home app. The four documented
+      commands answer, and the undocumented `status` command of
+      docs/protocol/lan.md 2.2 answers as well. The bulb renders no music over
+      lan: this transport carries no command for the device's own microphone.
+      See docs/protocol/lan.md 2.4.
+  ble:
+    support: unknown
+    capabilities: []
+    unreachable: {}
+    notes: >-
+      The unit advertises, accepts one GATT link and carries the two vendor
+      characteristics. It answers no frame of the dialect in
+      docs/protocol/ble.md, and a power frame changes nothing that `lan` reads
+      back. That is an unanswered question, not a boundary: an unimplemented
+      command and a malformed one look the same here. The advertised name is
+      the `GV` form of docs/protocol/ble.md 1.3, so a scan reports the unit and
+      reads its SKU; what the unit answers is the open part.
+  cloud:
+    support: partial
+    capabilities: [power, brightness, color, colortemp]
+    unreachable:
+      music: transport
+    notes: >-
+      Needs an API key. The account lists this model with four writable
+      capabilities and no `music_setting`, and the control endpoint answers
+      HTTP 400 `devices not support this instance` for it. See
+      docs/protocol/cloud.md 3. The white bounds are the ones the firmware
+      applies, not the ones the API declares: see the `colortemp` entry.
+
+commands:
+  lan:
+    power:
+      cmd: "turn"
+      documented: true
+      role: power
+      payload: { value: "${on}" }
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+
+    brightness:
+      cmd: "brightness"
+      documented: true
+      role: brightness
+      payload: { value: "${level}" }
+      args:
+        level: { type: int, range: [1, 100], role: brightness }
+      notes: >-
+        This firmware does not clamp, which docs/protocol/lan.md 2.1 describes
+        for the models that do. It stores the byte it receives and reports it
+        back: 0 reads as 0, 101 reads as 101, and 200 reads as -56. The range
+        above is the one the Govee app uses, and the codec enforces it.
+
+    color:
+      cmd: "colorwc"
+      documented: true
+      role: color
+      payload:
+        color: { r: "${r}", g: "${g}", b: "${b}" }
+        colorTemInKelvin: 0
+      args:
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+
+    colortemp:
+      cmd: "colorwc"
+      documented: true
+      role: color_temp
+      payload:
+        color: { r: 0, g: 0, b: 0 }
+        colorTemInKelvin: "${kelvin}"
+      args:
+        kelvin: { type: int, range: [2700, 6500], role: color_temp }
+      notes: >-
+        The firmware converts the temperature to RGB itself and ignores the
+        color field, so the payload carries no white triplet and zeroes that
+        field. It clamps a value outside the range above in silence. See
+        docs/protocol/lan.md 1, "Documented commands".
+
+    status:
+      cmd: "devStatus"
+      documented: true
+      role: status
+      payload: {}
+      args: {}
+
+    raw_status:
+      cmd: "status"
+      documented: false
+      payload: {}
+      args: {}
+      notes: >-
+        Returns onOff, brightness and a frozen base64 `pt` capability
+        descriptor. Read-only in practice. See docs/protocol/lan.md 2.2.
+
+  cloud:
+    power:
+      documented: true
+      capability:
+        type: "devices.capabilities.on_off"
+        instance: "powerSwitch"
+      role: power
+      payload: "${on}"
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+
+    brightness:
+      documented: true
+      capability:
+        type: "devices.capabilities.range"
+        instance: "brightness"
+      role: brightness
+      payload: "${level}"
+      args:
+        level: { type: int, range: [1, 100], role: brightness }
+
+    color:
+      documented: true
+      capability:
+        type: "devices.capabilities.color_setting"
+        instance: "colorRgb"
+      role: color
+      payload: "${r,g,b:rgb24}"
+      args:
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: >-
+        This API carries the color as one integer. The three arguments keep the
+        names the `lan` layout gives them, so one call reads the same over both
+        modes.
+
+    colortemp:
+      documented: true
+      role: color_temp
+      capability:
+        type: "devices.capabilities.color_setting"
+        instance: "colorTemperatureK"
+      payload: "${kelvin}"
+      args:
+        kelvin: { type: int, range: [2700, 6500], role: color_temp }
+      notes: >-
+        The account declares 2000 to 9000 K for this model. The firmware
+        applies 2700 to 6500, the same bounds it applies over `lan`: the API
+        answers success for 2000 and for 9000, and the state endpoint then
+        reports the bound. The range above is what the device applies.
+
+    status:
+      documented: true
+      role: status
+      reads:
+        - { instance: "powerSwitch", arg: "on" }
+        - { instance: "brightness", arg: "level" }
+        - { instance: "colorRgb", arg: "color" }
+        - { instance: "colorTemperatureK", arg: "kelvin" }
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+        level: { type: int, range: [0, 100], role: brightness }
+        color: { type: int, range: [0, 16777215], role: color }
+        kelvin: { type: int, range: [0, 9000], role: color_temp }
+      notes: >-
+        The ranges here are what an answer may carry, not what a caller may
+        send: 0 kelvin reports color mode rather than a temperature.
+
+verified:
+  by: "damient"
+  firmware: "1.01.12"
+  date: "2026-09-12"
+  notes: >-
+    lan mode exercised over UDP on two units, against wifi soft version 1.01.12
+    and hard version 1.07.03, with the same two versions on the ble radio. Both
+    units answered the multicast discovery and every command in the table
+    above. Power, color and the two status commands were walked once each and
+    read back through devStatus. Brightness was walked over 0, 1, 50, 100, 101,
+    200 and 255: the firmware stores what it receives, so 101 reads back as 101
+    and 200 as -56, and nothing was clamped. The white range was measured by
+    anchoring the bulb at one temperature and then asking for another, so that
+    a clamp reads as a move to the bound and a refusal reads as the anchor:
+    2000 K from an anchor of 5000 K gives 2700 K, and 9000 K from an anchor of
+    3000 K gives 6500 K. The bounds were then walked one kelvin at a time: 2700
+    and 2701 are both applied, 2699 clamps up to 2700, 6499 and 6500 are both
+    applied, and 6501 clamps down to 6500. Both units gave the same four
+    numbers. The undocumented `status` command answers a `pt` of
+    `bb 01 00 b2 00 08`, the 0xB2 frame of docs/protocol/lan.md 2.3 with a
+    correct checksum. The `razer` segment channel was NOT probed.
+
+    cloud mode exercised against a live account on the same unit, on the same
+    date. Power, brightness, color and white were written and read back
+    through the state endpoint. The account declares a white range of 2000 to
+    9000 K for this model and the unit applies 2700 to 6500: the control
+    endpoint answered success for 2000 K and for 9000 K, and the state
+    endpoint then reported 2700 and 6500. So the same bounds hold over both
+    modes, and an answer of success is not an applied value. Music was tried
+    at `devices.capabilities.music_setting` / `musicMode` and refused with
+    HTTP 400 `devices not support this instance`; the account lists no such
+    capability for this model, while it lists one for the H61A0.
+
+    ble mode was probed and answered nothing. The unit advertises as
+    `GVH6008` plus four hex digits, accepts one GATT link, and carries the
+    write and notify characteristics of docs/protocol/ble.md 1.1. It answered
+    no read frame — `AA 01`, `AA 04`, `AA 05` and `AA 06` — and a `33 01 00`
+    power frame left the unit on, read back over `lan`. Writes raised no
+    error. Nothing establishes that the hardware lacks BLE control: a
+    malformed frame and an unimplemented command are the same silence here.
+    Music was therefore not exercised over any mode.

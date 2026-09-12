@@ -80,6 +80,17 @@ evidence that the control endpoint writes it. Send the instance to the control
 endpoint to establish that, and **watch the device**: this API answers
 `success` for a capability it accepts, and acceptance is not application.
 
+The device list is **per device**, not per model family: two models answer two
+capability sets. An instance that a device's entry does not name is refused by
+the control endpoint, with HTTP 400 and `devices not support this instance`.
+That refusal is explicit, so it is evidence: this transport does not reach that
+capability on that device.
+
+**A declared range is the API's, not the firmware's.** A `range` in the device
+list bounds what the endpoint accepts. The device can apply narrower bounds and
+clamp in silence, and the call still answers `success`. Read the state back to
+learn the bounds a unit applies, and record those in `devices/<SKU>.yaml`.
+
 What a device keeps between two commands is in [`state.md`](state.md), and
 applies to this mode as it does to the other two.
 

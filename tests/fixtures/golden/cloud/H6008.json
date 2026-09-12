@@ -1,0 +1,143 @@
+{
+  "description": "Conformance vectors for H6008 over cloud. Every SDK — the Rust core, its bindings and any hand-written port — must produce exactly these bodies for these arguments. See ../README.md.",
+  "sku": "H6008",
+  "mode": "cloud",
+  "vectors": [
+    {
+      "name": "power on",
+      "command": "power",
+      "args": { "on": 1 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.on_off",
+          "instance": "powerSwitch",
+          "value": 1
+        }
+      },
+      "source": "sent to a live account and read back through the state endpoint"
+    },
+    {
+      "name": "power off",
+      "command": "power",
+      "args": { "on": 0 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.on_off",
+          "instance": "powerSwitch",
+          "value": 0
+        }
+      },
+      "source": "sent to a live account and read back through the state endpoint"
+    },
+    {
+      "name": "brightness 50%",
+      "command": "brightness",
+      "args": { "level": 50 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.range",
+          "instance": "brightness",
+          "value": 50
+        }
+      },
+      "source": "sent to a live account and read back through the state endpoint"
+    },
+    {
+      "name": "colour red, packed into one integer",
+      "command": "color",
+      "args": { "r": 255, "g": 0, "b": 0 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorRgb",
+          "value": 16711680
+        }
+      },
+      "source": "sent to a live account, which read back 16711680"
+    },
+    {
+      "name": "colour temperature 4000 K",
+      "command": "colortemp",
+      "args": { "kelvin": 4000 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorTemperatureK",
+          "value": 4000
+        }
+      },
+      "source": "sent to a live account and read back through the state endpoint"
+    },
+    {
+      "name": "colour temperature at the low bound this unit applies",
+      "command": "colortemp",
+      "args": { "kelvin": 2700 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorTemperatureK",
+          "value": 2700
+        }
+      },
+      "source": "sent to a live account and read back through the state endpoint"
+    },
+    {
+      "name": "colour temperature at the high bound this unit applies",
+      "command": "colortemp",
+      "args": { "kelvin": 6500 },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorTemperatureK",
+          "value": 6500
+        }
+      },
+      "source": "sent to a live account and read back through the state endpoint"
+    },
+    {
+      "name": "status request",
+      "command": "status",
+      "args": {},
+      "reads": { "brightness": "level", "colorRgb": "color", "colorTemperatureK": "kelvin", "powerSwitch": "on" },
+      "source": "read from a live account, which answered all four instances"
+    }
+  ],
+  "errors": [
+    {
+      "name": "a white temperature the account declares and the firmware clamps",
+      "command": "colortemp",
+      "args": { "kelvin": 9000 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a white temperature below the bound the firmware applies",
+      "command": "colortemp",
+      "args": { "kelvin": 2000 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "brightness 0, which this mode does not carry",
+      "command": "brightness",
+      "args": { "level": 0 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a declared argument left out",
+      "command": "brightness",
+      "args": {},
+      "code": "missing_arg"
+    },
+    {
+      "name": "an argument the command does not declare",
+      "command": "brightness",
+      "args": { "level": 50, "fade": 1 },
+      "code": "unknown_arg"
+    },
+    {
+      "name": "music, which the account does not list for this model",
+      "command": "music",
+      "args": {},
+      "code": "unknown_command"
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "description": "Conformance vectors for H6008 over lan. Every SDK — the Rust core, its bindings and any hand-written port — must produce exactly these bytes for these arguments. See ../README.md.",
+  "sku": "H6008",
+  "mode": "lan",
+  "vectors": [
+    {
+      "name": "power on",
+      "command": "power",
+      "args": { "on": 1 },
+      "message": { "msg": { "cmd": "turn", "data": { "value": 1 } } },
+      "source": "captured, tests/fixtures/lan-captures/H6008/turn.json"
+    },
+    {
+      "name": "power off",
+      "command": "power",
+      "args": { "on": 0 },
+      "message": { "msg": { "cmd": "turn", "data": { "value": 0 } } },
+      "source": "captured, tests/fixtures/lan-captures/H6008/turn.json"
+    },
+    {
+      "name": "brightness 50%",
+      "command": "brightness",
+      "args": { "level": 50 },
+      "message": { "msg": { "cmd": "brightness", "data": { "value": 50 } } },
+      "source": "captured, tests/fixtures/lan-captures/H6008/brightness.json"
+    },
+    {
+      "name": "brightness at the top of the range",
+      "command": "brightness",
+      "args": { "level": 100 },
+      "message": { "msg": { "cmd": "brightness", "data": { "value": 100 } } },
+      "source": "captured, tests/fixtures/lan-captures/H6008/brightness.json"
+    },
+    {
+      "name": "colour red",
+      "command": "color",
+      "args": { "r": 255, "g": 0, "b": 0 },
+      "message": {
+        "msg": {
+          "cmd": "colorwc",
+          "data": { "color": { "r": 255, "g": 0, "b": 0 }, "colorTemInKelvin": 0 }
+        }
+      },
+      "source": "captured, tests/fixtures/lan-captures/H6008/colorwc.json"
+    },
+    {
+      "name": "colour temperature 4000 K",
+      "command": "colortemp",
+      "args": { "kelvin": 4000 },
+      "message": {
+        "msg": {
+          "cmd": "colorwc",
+          "data": { "color": { "r": 0, "g": 0, "b": 0 }, "colorTemInKelvin": 4000 }
+        }
+      },
+      "source": "captured, tests/fixtures/lan-captures/H6008/colorwc.json"
+    },
+    {
+      "name": "colour temperature at the low bound of this model",
+      "command": "colortemp",
+      "args": { "kelvin": 2700 },
+      "message": {
+        "msg": {
+          "cmd": "colorwc",
+          "data": { "color": { "r": 0, "g": 0, "b": 0 }, "colorTemInKelvin": 2700 }
+        }
+      },
+      "source": "captured, tests/fixtures/lan-captures/H6008/colorwc.json"
+    },
+    {
+      "name": "colour temperature at the high bound of this model",
+      "command": "colortemp",
+      "args": { "kelvin": 6500 },
+      "message": {
+        "msg": {
+          "cmd": "colorwc",
+          "data": { "color": { "r": 0, "g": 0, "b": 0 }, "colorTemInKelvin": 6500 }
+        }
+      },
+      "source": "captured, tests/fixtures/lan-captures/H6008/colorwc.json"
+    },
+    {
+      "name": "status request",
+      "command": "status",
+      "args": {},
+      "message": { "msg": { "cmd": "devStatus", "data": {} } },
+      "source": "captured, tests/fixtures/lan-captures/H6008/devStatus.json"
+    },
+    {
+      "name": "undocumented raw status request",
+      "command": "raw_status",
+      "args": {},
+      "message": { "msg": { "cmd": "status", "data": {} } },
+      "source": "captured, tests/fixtures/lan-captures/H6008/status.json"
+    }
+  ],
+  "errors": [
+    {
+      "name": "brightness 0 is rejected, and this firmware would have stored it",
+      "command": "brightness",
+      "args": { "level": 0 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "brightness above 100 is rejected, and this firmware would have stored it",
+      "command": "brightness",
+      "args": { "level": 101 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a brightness the firmware wraps to a negative value",
+      "command": "brightness",
+      "args": { "level": 200 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "colour temperature below the device range, which the firmware clamps to 2700",
+      "command": "colortemp",
+      "args": { "kelvin": 2699 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "colour temperature above the device range, which the firmware clamps to 6500",
+      "command": "colortemp",
+      "args": { "kelvin": 6501 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a colour channel past one byte",
+      "command": "color",
+      "args": { "r": 256, "g": 0, "b": 0 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a declared argument left out",
+      "command": "brightness",
+      "args": {},
+      "code": "missing_arg"
+    },
+    {
+      "name": "an argument the command does not declare",
+      "command": "brightness",
+      "args": { "level": 50, "fade": 1 },
+      "code": "unknown_arg"
+    },
+    {
+      "name": "a command this mode does not carry",
+      "command": "segment_color",
+      "args": {},
+      "code": "unknown_command"
+    }
+  ]
+}

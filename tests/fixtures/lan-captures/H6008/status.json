@@ -1,0 +1,24 @@
+{
+  "description": "The undocumented status command of docs/protocol/lan.md 2.2 on the H6008. The pt field decodes to bb 01 00 b2 00 08, a 0xB2 frame of the raw dialect with a correct checksum. It did not change over power, brightness, color or temperature writes.",
+  "sku": "H6008",
+  "mode": "lan",
+  "captured": "2026-09-12",
+  "host": "192.0.2.2",
+  "exchanges": [
+    {
+      "direction": "client -> device",
+      "to": "192.0.2.10:4003",
+      "payload": { "msg": { "cmd": "status", "data": {} } }
+    },
+    {
+      "direction": "device -> client",
+      "from": "192.0.2.10:4002",
+      "payload": {
+        "msg": {
+          "cmd": "status",
+          "data": { "onOff": 1, "brightness": 100, "pt": "uwEAsgAI" }
+        }
+      }
+    }
+  ]
+}
