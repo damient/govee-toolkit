@@ -178,7 +178,7 @@ async function emit(layout, page, body, ctx) {
     site: SITE_URL,
     repo: repoUrl,
     lang: "en",
-    title: page.title ? `${page.title} — govee-toolkit` : "govee-toolkit — control your Govee lights locally",
+    title: page.title ? `${page.title} — Govee Toolkit` : "Govee Toolkit — control your Govee lights locally",
     description: page.description ?? DESCRIPTION,
     bodyclass: page.klass ?? "",
     canonical,
@@ -241,7 +241,7 @@ function homeData() {
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      name: "govee-toolkit",
+      name: "Govee Toolkit",
       url: `${SITE_URL}${base}`,
       description: DESCRIPTION,
       inLanguage: "en",
@@ -280,7 +280,7 @@ function deviceData(device, page) {
     description: page.description,
     url: `${SITE_URL}${base}${page.url}`,
     inLanguage: "en",
-    isPartOf: { "@type": "WebSite", name: "govee-toolkit", url: `${SITE_URL}${base}` },
+    isPartOf: { "@type": "WebSite", name: "Govee Toolkit", url: `${SITE_URL}${base}` },
     ...(device.verified?.date ? { dateModified: device.verified.date } : {}),
   };
 }
