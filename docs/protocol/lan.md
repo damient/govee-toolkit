@@ -197,6 +197,11 @@ How long is a property of the unit: measure it and record it as
 `measurements.arm_settle_ms` in `devices/<SKU>.yaml`. A stream pays this once,
 at the arming frame, and not per frame.
 
+**A disarm ends the colors.** The raw channel holds the colors only while it is
+armed. The `0xB1` frame with `0` ends the channel, and the unit goes back to the
+color that the last write on another command left. Keep the channel armed for as
+long as the colors must stay.
+
 **The `gradient` byte.** With `1` the firmware interpolates between zones and
 wraps from the last back to the first, so a single lit zone at one end also
 glows at the other. With `0` the zones are hard-edged. Which default a model

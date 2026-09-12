@@ -234,7 +234,9 @@ pub(crate) enum Command {
     /// Stream colors to the segment channel, one frame per line of stdin.
     ///
     /// A line is one `#RRGGBB`, which fills every zone, or one per zone,
-    /// comma-separated. The stream closes at end of input.
+    /// comma-separated. The stream closes at end of input, which disarms the
+    /// segment channel: the device goes back to the color it showed before.
+    /// Use `segment` to paint colors that stay.
     Stream {
         /// The device identity.
         device: String,

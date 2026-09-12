@@ -138,6 +138,10 @@ impl DeviceHandle<'_> {
     /// never block. Power the device on first: arming a dark strip paints
     /// nothing (`docs/protocol/lan.md` 2.3).
     ///
+    /// The channel holds the colors only while it is armed. Closing the stream,
+    /// or dropping it, disarms the channel, and the device goes back to the
+    /// color it showed before.
+    ///
     /// # Errors
     ///
     /// [`Error::ModeNotImplemented`] if this build carries no transport for
