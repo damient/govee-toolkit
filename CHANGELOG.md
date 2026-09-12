@@ -47,8 +47,8 @@ at.
   holds the link that long after a write, or the frame never leaves.
 - `H6008` records that no read reports the `ble` colour render, and that the
   stored brightness scales it.
-- `H6008` declares `power`, `brightness` and `colortemp` `unprobed` over `ble`:
-  512 frames of the 20-byte dialect drew no answer, which settles nothing.
+- `H6008` puts `power`, `brightness` and `colortemp` out of reach over `ble`:
+  the host colour channel carries a colour alone, so the mode is `capped`.
 - `<sum>` in a `frame:` layout — the low byte of the sum of the bytes before
   it. A layout carries `<sum>` or `<xor>`, never both. See `devices/schema.yaml`.
 - `measurements.ble.render_hold_ms` — how long a firmware holds a colour from
