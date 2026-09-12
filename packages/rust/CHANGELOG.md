@@ -7,6 +7,16 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `scan::sku_of` reads a `GV<SKU><4 hex digits>` advertised name, so `ble`
+  discovers a device of that family. `GVH` and `GVR` join `NAME_PREFIXES`.
+
+### Changed
+
+- **Breaking:** `NAME_PREFIXES` is `[&str; 6]`. Bind it as a slice,
+  `&NAME_PREFIXES`, rather than as an array of a fixed length.
+
 ## [0.6.0] — 2026-09-12
 
 A run reads its `GOVEE_*` variables from a `.env` file, and one painting
