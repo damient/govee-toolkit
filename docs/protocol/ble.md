@@ -64,13 +64,27 @@ which is this shape.
 
 ### 1.3 Discovery
 
-The advertised name is `GBK_<SKU>_<4 hex digits>`, and the SKU is the second
-underscore-separated field. Older families advertise names prefixed `ihoment_`
-or `Minger_` instead; neither was seen on the unit measured.
+A device advertises under one of three name families, and the family says how to
+read the SKU out of the name:
+
+| Name | SKU |
+| ---- | --- |
+| `GBK_<SKU>_<4 hex digits>` | the second underscore-separated field |
+| `GV<SKU><4 hex digits>`, the SKU starting `H` or `R` | the five characters after `GV` |
+| `ihoment_…`, `Govee_…`, `Minger_…` | the vendor's older brands |
+
+The first two forms were both seen on units here; the third is reported rather
+than seen. In the `GV` form the four hex digits carry the last two bytes of the
+device's Wi-Fi MAC, with the final byte one higher. That held on the two units
+measured, and nothing else confirms it.
 
 An advertisement carries the Bluetooth address, and the rest of this project
 identifies a device by its Wi-Fi MAC. Nothing observed relates the two, so the
 transport asks the caller to bind them.
+
+**A name family is not a dialect.** A device that advertises under one of these
+names carries the GATT of 1.1; whether it answers the frames of 2 is a
+per-device fact, and `devices/<SKU>.yaml` records it.
 
 ### 1.4 What a write answers
 
