@@ -220,7 +220,7 @@ impl Catalog {
                     file: file.to_owned(),
                     family: name.clone(),
                 })?;
-            for mode in [Mode::Lan, Mode::Ble, Mode::Cloud] {
+            for mode in Mode::ALL {
                 for (command, spec) in family.commands.get(mode) {
                     let table = device.commands.get_mut(mode);
                     // A silent override would let a fragment decide what bytes

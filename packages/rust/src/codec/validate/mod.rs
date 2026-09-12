@@ -54,7 +54,7 @@ pub fn device(device: &Device) -> Vec<Problem> {
         }
     }
 
-    for mode in [Mode::Lan, Mode::Ble, Mode::Cloud] {
+    for mode in Mode::ALL {
         for (name, command) in device.commands.get(mode) {
             let at_command = format!("{mode}.{name}");
             problems.extend(
@@ -97,7 +97,7 @@ pub fn device(device: &Device) -> Vec<Problem> {
         }
     }
 
-    for mode in [Mode::Lan, Mode::Ble, Mode::Cloud] {
+    for mode in Mode::ALL {
         problems.extend(
             check_mode_capabilities(device, mode)
                 .into_iter()

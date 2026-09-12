@@ -32,6 +32,14 @@ pub enum Mode {
     Cloud,
 }
 
+impl Mode {
+    /// Every mode this crate knows, in preference order.
+    ///
+    /// What a caller that must name them all reads, so a new mode reaches it
+    /// without a second list.
+    pub const ALL: [Mode; 3] = [Mode::Lan, Mode::Ble, Mode::Cloud];
+}
+
 impl fmt::Display for Mode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
@@ -282,11 +290,20 @@ impl Device {
     /// role for nothing here, and the caller must do without.
     #[must_use]
     pub fn command_for(&self, mode: Mode, role: Role) -> Option<&str> {
+        self.entry_for(mode, role).map(|(name, _)| name)
+    }
+
+    /// The name and the declaration of the entry that claims `role`.
+    ///
+    /// A caller that reads the entry's arguments takes both here, so it looks
+    /// the name up once. See [`Device::command_for`].
+    #[must_use]
+    pub fn entry_for(&self, mode: Mode, role: Role) -> Option<(&str, &Command)> {
         self.commands
             .get(mode)
             .iter()
             .find(|(_, command)| command.role == Some(role))
-            .map(|(name, _)| name.as_str())
+            .map(|(name, command)| (name.as_str(), command))
     }
 
     /// The entry in `commands.<mode>` that reports state. See

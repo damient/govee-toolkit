@@ -250,18 +250,14 @@ impl Config {
     /// Every mode the configuration enables, by default or for one device,
     /// each one once and in mode order.
     pub(crate) fn enabled_modes(&self) -> Vec<Mode> {
-        let mut modes: Vec<Mode> = Vec::new();
         let per_device = self.devices.values().filter_map(|d| d.modes.as_ref());
-        for mode in std::iter::once(&self.defaults.modes)
+        std::iter::once(&self.defaults.modes)
             .chain(per_device)
             .flatten()
-        {
-            if !modes.contains(mode) {
-                modes.push(*mode);
-            }
-        }
-        modes.sort_unstable();
-        modes
+            .copied()
+            .collect::<std::collections::BTreeSet<Mode>>()
+            .into_iter()
+            .collect()
     }
 
     /// What is wrong with the configuration on its own terms. Whether a

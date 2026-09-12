@@ -40,10 +40,7 @@ const CURVE: [(i64, [u8; 3]); 15] = [
 pub fn rgb(kelvin: i64) -> [u8; 3] {
     let mut below = CURVE[0];
     for sample in CURVE {
-        if sample.0 == kelvin {
-            return sample.1;
-        }
-        if sample.0 > kelvin {
+        if sample.0 >= kelvin {
             return blend(below, sample, kelvin);
         }
         below = sample;
