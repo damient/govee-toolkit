@@ -1,8 +1,10 @@
-# govee-toolkit
+# Govee Toolkit
 
 Control your Govee lights from your own machine, over your own network — no
 internet, no Govee account, no cloud round-trip. It also sends commands the
 official app does not expose.
+
+**Documentation: [gvetk.com](https://gvetk.com)**
 
 [![status](https://img.shields.io/badge/status-early%20development-orange)](docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -16,147 +18,63 @@ official app does not expose.
 
 <!-- TODO: demo GIF here — a strip running per-segment colors. -->
 
----
+## What it does
 
-## What you can do with it
+- Switch a device on and off, and set the brightness, the color and the white
+  temperature.
+- Address every segment of a strip on its own, not only the preset effects.
+- Drive a strip frame by frame in real time: music reactive, screen ambilight,
+  or your own source.
+- Put a device out of the box on your Wi-Fi over Bluetooth, which is what makes
+  it reachable over `lan`.
 
-Your Govee device already listens on your local network — that is how the
-official app reaches it when your phone is on the same Wi-Fi. This project talks
-to it the same way, directly.
+A command travels over your Wi-Fi (`lan`), over Bluetooth (`ble`) or through
+Govee's servers (`cloud`). You choose which modes to allow, per device. One
+allowed mode means one mode: an unreachable device fails with an error rather
+than taking a slower path in silence.
 
-| | |
-| --- | --- |
-| **On/off, brightness, color** | From a script, a keyboard shortcut, a home automation — anything that can run code. |
-| **Every segment of a strip, individually** | The app offers a set of preset effects. Here you address the LED zones yourself. |
-| **Animation in real time** | Feed a stream of frames and drive the strip frame by frame: music reactive, screen ambilight, or your own source. |
-| **A new device onto your Wi-Fi** | Over Bluetooth, hand a device out of the box your network name and password. That step is what makes it reachable over Wi-Fi. |
+## Start here
 
-The per-segment channel is not in Govee's documentation. It was observed on
-the wire and written up in
-[`docs/protocol/lan.md`](docs/protocol/lan.md).
+| You want to | Go to |
+| ----------- | ----- |
+| Install it and send a first command | [gvetk.com/docs/start](https://gvetk.com/docs/start/) |
+| Know whether your model works | [gvetk.com/devices](https://gvetk.com/devices/) |
+| Pick and configure the modes | [gvetk.com/docs/modes](https://gvetk.com/docs/modes/) |
+| Read the API | [gvetk.com/reference](https://gvetk.com/reference/) |
+| Report a device, or add one | [`devices/README.md`](devices/README.md) |
+
+## Which devices work
+
+Find your model number — it looks like `H61A0`, on the box and in the Govee app
+under your device's settings. 271 models ship a "LAN Control" switch, and
+everything over `lan` needs that switch on.
+
+One model is confirmed end to end so far, the **H61A0**, segments included. The
+other 270 are untested rather than unsupported, so a test on yours moves the
+project forward. [gvetk.com/devices](https://gvetk.com/devices/) tracks what is
+known.
 
 ## Where the project is
 
 The engine works over `lan`, over `ble` and over `cloud`, verified on real
 hardware: discovery, on/off, brightness, color, per-segment color, and live
-animation over the two local modes. It is usable today from Rust. `provision_wifi()` puts a device on a network over
-`ble`, which is how a device out of the box becomes reachable over `lan`.
+animation over the two local modes. It is usable today from Rust.
 
-What comes next is the packaging around it — first the Python and Node.js
-packages, then a web page and a desktop app with actual buttons, then Home
-Assistant, Homebridge and Matter. [`docs/roadmap.md`](docs/roadmap.md) tracks
-the order; watch the repository to hear when a piece lands.
-
-## Will it work with my device?
-
-**1. Find your model number.** It looks like `H61A0` — on the box, and in the
-Govee app under your device's settings.
-
-**2. Check Govee's LAN list.** 271 models ship a "LAN Control" switch;
-they are mirrored in
-[`docs/lan-supported-devices.md`](docs/lan-supported-devices.md). If yours is
-there, the basics have a good chance of working.
-
-**3. Turn LAN Control on.** Govee app → your device → settings → **LAN
-Control**. Everything here needs that switch on.
-
-One model is confirmed end to end so far, the **H61A0**, segments included. The
-other 270 are untested rather than unsupported — nobody has had one yet, so a
-test on yours moves the project forward.
-[`docs/compatibility.md`](docs/compatibility.md) tracks what is known.
-
-## Getting started
-
-| You want to | Start here | |
-| ----------- | ---------- | --- |
-| Control your lights from **Rust** | [`packages/rust`](packages/rust) — install, first commands, segment streaming | ✅ |
-| Control them from **Python** | [`packages/python`](packages/python) — what it will look like, and where it stands | 🔜 |
-| Control them from **Node.js** | [`packages/node`](packages/node) — same | 🔜 |
-| Tell us whether **your model works** | [`devices/README.md`](devices/README.md) — mostly filling in one file, no code | ✅ |
-| Understand the **protocol** itself, over Wi-Fi | [`docs/protocol/lan.md`](docs/protocol/lan.md) | ✅ |
-| Understand it over **Bluetooth** | [`docs/protocol/ble.md`](docs/protocol/ble.md) | ✅ |
-| Click buttons instead of writing code | The web page and the desktop app are on the [roadmap](docs/roadmap.md) | 🔜 |
-
-Whichever you pick, the commands you can send — `power`, `brightness`, `color`,
-the white temperature, the segment channel, the music effects — come from your device's file in [`devices/`](devices/),
-not from names baked into an SDK. That is why adding support for a model is
-editing one file rather than writing code in three languages.
-
-## Three ways to reach a device
-
-A command can travel to your light over your Wi-Fi (`lan`), over Bluetooth
-(`ble`), or through Govee's servers (`cloud`). **You choose which ones to allow,
-per device.**
-
-| Mode | Speed | Reaches the device from | What it carries | |
-| ---- | ----- | ----------------------- | --------------- | --- |
-| `lan` | fastest | the same Wi-Fi | everything, segments included | ✅ |
-| `ble` | fast | Bluetooth range, no Wi-Fi needed | depends on the model | ✅ |
-| `cloud` | slowest | anywhere with internet | on/off, brightness, color, segments, music; throttled, no animation | ✅ |
-
-Every command reports which mode served it. Allow several modes and the SDK
-switches between them. Allow one and it stays on that one: if the device is out
-of reach, the command fails with an error. It never takes a slower path in
-silence, and it never approximates a segment animation with a plain color
-change.
-
-Details in [`docs/modes.md`](docs/modes.md).
-
-<details>
-<summary><b>Under the hood</b> — if you want to contribute code</summary>
-
-The protocol is implemented **once**, in Rust; Python and Node.js bind to that
-core rather than re-implementing it. Reasoning in
-[`docs/architecture.md`](docs/architecture.md).
-
-- [`devices/`](devices/) — one YAML file per model, the single source of truth.
-  Command names, byte layouts and measured limits live here, never in code.
-- [`packages/rust/src/codec`](packages/rust/src/codec) — device file plus
-  arguments in, exact bytes out. No networking, so it is testable on its own.
-- [`packages/rust/src/transport`](packages/rust/src/transport) — what every
-  mode shares: the `Transport` trait, the device identity, the errors and the
-  per-device health state.
-- [`packages/rust/src/lan`](packages/rust/src/lan) — discovery, a device cache
-  so a command never waits for a scan, and one reused socket.
-- [`packages/rust/src/ble`](packages/rust/src/ble) — the GATT surface, the scan,
-  one connection per device, and writes paced to what the firmware sustains.
-- [`packages/rust/src/stream`](packages/rust/src/stream) — the segment channel,
-  armed once and fed frames at the resolution and rate measured on the unit.
-- [`packages/rust/crates/sim`](packages/rust/crates/sim) — a fake Govee device
-  with fault injection, so CI exercises all of the above without hardware.
-- [`tests/fixtures/golden/`](tests/fixtures/golden/) — arguments in, exact bytes
-  out. Every binding matches these, which is what keeps the ports aligned.
-
-Full feature list: [`docs/features.md`](docs/features.md).
-
-</details>
-
-## FAQ
-
-**Do I need a Govee account or an API key?**
-Not for `lan`. Discovery and commands stay on your network. A key comes in only
-with `cloud`.
-
-**Can I still use the Govee app?**
-Yes. Nothing here changes the device's configuration or locks anyone out.
-
-**Is it safe for my lights?**
-It sends the same kind of commands the official app sends. One deliberate
-difference: a value outside the device's range is refused rather than adjusted.
-The firmware clamps such values in silence, and reporting success for a setting
-your device never applied would be worse than an error.
-
-**My device is not showing up.**
-Check LAN Control is on, and that your computer and the device are on the same
-network — guest Wi-Fi and some mesh setups separate them.
-[`docs/protocol/lan.md`](docs/protocol/lan.md) covers what discovery sends.
+Next comes the packaging around it — the Python and Node.js packages, then a
+desktop app, then Home Assistant, Homebridge and Matter.
+[`docs/roadmap.md`](docs/roadmap.md) tracks the order.
 
 ## Contributing
 
-Confirming whether your model works needs no code —
-[`devices/README.md`](devices/README.md) walks through it. For everything else,
-[`CONTRIBUTING.md`](CONTRIBUTING.md), in particular how to document a newly
+The protocol is implemented once, in Rust; Python and Node.js bind to that core.
+Command names, byte layouts and measured limits live in
+[`devices/`](devices/), never in code, so adding a model is editing one file.
+[`docs/architecture.md`](docs/architecture.md) explains the shape of the code,
+and [`CONTRIBUTING.md`](CONTRIBUTING.md) covers how to document a newly
 discovered command.
+
+Confirming whether your model works needs no code:
+[`devices/README.md`](devices/README.md) walks through it.
 
 ## Legal notice
 
