@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
+use crate::env::Env;
 use crate::transport::breaker::Policy;
 
 /// The environment variable the key is read from.
@@ -16,7 +17,8 @@ pub const KEY_ENV: &str = "GOVEE_API_KEY";
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CloudConfig {
-    /// A file holding the API key alone. Read when [`KEY_ENV`] is unset.
+    /// A file holding the API key alone. Read when [`KEY_ENV`] carries
+    /// nothing.
     pub key_file: Option<PathBuf>,
     /// Unset uses the documented base URL.
     pub base_url: Option<String>,
@@ -73,12 +75,15 @@ impl CloudConfig {
     /// names, in that order. `None` where neither carries one, which is not
     /// an error: this mode is opt-in.
     ///
+    /// `env` is [`Config::env`](crate::Config::env), so the process
+    /// environment and `.env` both reach here.
+    ///
     /// # Errors
     ///
     /// [`Error::LocalDevices`](crate::Error::LocalDevices) on a file that
     /// cannot be read.
-    pub fn key(&self) -> crate::error::Result<Option<String>> {
-        if let Ok(key) = std::env::var(KEY_ENV)
+    pub fn key(&self, env: &Env) -> crate::error::Result<Option<String>> {
+        if let Some(key) = env.var(KEY_ENV)
             && !key.trim().is_empty()
         {
             return Ok(Some(key.trim().to_owned()));
@@ -97,10 +102,12 @@ impl CloudConfig {
 
     /// What to set when no key is available, or `None` when one is. A key
     /// file that cannot be read answers as a missing key.
-    pub(crate) fn missing_key(&self) -> Option<&'static str> {
-        match self.key() {
+    pub(crate) fn missing_key(&self, env: &Env) -> Option<&'static str> {
+        match self.key(env) {
             Ok(Some(_)) => None,
-            Ok(None) | Err(_) => Some("set GOVEE_API_KEY or `cloud.key_file`"),
+            Ok(None) | Err(_) => {
+                Some("set GOVEE_API_KEY, put it in `.env`, or set `cloud.key_file`")
+            }
         }
     }
 
@@ -111,8 +118,11 @@ impl CloudConfig {
     ///
     /// As for [`CloudConfig::key`].
     #[cfg(feature = "cloud")]
-    pub fn transport_options(&self) -> crate::error::Result<Option<crate::cloud::Options>> {
-        let Some(key) = self.key()? else {
+    pub fn transport_options(
+        &self,
+        env: &Env,
+    ) -> crate::error::Result<Option<crate::cloud::Options>> {
+        let Some(key) = self.key(env)? else {
             return Ok(None);
         };
         Ok(Some(crate::cloud::Options {
@@ -139,26 +149,25 @@ mod tests {
     #[test]
     fn a_configuration_with_no_key_names_what_to_set() {
         let cloud = CloudConfig::default();
-        // `set_var` needs `unsafe`, which the workspace forbids, so this test
-        // asserts the branch the environment selects. Both are under test.
-        match std::env::var(KEY_ENV) {
-            Ok(key) if !key.trim().is_empty() => assert_eq!(cloud.missing_key(), None),
-            _ => {
-                let remedy = cloud.missing_key().expect("no key, so a remedy");
-                assert!(
-                    remedy.contains(KEY_ENV),
-                    "the remedy names {KEY_ENV}: {remedy}"
-                );
-            }
-        }
+        let remedy = cloud
+            .missing_key(&Env::default())
+            .expect("no key, so a remedy");
+        assert!(
+            remedy.contains(KEY_ENV),
+            "the remedy names {KEY_ENV}: {remedy}"
+        );
+    }
+
+    #[test]
+    fn the_environment_supplies_the_key() {
+        let env = Env::from_pairs([(KEY_ENV, "  a-key\n")]);
+        let cloud = CloudConfig::default();
+        assert_eq!(cloud.key(&env).expect("a key"), Some("a-key".to_owned()));
+        assert_eq!(cloud.missing_key(&env), None);
     }
 
     #[test]
     fn a_key_file_supplies_the_key() {
-        // Only meaningful with the environment unset: the environment wins.
-        if std::env::var(KEY_ENV).is_ok_and(|k| !k.trim().is_empty()) {
-            return;
-        }
         let mut file = std::env::temp_dir();
         file.push("govee-toolkit-test-key");
         std::fs::write(&file, "  a-key\n").expect("the temporary file is writable");
@@ -166,12 +175,26 @@ mod tests {
             key_file: Some(file.clone()),
             ..CloudConfig::default()
         };
+        let env = Env::default();
         assert_eq!(
-            cloud.key().expect("the file reads"),
+            cloud.key(&env).expect("the file reads"),
             Some("a-key".to_owned())
         );
-        assert_eq!(cloud.missing_key(), None);
+        assert_eq!(cloud.missing_key(&env), None);
         std::fs::remove_file(&file).expect("the temporary file is removable");
+    }
+
+    #[test]
+    fn the_environment_wins_over_the_key_file() {
+        let cloud = CloudConfig {
+            key_file: Some(PathBuf::from("/nonexistent/govee/api-key")),
+            ..CloudConfig::default()
+        };
+        let env = Env::from_pairs([(KEY_ENV, "from-the-environment")]);
+        assert_eq!(
+            cloud.key(&env).expect("the file is never read"),
+            Some("from-the-environment".to_owned())
+        );
     }
 
     #[test]

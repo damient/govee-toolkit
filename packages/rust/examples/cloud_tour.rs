@@ -3,9 +3,11 @@
 //! It needs a Govee account, an API key and internet. One request per
 //! interval per device, so the tour takes about a minute.
 //!
+//! The key comes from `.env` at the repository root, or from `GOVEE_API_KEY`.
+//!
 //! ```bash
-//! GOVEE_API_KEY=… cargo run --example cloud_tour --features cloud
-//! GOVEE_API_KEY=… GOVEE_SKU=H61A0 cargo run --example cloud_tour --features cloud
+//! cargo run --example cloud_tour --features cloud
+//! GOVEE_SKU=H61A0 cargo run --example cloud_tour --features cloud
 //! ```
 
 // The no-print lint is the library's rule; an example reports to its runner.
@@ -15,8 +17,6 @@ use govee_toolkit::{Args, Config, Error, Govee};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let sku = std::env::var("GOVEE_SKU").unwrap_or_else(|_| "H61A0".to_owned());
-
     // Naming the mode keeps the user's configuration from changing this run.
     let config = Config {
         defaults: govee_toolkit::config::Defaults {
@@ -24,6 +24,7 @@ async fn main() -> Result<(), Error> {
         },
         ..Config::load()?
     };
+    let sku = config.env.var("GOVEE_SKU").unwrap_or("H61A0").to_owned();
     let govee = Govee::start(config).await?;
 
     println!("listing the account...");

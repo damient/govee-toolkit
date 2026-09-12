@@ -5,11 +5,15 @@
 //! single set of paths is one less thing to explain in every binding.
 //!
 //! `GOVEE_CONFIG` overrides the configuration file outright, which is what a
-//! test, a container and a second instance on one host all need.
+//! test, a container and a second instance on one host all need. It is a
+//! `GOVEE_*` name, so `.env` carries it like any other.
 
 use std::path::PathBuf;
 
 const APP: &str = "govee-toolkit";
+
+/// The variable that names the configuration file.
+const CONFIG_ENV: &str = "GOVEE_CONFIG";
 
 /// `$XDG_CONFIG_HOME/govee-toolkit`, or `~/.config/govee-toolkit`.
 #[must_use]
@@ -23,10 +27,18 @@ pub fn cache_dir() -> PathBuf {
     root("XDG_CACHE_HOME", ".cache").join(APP)
 }
 
-/// The configuration file. `GOVEE_CONFIG` wins if it is set.
+/// The configuration file. `GOVEE_CONFIG` wins if it is set. The process
+/// environment alone supplies it — [`config_file_from`] reads `.env` too.
 #[must_use]
 pub fn config_file() -> PathBuf {
-    std::env::var_os("GOVEE_CONFIG").map_or_else(|| config_dir().join("config.yaml"), PathBuf::from)
+    config_file_from(&crate::env::Env::process())
+}
+
+/// The configuration file, with `GOVEE_CONFIG` read from `env`.
+#[must_use]
+pub fn config_file_from(env: &crate::env::Env) -> PathBuf {
+    env.var(CONFIG_ENV)
+        .map_or_else(|| config_dir().join("config.yaml"), PathBuf::from)
 }
 
 /// The user's own device files, consulted only when the configuration opts in.

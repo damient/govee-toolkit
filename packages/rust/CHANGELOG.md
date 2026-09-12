@@ -11,6 +11,33 @@ releases apart and keeps
 
 ### Added
 
+- `Env` and `Config::env` — the `GOVEE_*` variables one run reads.
+  `Config::load` collects them: the process environment first, then the first
+  `.env` the search finds. The search starts in the working directory and goes
+  up, it stops after the directory that holds `.git` or after the home
+  directory, and it reads `~/.config/govee-toolkit/.env` last.
+  `GOVEE_ENV_FILE` names one file and replaces the search. A file the search
+  does not find is not an error, since `lan` and `ble` need no credential.
+- `Env::process`, `Env::from_file` and `Env::from_pairs` build one without the
+  search, and `Config::load_from_with` takes it. `Config::with_env` replaces
+  the variables of a configuration already loaded.
+- `Error::Env`, code `env`, for a file that cannot be read or does not parse. A
+  file that `GOVEE_ENV_FILE` or `Env::from_file` names is an error when it is
+  absent: somebody asked for that file.
+
+### Changed
+
+- `paths::config_file_from` reads `GOVEE_CONFIG` from an `Env`, so `.env` can
+  name the configuration file. `Config::load` goes through it.
+  `paths::config_file` keeps reading the process environment alone.
+- `CloudConfig::key` and `CloudConfig::transport_options` take the `Env` to
+  read through, so the API key reaches them from `.env` as well as from the
+  environment. The environment still wins over `.env`, and `.env` over
+  `cloud.key_file`.
+- Only `GOVEE_*` names are read, and a blank value counts as a placeholder. The
+  values are never exported into the process environment: `Env` is a value the
+  caller reads through, so nothing a process launches inherits the key and a
+  test needs no process-wide variable.
 - `DeviceHandle::gradient` — set whether the firmware interpolates between
   zones, without painting, through the `segment_gradient` role. The
   interpolation wraps from the last zone back to the first. It needs a mode

@@ -79,6 +79,12 @@ pub mod config;
     docsrs,
     doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
 )]
+pub mod env;
+#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
+)]
 pub mod error;
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 #[cfg_attr(
@@ -116,6 +122,8 @@ pub use codec::{Args, Catalog, Mode};
 pub use config::{CloudConfig, Config, DeviceConfig, LanConfig, Problem, StreamConfig};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 pub use device::DeviceHandle;
+#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+pub use env::Env;
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 pub use error::{Error, Result};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]

@@ -39,8 +39,6 @@ const PALETTE: [[u8; 3]; 7] = [
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let sku = std::env::var("GOVEE_SKU").unwrap_or_else(|_| "H61A0".to_owned());
-
     // `ble` alone, so no other mode can serve what runs below.
     let config = Config {
         defaults: govee_toolkit::config::Defaults {
@@ -48,6 +46,7 @@ async fn main() -> Result<(), Error> {
         },
         ..Config::load()?
     };
+    let sku = config.env.var("GOVEE_SKU").unwrap_or("H61A0").to_owned();
     let govee = Govee::start(config).await?;
 
     println!("scanning...");
