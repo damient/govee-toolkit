@@ -172,22 +172,21 @@ fi
 sweep=(cargo sweep)
 [ "$dry_run" = yes ] && sweep+=(--dry-run)
 
+# Before the sweep, which removes the stamp file the incremental prune reads.
+prune_incremental
+
 if [ "$mode" = maxsize ]; then
   if [ -z "$maxsize" ]; then
     echo "$0: --maxsize wants a size, such as 5G" >&2
     exit 2
   fi
   sweep+=(--maxsize "$(to_mib "$maxsize")")
-  prune_incremental
 elif [ -f "$rust/sweep.timestamp" ]; then
-  # Everything the stamped build did not touch. The prune runs first: the
-  # sweep removes the stamp file.
-  prune_incremental
+  # Everything the stamped build did not touch.
   sweep+=(--file)
 else
   # No stamp: keep what the installed toolchains built, drop the rest.
   echo "no sweep.timestamp, keeping the artifacts of the installed toolchains"
-  prune_incremental
   sweep+=(--installed)
 fi
 
