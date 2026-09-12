@@ -1,0 +1,241 @@
+{
+  "intro": "Every command the toolkit carries, with the same action in each language. Rust is released. The command line is released. Python and Node.js bind to the same core and are not released yet, so their examples show the shape they will have.",
+  "groups": [
+    {
+      "id": "find",
+      "title": "Find devices",
+      "entries": [
+        {
+          "id": "scan",
+          "title": "scan",
+          "summary": "Look for devices and report what answers.",
+          "detail": "The scan runs in every enabled mode. `scan_on` restricts it to the modes you name, and enables none that the configuration leaves out.",
+          "examples": {
+            "cli": "govee scan\ngovee scan --mode lan",
+            "rust": "let devices = govee.scan().await?;\nlet lan_only = govee.scan_on(&[Mode::Lan]).await?;",
+            "python": "devices = await govee.scan()\nlan_only = await govee.scan_on([Mode.LAN])",
+            "node": "const devices = await govee.scan()\nconst lanOnly = await govee.scanOn(['lan'])"
+          }
+        },
+        {
+          "id": "devices",
+          "title": "devices",
+          "summary": "List the devices already known. It touches no network.",
+          "detail": "The `lan` cache answers from disk, so a device found once costs no scan on the next run.",
+          "examples": {
+            "cli": "govee devices",
+            "rust": "for device in govee.devices() {\n    println!(\"{}\", device.id());\n}",
+            "python": "for device in govee.devices():\n    print(device.id)",
+            "node": "for (const device of govee.devices()) {\n  console.log(device.id)\n}"
+          }
+        },
+        {
+          "id": "describe",
+          "title": "describe",
+          "summary": "Report what the device file declares for a model.",
+          "detail": "It reads no hardware. Use it to see the range of every argument before you send a value.",
+          "examples": {
+            "cli": "govee describe living-room",
+            "rust": "let spec = govee.device(&id).spec()?;",
+            "python": "spec = govee.device(id).spec()",
+            "node": "const spec = govee.device(id).spec()"
+          }
+        },
+        {
+          "id": "status",
+          "title": "status",
+          "summary": "Ask the device for its current state.",
+          "detail": "`last_status` returns the state already known and sends nothing.",
+          "examples": {
+            "cli": "govee status living-room",
+            "rust": "let state = device.status().await?;\nlet cached = device.last_status();",
+            "python": "state = await device.status()\ncached = device.last_status()",
+            "node": "const state = await device.status()\nconst cached = device.lastStatus()"
+          }
+        },
+        {
+          "id": "watch",
+          "title": "watch",
+          "summary": "Follow events: a device appears, a mode changes health.",
+          "examples": {
+            "cli": "govee watch\ngovee watch --json",
+            "rust": "let mut events = govee.events();\nwhile let Ok(event) = events.recv().await {\n    println!(\"{event:?}\");\n}",
+            "python": "async for event in govee.events():\n    print(event)",
+            "node": "for await (const event of govee.events()) {\n  console.log(event)\n}"
+          }
+        },
+        {
+          "id": "doctor",
+          "title": "doctor",
+          "summary": "Report everything wrong with the configuration.",
+          "detail": "Run it first when a device does not answer.",
+          "examples": {
+            "cli": "govee doctor",
+            "rust": "for problem in govee.problems() {\n    eprintln!(\"{problem}\");\n}",
+            "python": "for problem in govee.problems():\n    print(problem)",
+            "node": "for (const problem of govee.problems()) {\n  console.error(problem)\n}"
+          }
+        }
+      ]
+    },
+    {
+      "id": "control",
+      "title": "Control a light",
+      "entries": [
+        {
+          "id": "power",
+          "title": "power",
+          "summary": "Turn the device on or off.",
+          "examples": {
+            "cli": "govee on living-room\ngovee off living-room",
+            "rust": "device.power(true).await?;",
+            "python": "await device.power(True)",
+            "node": "await device.power(true)"
+          }
+        },
+        {
+          "id": "brightness",
+          "title": "brightness",
+          "summary": "Set the brightness of the whole device.",
+          "detail": "The device file carries the range. A value outside it is an error, never a clamp. On a verified model `0` is clamped by the firmware to `1` and does not turn the device off.",
+          "examples": {
+            "cli": "govee brightness living-room 40",
+            "rust": "device.brightness(40).await?;",
+            "python": "await device.brightness(40)",
+            "node": "await device.brightness(40)"
+          }
+        },
+        {
+          "id": "color",
+          "title": "color",
+          "summary": "Set one color for the whole device.",
+          "examples": {
+            "cli": "govee color living-room \"#ff3d00\"",
+            "rust": "device.color([255, 61, 0]).await?;",
+            "python": "await device.color((255, 61, 0))",
+            "node": "await device.color([255, 61, 0])"
+          }
+        },
+        {
+          "id": "color-temp",
+          "title": "color_temp",
+          "summary": "Set the white temperature, in kelvin.",
+          "detail": "It ends the color the device showed: white and color are two states that exclude each other. Where the mode carries the RGB rendering in the same frame, the core computes it and sends both.",
+          "examples": {
+            "cli": "govee colortemp living-room 4000",
+            "rust": "device.color_temp(4000).await?;",
+            "python": "await device.color_temp(4000)",
+            "node": "await device.colorTemp(4000)"
+          }
+        },
+        {
+          "id": "segment",
+          "title": "segment",
+          "summary": "Paint the zones one color.",
+          "detail": "Without a list of zones, every zone takes the color. With one, the zones you name take it and the rest stay as they are. A mode that carries no masked painting fails and says so.",
+          "examples": {
+            "cli": "govee segment living-room \"#ff3d00\"\ngovee segment living-room --zones 1,2,3 \"#ff3d00\"",
+            "rust": "device.segment(&[1, 2, 3], [255, 61, 0]).await?;",
+            "python": "await device.segment([1, 2, 3], (255, 61, 0))",
+            "node": "await device.segment([1, 2, 3], [255, 61, 0])"
+          }
+        }
+      ]
+    },
+    {
+      "id": "stream",
+      "title": "Animate the segments",
+      "entries": [
+        {
+          "id": "open-stream",
+          "title": "open_stream",
+          "summary": "Open the segment channel and keep it armed.",
+          "detail": "The stream reports the zone count and the frame rate measured on the unit. It stays armed until you close it, and the colors end with it.",
+          "examples": {
+            "cli": "govee stream living-room < frames.txt",
+            "rust": "let stream = device.open_stream(StreamOptions::default()).await?;\nprintln!(\"{} zones at {} Hz\", stream.zones(), stream.rate_hz());",
+            "python": "stream = await device.open_stream()\nprint(stream.zones, stream.rate_hz)",
+            "node": "const stream = await device.openStream()\nconsole.log(stream.zones, stream.rateHz)"
+          }
+        },
+        {
+          "id": "set-zone",
+          "title": "set_zone",
+          "summary": "Set one zone of the stream.",
+          "examples": {
+            "cli": "# One frame per line, one color per zone.\necho \"000000 ff3d00 000000\" | govee stream living-room",
+            "rust": "stream.set_zone(7, [255, 61, 0])?;",
+            "python": "stream.set_zone(7, (255, 61, 0))",
+            "node": "stream.setZone(7, [255, 61, 0])"
+          }
+        },
+        {
+          "id": "set-all",
+          "title": "set_all, fill and clear",
+          "summary": "Set every zone at once.",
+          "detail": "`set_all` takes one color per zone. `fill` gives every zone the same color. `clear` sets them to black.",
+          "examples": {
+            "cli": "govee segment living-room \"#000000\"",
+            "rust": "stream.set_all(&frame)?;\nstream.fill([255, 61, 0])?;\nstream.clear()?;",
+            "python": "stream.set_all(frame)\nstream.fill((255, 61, 0))\nstream.clear()",
+            "node": "stream.setAll(frame)\nstream.fill([255, 61, 0])\nstream.clear()"
+          }
+        },
+        {
+          "id": "close",
+          "title": "close",
+          "summary": "Close the channel.",
+          "detail": "A frame that a newer one replaces before it goes out is counted in `frames_superseded`. Nothing else disarms the channel.",
+          "examples": {
+            "cli": "# The stream ends when standard input ends.",
+            "rust": "println!(\"{} frames\", stream.frames_sent());\nstream.close().await?;",
+            "python": "print(stream.frames_sent)\nawait stream.close()",
+            "node": "console.log(stream.framesSent)\nawait stream.close()"
+          }
+        }
+      ]
+    },
+    {
+      "id": "raw",
+      "title": "Raw commands and setup",
+      "entries": [
+        {
+          "id": "send",
+          "title": "send",
+          "summary": "Send one entry of the device file, by name.",
+          "detail": "It works for a model this build has never heard of. The entry declares the type of every argument, and the range stays the core's to check. `read` is the same for an entry that returns an answer.",
+          "examples": {
+            "cli": "govee send living-room brightness --arg level=40",
+            "rust": "device.send(\"brightness\", &args).await?;\nlet reply = device.read(\"status\", &args).await?;",
+            "python": "await device.send(\"brightness\", {\"level\": 40})\nreply = await device.read(\"status\", {})",
+            "node": "await device.send('brightness', { level: 40 })\nconst reply = await device.read('status', {})"
+          }
+        },
+        {
+          "id": "provision",
+          "title": "provision_wifi",
+          "summary": "Put a new device on a Wi-Fi network, over Bluetooth.",
+          "detail": "This is how a device out of the box becomes reachable over `lan`. The password travels in plaintext with no key exchange: anything in Bluetooth range while it runs can read it.",
+          "examples": {
+            "cli": "govee provision living-room --ssid my-network",
+            "rust": "device.provision_wifi(&credentials).await?;",
+            "python": "await device.provision_wifi(credentials)",
+            "node": "await device.provisionWifi(credentials)"
+          }
+        },
+        {
+          "id": "modes",
+          "title": "Choose a mode",
+          "summary": "Restrict a command to one mode.",
+          "detail": "It never enables a mode the configuration leaves out, and it never falls back. A device that no enabled mode reaches is an error.",
+          "examples": {
+            "cli": "govee on living-room --mode lan",
+            "rust": "let mode = device.serving_mode()?;\nlet health = device.health(Mode::Lan);",
+            "python": "mode = device.serving_mode()\nhealth = device.health(Mode.LAN)",
+            "node": "const mode = device.servingMode()\nconst health = device.health('lan')"
+          }
+        }
+      ]
+    }
+  ]
+}

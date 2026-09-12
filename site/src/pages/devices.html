@@ -1,0 +1,67 @@
+<section class="pagehead">
+  <div class="shell">
+    <p class="eyebrow">Devices</p>
+    <h1>Which models work.</h1>
+    <p class="lede">
+      {{verified_count}} models are verified on real hardware. Govee lists 271
+      models that carry a "LAN Control" switch — those are untested rather than
+      unsupported. This page is built from the device files in the repository,
+      so it cannot disagree with them.
+    </p>
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell">
+    <div class="toolbar">
+      <label class="search">
+        <span class="visually-hidden">Search a model</span>
+        <input type="search" placeholder="Search a model, for example H61A0" data-filter autocomplete="off">
+      </label>
+      <p class="note" data-filter-count aria-live="polite"></p>
+    </div>
+
+    <div class="tablewrap">
+      <table class="matrix">
+        <caption class="visually-hidden">Support of each model, per mode</caption>
+        <thead>
+          <tr>
+            <th scope="col">SKU</th>
+            <th scope="col">Name</th>
+            <th scope="col"><code>lan</code></th>
+            <th scope="col"><code>ble</code></th>
+            <th scope="col"><code>cloud</code></th>
+            <th scope="col">Verified</th>
+          </tr>
+        </thead>
+        <tbody data-rows>
+{{devices_rows}}
+        </tbody>
+      </table>
+    </div>
+
+    <dl class="legend">
+      <div><dt><span class="pill pill-full">full</span></dt><dd>Every capability the hardware has is reachable in this mode.</dd></div>
+      <div><dt><span class="pill pill-partial">partial</span></dt><dd>Some capabilities are reachable. The device file lists which.</dd></div>
+      <div><dt><span class="pill pill-none">none</span></dt><dd>Somebody established that the hardware cannot do it.</dd></div>
+      <div><dt><span class="pill pill-unknown">?</span></dt><dd>Nobody looked yet. That is a different answer from <em>none</em>.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell" data-cards>
+{{devices_cards}}
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell narrow">
+    <h2>Your model is not listed</h2>
+    <p>First check <a href="{{repo}}/blob/main/docs/lan-supported-devices.md">Govee's own list</a>.
+    If your model is there, <code>lan</code> mode should work and only needs
+    somebody to verify it. Adding a device is mostly filling one YAML file and
+    attaching a capture — no code in three languages.</p>
+    <a class="btn" href="{{repo}}/blob/main/devices/README.md">How to add a device</a>
+  </div>
+</section>

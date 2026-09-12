@@ -1,0 +1,579 @@
+/* govee-toolkit — the subject is light, so the dark theme is the one the site
+   is drawn for. The light theme carries the same tokens.
+
+   Code surfaces stay dark in both themes: a terminal reads as a terminal.
+   Every color is a token; nothing below hard-codes one. */
+
+:root {
+  color-scheme: dark;
+
+  --ink: #07080b;
+  --panel: #0d0f15;
+  --panel-2: #12141c;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #eae8e5;
+  --muted: #9694a0;
+  --prose: #c9c7cf;
+  --glow: rgba(255, 61, 0, 0.10);
+
+  --ember: #ff3d00;
+  --amber: #ffb35c;
+  --magenta: #ff5ea8;
+  --cyan: #45e3d0;
+  --violet: #8d6bff;
+
+  --ok: #45e3d0;
+  --soon: #ffb35c;
+
+  /* The code surface, in both themes. */
+  --code-bg: #0d0f15;
+  --code-line: rgba(255, 255, 255, 0.09);
+  --code-text: #d8d5dd;
+
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --shell: 1600px;
+  --gutter: clamp(20px, 4.5vw, 80px);
+  --radius: 14px;
+}
+
+/* The light theme. Two blocks, because "the system says light" and "the
+   reader chose light" are two different selectors. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --ink: #fbfaf9;
+    --panel: #ffffff;
+    --panel-2: #f3f1ef;
+    --line: rgba(16, 14, 20, 0.12);
+    --line-strong: rgba(16, 14, 20, 0.24);
+    --text: #16151a;
+    --muted: #5f5d68;
+    --prose: #35333c;
+    --glow: rgba(255, 61, 0, 0.07);
+    --ember: #d93100;
+    --amber: #8a5a05;
+    --magenta: #b52272;
+    --cyan: #0d7a6e;
+    --violet: #5a3ed6;
+    --ok: #0d7a6e;
+    --soon: #8a5a05;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ink: #fbfaf9;
+  --panel: #ffffff;
+  --panel-2: #f3f1ef;
+  --line: rgba(16, 14, 20, 0.12);
+  --line-strong: rgba(16, 14, 20, 0.24);
+  --text: #16151a;
+  --muted: #5f5d68;
+  --prose: #35333c;
+  --glow: rgba(255, 61, 0, 0.07);
+  --ember: #d93100;
+  --amber: #8a5a05;
+  --magenta: #b52272;
+  --cyan: #0d7a6e;
+  --violet: #5a3ed6;
+  --ok: #0d7a6e;
+  --soon: #8a5a05;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font: 400 17px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 { font-weight: 600; letter-spacing: -0.022em; line-height: 1.1; margin: 0 0 .6em; }
+h1 { font-size: clamp(2.2rem, 1.2rem + 3.6vw, 4rem); }
+h2 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.9rem); }
+h3 { font-size: 1.15rem; }
+p { margin: 0 0 1em; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
+a:hover { text-decoration-color: currentColor; }
+code, pre, kbd { font-family: var(--mono); font-size: .92em; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
+img, svg { max-width: 100%; }
+
+.shell { width: 100%; max-width: var(--shell); margin-inline: auto; padding-inline: var(--gutter); }
+.shell.narrow { max-width: 760px; }
+.slab { padding-block: clamp(56px, 9vw, 112px); border-top: 1px solid var(--line); }
+.eyebrow {
+  font: 500 12px/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1.4em;
+}
+.lede { font-size: clamp(1.05rem, 1rem + .4vw, 1.28rem); color: var(--prose); max-width: 62ch; }
+.muted { color: var(--muted); }
+.note { color: var(--muted); font-size: .95rem; max-width: 68ch; }
+.big { font-size: clamp(1.7rem, 1.2rem + 2vw, 2.7rem); max-width: 20ch; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip {
+  position: absolute; left: -9999px; top: 8px; z-index: 20;
+  background: var(--panel-2); padding: 10px 16px; border-radius: 8px;
+}
+.skip:focus { left: 16px; }
+
+/* --- Top bar ------------------------------------------------------------ */
+
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in oklab, var(--ink) 82%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar .shell { display: flex; align-items: center; gap: 24px; height: 62px; }
+.wordmark {
+  display: flex; align-items: center; gap: 10px;
+  font: 600 15px/1 var(--mono); letter-spacing: -.01em; text-decoration: none;
+}
+.wordmark .thin { color: var(--muted); font-weight: 400; }
+.wordmark .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--ember);
+  box-shadow: 0 0 10px 1px var(--ember), 0 0 26px 3px color-mix(in oklab, var(--ember) 45%, transparent);
+}
+.links { margin-left: auto; display: flex; align-items: center; gap: clamp(12px, 2.4vw, 26px); }
+.controls { display: flex; align-items: center; gap: 8px; margin-left: 14px; }
+.links a {
+  font: 500 14px/1 var(--sans); color: var(--muted); text-decoration: none;
+  padding-block: 6px;
+}
+.links a:hover, .links a[aria-current] { color: var(--text); }
+.links a[aria-current] { box-shadow: inset 0 -1px 0 0 var(--ember); }
+.links .ghost {
+  color: var(--text); border: 1px solid var(--line-strong);
+  padding: 7px 13px; border-radius: 8px;
+}
+
+.theme, .burger {
+  display: grid; place-items: center; width: 34px; height: 34px; padding: 0;
+  background: transparent; border: 1px solid var(--line); border-radius: 8px;
+  color: var(--muted); cursor: pointer;
+}
+.theme:hover, .burger:hover { color: var(--text); border-color: var(--line-strong); }
+.theme svg, .burger svg { width: 17px; height: 17px; }
+.theme .sun { display: none; }
+:root[data-theme="light"] .theme .sun { display: block; }
+:root[data-theme="light"] .theme .moon { display: none; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .theme .sun { display: block; }
+  :root:not([data-theme="dark"]) .theme .moon { display: none; }
+}
+
+/* The menu folds into the top bar on a narrow screen. Every collapsed rule is
+   scoped to [data-menu], which JavaScript sets: with JavaScript blocked the
+   links stay on the page. */
+.burger, .theme.in-menu { display: none; }
+.burger .cross { display: none; }
+.burger[aria-expanded="true"] .bars { display: none; }
+.burger[aria-expanded="true"] .cross { display: block; }
+
+@media (max-width: 820px) {
+  .burger { display: grid; }
+  /* The links are out of the flow here, so the auto margin moves to the
+     controls to keep the burger against the right edge. */
+  .controls { margin-left: auto; }
+  /* The panel hangs from the button that opens it, on the right. */
+  .topbar[data-menu] .links {
+    position: absolute; top: calc(100% + 10px); left: auto;
+    right: var(--gutter); width: min(300px, calc(100vw - 2 * var(--gutter)));
+    flex-direction: column; align-items: stretch; gap: 2px;
+    margin: 0; padding: 8px 18px 16px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  }
+  .topbar[data-menu="closed"] .links { display: none; }
+  .topbar[data-menu] .links a { padding: 12px 0; font-size: 16px; }
+  .topbar[data-menu] .links a[aria-current] { box-shadow: none; color: var(--ember); }
+  .topbar[data-menu] .links .ghost { margin-top: 10px; text-align: center; padding: 12px; }
+  /* One theme control at a time: inside the folded menu, the top bar keeps
+     only the burger. */
+  .controls .theme { display: none; }
+  .topbar[data-menu] .theme.in-menu {
+    display: flex; align-items: center; justify-content: flex-start; gap: 12px;
+    width: auto; height: auto; padding: 12px 0; margin-top: 4px;
+    border: 0; border-top: 1px solid var(--line); border-radius: 0;
+  }
+  .theme.in-menu span { font: 500 16px/1 var(--sans); }
+}
+
+/* --- Hero --------------------------------------------------------------- */
+
+.hero { position: relative; padding-block: clamp(76px, 13vw, 150px) clamp(48px, 8vw, 96px); overflow: hidden; }
+.hero::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 70% at 50% -10%, var(--glow), transparent 62%);
+}
+.hero .shell {
+  position: relative; z-index: 1;
+  display: grid; gap: clamp(36px, 5vw, 72px); align-items: center;
+}
+@media (min-width: 1000px) {
+  .hero .shell { grid-template-columns: minmax(0, 1fr) minmax(380px, 0.8fr); }
+}
+.hero-text { min-width: 0; }
+.hero h1 { margin-bottom: .5em; max-width: 15ch; }
+.hero .lede { margin-bottom: 2.4em; }
+.hero-terminal { padding: 22px 24px; }
+.hero-terminal code { font-size: .95em; }
+.dim { color: #6f6d78; }
+
+/* The rope: one row of zones, the object the toolkit addresses. It hangs
+   under the top bar, so it follows the reader on every page. */
+.rope {
+  position: absolute; bottom: -3px; left: 0; right: 0; height: 3px;
+  display: flex; gap: 2px; opacity: .95; pointer-events: none;
+}
+.rope i {
+  flex: 1; height: 100%; display: block; border-radius: 2px;
+  background: var(--zone, #222);
+  /* The light falls on the page, not on the bar above it: every shadow
+     carries a vertical offset larger than its spread. */
+  box-shadow:
+    0 7px 12px -3px var(--zone, transparent),
+    0 16px 44px 0 var(--zone, transparent);
+  transition: background .9s linear, box-shadow .9s linear;
+}
+
+.cta-links { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn {
+  display: inline-block; padding: 12px 20px; border-radius: 10px;
+  font: 500 15px/1 var(--sans); text-decoration: none;
+  background: var(--text); color: var(--ink);
+  border: 1px solid transparent;
+}
+.btn:hover { background: #fff; }
+.btn.ghost { background: transparent; color: var(--text); border-color: var(--line-strong); }
+.btn.ghost:hover { border-color: var(--text); background: transparent; }
+
+/* --- Terminal and code -------------------------------------------------- */
+
+.terminal {
+  position: relative; background: var(--code-bg); border: 1px solid var(--code-line);
+  border-radius: var(--radius); padding: 16px 18px; min-width: min(100%, 360px);
+}
+.terminal .bar { display: flex; gap: 6px; margin-bottom: 12px; }
+.terminal .bar span { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); }
+.terminal pre { margin: 0; overflow-x: auto; }
+.terminal code { color: var(--code-text); line-height: 1.75; }
+.prompt { color: var(--ember); user-select: none; }
+.copy {
+  position: absolute; top: 12px; right: 12px;
+  font: 500 12px/1 var(--mono); color: #9694a0;
+  background: transparent; border: 1px solid var(--code-line); border-radius: 7px;
+  padding: 6px 10px; cursor: pointer;
+}
+.copy:hover { color: #eae8e5; border-color: rgba(255, 255, 255, 0.24); }
+.snippet {
+  background: var(--code-bg); border: 1px solid var(--code-line); border-left: 2px solid var(--violet);
+  border-radius: var(--radius); padding: 16px 18px; margin: 1.4em 0;
+  overflow-x: auto; color: var(--code-text); line-height: 1.7;
+}
+
+/* --- Editorial rows ----------------------------------------------------- */
+
+.rows { display: grid; gap: 1px; background: var(--line); border-block: 1px solid var(--line); }
+.row { background: var(--ink); padding: 28px 0; }
+.row h2 { font-size: 1.15rem; margin-bottom: .4em; }
+.row p { color: var(--muted); margin: 0; max-width: 62ch; }
+@media (min-width: 760px) {
+  .rows { grid-template-columns: 1fr 1fr; }
+  .row { padding: 30px clamp(20px, 3vw, 36px); }
+}
+
+/* --- Interactive strip -------------------------------------------------- */
+
+.strip-demo .strip {
+  display: flex; gap: 3px; height: 74px; margin: 2.2em 0 0;
+  border-radius: 10px; padding: 3px;
+  background: var(--panel); border: 1px solid var(--line);
+}
+.strip b {
+  flex: 1; border-radius: 6px; background: var(--zone, #171921);
+  box-shadow: 0 0 0 0 transparent;
+  transition: background .25s ease, box-shadow .25s ease;
+}
+.strip b[data-lit] { box-shadow: 0 0 18px 1px var(--zone), 0 10px 40px 0 var(--zone); }
+
+/* --- Cards -------------------------------------------------------------- */
+
+.cards { display: grid; gap: 14px; margin-top: 2.4em; }
+@media (min-width: 680px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .cards { grid-template-columns: repeat(4, 1fr); } }
+.card {
+  display: block; text-decoration: none; padding: 22px 20px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  border-top: 2px solid var(--line-strong);
+}
+.card:nth-child(1) { border-top-color: var(--ember); }
+.card:nth-child(2) { border-top-color: var(--amber); }
+.card:nth-child(3) { border-top-color: var(--cyan); }
+.card:nth-child(4) { border-top-color: var(--violet); }
+.card:hover { background: var(--panel-2); }
+.card h3 { margin: .5em 0 .3em; }
+.card p { color: var(--muted); font-size: .95rem; margin: 0; }
+.state {
+  font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+  padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line-strong);
+  color: var(--muted);
+}
+.state.ok { color: var(--ok); border-color: color-mix(in oklab, var(--ok) 40%, transparent); }
+.state.soon { color: var(--soon); border-color: color-mix(in oklab, var(--soon) 40%, transparent); }
+
+/* --- Modes -------------------------------------------------------------- */
+
+.mode-cards { display: grid; gap: 14px; margin: 2.2em 0 1.6em; }
+@media (min-width: 760px) { .mode-cards { grid-template-columns: repeat(3, 1fr); } }
+.mode-card {
+  padding: 22px 20px; border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--line);
+}
+.mode-card h3 { margin-bottom: .2em; }
+.mode-card .tag { font: 500 12px/1 var(--mono); letter-spacing: .06em; color: var(--muted); margin-bottom: 1em; }
+.mode-card p:last-child { color: var(--muted); font-size: .95rem; margin: 0; }
+.mode-card.lan { box-shadow: inset 3px 0 0 0 var(--cyan); }
+.mode-card.ble { box-shadow: inset 3px 0 0 0 var(--violet); }
+.mode-card.cloud { box-shadow: inset 3px 0 0 0 var(--muted); }
+
+.devices-teaser .btn { margin-top: 1em; }
+
+/* --- Page head ---------------------------------------------------------- */
+
+.pagehead { padding-block: clamp(56px, 9vw, 104px) clamp(24px, 4vw, 48px); }
+.pagehead h1 { font-size: clamp(2rem, 1.3rem + 2.4vw, 3.1rem); }
+
+/* --- Install ------------------------------------------------------------ */
+
+.install { padding-block: 40px; border-top: 1px solid var(--line); scroll-margin-top: 90px; }
+.install:first-child { border-top: 0; padding-top: 0; }
+.install header { display: flex; align-items: center; gap: 14px; margin-bottom: .8em; }
+.install header h2 { margin: 0; }
+.install p { color: var(--prose); }
+.install .terminal { margin-block: 1.2em; }
+
+/* --- Devices ------------------------------------------------------------ */
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 1.6em; }
+.search input {
+  min-width: min(100%, 340px); padding: 11px 14px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  font: 400 15px/1 var(--sans);
+}
+.search input::placeholder { color: var(--muted); }
+.toolbar .note { margin: 0; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+.matrix { width: 100%; border-collapse: collapse; font-size: .95rem; min-width: 640px; }
+.matrix th, .matrix td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+.matrix thead th { font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.matrix tbody tr:last-child th, .matrix tbody tr:last-child td { border-bottom: 0; }
+.matrix tbody tr:hover { background: var(--panel); }
+.matrix th[scope="row"] { font-family: var(--mono); font-weight: 500; }
+.matrix .tick { color: var(--ok); font: 500 12px/1 var(--mono); }
+.matrix time { color: var(--muted); font-size: .85em; }
+
+.pill {
+  display: inline-block; font: 500 11px/1 var(--mono); letter-spacing: .06em;
+  padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted);
+}
+.pill-full { color: var(--cyan); border-color: color-mix(in oklab, var(--cyan) 45%, transparent); }
+.pill-partial { color: var(--amber); border-color: color-mix(in oklab, var(--amber) 45%, transparent); }
+.pill-none { color: var(--muted); }
+.pill-unknown { color: var(--muted); border-style: dashed; }
+
+.legend { display: grid; gap: 10px; margin-top: 1.6em; }
+.legend > div { display: flex; gap: 12px; align-items: baseline; }
+.legend dt { min-width: 84px; }
+.legend dd { margin: 0; color: var(--muted); font-size: .95rem; }
+
+.device {
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  padding: 24px; margin-bottom: 16px; scroll-margin-top: 90px;
+}
+.device header h3 { font-family: var(--mono); margin-bottom: .2em; }
+.device header p { color: var(--muted); margin: 0 0 1.4em; }
+.device-body { display: grid; gap: 26px; }
+@media (min-width: 820px) { .device-body { grid-template-columns: 1fr 1.25fr; } }
+.caps { list-style: none; margin: 0 0 1.2em; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.caps li {
+  font: 400 12px/1 var(--mono); padding: 6px 9px; border-radius: 6px;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--prose);
+}
+.mode-block { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+.mode-block:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+.mode-block h4 { display: flex; align-items: center; gap: 10px; margin-bottom: .5em; font-family: var(--mono); }
+.mode-block p { color: var(--muted); font-size: .9rem; margin: 0; }
+.device footer { margin-top: 1.6em; font-size: .9rem; }
+.device .note { font-size: .9rem; }
+
+/* --- Documentation ------------------------------------------------------ */
+
+.doc-grid { display: grid; gap: 40px; max-width: var(--shell); margin-inline: auto; padding: clamp(32px, 5vw, 64px) var(--gutter) 96px; }
+@media (min-width: 900px) { .doc-grid { grid-template-columns: 240px minmax(0, 1fr); } }
+@media (min-width: 1180px) { .doc-grid { grid-template-columns: 240px minmax(0, 1fr) 200px; } }
+.doc-grid.is-reference { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) and (max-width: 1179px) {
+  /* Too narrow for three columns: the sommaire sits under the menu, and the
+     text takes the second column whole. */
+  .doc-grid.is-reference {
+    grid-template-columns: 240px minmax(0, 1fr);
+    /* The menu keeps its own height; the rest of the column is the sommaire's
+       to travel in. Without this the article, which spans both rows, makes the
+       first row tall and the two stick over each other. */
+    grid-template-rows: auto 1fr;
+  }
+  .is-reference .doc-nav { grid-column: 1; grid-row: 1; position: static; max-height: none; }
+  .is-reference .doc-toc {
+    display: block; grid-column: 1; grid-row: 2; margin-top: 8px;
+    position: sticky; top: 90px; align-self: start;
+    max-height: calc(100vh - 110px); overflow-y: auto;
+  }
+  .is-reference .prose { grid-column: 2; grid-row: 1 / span 2; }
+}
+@media (min-width: 1180px) { .doc-grid.is-reference { grid-template-columns: 220px minmax(0, 1fr) 260px; } }
+
+.doc-nav ul, .doc-toc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.doc-nav a, .doc-toc a { color: var(--muted); text-decoration: none; font-size: .95rem; }
+.doc-nav a:hover, .doc-toc a:hover { color: var(--text); }
+.doc-nav a[aria-current] { color: var(--text); box-shadow: inset 2px 0 0 0 var(--ember); padding-left: 10px; margin-left: -12px; }
+.doc-toc { font-size: .9rem; }
+@media (min-width: 900px) {
+  .doc-nav, .doc-toc {
+    position: sticky; top: 90px; align-self: start;
+    max-height: calc(100vh - 110px); overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
+  }
+  .doc-nav, .doc-toc { padding-right: 10px; }
+  .doc-nav::-webkit-scrollbar, .doc-toc::-webkit-scrollbar { width: 6px; }
+  .doc-nav::-webkit-scrollbar-thumb, .doc-toc::-webkit-scrollbar-thumb {
+    background: var(--line-strong); border-radius: 3px;
+  }
+}
+@media (max-width: 1179px) { .doc-grid:not(.is-reference) .doc-toc { display: none; } }
+
+.prose { max-width: 78ch; }
+.prose.reference { max-width: none; }
+.prose h1 { font-size: clamp(1.9rem, 1.4rem + 1.8vw, 2.6rem); margin-bottom: .5em; }
+.prose h2 { margin-top: 2em; padding-top: 1.4em; border-top: 1px solid var(--line); }
+.prose h2 .anchor, .prose .anchor { text-decoration: none; }
+.prose h3 { margin-top: 1.8em; }
+.prose p, .prose li { color: var(--prose); }
+.prose ul, .prose ol { padding-left: 1.2em; }
+.prose li { margin-bottom: .5em; }
+.prose code { background: var(--panel-2); border: 1px solid var(--line); padding: 2px 6px; border-radius: 5px; }
+.prose pre {
+  background: var(--code-bg); border: 1px solid var(--code-line); border-left: 2px solid var(--violet);
+  border-radius: var(--radius); padding: 16px 18px; overflow-x: auto; color: var(--code-text);
+}
+.prose pre code { background: none; border: 0; padding: 0; }
+/* A terminal keeps its own frame inside prose. */
+.prose .terminal pre { background: none; border: 0; border-radius: 0; padding: 0; }
+/* A heading can carry a state badge. It rides beside the words, not under. */
+.prose h2 .state {
+  display: inline-block; vertical-align: middle;
+  margin-left: 14px; transform: translateY(-2px);
+}
+.prose table { width: 100%; border-collapse: collapse; margin: 1.6em 0; font-size: .95rem; display: block; overflow-x: auto; }
+.prose th, .prose td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.prose th { font: 500 12px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.prose td { color: var(--prose); }
+.prose blockquote { margin: 1.6em 0; padding-left: 18px; border-left: 2px solid var(--amber); color: var(--muted); }
+
+/* --- Footer ------------------------------------------------------------- */
+
+.sitefoot { border-top: 1px solid var(--line); padding-block: 48px 64px; }
+.sitefoot .shell { display: grid; gap: 32px; }
+@media (min-width: 760px) { .sitefoot .shell { grid-template-columns: 1.6fr 1fr; } }
+.sitefoot .muted { font-size: .9rem; max-width: 58ch; margin: 0; }
+.sitefoot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sitefoot a { color: var(--muted); text-decoration: none; font-size: .95rem; }
+.sitefoot a:hover { color: var(--text); }
+
+
+/* --- Reference ---------------------------------------------------------- */
+
+.sub { margin: 10px 0 4px; padding-left: 0; border-left: 1px solid var(--line); }
+.sub > li { padding-left: 12px; }
+.sub .sub-group > a {
+  font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+  display: block; margin: 12px 0 8px;
+}
+.sub ul { gap: 6px; }
+.sub a[aria-current] { color: var(--text); }
+.sub a[aria-current] code {
+  background: var(--panel-2); border: 1px solid var(--line);
+  padding: 2px 6px; border-radius: 5px;
+}
+.sub .sub-group > a[aria-current] { color: var(--ember); }
+.sub code { font-size: .85em; }
+
+.ref-group { margin-bottom: 24px; }
+.ref-group > h2 { margin-top: 2.4em; }
+.ref-group:first-of-type > h2 { margin-top: 1.6em; }
+
+/* The text and the code sit side by side only when the column that holds them
+   is wide enough. The viewport says nothing useful here: two menus stand
+   between it and this column. */
+.prose.reference { container-type: inline-size; }
+
+.ref-entry {
+  display: grid; gap: 20px; align-items: start;
+  padding: 28px 0; border-top: 1px solid var(--line); scroll-margin-top: 90px;
+}
+@container (min-width: 820px) {
+  .ref-entry { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 28px; }
+}
+.ref-text { min-width: 0; }
+.ref-entry h3 { margin: 0 0 .5em; font-size: 1.05rem; }
+.ref-entry h3 code {
+  background: var(--panel-2); border: 1px solid var(--line);
+  padding: 4px 9px; border-radius: 7px; font-size: 1em;
+}
+.ref-entry .summary { color: var(--text); margin-bottom: .6em; }
+.ref-entry p { color: var(--prose); font-size: .95rem; margin-bottom: 0; }
+.ref-entry p + p { margin-top: .8em; }
+.ref-entry code { font-size: .9em; }
+
+.langs { min-width: 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.tabs button {
+  display: flex; align-items: center; gap: 7px;
+  font: 500 12px/1 var(--mono); color: var(--muted); cursor: pointer;
+  background: transparent; border: 1px solid transparent; border-radius: 7px;
+  padding: 7px 11px;
+}
+.tabs button:hover { color: var(--text); }
+.tabs button[aria-selected="true"] {
+  color: var(--text); background: var(--panel-2); border-color: var(--line);
+}
+.dot-soon { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--soon); flex: none; }
+.pane pre {
+  margin: 0; background: var(--code-bg); border: 1px solid var(--code-line);
+  border-left: 2px solid var(--violet); border-radius: var(--radius);
+  padding: 16px 18px; overflow-x: auto; color: var(--code-text); line-height: 1.7;
+}
+.pane .planned {
+  display: flex; align-items: center; gap: 7px;
+  font: 400 12px/1.5 var(--mono); color: var(--muted); margin: 0 0 8px;
+}
