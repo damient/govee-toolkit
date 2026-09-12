@@ -40,15 +40,23 @@ pub(super) fn parse(name: &str, spec: &ArgSpec, text: &str) -> Result<ArgValue, 
             .collect::<Result<Vec<_>, _>>()
             .map(ArgValue::Rgb),
         ArgSpec::String { .. } => Ok(ArgValue::Text(text.to_owned())),
-        ArgSpec::Zones { .. } => list(text)
-            .map(|item| {
-                item.parse::<u16>()
-                    .map_err(|_| refused(name, item, "a zone index, zero-based"))
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map(ArgValue::Zones),
+        ArgSpec::Zones { .. } => zones(text).map(ArgValue::Zones),
         ArgSpec::Bytes { .. } => bytes(name, text).map(ArgValue::Bytes),
     }
+}
+
+/// Read zone indices, zero-based and comma-separated.
+///
+/// # Errors
+///
+/// [`Failure::usage`] for an item that is not a zone index.
+pub(super) fn zones(text: &str) -> Result<Vec<u16>, Failure> {
+    list(text)
+        .map(|item| {
+            item.parse::<u16>()
+                .map_err(|_| Failure::usage(format!("`{item}` is not a zone index, zero-based")))
+        })
+        .collect()
 }
 
 /// Read `#RRGGBB`, or the same six digits with no `#`.
@@ -63,11 +71,8 @@ pub(super) fn rgb(text: &str) -> Result<[u8; 3], Failure> {
         .then(|| u32::from_str_radix(digits, 16).ok())
         .flatten()
         .ok_or_else(|| Failure::usage(format!("`{text}` is not a color; write `#RRGGBB`")))?;
-    Ok([
-        u8::try_from(value >> 16 & 0xFF).unwrap_or_default(),
-        u8::try_from(value >> 8 & 0xFF).unwrap_or_default(),
-        u8::try_from(value & 0xFF).unwrap_or_default(),
-    ])
+    let [_, red, green, blue] = value.to_be_bytes();
+    Ok([red, green, blue])
 }
 
 /// Read a color list: one `#RRGGBB` for every zone, or one per zone.

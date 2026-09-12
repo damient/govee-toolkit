@@ -126,7 +126,7 @@ async fn one_verb(govee: &Govee, writer: &Writer, command: &Command) -> Result<(
         ),
         other => return Err(Failure::internal(format!("{other:?} is not a verb"))),
     };
-    verb(govee, writer, device, played).await
+    verbs::run(govee, writer, &DeviceId::new(device), played).await
 }
 
 /// What a person typed for one painting, with the zones, the colors and the
@@ -138,7 +138,7 @@ async fn segment(
     gradient: bool,
 ) -> Result<verbs::Verb, Failure> {
     Ok(verbs::Verb::Segment {
-        zones: zones.map(list).transpose()?,
+        zones: zones.map(args::zones).transpose()?,
         colors: args::colors_or_stdin(colors).await?,
         resolution: args::resolution(resolution)?,
         gradient,
@@ -153,16 +153,6 @@ fn music(effect: i64, sensitivity: i64, soft: bool, color: Option<&str>) -> Resu
         soft,
         color: color.map(args::rgb).transpose()?,
     })
-}
-
-/// Run one verb against one device.
-async fn verb(
-    govee: &Govee,
-    writer: &Writer,
-    device: &str,
-    verb: verbs::Verb,
-) -> Result<(), Failure> {
-    verbs::run(govee, writer, &DeviceId::new(device), verb).await
 }
 
 /// Find the device where no transport of an enabled mode knows it yet.
@@ -191,15 +181,12 @@ async fn discover(govee: &Govee, id: &DeviceId) -> Result<(), Failure> {
     Ok(())
 }
 
-/// Read zone indices, zero-based and comma-separated.
-fn list(text: &str) -> Result<Vec<u16>, Failure> {
-    args::list(text)
-        .map(|index| {
-            index.parse::<u16>().map_err(|_| {
-                Failure::usage(format!("`{index}` is not a zone index; they start at zero"))
-            })
-        })
-        .collect()
+/// The modes a run touches: the one `--mode` names, or every enabled mode.
+///
+/// `--mode` restricts the wire, and not only what is printed: a scan over
+/// another mode would send frames the caller ruled out.
+fn modes(govee: &Govee, restrict: Option<Mode>) -> Vec<Mode> {
+    restrict.map_or_else(|| govee.modes(), |mode| vec![mode])
 }
 
 /// The configuration the run works from, narrowed by `--mode`.

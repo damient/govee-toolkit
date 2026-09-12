@@ -12,10 +12,7 @@ pub(super) async fn scan(
     writer: &Writer,
     restrict: Option<Mode>,
 ) -> Result<(), Failure> {
-    // `--mode` restricts the wire the scan touches, and not only what is
-    // printed: a scan over another mode would send frames the caller ruled
-    // out.
-    let modes = restrict.map_or_else(|| govee.modes(), |mode| vec![mode]);
+    let modes = super::modes(govee, restrict);
     let found = govee.scan_on(&modes).await?;
     for device in &found {
         // A device that answered is on the air, whatever the configuration

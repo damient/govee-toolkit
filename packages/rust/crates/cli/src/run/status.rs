@@ -4,7 +4,7 @@ use govee_toolkit::codec::Mode;
 use govee_toolkit::{DeviceId, DeviceStatus, Govee};
 use serde_json::{Value, json};
 
-use crate::output::{Failure, Writer};
+use crate::output::{Failure, Writer, option};
 
 /// Ask the device for its state and report the answer.
 pub(super) async fn run(govee: &Govee, writer: &Writer, id: &DeviceId) -> Result<(), Failure> {
@@ -28,9 +28,7 @@ fn as_json(status: &DeviceStatus, mode: Mode) -> Value {
 }
 
 fn as_text(status: &DeviceStatus, mode: Mode) -> String {
-    let field = |name: &str, value: Option<String>| {
-        format!("{name}={}", value.unwrap_or_else(|| "?".to_owned()))
-    };
+    let field = |name: &str, value: Option<String>| format!("{name}={}", option(value));
     format!(
         "{}  {}  {}  {}  {}  {}",
         status.id,

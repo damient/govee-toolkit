@@ -11,7 +11,7 @@ use govee_toolkit::{Event, Govee};
 use serde_json::{Value, json};
 use tokio::sync::broadcast::error::RecvError;
 
-use crate::output::{Failure, Writer};
+use crate::output::{Failure, Writer, option};
 
 /// Print events until the stream closes or the process is interrupted.
 pub(super) async fn run(
@@ -22,7 +22,7 @@ pub(super) async fn run(
 ) -> Result<(), Failure> {
     // Subscribed before the scan, so that what the scan finds is reported.
     let mut events = govee.events();
-    let modes = restrict.map_or_else(|| govee.modes(), |mode| vec![mode]);
+    let modes = super::modes(govee, restrict);
     govee.scan_on(&modes).await?;
     if rescan_ms > 0 {
         rescan(govee.clone(), rescan_ms, modes);
@@ -183,8 +183,4 @@ fn change_name(change: govee_toolkit::transport::Change) -> &'static str {
         Change::Moved => "moved",
         Change::FirmwareChanged => "firmware_changed",
     }
-}
-
-fn option(value: Option<String>) -> String {
-    value.unwrap_or_else(|| "?".to_owned())
 }

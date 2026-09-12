@@ -8,10 +8,6 @@ use serde_json::{Value, json};
 use crate::output::{Failure, Writer};
 use crate::run::args::kind;
 
-/// Every mode, whether or not this build carries a transport for it: the
-/// device file declares all three.
-const MODES: [Mode; 3] = [Mode::Lan, Mode::Ble, Mode::Cloud];
-
 /// Report what the catalog holds for one device or one SKU.
 pub(super) fn run(govee: &Govee, writer: &Writer, target: &str) -> Result<(), Failure> {
     let device = resolve(govee, target)?;
@@ -43,11 +39,11 @@ fn as_json(device: &Device) -> Value {
             "native_pixels": device.capabilities.native_pixels(),
             "refines_at": device.measurements.resolution_changepoints,
         },
-        "modes": MODES
+        "modes": Mode::ALL
             .iter()
             .map(|mode| (mode.to_string(), mode_json(device, *mode)))
             .collect::<serde_json::Map<_, _>>(),
-        "commands": MODES
+        "commands": Mode::ALL
             .iter()
             .map(|mode| (mode.to_string(), commands_json(device, *mode)))
             .collect::<serde_json::Map<_, _>>(),
@@ -154,7 +150,7 @@ fn as_text(device: &Device) -> String {
         }
     }
 
-    for mode in MODES {
+    for mode in Mode::ALL {
         let support = device.modes.get(mode);
         lines.push(format!("{mode}: {}", support.support));
         if let Some(reach) = reach(device, mode) {
