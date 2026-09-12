@@ -17,8 +17,43 @@ pub(super) async fn scan(
     // out.
     let modes = restrict.map_or_else(|| govee.modes(), |mode| vec![mode]);
     let found = govee.scan_on(&modes).await?;
-    report(&found, writer, restrict);
+    for device in &found {
+        // A device that answered is on the air, whatever the configuration
+        // says about it. Printing only the ones it enables would hide a device
+        // the scan just heard: `ble` reports a device under the handle the
+        // platform gives the peripheral, and that handle is in no
+        // configuration until somebody puts it there.
+        let enabled = device.modes.iter().any(|mode| modes.contains(mode));
+        writer.emit(
+            &heard_json(device, restrict, enabled),
+            &heard_text(device, &modes, restrict, enabled),
+        );
+    }
     Ok(())
+}
+
+/// One device a scan heard, and whether the configuration enables the mode it
+/// answered over.
+fn heard_json(device: &Device, restrict: Option<Mode>, enabled: bool) -> Value {
+    let mut json = as_json(device, restrict);
+    if let Value::Object(fields) = &mut json {
+        fields.insert("enabled".to_owned(), Value::Bool(enabled));
+    }
+    json
+}
+
+fn heard_text(device: &Device, scanned: &[Mode], restrict: Option<Mode>, enabled: bool) -> String {
+    if enabled {
+        return as_text(device, restrict);
+    }
+    let over: Vec<String> = scanned.iter().map(ToString::to_string).collect();
+    format!(
+        "{}  {}  {}  answered over {}, which the configuration does not enable for it",
+        device.id,
+        device.sku,
+        device.name.as_deref().unwrap_or("-"),
+        over.join(", ")
+    )
 }
 
 /// Report the devices already known, without touching the network.
@@ -26,9 +61,10 @@ pub(super) fn list(govee: &Govee, writer: &Writer, restrict: Option<Mode>) {
     report(&govee.devices(), writer, restrict);
 }
 
+/// What `devices` reports: the devices a command can go to, so one that does
+/// not enable the mode is left out. A scan reports what answered instead.
 fn report(devices: &[Device], writer: &Writer, restrict: Option<Mode>) {
     for device in devices {
-        // A device that does not enable the mode is not reported under it.
         if restrict.is_some_and(|only| !device.modes.contains(&only)) {
             continue;
         }

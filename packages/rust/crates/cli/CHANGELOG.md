@@ -38,6 +38,12 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   `#RRGGBB`, which fills every zone, or one per zone. `--zones` takes `app`,
   `native` or a count, and `--rate` overrides the rate measured for the unit.
   The run reports the frames sent and the frames a later write replaced.
+- `scan` reports every device that answered, including one the configuration
+  does not enable the scanned mode for. Such a device is printed as answering
+  over that mode rather than with its modes, and the JSON form carries
+  `enabled: false`. `ble` reports a device under the handle the platform gives
+  the peripheral, so a first scan always finds one the configuration cannot
+  name yet. `devices` keeps listing only what a command can go to.
 - `watch` prints events as they arrive. It scans once at the start, and
   `--rescan-ms` repeats the scan.
 - `doctor` reports everything wrong with the configuration, including an
