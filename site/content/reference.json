@@ -131,20 +131,20 @@
         {
           "id": "segment",
           "title": "segment",
-          "summary": "Paint the zones one color.",
-          "detail": "Without a list of zones, every zone takes the color. With one, the zones you name take it and the rest stay as they are. A mode that carries no masked painting fails and says so.",
+          "summary": "Paint the zones.",
+          "detail": "One color fills every zone. A list of colors states one zone each, which is how a mode that addresses every LED is painted pixel by pixel: ask for the native resolution and pass that many colors. With a list of zones, the zones you name take the one color and the rest stay as they are; that needs a mode that paints by mask. A count the unit renders as a smaller one is refused, and the message names the counts it refines at.",
           "examples": {
-            "cli": "govee segment living-room \"#ff3d00\"\ngovee segment living-room --zones 1,2,3 \"#ff3d00\"",
-            "rust": "device.segment(&[1, 2, 3], [255, 61, 0]).await?;",
-            "python": "await device.segment([1, 2, 3], (255, 61, 0))",
-            "node": "await device.segment([1, 2, 3], [255, 61, 0])"
+            "cli": "govee segment living-room \"#ff3d00\"\ngovee segment living-room --zones 1,2,3 \"#ff3d00\"\n# One color per LED: 42 of them on this unit, in zone order.\ngovee segment living-room --resolution native \"#ff3d00,#00a3ff,#000000,...\"\n# The same list, from a pipe or a file.\necho \"#ff3d00,#00a3ff,#000000,...\" | govee segment living-room --resolution native -",
+            "rust": "device.segment(&Paint {\n    zones: None,\n    colors: &frame,\n    resolution: Resolution::Native,\n    gradient: false,\n}).await?;",
+            "python": "await device.segment(colors=frame, resolution=\"native\")",
+            "node": "await device.segment({ colors: frame, resolution: \"native\" })"
           }
         },
         {
           "id": "music",
           "title": "music",
           "summary": "Play an effect the device renders from its own microphone.",
-          "detail": "The device listens and nothing streams from your host. The effect identifiers belong to the mode: the same number names another effect over another mode, and `lan` carries no music command at all. Nothing stops the effect \u2014 set a color, a temperature or the power to end it.",
+          "detail": "The device listens and nothing streams from your host. The effect identifiers belong to the mode: the same number names another effect over another mode, and `lan` carries no music command at all. Nothing stops the effect — set a color, a temperature or the power to end it.",
           "examples": {
             "cli": "govee music living-room 3 --sensitivity 60",
             "rust": "device.music(&Music { effect: 3, sensitivity: 60, soft: false, color: None }).await?;",
@@ -164,7 +164,7 @@
           "summary": "Open the segment channel and keep it armed.",
           "detail": "The stream reports the zone count and the frame rate measured on the unit. It stays armed until you close it, and the colors end with it.",
           "examples": {
-            "cli": "govee stream living-room < frames.txt",
+            "cli": "# frames.txt: one frame per line, one color per zone.\ngovee stream living-room --resolution native < frames.txt",
             "rust": "let stream = device.open_stream(StreamOptions::default()).await?;\nprintln!(\"{} zones at {} Hz\", stream.zones(), stream.rate_hz());",
             "python": "stream = await device.open_stream()\nprint(stream.zones, stream.rate_hz)",
             "node": "const stream = await device.openStream()\nconsole.log(stream.zones, stream.rateHz)"
@@ -175,7 +175,7 @@
           "title": "set_zone",
           "summary": "Set one zone of the stream.",
           "examples": {
-            "cli": "# One frame per line, one color per zone.\necho \"000000 ff3d00 000000\" | govee stream living-room",
+            "cli": "# One frame per line, one color per zone.\necho \"000000,ff3d00,000000\" | govee stream living-room --resolution 3",
             "rust": "stream.set_zone(7, [255, 61, 0])?;",
             "python": "stream.set_zone(7, (255, 61, 0))",
             "node": "stream.setZone(7, [255, 61, 0])"

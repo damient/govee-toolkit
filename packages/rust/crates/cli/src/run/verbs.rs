@@ -4,7 +4,8 @@
 //! Each one calls the matching method of the crate, which reads the entry the
 //! device file marks with that `role:`. No command name reaches this file.
 
-use govee_toolkit::{DeviceId, Govee, Music, Served};
+use govee_toolkit::stream::Resolution;
+use govee_toolkit::{DeviceId, Govee, Music, Paint, Served};
 use serde_json::json;
 
 use crate::output::{Failure, Writer};
@@ -19,12 +20,14 @@ pub(super) enum Verb {
     Color([u8; 3]),
     /// Set the white temperature, in kelvin.
     ColorTemp(i64),
-    /// Paint one color over zones. `None` paints every zone.
+    /// Paint zones. `None` paints every zone.
     Segment {
         /// The zones to paint, zero-based.
         zones: Option<Vec<u16>>,
-        /// The color.
-        rgb: [u8; 3],
+        /// One color for every zone, or one per zone.
+        colors: Vec<[u8; 3]>,
+        /// How many zones the frame states, where the paint names no zone.
+        resolution: Resolution,
         /// Ask the firmware to interpolate between zones.
         gradient: bool,
     },
@@ -47,9 +50,19 @@ pub(super) async fn run(
         Verb::ColorTemp(kelvin) => handle.color_temp(kelvin).await,
         Verb::Segment {
             zones,
-            rgb,
+            colors,
+            resolution,
             gradient,
-        } => handle.segment(zones.as_deref(), rgb, gradient).await,
+        } => {
+            handle
+                .segment(&Paint {
+                    zones: zones.as_deref(),
+                    colors: &colors,
+                    resolution,
+                    gradient,
+                })
+                .await
+        }
         Verb::Music(music) => handle.music(&music).await,
     }?;
     report(writer, &served);

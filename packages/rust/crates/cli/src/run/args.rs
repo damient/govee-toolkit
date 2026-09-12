@@ -5,6 +5,8 @@
 //! text under that type. The range stays the codec's to check.
 
 use govee_toolkit::codec::{ArgSpec, ArgValue};
+use govee_toolkit::stream::Resolution;
+use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::output::Failure;
 
@@ -68,10 +70,58 @@ pub(super) fn rgb(text: &str) -> Result<[u8; 3], Failure> {
     ])
 }
 
-/// The items of a comma-separated list, each trimmed. An empty list has no
-/// items.
+/// Read a color list: one `#RRGGBB` for every zone, or one per zone.
+///
+/// # Errors
+///
+/// [`Failure::usage`] for an item that is not a color.
+pub(super) fn colors(text: &str) -> Result<Vec<[u8; 3]>, Failure> {
+    list(text).map(rgb).collect()
+}
+
+/// The same list, read from one line of stdin where the text is `-`.
+///
+/// One line is one paint, so a list of 42 colors reaches the device from a
+/// file or a pipe rather than from the command line.
+///
+/// # Errors
+///
+/// [`Failure::usage`] for an item that is not a color, and
+/// [`Failure::internal`] where stdin cannot be read.
+pub(super) async fn colors_or_stdin(text: &str) -> Result<Vec<[u8; 3]>, Failure> {
+    if text.trim() != "-" {
+        return colors(text);
+    }
+    let line = BufReader::new(tokio::io::stdin())
+        .lines()
+        .next_line()
+        .await
+        .map_err(|e| Failure::internal(e.to_string()))?
+        .unwrap_or_default();
+    colors(&line)
+}
+
+/// Read how many zones a frame states: `app`, `native`, or a count.
+///
+/// # Errors
+///
+/// [`Failure::usage`] for anything else.
+pub(super) fn resolution(text: &str) -> Result<Resolution, Failure> {
+    match text {
+        "app" => Ok(Resolution::App),
+        "native" => Ok(Resolution::Native),
+        other => other.parse::<u16>().map(Resolution::Exact).map_err(|_| {
+            Failure::usage(format!(
+                "`{other}` is not a zone count; write `app`, `native`, or a number"
+            ))
+        }),
+    }
+}
+
+/// The items of a list, each trimmed. A comma or a space separates them, and
+/// an empty list has no items.
 pub(super) fn list(text: &str) -> impl Iterator<Item = &str> {
-    text.split(',')
+    text.split([',', ' ', '\t'])
         .map(str::trim)
         .filter(|item| !item.is_empty())
 }
@@ -159,5 +209,22 @@ mod tests {
         assert_eq!(rgb("#FF8000").ok(), Some([255, 128, 0]));
         assert_eq!(rgb("ff8000").ok(), Some([255, 128, 0]));
         assert!(rgb("#FF80").is_err());
+    }
+
+    #[test]
+    fn a_color_list_reads_by_comma_or_by_space() {
+        let wanted = Some(vec![[255, 0, 0], [0, 255, 0]]);
+        assert_eq!(colors("#ff0000,#00ff00").ok(), wanted);
+        assert_eq!(colors("ff0000 00ff00").ok(), wanted);
+        assert_eq!(colors("#ff0000").ok(), Some(vec![[255, 0, 0]]));
+        assert!(colors("#ff0000,green").is_err());
+    }
+
+    #[test]
+    fn a_resolution_reads_by_name_or_by_number() {
+        assert_eq!(resolution("app").ok(), Some(Resolution::App));
+        assert_eq!(resolution("native").ok(), Some(Resolution::Native));
+        assert_eq!(resolution("30").ok(), Some(Resolution::Exact(30)));
+        assert!(resolution("many").is_err());
     }
 }
