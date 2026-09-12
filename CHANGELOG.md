@@ -72,6 +72,17 @@ at.
 - The `H61A0` `ble` entry marks its white components and its zone mask: that
   firmware renders no temperature, so the host sends the rendering.
 
+#### Changed
+
+- `modes.<mode>.support` takes `capped`: the mode reaches every capability the
+  transport carries. Every name under `unreachable` is then `transport`.
+- `partial` now means work left on this device file: one name under
+  `unreachable` is `unimplemented` or `unprobed`. `cargo test` checks the level
+  against the reasons.
+- `H6008` reads `capped` over `lan` and `cloud`, and `H61A0` over `lan`. Neither
+  transport carries a music command, and `lan` carries no per-segment
+  brightness.
+
 ### 2026-09-11
 
 #### Added

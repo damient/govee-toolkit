@@ -21,9 +21,21 @@ this page is written by hand.
 | Level | Meaning |
 | ----- | ------- |
 | **full** | Every capability the hardware has is reachable in this mode |
-| **partial** | Only some capabilities are reachable — the device file lists which |
+| **capped** | Every capability the transport carries is reachable, and the transport carries less than the hardware has. A boundary of the transport |
+| **partial** | A capability is out of reach because this device file does not reach it yet. Work left |
 | **none** | Not reachable in this mode |
 | **?** | Not tested yet. The device file spells this `unknown` |
+
+`capped` and `partial` are not the same answer. `capped` says the mode goes as
+far as the transport goes: nobody can do better over it, on any device. Every
+RGBIC device is `capped` over `lan`, because `lan` carries no music command and
+no per-segment brightness. `partial` says this device file falls short of what
+the transport carries, so somebody can close the gap. Both list each capability
+out of reach, with the reason, under `modes.<mode>.unreachable`.
+
+The level follows from those reasons, and `cargo test` checks it: a mode whose
+every unreachable capability is `transport` is `capped`, and one that names an
+`unimplemented` or `unprobed` capability is `partial`.
 
 `none` and `?` are not the same answer. `none` says somebody established the
 hardware cannot do it; `?` says nobody looked. A failed probe and an
@@ -31,15 +43,15 @@ unimplemented feature look identical from outside, so `?` stays until someone
 probes it, and enabling an unprobed mode is allowed — that is how it gets
 probed.
 
-A mode marked `full` or `partial` says what the hardware supports, not what is
-enabled: the user chooses which modes to turn on, per device. See
+A mode marked `full`, `capped` or `partial` says what the hardware supports, not
+what is enabled: the user chooses which modes to turn on, per device. See
 [`modes.md`](modes.md).
 
 ## Why a capability is out of reach
 
-`partial` says a mode falls short of the hardware; the device file says of what,
-and why. Each capability a mode does not reach is listed under
-`modes.<mode>.unreachable` with one of three reasons:
+`capped` and `partial` both say a mode falls short of the hardware; the device
+file says of what, and why. Each capability a mode does not reach is listed
+under `modes.<mode>.unreachable` with one of three reasons:
 
 | Reason | Meaning |
 | ------ | ------- |
@@ -52,8 +64,8 @@ needs the evidence any other claim needs — the section of
 [`protocol/`](protocol/) that establishes it. `unprobed` is what an unanswered
 question looks like, and it stays until someone answers it.
 
-On a mode that is `full` or `partial`, every capability the hardware has is
-either reached or listed here with a reason; `cargo test` fails on one that is
+On a mode that is `full`, `capped` or `partial`, every capability the hardware
+has is either reached or listed here with a reason; `cargo test` fails on one that is
 neither. A mode left `unknown` owes no answer, since nobody probed it.
 
 ## Support by SKU
@@ -65,9 +77,9 @@ such in the device file until someone verifies them.
 <!-- generated: support-by-sku -->
 | SKU | Family | Name | `lan` | `ble` | `cloud` | Verified |
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
-| [H6008](../devices/H6008.yaml) | rgbww-bulb | Smart LED Bulb RGBWW | partial | ? | partial | ✅ 2026-09-12 |
+| [H6008](../devices/H6008.yaml) | rgbww-bulb | Smart LED Bulb RGBWW | capped | ? | capped | ✅ 2026-09-12 |
 | [H6114](../devices/H6114.yaml) | rgb-car-strip | RGB Car LED Strip Lights | none | full | none | ✅ 2026-09-07 |
-| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | partial | full | full | ✅ 2026-09-10 |
+| [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | capped | full | full | ✅ 2026-09-10 |
 <!-- /generated -->
 
 ## Capabilities by SKU

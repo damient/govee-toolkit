@@ -243,8 +243,8 @@ The `pt`, `ptReal`, `ptIotOp` and `bulb` commands belong to a separate account
 channel of the vendor's cloud, which this SDK does not implement. Probing them
 over LAN stays silent because the command exists, but not on this transport.
 
-This is a real boundary of `lan` mode, not a gap waiting to be filled. See
-[`cloud.md`](cloud.md).
+This is a real boundary of `lan` mode, not a gap waiting to be filled: a device
+file spells it `capped`, not `partial`. See [`cloud.md`](cloud.md).
 
 ### 2.6 Sensors / telemetry
 

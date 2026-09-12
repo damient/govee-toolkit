@@ -6,9 +6,14 @@ trade-offs, and **the user chooses which ones to enable, per device**.
 
 | Mode | Latency | Range | Capabilities | Requires |
 | ---- | ------- | ----- | ------------ | -------- |
-| `lan` | lowest | same network | full, including the undocumented segment channel | LAN Control enabled in the Govee Home app |
-| `ble` | low | Bluetooth range | partial, depends on SKU family | a Bluetooth adapter on the host, and the device not already connected to something else |
-| `cloud` | highest (internet round-trip) | anywhere | reduced: no segment stream; throttled | a Govee API key, subject to rate limits |
+| `lan` | lowest | same network | the undocumented segment channel, in color. No music command, and brightness is global | LAN Control enabled in the Govee Home app |
+| `ble` | low | Bluetooth range | depends on the SKU family | a Bluetooth adapter on the host, and the device not already connected to something else |
+| `cloud` | highest (internet round-trip) | anywhere | segments in color and in brightness, music. No segment stream; throttled | a Govee API key, subject to rate limits |
+
+The `lan` row is why a device that does music and per-segment brightness reads
+as `capped` over `lan` in [`compatibility.md`](compatibility.md): the transport
+carries neither, on any device. See [`protocol/lan.md`](protocol/lan.md) 2.4 and
+2.5.
 
 Details per mode: [`protocol/lan.md`](protocol/lan.md),
 [`protocol/ble.md`](protocol/ble.md), [`protocol/cloud.md`](protocol/cloud.md).
