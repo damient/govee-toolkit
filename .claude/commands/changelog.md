@@ -75,6 +75,10 @@ of its own, and no link to a specification.
   not the type it declared.
 - A bullet is one change, stated as a fact in the present tense. Lead with the
   public name — the item, the command, the file, the SKU — then what it does.
+- **A bullet is two lines at most**, wrapped at 80 columns: about 150
+  characters, or 24 words. Cut words until the fact fits, and keep the public
+  name and the behavior — they are what the reader came for. A bullet that
+  needs a third line is two changes, or it is one fact and a link.
 - A breaking change opens with `**Breaking:**` and says what to do instead.
 - An entry links to the doc that carries the detail rather than reproducing it.
 - Wrap at 80 columns. English, plain, no selling.
@@ -121,19 +125,24 @@ convention or slipped past CI. Read it and place it by what it changed.
 2. Read the entries already at the top of the file — most branches extend an
    existing list rather than starting one. Merge into it; do not append a second
    bullet on a subject already covered.
-3. Verify every name you write against the code: the item path, the feature
+3. Clean every bullet you touch, and every bullet in the sections you write
+   under: cut a bullet longer than two lines to the fact the reader acts on,
+   and drop the filler, the second sentence that repeats the first and the
+   framing against a past shape of the code. A bullet already inside the budget
+   and already plain stays as it is.
+4. Verify every name you write against the code: the item path, the feature
    flag, the CLI invocation, the config key. A changelog naming an item that
    does not exist is worse than no entry.
-4. A device file change names the SKU, what changed, and whether the new
+5. A device file change names the SKU, what changed, and whether the new
    behavior comes from a capture or from the documented layout. Never state a
    capability or a measurement the file does not carry.
-5. An MSRV raise, a new cargo feature, a changed argument range and a renamed
+6. An MSRV raise, a new cargo feature, a changed argument range and a renamed
    command each get their own entry — see `docs/versioning.md` for which bump
    they force.
-6. `tools/release-notes.sh <pkg> <pkg>-vX.Y.Z` prints the section as the release
+7. `tools/release-notes.sh <pkg> <pkg>-vX.Y.Z` prints the section as the release
    will carry it. Run it when the branch bumps a version: it is what the release
    workflow runs, and it fails on a heading with no entries under it.
-7. A branch that cuts a version also updates the `Version` column of the index
+8. A branch that cuts a version also updates the `Version` column of the index
    table in the root file. The release history itself is the repository's
    releases page, built by the release workflow; no table in the repository
    repeats it.
