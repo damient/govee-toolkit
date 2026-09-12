@@ -4,8 +4,8 @@
 
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// The zone count of a verified 3 m rope. The number is a device fact; it lives
-// in devices/H61A0.yaml and is repeated here only to size a decoration.
+// How many zones the decoration draws. This is a drawing count and not a
+// measurement: a real zone count belongs to a device file.
 const ZONES = 42;
 
 const PALETTE = [
@@ -15,6 +15,15 @@ const PALETTE = [
   [141, 107, 255],
   [69, 227, 208],
 ];
+
+// The zones of a decoration, appended in one pass.
+function build(el, tag) {
+  const zones = [];
+  for (let i = 0; i < ZONES; i += 1) {
+    zones.push(el.appendChild(document.createElement(tag)));
+  }
+  return zones;
+}
 
 function rgb([r, g, b], alpha = 1) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
@@ -27,12 +36,7 @@ function mix(a, b, t) {
 // --- The rope under the top bar -------------------------------------------
 
 function rope(el) {
-  const zones = [];
-  for (let i = 0; i < ZONES; i += 1) {
-    const zone = document.createElement("i");
-    el.append(zone);
-    zones.push(zone);
-  }
+  const zones = build(el, "i");
 
   const paint = (offset) => {
     zones.forEach((zone, i) => {
@@ -75,41 +79,70 @@ function rope(el) {
 // --- The strip the pointer paints ------------------------------------------
 
 function strip(el) {
-  const zones = [];
-  for (let i = 0; i < ZONES; i += 1) {
-    const zone = document.createElement("b");
-    el.append(zone);
-    zones.push(zone);
-  }
+  const zones = build(el, "b");
+  // How far the light carries on each side of the pointer.
+  const REACH = 6;
 
-  const color = PALETTE[0];
+  const off = (zone) => {
+    zone.style.removeProperty("--zone");
+    zone.removeAttribute("data-lit");
+  };
+
+  // The window that is lit now, so a move writes the zones that change and
+  // leaves the rest alone.
+  let from = 0;
+  let to = -1;
   const light = (index) => {
-    zones.forEach((zone, i) => {
+    const first = Math.max(0, index - REACH);
+    const last = Math.min(ZONES - 1, index + REACH);
+    for (let i = from; i <= to; i += 1) {
+      if (i < first || i > last) off(zones[i]);
+    }
+    for (let i = first; i <= last; i += 1) {
       const distance = Math.abs(i - index);
-      if (distance > 6) {
-        zone.style.removeProperty("--zone");
-        zone.removeAttribute("data-lit");
-        return;
-      }
-      const fall = 1 - distance / 7;
-      const hue = mix(PALETTE[1], color, distance / 7);
-      zone.style.setProperty("--zone", rgb(hue, 0.25 + fall * 0.75));
-      zone.dataset.lit = "";
-    });
+      const fall = 1 - distance / (REACH + 1);
+      const hue = mix(PALETTE[1], PALETTE[0], distance / (REACH + 1));
+      zones[i].style.setProperty("--zone", rgb(hue, 0.25 + fall * 0.75));
+      zones[i].dataset.lit = "";
+    }
+    from = first;
+    to = last;
   };
 
-  const indexAt = (x) => {
-    const box = el.getBoundingClientRect();
-    return Math.max(0, Math.min(ZONES - 1, Math.floor(((x - box.left) / box.width) * ZONES)));
+  const clear = () => {
+    for (let i = from; i <= to; i += 1) off(zones[i]);
+    from = 0;
+    to = -1;
   };
 
-  el.addEventListener("pointermove", (event) => light(indexAt(event.clientX)));
-  el.addEventListener("pointerleave", () => {
-    zones.forEach((zone) => {
-      zone.style.removeProperty("--zone");
-      zone.removeAttribute("data-lit");
-    });
+  // The box is read when the pointer arrives and when the layout can have
+  // moved, never inside the move: reading it there forces a layout per event.
+  let box = null;
+  const measure = () => (box = el.getBoundingClientRect());
+  // One frame in flight, holding the last position the pointer reached: a
+  // burst of moves inside one frame paints once.
+  let x = null;
+  let frame = false;
+  const paint = () => {
+    frame = false;
+    if (x === null) return;
+    if (!box) measure();
+    light(Math.max(0, Math.min(ZONES - 1, Math.floor(((x - box.left) / box.width) * ZONES))));
+  };
+  el.addEventListener("pointerenter", measure);
+  el.addEventListener("pointermove", (event) => {
+    x = event.clientX;
+    if (frame) return;
+    frame = true;
+    requestAnimationFrame(paint);
   });
+  el.addEventListener("pointerleave", () => {
+    x = null;
+    box = null;
+    clear();
+  });
+  addEventListener("resize", () => (box = null), { passive: true });
+  addEventListener("scroll", () => (box = null), { passive: true });
 
   light(Math.floor(ZONES / 2));
 }
@@ -163,7 +196,7 @@ function filter(input) {
     let shown = 0;
     for (const row of rows) {
       const match = !needle || row.dataset.search.includes(needle);
-      row.hidden = !match;
+      if (row.hidden === match) row.hidden = !match;
       if (match) shown += 1;
     }
     if (count) {
@@ -233,21 +266,31 @@ function theme(button) {
 // One choice for the whole page: a reader who works in Python reads Python
 // everywhere, and does not click through twenty blocks.
 function tabs() {
-  const groups = [...document.querySelectorAll("[data-langs]")];
-  if (!groups.length) return;
+  const elements = [...document.querySelectorAll("[data-langs]")];
+  if (!elements.length) return;
+
+  // The buttons and the panes are found once. A language change then writes
+  // them and queries nothing.
+  const groups = elements.map((el) => ({
+    el,
+    buttons: [...el.querySelectorAll(".tabs button")],
+    panes: [...el.querySelectorAll(".pane")],
+    on: null,
+  }));
 
   const show = (language) => {
     for (const group of groups) {
-      const buttons = [...group.querySelectorAll(".tabs button")];
-      const wanted = buttons.some((button) => button.dataset.lang === language);
-      const chosen = wanted ? language : buttons[0].dataset.lang;
-      for (const button of buttons) {
+      const wanted = group.buttons.some((button) => button.dataset.lang === language);
+      const chosen = wanted ? language : group.buttons[0].dataset.lang;
+      if (chosen === group.on) continue;
+      group.on = chosen;
+      for (const button of group.buttons) {
         const on = button.dataset.lang === chosen;
         button.setAttribute("aria-selected", String(on));
         // One stop in the tab order per group: the arrow keys move inside it.
         button.tabIndex = on ? 0 : -1;
       }
-      for (const pane of group.querySelectorAll(".pane")) {
+      for (const pane of group.panes) {
         pane.hidden = pane.dataset.lang !== chosen;
       }
     }
@@ -261,14 +304,14 @@ function tabs() {
   };
 
   for (const group of groups) {
-    group.addEventListener("click", (event) => {
+    group.el.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-lang]");
       if (button) choose(button.dataset.lang);
     });
-    group.addEventListener("keydown", (event) => {
+    group.el.addEventListener("keydown", (event) => {
       const button = event.target.closest("button[data-lang]");
       if (!button) return;
-      const buttons = [...group.querySelectorAll(".tabs button")];
+      const { buttons } = group;
       const step = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
       let next = null;
       if (step) next = buttons[(buttons.indexOf(button) + step + buttons.length) % buttons.length];
@@ -378,13 +421,19 @@ function menu(button) {
 
 // --- Wire it up ------------------------------------------------------------
 
-document.querySelectorAll("[data-rope]").forEach(rope);
-document.querySelectorAll("[data-strip]").forEach(strip);
-document.querySelectorAll("[data-copy]").forEach(copy);
-document.querySelectorAll("[data-filter]").forEach(filter);
-document.querySelectorAll("[data-rows]").forEach(rowLink);
-document.querySelectorAll("[data-doc-select]").forEach(docSelect);
-document.querySelectorAll("[data-theme-toggle]").forEach(theme);
-document.querySelectorAll("[data-menu-toggle]").forEach(menu);
-document.querySelectorAll("[data-spy]").forEach(spy);
+const WIRING = [
+  ["[data-rope]", rope],
+  ["[data-strip]", strip],
+  ["[data-copy]", copy],
+  ["[data-filter]", filter],
+  ["[data-rows]", rowLink],
+  ["[data-doc-select]", docSelect],
+  ["[data-theme-toggle]", theme],
+  ["[data-menu-toggle]", menu],
+  ["[data-spy]", spy],
+];
+
+for (const [selector, wire] of WIRING) {
+  document.querySelectorAll(selector).forEach(wire);
+}
 tabs();
