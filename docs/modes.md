@@ -45,9 +45,10 @@ The user picks **one or several** modes per device, as an ordered list. Order is
 preference order: the first entry is the preferred mode.
 
 YAML, at `~/.config/govee-toolkit/config.yaml` — `$XDG_CONFIG_HOME` and
-`GOVEE_CONFIG` both override it, and `GOVEE_CONFIG` can live in `.env`. Devices are keyed by the MAC they report in a
-discovery reply, not by address: a DHCP lease renews and the device is at a
-different one, still the same device.
+`GOVEE_CONFIG` both override it, and `GOVEE_CONFIG` can live in `.env`.
+Devices are keyed by the MAC they report in a discovery reply, not by address:
+a DHCP lease renews and the device is at a different one, still the same
+device.
 
 ```yaml
 defaults:
@@ -147,9 +148,9 @@ A command never scans. A scan costs a window, and the send path must not pay it
 `Govee::ensure_known` is where an application pays that cost, once, before the
 first command. It scans only where a scan is needed, and only over the modes
 that device enables. The modes look at the same time, and the answer is the
-first enabled mode in the list, whichever one answers first: the list is the
-user's preference, and a faster mode does not take the place of it. The `govee`
-CLI calls it for every subcommand that names a device.
+first enabled mode in the list, and not the one that answers first: the list is
+the user's preference. The `govee` CLI calls it for every subcommand that names
+a device.
 
 ## Capability differences between modes
 
