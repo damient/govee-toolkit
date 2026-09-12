@@ -1,12 +1,12 @@
 ---
-title: When it does not work
+title: Troubleshooting
 slug: troubleshooting
 order: 6
 faq: true
 description: Nothing answers the scan, a command does nothing, a value is refused — what each one means.
 ---
 
-# When it does not work
+# Troubleshooting
 
 ## Nothing answers `govee scan`
 
