@@ -140,11 +140,17 @@ pub(crate) enum Command {
         /// The device identity.
         device: String,
         /// Zone indices, zero-based and comma-separated. Every zone when
-        /// absent. A subset needs a mode that paints by zone mask.
+        /// absent. A subset needs a mode that paints by zone mask, and takes
+        /// one color.
         #[arg(long, value_name = "LIST")]
         zones: Option<String>,
-        /// `#RRGGBB`.
-        color: String,
+        /// How many zones the frame states: `app`, `native`, or a count. A
+        /// count the unit renders as a smaller one is refused.
+        #[arg(long, default_value = "app", value_name = "RESOLUTION")]
+        resolution: String,
+        /// One `#RRGGBB` for every zone, or one per zone, comma-separated.
+        /// `-` reads that list from one line of stdin.
+        colors: String,
         /// Interpolate between zones, and wrap from the last back to the
         /// first. Refused where the device file can carry the setting
         /// nowhere.
@@ -193,9 +199,10 @@ pub(crate) enum Command {
     Stream {
         /// The device identity.
         device: String,
-        /// How many zones to carry: `app`, `native`, or a count.
-        #[arg(long, default_value = "app", value_name = "ZONES")]
-        zones: String,
+        /// How many zones every frame states: `app`, `native`, or a count. A
+        /// count the unit renders as a smaller one is refused.
+        #[arg(long, default_value = "app", value_name = "RESOLUTION")]
+        resolution: String,
         /// Frames per second. The measured rate for this unit when absent.
         #[arg(long, value_name = "HZ")]
         rate: Option<f64>,

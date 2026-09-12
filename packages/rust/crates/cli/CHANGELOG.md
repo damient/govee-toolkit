@@ -21,14 +21,21 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   check.
 - `describe` reports what a device file declares — the modes, the capabilities,
   the commands and their arguments — for a device identity or for a SKU typed
-  directly. It reads no hardware.
+  directly. Per mode, it reports how many zones one paint states and whether
+  that reaches every addressable LED, and for the unit, every count at which it
+  refines. It reads no hardware.
 - `status` asks the device for its state and reports the mode that answered.
   A field the reply leaves out reads `?` in the text form and `null` in JSON.
-- `segment` paints zones one color. `--zones` names the zones to paint and
-  leaves every other zone alone, which needs a mode whose file marks
-  `role: segment_color_masked`; without it every zone takes the color. Nothing
-  disarms the segment channel afterwards: a disarm ends the channel, and the
-  colors with it.
+- `segment` paints zones. One `#RRGGBB` fills every zone; a comma-separated
+  list states one zone each, which is how a mode that addresses every LED is
+  painted pixel by pixel. `-` reads that list from one line of stdin, so a
+  long list reaches the device from a file or a pipe. `--resolution` takes
+  `app`, `native` or a count, and says how many zones the frame states; the
+  list must be that long. A count the unit renders as a smaller one is refused,
+  and the message names the counts it refines at. `--zones` names the zones to
+  paint and leaves every other zone alone, which needs a mode whose file marks
+  `role: segment_color_masked` and takes one color. Nothing disarms the segment
+  channel afterwards: a disarm ends the channel, and the colors with it.
 - `colortemp` sets the white temperature, in kelvin. White and color are
   mutually exclusive states, so it ends the color the device showed. Where the
   mode carries the RGB rendering of the temperature in the same frame, the core
@@ -41,9 +48,10 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   identifiers belong to the mode, and `describe` reports the range each mode
   takes. Nothing stops the effect: `on`, `off`, `color` or `colortemp` ends it.
 - `stream` feeds the segment channel one frame per line of stdin: one
-  `#RRGGBB`, which fills every zone, or one per zone. `--zones` takes `app`,
-  `native` or a count, and `--rate` overrides the rate measured for the unit.
-  The run reports the frames sent and the frames a later write replaced.
+  `#RRGGBB`, which fills every zone, or one per zone. `--resolution` takes
+  `app`, `native` or a count, the same word `segment` uses, and `--rate`
+  overrides the rate measured for the unit. The run reports the frames sent and
+  the frames a later write replaced.
 - `scan` reports every device that answered, including one the configuration
   does not enable the scanned mode for. Such a device is printed as answering
   over that mode rather than with its modes, and the JSON form carries

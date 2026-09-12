@@ -1,6 +1,7 @@
 //! `describe`: what a device file declares. Reads no hardware.
 
 use govee_toolkit::codec::{ArgSpec, Command, Device, Mode, ModeSupport};
+use govee_toolkit::stream::reach;
 use govee_toolkit::{DeviceId, Govee};
 use serde_json::{Value, json};
 
@@ -40,6 +41,7 @@ fn as_json(device: &Device) -> Value {
         "segments": {
             "count": device.capabilities.segment_count(),
             "native_pixels": device.capabilities.native_pixels(),
+            "refines_at": device.measurements.resolution_changepoints,
         },
         "modes": MODES
             .iter()
@@ -63,6 +65,10 @@ fn mode_json(device: &Device, mode: Mode) -> Value {
     json!({
         "support": support.support.to_string(),
         "capabilities": support.capabilities.resolve(&device.capabilities),
+        "segments": reach(device, mode).map(|reach| json!({
+            "zones": reach.zones,
+            "native": reach.native,
+        })),
         "unreachable": support
             .unreachable
             .iter()
@@ -135,11 +141,30 @@ fn as_text(device: &Device) -> String {
         lines.push(format!(
             "segments: {count} zones, {pixels} addressable LEDs"
         ));
+        let points = &device.measurements.resolution_changepoints;
+        if !points.is_empty() {
+            lines.push(format!(
+                "refines at: {}",
+                points
+                    .iter()
+                    .map(u32::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
     }
 
     for mode in MODES {
         let support = device.modes.get(mode);
         lines.push(format!("{mode}: {}", support.support));
+        if let Some(reach) = reach(device, mode) {
+            let native = if reach.native {
+                "reaches every addressable LED"
+            } else {
+                "reaches no LED of its own"
+            };
+            lines.push(format!("  paints up to {} zones, {native}", reach.zones));
+        }
         for (name, command) in device.commands.get(mode) {
             lines.push(format!("  {name}{}", role_of(command)));
             for (arg, spec) in &command.args {

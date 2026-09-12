@@ -6,7 +6,7 @@
 
 use std::time::Duration;
 
-use govee_toolkit::stream::{Rate, StreamOptions, Zones};
+use govee_toolkit::stream::{Rate, StreamOptions};
 use govee_toolkit::{DeviceId, Govee};
 use serde_json::json;
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -23,12 +23,12 @@ pub(super) async fn run(
     govee: &Govee,
     writer: &Writer,
     id: &DeviceId,
-    zones: &str,
+    resolution: &str,
     rate: Option<f64>,
     gradient: bool,
 ) -> Result<(), Failure> {
     let options = StreamOptions {
-        zones: count(zones)?,
+        resolution: args::resolution(resolution)?,
         rate: rate.map_or(Rate::Measured, Rate::Fixed),
         gradient,
     };
@@ -42,9 +42,7 @@ pub(super) async fn run(
             .await
             .map_err(|e| Failure::internal(e.to_string()))?;
         let Some(line) = line else { break };
-        let colors = args::list(&line)
-            .map(args::rgb)
-            .collect::<Result<Vec<_>, _>>()?;
+        let colors = args::colors(&line)?;
         match colors.as_slice() {
             [] => continue,
             [color] => stream.fill(*color)?,
@@ -76,30 +74,4 @@ pub(super) async fn run(
         &format!("{id}  {carried} zones  {sent} frames sent  {superseded} superseded"),
     );
     Ok(())
-}
-
-/// Read `app`, `native`, or a count.
-fn count(text: &str) -> Result<Zones, Failure> {
-    match text {
-        "app" => Ok(Zones::App),
-        "native" => Ok(Zones::Native),
-        other => other.parse::<u16>().map(Zones::Exact).map_err(|_| {
-            Failure::usage(format!(
-                "`{other}` is not a zone count; write `app`, `native`, or a number"
-            ))
-        }),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_zone_count_reads_by_name_or_by_number() {
-        assert_eq!(count("app").ok(), Some(Zones::App));
-        assert_eq!(count("native").ok(), Some(Zones::Native));
-        assert_eq!(count("30").ok(), Some(Zones::Exact(30)));
-        assert!(count("many").is_err());
-    }
 }

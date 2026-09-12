@@ -66,10 +66,11 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
         Command::Segment {
             device,
             zones,
-            color,
+            resolution,
+            colors,
             gradient,
         } => {
-            let painting = segment(zones.as_deref(), color, *gradient)?;
+            let painting = segment(zones.as_deref(), resolution, colors, *gradient).await?;
             verb(govee, writer, device, painting).await
         }
         Command::Music {
@@ -85,7 +86,7 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
         Command::Watch { rescan_ms } => watch::run(govee, writer, *rescan_ms, restrict).await,
         Command::Stream {
             device,
-            zones,
+            resolution,
             rate,
             gradient,
         } => {
@@ -93,7 +94,7 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
                 govee,
                 writer,
                 &DeviceId::new(device),
-                zones,
+                resolution,
                 *rate,
                 *gradient,
             )
@@ -125,12 +126,18 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
     }
 }
 
-/// What a person typed for one painting, with the zones and the color read
-/// under their types.
-fn segment(zones: Option<&str>, color: &str, gradient: bool) -> Result<verbs::Verb, Failure> {
+/// What a person typed for one painting, with the zones, the colors and the
+/// resolution read under their types.
+async fn segment(
+    zones: Option<&str>,
+    resolution: &str,
+    colors: &str,
+    gradient: bool,
+) -> Result<verbs::Verb, Failure> {
     Ok(verbs::Verb::Segment {
         zones: zones.map(list).transpose()?,
-        rgb: args::rgb(color)?,
+        colors: args::colors_or_stdin(colors).await?,
+        resolution: args::resolution(resolution)?,
         gradient,
     })
 }
