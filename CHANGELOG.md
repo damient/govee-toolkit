@@ -9,8 +9,8 @@ shipped.
 
 | Package | Changelog | Version |
 | ------- | --------- | ------- |
-| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.5.0 |
-| `govee-toolkit-cli` (Rust) | [`packages/rust/crates/cli/CHANGELOG.md`](packages/rust/crates/cli/CHANGELOG.md) | unreleased |
+| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.6.0 |
+| `govee-toolkit-cli` (Rust) | [`packages/rust/crates/cli/CHANGELOG.md`](packages/rust/crates/cli/CHANGELOG.md) | 0.1.0 |
 | `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 0.0.0 |
 | `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 0.0.0 |
 
@@ -25,59 +25,40 @@ at.
 
 #### Added
 
-- `measurements.arm_settle_ms` — how long the firmware needs after the
-  `role: segment_enable` frame, before it renders a paint. The channel accepts
-  the paint either way and answers nothing, so a frame sent too early is lost
-  without an error. A file that records none gets a conservative default, which
-  is never zero. `devices/schema.yaml` documents how to measure it.
+- `measurements.arm_settle_ms` — the delay the firmware needs after the arming
+  frame, before a paint renders. See `devices/schema.yaml`.
+- A file that records no `arm_settle_ms` gets a conservative default, which is
+  never zero: a paint sent too early is lost without an error.
 - `H61A0` declares a `gradient` entry under `cloud`, marked
-  `role: segment_gradient`, over the `devices.capabilities.toggle` capability
-  and the `gradientToggle` instance the account list declares. The control
-  endpoint writes it: both values were sent and both took effect on the unit,
-  which is what the account list declaring the instance does not establish. The
-  entry carries the setting alone and changes no color.
-- `H61A0` records what `gradient` does on the unit over `lan`: the
-  interpolation wraps from the last zone back to the first, so one lit zone at
-  the controller also lights the free end. See `verified:`.
-- `H61A0` records what the `segment_gradient` role did over `ble` and `cloud`,
-  and that a `ble` command ends the `lan` raw segment channel: the unit then
-  shows the color its stored setting holds. Whether the connection or the frame
-  ends the channel was not told apart. See `verified:` and
-  `docs/protocol/state.md` 6.
-- `H61A0` records `arm_settle_ms: 50`, measured on the unit over `lan`: 0 ms
-  renders nothing 4 times out of 4, 20 ms renders once out of twice, and 50 ms
-  and 100 ms each render once out of once. The values between 20 and 50 ms were
-  not bisected. See `verified:`.
+  `role: segment_gradient`. It carries the setting alone and changes no color.
+- `H61A0` records what `gradient` does over `lan`: the interpolation wraps from
+  the last zone back to the first. See `verified:`.
+- `H61A0` records what the `segment_gradient` role did over `ble` and `cloud`.
+  See `verified:`.
+- `H61A0` records that a `ble` command ends the `lan` raw segment channel, and
+  the unit then shows its stored color. See `docs/protocol/state.md` 6.
+- `H61A0` records `arm_settle_ms: 50`, measured over `lan`: 0 ms renders nothing
+  4 times out of 4, and 50 ms renders. See `verified:`.
 - The `music` command role, and the argument roles `effect`, `sensitivity`,
-  `soft` and `color_mode` beside it. A `music` entry declares the effect
-  argument, and the SDK fills the other four where the entry declares them.
-  `cargo test` refuses an entry that declares part of the imposed color:
+  `soft` and `color_mode` beside it. See `devices/schema.yaml`.
+- `cargo test` refuses a `music` entry that declares part of the imposed color:
   `color_mode`, `red`, `green` and `blue` come together or not at all.
-  `devices/schema.yaml` documents them.
-- `H6114` and `H61A0` claim `role: music` on their `music` entry under `ble`,
-  and `H61A0` under `cloud` as well, so `music()` reaches the entry without a
-  command name. The effect identifiers belong to the mode: the `cloud` enum
-  runs 1 to 11 and the `ble` frame takes its own sub-mode codes, and nothing
-  matches one to the other. The `lan` entries carry no music command.
+- `H6114` and `H61A0` claim `role: music` under `ble`, and `H61A0` under
+  `cloud`, so `music()` reaches the entry without a command name.
+- The music effect identifiers belong to the mode: the `cloud` enum runs 1 to
+  11, the `ble` frame takes its own codes, and neither matches the other.
 - The `color_temp` command role, and the argument roles `color_temp`,
-  `white_red`, `white_green` and `white_blue` beside it. A `color_temp` entry
-  declares the kelvin argument, and the three white components where the frame
-  carries the RGB rendering of the temperature. `cargo test` refuses an entry
-  that declares one or two of the three. Where the frame names the zones it
-  applies to, the entry declares an argument marked `role: zones` as well, and
-  it must bound that mask: the `count:` on the zone argument, or the width of
-  the mask field. An SDK fills the mask with every zone it can name, so a file
-  that bounds it by nothing is an error. `devices/schema.yaml` documents them.
-- `H61A0` records what the `color_temp` role answered on the unit: the three
-  modes were exercised over the whole declared range, and every step renders.
-  Over `ble` the mask has to name all 15 zones the frame addresses; the 10 the
-  app exposes leave the last third of the rope unpainted. See `verified:`.
-- `H61A0` claims `role: color_temp` on its `colortemp` entry under `lan`,
-  `ble` and `cloud`, so `color_temp()` reaches it without a command name. The
-  `ble` entry marks its white components and its zone mask: that firmware
-  renders no temperature, and the host sends the rendering in the same frame.
-  The `lan` and `cloud` entries carry the kelvin value alone, which their
-  firmware renders.
+  `white_red`, `white_green` and `white_blue`. See `devices/schema.yaml`.
+- A `color_temp` entry that names the zones it applies to must bound that mask:
+  the `count:` on the zone argument, or the width of the mask field.
+- `H61A0` records what `color_temp` answered on the unit: over the three modes,
+  every step of the declared range renders. See `verified:`.
+- Over `ble`, the `H61A0` mask has to name all 15 zones the frame addresses; the
+  10 the app exposes leave the last third of the rope unpainted.
+- `H61A0` claims `role: color_temp` on its `colortemp` entry under `lan`, `ble`
+  and `cloud`, so `color_temp()` reaches it without a command name.
+- The `H61A0` `ble` entry marks its white components and its zone mask: that
+  firmware renders no temperature, so the host sends the rendering.
 
 ### 2026-09-11
 
