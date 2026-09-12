@@ -6,7 +6,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "catalog": "cargo run -p xtask -- catalog",
+    "catalog": "cargo run --manifest-path ../packages/rust/Cargo.toml -p xtask -- catalog",
     "build": "node build.mjs",
     "dev": "node build.mjs --watch --serve",
     "serve": "node build.mjs --serve"
