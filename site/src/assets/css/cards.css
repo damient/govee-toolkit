@@ -31,15 +31,12 @@
    two columns at every width. */
 @media (min-width: 1000px) { .cards:not(.two) { grid-template-columns: repeat(4, 1fr); } }
 .card {
+  --accent: var(--accent-ember);
   position: relative;
   display: block; text-decoration: none; padding: 22px 20px 22px 23px;
   background: var(--panel); border: 1px solid var(--line); border-left: 0;
   border-radius: 0;
 }
-.card:nth-child(1) { --accent: var(--accent-ember); }
-.card:nth-child(2) { --accent: var(--accent-amber); }
-.card:nth-child(3) { --accent: var(--accent-cyan); }
-.card:nth-child(4) { --accent: var(--accent-violet); }
 .card:nth-child(2)::before { animation-delay: -1.1s; }
 .card:nth-child(3)::before { animation-delay: -2.2s; }
 .card:nth-child(4)::before { animation-delay: -3.3s; }
