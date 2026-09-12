@@ -103,10 +103,13 @@ def card():
     ]
 
     out += draw(mono(500), EYEBROW, 30, LEFT, EYEBROW_BASELINE, "#9694a0", track=0.1333)
+    # One instance of the variable face for every headline line: instancing it
+    # is the most expensive step of this script.
+    headline = sans(600)
     for i, line in enumerate(HEADLINE):
         color = "#eae8e5" if i == 0 else ACCENTS[0]
         y = HEADLINE_BASELINE + i * HEADLINE_STEP
-        out += draw(sans(600), line, 74, LEFT, y, color, track=-0.0188)
+        out += draw(headline, line, 74, LEFT, y, color, track=-0.0188)
 
     step = 2 * DOT_RADIUS + DOT_GAP
     first = WIDTH / 2 - step * (len(ACCENTS) - 1) / 2
