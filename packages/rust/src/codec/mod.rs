@@ -39,6 +39,7 @@ pub mod frame;
 pub mod measurements;
 pub mod reply;
 pub mod validate;
+pub mod white;
 
 use std::collections::BTreeMap;
 

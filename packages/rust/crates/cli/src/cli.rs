@@ -2,9 +2,9 @@
 //!
 //! Two kinds of subcommand live here. `send` names a device file entry and
 //! carries no command name in this crate. The verbs — `on`, `brightness`,
-//! `segment` — name one, and reach the device file through a `role:` where the
-//! schema declares one, so that Node and Python get the same verb from the
-//! core rather than a second implementation.
+//! `colortemp`, `segment` — name one, and reach the device file through a
+//! `role:` where the schema declares one, so that Node and Python get the same
+//! verb from the core rather than a second implementation.
 
 use std::path::PathBuf;
 
@@ -122,6 +122,17 @@ pub(crate) enum Command {
         device: String,
         /// `#RRGGBB`.
         color: String,
+    },
+
+    /// Set the white temperature, in kelvin.
+    ///
+    /// White and color are mutually exclusive: this ends the color the device
+    /// showed.
+    Colortemp {
+        /// The device identity.
+        device: String,
+        /// The temperature in kelvin. Out of range is an error, never a clamp.
+        kelvin: i64,
     },
 
     /// Paint addressable zones.

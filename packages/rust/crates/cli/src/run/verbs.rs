@@ -1,4 +1,5 @@
-//! The verbs a person types: `on`, `off`, `brightness`, `color`, `segment`.
+//! The verbs a person types: `on`, `off`, `brightness`, `color`, `colortemp`,
+//! `segment`.
 //!
 //! Each one calls the matching method of the crate, which reads the entry the
 //! device file marks with that `role:`. No command name reaches this file.
@@ -16,6 +17,8 @@ pub(super) enum Verb {
     Brightness(i64),
     /// Set one color over the whole device.
     Color([u8; 3]),
+    /// Set the white temperature, in kelvin.
+    ColorTemp(i64),
     /// Paint one color over zones. `None` paints every zone.
     Segment {
         /// The zones to paint, zero-based.
@@ -39,6 +42,7 @@ pub(super) async fn run(
         Verb::Power(on) => handle.power(on).await,
         Verb::Brightness(level) => handle.brightness(level).await,
         Verb::Color(rgb) => handle.color(rgb).await,
+        Verb::ColorTemp(kelvin) => handle.color_temp(kelvin).await,
         Verb::Segment {
             zones,
             rgb,

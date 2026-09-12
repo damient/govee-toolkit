@@ -69,6 +69,32 @@ fn a_role_command_missing_its_argument_leaves_nothing_to_fill() {
 }
 
 #[test]
+fn a_color_temp_command_may_carry_the_kelvin_value_alone() {
+    let catalog = parse(
+        "    white:\n      cmd: colorwc\n      documented: true\n\
+         \n      role: color_temp\n      args:\n\
+         \n        kelvin: { type: int, range: [2000, 9000], role: color_temp }\n",
+    );
+    let device = catalog.device("HTEST").expect("the SKU resolves");
+    assert!(super::device(device).is_empty());
+}
+
+#[test]
+fn a_color_temp_command_marks_all_three_white_components_or_none() {
+    let catalog = parse(
+        "    white:\n      cmd: colorwc\n      documented: true\n\
+         \n      role: color_temp\n      args:\n\
+         \n        kelvin: { type: int, range: [2000, 9000], role: color_temp }\n\
+         \n        wr: { type: int, range: [0, 255], role: white_red }\n",
+    );
+    let device = catalog.device("HTEST").expect("the SKU resolves");
+    let problems = super::device(device);
+    assert_eq!(problems.len(), 2, "{problems:?}");
+    assert!(problems[0].message.contains("role: white_green"));
+    assert!(problems[1].message.contains("role: white_blue"));
+}
+
+#[test]
 fn two_arguments_claiming_one_role_leave_nothing_to_pick() {
     let catalog = parse(
         "    paint:\n      cmd: razer\n      documented: true\n\

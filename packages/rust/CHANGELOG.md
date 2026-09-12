@@ -22,6 +22,26 @@ releases apart and keeps
   `ArgRole::Red`, `ArgRole::Green` and `ArgRole::Blue`. `cargo test` refuses a
   file where two entries of one mode claim the same role, or where a claiming
   entry marks no argument for it.
+- `DeviceHandle::color_temp` — set the white temperature, in kelvin, through
+  the new `color_temp` role. White and color are mutually exclusive states, so
+  the call ends the color the device showed. One call sets both halves of the
+  frame: where the file marks the white components, the SDK renders the
+  temperature and fills them, because that firmware renders nothing itself.
+  Where it marks a zone mask, the SDK fills it with every zone that mask can
+  name — the `count:` on the zone argument, or the width of the mask field.
+  Not `capabilities.segments.count`: that is what the vendor app exposes, and
+  a frame reaching further would leave the zones past it holding the color
+  they had.
+- `codec::white::rgb` — the RGB rendering of a temperature. An approximation of
+  the Planckian locus, sampled every 500 K and interpolated between samples. It
+  is not the vendor's rendering: nobody captured what the Govee app sends for a
+  given temperature. To send another one, name the entry through
+  `DeviceHandle::send` and pass the components.
+- `Role::ColorTemp`, and the argument roles `ArgRole::WhiteRed`,
+  `ArgRole::WhiteGreen` and `ArgRole::WhiteBlue`. `ArgRole::ColorTemp` now
+  names the kelvin value a command sets as well as the field a reply reports.
+  `cargo test` refuses a file whose `color_temp` entry declares one or two of
+  the three white components.
 - `DeviceHandle::segment` — paint zones one color. A zone list paints those
   zones and leaves the rest alone, which needs `role: segment_color_masked`:
   a `role: segment_color` frame states the color of every zone, and this crate

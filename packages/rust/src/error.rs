@@ -204,7 +204,7 @@ impl Error {
             Self::MissingCredential { .. } => "missing_credential",
             Self::NoRoleCommand { role, .. } => match role {
                 Role::Status => "no_status_command",
-                Role::Power | Role::Brightness | Role::Color => "no_verb_command",
+                Role::Power | Role::Brightness | Role::Color | Role::ColorTemp => "no_verb_command",
                 Role::SegmentEnable
                 | Role::SegmentColor
                 | Role::SegmentColorMasked

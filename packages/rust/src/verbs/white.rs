@@ -1,0 +1,87 @@
+//! Set the white temperature, and the white it renders.
+//!
+//! One call sets both, because one frame carries both. A mode whose firmware
+//! renders the temperature declares the kelvin argument alone, and the file
+//! says so: the SDK fills what the entry marks, and nothing else.
+
+use super::{arg_for, command_for};
+use crate::codec::{ArgRole, Args, Device, Mode, Role, white};
+use crate::device::DeviceHandle;
+use crate::error::{Error, Result};
+use crate::event::Served;
+use crate::stream::resolve::mask_limit;
+
+impl DeviceHandle<'_> {
+    /// Set the white temperature, in kelvin.
+    ///
+    /// White and color are mutually exclusive states: this ends the color the
+    /// device showed. The accepted range is the one the argument's `range:`
+    /// gives. A value outside it is an error, never a clamp.
+    ///
+    /// Where the device file marks the three white components, the SDK renders
+    /// the temperature and fills them, because that firmware renders nothing
+    /// itself (`docs/protocol/ble.md` 2.3). [`crate::codec::white`] documents
+    /// the curve. To send another rendering, name the entry through
+    /// [`DeviceHandle::send`] and pass the components.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::power`], for the command marked
+    /// `role: color_temp` and its argument marked `role: color_temp`, plus
+    /// [`Error::ZoneCountUnknown`] where the entry paints by zone mask and
+    /// nothing records how many zones this unit has.
+    pub async fn color_temp(&self, kelvin: i64) -> Result<Served> {
+        let mode = self.govee.choose(self.id())?;
+        let sku = self.govee.sku(self.id())?;
+        let device = self.govee.catalog().device(&sku)?;
+        let command = command_for(&sku, device, mode, Role::ColorTemp)?.to_owned();
+        let marked = |arg_role: ArgRole| {
+            device
+                .commands
+                .get(mode)
+                .get(&command)
+                .and_then(|spec| spec.arg_for(arg_role))
+        };
+
+        let kelvin_arg = arg_for(&sku, device, mode, &command, ArgRole::ColorTemp)?;
+        let mut args = Args::new().int(kelvin_arg, kelvin);
+
+        let [red, green, blue] = white::rgb(kelvin);
+        for (arg_role, value) in [
+            (ArgRole::WhiteRed, red),
+            (ArgRole::WhiteGreen, green),
+            (ArgRole::WhiteBlue, blue),
+        ] {
+            if let Some(name) = marked(arg_role) {
+                args = args.int(name, i64::from(value));
+            }
+        }
+
+        // An entry that paints by zone mask names the zones it applies to, and
+        // a temperature applies to the whole device.
+        if let Some(name) = marked(ArgRole::Zones) {
+            args = args.zones(name, every_zone(device, mode, &command)?);
+        }
+
+        self.send_on(mode, &command, &args).await
+    }
+}
+
+/// Every zone the mask of `command` can name, zero-based.
+///
+/// The mask's own bound, not `capabilities.segments.count`: the count is what
+/// the vendor app exposes, and a mask that reaches further would leave the
+/// zones past it holding the color they had.
+fn every_zone(device: &Device, mode: Mode, command: &str) -> Result<Vec<u16>> {
+    let count = mask_limit(device, mode, command)
+        .or_else(|| {
+            device
+                .capabilities
+                .segment_count()
+                .and_then(|count| usize::try_from(count).ok())
+        })
+        .ok_or_else(|| Error::ZoneCountUnknown {
+            sku: device.sku.clone(),
+        })?;
+    Ok((0..u16::try_from(count).unwrap_or(u16::MAX)).collect())
+}

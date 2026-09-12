@@ -78,7 +78,7 @@ test on yours moves the project forward.
 | Click buttons instead of writing code | The web page and the desktop app are on the [roadmap](docs/roadmap.md) | 🔜 |
 
 Whichever you pick, the commands you can send — `power`, `brightness`, `color`,
-the segment channel — come from your device's file in [`devices/`](devices/),
+the white temperature, the segment channel — come from your device's file in [`devices/`](devices/),
 not from names baked into an SDK. That is why adding support for a model is
 editing one file rather than writing code in three languages.
 

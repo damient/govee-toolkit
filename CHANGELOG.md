@@ -21,6 +21,26 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-12
+
+#### Added
+
+- The `color_temp` command role, and the argument roles `color_temp`,
+  `white_red`, `white_green` and `white_blue` beside it. A `color_temp` entry
+  declares the kelvin argument, and the three white components where the frame
+  carries the RGB rendering of the temperature. `cargo test` refuses an entry
+  that declares one or two of the three. `devices/schema.yaml` documents them.
+- `H61A0` records what the `color_temp` role answered on the unit: the three
+  modes were exercised over the whole declared range, and every step renders.
+  Over `ble` the mask has to name all 15 zones the frame addresses; the 10 the
+  app exposes leave the last third of the rope unpainted. See `verified:`.
+- `H61A0` claims `role: color_temp` on its `colortemp` entry under `lan`,
+  `ble` and `cloud`, so `color_temp()` reaches it without a command name. The
+  `ble` entry marks its white components and its zone mask: that firmware
+  renders no temperature, and the host sends the rendering in the same frame.
+  The `lan` and `cloud` entries carry the kelvin value alone, which their
+  firmware renders.
+
 ### 2026-09-11
 
 #### Added

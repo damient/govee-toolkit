@@ -23,6 +23,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **Per-device mode selection** — one mode for strict behavior, several for switching, see [`modes.md`](modes.md) |
 | ✅ | **Per-device, per-mode circuit breaker** — `OK` / `DEGRADED` / `DOWN`. The breaker decides from state it already holds, not from a fresh timeout per call |
 | ✅ | **Explicit failures** — a command a mode cannot serve fails and says so. The SDK never approximates one in silence |
+| ✅ | **White temperature** (`color_temp()`) — one call sets the kelvin value and, where the frame carries it, the RGB rendering the firmware does not compute |
 | ✅ | **Wi-Fi provisioning** (`provision_wifi()`) — puts a device out of the box on a network over `ble`, which is what makes `lan` reachable |
 
 ## Modes

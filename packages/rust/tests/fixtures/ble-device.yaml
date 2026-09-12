@@ -6,7 +6,9 @@ sku: "HTEST4"
 family: "test"
 name: "Frame-only device on the ble wire"
 
-capabilities: {}
+capabilities:
+  segments:
+    count: 4
 
 modes:
   ble:
@@ -20,6 +22,18 @@ commands:
       frame: "33 01 ${on} <pad:20> <xor>"
       args:
         on: { type: int, range: [0, 1] }
+      notes: "See docs/protocol/ble.md."
+
+    colortemp:
+      documented: false
+      role: color_temp
+      frame: "33 05 15 01 00 00 00 ${kelvin:16} ${white_r} ${white_g} ${white_b} ${zones:mask8} <pad:20> <xor>"
+      args:
+        kelvin: { type: int, range: [2000, 9000], role: color_temp }
+        white_r: { type: int, range: [0, 255], role: white_red }
+        white_g: { type: int, range: [0, 255], role: white_green }
+        white_b: { type: int, range: [0, 255], role: white_blue }
+        zones: { type: zones, count: 6, role: zones }
       notes: "See docs/protocol/ble.md."
 
     state:
