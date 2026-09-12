@@ -13,6 +13,13 @@ releases apart and keeps
   discovers a device of that family. `GVH` and `GVR` join `NAME_PREFIXES`.
 - `Support::Capped` — a mode that reaches every capability the transport
   carries, where the transport carries less than the hardware has.
+- `<sum>` in a `frame:` layout — the low byte of the sum of the bytes before
+  it. A layout carries `<sum>` or `<xor>`, never both.
+- `ble::HOST_COLOR_PROTYPE` — the `0xA5` frames of
+  [`docs/protocol/ble.md`](../../docs/protocol/ble.md) 8. The `ble` wire
+  carries them at their own length, shorter than `FRAME_LEN`.
+- `measurements.ble.render_hold_ms` — how long a firmware holds a colour from
+  the host before it returns to its stored state.
 
 ### Changed
 

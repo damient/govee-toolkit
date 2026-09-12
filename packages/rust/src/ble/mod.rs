@@ -46,8 +46,15 @@ pub const WRITE_CHARACTERISTIC: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_080
 /// [`SERVICE`].
 pub const NOTIFY_CHARACTERISTIC: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_2b10);
 
-/// The length of every frame on this wire, in bytes, checksum included.
+/// The length of a frame on this wire, in bytes, checksum included.
 ///
 /// This wire has no MTU negotiation. The codec builds a frame from the device
 /// file's `frame:` layout, which ends `<pad:20> <xor>` for that reason.
+/// [`HOST_COLOR_PROTYPE`] is the one exception.
 pub const FRAME_LEN: usize = 20;
+
+/// The first byte of a host colour frame, which is shorter than
+/// [`FRAME_LEN`] and carries a sum where the others carry an XOR.
+///
+/// See `docs/protocol/ble.md` 8.
+pub const HOST_COLOR_PROTYPE: u8 = 0xA5;
