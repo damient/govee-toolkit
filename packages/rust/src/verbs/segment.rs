@@ -164,6 +164,11 @@ impl DeviceHandle<'_> {
     }
 
     /// Arm the segment channel, where the mode has an entry that arms it.
+    ///
+    /// Waits for the firmware to switch channel before it returns. A paint
+    /// that follows the arming frame at once is dropped in silence, so the
+    /// wait is what makes the first paint render — see
+    /// `docs/protocol/lan.md` 2.3.
     async fn arm(&self, mode: Mode, sku: &str, device: &Device) -> Result<()> {
         let Some(command) = device.command_for(mode, Role::SegmentEnable) else {
             return Ok(());
@@ -172,6 +177,7 @@ impl DeviceHandle<'_> {
         let arg = arg_for(sku, device, mode, &command, ArgRole::Enable)?.to_owned();
         self.send_on(mode, &command, &Args::new().int(arg, 1))
             .await?;
+        tokio::time::sleep(device.measurements.arm_settle()).await;
         Ok(())
     }
 }

@@ -25,6 +25,18 @@ at.
 
 #### Added
 
+- `measurements.arm_settle_ms` — how long the firmware needs after the
+  `role: segment_enable` frame, before it renders a paint. The channel accepts
+  the paint either way and answers nothing, so a frame sent too early is lost
+  without an error. A file that records none gets a conservative default, which
+  is never zero. `devices/schema.yaml` documents how to measure it.
+- `H61A0` records what `gradient` does on the unit over `lan`: the
+  interpolation wraps from the last zone back to the first, so one lit zone at
+  the controller also lights the free end. See `verified:`.
+- `H61A0` records `arm_settle_ms: 50`, measured on the unit over `lan`: 0 ms
+  renders nothing 4 times out of 4, 20 ms renders once out of twice, and 50 ms
+  and 100 ms each render once out of once. The values between 20 and 50 ms were
+  not bisected. See `verified:`.
 - The `music` command role, and the argument roles `effect`, `sensitivity`,
   `soft` and `color_mode` beside it. A `music` entry declares the effect
   argument, and the SDK fills the other four where the entry declares them.

@@ -490,6 +490,14 @@ measurements:
     burst_recovery_s: 20            # approximate, after one burst
     addressable_zones: 15           # by mask, against the 42 ICs above
 
+  # The raw segment channel does not render a paint that follows its arming
+  # frame at once. Measured on this unit, with a `colorwc` write before each
+  # arming frame: 0 ms renders nothing 4 times out of 4, 5 ms nothing once out
+  # of once, 20 ms renders once out of twice, 50 ms and 100 ms render once out
+  # of once each. The value between 20 and 50 ms was NOT bisected, and 50 is
+  # the lowest value that rendered every time. See ../docs/protocol/lan.md 2.3.
+  arm_settle_ms: 50
+
   frame_rate:
     # Measured on the razer segment channel.
     lan:
@@ -516,7 +524,11 @@ verified:
     The zone mask is read by the firmware and not ignored: painting zones 0-2
     over a rope already painted left the rest alone. `gradient` was told apart
     from a fade over time the same way — the boundary between two differently
-    painted zones is what it changes. Music was exercised with sound in the
+    painted zones is what it changes. The wrap was established over lan on this
+    unit: one zone red at the controller and the nine others black leaves the
+    free end dark at `gradient` 0, and lights it red at `gradient` 1. Five
+    zones red and five blue, over the same two positions, render a hard
+    boundary and a blend. Music was exercised with sound in the
     room, one field at a time, and a white flash of the whole rope separated
     each rendering from the next so that the boundary was visible. `effect` 0 to
     7 each render one over this frame, and 8 to 15, 50 and 255 render nothing
@@ -609,6 +621,15 @@ verified:
     15 bits this file declares paint the whole rope. Painting every zone one
     color over ble was exercised the same way, at red, blue and green: all 15
     zones take the color.
+    `arm_settle_ms` was measured on this unit over lan, through the CLI. Each
+    trial disarmed the channel, wrote a color over `colorwc`, waited 3 s, sent
+    the arming frame, waited n ms, then painted five zones red and five blue.
+    The rope was read by eye: it holds the color the `colorwc` write left when
+    the paint is dropped. 0 ms rendered nothing 4 times out of 4, 5 ms nothing
+    once out of once, 20 ms rendered once out of twice, and 50 ms and 100 ms
+    each rendered once out of once. The values between 20 and 50 ms were NOT
+    bisected. The bytes were ruled out first: the frames the SDK sends were
+    compared against a hand-built pair that renders, and the two are identical.
     `write_drain_ms` was measured on this unit over raw GATT: a link dropped
     10 ms after a write loses the frame, and one dropped 25 ms after it
     carries it, both twice out of twice. The file records 50, which one close

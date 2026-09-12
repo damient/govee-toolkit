@@ -11,6 +11,11 @@ releases apart and keeps
 
 ### Added
 
+- `Measurements::arm_settle_ms` and `Measurements::arm_settle` — how long the
+  firmware needs after the arming frame of the segment channel, in
+  milliseconds. `arm_settle` answers what the device file records, or a
+  conservative default that is never zero, because a paint sent too early is
+  dropped in silence.
 - `DeviceHandle::power`, `DeviceHandle::brightness` and `DeviceHandle::color` —
   the commands a person names, reached through the new `power`, `brightness`
   and `color` roles. Each reads the entry the device file marks with that role
@@ -115,6 +120,13 @@ releases apart and keeps
   does not carry, so a caller reads it before it sends. It stays a problem and
   not a startup error: the mode is unavailable, and a command over it fails
   with `Error::MissingCredential`.
+- `DeviceHandle::segment` and `DeviceHandle::open_stream` wait for the segment
+  channel to arm before the first paint. The firmware renders nothing when a
+  paint follows the arming frame at once, and the channel answers nothing
+  either way, so the paint was lost and the call still reported the mode that
+  served it. The wait is `measurements.arm_settle_ms` of the device file, or a
+  conservative default where the file records none. A stream pays it once, at
+  the open, and not per frame.
 
 ## [0.5.0] — 2026-09-10
 

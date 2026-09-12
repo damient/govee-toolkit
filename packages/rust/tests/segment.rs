@@ -80,6 +80,25 @@ async fn one_color_fills_every_zone_the_resolution_names() {
     );
 }
 
+/// `measurements.arm_settle_ms` of `devices/H61A0.yaml`.
+///
+/// The firmware renders nothing when the paint follows the arming frame at
+/// once, and answers nothing either way, so this wait is what makes the first
+/// paint visible. See `docs/protocol/lan.md` 2.3.
+#[tokio::test]
+async fn the_first_paint_waits_for_the_channel_to_arm() {
+    let rig = rig().await;
+    let start = std::time::Instant::now();
+
+    rig.govee
+        .device(&id())
+        .segment(&paint(&[[255, 0, 0]], Resolution::Exact(2)))
+        .await
+        .expect("the paint goes out");
+
+    assert!(start.elapsed() >= std::time::Duration::from_millis(50));
+}
+
 #[tokio::test]
 async fn a_color_list_states_one_zone_each() {
     let rig = rig().await;

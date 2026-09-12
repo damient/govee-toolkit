@@ -135,6 +135,7 @@ impl SegmentStream {
         let device = govee.catalog().device(&sku)?;
         let plan = plan(device, mode, &options)?;
         let zones = plan.zones;
+        let settle = device.measurements.arm_settle();
         let hz = rate_hz(
             device,
             &sku,
@@ -171,6 +172,9 @@ impl SegmentStream {
         // caller asked for.
         sender::send_gradient(&shared).await?;
         send_enable(&shared, 1).await?;
+        // The firmware drops a paint that follows the arming frame at once,
+        // and answers nothing either way. Paid once, at the open.
+        tokio::time::sleep(settle).await;
         let task = tokio::spawn(sender::run(Arc::clone(&shared)));
         Ok(Self {
             shared,

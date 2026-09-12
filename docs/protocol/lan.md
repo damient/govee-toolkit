@@ -190,6 +190,13 @@ n zones  : bb <len16> b0 <gradient> <nbSeg> <3 × nbSeg RGB bytes> <xor>
                 └── len = 2 + 3 × nbSeg
 ```
 
+**The channel needs time to arm.** The firmware does not render a `0xB0` frame
+that follows the `0xB1` frame at once. It answers nothing either way, so the
+paint is lost and no error reports it. Wait after the arming frame, then paint.
+How long is a property of the unit: measure it and record it as
+`measurements.arm_settle_ms` in `devices/<SKU>.yaml`. A stream pays this once,
+at the arming frame, and not per frame.
+
 **The `gradient` byte.** With `1` the firmware interpolates between zones and
 wraps from the last back to the first, so a single lit zone at one end also
 glows at the other. With `0` the zones are hard-edged. Which default a model
