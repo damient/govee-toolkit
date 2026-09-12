@@ -2,6 +2,7 @@
 //! fixture's entry marks is what goes out, and nothing else. The fixture is
 //! [`ble_fake`].
 
+#![cfg(feature = "ble")]
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod ble_fake;
