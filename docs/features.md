@@ -24,6 +24,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **Per-device, per-mode circuit breaker** — `OK` / `DEGRADED` / `DOWN`. The breaker decides from state it already holds, not from a fresh timeout per call |
 | ✅ | **Explicit failures** — a command a mode cannot serve fails and says so. The SDK never approximates one in silence |
 | ✅ | **White temperature** (`color_temp()`) — one call sets the kelvin value and, where the frame carries it, the RGB rendering the firmware does not compute |
+| ✅ | **Music** (`music()`) — plays an effect the device renders from its own microphone, over `ble` and `cloud`. `lan` carries no music command |
 | ✅ | **Wi-Fi provisioning** (`provision_wifi()`) — puts a device out of the box on a network over `ble`, which is what makes `lan` reachable |
 
 ## Modes
@@ -31,7 +32,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | | Feature |
 | --- | ------- |
 | ✅ | **`lan`** — power, brightness, color and color temperature over UDP, plus per-segment color |
-| ✅ | **`ble`** — power, brightness, color and color temperature over GATT, plus per-zone color. Off-network, within radio range, behind the `ble` cargo feature |
+| ✅ | **`ble`** — power, brightness, color, color temperature and music over GATT, plus per-zone color. Off-network, within radio range, behind the `ble` cargo feature |
 | ✅ | **`cloud`** — the documented HTTPS API, behind the `cloud` cargo feature. Reaches any device the account owns, throttled, with segments and music where the account list declares them. No segment stream |
 
 ## SDKs

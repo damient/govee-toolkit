@@ -1,17 +1,21 @@
 //! The commands a person names, reached through a `role:`.
 //!
-//! `power`, `brightness`, `color` and `color_temp` are things a device does,
-//! not entries of one device file. Each method here reads the entry the file
-//! marks with the matching [`Role`], and fills the arguments the file marks
-//! with an [`ArgRole`]. No command name and no argument name lives in this
-//! crate, and a binding gets the same verb without a second implementation.
+//! `power`, `brightness`, `color`, `color_temp` and `music` are things a
+//! device does, not entries of one device file. Each method here reads the
+//! entry the file marks with the matching [`Role`], and fills the arguments the
+//! file marks with an [`ArgRole`]. No command name and no argument name lives
+//! in this crate, and a binding gets the same verb without a second
+//! implementation.
 //!
 //! A file that marks no entry for a role fails with [`Error::NoRoleCommand`].
 //! Nothing is approximated: a mode that carries no `role: color` entry does
 //! not paint the color through another command — see `docs/modes.md`.
 
+mod music;
 mod segment;
 mod white;
+
+pub use music::Music;
 
 use crate::codec::catalog::Device;
 use crate::codec::{ArgRole, Args, Mode, Role};

@@ -1,10 +1,10 @@
 //! The verbs a person types: `on`, `off`, `brightness`, `color`, `colortemp`,
-//! `segment`.
+//! `segment`, `music`.
 //!
 //! Each one calls the matching method of the crate, which reads the entry the
 //! device file marks with that `role:`. No command name reaches this file.
 
-use govee_toolkit::{DeviceId, Govee, Served};
+use govee_toolkit::{DeviceId, Govee, Music, Served};
 use serde_json::json;
 
 use crate::output::{Failure, Writer};
@@ -28,6 +28,8 @@ pub(super) enum Verb {
         /// Ask the firmware to interpolate between zones.
         gradient: bool,
     },
+    /// Play an effect the device renders from its own microphone.
+    Music(Music),
 }
 
 /// Run one verb and report the mode that served it.
@@ -48,6 +50,7 @@ pub(super) async fn run(
             rgb,
             gradient,
         } => handle.segment(zones.as_deref(), rgb, gradient).await,
+        Verb::Music(music) => handle.music(&music).await,
     }?;
     report(writer, &served);
     Ok(())

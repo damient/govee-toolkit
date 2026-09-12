@@ -128,3 +128,5 @@ pub use provision::WifiCredentials;
 pub use stream::{Rate, SegmentStream, StreamOptions, Zones};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 pub use transport::{DeviceId, DeviceStatus, Health, Reply, State, Transport};
+#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+pub use verbs::Music;

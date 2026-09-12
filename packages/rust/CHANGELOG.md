@@ -53,6 +53,20 @@ releases apart and keeps
   stopped there would leave the zones past it holding the color they had. The channel is armed
   where the file marks `role: segment_enable`, and nothing disarms it. A
   gradient the file can carry nowhere is refused rather than dropped.
+- `DeviceHandle::music` and `Music` — play an effect the device renders from
+  its own microphone, through the new `music` role. The device listens and the
+  host sends nothing per beat. `Music` carries the effect, the sensitivity,
+  whether the rendering fades rather than cutting on the beat, and the color to
+  impose; the SDK fills each one where the entry declares the argument for it.
+  The effect identifiers belong to the mode, and an identifier a file accepts
+  is not one the device renders: firmware takes a value, reads it back and
+  plays nothing. No entry stops an effect, so a caller ends it with `power`,
+  `color` or `color_temp`.
+- `Role::Music`, and the argument roles `ArgRole::Effect`,
+  `ArgRole::Sensitivity`, `ArgRole::Soft` and `ArgRole::ColorMode`.
+  `ArgRole::Red`, `ArgRole::Green` and `ArgRole::Blue` now name the color a
+  `music` entry imposes as well as the one a `color` entry sets. `cargo test`
+  refuses a `music` entry that declares part of the imposed color.
 - `DeviceHandle::serving_mode` — the mode a command sent now would go over,
   from the same recorded state a send reads. What a caller needs to read the
   device file for the right mode before it builds arguments.

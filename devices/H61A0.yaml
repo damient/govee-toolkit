@@ -247,15 +247,16 @@ commands:
 
     music:
       documented: false
+      role: music
       frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
       args:
-        effect: { type: int, range: [0, 7] }
-        sensitivity: { type: int, range: [0, 99] }
-        soft: { type: int, range: [0, 1] }
-        color_mode: { type: int, range: [0, 1] }
-        r: { type: int, range: [0, 255] }
-        g: { type: int, range: [0, 255] }
-        b: { type: int, range: [0, 255] }
+        effect: { type: int, range: [0, 7], role: effect }
+        sensitivity: { type: int, range: [0, 99], role: sensitivity }
+        soft: { type: int, range: [0, 1], role: soft }
+        color_mode: { type: int, range: [0, 1], role: color_mode }
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
       notes: >-
         Sub-mode 19. The device listens on its own microphone. `effect` selects
         the rendering: 0 to 7 each render one, and 8 to 15, 50 and 255 render
@@ -439,6 +440,7 @@ commands:
 
     music:
       documented: true
+      role: music
       capability:
         type: "devices.capabilities.music_setting"
         instance: "musicMode"
@@ -446,8 +448,8 @@ commands:
         musicMode: "${effect}"
         sensitivity: "${sensitivity}"
       args:
-        effect: { type: int, range: [1, 11] }
-        sensitivity: { type: int, range: [0, 100] }
+        effect: { type: int, range: [1, 11], role: effect }
+        sensitivity: { type: int, range: [0, 100], role: sensitivity }
       notes: >-
         The device listens on its own microphone. `effect` is the enum the
         account list declares: 1 Energic, 2 Rhythm, 3 Spectrum, 4 Rolling,

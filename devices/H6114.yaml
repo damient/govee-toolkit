@@ -95,15 +95,16 @@ commands:
 
     music:
       documented: false
+      role: music
       frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
       args:
-        effect: { type: int, range: [0, 1] }
-        sensitivity: { type: int, range: [1, 100] }
-        soft: { type: int, range: [0, 1] }
-        color_mode: { type: int, range: [0, 1] }
-        r: { type: int, range: [0, 255] }
-        g: { type: int, range: [0, 255] }
-        b: { type: int, range: [0, 255] }
+        effect: { type: int, range: [0, 1], role: effect }
+        sensitivity: { type: int, range: [1, 100], role: sensitivity }
+        soft: { type: int, range: [0, 1], role: soft }
+        color_mode: { type: int, range: [0, 1], role: color_mode }
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
       notes: >-
         Sub-mode 19. The device listens on its own microphone. `effect` selects
         the rendering, and the range above is what renders a music effect: 0 and
