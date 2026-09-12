@@ -1,0 +1,30 @@
+# H6008 — the 20-byte dialect of docs/protocol/ble.md 2 and 3 answers nothing
+# on this unit. Captured 2026-09-12, same host and same characteristics as
+# color.txt.
+#
+# Two sweeps, 512 frames, one every 180 ms, with the notify characteristic
+# subscribed throughout. No notification arrived and no write raised an error.
+# The same subscription answers the request in channel_probe.txt, so the
+# notify channel is not the silent part.
+#
+# A malformed frame and an unimplemented command are the same silence here —
+# docs/protocol/ble.md 7. Nothing below establishes that the hardware lacks
+# this dialect.
+#
+# Sweep 1: proType AA, every command type, 00 to FF. First rows shown.
+> aa010000000000000000000000000000000000ab
+> aa040000000000000000000000000000000000ae
+> aa050000000000000000000000000000000000af
+> aa060000000000000000000000000000000000ac
+> aa0f0000000000000000000000000000000000a5
+> aa140000000000000000000000000000000000be
+> aa2000000000000000000000000000000000008a
+> aa2100000000000000000000000000000000008b
+> aaab000000000000000000000000000000000001
+> aa400000000000000000000000000000000000ea
+# ... 246 more, no answer to any
+
+# Sweep 2: every proType, command type 01, 00 to FF. No answer to any.
+
+# A power frame. The unit stayed on, read back over lan through devStatus.
+> 3301000000000000000000000000000000000032

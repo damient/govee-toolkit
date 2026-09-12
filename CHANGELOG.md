@@ -28,7 +28,7 @@ at.
 - `H6008` — Smart LED Bulb RGBWW, verified over `lan` on two units. Power,
   brightness, color, white and both status commands, from captured frames.
 - `H6008` carries the same four commands over `cloud`, exercised against a live
-  account. `music` is unreachable there: the account lists no such capability.
+  account. Both modes reach every capability it has.
 - `H6008` declares the same 2700-6500 K range over `cloud` as over `lan`. The
   account declares 2000-9000 K and the firmware clamps inside it.
 - `H6008` declares `colortemp` over 2700-6500 K, measured on both units. The
@@ -37,6 +37,22 @@ at.
   reads back as 0, 101 as 101 and 200 as -56. The codec refuses all three.
 - `H6008` lists `H6004`, `H6006`, `H6009`, `H600A` and `H6010` as
   `candidate_aliases`: Govee describes them alike, and nobody verified one.
+- `H6008` reaches `color` over `ble`, through the host colour frames of
+  `docs/protocol/ble.md` 8. From captured frames, watched on two units.
+- `H6008` declares `channel_probe` over `ble`, the request that asks whether a
+  unit carries that channel. Both units answered the same five bytes.
+- `H6008` records `measurements.ble.render_hold_ms` at 60000: the firmware
+  holds a colour from the host one minute, then asserts the state it stores.
+- `H6008` records `measurements.ble.write_drain_ms` at 25: the `ble` transport
+  holds the link that long after a write, or the frame never leaves.
+- `H6008` records that no read reports the `ble` colour render, and that the
+  stored brightness scales it.
+- `H6008` declares `power`, `brightness` and `colortemp` `unprobed` over `ble`:
+  512 frames of the 20-byte dialect drew no answer, which settles nothing.
+- `<sum>` in a `frame:` layout — the low byte of the sum of the bytes before
+  it. A layout carries `<sum>` or `<xor>`, never both. See `devices/schema.yaml`.
+- `measurements.ble.render_hold_ms` — how long a firmware holds a colour from
+  the host before it returns to its stored state.
 - `measurements.arm_settle_ms` — the delay the firmware needs after the arming
   frame, before a paint renders. See `devices/schema.yaml`.
 - A file that records no `arm_settle_ms` gets a conservative default, which is
@@ -79,9 +95,10 @@ at.
 - `partial` now means work left on this device file: one name under
   `unreachable` is `unimplemented` or `unprobed`. `cargo test` checks the level
   against the reasons.
-- `H6008` reads `capped` over `lan` and `cloud`, and `H61A0` over `lan`. Neither
-  transport carries a music command, and `lan` carries no per-segment
-  brightness.
+- `H61A0` reads `capped` over `lan`: that transport carries no music command
+  and no per-segment brightness.
+- `H6008` declares no `music` capability: the bulb carries no microphone, so
+  no mode renders sound. `lan` and `cloud` therefore read `full`.
 
 ### 2026-09-11
 
