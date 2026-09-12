@@ -59,11 +59,11 @@ impl Govee {
         // No key is not an error: `cloud` is opt-in, so the mode is reported
         // as unavailable, the same as one this build has no transport for.
         #[cfg(feature = "cloud")]
-        if let Some(options) = config.cloud.transport_options()? {
+        if let Some(options) = config.cloud.transport_options(&config.env)? {
             transports.push(Arc::new(crate::cloud::Transport::start(options)?));
         } else {
             tracing::info!(
-                "`cloud` carries no API key: set {} or `cloud.key_file`",
+                "`cloud` carries no API key: set {}, put it in `.env`, or set `cloud.key_file`",
                 crate::config::KEY_ENV
             );
         }

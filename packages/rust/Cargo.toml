@@ -44,6 +44,7 @@ default = ["lan"]
 # dependencies out rather than shares an internal feature. `async-trait` is
 # what puts the async `Transport` trait behind a `dyn`.
 lan = [
+  "dep:dotenvy",
   "dep:futures-util",
   "dep:socket2",
   "dep:async-trait",
@@ -51,12 +52,14 @@ lan = [
   "dep:tracing",
 ]
 cloud = [
+  "dep:dotenvy",
   "dep:reqwest",
   "dep:async-trait",
   "dep:tokio",
   "dep:tracing",
 ]
 ble = [
+  "dep:dotenvy",
   "dep:btleplug",
   "dep:futures-util",
   "dep:uuid",
@@ -74,6 +77,9 @@ thiserror = "2"
 
 async-trait = { version = "0.1", optional = true }
 btleplug = { version = "0.13", optional = true }
+# A parser alone: `Iter` yields the pairs, and nothing is exported into the
+# process. See `src/env.rs`.
+dotenvy = { version = "0.15", default-features = false, optional = true }
 # What runs the per-mode scans at the same time, and what reads the `futures`
 # stream btleplug returns notifications on. `default-features = false` keeps the
 # executor and the compat shims out; `alloc` is what `try_join_all` needs.

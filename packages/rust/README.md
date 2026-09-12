@@ -105,7 +105,7 @@ real device: [`examples/lan_tour.rs`](examples/lan_tour.rs),
 ```bash
 cargo run --example lan_tour
 cargo run --example ble_tour --features ble
-../../tools/with-env.sh cargo run --example cloud_tour --features cloud
+cargo run --example cloud_tour --features cloud   # the key comes from `.env`
 ```
 
 ### Reading state
@@ -212,7 +212,8 @@ stream.close().await?;
 ## Configuration
 
 `Config::load()` reads `~/.config/govee-toolkit/config.yaml`
-(`$XDG_CONFIG_HOME` and `GOVEE_CONFIG` override the location). Devices are keyed
+(`$XDG_CONFIG_HOME` and `GOVEE_CONFIG` override the location, and `GOVEE_CONFIG`
+can live in `.env`). Devices are keyed
 by the MAC they report in a discovery reply, so a renewed DHCP lease does not
 lose them.
 
@@ -231,12 +232,28 @@ what the configuration got wrong without failing the whole load. The full model
 is [`docs/modes.md`][modes].
 
 `ble` and `cloud` each need the crate built with the feature of that name, and
-`cloud` also needs an API key, in `GOVEE_API_KEY` or in the file
-`cloud.key_file` names. In this repository that key lives in a gitignored
-`.env` at the root, and `tools/with-env.sh <command>` supplies it. An enabled
-mode this build cannot carry is reported as `ModeNotImplemented`, and one it
-carries without a credential as `MissingCredential` — never silently skipped,
-never substituted.
+`cloud` also needs an API key, in `GOVEE_API_KEY`, in a `.env` file, or in the
+file `cloud.key_file` names. An enabled mode this build cannot carry is reported
+as `ModeNotImplemented`, and one it carries without a credential as
+`MissingCredential` — never silently skipped, never substituted.
+
+### Variables and `.env`
+
+`Config::load()` also collects the `GOVEE_*` variables into `config.env`. It
+reads the process environment, then the first `.env` the search finds: it starts
+in the working directory and goes up, it stops after the directory that holds
+`.git` or after the home directory, and it reads
+`~/.config/govee-toolkit/.env` last. `GOVEE_ENV_FILE` names one file and
+replaces the search.
+
+A missing file is not an error, since `lan` and `ble` need no credential. The
+process environment wins over the file, only `GOVEE_*` names are read, and a
+blank value counts as a placeholder.
+
+Nothing is exported into the process environment: `Env` is a value the caller
+reads through. `Config::load_from_with(path, env)` takes one the caller built —
+`Env::process()` ignores every file, `Env::from_file(path)` names one, and
+`Env::from_pairs` takes values from a store of your own.
 
 ## What this crate will not do to you
 

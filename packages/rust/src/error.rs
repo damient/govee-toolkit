@@ -214,6 +214,15 @@ pub enum Error {
         hz: f64,
     },
 
+    /// A `.env` file could not be read or does not parse.
+    #[error("environment file `{path}`: {reason}")]
+    Env {
+        /// The file.
+        path: String,
+        /// What is wrong with it.
+        reason: String,
+    },
+
     /// A device file could not be read from the user's own directory.
     #[error("local device file `{path}`: {reason}")]
     LocalDevices {
@@ -266,6 +275,7 @@ impl Error {
             Self::ZoneCountUnsupported { .. } => "zone_count_unsupported",
             Self::ZoneMaskUnbounded { .. } => "zone_mask_unbounded",
             Self::StreamRateOutOfRange { .. } => "stream_rate_out_of_range",
+            Self::Env { .. } => "env",
             Self::LocalDevices { .. } => "local_devices",
         }
     }

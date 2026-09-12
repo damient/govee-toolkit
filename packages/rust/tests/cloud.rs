@@ -208,11 +208,8 @@ async fn a_key_is_the_one_thing_this_mode_cannot_start_without() {
 
 #[tokio::test]
 async fn an_enabled_mode_with_no_key_is_a_problem_and_not_a_refusal_to_start() {
-    // `set_var` needs `unsafe`, which the workspace forbids: the test asserts
-    // the branch the environment selects, and both are under test.
-    if std::env::var(govee_toolkit::config::KEY_ENV).is_ok_and(|key| !key.trim().is_empty()) {
-        return;
-    }
+    // A configuration that is deserialized carries no variables, so no `.env`
+    // and no environment can put a key under this test.
     let config: govee_toolkit::Config =
         serde_norway::from_str("defaults:\n  modes: [cloud]\n").expect("the configuration parses");
     let catalog = Catalog::embedded().expect("the embedded catalog");

@@ -22,8 +22,6 @@ use govee_toolkit::{Args, Config, Error, Govee};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let sku = std::env::var("GOVEE_SKU").unwrap_or_else(|_| "H61A0".to_owned());
-
     // `lan` is the default. This example names it so that the user's
     // configuration cannot change what runs below.
     let config = Config {
@@ -32,6 +30,7 @@ async fn main() -> Result<(), Error> {
         },
         ..Config::load()?
     };
+    let sku = config.env.var("GOVEE_SKU").unwrap_or("H61A0").to_owned();
     let govee = Govee::start(config).await?;
 
     println!("scanning...");

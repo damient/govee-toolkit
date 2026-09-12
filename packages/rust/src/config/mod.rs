@@ -33,6 +33,7 @@ use std::path::PathBuf;
 use serde::Deserialize;
 
 use crate::codec::Mode;
+use crate::env::Env;
 use crate::error::{Error, Result};
 use crate::transport::DeviceId;
 
@@ -59,6 +60,10 @@ pub struct Config {
     pub stream: StreamConfig,
     /// Per-device settings, keyed by the MAC the device reports.
     pub devices: BTreeMap<DeviceId, DeviceConfig>,
+    /// The `GOVEE_*` variables this run reads. It never comes from the file:
+    /// a credential in `config.yaml` would reach every bug report.
+    #[serde(skip)]
+    pub env: Env,
 }
 
 /// Segment streaming settings, applying to whichever mode a stream opens on.
@@ -141,17 +146,31 @@ impl std::fmt::Display for Problem {
 }
 
 impl Config {
-    /// Read the configuration from its default location.
+    /// Read the configuration from its default location, and the `GOVEE_*`
+    /// variables with it.
     ///
     /// A missing file is the default configuration — `lan` alone — not an
-    /// error: an SDK must work before anyone writes one.
+    /// error: an SDK must work before anyone writes one. [`Env::load`] says
+    /// where the variables come from, and a missing `.env` is not an error
+    /// either.
     ///
     /// # Errors
     ///
     /// [`Error::Config`] if the file exists but cannot be read or parsed. A
     /// configuration that does not parse is never guessed at.
     pub fn load() -> Result<Self> {
-        Self::load_from(crate::paths::config_file())
+        let env = Env::load()?;
+        Self::load_from_with(crate::paths::config_file_from(&env), env)
+    }
+
+    /// Replace the variables this configuration reads.
+    ///
+    /// [`Env::process`] ignores every `.env`, and [`Env::from_file`] names one
+    /// file.
+    #[must_use]
+    pub fn with_env(mut self, env: Env) -> Self {
+        self.env = env;
+        self
     }
 
     /// Read the configuration from `path`.
@@ -160,10 +179,24 @@ impl Config {
     ///
     /// See [`Config::load`].
     pub fn load_from(path: impl Into<PathBuf>) -> Result<Self> {
+        Self::load_from_with(path, Env::load()?)
+    }
+
+    /// Read the configuration from `path`, with variables the caller chose.
+    ///
+    /// No `.env` is searched for, so a `.env` that does not parse cannot fail
+    /// a run that ignores it.
+    ///
+    /// # Errors
+    ///
+    /// See [`Config::load`].
+    pub fn load_from_with(path: impl Into<PathBuf>, env: Env) -> Result<Self> {
         let path = path.into();
         let text = match std::fs::read_to_string(&path) {
             Ok(text) => text,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Self::default()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(Self::default().with_env(env));
+            }
             Err(e) => {
                 return Err(Error::Config {
                     path: path.display().to_string(),
@@ -171,10 +204,11 @@ impl Config {
                 });
             }
         };
-        serde_norway::from_str(&text).map_err(|e| Error::Config {
+        let config: Self = serde_norway::from_str(&text).map_err(|e| Error::Config {
             path: path.display().to_string(),
             reason: e.to_string(),
-        })
+        })?;
+        Ok(config.with_env(env))
     }
 
     /// The modes enabled for a device, in preference order.
@@ -208,7 +242,7 @@ impl Config {
         // credential. `cfg!` rather than an attribute, so a mode this build
         // does not carry stays `ModeNotImplemented`.
         match mode {
-            Mode::Cloud if cfg!(feature = "cloud") => self.cloud.missing_key(),
+            Mode::Cloud if cfg!(feature = "cloud") => self.cloud.missing_key(&self.env),
             Mode::Cloud | Mode::Lan | Mode::Ble => None,
         }
     }
