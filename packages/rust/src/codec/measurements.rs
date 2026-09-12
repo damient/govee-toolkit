@@ -143,8 +143,10 @@ impl Measurements {
             .map(|row| row.clean_hz)
     }
 
-    /// [`Measurements::arm_settle_ms`], or [`DEFAULT_ARM_SETTLE`] where
-    /// nobody measured it. Never zero.
+    /// The delay after the arming frame, from
+    /// [`Measurements::arm_settle_ms`]. Where nobody measured it, a
+    /// conservative 50 ms. Never zero: a paint sent too early is dropped in
+    /// silence.
     #[must_use]
     pub fn arm_settle(&self) -> Duration {
         self.arm_settle_ms

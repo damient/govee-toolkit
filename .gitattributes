@@ -1,0 +1,7 @@
+# A fixture is read with `include_str!` and compared byte for byte. A CRLF
+# checkout changes those bytes and fails the tests on Windows alone, so every
+# text file stays LF in the working tree.
+* text=auto eol=lf
+
+# A capture is bytes, not text.
+tests/fixtures/lan-captures/** -text
