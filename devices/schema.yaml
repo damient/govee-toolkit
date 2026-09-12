@@ -411,9 +411,10 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         # Always record the unit's length with them. These are
                         # properties of a unit, not only of a SKU.
                         #
-                        # Free-form except for four entries an SDK reads:
+                        # Free-form except for five entries an SDK reads:
                         # `frame_rate`, `resolution_changepoints`,
-                        # `ble.write_budget_hz` and `ble.write_drain_ms`.
+                        # `arm_settle_ms`, `ble.write_budget_hz` and
+                        # `ble.write_drain_ms`.
                         #
                         # `resolution_changepoints` is every zone count at
                         # which this unit refines, as a list:
@@ -427,6 +428,17 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         # the counts to measure them — see
                         # ../docs/protocol/lan.md 2.3 — and leave the list out
                         # where nobody swept them.
+                        #
+                        # `arm_settle_ms` is how long the SDK waits after the
+                        # `role: segment_enable` frame, before the first paint.
+                        # The firmware needs that long to switch channel, and
+                        # it drops an earlier paint in silence: the channel
+                        # answers nothing either way, so the paint is lost
+                        # without an error. Measure it: arm the channel, wait
+                        # n ms, paint a subset of the zones, and look at the
+                        # unit. A file that records nothing gets a
+                        # conservative default, which is never zero. See
+                        # ../docs/protocol/lan.md 2.3.
                         #
                         # `ble.write_budget_hz` is the sustained rate the `ble`
                         # transport paces its writes to, at or under the

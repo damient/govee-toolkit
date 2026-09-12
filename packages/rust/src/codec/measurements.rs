@@ -6,10 +6,19 @@
 //! absent. See `docs/protocol/lan.md` 2.3 and 2.7.
 
 use std::collections::BTreeMap;
+use std::time::Duration;
 
 use serde::Deserialize;
 
 use crate::codec::catalog::Mode;
+
+/// How long to wait after the arming frame where no device file states it.
+///
+/// A conservative default, not a measurement: the one unit anybody probed
+/// needed between 20 and 50 ms, and a paint sent sooner is dropped in silence.
+/// A file that measured its own unit states
+/// [`Measurements::arm_settle_ms`] and that value wins.
+const DEFAULT_ARM_SETTLE: Duration = Duration::from_millis(50);
 
 /// One row of `measurements.frame_rate`: how fast one physical unit accepts
 /// segment frames at a given zone count.
@@ -91,7 +100,8 @@ pub struct Ble {
 /// Numbers taken from one physical unit.
 ///
 /// The SDK reads [`Measurements::frame_rate`],
-/// [`Measurements::resolution_changepoints`], [`Ble::write_budget_hz`] and
+/// [`Measurements::resolution_changepoints`],
+/// [`Measurements::arm_settle_ms`], [`Ble::write_budget_hz`] and
 /// [`Ble::write_drain_ms`].
 /// Everything else a device file records lands in [`Measurements::extra`],
 /// untouched.
@@ -111,6 +121,13 @@ pub struct Measurements {
     pub resolution_changepoints: Vec<u32>,
     /// Sustainable segment frame rates, by mode and zone count.
     pub frame_rate: FrameRates,
+    /// How long the firmware needs after the arming frame before it renders a
+    /// paint, in milliseconds.
+    ///
+    /// The channel accepts the paint either way and answers nothing, so a
+    /// frame sent too early is lost in silence. See
+    /// [`Measurements::arm_settle`].
+    pub arm_settle_ms: Option<u64>,
     /// What one unit did over `ble`.
     pub ble: Ble,
     /// Everything else the file records.
@@ -133,6 +150,17 @@ impl Measurements {
             .min_by_key(|row| row.zones)
             .or_else(|| rows.iter().max_by_key(|row| row.zones))
             .map(|row| row.clean_hz)
+    }
+
+    /// How long to wait after the arming frame before the first paint.
+    ///
+    /// The value this unit was measured at, or a conservative default where
+    /// nobody measured it. Never zero: the one unit anybody probed renders
+    /// nothing at all when the paint follows the arming frame immediately.
+    #[must_use]
+    pub fn arm_settle(&self) -> Duration {
+        self.arm_settle_ms
+            .map_or(DEFAULT_ARM_SETTLE, Duration::from_millis)
     }
 
     /// The largest count at or under `zones` that renders differently from
@@ -165,6 +193,7 @@ unit_length_m: 3
 native_pixels: 42
 segment_count_app: 10
 resolution_changepoints: [1, 2, 3, 4, 5, 6, 7, 9, 11, 14, 21, 42]
+arm_settle_ms: 50
 latency_idle_ms:
   median: 16
   p95: 28
@@ -196,6 +225,7 @@ frame_rate:
         assert_eq!(m.native_pixels, Some(42));
         assert_eq!(m.frame_rate.rows(Mode::Lan).len(), 3);
         assert!(m.extra.contains_key("latency_idle_ms"));
+        assert_eq!(m.arm_settle(), Duration::from_millis(50));
         assert_eq!(m.resolution_changepoints.first(), Some(&1));
         assert_eq!(m.resolution_changepoints.last(), Some(&42));
         assert!(!m.extra.contains_key("resolution_changepoints"));
@@ -214,6 +244,21 @@ frame_rate:
     fn a_unit_nobody_swept_answers_no_changepoint() {
         let m: Measurements = serde_norway::from_str("unit_length_m: 5").expect("parses");
         assert_eq!(m.renders_as(10), None);
+    }
+
+    #[test]
+    fn the_settle_time_is_read_off_the_unit_that_was_measured() {
+        let m: Measurements = serde_norway::from_str("arm_settle_ms: 80").expect("parses");
+        assert_eq!(m.arm_settle(), Duration::from_millis(80));
+        assert!(!m.extra.contains_key("arm_settle_ms"));
+    }
+
+    #[test]
+    fn a_unit_nobody_measured_waits_the_default_and_never_zero() {
+        let m: Measurements = serde_norway::from_str("unit_length_m: 5").expect("parses");
+        assert_eq!(m.arm_settle_ms, None);
+        assert_eq!(m.arm_settle(), DEFAULT_ARM_SETTLE);
+        assert!(!m.arm_settle().is_zero());
     }
 
     #[test]
