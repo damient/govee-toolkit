@@ -4,6 +4,9 @@
 # Node
 node_modules/
 dist/
+# The site's build staging directories.
+site/.dist-build-*/
+site/dist.previous/
 *.tsbuildinfo
 
 # Python

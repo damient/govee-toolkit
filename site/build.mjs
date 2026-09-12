@@ -7,7 +7,7 @@
 // The catalog comes from the device files through `cargo run -p xtask --
 // catalog`. The site never restates a device fact that the YAML carries.
 
-import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { createReadStream, existsSync, statSync, watch } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, join, relative, resolve } from "node:path";
@@ -18,11 +18,18 @@ const marked = new Marked({ async: false });
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, "..");
-const out = join(root, "dist");
+const dist = join(root, "dist");
+// The build writes here and the result moves into `dist/` in one step. A
+// reload during a rebuild then reaches the old site or the new one, never a
+// directory that is half written. The name carries the process id, so a
+// manual build beside a running `npm run dev` does not delete its staging
+// directory under it.
+const out = join(root, `.dist-build-${process.pid}`);
 
 // The repository page lives under a sub-path. `BASE=/ npm run dev` serves it
 // from a root instead.
-const base = (process.env.BASE ?? "/govee-toolkit/").replace(/\/*$/, "/");
+const PAGES_BASE = "/govee-toolkit/";
+const base = (process.env.BASE ?? PAGES_BASE).replace(/\/*$/, "/");
 const repoUrl = "https://github.com/damient/govee-toolkit";
 const catalogPath = join(repo, "dist/catalog.json");
 
@@ -46,6 +53,7 @@ async function main() {
   const catalog = await readCatalog();
   await rm(out, { recursive: true, force: true });
   await mkdir(out, { recursive: true });
+
   await cp(join(root, "src/assets"), join(out, "assets"), { recursive: true });
   if (existsSync(join(root, "public"))) {
     await cp(join(root, "public"), out, { recursive: true });
@@ -88,7 +96,19 @@ async function main() {
     `<section class="slab"><h1>Page not found</h1><p class="lede">That page does not exist. <a href="${base}">Go back to the start</a>.</p></section>`,
     { docs: nav, catalog });
 
-  console.log(`site -> ${relative(repo, out)} (${pages.length + docs.length + 2} pages, ${catalog.devices.length} devices)`);
+  await publish();
+  const clock = new Date().toTimeString().slice(0, 8);
+  console.log(`${clock}  site -> ${relative(repo, dist)} (${pages.length + docs.length + 2} pages, ${catalog.devices.length} devices)`);
+}
+
+// Two renames, so that `dist/` is missing for microseconds instead of for the
+// length of a build.
+async function publish() {
+  const previous = `${dist}.previous`;
+  await rm(previous, { recursive: true, force: true });
+  if (existsSync(dist)) await rename(dist, previous);
+  await rename(out, dist);
+  await rm(previous, { recursive: true, force: true });
 }
 
 async function emit(layout, page, body, ctx) {
@@ -411,20 +431,38 @@ const TYPES = {
 function serve() {
   const port = Number(process.env.PORT ?? 8787);
   createServer((request, response) => {
-    const path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-    let file = join(out, path);
-    if (!file.startsWith(out)) return send(response, 403, "Forbidden");
+    let path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+    // `npm run build` writes the same `dist/` with the published sub-path in
+    // every link. The local server answers under that prefix as well, so a
+    // production build does not leave the page without its stylesheet.
+    if (path.startsWith(PAGES_BASE)) path = path.slice(PAGES_BASE.length - 1);
+    let file = join(dist, path);
+    if (!file.startsWith(dist)) return send(response, 403, "Forbidden");
     if (existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
+    let ext = file.slice(file.lastIndexOf("."));
     if (!existsSync(file)) {
-      file = join(out, "404.html");
+      file = join(dist, "404.html");
       if (!existsSync(file)) return send(response, 404, "Not found");
+      // The page, not the type that was asked for: a missing stylesheet must
+      // fail as a stylesheet and not arrive as HTML the browser parses.
+      ext = ".html";
       response.statusCode = 404;
     }
-    const ext = file.slice(file.lastIndexOf("."));
     response.setHeader("Content-Type", TYPES[ext] ?? "application/octet-stream");
     response.setHeader("Cache-Control", "no-store");
     createReadStream(file).pipe(response);
-  }).listen(port, () => console.log(`http://localhost:${port}`));
+  })
+    // A second `npm run dev` on a port that is taken must say so. The default
+    // is an unhandled error event, and a reader takes the stack trace for a
+    // watcher that does not work: the first server keeps the page up.
+    .on("error", (error) => {
+      if (error.code !== "EADDRINUSE") throw error;
+      console.error(`port ${port} is taken. Another server already serves the site.`);
+      console.error(`Stop it with: kill $(lsof -ti :${port} -sTCP:LISTEN)`);
+      console.error(`Or serve on another port: PORT=8788 npm run dev`);
+      process.exit(1);
+    })
+    .listen(port, () => console.log(`http://localhost:${port}`));
 }
 
 function send(response, code, body) {
