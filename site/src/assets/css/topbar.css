@@ -1,0 +1,74 @@
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in oklab, var(--ink) 82%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar .shell { display: flex; align-items: center; gap: 24px; height: 62px; }
+.wordmark {
+  display: flex; align-items: center;
+  font: 600 15px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text); text-decoration: none; white-space: nowrap;
+}
+.links { margin-left: auto; display: flex; align-items: center; gap: clamp(12px, 2.4vw, 26px); }
+.controls { display: flex; align-items: center; gap: 8px; margin-left: 14px; }
+.links a {
+  font: 500 14px/1 var(--sans); color: var(--muted); text-decoration: none;
+  padding-block: 6px;
+}
+.links a:hover, .links a[aria-current] { color: var(--text); }
+.links a[aria-current] { box-shadow: inset 0 -2px 0 0 var(--ember); }
+.links .ghost {
+  color: var(--text); border: 1px solid var(--line-strong);
+  padding: 7px 13px; border-radius: 8px;
+}
+
+.theme, .burger {
+  display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
+  background: transparent; border: 1px solid var(--line-strong); border-radius: 8px;
+  color: var(--muted); cursor: pointer;
+}
+.theme:hover, .burger:hover { color: var(--text); }
+.theme svg, .burger svg { width: 17px; height: 17px; }
+.theme .sun { display: var(--sun); }
+.theme .moon { display: var(--moon); }
+.theme .label-light { display: var(--label-light); }
+.theme .label-dark { display: var(--label-dark); }
+
+/* The menu folds into the top bar on a narrow screen. Every collapsed rule is
+   scoped to [data-menu], which JavaScript sets: with JavaScript blocked the
+   links stay on the page. */
+.burger, .theme.in-menu { display: none; }
+.burger .cross { display: none; }
+.burger[aria-expanded="true"] .bars { display: none; }
+.burger[aria-expanded="true"] .cross { display: block; }
+
+@media (max-width: 820px) {
+  .burger { display: grid; }
+  /* The links are out of the flow here, so the auto margin moves to the
+     controls to keep the burger against the right edge. */
+  .controls { margin-left: auto; }
+  /* The panel hangs from the button that opens it, on the right. */
+  .topbar[data-menu] .links {
+    position: absolute; top: calc(100% + 10px); left: auto;
+    right: var(--gutter); width: min(300px, calc(100vw - 2 * var(--gutter)));
+    flex-direction: column; align-items: stretch; gap: 2px;
+    margin: 0; padding: 8px 18px 16px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: 0 18px 50px rgb(0 0 0 / 35%);
+  }
+  .topbar[data-menu="closed"] .links { display: none; }
+  .topbar[data-menu] .links a { padding: 12px 0; font-size: 16px; }
+  .topbar[data-menu] .links a[aria-current] { box-shadow: none; color: var(--ember); }
+  .topbar[data-menu] .links .ghost { margin-top: 14px; text-align: center; padding: 12px; }
+  /* One theme control at a time: inside the folded menu, the top bar keeps
+     only the burger. */
+  .controls .theme { display: none; }
+  .topbar[data-menu] .theme.in-menu {
+    display: flex; align-items: center; justify-content: flex-start; gap: 12px;
+    width: auto; height: auto; padding: 18px 0 6px; margin-top: 18px;
+    border: 0; border-top: 1px solid var(--line); border-radius: 0;
+  }
+  .theme.in-menu span { font: 500 16px/1 var(--sans); }
+}

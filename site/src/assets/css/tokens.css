@@ -1,0 +1,123 @@
+/* The two faces are served from this origin. A third-party font host costs a
+   DNS lookup, a TLS handshake and a render-blocking stylesheet before the
+   first character is drawn. The files carry the latin subset only, which is
+   the range the site writes in. IBM Plex is under the SIL Open Font License;
+   the text is beside the files, in assets/fonts/OFL.txt.
+
+   The addresses are absolute: the build inlines this file into every page, and
+   a relative one would then resolve against the page and not against here. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  /* One variable file covers the three weights the site uses. */
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/assets/fonts/ibm-plex-sans-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/fonts/ibm-plex-mono-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/assets/fonts/ibm-plex-mono-500-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/assets/fonts/ibm-plex-mono-600-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* The theme lives here once. `light-dark()` reads the used `color-scheme`,
+     so the two selectors below switch the scheme and nothing else. */
+  color-scheme: dark;
+
+  --ink: light-dark(#fbfaf9, #0a0d14);
+  --panel: light-dark(#fff, #10141d);
+  --panel-2: light-dark(#f3f1ef, #151a25);
+  --line: light-dark(rgb(16 14 20 / 12%), rgb(255 255 255 / 9%));
+  --line-strong: light-dark(rgb(16 14 20 / 24%), rgb(255 255 255 / 16%));
+  --text: light-dark(#16151a, #eae8e5);
+  --muted: light-dark(#5f5d68, #9694a0);
+  --prose: light-dark(#35333c, #c9c7cf);
+  --glow: light-dark(rgb(255 61 0 / 7%), rgb(255 61 0 / 10%));
+
+  --ember: light-dark(#d93100, #ff3d00);
+  --amber: light-dark(#8a5a05, #ffb35c);
+  --magenta: light-dark(#b52272, #ff5ea8);
+  --cyan: light-dark(#0d7a6e, #45e3d0);
+  --violet: light-dark(#5a3ed6, #8d6bff);
+
+  --ok: light-dark(#0d7a6e, #45e3d0);
+  --soon: light-dark(#8a5a05, #ffb35c);
+
+  /* The code surface. It carries its own line, dim and strong-line tokens,
+     because every rule that draws on it must follow the ground it sits on. */
+  --code-bg: light-dark(#f2f0ed, #10141d);
+  --code-line: light-dark(rgb(16 14 20 / 14%), rgb(255 255 255 / 9%));
+  --code-line-strong: light-dark(rgb(16 14 20 / 30%), rgb(255 255 255 / 24%));
+  --code-text: light-dark(#16151a, #d8d5dd);
+  --code-dim: light-dark(#5c5a66, #82808c);
+
+  /* A LED zone that is off. */
+  --zone-off: light-dark(#e4e1de, #1a1f2b);
+
+  /* Which face of the theme button shows. `light-dark()` carries a color, so
+     the two selectors below carry these four. */
+  --sun: none;
+  --moon: block;
+  --label-light: none;
+  --label-dark: inline;
+
+  /* Accents for a bar or a glow, never for text. They stay vivid in both
+     themes, where --ember and friends darken to stay readable. */
+  --accent-ember: #ff3d00;
+  --accent-ember-hot: #ff6a00;
+  --accent-amber: #ffa000;
+  --accent-cyan: #00c2b5;
+  --accent-violet: #7c5cff;
+  --accent-blue: #2b8cff;
+
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --shell: 1600px;
+  --gutter: clamp(20px, 4.5vw, 80px);
+  --radius: 14px;
+}
+
+/* Two selectors, because "the system says light" and "the reader chose light"
+   are two different questions. Both answer with the scheme and the four
+   display tokens, and nothing else. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --sun: block;
+    --moon: none;
+    --label-light: inline;
+    --label-dark: none;
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --sun: block;
+  --moon: none;
+  --label-light: inline;
+  --label-dark: none;
+}

@@ -1,0 +1,123 @@
+/* `minmax(0, 1fr)`, not the default `auto`: a track that sizes to its content
+   is as wide as the longest command line, and the page then scrolls sideways
+   on a phone. The column fills the shell and a wide code block scrolls inside
+   its own box. */
+.doc-grid {
+  display: grid; gap: 40px; grid-template-columns: minmax(0, 1fr);
+  max-width: var(--shell); margin-inline: auto;
+  padding: clamp(32px, 5vw, 64px) var(--gutter) 96px;
+}
+
+@media (min-width: 1180px) { .doc-grid { grid-template-columns: 220px minmax(0, 1fr) 220px; } }
+
+/* The documentation menu as one control, under 900px. It reads as a select:
+   the page you are on in the closed state, every page and the headings of the
+   current one in the open state. */
+.doc-select { display: none; }
+.doc-select summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 10px;
+  background: var(--panel); cursor: pointer; list-style: none;
+}
+.doc-select summary::-webkit-details-marker { display: none; }
+.doc-select-here { font: 500 15px/1 var(--sans); color: var(--text); }
+.doc-select summary svg { width: 18px; height: 18px; color: var(--muted); transition: transform .15s ease; }
+.doc-select[open] summary { border-radius: 10px 10px 0 0; border-bottom-color: transparent; }
+.doc-select[open] summary svg { transform: rotate(180deg); }
+.doc-select > ul {
+  list-style: none; margin: 0; padding: 10px 14px 14px; display: grid; gap: 10px;
+  border: 1px solid var(--line-strong); border-top: 0; border-radius: 0 0 10px 10px;
+  background: var(--panel);
+}
+.doc-select a { color: var(--muted); text-decoration: none; font-size: .95rem; }
+.doc-select .on > a { color: var(--ember); font-weight: 600; }
+.doc-select-toc {
+  list-style: none; margin: 8px 0 2px; padding-left: 12px; display: grid; gap: 8px;
+  border-left: 1px solid var(--line); font-size: .9rem;
+}
+.doc-select-toc ul { list-style: none; margin: 6px 0 0; padding-left: 12px; display: grid; gap: 6px; }
+
+.doc-nav ul, .doc-toc ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.doc-nav a, .doc-toc a { color: var(--muted); text-decoration: none; font-size: .95rem; }
+.doc-nav a:hover, .doc-toc a:hover { color: var(--text); }
+.doc-nav a[aria-current] { color: var(--ember); font-weight: 600; }
+.doc-toc { font-size: .9rem; }
+
+@media (min-width: 900px) {
+  .doc-nav, .doc-toc {
+    position: sticky; top: 90px; align-self: start;
+    max-height: calc(100vh - 110px); overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
+    padding-right: 10px;
+  }
+  .doc-nav::-webkit-scrollbar, .doc-toc::-webkit-scrollbar { width: 6px; }
+  .doc-nav::-webkit-scrollbar-thumb, .doc-toc::-webkit-scrollbar-thumb {
+    background: var(--line-strong); border-radius: 3px;
+  }
+}
+
+/* One column: the two menus travel into the select over the article. */
+@media (max-width: 899px) {
+  .doc-select { display: block; }
+  .doc-nav, .doc-toc { display: none; }
+}
+
+/* Too narrow for three columns: the "On this page" menu sits under the
+   documentation menu, and the article takes the second column whole. This
+   block follows the sticky one, because it overrides part of it. */
+@media (min-width: 900px) and (max-width: 1179px) {
+  .doc-grid {
+    grid-template-columns: 240px minmax(0, 1fr);
+    /* The menu keeps its own height; the rest of the column is the "On this
+       page" menu's to travel in. Without this the article, which spans both
+       rows, makes the first row tall and the two stick over each other. */
+    grid-template-rows: auto 1fr;
+  }
+  .doc-nav { grid-column: 1; grid-row: 1; position: static; max-height: none; }
+  .doc-toc { grid-column: 1; grid-row: 2; margin-top: 8px; }
+  .doc-grid .prose { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+.prose { max-width: 78ch; }
+.prose.reference { max-width: none; }
+.prose h1 { font-size: clamp(1.9rem, 1.4rem + 1.8vw, 2.6rem); margin-bottom: .5em; }
+.prose h2 { margin-top: 2em; }
+/* A heading that opens an article carries no space over it either. */
+.prose h2#what-the-hardware-does,
+.prose.reference .ref-group:first-of-type h2 { margin-top: 0; }
+.badge-count { display: inline-flex; gap: 8px; margin-left: 8px; color: var(--muted); }
+.badge-count [aria-hidden] { opacity: .45; }
+.prose h2 .anchor, .prose .anchor { text-decoration: none; }
+.prose h3 { margin-top: 1.8em; }
+.prose p, .prose li { color: var(--prose); }
+.prose ul, .prose ol { padding-left: 1.2em; }
+.prose li { margin-bottom: .5em; }
+.prose code { background: var(--panel-2); border: 1px solid var(--line); padding: 2px 6px; border-radius: 5px; }
+.prose pre {
+  background: var(--code-bg); border: 1px solid var(--code-line);
+  border-radius: var(--radius); padding: 16px 18px; overflow-x: auto;
+  color: var(--code-text); line-height: 1.7;
+}
+.prose pre code { background: none; border: 0; padding: 0; }
+/* A terminal keeps its own frame inside prose. The frame is a `div`, so it
+   carries the space a `pre` would have of its own. */
+.prose .terminal { margin-block: 1.4em; }
+.prose .terminal pre { background: none; border: 0; border-radius: 0; padding: 0; }
+/* A heading can carry a state badge. It rides beside the words, not under. */
+.prose h2 .state {
+  display: inline-block; vertical-align: middle;
+  margin-left: 14px; transform: translateY(-2px);
+}
+.prose table { width: 100%; border-collapse: collapse; margin: 1.6em 0; font-size: .95rem; display: block; overflow-x: auto; }
+/* The command tables of the three modes hold the same two columns, so they
+   carry one column width and fill the article. `display: block` scrolls a
+   wide table but lets a narrow one shrink, so these lay out as tables and
+   wrap instead. */
+.is-device .prose table { display: table; table-layout: fixed; }
+.is-device .prose th, .is-device .prose td { overflow-wrap: break-word; }
+.is-device .prose th:first-child, .is-device .prose td:first-child { width: 38%; }
+.prose th, .prose td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.prose th { font: 500 12px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.prose td { color: var(--prose); }
+.prose blockquote { margin: 1.6em 0; padding-left: 18px; border-left: 2px solid var(--amber); color: var(--muted); }

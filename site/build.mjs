@@ -1,40 +1,27 @@
-// Builds the static site into `dist/`. See `README.md` for the inputs.
+// Builds the static site into `dist/`. See `README.md` for the inputs, and
+// `lib/config.mjs` for the address of the site.
 //
 // The catalog comes from the device files through `cargo run -p xtask --
 // catalog`. The site never restates a device fact that the YAML carries.
 
-import { cp, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
-import { createReadStream, existsSync, statSync, watch } from "node:fs";
-import { createServer } from "node:http";
-import { dirname, extname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { Marked } from "marked";
-import { transform } from "esbuild";
+import { cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { existsSync, watch } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { assets } from "./lib/assets.mjs";
+import { CATALOG_SCHEMA, DESCRIPTION, SITE_URL, base, catalogPath, dist, repo, repoUrl, root } from "./lib/config.mjs";
+import { docPage, readDocs } from "./lib/content.mjs";
+import { devicePage, renderIndex, sorted } from "./lib/devices.mjs";
+import { navItem } from "./lib/docs.mjs";
+import { fill } from "./lib/html.mjs";
+import { modeBadges } from "./lib/mode-badge.mjs";
+import { REFERENCE, referencePage } from "./lib/reference.mjs";
+import { breadcrumb, deviceData, faqData, homeData, jsonLd, robots, sitemapXml } from "./lib/seo.mjs";
+import { serve } from "./lib/serve.mjs";
 
-import { escapeAttr, escapeHtml, fill, inline, slugify } from "./lib/html.mjs";
-import { docShell, navItem } from "./lib/docs.mjs";
-import { highlight } from "./lib/code.mjs";
-import { MODES, devicePage, renderIndex, sorted } from "./lib/devices.mjs";
-import { modeBadge } from "./lib/mode-badge.mjs";
-
-const root = dirname(fileURLToPath(import.meta.url));
-const repo = resolve(root, "..");
-const dist = join(root, "dist");
 // Staging, so that a reload during a rebuild reaches the old site or the new
 // one and never a half-written directory. The process id keeps a manual build
 // from deleting the staging directory of a running `npm run dev`.
 const out = join(root, `.dist-build-${process.pid}`);
-
-// The absolute form is for the canonical, the sitemap and the preview image,
-// which a machine reads outside of a page. Every link in a page is
-// root-relative. `public/CNAME` carries the same domain.
-const SITE_URL = "https://gvetk.com";
-const base = "/";
-const repoUrl = "https://github.com/damient/govee-toolkit";
-const catalogPath = join(repo, "dist/catalog.json");
-const CATALOG_SCHEMA = 1;
-
-const DESCRIPTION = "An unofficial toolkit that controls Govee lights over your own network, from Rust, Python, Node.js or the command line.";
 
 const pages = [
   { src: "index.html", url: "", nav: "home", title: null, klass: "is-home" },
@@ -48,29 +35,19 @@ const pages = [
   },
 ];
 
-const REFERENCE = { url: "reference/", title: "Reference", order: 4 };
-
 const FOOT_SKIP = new Set(["docs/configure/", "docs/troubleshooting/"]);
-
-// `planned` marks a package that has no code yet: the pane says so over the
-// example.
-const LANGUAGES = [
-  { id: "cli", label: "Command line" },
-  { id: "rust", label: "Rust" },
-  { id: "python", label: "Python", planned: true },
-  { id: "node", label: "Node.js", planned: true },
-];
 
 async function main() {
   const catalog = await readCatalog();
   await rm(out, { recursive: true, force: true });
   await mkdir(out, { recursive: true });
 
-  // `assets()` writes both, so neither source is copied here.
-  const skip = join(root, "src/assets/css");
+  // `assets()` bundles the stylesheet and the script, so neither source
+  // directory is copied: only the bundle reaches the site.
+  const skip = [join(root, "src/assets/css"), join(root, "src/assets/js")];
   const copy = {
     recursive: true,
-    filter: (path) => !path.endsWith(".DS_Store") && !path.startsWith(skip),
+    filter: (path) => !path.endsWith(".DS_Store") && !skip.some((dir) => path.startsWith(dir)),
   };
   await cp(join(root, "src/assets"), join(out, "assets"), copy);
   if (existsSync(join(root, "public"))) {
@@ -79,7 +56,7 @@ async function main() {
 
   const [, css, layout, docs, reference] = await Promise.all([
     writeFile(join(out, ".nojekyll"), ""),
-    assets(),
+    assets(out),
     readFile(join(root, "src/layout.html"), "utf8"),
     readDocs(),
     readFile(join(root, "content/reference.json"), "utf8").then(JSON.parse),
@@ -161,20 +138,6 @@ async function main() {
   console.log(`${clock}  site -> ${relative(repo, dist)} (${sitemap.length} pages, ${devices.length} devices)`);
 }
 
-async function assets() {
-  const [source, script] = await Promise.all([
-    readFile(join(root, "src/assets/css/site.css"), "utf8"),
-    readFile(join(root, "src/assets/js/site.js"), "utf8"),
-  ]);
-  const [css, min] = await Promise.all([
-    transform(source, { loader: "css", minify: true }),
-    transform(script, { loader: "js", minify: true, target: "es2022" }),
-  ]);
-  await mkdir(join(out, "assets/js"), { recursive: true });
-  await writeFile(join(out, "assets/js/site.js"), min.code);
-  return css.code;
-}
-
 // Two renames, so that `dist/` is missing for microseconds instead of for the
 // length of a build.
 async function publish() {
@@ -216,13 +179,6 @@ async function emit(layout, page, ctx) {
   return page.noindex ? null : canonical;
 }
 
-// `{{badge_lan}}` and friends, so a static page names a mode with the same
-// component the model pages use.
-function modeBadges() {
-  return Object.fromEntries(MODES.map((m) => [`badge_${m}`, modeBadge(m)]));
-}
-
-
 // The reference page sits inside the documentation, so it marks Docs while the
 // reader is on it.
 function topNav(current, docsHome) {
@@ -237,248 +193,6 @@ function topNav(current, docsHome) {
       return `<a href="${base}${url}"${on}>${label}</a>`;
     })
     .join("\n        ");
-}
-
-function jsonLd(blocks) {
-  if (!blocks?.length) return "";
-  return blocks
-    .map((block) => `<script type="application/ld+json">${JSON.stringify(block)}</script>`)
-    .join("\n");
-}
-
-function homeData() {
-  return [
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      name: "Govee Toolkit",
-      url: `${SITE_URL}${base}`,
-      description: DESCRIPTION,
-      inLanguage: "en",
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareSourceCode",
-      name: "govee-toolkit",
-      description: DESCRIPTION,
-      codeRepository: repoUrl,
-      programmingLanguage: ["Rust", "Python", "JavaScript"],
-      license: "https://opensource.org/licenses/MIT",
-      url: `${SITE_URL}${base}`,
-    },
-  ];
-}
-
-function breadcrumb(trail) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [["Home", ""], ...trail].map(([name, url], index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name,
-      item: `${SITE_URL}${base}${url}`,
-    })),
-  };
-}
-
-function deviceData(device, page) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "TechArticle",
-    headline: page.title,
-    description: page.description,
-    url: `${SITE_URL}${base}${page.url}`,
-    inLanguage: "en",
-    isPartOf: { "@type": "WebSite", name: "Govee Toolkit", url: `${SITE_URL}${base}` },
-    ...(device.verified?.date ? { dateModified: device.verified.date } : {}),
-  };
-}
-
-// A page that declares no `faq` in its front matter gets none.
-function faqData(doc) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: doc.sections.map((section) => ({
-      "@type": "Question",
-      name: section.title,
-      acceptedAnswer: { "@type": "Answer", text: section.answer },
-    })),
-  };
-}
-
-function robots() {
-  return `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}${base}sitemap.xml\n`;
-}
-
-// No `lastmod`: the build date is the date of the build and not the date the
-// page changed, and a wrong one is worse than none.
-function sitemapXml(sitemap) {
-  const urls = sitemap
-    .map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`)
-    .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls}
-</urlset>
-`;
-}
-
-async function readDocs() {
-  const dir = join(root, "content/docs");
-  const files = (await readdir(dir)).filter((f) => f.endsWith(".md"));
-  const raw = await Promise.all(files.map((f) => readFile(join(dir, f), "utf8")));
-  const docs = files.map((file, at) => renderDoc(file, raw[at]));
-  return docs.sort((a, b) => a.order - b.order);
-}
-
-function renderDoc(file, raw) {
-  const { meta, body } = frontMatter(raw);
-  // The heading renderer fills this: the id it writes into the anchor is the
-  // id the table of contents links to, derived once.
-  const headings = [];
-  const md = new Marked({ async: false });
-  md.use({
-    renderer: {
-      code({ text, lang }) {
-        const name = (lang ?? "").trim().split(/\s+/)[0];
-        return `<pre><code>${highlight(text, name)}</code></pre>\n`;
-      },
-      heading({ depth, tokens }) {
-        const inner = this.parser.parseInline(tokens);
-        if (depth !== 2) return `<h${depth}>${inner}</h${depth}>\n`;
-        const label = headingLabel(tokens);
-        const id = slugify(label);
-        headings.push({ id, text: label });
-        return `<h2 id="${escapeAttr(id)}"><a class="anchor" href="#${escapeAttr(id)}">${inner}</a></h2>\n`;
-      },
-    },
-  });
-  const html = md.parse(fill(body, { base, repo: repoUrl, ...modeBadges() }));
-  return {
-    slug: meta.slug ?? file.replace(/\.md$/, ""),
-    title: meta.title ?? file,
-    description: meta.description ?? "",
-    order: Number(meta.order ?? 99),
-    faq: meta.faq === "true",
-    headings,
-    html,
-    sections: sections(html, headings),
-  };
-}
-
-// The heading is the question, so the answer must not repeat it: the cut
-// starts after the `</h2>`.
-function sections(html, headings) {
-  const parts = html.split(/<h2 id="[^"]*">/).slice(1);
-  return headings.map((heading, index) => {
-    const part = parts[index] ?? "";
-    const close = part.indexOf("</h2>");
-    return {
-      title: heading.text,
-      answer: text(close === -1 ? part : part.slice(close + 5)),
-    };
-  });
-}
-
-function text(html) {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&#39;|&quot;/g, '"')
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// A heading can end with inline HTML, a state badge for one. The anchor and
-// the table of contents take what stands before it.
-function headingLabel(tokens = []) {
-  const words = [];
-  for (const token of tokens) {
-    if (token.type === "html") break;
-    words.push(token.text ?? token.raw ?? "");
-  }
-  return words.join("").trim();
-}
-
-function frontMatter(raw) {
-  const match = raw.match(/^---\n([\s\S]*?)\n---\n?/);
-  if (!match) return { meta: {}, body: raw };
-  const meta = {};
-  for (const line of match[1].split("\n")) {
-    const at = line.indexOf(":");
-    if (at > 0) meta[line.slice(0, at).trim()] = line.slice(at + 1).trim();
-  }
-  return { meta, body: raw.slice(match[0].length) };
-}
-
-function docPage(doc, nav) {
-  return docShell({
-    base,
-    nav,
-    current: `docs/${doc.slug}/`,
-    toc: doc.headings.map((h) => ({ id: h.id, text: h.text })),
-    body: doc.html,
-  });
-}
-
-function referencePage(reference, nav) {
-  const toc = reference.groups.map((group) => ({
-    id: group.id,
-    text: group.title,
-    children: group.entries.map((entry) => ({ id: entry.id, text: entry.title, code: true })),
-  }));
-
-  return docShell({
-    base,
-    nav,
-    current: REFERENCE.url,
-    toc,
-    klass: "reference",
-    body: `<h1>Reference</h1>
-        <p class="lede">${escapeHtml(reference.intro)}</p>
-${reference.groups.map(referenceGroup).join("\n")}`,
-  });
-}
-
-function referenceGroup(group) {
-  const entries = group.entries.map(referenceEntry).join("\n");
-  return `        <section class="ref-group">
-          <h2 id="${escapeAttr(group.id)}"><a class="anchor" href="#${escapeAttr(group.id)}">${escapeHtml(group.title)}</a></h2>
-${entries}
-        </section>`;
-}
-
-// Each tab names the panel it controls, and each panel names its tab, so a
-// screen reader on a panel tells the reader which language it is.
-function referenceEntry(entry) {
-  const available = LANGUAGES.filter((lang) => entry.examples[lang.id]);
-  const id = (lang) => `${entry.id}-${lang.id}`;
-  const tabs = available
-    .map((lang, index) => `<button type="button" role="tab" id="tab-${id(lang)}" aria-controls="pane-${id(lang)}" data-lang="${lang.id}" aria-selected="${index === 0}" tabindex="${index === 0 ? "0" : "-1"}">${lang.label}</button>`)
-    .join("");
-  const panes = available
-    .map((lang, index) => {
-      const planned = lang.planned
-        ? `<p class="planned">Planned — the shape it will have.</p>`
-        : "";
-      const source = entry.examples[lang.id];
-      return `<div class="pane" role="tabpanel" id="pane-${id(lang)}" aria-labelledby="tab-${id(lang)}" tabindex="0" data-lang="${lang.id}"${index === 0 ? "" : " hidden"}>${planned}<pre><code>${highlight(source, lang.id)}</code></pre><button class="copy" type="button" data-copy="${escapeAttr(source)}">Copy</button></div>`;
-    })
-    .join("\n              ");
-  const detail = entry.detail ? `<p>${inline(entry.detail)}</p>` : "";
-  return `          <article class="ref-entry" id="${escapeAttr(entry.id)}">
-            <div class="ref-text">
-              <h3><a class="anchor" href="#${entry.id}"><code>${escapeHtml(entry.title)}</code></a></h3>
-              <p class="summary">${escapeHtml(entry.summary)}</p>
-              ${detail}
-            </div>
-            <div class="langs" data-langs>
-              <div class="tabs" role="tablist" aria-label="Language">${tabs}</div>
-              ${panes}
-            </div>
-          </article>`;
 }
 
 async function readCatalog() {
@@ -500,55 +214,6 @@ async function readCatalog() {
     process.exit(1);
   }
   return catalog;
-}
-
-const TYPES = {
-  ".html": "text/html; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".woff2": "font/woff2",
-  ".json": "application/json",
-  ".xml": "application/xml",
-  ".txt": "text/plain; charset=utf-8",
-};
-
-function serve() {
-  const port = Number(process.env.PORT ?? 8787);
-  createServer((request, response) => {
-    const path = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-    let file = join(dist, path);
-    if (!file.startsWith(dist)) return send(response, 403, "Forbidden");
-    if (existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
-    let ext = extname(file);
-    if (!existsSync(file)) {
-      file = join(dist, "404.html");
-      if (!existsSync(file)) return send(response, 404, "Not found");
-      // A missing stylesheet must fail as a stylesheet, not arrive as HTML
-      // the browser parses.
-      ext = ".html";
-      response.statusCode = 404;
-    }
-    response.setHeader("Content-Type", TYPES[ext] ?? "application/octet-stream");
-    response.setHeader("Cache-Control", "no-store");
-    createReadStream(file).pipe(response);
-  })
-    // Without this, a port already taken raises an unhandled error event, and
-    // a reader takes the stack trace for a watcher that does not work.
-    .on("error", (error) => {
-      if (error.code !== "EADDRINUSE") throw error;
-      console.error(`port ${port} is taken. Another server already serves the site.`);
-      console.error(`Stop it with: kill $(lsof -ti :${port} -sTCP:LISTEN)`);
-      console.error(`Or serve on another port: PORT=8788 npm run dev`);
-      process.exit(1);
-    })
-    .listen(port, () => console.log(`http://localhost:${port}`));
-}
-
-function send(response, code, body) {
-  response.statusCode = code;
-  response.end(body);
 }
 
 await main();

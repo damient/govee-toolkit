@@ -1,0 +1,62 @@
+.hero { position: relative; padding-block: clamp(64px, 10vw, 120px) clamp(40px, 5.5vw, 72px); overflow: hidden; }
+.hero::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 70% at 50% -10%, var(--glow), transparent 62%);
+}
+.hero .shell {
+  position: relative; z-index: 1;
+  display: grid; gap: clamp(36px, 5vw, 72px); align-items: center;
+}
+
+@media (min-width: 1000px) {
+  .hero .shell { grid-template-columns: minmax(0, 1fr) minmax(380px, 0.8fr); }
+}
+.hero-text { min-width: 0; }
+.hero h1 { margin-bottom: .5em; max-width: 15ch; }
+.hero .lede { margin-bottom: 2.4em; }
+.hero-terminal { padding: 22px 24px; }
+.hero-terminal code { font-size: .95em; }
+.dim { color: var(--code-dim); }
+
+/* The rope: one row of zones, the object the toolkit addresses. It hangs
+   under the top bar, so it follows the reader on every page. */
+.rope {
+  position: absolute; bottom: -3px; left: 0; right: 0; height: 3px;
+  display: flex; gap: 2px; opacity: .95; pointer-events: none;
+}
+.rope i {
+  flex: 1; height: 100%; display: block; border-radius: 2px;
+  background: var(--zone, #222);
+  /* The light falls on the page, not on the bar above it: every shadow
+     carries a vertical offset larger than its spread. */
+  box-shadow:
+    0 7px 12px -3px var(--zone, transparent),
+    0 16px 44px 0 var(--zone, transparent);
+  transition: background .9s linear, box-shadow .9s linear;
+}
+
+.cta-links { display: flex; flex-wrap: wrap; gap: 12px; }
+.cta-links .btn { padding: 16px 28px; font-size: 17px; border-radius: 12px; }
+/* One under the other on a phone, each across the column. */
+@media (max-width: 560px) {
+  .cta-links { flex-direction: column; align-items: stretch; }
+  .cta-links .btn { text-align: center; }
+}
+.btn {
+  display: inline-block; padding: 12px 20px; border-radius: 10px;
+  font: 500 15px/1 var(--sans); text-decoration: none;
+  background: var(--ember); color: var(--ink);
+  border: 1px solid transparent;
+  transition: background .18s ease, box-shadow .18s ease;
+}
+/* The button lights up under the pointer, the way the subject does. */
+.btn:hover {
+  background: var(--accent-ember-hot);
+  box-shadow:
+    0 4px 18px -2px color-mix(in oklab, var(--accent-ember-hot) 70%, transparent),
+    0 0 42px 2px color-mix(in oklab, var(--accent-ember-hot) 40%, transparent);
+}
+.btn.ghost { background: transparent; color: var(--text); border-color: var(--line-strong); }
+.btn.ghost:hover { border-color: var(--text); background: transparent; box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }

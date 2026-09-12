@@ -1,0 +1,47 @@
+.ref-group { margin-bottom: 24px; }
+
+/* The text and the code sit side by side only when the column that holds them
+   is wide enough. The viewport says nothing useful here: two menus stand
+   between it and this column. */
+.prose.reference { container-type: inline-size; }
+
+.ref-entry {
+  display: grid; gap: 20px; align-items: start;
+  margin-top: 28px; padding-bottom: 28px;
+}
+
+@container (min-width: 820px) {
+  .ref-entry { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 28px; }
+}
+.ref-text { min-width: 0; }
+.ref-entry h3 { margin: 0 0 .5em; font-size: 1.05rem; }
+.ref-entry h3 code {
+  background: var(--panel-2); border: 1px solid var(--line);
+  padding: 4px 9px; border-radius: 7px; font-size: 1em;
+}
+.ref-entry .summary { color: var(--text); margin-bottom: .6em; }
+.ref-entry p { color: var(--prose); font-size: .95rem; margin-bottom: 0; }
+.ref-entry p + p { margin-top: .8em; }
+.ref-entry code { font-size: .9em; }
+
+.langs { min-width: 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.tabs button {
+  display: flex; align-items: center; gap: 7px;
+  font: 500 12px/1 var(--mono); color: var(--muted); cursor: pointer;
+  background: transparent; border: 1px solid transparent; border-radius: 7px;
+  padding: 7px 11px;
+}
+.tabs button:hover { color: var(--text); }
+.tabs button[aria-selected="true"] {
+  color: var(--text); background: var(--panel-2); border-color: var(--line);
+}
+.pane { position: relative; }
+.pane pre {
+  margin: 0; background: var(--code-bg); border: 1px solid var(--code-line);
+  border-radius: var(--radius);
+  padding: 16px 52px 16px 18px; overflow-x: auto; color: var(--code-text); line-height: 1.7;
+}
+.pane .planned {
+  font: 400 12px/1.5 var(--mono); color: var(--muted); margin: 0 0 8px;
+}

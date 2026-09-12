@@ -1,0 +1,55 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Every anchor lands 90px under the top bar. This is the one offset: a
+   `scroll-margin-top` on a target adds to it, and the target then stops
+   below the line that `spy()` in `site.js` reads. */
+html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font: 400 17px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 { font-weight: 600; letter-spacing: -0.022em; line-height: 1.1; margin: 0 0 .6em; }
+h1 { font-size: clamp(2.2rem, 1.2rem + 3.6vw, 4rem); }
+h2 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.9rem); }
+h3 { font-size: 1.15rem; }
+p { margin: 0 0 1em; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
+a:hover { text-decoration-color: currentColor; }
+code, pre, kbd { font-family: var(--mono); font-size: .92em; }
+/* The faces carry no 700: name the weight that exists rather than let the
+   browser draw a synthetic bold. */
+strong, b { font-weight: 600; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
+img, svg { max-width: 100%; }
+
+.shell { width: 100%; max-width: var(--shell); margin-inline: auto; padding-inline: var(--gutter); }
+.shell.narrow { max-width: 760px; }
+.slab { padding-block: clamp(40px, 5.5vw, 72px); }
+.slab.tight { padding-top: clamp(16px, 2.2vw, 28px); }
+.eyebrow {
+  font: 500 12px/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1.4em;
+}
+.lede { font-size: clamp(1.05rem, 1rem + .4vw, 1.28rem); color: var(--prose); max-width: 62ch; }
+.note { color: var(--muted); font-size: .95rem; max-width: 68ch; }
+.big { font-size: clamp(1.7rem, 1.2rem + 2vw, 2.7rem); }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+.skip {
+  position: absolute; left: -9999px; top: 8px; z-index: 20;
+  background: var(--panel-2); padding: 10px 16px; border-radius: 8px;
+}
+.skip:focus { left: 16px; }
