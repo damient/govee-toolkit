@@ -3,11 +3,10 @@
 // names a model or a command: a renderer that did would disagree with the
 // device files the day one of them changes.
 
+import { MODES } from "./config.mjs";
 import { escapeAttr, escapeHtml, fill } from "./html.mjs";
 import { icon } from "./icons.mjs";
 import { modeBadge } from "./mode-badge.mjs";
-
-export const MODES = ["lan", "ble", "cloud"];
 
 // The order a reader looks for, not the order the catalog holds.
 const CAPS = [

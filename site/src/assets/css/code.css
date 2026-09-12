@@ -1,0 +1,50 @@
+.terminal {
+  position: relative; background: var(--code-bg); border: 1px solid var(--code-line);
+  border-radius: var(--radius); padding: 16px 18px; min-width: min(100%, 360px);
+}
+.terminal .bar { display: flex; gap: 6px; margin-bottom: 12px; }
+.terminal .bar span { width: 9px; height: 9px; border-radius: 50%; background: var(--code-line-strong); }
+.terminal pre { margin: 0; overflow-x: auto; }
+.terminal code { color: var(--code-text); line-height: 1.75; }
+.prompt { color: var(--ember); user-select: none; }
+/* One icon button, wherever a block of code can be copied. `copy()` in
+   `site.js` fills it: without the script there is nothing to press. */
+.copy {
+  position: absolute; top: 10px; right: 10px;
+  display: grid; place-items: center; width: 30px; height: 30px;
+  color: var(--code-dim); background: var(--code-bg);
+  border: 1px solid var(--code-line); border-radius: 8px; padding: 0; cursor: pointer;
+}
+.copy svg { width: 15px; height: 15px; }
+.copy:hover { color: var(--code-text); border-color: var(--code-line-strong); }
+.copy[data-state="done"] { color: var(--ok); border-color: color-mix(in oklab, var(--ok) 45%, transparent); }
+.copy[data-state="failed"] { color: var(--ember); border-color: color-mix(in oklab, var(--ember) 45%, transparent); }
+
+/* Syntax colour. The classes arrive from the build, so the page carries no
+   highlighter of its own. Both themes follow the same tokens. */
+.hljs-comment, .hljs-quote { color: var(--code-dim); font-style: italic; }
+.hljs-keyword, .hljs-literal, .hljs-type, .hljs-variable.language_ { color: var(--violet); }
+.hljs-string, .hljs-regexp { color: var(--cyan); }
+.hljs-number { color: var(--amber); }
+.hljs-title, .hljs-title.class_, .hljs-title.function_ { color: var(--magenta); }
+.hljs-built_in, .hljs-meta { color: var(--ember); }
+.hljs-attr, .hljs-property, .hljs-params, .hljs-variable { color: var(--code-text); }
+
+/* --- Interactive strip -------------------------------------------------- */
+
+.strip-demo .strip {
+  display: flex; gap: 3px; height: 74px; margin: 2.2em 0 0;
+  border-radius: 10px; padding: 0;
+}
+.strip b {
+  flex: 1; border-radius: 6px; background: var(--zone, var(--zone-off));
+  box-shadow: 0 0 0 0 transparent;
+  transition: background .25s ease, box-shadow .25s ease;
+}
+.strip b[data-lit] { box-shadow: 0 0 18px 1px var(--zone), 0 10px 40px 0 var(--zone); }
+
+.strip-points { list-style: none; margin: 2.6em 0 0; padding: 0; display: grid; gap: 28px; }
+
+@media (min-width: 760px) { .strip-points { grid-template-columns: repeat(3, 1fr); gap: 36px; } }
+.strip-points h3 { margin: 0 0 .35em; font-size: 1.05rem; }
+.strip-points p { color: var(--muted); font-size: .95rem; margin: 0; max-width: 40ch; }

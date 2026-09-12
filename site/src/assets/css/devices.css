@@ -1,0 +1,115 @@
+.toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 1.6em; }
+.search { flex: 1 1 380px; max-width: 460px; }
+.search input {
+  width: 100%; padding: 11px 14px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  font: 400 15px/1 var(--sans);
+}
+.search input::placeholder { color: var(--muted); }
+.toolbar .note { margin: 0; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+.matrix { width: 100%; border-collapse: collapse; font-size: .95rem; min-width: 640px; }
+.matrix th, .matrix td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+.matrix thead th { font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.matrix tbody tr:last-child th, .matrix tbody tr:last-child td { border-bottom: 0; }
+.matrix tbody tr { cursor: pointer; }
+.matrix tbody tr:hover { background: var(--panel); }
+.matrix tbody tr:hover th[scope="row"] a { color: var(--ember); }
+.matrix th[scope="row"] { font-family: var(--mono); font-weight: 500; }
+/* The three mode columns hold one mark each: centered, they read as a row of
+   answers rather than as three ragged columns. */
+.matrix th:nth-child(n + 3), .matrix td:nth-child(n + 3) { text-align: center; }
+.matrix thead th:nth-child(n + 3) .mbadge { display: inline-flex; }
+
+.pill {
+  display: inline-block; font: 500 11px/1 var(--mono); letter-spacing: .06em;
+  padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted);
+}
+.pill-full { color: var(--cyan); border-color: color-mix(in oklab, var(--cyan) 45%, transparent); }
+.pill-partial { color: var(--amber); border-color: color-mix(in oklab, var(--amber) 45%, transparent); }
+.pill-unknown { color: var(--muted); border-style: dashed; }
+
+/* --- One model, one page ------------------------------------------------ */
+
+.crumbs { font: 500 13px/1 var(--mono); color: var(--muted); margin-bottom: 1.6em; }
+.crumbs a { color: var(--muted); }
+.crumbs a:hover { color: var(--text); }
+
+.pagehead h1 { font-family: var(--mono); }
+.mode-line { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin: 0; }
+/* The verification badges close the row, so they carry a wider gap in front. */
+.mode-line .badge:first-of-type { margin-left: clamp(6px, 2vw, 22px); }
+/* The same box as `.mbadge`, so the two sit on one line without a step. */
+.badge {
+  display: inline-flex; align-items: center; font: 500 12px/1 var(--mono);
+  letter-spacing: .04em; padding: 5px 11px 5px 9px; border-radius: 999px;
+  border: 1px solid var(--line-strong); color: var(--muted);
+}
+.badge-ok { color: var(--cyan); border-color: color-mix(in oklab, var(--cyan) 45%, transparent); }
+.badge-icon { width: 14px; height: 14px; flex: none; margin-right: 7px; }
+
+/* The mode badge. One component wherever a mode is named: the icon and the
+   tint carry the mode, and the word beside the name says what it reaches
+   over. The tints are built from one accent each, so a theme change moves
+   them together. */
+.mbadge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 11px 5px 9px; border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--tint) 40%, transparent);
+  background: color-mix(in oklab, var(--tint) 12%, transparent);
+  color: var(--tint); font: 500 12px/1 var(--mono); letter-spacing: .04em;
+  /* Its own case and weight, inside a heading or a column head. */
+  text-transform: none;
+}
+.mbadge .mode-icon { width: 14px; height: 14px; flex: none; }
+.mbadge-extra { display: inline-flex; gap: 7px; color: var(--muted); }
+.mbadge-extra [aria-hidden] { color: color-mix(in oklab, var(--tint) 45%, transparent); }
+/* The three accents of the footer dots, in the same order. */
+.mbadge-lan { --tint: var(--accent-ember); }
+.mbadge-ble { --tint: var(--accent-cyan); }
+.mbadge-cloud { --tint: var(--accent-violet); }
+.badge-unknown { border-style: dashed; }
+
+/* The command column holds identifiers. The head of a column is a label and
+   is set in capitals; a command name is not, and `dreamview_enable` reaches
+   the device in the case the device file writes. */
+.prose th[scope="row"] {
+  text-transform: none; letter-spacing: normal;
+  font: 400 .95rem/1.5 var(--sans); color: var(--text);
+}
+
+/* A measured value can be one number, or a table of numbers per zone count.
+   One rule draws every depth. *//* A model page holds tables and chip rows, not running text: it fills the
+   shell, like the model index. `--shell` is the one width every page uses. */
+.is-device .prose { max-width: none; }
+.is-device .prose h3 { display: flex; align-items: center; gap: 10px; }
+.is-device .prose .caps { margin-bottom: 1.2em; }
+.muted { color: var(--muted); }
+
+
+.legend { display: grid; gap: 10px; margin-top: 1.6em; }
+.legend > div { display: flex; gap: 12px; align-items: baseline; }
+.legend dt { min-width: 84px; }
+.legend dd { margin: 0; color: var(--muted); font-size: .95rem; }
+
+.caps { list-style: none; margin: 0 0 1.2em; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.caps li {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: 400 12px/1 var(--mono); padding: 6px 9px; border-radius: 6px;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--prose);
+}
+.cap-icon { width: 14px; height: 14px; flex: none; color: var(--muted); }
+/* One color per capability, so a reader finds the same icon by its color in
+   the mode lists below. */
+.cap-icon[data-cap="power"] { color: var(--ember); }
+.cap-icon[data-cap="color"] { color: var(--magenta); }
+.cap-icon[data-cap="colortemp"] { color: var(--cyan); }
+.cap-icon[data-cap="brightness"] { color: var(--amber); }
+.cap-icon[data-cap="music"] { color: var(--violet); }
+.cap-icon[data-cap="segments"] { color: var(--cyan); }
+.cap-icon[data-cap="segment_brightness"] { color: var(--amber); }
+/* `.prose ul` indents a list; a chip row is not one. */
+.prose .caps { padding-left: 0; gap: 8px; }
+.caps-lg li { font-size: 14px; padding: 10px 14px; border-radius: 8px; gap: 9px; }
+.caps-lg .cap-icon { width: 17px; height: 17px; }

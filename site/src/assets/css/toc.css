@@ -1,0 +1,18 @@
+/* The menu every page shares. It carries one level or two: a flat page names
+   its sections, and the reference names a group and the entries under it. */
+.sub { margin: 10px 0 4px; padding-left: 0; border-left: 1px solid var(--line); }
+.sub > li { padding-left: 12px; }
+/* A group names a section of the page, so it reads like the section a flat
+   menu names: the same face and the same size. The entries under it are the
+   level below, and their monospace face is what separates the two. */
+.sub .sub-group > a { display: block; margin: 12px 0 8px; }
+.sub ul { gap: 6px; }
+.sub a[aria-current] { color: var(--text); }
+.sub a[aria-current] code {
+  background: var(--panel-2); border: 1px solid var(--line);
+  padding: 2px 6px; border-radius: 5px;
+}
+/* A top-level entry marks the reader's place the way the menu beside it
+   does: the entry style alone is too quiet for it. */
+.sub > li > a[aria-current] { color: var(--ember); font-weight: 600; }
+.sub code { font-size: .85em; }
