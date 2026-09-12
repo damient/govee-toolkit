@@ -1,6 +1,6 @@
 # Website
 
-The site published at <https://damient.github.io/govee-toolkit/>.
+The site published at <https://gvetk.com>.
 
 Plain HTML, CSS and JavaScript. No framework. A build script assembles the
 pages so that the header, the footer and the device tables exist once.
@@ -12,10 +12,12 @@ pages so that the header, the footer and the device tables exist once.
 | `src/layout.html` | The shell of every page. |
 | `src/pages/*.html` | The hand-written pages: home and devices. |
 | `content/reference.json` | The reference page: one entry per command, with an example in each language. |
-| `src/assets/` | CSS, JavaScript and the icon. Copied as they are. |
+| `src/assets/` | CSS, JavaScript, the fonts and the images. |
+| `lib/*.mjs` | The renderers the build calls. |
 | `content/docs/*.md` | The documentation pages. One file, one page. |
 | `public/` | Anything that must land at the root of the site, such as `CNAME`. |
 | `build.mjs` | The build. |
+| `tools/og.svg` | The source of the social preview image. |
 | `dist/` | The output. It is not committed. |
 
 ## Build
@@ -35,9 +37,9 @@ Then `npm run dev` to work on it:
 npm run dev     # http://localhost:8787
 ```
 
-It builds with the base path at `/`, serves `dist/`, and rebuilds on every
-change under `src/` and `content/`. Reload the page to see the change. `PORT`
-selects another port. `npm run serve` serves without the watch.
+It serves `dist/` and rebuilds on every change under `src/`, `content/` and
+`lib/`. Reload the page to see the change. `PORT` selects another port.
+`npm run serve` serves without the watch.
 
 ## Write a documentation page
 
@@ -108,11 +110,34 @@ right, and the theme control moves into that panel. Every rule of the folded
 state is scoped to `[data-menu]`, an attribute that JavaScript sets: with
 JavaScript blocked the links stay on the page.
 
-## The base path
+## What a machine reads
 
-A project page lives under `/govee-toolkit/`. Every link passes through
-`{{base}}` for that reason. A custom domain makes the base `/`: put the domain
-in `public/CNAME` and set `BASE=/` in the workflow.
+`build.mjs` writes `robots.txt` and `sitemap.xml`, and every page carries a
+canonical address, an Open Graph block and a JSON-LD block. The absolute form
+comes from `SITE_URL` at the top of `build.mjs`, and the domain is also in
+`public/CNAME`. Change both together.
+
+The 404 page carries `noindex` and stays out of the sitemap.
+
+## The fonts and the images
+
+The two faces are served from this origin, under `src/assets/fonts/`. They
+carry the latin subset, which is the range the site writes in. IBM Plex is
+under the SIL Open Font License and the text sits beside the files.
+
+`tools/og.svg` is the social preview image. Its text is outlines, so it needs
+no font installed. Render the PNG the pages point at after a change:
+
+```bash
+rsvg-convert -w 1200 -h 630 -f png -o src/assets/og.png tools/og.svg
+```
+
+## The stylesheet
+
+`npm run build` minifies `src/assets/css/site.css` and inlines it into every
+page: the whole site is one small file, and an external one costs a round trip
+before the first paint. `src/assets/js/site.js` stays a file — it is deferred,
+and a second page reads it from the cache.
 
 ## Rules the site follows
 
