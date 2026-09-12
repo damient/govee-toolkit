@@ -3,7 +3,7 @@
 //! Nothing acknowledges the transfer, so a refused one looks like an accepted
 //! one here. The report says what was sent, never that the device joined.
 
-use govee_toolkit::{DeviceId, Govee, WifiCredentials};
+use govee_toolkit::{DeviceId, Env, Govee, WifiCredentials};
 use serde_json::json;
 
 use crate::output::{Failure, Writer};
@@ -31,10 +31,11 @@ pub(super) async fn run(
     secret: &Secret<'_>,
     utc_offset: (u8, u8),
 ) -> Result<(), Failure> {
-    let ssid = network(ssid)?;
+    let env = &govee.config().env;
+    let ssid = network(env, ssid)?;
     let credentials = WifiCredentials {
         network: ssid.clone(),
-        password: password(secret)?,
+        password: password(env, secret)?,
         utc_offset_hours: utc_offset.0,
         utc_offset_minutes: utc_offset.1,
     };
@@ -54,12 +55,13 @@ pub(super) async fn run(
     Ok(())
 }
 
-/// The network name, from the command line or from the environment.
-fn network(ssid: Option<&str>) -> Result<String, Failure> {
+/// The network name, from the command line or from the variables.
+fn network(env: &Env, ssid: Option<&str>) -> Result<String, Failure> {
     match ssid {
         Some(ssid) => Ok(ssid.to_owned()),
-        None => std::env::var(SSID_VAR)
-            .map_err(|_| Failure::usage(format!("supply `--ssid`, or set `{SSID_VAR}`"))),
+        None => env.var(SSID_VAR).map(ToOwned::to_owned).ok_or_else(|| {
+            Failure::usage(format!("supply `--ssid`, or set `{SSID_VAR}` in `.env`"))
+        }),
     }
 }
 
@@ -67,16 +69,16 @@ fn network(ssid: Option<&str>) -> Result<String, Failure> {
 ///
 /// An empty password joins an open network, so it is never a default: the
 /// caller asks for one with `--open`.
-fn password(secret: &Secret<'_>) -> Result<String, Failure> {
+fn password(env: &Env, secret: &Secret<'_>) -> Result<String, Failure> {
     match (secret.open, secret.password) {
         (true, Some(_)) => Err(Failure::usage(
             "`--open` and `--password` cannot both be given".to_owned(),
         )),
         (true, None) => Ok(String::new()),
         (false, Some(password)) => Ok(password.to_owned()),
-        (false, None) => std::env::var(PASSWORD_VAR).map_err(|_| {
+        (false, None) => env.var(PASSWORD_VAR).map(ToOwned::to_owned).ok_or_else(|| {
             Failure::usage(format!(
-                "supply `--password`, set `{PASSWORD_VAR}`, or pass `--open` for a network that has no password"
+                "supply `--password`, set `{PASSWORD_VAR}` in `.env`, or pass `--open` for a network that has no password"
             ))
         }),
     }
@@ -88,7 +90,20 @@ mod tests {
 
     #[test]
     fn a_network_name_on_the_command_line_wins() {
-        assert_eq!(network(Some("home")).ok(), Some("home".to_owned()));
+        let env = Env::from_pairs([(SSID_VAR, "from-the-file")]);
+        assert_eq!(network(&env, Some("home")).ok(), Some("home".to_owned()));
+    }
+
+    #[test]
+    fn the_variables_supply_the_credentials() {
+        let env = Env::from_pairs([(SSID_VAR, "home"), (PASSWORD_VAR, "two words ")]);
+        let secret = Secret {
+            password: None,
+            open: false,
+        };
+        assert_eq!(network(&env, None).ok(), Some("home".to_owned()));
+        // A password is verbatim: the spaces in it are part of it.
+        assert_eq!(password(&env, &secret).ok(), Some("two words ".to_owned()));
     }
 
     #[test]
@@ -97,7 +112,7 @@ mod tests {
             password: None,
             open: true,
         };
-        assert_eq!(password(&secret).ok(), Some(String::new()));
+        assert_eq!(password(&Env::default(), &secret).ok(), Some(String::new()));
     }
 
     #[test]
@@ -106,6 +121,17 @@ mod tests {
             password: Some("hunter2"),
             open: true,
         };
-        assert!(password(&secret).is_err());
+        assert!(password(&Env::default(), &secret).is_err());
+    }
+
+    #[test]
+    fn no_password_anywhere_names_what_to_set() {
+        let secret = Secret {
+            password: None,
+            open: false,
+        };
+        let outcome = password(&Env::default(), &secret);
+        assert!(outcome.is_err());
+        assert!(format!("{outcome:?}").contains(PASSWORD_VAR));
     }
 }

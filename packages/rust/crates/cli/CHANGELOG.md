@@ -9,6 +9,17 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 ### Added
 
+- Every subcommand reads the `GOVEE_*` variables from a `.env` file, so no
+  wrapper script is needed to supply `GOVEE_API_KEY`, `GOVEE_WIFI_SSID` or
+  `GOVEE_WIFI_PASSWORD`. The search starts in the working directory and goes up
+  to the repository root, and it reads `~/.config/govee-toolkit/.env` last. A
+  variable already set in the environment wins, and a file that is absent is
+  not an error.
+- `--env-file <PATH>` names one file and replaces the search. A file named that
+  way is an error when it is absent.
+- `--no-env` reads no file: the process environment supplies the variables
+  alone.
+- `doctor` reports which file the variables came from, as `env_file` in JSON.
 - The crate, the `govee` binary and the command surface: `scan`, `devices`,
   `describe`, `doctor`, `status`, `on`, `off`, `brightness`, `color`,
   `colortemp`, `segment`, `gradient`, `music`, `send`, `stream`, `watch` and

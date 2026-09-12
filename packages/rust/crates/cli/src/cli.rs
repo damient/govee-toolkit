@@ -36,6 +36,15 @@ pub(crate) struct Global {
     /// Read the configuration from this file instead of the default path.
     #[arg(long, global = true, value_name = "PATH")]
     pub config: Option<PathBuf>,
+
+    /// Read the `GOVEE_*` variables from this file instead of the `.env` the
+    /// search finds. A file that is absent is an error here.
+    #[arg(long, global = true, value_name = "PATH", conflicts_with = "no_env")]
+    pub env_file: Option<PathBuf>,
+
+    /// Read no `.env`. The process environment supplies the variables alone.
+    #[arg(long, global = true)]
+    pub no_env: bool,
 }
 
 /// A setting a person turns on or off.
@@ -251,11 +260,13 @@ pub(crate) enum Command {
     Provision {
         /// The device identity.
         device: String,
-        /// The network name. `GOVEE_WIFI_SSID` supplies it when absent.
+        /// The network name. `GOVEE_WIFI_SSID` supplies it when absent, from
+        /// the environment or from `.env`.
         /// 2.4 GHz: no Govee device joins a 5 GHz network.
         #[arg(long, value_name = "SSID")]
         ssid: Option<String>,
-        /// The password. `GOVEE_WIFI_PASSWORD` supplies it when absent.
+        /// The password. `GOVEE_WIFI_PASSWORD` supplies it when absent, from
+        /// the environment or from `.env`.
         #[arg(long, value_name = "PASSWORD")]
         password: Option<String>,
         /// Join a network that has no password.
