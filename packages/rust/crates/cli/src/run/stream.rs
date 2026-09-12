@@ -1,6 +1,4 @@
-//! `stream`: the raw segment channel, fed one frame per line of stdin.
-//!
-//! A line is one color, which fills every zone, or one color per zone. Writes
+//! `stream`: the raw segment channel, fed one frame per line of stdin. Writes
 //! never block: a frame that arrives before the previous one went out replaces
 //! it, and the count of replaced frames is reported at the end.
 
@@ -18,7 +16,6 @@ use crate::run::args;
 /// is not missed.
 const MARGIN: Duration = Duration::from_millis(20);
 
-/// Open the channel, send what stdin carries, then close it.
 pub(super) async fn run(
     govee: &Govee,
     writer: &Writer,

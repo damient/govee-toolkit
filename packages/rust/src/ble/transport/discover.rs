@@ -1,5 +1,3 @@
-//! Advertisement scans, and what the transport records from one.
-
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
@@ -82,11 +80,9 @@ impl Shared {
         Ok(found)
     }
 
-    /// Read what the adapter heard until the device appears or `window` runs
-    /// out. Answers the device, and whether anything at all was heard.
-    ///
-    /// `adopted` carries the endpoints already recorded, so a device heard
-    /// over two passes is reported once.
+    /// Answers the device, and whether anything at all was heard. `adopted`
+    /// carries the endpoints already recorded, so a device heard over two
+    /// passes is reported once.
     async fn listen_for(
         &self,
         id: &DeviceId,
@@ -115,7 +111,6 @@ impl Shared {
         }
     }
 
-    /// Record what a scan heard, and report what changed about each device.
     fn adopt(&self, seen: Vec<Advertised>) -> Vec<Discovered> {
         let Ok(mut devices) = self.devices.lock() else {
             return Vec::new();
@@ -129,9 +124,9 @@ impl Shared {
             devices
                 .entry(id.clone())
                 .and_modify(|tracked| {
-                    // A device that turns out to be another SKU must not keep a
-                    // budget taken from the wrong device file. Replacing the
-                    // pacer refills its bucket, so it happens only on a change.
+                    // A device that turns out to be another SKU must not keep
+                    // a budget from the wrong device file. Replacing the pacer
+                    // refills its bucket, so it happens only on a change.
                     if tracked.sku != device.sku {
                         device.sku.clone_into(&mut tracked.sku);
                         tracked.pacer = Arc::new(Pacer::new(self.budget_for(&device.sku)));
@@ -166,12 +161,10 @@ impl Shared {
 }
 
 /// How often a scan that looks for one device reads what the adapter heard.
-/// The radio hears an advertisement when it arrives; this is only how soon the
-/// transport can act on one.
+/// The radio hears an advertisement when it arrives; this is how soon the
+/// transport acts on one.
 const POLL: Duration = Duration::from_millis(200);
 
-/// Read the advertisements the adapter holds, and keep the ones this
-/// transport recognizes.
 async fn collect(adapter: &dyn Adapter) -> Result<Vec<Advertised>> {
     let heard = adapter
         .heard()

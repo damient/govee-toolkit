@@ -1,7 +1,5 @@
-//! `watch`: the SDK's event stream, one record per event.
-//!
-//! Nothing rescans on its own, so a discovery reaches the stream only when a
-//! scan runs. One scan starts the run, and `--rescan-ms` repeats it.
+//! `watch`: the SDK's event stream, one record per event. Nothing rescans on
+//! its own: one scan starts the run, and `--rescan-ms` repeats it.
 
 use std::time::Duration;
 
@@ -13,7 +11,6 @@ use tokio::sync::broadcast::error::RecvError;
 
 use crate::output::{Failure, Writer, option};
 
-/// Print events until the stream closes or the process is interrupted.
 pub(super) async fn run(
     govee: &Govee,
     writer: &Writer,
@@ -32,8 +29,8 @@ pub(super) async fn run(
         match events.recv().await {
             Ok(event) if skipped(&event, restrict) => {}
             Ok(event) => writer.emit(&as_json(&event), &as_text(&event)),
-            // The stream keeps the most recent events and drops the rest, so
-            // a slow reader loses events rather than blocking the SDK.
+            // The stream drops the oldest events, so a slow reader loses
+            // events rather than blocking the SDK.
             Err(RecvError::Lagged(missed)) => writer.emit(
                 &json!({ "event": "lagged", "missed": missed }),
                 &format!("lagged: {missed} events were dropped"),
@@ -66,7 +63,6 @@ fn skipped(event: &Event, restrict: Option<Mode>) -> bool {
     only != mode
 }
 
-/// The mode an event comes from, where it names one.
 fn mode_of(event: &Event) -> Option<Mode> {
     match event {
         Event::Transport(

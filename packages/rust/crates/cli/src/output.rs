@@ -22,7 +22,6 @@ pub(crate) const REFUSED: u8 = 5;
 /// The command line names something this build does not carry yet.
 pub(crate) const UNSUPPORTED: u8 = 6;
 
-/// A failed run, as the caller sees it.
 #[derive(Debug)]
 pub(crate) struct Failure {
     kind: &'static str,
@@ -31,7 +30,6 @@ pub(crate) struct Failure {
 }
 
 impl Failure {
-    /// A failure no other constructor names.
     pub(crate) fn internal(message: impl Into<String>) -> Self {
         Self {
             kind: "internal",
@@ -40,7 +38,6 @@ impl Failure {
         }
     }
 
-    /// A value on the command line that cannot be read.
     pub(crate) fn usage(message: impl Into<String>) -> Self {
         Self {
             kind: "usage",
@@ -49,7 +46,6 @@ impl Failure {
         }
     }
 
-    /// A command line that names something this build does not carry yet.
     pub(crate) fn unsupported(message: impl Into<String>) -> Self {
         Self {
             kind: "unsupported",
@@ -100,28 +96,23 @@ impl From<Error> for Failure {
 }
 
 impl From<govee_toolkit::codec::Error> for Failure {
-    // A codec error reaching the command line directly reports as the same
-    // kind it reports as through the library.
     fn from(error: govee_toolkit::codec::Error) -> Self {
         Self::from(Error::Codec(error))
     }
 }
 
-/// Writes the result of one run.
 #[derive(Debug)]
 pub(crate) struct Writer {
     json: bool,
 }
 
 impl Writer {
-    /// Build a writer for the requested form.
     pub(crate) fn new(json: bool) -> Self {
         Self { json }
     }
 
-    /// Write one record to stdout, in the form the caller asked for. The
-    /// caller builds both: a subcommand that reports several records writes
-    /// one line each, so JSON output is newline-delimited.
+    /// Write one record to stdout. A subcommand that reports several records
+    /// writes one line each, so JSON output is newline-delimited.
     pub(crate) fn emit(&self, value: &Value, text: &str) {
         if self.json {
             println!("{value}");
@@ -130,7 +121,6 @@ impl Writer {
         }
     }
 
-    /// Report a failure and answer with the exit code to return.
     pub(crate) fn failure(&self, failure: &Failure) -> ExitCode {
         if self.json {
             eprintln!(

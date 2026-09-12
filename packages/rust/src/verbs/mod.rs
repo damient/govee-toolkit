@@ -1,15 +1,11 @@
 //! The commands a person names, reached through a `role:`.
 //!
-//! `power`, `brightness`, `color`, `color_temp` and `music` are things a
-//! device does, not entries of one device file. Each method here reads the
-//! entry the file marks with the matching [`Role`], and fills the arguments the
-//! file marks with an [`ArgRole`]. No command name and no argument name lives
-//! in this crate, and a binding gets the same verb without a second
-//! implementation.
+//! Each method reads the entry the device file marks with the matching
+//! [`Role`], and fills the arguments it marks with an [`ArgRole`]. No command
+//! name and no argument name lives in this crate.
 //!
 //! A file that marks no entry for a role fails with [`Error::NoRoleCommand`].
-//! Nothing is approximated: a mode that carries no `role: color` entry does
-//! not paint the color through another command — see `docs/modes.md`.
+//! Nothing is approximated — see `docs/modes.md`.
 
 mod music;
 mod segment;
@@ -29,17 +25,16 @@ impl DeviceHandle<'_> {
     ///
     /// # Errors
     ///
-    /// As for [`DeviceHandle::send`], plus [`Error::NoRoleCommand`] if the
+    /// As for [`DeviceHandle::send`], plus [`Error::NoRoleCommand`] where the
     /// device file marks no entry `role: power` for the chosen mode, and
-    /// [`Error::NoRoleArg`] if that entry marks no argument `role: on`.
+    /// [`Error::NoRoleArg`] where that entry marks no argument `role: on`.
     pub async fn power(&self, on: bool) -> Result<Served> {
         self.one_arg(Role::Power, ArgRole::On, i64::from(on)).await
     }
 
-    /// Set the brightness, in the unit the device file declares.
-    ///
-    /// The range is the one the argument's `range:` gives, and it differs per
-    /// SKU and per mode. A value outside it is an error, never a clamp.
+    /// Set the brightness, in the unit the argument's `range:` gives. That
+    /// range differs per SKU and per mode, and a value outside it is an error,
+    /// never a clamp.
     ///
     /// # Errors
     ///
@@ -76,8 +71,7 @@ impl DeviceHandle<'_> {
     ///
     /// # Errors
     ///
-    /// As for [`DeviceHandle::send`], plus [`Error::NoRoleCommand`] if the
-    /// device file marks no entry for `role`.
+    /// As for [`DeviceHandle::send`], plus [`Error::NoRoleCommand`].
     fn resolve(&self, role: Role) -> Result<Resolved<'_>> {
         let mode = self.serving_mode()?;
         let sku = self.govee.sku(self.id())?;
@@ -105,10 +99,8 @@ impl DeviceHandle<'_> {
     }
 }
 
-/// One entry of a device file, resolved for the mode that will carry it.
-///
-/// Holds the SKU it was read for, so the send does not resolve it a second
-/// time.
+/// One entry of a device file, resolved for the mode that carries it. It holds
+/// the SKU it was read for, so the send does not resolve it twice.
 pub(crate) struct Resolved<'a> {
     pub(crate) mode: Mode,
     pub(crate) sku: String,
@@ -118,11 +110,7 @@ pub(crate) struct Resolved<'a> {
 }
 
 impl Resolved<'_> {
-    /// The name the entry gave the argument marked `arg_role`.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::NoRoleArg`] if the entry marks no such argument.
+    /// [`Error::NoRoleArg`] where the entry marks no such argument.
     pub(crate) fn arg(&self, arg_role: ArgRole) -> Result<&str> {
         self.marked(arg_role).ok_or_else(|| Error::NoRoleArg {
             sku: self.sku.clone(),
@@ -132,17 +120,10 @@ impl Resolved<'_> {
         })
     }
 
-    /// As for [`Resolved::arg`], `None` where the entry marks no such
-    /// argument.
     pub(crate) fn marked(&self, arg_role: ArgRole) -> Option<&str> {
         self.spec.arg_for(arg_role)
     }
 
-    /// Send the entry over the mode it was resolved for.
-    ///
-    /// # Errors
-    ///
-    /// As for [`DeviceHandle::send`].
     pub(crate) async fn send(&self, handle: &DeviceHandle<'_>, args: &Args) -> Result<Served> {
         handle
             .send_resolved(self.mode, &self.sku, &self.command, args)
@@ -150,11 +131,7 @@ impl Resolved<'_> {
     }
 }
 
-/// The name of the argument `command` marks with `arg_role`.
-///
-/// # Errors
-///
-/// [`Error::NoRoleArg`] if the entry marks none.
+/// [`Error::NoRoleArg`] where the entry marks none.
 fn arg_for<'a>(
     sku: &str,
     device: &'a Device,
@@ -170,7 +147,6 @@ fn arg_for<'a>(
     })
 }
 
-/// As for [`arg_for`], `None` where the entry marks no such argument.
 fn marked<'a>(device: &'a Device, mode: Mode, command: &str, arg_role: ArgRole) -> Option<&'a str> {
     device
         .commands

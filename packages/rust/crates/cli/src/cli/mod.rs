@@ -1,8 +1,5 @@
-//! The command surface.
-//!
-//! Two kinds of subcommand live here. `send` names a device file entry and
-//! carries no command name in this crate. The verbs are [`Verb`], flattened
-//! into [`Command`]: `govee on <device>` parses as one of them.
+//! The command surface. The verbs are [`Verb`], flattened into [`Command`],
+//! so `govee on <device>` parses as one of them.
 
 use std::path::PathBuf;
 
@@ -13,7 +10,6 @@ mod verbs;
 
 pub(crate) use verbs::Verb;
 
-/// The whole invocation.
 #[derive(Debug, Parser)]
 #[command(name = "govee", version, about = "Control Govee devices. Unofficial.")]
 pub(crate) struct Cli {
@@ -23,7 +19,6 @@ pub(crate) struct Cli {
     pub command: Command,
 }
 
-/// What every subcommand accepts.
 #[derive(Debug, clap::Args)]
 pub(crate) struct Global {
     /// Write JSON instead of text. Errors are JSON too.
@@ -49,7 +44,6 @@ pub(crate) struct Global {
     pub no_env: bool,
 }
 
-/// The mode names accepted on the command line.
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub(crate) enum ModeArg {
     /// UDP on the local network.
@@ -70,7 +64,6 @@ impl From<ModeArg> for Mode {
     }
 }
 
-/// One subcommand.
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
     /// Discover devices and report what answered.
@@ -175,7 +168,6 @@ pub(crate) enum Command {
 }
 
 impl Command {
-    /// The device the subcommand acts on, where it names one.
     pub(crate) fn device(&self) -> Option<&str> {
         match self {
             Self::Send { device, .. } | Self::Status { device } | Self::Stream { device, .. } => {

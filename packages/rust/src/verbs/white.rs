@@ -1,8 +1,6 @@
-//! Set the white temperature, and the white it renders.
-//!
-//! One call sets both, because one frame carries both. A mode whose firmware
-//! renders the temperature declares the kelvin argument alone, and the file
-//! says so: the SDK fills what the entry marks, and nothing else.
+//! Set the white temperature, and the white it renders. One call sets both,
+//! because one frame carries both. The SDK fills what the entry marks, and
+//! nothing else.
 
 use super::Resolved;
 use crate::codec::{ArgRole, Args, Role, white};
@@ -15,13 +13,12 @@ impl DeviceHandle<'_> {
     /// Set the white temperature, in kelvin.
     ///
     /// White and color are mutually exclusive states: this ends the color the
-    /// device showed. The accepted range is the one the argument's `range:`
-    /// gives. A value outside it is an error, never a clamp.
+    /// device showed. The accepted range is the argument's `range:`, and a
+    /// value outside it is an error, never a clamp.
     ///
     /// Where the device file marks the three white components, the SDK renders
-    /// the temperature and fills them, because that firmware renders nothing
-    /// itself (`docs/protocol/ble.md` 2.3). [`crate::codec::white`] documents
-    /// the curve. To send another rendering, name the entry through
+    /// the temperature and fills them — [`crate::codec::white`] documents the
+    /// curve. To send another rendering, name the entry through
     /// [`DeviceHandle::send`] and pass the components.
     ///
     /// # Errors
@@ -55,11 +52,9 @@ impl DeviceHandle<'_> {
     }
 }
 
-/// Every zone the mask of the entry can name, zero-based.
-///
-/// The mask's own bound, not `capabilities.segments.count`: the count is what
-/// the vendor app exposes, and a mask that reaches further would leave the
-/// zones past it holding the color they had.
+/// Every zone the mask of the entry can name, zero-based. The mask's own
+/// bound, not `capabilities.segments.count`: the count is what the vendor app
+/// exposes, and the zones past it would hold the color they had.
 fn every_zone(entry: &Resolved<'_>) -> Result<Vec<u16>> {
     let count = mask_limit(entry.device, entry.mode, &entry.command).ok_or_else(|| {
         Error::ZoneMaskUnbounded {

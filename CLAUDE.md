@@ -165,7 +165,8 @@ check is what keeps the codec I/O-free in a single crate; do not weaken it.
 
 Node and Python wrap the crate (napi-rs, PyO3). Each package versions and
 releases independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `python-vX.Y.Z`,
-`node-vX.Y.Z`) through the workflows in `.github/workflows/`. The policy is `docs/versioning.md`.
+`node-vX.Y.Z`) through the workflows in `.github/workflows/`. The policy is
+`docs/versioning.md`.
 
 `govee-toolkit` is published on crates.io — the version is the one in
 `packages/rust/Cargo.toml`. The name is taken on PyPI and npm too, by a `0.0.0`

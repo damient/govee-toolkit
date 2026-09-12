@@ -60,7 +60,6 @@ pub(crate) fn id() -> DeviceId {
     DeviceId::new(MAC)
 }
 
-/// A transport that claims one mode and records every frame it receives.
 #[derive(Debug)]
 pub(crate) struct Fake {
     mode: Mode,
@@ -277,7 +276,6 @@ pub(crate) fn govee(transport: &Arc<Fake>, yaml: &str) -> Govee {
     govee_reading(transport, yaml, DEVICE_FILE)
 }
 
-/// The same, over a device file the caller patched.
 pub(crate) fn govee_reading(transport: &Arc<Fake>, yaml: &str, device_file: &str) -> Govee {
     let config: Config = serde_norway::from_str(yaml).expect("the configuration parses");
     let mut catalog = Catalog::embedded().expect("catalog");
@@ -292,12 +290,10 @@ pub(crate) fn govee_reading(transport: &Arc<Fake>, yaml: &str, device_file: &str
     .expect("the configuration applies")
 }
 
-/// A facade over transports the caller built, and no configured device.
 pub(crate) fn attach(transports: &[Arc<dyn Transport>]) -> Govee {
     attach_enabling("ble", transports)
 }
 
-/// The same, with the modes the caller names enabled in that order.
 pub(crate) fn attach_enabling(modes: &str, transports: &[Arc<dyn Transport>]) -> Govee {
     let config: Config = serde_norway::from_str(&format!("defaults:\n  modes: [{modes}]\n"))
         .expect("the configuration parses");

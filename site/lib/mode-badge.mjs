@@ -1,8 +1,6 @@
-// The mode badge, used wherever a mode is named: the icon and the color carry
-// the mode, and the optional second value follows the name behind a bar.
-//
-// The label stays `lan`, `ble` and `cloud`, because that is the word the
-// reader types on the command line and writes in a configuration file.
+// The mode badge, used wherever a mode is named. The label stays `lan`, `ble`
+// and `cloud`: that is the word the reader types on the command line and
+// writes in a configuration file.
 
 import { modeIcon } from "./icons.mjs";
 

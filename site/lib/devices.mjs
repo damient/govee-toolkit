@@ -1,9 +1,7 @@
-// Renders the device catalog: the index table, and one page per model.
-//
-// Every fact here comes from `dist/catalog.json`, which `cargo run -p xtask --
-// catalog` writes from `devices/*.yaml`. Nothing below names a model or a
-// command: a renderer that did would disagree with the device files the day
-// one of them changes.
+// Renders the device catalog from `dist/catalog.json`, which
+// `cargo run -p xtask -- catalog` writes from `devices/*.yaml`. Nothing below
+// names a model or a command: a renderer that did would disagree with the
+// device files the day one of them changes.
 
 import { escapeAttr, escapeHtml, fill } from "./html.mjs";
 import { icon } from "./icons.mjs";
@@ -42,8 +40,6 @@ function label(key) {
   return CAP_LABELS.get(key) ?? key.replace(/_/g, " ");
 }
 
-// --- The index --------------------------------------------------------------
-
 export function renderIndex(template, devices) {
   return fill(template, { devices_rows: devices.map(row).join("\n") });
 }
@@ -61,8 +57,6 @@ function row(d) {
             <td>${escapeHtml(d.name)}</td>${cells}
           </tr>`;
 }
-
-// --- One model, one page ----------------------------------------------------
 
 /**
  * Builds the page of one model. The caller emits it: this returns the URL, the
@@ -114,8 +108,6 @@ function pageBody(d) {
 </section>`;
 }
 
-// The verification badges sit on the mode row: a reader looks for "does it
-// work" and "was it tried" in one place.
 function badges(d) {
   const check = `<svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.6 9.4 17.5 19.5 7"/></svg>`;
   return d.verified?.date
@@ -134,8 +126,8 @@ function capabilities(d) {
       <ul class="caps caps-lg">${list}</ul>`;
 }
 
-// A capability is a yes or a no, except the segments: how many zones and how
-// many pixels the strip carries decides what a reader can paint.
+// A capability is a yes or a no, except the segments: the zone and pixel
+// counts decide what a reader can paint.
 function counts(key, value) {
   if (key !== "segments" || !value) return "";
   const parts = [];
@@ -147,8 +139,6 @@ function counts(key, value) {
 }
 
 
-// A mode that reaches nothing gets no block: the list is what the mode
-// reaches, and an empty one states nothing.
 function modeSections(d) {
   const blocks = MODES.map((m) => {
     const caps = [...(d.modes?.[m]?.capabilities ?? [])].sort((a, b) => order(a) - order(b));
@@ -158,8 +148,7 @@ function modeSections(d) {
       <ul class="caps">${chips}</ul>`;
   }).filter(Boolean);
 
-  // One mode reaches what the hardware does: the section would repeat the
-  // chips over the title.
+  // With one mode, the section would repeat the chips over the title.
   if (blocks.length < 2) return "";
   return `<h2 id="modes">What each mode reaches</h2>
       ${blocks.join("\n      ")}`;

@@ -1,17 +1,10 @@
-//! The RGB rendering of a white temperature.
+//! The RGB rendering of a white temperature, for the modes whose frame carries
+//! it beside the kelvin value — `docs/protocol/ble.md` 2.3.
 //!
-//! Some modes carry the kelvin value alone, and the firmware renders it. Others
-//! carry the value and the RGB that renders it in the same frame, and render
-//! nothing themselves — `docs/protocol/ble.md` 2.3. This is what the SDK fills
-//! the second kind with.
-//!
-//! The curve is an approximation of the Planckian locus, sampled every 500 K
-//! from Tanner Helland's formula and interpolated between samples. It is not
-//! the vendor's rendering: nobody captured what the Govee app sends for a
-//! given temperature.
+//! The curve approximates the Planckian locus, sampled every 500 K from Tanner
+//! Helland's formula and interpolated between samples. It is not the vendor's
+//! rendering: nobody captured what the Govee app sends for a temperature.
 
-/// The curve, red, green and blue at each sample.
-///
 /// Ordered by kelvin, and never empty: [`rgb`] reads the ends of it.
 const CURVE: [(i64, [u8; 3]); 15] = [
     (2000, [255, 137, 14]),
@@ -31,11 +24,9 @@ const CURVE: [(i64, [u8; 3]); 15] = [
     (9000, [210, 223, 255]),
 ];
 
-/// What `kelvin` looks like in RGB.
-///
-/// A temperature outside the curve gets the nearest end of it. The accepted
-/// range is the device file's, checked where the argument is encoded, so this
-/// function answers for every input rather than failing twice.
+/// What `kelvin` looks like in RGB. A temperature outside the curve gets the
+/// nearest end of it: the accepted range is the device file's, checked where
+/// the argument is encoded, so this answers for every input.
 #[must_use]
 pub fn rgb(kelvin: i64) -> [u8; 3] {
     let mut below = CURVE[0];
@@ -48,7 +39,6 @@ pub fn rgb(kelvin: i64) -> [u8; 3] {
     below.1
 }
 
-/// The color `kelvin` takes between two samples, one channel at a time.
 fn blend(low: (i64, [u8; 3]), high: (i64, [u8; 3]), kelvin: i64) -> [u8; 3] {
     let span = high.0 - low.0;
     if span <= 0 {

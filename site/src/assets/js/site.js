@@ -16,7 +16,6 @@ const PALETTE = [
   [69, 227, 208],
 ];
 
-// The zones of a decoration, appended in one pass.
 function build(el, tag) {
   const zones = [];
   for (let i = 0; i < ZONES; i += 1) {
@@ -33,7 +32,6 @@ function mix(a, b, t) {
   return a.map((value, i) => Math.round(value + (b[i] - value) * t));
 }
 
-// --- The rope under the top bar -------------------------------------------
 
 function rope(el) {
   const zones = build(el, "i");
@@ -51,9 +49,8 @@ function rope(el) {
   paint(0);
   if (reduced) return;
 
-  // The rope repaints only while it is on the screen and the tab is the one
-  // the reader looks at. A timer that runs in a background tab costs battery
-  // and paints nothing anybody sees.
+  // A timer in a background tab costs battery and paints nothing anybody
+  // sees, so the rope repaints only while it is on screen and the tab is.
   let offset = 0;
   let timer = null;
   let visible = true;
@@ -76,7 +73,6 @@ function rope(el) {
   start();
 }
 
-// --- The strip the pointer paints ------------------------------------------
 
 function strip(el) {
   const zones = build(el, "b");
@@ -147,9 +143,7 @@ function strip(el) {
   light(Math.floor(ZONES / 2));
 }
 
-// --- Copy a command --------------------------------------------------------
 
-// Two sheets of paper, and the tick that answers a press.
 const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
 const DONE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5"/></svg>';
 
@@ -184,7 +178,6 @@ function copy(button) {
   });
 }
 
-// --- Filter the device table ----------------------------------------------
 
 function filter(input) {
   const rows = [...document.querySelectorAll("[data-rows] tr")];
@@ -210,11 +203,9 @@ function filter(input) {
   apply();
 }
 
-// --- Open a device row ------------------------------------------------------
 
-// The link in the first cell stays the target: the keyboard and a middle click
-// reach the page through it, and a click anywhere on the row follows it. A
-// click that selects text, or that lands on another link, opens nothing.
+// The link in the first cell stays the target, so the keyboard and a middle
+// click reach the page through it.
 function rowLink(body) {
   body.addEventListener("click", (event) => {
     if (event.target.closest("a")) return;
@@ -225,11 +216,9 @@ function rowLink(body) {
   });
 }
 
-// --- The documentation select ----------------------------------------------
 
-// A pick closes the control, the way a select closes on a choice. A link to a
-// heading of the page you are on moves nothing else, so the close is the only
-// answer the reader gets.
+// A link to a heading of the page you are on moves nothing else, so the close
+// is the only answer the reader gets.
 function docSelect(box) {
   box.addEventListener("click", (event) => {
     if (event.target.closest("a")) box.open = false;
@@ -239,12 +228,9 @@ function docSelect(box) {
   });
 }
 
-// --- Theme -----------------------------------------------------------------
 
-// The system setting decides, and the button switches away from it. The
-// choice is kept in sessionStorage, so it follows the reader from page to
-// page and goes away with the tab. The head applies it before the first
-// paint; this module only writes it.
+// The head applies the theme before the first paint; this module only writes
+// it. sessionStorage keeps the choice for the tab and no longer.
 function theme(button) {
   const system = matchMedia("(prefers-color-scheme: dark)");
   const current = () => document.documentElement.dataset.theme
@@ -261,16 +247,14 @@ function theme(button) {
   });
 }
 
-// --- Language tabs ---------------------------------------------------------
 
 // One choice for the whole page: a reader who works in Python reads Python
-// everywhere, and does not click through twenty blocks.
+// everywhere.
 function tabs() {
   const elements = [...document.querySelectorAll("[data-langs]")];
   if (!elements.length) return;
 
-  // The buttons and the panes are found once. A language change then writes
-  // them and queries nothing.
+  // Queried once: a language change writes these and queries nothing.
   const groups = elements.map((el) => ({
     el,
     buttons: [...el.querySelectorAll(".tabs button")],
@@ -331,11 +315,9 @@ function tabs() {
   if (stored) show(stored);
 }
 
-// --- Follow the reader in the menu -----------------------------------------
 
 // Marks the entry the reader is on, and keeps that link inside the menu's own
-// scroll. The menu scrolls on its own, so a long list never forces the reader
-// to the bottom of the page to reach the last item.
+// scroll.
 function spy(nav) {
   if (!nav.querySelector('a[href^="#"]')) return;
   const links = new Map();
@@ -390,7 +372,6 @@ function spy(nav) {
   mark();
 }
 
-// --- The folded menu -------------------------------------------------------
 
 function menu(button) {
   const bar = button.closest(".topbar");
@@ -419,7 +400,6 @@ function menu(button) {
   });
 }
 
-// --- Wire it up ------------------------------------------------------------
 
 const WIRING = [
   ["[data-rope]", rope],

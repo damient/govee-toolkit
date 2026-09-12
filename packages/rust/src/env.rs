@@ -1,13 +1,8 @@
 //! The `GOVEE_*` variables one run reads, and the `.env` file that can supply
-//! them.
+//! them. The process environment wins over the file.
 //!
-//! The values are collected into an [`Env`] and never exported into the
-//! process: `std::env::set_var` is `unsafe` under edition 2024, and this
-//! workspace forbids `unsafe`. A value the caller holds is also deterministic
-//! under a test, which a process-wide variable is not.
-//!
-//! The process environment wins over the file, so a variable set on the command
-//! line overrides what `.env` carries.
+//! Nothing is exported into the process: `std::env::set_var` is `unsafe` under
+//! edition 2024, and this workspace forbids `unsafe`.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -17,26 +12,22 @@ use crate::error::{Error, Result};
 /// The variable that names a file to read instead of the discovered one.
 pub const FILE_ENV: &str = "GOVEE_ENV_FILE";
 
-/// The file name the search looks for in each directory.
+/// The file the search looks for in each directory.
 pub const FILE_NAME: &str = ".env";
 
 /// The prefix a name must carry to be read. A `.env` written for another
-/// project can hold anything, and nothing outside this prefix reaches the
-/// toolkit.
+/// project can hold anything, and nothing outside this prefix reaches here.
 const PREFIX: &str = "GOVEE_";
 
-/// The `GOVEE_*` variables one run reads.
-///
-/// Build one with [`Env::load`], which is what
-/// [`Config::load`](crate::Config::load) does. [`Env::process`] reads no file,
-/// and [`Env::from_pairs`] takes values the caller already holds.
+/// The `GOVEE_*` variables one run reads. [`Config::load`](crate::Config::load)
+/// builds one with [`Env::load`].
 #[derive(Clone, Default)]
 pub struct Env {
     vars: BTreeMap<String, String>,
     source: Option<PathBuf>,
 }
 
-// The values are credentials. The names alone are what a bug report may carry.
+// The values are credentials. A bug report carries the names alone.
 impl std::fmt::Debug for Env {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Env")
@@ -131,8 +122,8 @@ impl Env {
         self.source.as_deref()
     }
 
-    /// Read `path` into the names the process does not set. Answers whether
-    /// the file was there.
+    /// Reads into the names nothing sets yet. Answers whether the file was
+    /// there.
     fn merge(&mut self, path: &Path, required: bool) -> Result<bool> {
         let entries = match dotenvy::from_path_iter(path) {
             Ok(entries) => entries,
@@ -151,7 +142,6 @@ impl Env {
     }
 }
 
-/// The files the search looks at, in order.
 fn search_path() -> Vec<PathBuf> {
     let mut paths = Vec::new();
     let home = std::env::var_os("HOME").map(PathBuf::from);
@@ -186,7 +176,6 @@ mod tests {
 
     use super::*;
 
-    /// Write `text` to a file of its own and answer the path.
     fn file(name: &str, text: &str) -> PathBuf {
         let mut path = std::env::temp_dir();
         path.push(format!("govee-toolkit-test-{name}"));

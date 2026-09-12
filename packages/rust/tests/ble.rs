@@ -1,7 +1,5 @@
 //! Dispatch to a mode that is not `lan`, through a transport that is not a
-//! radio: the transport claiming the enabled mode serves the device, the
-//! codec's frames reach it unwrapped, fire-and-verify follows, and a scan uses
-//! that transport's own window. The fixture is [`ble_fake`].
+//! radio. The fixture is [`ble_fake`].
 
 #![allow(
     clippy::unwrap_used,
@@ -294,12 +292,10 @@ async fn provisioning_refuses_a_device_that_does_not_enable_ble() {
     assert!(ble.written().is_empty(), "nothing may reach the radio");
 }
 
-/// The `role: color_temp` entry of the fixture, at 4000 K.
-///
-/// The kelvin value, the rendering the SDK computes for it, and a mask naming
-/// the six zones the fixture's zone argument bounds — not the four
-/// `capabilities.segments.count` exposes. A mask that stopped at the count
-/// would leave the zones past it holding the color they had.
+/// The `role: color_temp` entry of the fixture, at 4000 K. The mask names the
+/// six zones the zone argument bounds, not the four
+/// `capabilities.segments.count` exposes: the zones past the count would hold
+/// the color they had.
 const WHITE_4000K: [u8; 20] = [
     0x33, 0x05, 0x15, 0x01, 0, 0, 0, 0x0f, 0xa0, 0xff, 0xce, 0xa6, 0x3f, 0, 0, 0, 0, 0, 0, 0x25,
 ];
@@ -320,8 +316,7 @@ async fn a_white_temperature_carries_its_rendering_and_every_zone_the_mask_names
 
 #[tokio::test]
 async fn a_white_temperature_over_an_unbounded_mask_is_refused() {
-    // The same entry with nothing to say how far its mask reaches: no `count:`
-    // on the zone argument, and a frame that writes no mask field. Both edits
+    // The same entry with nothing to say how far its mask reaches. Both edits
     // land on the `color_temp` entry alone, which is the only one that names
     // `white_b`.
     let unbounded = ble_fake::DEVICE_FILE

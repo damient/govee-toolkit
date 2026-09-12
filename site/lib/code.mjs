@@ -15,8 +15,7 @@ for (const [name, grammar] of Object.entries({ bash, javascript, json, python, r
   hljs.registerLanguage(name, grammar);
 }
 
-// The names the site writes, and the grammar each one reads. `cli` is the
-// name a reference entry gives the command line.
+// The names the site writes, and the grammar each one reads.
 const ALIAS = {
   cli: "bash",
   sh: "bash",
@@ -38,8 +37,8 @@ export function highlight(source, language) {
   return name === "bash" ? command(html) : html;
 }
 
-// `govee` is the one command the shell examples call, and no grammar knows it.
-// It stands at the head of a line, so it is never inside a span already.
+// No grammar knows `govee`. It stands at the head of a line, so it is never
+// inside a span already.
 function command(html) {
   return html.replace(/^(\s*)(govee)\b/gm, '$1<span class="hljs-built_in">$2</span>');
 }

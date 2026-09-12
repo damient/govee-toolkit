@@ -8,14 +8,12 @@ use serde_json::{Value, json};
 use crate::output::{Failure, Writer};
 use crate::run::args::kind;
 
-/// Report what the catalog holds for one device or one SKU.
 pub(super) fn run(govee: &Govee, writer: &Writer, target: &str) -> Result<(), Failure> {
     let device = resolve(govee, target)?;
     writer.emit(&as_json(device), &as_text(device));
     Ok(())
 }
 
-/// The device file for a device identity, or for a SKU typed directly.
 fn resolve<'a>(govee: &'a Govee, target: &str) -> Result<&'a Device, Failure> {
     let id = DeviceId::new(target);
     let sku = govee

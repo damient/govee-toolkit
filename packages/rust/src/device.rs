@@ -48,11 +48,9 @@ impl DeviceHandle<'_> {
         self.govee.transport(&self.id, mode).ok()?.health(&self.id)
     }
 
-    /// The mode a command sent now would go over.
-    ///
-    /// Read from recorded state, as a send reads it, so a caller that must
-    /// know the mode before it builds arguments reads it here. The answer can
-    /// change before the next send: health is what decides it.
+    /// The mode a command sent now would go over, for a caller that must know
+    /// it before it builds arguments. Read from recorded state, as a send
+    /// reads it, so the answer can change before the next send.
     ///
     /// # Errors
     ///
@@ -93,17 +91,15 @@ impl DeviceHandle<'_> {
         self.send_on(mode, command, args).await
     }
 
-    // A verb picks the mode to read the device file for, so it sends over that
-    // same mode: a second `choose` could answer differently and send bytes
-    // built for the first one.
+    // A second `choose` could answer differently and send bytes built for the
+    // mode the verb read the device file for.
     pub(crate) async fn send_on(&self, mode: Mode, command: &str, args: &Args) -> Result<Served> {
         let sku = self.govee.sku(&self.id)?;
         self.send_resolved(mode, &sku, command, args).await
     }
 
-    // For a caller that read the device file to build `args`: it resolved the
-    // SKU to do so, and passes it here so the send path does not resolve it
-    // again.
+    // The caller resolved the SKU to build `args`, so the send path does not
+    // resolve it again.
     pub(crate) async fn send_resolved(
         &self,
         mode: Mode,

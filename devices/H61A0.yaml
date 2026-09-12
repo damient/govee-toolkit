@@ -508,11 +508,8 @@ measurements:
     addressable_zones: 15           # by mask, against the 42 ICs above
 
   # The raw segment channel does not render a paint that follows its arming
-  # frame at once. Measured on this unit, with a `colorwc` write before each
-  # arming frame: 0 ms renders nothing 4 times out of 4, 5 ms nothing once out
-  # of once, 20 ms renders once out of twice, 50 ms and 100 ms render once out
-  # of once each. The value between 20 and 50 ms was NOT bisected, and 50 is
-  # the lowest value that rendered every time. See ../docs/protocol/lan.md 2.3.
+  # frame at once. 50 is the lowest value that rendered every time; the trials
+  # are in `verified.notes`. See ../docs/protocol/lan.md 2.3.
   arm_settle_ms: 50
 
   frame_rate:
