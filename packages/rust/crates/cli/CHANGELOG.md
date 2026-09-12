@@ -7,6 +7,12 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-09-12
+
+The first release of the `govee` binary. It wraps `govee-toolkit` and holds
+no protocol logic: a verb reaches the device file through a `role:`, so no
+command name and no SKU name lives in this crate.
+
 ### Added
 
 - Every subcommand reads the `GOVEE_*` variables from a `.env` file, so no
