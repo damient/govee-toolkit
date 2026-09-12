@@ -12,8 +12,10 @@ pages so that the header, the footer and the device tables exist once.
 | `src/layout.html` | The shell of every page. |
 | `src/pages/*.html` | The hand-written pages: home and devices. |
 | `content/reference.json` | The reference page: one entry per command, with an example in each language. |
-| `src/assets/` | CSS, JavaScript, the fonts and the images. |
-| `lib/*.mjs` | The renderers the build calls. |
+| `src/assets/css/*.css` | The stylesheet. `site.css` imports the rest. |
+| `src/assets/js/*.js` | The browser script. `site.js` wires the rest to the page. |
+| `src/assets/` | The fonts and the images. |
+| `lib/*.mjs` | The renderers the build calls, and `config.mjs`, which holds the address of the site. |
 | `content/docs/*.md` | The documentation pages. One file, one page. |
 | `public/` | Anything that must land at the root of the site, such as `CNAME`. |
 | `build.mjs` | The build. |
@@ -114,7 +116,7 @@ JavaScript blocked the links stay on the page.
 
 `build.mjs` writes `robots.txt` and `sitemap.xml`, and every page carries a
 canonical address, an Open Graph block and a JSON-LD block. The absolute form
-comes from `SITE_URL` at the top of `build.mjs`, and the domain is also in
+comes from `SITE_URL` in `lib/config.mjs`, and the domain is also in
 `public/CNAME`. Change both together.
 
 The 404 page carries `noindex` and stays out of the sitemap.
@@ -135,12 +137,47 @@ python3 tools/og.py
 
 Edit `tools/og.py`, not `tools/og.svg`: the next run overwrites the SVG.
 
-## The stylesheet
+## The stylesheet and the script
 
-`npm run build` minifies `src/assets/css/site.css` and inlines it into every
-page: the whole site is one small file, and an external one costs a round trip
-before the first paint. `src/assets/js/site.js` stays a file — it is deferred,
-and a second page reads it from the cache.
+Both are written as several files and bundled into one.
+`src/assets/css/site.css` imports the parts, in cascade order, and
+`src/assets/js/site.js` imports the modules it wires to the page. `npm run
+build` resolves each entry with esbuild and minifies the result.
+
+The stylesheet is then inlined into every page: the whole site is one small
+file, and an external one costs a round trip before the first paint. The
+script stays a file — it is deferred, and a second page reads it from the
+cache. Neither source directory is copied into `dist/`.
+
+## Linters
+
+```bash
+npm run qa         # the catalog, the build, the three linters, the file length
+```
+
+`npm run qa` is `tools/qa-site.sh`, which mirrors
+`.github/workflows/pages.yml` and prints a pass/fail summary. To run the
+linters alone:
+
+```bash
+npm run build      # the HTML linter reads dist/
+npm run lint       # all three
+```
+
+| Command | Tool | What it reads |
+| ------- | ---- | ------------- |
+| `npm run lint:js` | oxlint | `build.mjs`, `lib/` and `src/assets/js/` |
+| `npm run lint:css` | stylelint | `src/assets/css/` |
+| `npm run lint:html` | html-validate | `dist/`, after a build |
+
+The HTML linter reads the output and not the sources: a page under `src/`
+holds `{{title}}` and the rest, which is not valid HTML. It reads the
+generated pages too, which is where a broken table or a missing label shows
+up first.
+
+Each configuration file carries the rules the repository turns off:
+`.oxlintrc.json`, `.stylelintrc.json` and `.htmlvalidate.json`. A site source
+file stays under 300 lines, which `tools/check-file-length.sh` enforces.
 
 ## Rules the site follows
 
