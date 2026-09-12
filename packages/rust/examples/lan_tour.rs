@@ -17,7 +17,7 @@
 
 use std::time::Duration;
 
-use govee_toolkit::stream::{Rate, StreamOptions, Zones};
+use govee_toolkit::stream::{Rate, Resolution, StreamOptions};
 use govee_toolkit::{Args, Config, Error, Govee};
 
 #[tokio::main]
@@ -86,7 +86,7 @@ async fn paint_zones(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(), Err
         .open_stream(StreamOptions {
             // Every addressable LED. It fails where nobody measured that count
             // on the unit: the count belongs to the strip, not to the SKU.
-            zones: Zones::Native,
+            resolution: Resolution::Native,
             rate: Rate::Measured,
             gradient: false,
         })

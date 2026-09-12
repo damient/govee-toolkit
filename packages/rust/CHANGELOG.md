@@ -42,15 +42,16 @@ releases apart and keeps
   names the kelvin value a command sets as well as the field a reply reports.
   `cargo test` refuses a file whose `color_temp` entry declares one or two of
   the three white components.
-- `DeviceHandle::segment` — paint zones one color. A zone list paints those
-  zones and leaves the rest alone, which needs `role: segment_color_masked`:
-  a `role: segment_color` frame states the color of every zone, and this crate
+- `DeviceHandle::segment` — paint zones. A zone list paints those zones and
+  leaves the rest alone, which needs `role: segment_color_masked`: a
+  `role: segment_color` frame states the color of every zone, and this crate
   does not hold what the other zones show, so it refuses the subset rather
   than repaint them. No list paints every zone, over whichever painting role
   the file marks. Every zone is what the frame reaches: the bound of its mask
-  where it names its zones, and `capabilities.segments.count` where one frame
-  states them all. The count is what the vendor app exposes, and a mask that
-  stopped there would leave the zones past it holding the color they had. The channel is armed
+  where it names its zones, and the count the resolution resolves where one
+  frame states them all. A mask stopping at
+  `capabilities.segments.count` would leave the zones past it holding the color
+  they had, and that count is what the vendor app exposes. The channel is armed
   where the file marks `role: segment_enable`, and nothing disarms it. A
   gradient the file can carry nowhere is refused rather than dropped.
 - `DeviceHandle::music` and `Music` — play an effect the device renders from
@@ -80,6 +81,33 @@ releases apart and keeps
 - A `cloud` `payload:` resolves `${<name>:rgb24}`: the one triple of an
   `rgb_list` argument, packed into 0xRRGGBB. A list of any other length fails
   with `Error::OutOfRange`.
+- `Paint` — what one painting states: the zones, the colors, the zone count and
+  the gradient. `DeviceHandle::segment` takes it. One color paints every zone,
+  and a longer list states one zone each, which is how a mode with a per-LED
+  channel reaches one LED: ask for `Resolution::Native` and pass that many
+  colors. Only a `role: segment_color` entry states a color per zone; a masked
+  entry groups the zones that share a color, one frame each. A list that is
+  neither one color nor one per zone fails with `Error::ColorCountMismatch`,
+  and a zone list with more than one color with `Error::ZoneListColorCount`.
+- `measurements.resolution_changepoints` — every zone count at which one unit
+  refines, read by `Measurements::renders_as`. A `Resolution::Exact` count that
+  the unit renders as a smaller one now fails with
+  `Error::ResolutionNotDistinct`, which names the counts the file records. The
+  firmware groups the LEDs to serve the count a frame states, so the colors
+  past that grouping reach no LED of their own, and the device would show a
+  frame the caller never asked for. `Resolution::App` and `Resolution::Native`
+  are counts the device file states and stay as they are. A file that records
+  no changepoints is checked against nothing.
+- `stream::reach` and `Reach` — how many zones one mode paints on one device,
+  and whether that reaches every addressable LED. Read off the device file, no
+  hardware. What `describe` reports per mode.
+
+### Changed
+
+- `stream::Zones` is `stream::Resolution`, and `StreamOptions::zones` is
+  `StreamOptions::resolution`. One word, one meaning: a zone list names which
+  zones a frame paints, and a resolution says how many zones it states.
+  `SegmentStream::zones` keeps its name — it answers a count.
 
 ### Fixed
 

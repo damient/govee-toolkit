@@ -116,6 +116,44 @@ pub enum Error {
         got: usize,
     },
 
+    /// A paint stated a different number of colors than the zone count it was
+    /// asked for. One color fills every zone; a list states them all.
+    #[error("{sku}: this paints {expected} zones, not {got} colors")]
+    ColorCountMismatch {
+        /// The SKU asked for.
+        sku: String,
+        /// The zone count the paint resolved.
+        expected: usize,
+        /// How many colors the caller supplied.
+        got: usize,
+    },
+
+    /// A paint named a zone list and more than one color. A frame that names
+    /// the zones it paints carries one color for all of them.
+    #[error("a zone list takes one color, not {colors}")]
+    ZoneListColorCount {
+        /// How many colors the caller supplied.
+        colors: usize,
+    },
+
+    /// A zone count the unit renders no finer than a smaller one. The firmware
+    /// groups the LEDs to serve the count, so the colors past that grouping
+    /// reach no LED of their own.
+    #[error(
+        "{sku}: {zones} zones render as {rendered} on this unit; it refines at {changepoints:?}"
+    )]
+    ResolutionNotDistinct {
+        /// The SKU asked for.
+        sku: String,
+        /// What the caller asked for.
+        zones: usize,
+        /// What the unit renders it as.
+        rendered: u32,
+        /// Every count at which this unit refines, from
+        /// `measurements.resolution_changepoints`.
+        changepoints: Vec<u32>,
+    },
+
     /// A zone index past the last zone of the stream.
     #[error("zone {index} is past the last of this stream's {zones} zones")]
     ZoneOutOfRange {
@@ -127,7 +165,8 @@ pub enum Error {
 
     /// A stream was asked for native resolution over a mode that paints by
     /// zone mask. No per-pixel channel sits behind such a mode: ask for
-    /// [`Zones::App`](crate::stream::Zones::App) or an explicit count.
+    /// [`Resolution::App`](crate::stream::Resolution::App) or an explicit
+    /// count.
     #[error("{sku}: mode `{mode}` paints zones by mask and cannot reach native resolution")]
     NativeZonesUnreachable {
         /// The SKU asked for.
@@ -219,6 +258,9 @@ impl Error {
             Self::NoRoleArg { .. } => "no_role_arg",
             Self::ZoneCountUnknown { .. } => "zone_count_unknown",
             Self::ZoneCountMismatch { .. } => "zone_count_mismatch",
+            Self::ColorCountMismatch { .. } => "color_count_mismatch",
+            Self::ZoneListColorCount { .. } => "zone_list_color_count",
+            Self::ResolutionNotDistinct { .. } => "resolution_not_distinct",
             Self::ZoneOutOfRange { .. } => "zone_out_of_range",
             Self::NativeZonesUnreachable { .. } => "native_zones_unreachable",
             Self::ZoneCountUnsupported { .. } => "zone_count_unsupported",

@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64;
-use govee_toolkit::stream::{Rate, StreamOptions, Zones};
+use govee_toolkit::stream::{Rate, Resolution, StreamOptions};
 use govee_toolkit::{Args, Catalog, Config};
 use govee_toolkit_sim::Simulator;
 
@@ -64,9 +64,9 @@ fn frames(simulator: &Simulator) -> Vec<String> {
         .collect()
 }
 
-fn options(zones: Zones) -> StreamOptions {
+fn options(resolution: Resolution) -> StreamOptions {
     StreamOptions {
-        zones,
+        resolution,
         rate: Rate::Fixed(TEST_HZ),
         gradient: false,
     }
@@ -78,7 +78,7 @@ async fn opening_arms_the_channel() {
     let _stream = rig
         .govee
         .device(&id())
-        .open_stream(options(Zones::App))
+        .open_stream(options(Resolution::App))
         .await
         .expect("the stream opens");
 
@@ -91,7 +91,7 @@ async fn opening_arms_the_channel() {
 #[tokio::test]
 async fn an_idle_stream_sends_nothing() {
     let rig = rig().await;
-    let _stream = open(&rig, options(Zones::App)).await;
+    let _stream = open(&rig, options(Resolution::App)).await;
 
     tokio::time::sleep(Duration::from_secs_f64(4.0 / TEST_HZ)).await;
     assert!(frames(&rig.simulator).is_empty());
@@ -100,7 +100,7 @@ async fn an_idle_stream_sends_nothing() {
 #[tokio::test]
 async fn a_write_reaches_the_device_as_one_frame() {
     let rig = rig().await;
-    let stream = open(&rig, options(Zones::Exact(2))).await;
+    let stream = open(&rig, options(Resolution::Exact(2))).await;
     stream.set_all(&[[255, 0, 0], [0, 255, 0]]).unwrap();
 
     let frame = wait_for(|| frames(&rig.simulator).first().cloned())
@@ -112,7 +112,7 @@ async fn a_write_reaches_the_device_as_one_frame() {
 #[tokio::test]
 async fn a_repainted_zone_keeps_the_others() {
     let rig = rig().await;
-    let stream = open(&rig, options(Zones::Exact(2))).await;
+    let stream = open(&rig, options(Resolution::Exact(2))).await;
 
     stream.fill([255, 0, 0]).unwrap();
     wait_for(|| (!frames(&rig.simulator).is_empty()).then_some(())).await;
@@ -134,7 +134,7 @@ async fn a_repainted_zone_keeps_the_others() {
 #[tokio::test]
 async fn only_the_latest_write_is_sent() {
     let rig = rig().await;
-    let stream = open(&rig, options(Zones::Exact(1))).await;
+    let stream = open(&rig, options(Resolution::Exact(1))).await;
 
     // Five writes inside one interval: the source is not throttled, and four of
     // the frames it asked for never existed.
@@ -156,7 +156,7 @@ async fn only_the_latest_write_is_sent() {
 #[tokio::test]
 async fn closing_disarms_the_channel() {
     let rig = rig().await;
-    let stream = open(&rig, options(Zones::App)).await;
+    let stream = open(&rig, options(Resolution::App)).await;
     stream.close().await.expect("the disarm goes out");
 
     // Exactly one: the handle asks the emitting task to disarm and reports what
@@ -168,7 +168,7 @@ async fn closing_disarms_the_channel() {
 #[tokio::test]
 async fn dropping_disarms_the_channel() {
     let rig = rig().await;
-    drop(open(&rig, options(Zones::App)).await);
+    drop(open(&rig, options(Resolution::App)).await);
 
     assert_eq!(
         wait_for(|| frames(&rig.simulator).first().cloned()).await,
@@ -185,7 +185,7 @@ fn dropping_after_the_runtime_is_gone_does_not_panic() {
     let runtime = tokio::runtime::Runtime::new().expect("the runtime starts");
     let (rig, stream) = runtime.block_on(async {
         let rig = rig().await;
-        let stream = open(&rig, options(Zones::App)).await;
+        let stream = open(&rig, options(Resolution::App)).await;
         (rig, stream)
     });
     runtime.shutdown_timeout(Duration::from_millis(100));
@@ -197,14 +197,14 @@ fn dropping_after_the_runtime_is_gone_does_not_panic() {
 #[tokio::test]
 async fn native_resolution_comes_from_the_measured_unit() {
     let rig = rig().await;
-    let stream = open(&rig, options(Zones::Native)).await;
+    let stream = open(&rig, options(Resolution::Native)).await;
     assert_eq!(stream.zones(), 42);
 }
 
 #[tokio::test]
 async fn the_app_zone_count_is_not_the_native_one() {
     let rig = rig().await;
-    let stream = open(&rig, options(Zones::App)).await;
+    let stream = open(&rig, options(Resolution::App)).await;
     assert_eq!(stream.zones(), 10);
 }
 
@@ -215,7 +215,7 @@ async fn a_measured_rate_is_read_off_the_device_file() {
     let stream = open(
         &rig,
         StreamOptions {
-            zones: Zones::Native,
+            resolution: Resolution::Native,
             ..StreamOptions::default()
         },
     )
@@ -231,7 +231,7 @@ async fn the_argument_names_come_from_the_device_file() {
 
     let catalog = Catalog::from_sources([("renamed-args.yaml", RENAMED)]).expect("catalog");
     let rig = rig_with(catalog, "HTEST2").await;
-    let stream = open(&rig, options(Zones::App)).await;
+    let stream = open(&rig, options(Resolution::App)).await;
     stream.set_all(&[[255, 0, 0], [0, 255, 0]]).unwrap();
 
     assert_eq!(
@@ -250,7 +250,7 @@ async fn native_resolution_nobody_measured_is_refused() {
     let error = rig
         .govee
         .device(&id())
-        .open_stream(options(Zones::Native))
+        .open_stream(options(Resolution::Native))
         .await
         .expect_err("an unmeasured unit has no native resolution");
     assert_eq!(error.code(), "zone_count_unknown");
@@ -266,7 +266,7 @@ async fn a_file_naming_no_segment_command_is_refused() {
     let error = rig
         .govee
         .device(&id())
-        .open_stream(options(Zones::App))
+        .open_stream(options(Resolution::App))
         .await
         .expect_err("nothing claims the role");
     assert_eq!(error.code(), "no_segment_command");
@@ -275,7 +275,7 @@ async fn a_file_naming_no_segment_command_is_refused() {
 #[tokio::test]
 async fn a_frame_of_the_wrong_length_is_refused_rather_than_padded() {
     let rig = rig().await;
-    let stream = open(&rig, options(Zones::Exact(3))).await;
+    let stream = open(&rig, options(Resolution::Exact(3))).await;
 
     let error = stream
         .set_all(&[[255, 0, 0]])
@@ -286,7 +286,7 @@ async fn a_frame_of_the_wrong_length_is_refused_rather_than_padded() {
 #[tokio::test]
 async fn a_stream_survives_a_device_that_stops_answering() {
     let rig = rig().await;
-    let stream = open(&rig, options(Zones::Exact(1))).await;
+    let stream = open(&rig, options(Resolution::Exact(1))).await;
 
     // Verification is what learns silence, and a stream asks for none: the
     // breaker keeps letting frames through, and nothing stops the task.
@@ -304,7 +304,7 @@ async fn a_gradient_stream_says_so_in_every_frame() {
     let stream = open(
         &rig,
         StreamOptions {
-            zones: Zones::Exact(1),
+            resolution: Resolution::Exact(1),
             rate: Rate::Fixed(TEST_HZ),
             gradient: true,
         },
@@ -324,7 +324,7 @@ async fn a_stream_is_only_opened_for_a_device_a_mode_can_reach() {
     let error = rig
         .govee
         .device(&govee_toolkit::DeviceId::new("11:22:33:44:55:66"))
-        .open_stream(options(Zones::App))
+        .open_stream(options(Resolution::App))
         .await
         .expect_err("nothing was ever discovered under that identity");
     assert_eq!(error.code(), "unknown_device");
@@ -336,7 +336,7 @@ async fn a_stream_does_not_power_the_device_on() {
     let _stream = rig
         .govee
         .device(&id())
-        .open_stream(options(Zones::App))
+        .open_stream(options(Resolution::App))
         .await
         .expect("the stream opens");
 
