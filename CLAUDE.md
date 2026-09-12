@@ -141,6 +141,10 @@ SKU.
   concluding a device lacks a capability.
 - Firmware updates change behavior without notice. Ship probes rather than
   trusting a table.
+- Test on real hardware with the Rust CLI, not with a script of your own:
+  `cargo run -p govee-toolkit-cli --features ble -- <verb>` sends the bytes the
+  device file declares, so the test exercises what the SDK ships. Write a
+  one-off tool only for a probe that no device file entry can express.
 - Two techniques that pay off, in order: decompile the vendor's desktop app, and
   capture its UDP traffic on port 4003. Both beat guessing frames. What you
   learn that way is describable in your own words; **no decompiled output,
