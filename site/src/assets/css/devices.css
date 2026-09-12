@@ -33,10 +33,6 @@
 .pill-partial { color: var(--amber); border-color: color-mix(in oklab, var(--amber) 45%, transparent); }
 .pill-unknown { color: var(--muted); border-style: dashed; }
 
-.out-of-reach { list-style: none; margin: .8em 0 0; padding: 0; font-size: 14px; color: var(--muted); }
-.out-of-reach li { margin: .3em 0; padding-left: 1.1em; text-indent: -1.1em; }
-.out-of-reach li::before { content: "\2717"; color: var(--amber); margin-right: .55em; }
-.out-of-reach strong { color: var(--prose); font-weight: 500; }
 
 /* --- One model, one page ------------------------------------------------ */
 
