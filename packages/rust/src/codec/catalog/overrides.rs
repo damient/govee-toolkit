@@ -6,7 +6,7 @@
 //! reaches only a command a family declares: a local command is edited where
 //! it is written.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Deserialize;
 
@@ -80,7 +80,7 @@ pub fn apply(
     file: &str,
     mode: Mode,
     table: &mut BTreeMap<String, Command>,
-    local: &BTreeMap<String, Command>,
+    local: &BTreeSet<String>,
     overrides: &BTreeMap<String, Override>,
 ) -> Result<()> {
     for (name, patch) in overrides {
@@ -90,7 +90,7 @@ pub fn apply(
             command: name.clone(),
             problem,
         };
-        if local.contains_key(name) {
+        if local.contains(name) {
             return Err(fail(
                 "this file declares the command itself; change it there".to_owned(),
             ));

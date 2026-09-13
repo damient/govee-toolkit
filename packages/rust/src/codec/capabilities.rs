@@ -1,16 +1,19 @@
 //! What a device can do, and what a mode reaches of it.
 //!
 //! Capability names are data: the codec reads [`SEGMENTS`] for the zone
-//! counts a stream needs and treats every other name as an opaque string.
-//! Parameters are the exception — an unknown one is refused, not ignored.
+//! counts a stream needs, and `brightness` and `colortemp` where a device file
+//! writes `range: capability` (see [`catalog::Bounds`]). Every other name is an
+//! opaque string. Parameters are the exception — an unknown one is refused, not
+//! ignored.
+//!
+//! [`catalog::Bounds`]: crate::codec::catalog::Bounds
 
 use std::collections::BTreeMap;
 use std::fmt;
 
 use serde::{Deserialize, Deserializer};
 
-/// The capability carrying addressable zones, and the only name the codec
-/// reads.
+/// The capability carrying addressable zones.
 pub const SEGMENTS: &str = "segments";
 
 /// Parameters qualifying one capability, named below. All optional, and an

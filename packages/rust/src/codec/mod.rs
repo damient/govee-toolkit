@@ -41,7 +41,7 @@ pub mod reply;
 pub mod validate;
 pub mod white;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub use args::{ArgValue, Args};
 pub use capabilities::{Capabilities, CapabilityParams, ModeCapabilities, Reason};
@@ -215,7 +215,14 @@ impl Catalog {
         let mut device = parse(file, yaml)?;
         // What the file declares itself, kept so an `overrides:` entry that
         // names one of them is refused rather than applied.
-        let local = device.commands.clone();
+        let local = Mode::ALL.map(|mode| {
+            device
+                .commands
+                .get(mode)
+                .keys()
+                .cloned()
+                .collect::<BTreeSet<String>>()
+        });
         for name in device.include.clone() {
             let family = self
                 .families
@@ -241,13 +248,13 @@ impl Catalog {
                 }
             }
         }
-        let overrides = device.overrides.clone();
-        for mode in Mode::ALL {
+        let overrides = std::mem::take(&mut device.overrides);
+        for (mode, local) in Mode::ALL.into_iter().zip(&local) {
             catalog::apply_overrides(
                 file,
                 mode,
                 device.commands.get_mut(mode),
-                local.get(mode),
+                local,
                 overrides.get(mode),
             )?;
         }
