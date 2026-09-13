@@ -162,10 +162,13 @@ pub enum ArgRole {
     /// [`ArgRole::Green`] and [`ArgRole::Blue`]. `0` leaves the colors to the
     /// firmware. Optional.
     ColorMode,
+    /// What a chunked transfer was answered with, captured from its
+    /// acknowledgement. `0` says the device accepted the transfer.
+    AckStatus,
 }
 
 impl ArgRole {
-    pub(crate) const ALL: [Self; 27] = [
+    pub(crate) const ALL: [Self; 28] = [
         Self::Enable,
         Self::Colors,
         Self::Zones,
@@ -193,6 +196,7 @@ impl ArgRole {
         Self::Sensitivity,
         Self::Soft,
         Self::ColorMode,
+        Self::AckStatus,
     ];
 
     /// The argument type a device file must declare for this role.
@@ -220,7 +224,8 @@ impl ArgRole {
             | Self::Effect
             | Self::Sensitivity
             | Self::Soft
-            | Self::ColorMode => crate::codec::args::INT,
+            | Self::ColorMode
+            | Self::AckStatus => crate::codec::args::INT,
             Self::Colors => crate::codec::args::RGB_LIST,
             Self::Zones => crate::codec::args::ZONES,
             Self::Network | Self::Password | Self::ApiUrl => crate::codec::args::TEXT,
@@ -258,6 +263,7 @@ impl fmt::Display for ArgRole {
             Self::Sensitivity => "sensitivity",
             Self::Soft => "soft",
             Self::ColorMode => "color_mode",
+            Self::AckStatus => "ack_status",
         })
     }
 }

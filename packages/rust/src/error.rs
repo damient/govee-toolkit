@@ -223,6 +223,17 @@ pub enum Error {
         reason: String,
     },
 
+    /// A device refused a provisioning transfer. The device holds the network
+    /// it had, and the credentials it was sent are gone.
+    #[error("{id}: the device refused the credentials, with status {status}")]
+    ProvisionRefused {
+        /// The device that answered.
+        id: DeviceId,
+        /// The status its acknowledgement carried. `0` is the only value that
+        /// accepts, so this is never `0`.
+        status: i64,
+    },
+
     /// A device file could not be read from the user's own directory.
     #[error("local device file `{path}`: {reason}")]
     LocalDevices {
@@ -276,6 +287,7 @@ impl Error {
             Self::ZoneMaskUnbounded { .. } => "zone_mask_unbounded",
             Self::StreamRateOutOfRange { .. } => "stream_rate_out_of_range",
             Self::Env { .. } => "env",
+            Self::ProvisionRefused { .. } => "provision_refused",
             Self::LocalDevices { .. } => "local_devices",
         }
     }

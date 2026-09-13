@@ -4,6 +4,9 @@
 //! `reply:` layout matches, write the next. The layout is the only
 //! correlation, so an unmatched notification is skipped. Every caller sends
 //! its own frames, since nothing tells two callers of one request apart.
+//!
+//! A frame that expects no answer goes out all the same, and the next frame
+//! follows it: a chunked transfer writes every frame and is answered once.
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -33,8 +36,7 @@ impl Shared {
         request: &Encoded,
         timeout: Duration,
     ) -> Result<Reply> {
-        let exchanges = request.reads();
-        if exchanges.is_empty() {
+        if request.reads().is_empty() {
             return Err(Error::NoReplyLayout {
                 mode: Mode::Ble,
                 reason: format!(
@@ -48,12 +50,15 @@ impl Shared {
         let link = self.connect(id, &route).await?;
 
         let mut captured = Captured::new();
-        for (frame, layout) in exchanges {
+        for (frame, layout) in request.exchanges() {
             // Subscribe before the write, or a reply that arrives first is
             // lost.
             let replies = link.replies();
             self.write_frame(id, &route, &link, &request.cmd, frame)
                 .await?;
+            let Some(layout) = layout else {
+                continue;
+            };
             let Some(fields) = await_reply(replies, layout, &request.cmd, timeout).await else {
                 self.record(id, false, Instant::now());
                 return Err(Error::Unreachable {

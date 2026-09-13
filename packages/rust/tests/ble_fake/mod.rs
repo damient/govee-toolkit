@@ -47,6 +47,8 @@ pub(crate) fn answer(frame: &[u8]) -> Vec<u8> {
         }
         // The endpoint type, then the hidden-network flag.
         0xab => vec![0xaa, 0xab, 2, 0],
+        // A transfer is acknowledged once, under the two bytes it came with.
+        0x11 => vec![0xa1, 0x11, 0],
         other => panic!("the fixture declares no request {other:#04x}"),
     };
     reply.resize(20, 0);

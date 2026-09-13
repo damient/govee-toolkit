@@ -7,7 +7,7 @@
 
 use std::time::Duration;
 
-use crate::codec::{ArgRole, ArgValue, Args, Device, Mode, Role};
+use crate::codec::{ArgRole, ArgValue, Args, Device, Encoded, Mode, Role};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 
@@ -21,6 +21,20 @@ const PRODUCTION: i64 = 0;
 
 /// A device that is not on a network yet has no `lan`.
 const MODE: Mode = Mode::Ble;
+
+/// The status an acknowledgement carries when the device takes the transfer.
+const ACCEPTED: i64 = 0;
+
+/// What a transfer reported.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Provisioned {
+    /// The device acknowledged the transfer and took the credentials. It does
+    /// not say the device joined the network.
+    Accepted,
+    /// The writes went out. The device file declares no acknowledgement for
+    /// this transfer, so a refused one is indistinguishable from this.
+    Sent,
+}
 
 /// What a device needs to join a network. The password travels in plaintext,
 /// with no key exchange and no session token: anything in Bluetooth range
@@ -46,8 +60,9 @@ impl DeviceHandle<'_> {
     /// device joins the network, and reaches `lan` only once the user
     /// enables LAN Control.
     ///
-    /// This reports what the writes did: the codec reads no reply on a chunked
-    /// command, so a refused transfer looks like an accepted one here.
+    /// [`Provisioned::Accepted`] says the device took the credentials, where
+    /// its file declares the acknowledgement to read. It does not say the
+    /// device joined the network: watch the network for that.
     ///
     /// # Errors
     ///
@@ -55,8 +70,10 @@ impl DeviceHandle<'_> {
     /// [`Error::NoRoleCommand`] if the device file claims no provisioning
     /// role, [`Error::ModeNotImplemented`] if this build carries no `ble`
     /// transport, [`Error::Codec`] if an argument is outside what the file
-    /// declares, and [`Error::Transport`] if a write fails.
-    pub async fn provision_wifi(&self, credentials: &WifiCredentials) -> Result<()> {
+    /// declares, [`Error::ProvisionRefused`] if the device refuses the
+    /// transfer, and [`Error::Transport`] if a write fails or the
+    /// acknowledgement does not arrive.
+    pub async fn provision_wifi(&self, credentials: &WifiCredentials) -> Result<Provisioned> {
         let modes = self.modes();
         if !modes.contains(&MODE) {
             return Err(Error::NoModeAvailable {
@@ -72,11 +89,36 @@ impl DeviceHandle<'_> {
 
         self.set_wifi_link(&sku, device, 1).await?;
         tokio::time::sleep(WAKE_DELAY).await;
-        let transfer = self.send_role(&sku, &command, &args).await;
+        let transfer = self.transfer(&sku, &command, &args).await;
         // Release the module whatever the transfer did, so the radio does not
         // stay awake.
         let release = self.set_wifi_link(&sku, device, 0).await;
-        transfer.and(release)
+        let outcome = transfer?;
+        release?;
+        Ok(outcome)
+    }
+
+    /// Send the transfer, and read its acknowledgement where the device file
+    /// declares one.
+    async fn transfer(&self, sku: &str, command: &str, args: &Args) -> Result<Provisioned> {
+        let encoded = self.govee.encode(sku, MODE, command, args)?;
+        let transport = self.govee.transport(self.id(), MODE)?;
+        if encoded.reads().is_empty() {
+            transport
+                .send(self.id(), &encoded, crate::transport::Verify::None)
+                .await?;
+            return Ok(Provisioned::Sent);
+        }
+        let field = captured_status(sku, command, &encoded)?;
+        let reply = transport.read(self.id(), &encoded).await?;
+        match reply.fields.get(&field) {
+            Some(ArgValue::Int(ACCEPTED)) => Ok(Provisioned::Accepted),
+            Some(ArgValue::Int(status)) => Err(Error::ProvisionRefused {
+                id: self.id().clone(),
+                status: *status,
+            }),
+            _ => Err(no_role_arg(sku, command, ArgRole::AckStatus)),
+        }
     }
 
     /// The endpoint this device asks for, or `None` where its file claims no
@@ -165,6 +207,25 @@ fn endpoint(api_type: i64) -> Option<&'static str> {
         1 => Some("http://app.govee.com"),
         2 => Some("https://device.govee.com"),
         _ => None,
+    }
+}
+
+/// The field the transfer's acknowledgement reports its status in.
+fn captured_status(sku: &str, command: &str, encoded: &Encoded) -> Result<String> {
+    encoded
+        .roles
+        .iter()
+        .find(|(_, role)| **role == ArgRole::AckStatus)
+        .map(|(field, _)| field.clone())
+        .ok_or_else(|| no_role_arg(sku, command, ArgRole::AckStatus))
+}
+
+fn no_role_arg(sku: &str, command: &str, arg_role: ArgRole) -> Error {
+    Error::NoRoleArg {
+        sku: sku.to_owned(),
+        mode: MODE,
+        command: command.to_owned(),
+        arg_role,
     }
 }
 

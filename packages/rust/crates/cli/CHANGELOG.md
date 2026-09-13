@@ -5,6 +5,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Changed
+
+- **Breaking:** `provision` reports what the device answered. The JSON carries
+  `result`, `accepted` or `sent`, in place of `sent`.
+
 ### Removed
 
 - **Breaking:** `describe --json` no longer carries `documented` on a command.

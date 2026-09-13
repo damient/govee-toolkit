@@ -65,8 +65,9 @@ Four things to know before you run it:
 - Use a 2.4 GHz network. No Govee device joins a 5 GHz one.
 - The password travels in plaintext, with no key exchange. Anything in
   Bluetooth range while the command runs reads it.
-- Nothing acknowledges the transfer, so a refused one looks the same as an
-  accepted one. Check the network afterwards.
+- The device acknowledges the transfer, and the report says whether it
+  accepted the credentials. It does not say the device joined the network:
+  check the network afterwards.
 - Close the vendor app first. It holds the one connection the radio accepts.
 
 ## The API key

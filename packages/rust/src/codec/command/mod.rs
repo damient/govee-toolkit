@@ -32,7 +32,7 @@ pub struct Encoded {
     /// as base64 where the payload asks for it.
     pub frames: Vec<Vec<u8>>,
     /// The reply each frame expects, parallel to `frames`. Empty for a command
-    /// that only writes.
+    /// that only writes, and `None` on a frame the device answers nothing to.
     pub replies: Vec<Option<ReplyLayout>>,
     /// The role each captured field carries, where `args:` marks one, so a
     /// transport reads a status without a field name reaching this crate.
@@ -56,6 +56,18 @@ impl Encoded {
         serde_json::to_vec(message).map_err(|e| Error::Serialize {
             command: self.cmd.clone(),
             reason: e.to_string(),
+        })
+    }
+
+    /// Every frame, in order, paired with the layout that reads its answer
+    /// where the command expects one. A frame that expects none still goes
+    /// out: a chunked transfer is answered once, after its last frame.
+    pub fn exchanges(&self) -> impl Iterator<Item = (&[u8], Option<&ReplyLayout>)> {
+        self.frames.iter().enumerate().map(|(i, frame)| {
+            (
+                frame.as_slice(),
+                self.replies.get(i).and_then(Option::as_ref),
+            )
         })
     }
 
@@ -115,12 +127,13 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
     let mut captured: BTreeSet<&str> = exchanges
         .map(|e| e.capture_names().collect())
         .unwrap_or_default();
+    captured.extend(chunked.iter().flat_map(|layout| layout.capture_names()));
     captured.extend(spec.reads.iter().map(|read| read.arg.as_str()));
     let resolved = resolve(command, spec, &sends, &captured, args)?;
 
     let (frames, replies) = match (exchanges, chunked) {
         (Some(exchanges), _) => exchanges.build(command, &resolved)?,
-        (None, Some(layout)) => (layout.build(command, &resolved)?, Vec::new()),
+        (None, Some(layout)) => layout.build(command, &resolved)?,
         (None, None) => (Vec::new(), Vec::new()),
     };
 

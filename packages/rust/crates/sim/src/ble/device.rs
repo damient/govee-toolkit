@@ -52,6 +52,7 @@ impl BleDevice {
                     unresponsive_until: None,
                     stalls: 0,
                     sent: 0,
+                    transfer_status: 0,
                 }),
             }),
         }
@@ -214,6 +215,14 @@ impl BleDevice {
     pub fn set_read_answer(&self, command_type: u8, payload: &[u8]) {
         if let Ok(mut state) = self.inner.state.lock() {
             state.answers.insert(command_type, payload.to_vec());
+        }
+    }
+
+    /// What a chunked transfer is acknowledged with. `0` accepts it, and
+    /// every other value refuses it.
+    pub fn set_transfer_status(&self, status: u8) {
+        if let Ok(mut state) = self.inner.state.lock() {
+            state.transfer_status = status;
         }
     }
 

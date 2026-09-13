@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::time::{Duration, Instant};
 
 use super::encode::{self, CONFIRM, HANDSHAKE, REQUEST};
-use super::{BleFaults, FRAME_LEN, READ, WRITE, bcc};
+use super::{BleFaults, FRAME_LEN, MULTI_WRITE, READ, TRANSFER_END, WRITE, bcc};
 
 #[derive(Debug)]
 pub(super) struct State {
@@ -24,6 +24,8 @@ pub(super) struct State {
     pub(super) unresponsive_until: Option<Instant>,
     pub(super) stalls: u32,
     pub(super) sent: u32,
+    /// The status a chunked transfer is acknowledged with. `0` accepts.
+    pub(super) transfer_status: u8,
 }
 impl State {
     /// One frame on an encoded link, encoded or not.
@@ -114,8 +116,11 @@ impl State {
                 bytes.extend_from_slice(self.answers.get(&command_type)?);
                 bytes
             }
-            // A multi-packet write answers once complete, and nothing here
-            // reassembles one.
+            // A multi-packet write is acknowledged once, on the frame that
+            // closes it. Nothing here reassembles the body.
+            MULTI_WRITE if frame.get(2) == Some(&TRANSFER_END) => {
+                vec![MULTI_WRITE, command_type, self.transfer_status]
+            }
             _ => return None,
         };
         answer.resize(FRAME_LEN, 0);

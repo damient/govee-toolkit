@@ -393,9 +393,10 @@ controller keeps, for every device. Trap: a unit that takes the write budget of
 and it stays off the network. The same transfer at 300 ms was accepted.
 
 Status comes back on the notify characteristic as `A1 11 <status>`; `0` means
-accepted. The codec reads no `reply:` on a chunked command, so the SDK does not
-report this status. Whether the device joined the network is the only signal a
-caller gets today.
+accepted. The device answers the transfer once, after the closing frame, and
+not once per frame. The device file reads it with a `reply:` in the `chunk:`
+block, and `provision_wifi()` reports what it carried. An accepted transfer
+still says nothing about the network: watch the network for that.
 
 ## 5. Throughput
 

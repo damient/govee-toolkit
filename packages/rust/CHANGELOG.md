@@ -26,9 +26,27 @@ releases apart and keeps
   carries them at their own length, shorter than `FRAME_LEN`.
 - `measurements.ble.render_hold_ms` — how long a firmware holds a colour from
   the host before it returns to its stored state.
+- `Provisioned` — what `provision_wifi()` reports: `Accepted` where the device
+  acknowledged the transfer, `Sent` where its file declares no acknowledgement.
+- `Error::ProvisionRefused` — a device answered a provisioning transfer with a
+  status other than `0`. It holds the network it had.
+- `ArgRole::AckStatus` — the status a chunked transfer is acknowledged with,
+  captured by the `reply:` in its `chunk:` block.
+- `codec::Encoded::exchanges()` — every frame, with the layout that reads its
+  answer where the command declares one.
+- `govee_toolkit_sim::ble::BleDevice::set_transfer_status()` — what the
+  simulated device acknowledges a chunked transfer with.
 
 ### Changed
 
+- **Breaking:** `provision_wifi()` returns `Provisioned` rather than `()`.
+  `Provisioned::Accepted` says the device took the credentials; it says nothing
+  about the network.
+- **Breaking:** `ArgRole` carries a further variant. Match `ArgRole::AckStatus`
+  wherever a match on it is exhaustive.
+- A chunked command whose `chunk:` block declares a `reply:` is read back: the
+  `ble` transport writes every frame, then waits for the one answer the device
+  sends after the last.
 - **Breaking:** `ble::Options` carries `chunk_gap`, the wait between two frames
   of a chunked command. `Options::default` sets it to 300 ms.
 - The `ble` send path waits `chunk_gap` between the frames of a chunked
