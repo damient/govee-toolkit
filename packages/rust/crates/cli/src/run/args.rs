@@ -124,11 +124,13 @@ fn refused(name: &str, text: &str, wanted: &str) -> Failure {
 
 #[cfg(test)]
 mod tests {
+    use govee_toolkit::codec::Bounds;
+
     use super::*;
 
     fn int() -> ArgSpec {
         ArgSpec::Int {
-            range: [0, 100],
+            range: Bounds::Literal([0, 100]),
             role: None,
         }
     }

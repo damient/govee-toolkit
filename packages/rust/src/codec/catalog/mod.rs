@@ -15,8 +15,12 @@ use crate::codec::cloud::{Capability, Read};
 use crate::codec::exchange::{Exchanges, Step};
 use crate::codec::measurements::Measurements;
 
+mod bounds;
+mod overrides;
 mod spec;
 
+pub use bounds::{Bounds, CapabilityKeyword, resolve as resolve_bounds};
+pub use overrides::{ArgOverride, Override, Overrides, apply as apply_overrides};
 pub use spec::{ArgRole, ArgSpec, Role};
 
 /// A way of talking to a device. Not a fallback chain — see `docs/modes.md`.
@@ -291,6 +295,10 @@ pub struct Device {
     /// The command tables.
     #[serde(default)]
     pub commands: Commands,
+    /// What this file changes in a command an `include:` brought in. Applied
+    /// on load, so nothing downstream reads it. See [`Overrides`].
+    #[serde(default)]
+    pub overrides: Overrides,
     /// Numbers taken from one physical unit.
     #[serde(default)]
     pub measurements: Measurements,

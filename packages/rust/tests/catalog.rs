@@ -1,8 +1,13 @@
 //! Invariants every device file in the repository must hold.
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    clippy::panic
+)]
 
-use govee_toolkit::codec::{Catalog, Mode, validate};
+use govee_toolkit::codec::{ArgSpec, Catalog, Mode, Role, validate};
 
 #[test]
 fn every_device_file_is_well_formed() {
@@ -211,4 +216,137 @@ fn a_command_declared_twice_is_an_error_rather_than_an_override() {
     .expect_err("the file and the family both declare `ping`");
 
     assert_eq!(error.code(), "duplicate_command");
+}
+
+/// A shared table that takes its bounds from the device that includes it.
+const FAMILY_BOUNDS: &str = "schema_version: 1\nfamily: shared-bounds\ncommands:\n  ble:\n    \
+     dim:\n      role: brightness\n      frame: \"33 04 ${level} <pad:20> <xor>\"\n      args:\n        \
+     level: { type: int, range: capability, role: brightness }\n";
+
+fn device_with_capabilities(capabilities: &str) -> String {
+    format!(
+        "schema_version: 1\nsku: HCAP\nfamily: test\nname: Test\n\
+         capabilities:\n{capabilities}include: [shared-bounds]\ncommands: {{}}\n"
+    )
+}
+
+#[test]
+fn capability_bounds_reach_a_command_from_the_device_that_includes_it() {
+    let device = device_with_capabilities("  brightness: { range: [1, 80] }\n");
+    let catalog =
+        Catalog::from_sources_with([("d.yaml", device.as_str())], [("f.yaml", FAMILY_BOUNDS)])
+            .expect("it loads");
+
+    let device = catalog.device("HCAP").expect("the device is there");
+    let (_, command) = device
+        .entry_for(Mode::Ble, Role::Brightness)
+        .expect("the family declares it");
+    let ArgSpec::Int { range, .. } = &command.args["level"] else {
+        panic!("`level` is an integer");
+    };
+    assert_eq!(range.pair(), Some([1, 80]));
+}
+
+#[test]
+fn capability_bounds_the_device_does_not_declare_are_an_error() {
+    let device = device_with_capabilities("  color:\n");
+    let error =
+        Catalog::from_sources_with([("d.yaml", device.as_str())], [("f.yaml", FAMILY_BOUNDS)])
+            .expect_err("the device declares no brightness range");
+
+    assert_eq!(error.code(), "capability_bounds");
+}
+
+#[test]
+fn capability_bounds_on_an_argument_with_no_such_role_are_an_error() {
+    let family = "schema_version: 1\nfamily: shared-bounds\ncommands:\n  ble:\n    dim:\n      \
+                  frame: \"33 04 ${level} <pad:20> <xor>\"\n      args:\n        \
+                  level: { type: int, range: capability }\n";
+    let device = device_with_capabilities("  brightness: { range: [1, 80] }\n");
+    let error = Catalog::from_sources_with([("d.yaml", device.as_str())], [("f.yaml", family)])
+        .expect_err("no role names a capability parameter");
+
+    assert_eq!(error.code(), "capability_bounds");
+}
+
+/// A shared table with a bound and a note one model differs on.
+const FAMILY_MUSIC: &str = "schema_version: 1\nfamily: shared-music\ncommands:\n  ble:\n    \
+     music:\n      role: music\n      frame: \"33 05 13 ${effect} <pad:20> <xor>\"\n      \
+     args:\n        effect: { type: int, range: [0, 7], role: effect }\n      \
+     notes: \"Eight effects.\"\n    ping:\n      frame: \"33 01 <pad:20> <xor>\"\n";
+
+fn device_overriding(overrides: &str) -> String {
+    format!(
+        "schema_version: 1\nsku: HOVR\nfamily: test\nname: Test\ncapabilities: {{}}\n\
+         include: [shared-music]\ncommands: {{}}\noverrides:\n  ble:\n{overrides}"
+    )
+}
+
+fn load_override(overrides: &str) -> govee_toolkit::codec::Result<Catalog> {
+    let device = device_overriding(overrides);
+    Catalog::from_sources_with([("d.yaml", device.as_str())], [("f.yaml", FAMILY_MUSIC)])
+}
+
+#[test]
+fn an_override_narrows_a_bound_an_included_table_declares() {
+    let catalog = load_override(
+        "    music:\n      args:\n        effect: { range: [0, 1] }\n      \
+         notes: \"Two effects on this unit.\"\n",
+    )
+    .expect("it loads");
+
+    let device = catalog.device("HOVR").expect("the device is there");
+    let (_, command) = device
+        .entry_for(Mode::Ble, Role::Music)
+        .expect("the family declares it");
+    let ArgSpec::Int { range, .. } = &command.args["effect"] else {
+        panic!("`effect` is an integer");
+    };
+    assert_eq!(range.pair(), Some([0, 1]));
+    assert_eq!(command.notes, "Two effects on this unit.");
+}
+
+#[test]
+fn an_override_drops_a_command_the_model_does_not_have() {
+    let catalog = load_override("    ping:\n      drop: true\n").expect("it loads");
+
+    let device = catalog.device("HOVR").expect("the device is there");
+    assert!(!device.commands.get(Mode::Ble).contains_key("ping"));
+    assert!(device.commands.get(Mode::Ble).contains_key("music"));
+}
+
+#[test]
+fn an_override_that_changes_nothing_is_an_error() {
+    let error = load_override("    music:\n      args:\n        effect: { range: [0, 7] }\n")
+        .expect_err("the table already gives those bounds");
+
+    assert_eq!(error.code(), "override");
+}
+
+#[test]
+fn an_override_naming_a_command_no_included_table_carries_is_an_error() {
+    let error =
+        load_override("    absent:\n      notes: \"x\"\n").expect_err("no table declares it");
+
+    assert_eq!(error.code(), "override");
+}
+
+#[test]
+fn an_override_naming_an_argument_the_command_lacks_is_an_error() {
+    let error = load_override("    music:\n      args:\n        absent: { range: [0, 1] }\n")
+        .expect_err("the command declares no such argument");
+
+    assert_eq!(error.code(), "override");
+}
+
+#[test]
+fn an_override_of_a_command_the_file_declares_itself_is_an_error() {
+    let device = "schema_version: 1\nsku: HOVR\nfamily: test\nname: Test\ncapabilities: {}\n\
+                  include: [shared-music]\ncommands:\n  ble:\n    local:\n      \
+                  frame: \"33 02 <pad:20> <xor>\"\noverrides:\n  ble:\n    local:\n      \
+                  notes: \"x\"\n";
+    let error = Catalog::from_sources_with([("d.yaml", device)], [("f.yaml", FAMILY_MUSIC)])
+        .expect_err("a local command is edited where it is written");
+
+    assert_eq!(error.code(), "override");
 }

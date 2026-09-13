@@ -46,7 +46,7 @@ use std::collections::BTreeMap;
 pub use args::{ArgValue, Args};
 pub use capabilities::{Capabilities, CapabilityParams, ModeCapabilities, Reason};
 pub use catalog::{
-    ArgRole, ArgSpec, Command, Device, Family, Mode, ModeSupport, Modes, Role, Support,
+    ArgRole, ArgSpec, Bounds, Command, Device, Family, Mode, ModeSupport, Modes, Role, Support,
 };
 pub use chunk::Chunk;
 pub use command::{Encoded, encode};
@@ -209,9 +209,13 @@ impl Catalog {
         Ok(replaced)
     }
 
-    /// Parse a device file and merge in every table it includes.
+    /// Parse a device file, merge in every table it includes, then apply the
+    /// patches the file declares against them.
     fn parse_device(&self, file: &str, yaml: &str) -> Result<Device> {
         let mut device = parse(file, yaml)?;
+        // What the file declares itself, kept so an `overrides:` entry that
+        // names one of them is refused rather than applied.
+        let local = device.commands.clone();
         for name in device.include.clone() {
             let family = self
                 .families
@@ -237,6 +241,20 @@ impl Catalog {
                 }
             }
         }
+        let overrides = device.overrides.clone();
+        for mode in Mode::ALL {
+            catalog::apply_overrides(
+                file,
+                mode,
+                device.commands.get_mut(mode),
+                local.get(mode),
+                overrides.get(mode),
+            )?;
+        }
+        // After the merge and the patches, so a shared table's
+        // `range: capability` reaches the capabilities of the device that
+        // included it, and an override can supply bounds of its own.
+        catalog::resolve_bounds(file, &mut device)?;
         Ok(device)
     }
 
