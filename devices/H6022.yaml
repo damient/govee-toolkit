@@ -14,9 +14,9 @@ capabilities:
   color:
   colortemp:   { range_kelvin: [2700, 6500] }   # measured, see verified below
   music:       # the phone controller offers it, over the lamp's own microphone
-  segments:    # native_pixels is at least 132 and is not resolved: the frame
-               # ceiling stops the sweep there. See verified below. The zones
-               # the phone controller exposes were not counted
+  segments:
+    count: 132            # the phone controller paints a grid of 12 by 11
+    native_pixels: 132    # one zone is one LED, see verified below
 
 modes:
   lan:
@@ -122,9 +122,9 @@ commands:
         colors: { type: rgb_list, max_len: 132, role: colors }
       notes: >-
         len counts the payload only, 16-bit, header and checksum excluded. See
-        docs/protocol/lan.md 2.3. The ceiling of 132 zones is this firmware's,
-        not the protocol's: 133 zones and above are dropped in silence. See
-        `measurements.segment_max_zones`.
+        docs/protocol/lan.md 2.3. The ceiling of 132 zones is this unit's LED
+        count, not the protocol's limit: 133 zones and above are dropped in
+        silence. See `measurements`.
 
   ble: {}
   cloud: {}
@@ -132,6 +132,7 @@ commands:
 measurements:
   segment_max_zones: 132    # the highest nbSeg this firmware renders. 133 and
                             # above draw nothing and report nothing
+  segment_grid: [12, 11]    # 12 LEDs around one ring, 11 rings up the cylinder
   zone_0_end: "base"        # zone 0 at the base, the last zone at the top
 
 verified:
@@ -163,16 +164,15 @@ verified:
     pattern of alternating colors reads as scattered points rather than as
     stacked bands.
 
-    The zone ceiling is 132 and it is the firmware's, not the protocol's.
-    Every count up to 132 paints. 133, 134, 135, 140, 160, 200 and 255 each
-    draw nothing and report nothing, and the display stays at what the last
-    accepted frame left. A frame of 132 zones carries a payload of 398 bytes
-    and one of 133 zones carries 401. Nothing established where between those
-    two the firmware stops, so 132 is a measured ceiling and not a boundary.
+    The zone ceiling is 132. Every count up to 132 paints. 133, 134, 135, 140,
+    160, 200 and 255 each draw nothing and report nothing, and the display
+    stays at what the last accepted frame left. The ceiling is the LED count:
+    the phone controller paints a grid of 12 by 11, which is 132, and the
+    firmware drops a frame that names more zones than the unit has LEDs.
 
-    The native resolution is at least 132 and is NOT resolved: zone 124 and
-    zone 131 light two different LEDs, and the ceiling above stops the sweep
-    there. A count of the LEDs is for a mode that reaches past 132 zones.
+    One zone is one LED. Zone 124 and zone 131 light two different LEDs, and
+    each index from 124 to 131 lights one. The grid is 12 LEDs around one ring
+    and 11 rings up the cylinder. A count of the LEDs is for a mode that reaches past 132 zones.
 
     Trap: the diffuser blurs the edge between two zones, so this unit reports
     nothing about the `gradient` byte to the eye. Every frame above was sent
