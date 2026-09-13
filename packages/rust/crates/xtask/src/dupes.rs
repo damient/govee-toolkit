@@ -8,7 +8,7 @@
 //! `notes:` is excluded from the comparison: what one unit does is a property
 //! of that unit, and an `overrides:` entry is where it goes.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::process;
 
@@ -31,21 +31,24 @@ pub(crate) fn dupes(devices: &[(PathBuf, Value)], families: &BTreeMap<String, Va
             .flatten()
         {
             for (command, spec) in table.as_object().into_iter().flatten() {
-                if shared.contains(&(mode.clone(), command.clone())) {
+                let key = (mode.clone(), command.clone(), layout(spec));
+                // Keyed on the layout, not the name: a file that writes its
+                // own frame for a command a family also names is exempt only
+                // when the two layouts agree.
+                if shared.contains(&key) {
                     continue;
                 }
-                let key = (mode.clone(), command.clone(), layout(spec));
                 seen.entry(key).or_default().push(sku.to_owned());
             }
         }
     }
 
-    let mut duplicated: Vec<((String, String), Vec<String>)> = seen
+    // `seen` is keyed `(mode, command, layout)`, so this stays in that order.
+    let duplicated: Vec<((String, String), Vec<String>)> = seen
         .into_iter()
         .filter(|(_, skus)| skus.len() > 1)
         .map(|((mode, command, _), skus)| ((mode, command), skus))
         .collect();
-    duplicated.sort();
 
     if duplicated.is_empty() {
         println!("no duplicated command layout");
@@ -62,9 +65,9 @@ pub(crate) fn dupes(devices: &[(PathBuf, Value)], families: &BTreeMap<String, Va
     process::exit(1);
 }
 
-/// Every `(mode, command)` a shared table already declares.
-fn family_commands(families: &BTreeMap<String, Value>) -> Vec<(String, String)> {
-    let mut out = Vec::new();
+/// Every `(mode, command, layout)` a shared table already declares.
+fn family_commands(families: &BTreeMap<String, Value>) -> BTreeSet<(String, String, String)> {
+    let mut out = BTreeSet::new();
     for family in families.values() {
         for (mode, table) in family
             .get("commands")
@@ -72,13 +75,8 @@ fn family_commands(families: &BTreeMap<String, Value>) -> Vec<(String, String)> 
             .into_iter()
             .flatten()
         {
-            for command in table
-                .as_object()
-                .into_iter()
-                .flatten()
-                .map(|(name, _)| name)
-            {
-                out.push((mode.clone(), command.clone()));
+            for (command, spec) in table.as_object().into_iter().flatten() {
+                out.insert((mode.clone(), command.clone(), layout(spec)));
             }
         }
     }
