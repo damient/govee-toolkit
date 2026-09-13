@@ -45,9 +45,9 @@ impl Shared {
     /// Listen for advertisements until one device is heard.
     ///
     /// The adapter reports what it heard so far, so this reads it every
-    /// [`POLL`] rather than at the end of the window. A second pass runs under
-    /// the same rule as [`Shared::scan`]: only where the first pass heard
-    /// nothing at all.
+    /// [`POLL`] rather than at the end of the window. A second pass runs
+    /// where the first pass does not hear this device. Another device on the
+    /// air says nothing about this one, so it must not end the search.
     ///
     /// A caller that drops this future leaves the adapter scanning. The next
     /// scan starts it again, which the platform accepts.
@@ -67,9 +67,9 @@ impl Shared {
             .map_err(|e| adapter_error("ble", "starting a scan", e))?;
 
         let mut adopted = HashSet::new();
-        let (mut found, heard) = self.listen_for(id, window, &mut adopted).await?;
-        if found.is_none() && !heard {
-            (found, _) = self
+        let mut found = self.listen_for(id, window, &mut adopted).await?;
+        if found.is_none() {
+            found = self
                 .listen_for(id, self.options.rescan_window, &mut adopted)
                 .await?;
         }
@@ -80,33 +80,30 @@ impl Shared {
         Ok(found)
     }
 
-    /// Answers the device, and whether anything at all was heard. `adopted`
-    /// carries the endpoints already recorded, so a device heard over two
-    /// passes is reported once.
+    /// Answers the device. `adopted` carries the endpoints already recorded,
+    /// so a device heard over two passes is reported once.
     async fn listen_for(
         &self,
         id: &DeviceId,
         window: Duration,
         adopted: &mut HashSet<String>,
-    ) -> Result<(Option<Discovered>, bool)> {
+    ) -> Result<Option<Discovered>> {
         let adapter = self.adapter.as_ref();
         let deadline = tokio::time::Instant::now() + window;
-        let mut heard = false;
         loop {
             let left = deadline.saturating_duration_since(tokio::time::Instant::now());
             if left.is_zero() {
-                return Ok((None, heard));
+                return Ok(None);
             }
             tokio::time::sleep(POLL.min(left)).await;
 
             let seen = collect(adapter).await?;
-            heard |= !seen.is_empty();
             let fresh: Vec<Advertised> = seen
                 .into_iter()
                 .filter(|device| adopted.insert(device.endpoint.clone()))
                 .collect();
             if let Some(device) = self.adopt(fresh).into_iter().find(|found| &found.id == id) {
-                return Ok((Some(device), heard));
+                return Ok(Some(device));
             }
         }
     }

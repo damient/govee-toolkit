@@ -42,6 +42,10 @@ One connection at a time. A connected device stops advertising, so a scan
 returns nothing while another controller holds the link. Check that first when
 discovery finds no device that is plainly there.
 
+A device that drops a link stays silent for some seconds before it advertises
+again. A scan that runs in that interval hears nothing from that device. Other
+devices on the air say nothing about it.
+
 ### 1.2 Frame format
 
 There is no MTU negotiation. A frame of every `proType` below but `0xA5` is

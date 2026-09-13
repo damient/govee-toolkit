@@ -70,6 +70,11 @@ releases apart and keeps
 - **Breaking:** `codec::Command` drops `documented`. Nothing read it but one
   validation rule, which is gone with it.
 
+### Fixed
+
+- A `ble` scan for one device listens a second window when the first hears
+  nothing from that device. Another device on the air does not end the search.
+
 ## [0.6.0] — 2026-09-12
 
 A run reads its `GOVEE_*` variables from a `.env` file, and one painting

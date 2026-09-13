@@ -362,3 +362,35 @@ async fn a_close_with_no_link_open_waits_for_nothing() {
         started.elapsed()
     );
 }
+
+/// The regression the second pass exists for: a unit that has just dropped
+/// its link stays silent for seconds. Another device on the air says nothing
+/// about that one, so hearing it must not end the search.
+#[tokio::test]
+async fn a_scan_for_one_device_keeps_listening_while_another_answers() {
+    let other = BleDevice::start(BleOptions::new(OTHER_ENDPOINT, SKU));
+    let adapter = BleAdapter::holding([other]);
+    let ble = Transport::with_adapter(
+        Options {
+            scan_window: Duration::from_millis(100),
+            rescan_window: Duration::from_millis(600),
+            ..options()
+        },
+        Arc::new(Radio::new(Arc::clone(&adapter))),
+        &catalog(),
+    )
+    .expect("the budget holds");
+
+    let late = Arc::clone(&adapter);
+    tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        late.add(device(BleFaults::default()));
+    });
+
+    let found = ble
+        .scan_for(&govee_toolkit::DeviceId::new(ENDPOINT), ble.scan_window())
+        .await
+        .expect("the scan runs");
+
+    assert_eq!(found.map(|heard| heard.endpoint), Some(ENDPOINT.to_owned()));
+}

@@ -157,6 +157,12 @@ first enabled mode in the list, and not the one that answers first: the list is
 the user's preference. The `govee` CLI calls it for every subcommand that names
 a device.
 
+A `ble` scan that looks for one device listens a second time when the first
+window hears nothing from that device. The device can be silent because it has
+just dropped a link — see [`protocol/ble.md`](protocol/ble.md) 1.1. Another
+device on the air must not end the search, so `ensure_known` over `ble` can
+cost two windows.
+
 ## Capability differences between modes
 
 Modes are not interchangeable, and neither is a superset of the other. `cloud`
