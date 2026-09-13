@@ -35,3 +35,6 @@ release/
 .env
 .env.*
 !.env.example
+
+# The local configuration. The template is committed and the file is not.
+/config.local.yaml
