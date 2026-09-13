@@ -5,6 +5,7 @@
 | Device simulator | [`packages/rust/crates/sim`](../packages/rust/crates/sim) |
 | Local CI mirror | [`qa.sh`](qa.sh), or `/qa` in Claude Code |
 | Local CI mirror, site only | [`qa-site.sh`](qa-site.sh) |
+| Pass/fail reporter both share | [`lib/qa.sh`](lib/qa.sh) |
 | Build artifact sweep | [`clean-target.sh`](clean-target.sh) |
 | Redaction check | [`check-captures.sh`](check-captures.sh) |
 | File length, per language | [`check-file-length.sh`](check-file-length.sh) |
@@ -37,6 +38,10 @@ cd site && npm run qa       # the same script
 It needs `site/node_modules`, which `cd site && npm install` writes, and it
 regenerates `dist/catalog.json` when cargo is there. Both exit codes are the
 ones `qa.sh` uses: 1 for a failed check, 2 for a skipped one.
+
+`lib/qa.sh` holds what the two scripts share: the check runner, the skip rule
+and the summary. Each script sources it and declares its own checks, so the
+report reads the same either way.
 
 `clean-target.sh` removes the build artifacts that no later build reads. cargo
 keeps the artifacts of every earlier build and collects none of them, so
