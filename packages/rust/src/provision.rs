@@ -1,9 +1,9 @@
 //! Put a device on a Wi-Fi network over `ble`.
 //!
-//! The order lives here and the bytes stay in `devices/*.yaml`: wake the
-//! module, wait, transfer, release. Each step looks its entry up by [`Role`]
-//! and fills the arguments by [`ArgRole`], so a family whose frames differ
-//! changes its device file and no code. See `docs/architecture.md`.
+//! The order lives here and the bytes stay in `devices/*.yaml`. Each step
+//! looks its entry up by [`Role`] and fills the arguments by [`ArgRole`], so a
+//! family whose frames differ changes its device file and no code. See
+//! `docs/architecture.md`.
 
 use std::time::Duration;
 
@@ -11,9 +11,7 @@ use crate::codec::{ArgRole, ArgValue, Args, Device, Encoded, Mode, Role};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 
-/// How long the Wi-Fi module takes to come up. Measured on one unit: a
-/// transfer with no delay after the wake left it off the network, and 3 s put
-/// it on. The phone controller waits the same.
+/// How long the Wi-Fi module takes to come up. `docs/protocol/ble.md` 4.
 const WAKE_DELAY: Duration = Duration::from_secs(3);
 
 /// What the firmware takes for `run_mode` and `iot_version` in production.
@@ -60,9 +58,8 @@ impl DeviceHandle<'_> {
     /// device joins the network, and reaches `lan` only once the user
     /// enables LAN Control.
     ///
-    /// [`Provisioned::Accepted`] says the device took the credentials, where
-    /// its file declares the acknowledgement to read. It does not say the
-    /// device joined the network: watch the network for that.
+    /// [`Provisioned::Accepted`] needs a file that declares the
+    /// acknowledgement to read.
     ///
     /// # Errors
     ///

@@ -80,8 +80,7 @@ impl Frame {
                         }
                     }
                 }
-                // A checksum is validated as the last token, so nothing
-                // follows.
+                // A checksum is validated as the last token.
                 Token::Xor | Token::Sum => break,
             }
         }
@@ -100,7 +99,6 @@ impl Frame {
 }
 
 impl Frame {
-    /// The checksum token a layout ends with, where it has one.
     fn trailing_checksum(&self) -> Option<&Token> {
         self.tokens.last().filter(|t| t.is_checksum())
     }

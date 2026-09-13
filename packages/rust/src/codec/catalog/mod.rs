@@ -56,13 +56,11 @@ impl fmt::Display for Mode {
 pub enum Support {
     /// Every capability the hardware has.
     Full,
-    /// Every capability the transport carries, which is less than the
-    /// hardware has. Each capability out of reach is
-    /// [`Reason::Transport`]: a boundary of the transport, not work left on
-    /// this device.
+    /// Every capability the transport carries, which is less than the hardware
+    /// has. A boundary of the transport, not work left on this device.
     Capped,
     /// A subset, listed in [`ModeSupport::capabilities`]. At least one
-    /// capability out of reach is work left, not a boundary.
+    /// capability out of reach is work left.
     Partial,
     /// The hardware does not do this mode. A claim, so set it only when
     /// somebody established it; not probed is [`Support::Unknown`].

@@ -76,7 +76,6 @@ export function faqData(doc) {
   };
 }
 
-/** `robots.txt`, which points at the sitemap. */
 export function robots() {
   return `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}${base}sitemap.xml\n`;
 }

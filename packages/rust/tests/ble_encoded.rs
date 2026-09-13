@@ -1,7 +1,6 @@
 //! The `ble` transport against a device that encodes the link.
 //!
-//! Shares the fake radio and fixtures of [`ble_sim`] through the same two
-//! modules, so these run in CI with no Bluetooth on the machine.
+//! Runs on the fake radio of [`ble_sim`], so it needs no Bluetooth.
 
 #![cfg(feature = "ble")]
 #![allow(
@@ -49,9 +48,8 @@ async fn rig(device: &BleDevice, options: Options) -> Govee {
     govee
 }
 
-/// A device that advertises the encoding flag. The link runs the handshake
-/// and encodes every frame; the device records what the frames carried once
-/// decoded, so the assertions below read plaintext on both ends.
+/// A device that advertises the encoding flag. It records what a frame carried
+/// once decoded, so the assertions below read plaintext on both ends.
 fn encoded_device() -> BleDevice {
     BleDevice::start(BleOptions {
         encoded: true,

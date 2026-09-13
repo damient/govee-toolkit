@@ -1,12 +1,11 @@
 //! The codec of an encoded link, and the handshake frames. No I/O.
 //!
-//! A device whose advertisement carries the encoding flag ([`Beacon`]) takes
-//! no plaintext frame of `proType` `0x33` or `0xAA`: it answers nothing.
-//! Every frame on such a link is encoded under a seed, and the seed changes
-//! once per connection. `docs/protocol/ble.md` 9 describes the exchange.
+//! A device whose advertisement carries the encoding flag ([`Beacon`]) answers
+//! no plaintext frame of `proType` `0x33` or `0xAA`. The seed changes once per
+//! connection — `docs/protocol/ble.md` 9.
 //!
-//! An encoded frame keeps its length. The XOR checksum of 1.2 is computed on
-//! the plaintext, before the encoding.
+//! The XOR checksum of `docs/protocol/ble.md` 1.2 covers the plaintext, before
+//! the encoding.
 //!
 //! [`Beacon`]: super::scan::Beacon
 
@@ -46,20 +45,17 @@ pub const REQUEST: u8 = 0x01;
 /// The handshake frame that confirms the session seed. The device echoes it.
 pub const CONFIRM: u8 = 0x02;
 
-/// How many bytes of a 20-byte frame the block stage covers.
 const BLOCK: usize = 16;
 
-/// The length of a handshake frame, in bytes. The same length as every
-/// other frame on this wire.
 const FRAME_LEN: usize = super::FRAME_LEN;
 
 /// One seed, ready to encode and decode frames.
 #[derive(Clone)]
 pub struct Codec {
     aes: Aes128,
-    /// The stream stage's state after the key schedule of the seed. Built
-    /// once: the schedule is 512 loop iterations, and every frame on the link
-    /// would otherwise pay them to cover a tail of under 16 bytes.
+    /// The stream stage's state after the key schedule. Built once: the
+    /// schedule is 512 loop iterations, and every frame would otherwise pay
+    /// them to cover a tail under 16 bytes.
     schedule: [u8; 256],
 }
 
@@ -82,10 +78,10 @@ impl Codec {
 
     /// The codec every handshake runs under.
     ///
-    /// Its seed is the same for every device. It covers the handshake alone:
-    /// what follows runs under the session seed the device hands back. Anyone
-    /// who holds that seed and hears the handshake reads the session, so it is
-    /// a fence against a casual listener and nothing more.
+    /// Its seed is the same for every device, and it covers the handshake
+    /// alone: what follows runs under the session seed the device hands back.
+    /// Anyone who holds the base seed and hears the handshake reads the
+    /// session.
     #[must_use]
     pub fn base() -> Self {
         Self::new(q())
@@ -119,10 +115,8 @@ impl Codec {
         out
     }
 
-    /// The stream stage over `data`, from a fresh copy of the schedule. It is
-    /// its own inverse.
-    // Every index below is a `u8` widened into a 256-entry table, so none of
-    // them can be out of range.
+    /// The stream stage over `data`. It is its own inverse.
+    // Every index is a `u8` widened into a 256-entry table.
     #[allow(clippy::indexing_slicing)]
     fn stream_into(&self, data: &[u8], out: &mut Vec<u8>) {
         let mut s = self.schedule;
@@ -137,9 +131,8 @@ impl Codec {
     }
 }
 
-/// The stream stage's state after the key schedule of `seed`.
-// Every index below is a position below `seed.len()` or a `u8` widened into a
-// 256-entry table, so none of them can be out of range.
+// Every index is a position below `seed.len()` or a `u8` widened into a
+// 256-entry table.
 #[allow(clippy::indexing_slicing)]
 fn schedule(seed: &Seed) -> [u8; 256] {
     let mut s: [u8; 256] = [0; 256];
@@ -154,11 +147,8 @@ fn schedule(seed: &Seed) -> [u8; 256] {
     s
 }
 
-/// A handshake frame: the header, the command, noise up to the checksum,
-/// and the XOR of everything before it.
-///
-/// The noise carries nothing. It is there so that two handshakes do not
-/// encode to the same bytes.
+/// The noise carries nothing. It is there so that two handshakes do not encode
+/// to the same bytes.
 fn handshake(command: u8, noise: &mut impl FnMut() -> u8) -> [u8; FRAME_LEN] {
     let mut frame = [0u8; FRAME_LEN];
     let [head, kind, filler @ .., checksum] = &mut frame;
@@ -217,7 +207,7 @@ impl Noise {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or_default();
-        // The low 64 bits of the clock. Any non-zero seed will do.
+        // `| 1` below: a zero state stays zero.
         let clock = u64::try_from(nanos & u128::from(u64::MAX)).unwrap_or(1);
         Self(clock ^ (u64::from(std::process::id()) << 32) | 1)
     }
@@ -227,7 +217,7 @@ impl Noise {
         self.0 ^= self.0 << 13;
         self.0 ^= self.0 >> 7;
         self.0 ^= self.0 << 17;
-        // The high byte of the state, so the shift leaves at most 8 bits.
+        // The high byte, so the conversion cannot fail.
         u8::try_from(self.0 >> 56).unwrap_or(0)
     }
 }
@@ -281,9 +271,8 @@ mod tests {
         assert_eq!(session.decode(&wire), plain);
     }
 
-    /// A frame shorter than one block takes the stream stage alone. The
-    /// channel probe of `docs/protocol/ble.md` 8 answers five bytes, encoded
-    /// under the base seed.
+    /// A frame shorter than one block takes the stream stage alone. The channel
+    /// probe of `docs/protocol/ble.md` 8 answers five bytes.
     #[test]
     fn a_short_frame_takes_the_stream_stage_alone() {
         let wire = hex("cd ec 50 5e b7");

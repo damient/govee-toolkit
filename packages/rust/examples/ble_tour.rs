@@ -11,10 +11,8 @@
 //! ```
 //!
 //! `GOVEE_TEST_BLE_DEVICE` names one unit where two of the SKU advertise. This
-//! mode has an identity of its own: where the device is new to the run, the
-//! identity is the handle the platform addresses the peripheral by, which is a
-//! Bluetooth address on one platform and a per-host identifier on another.
-//! `govee scan` reports what to write. `.env` carries both variables.
+//! mode has an identity of its own, and it is per host: write what `govee
+//! scan` reports. `.env` carries both variables.
 //!
 //! It walks the H61A0's table. Another SKU names its own commands and
 //! arguments.

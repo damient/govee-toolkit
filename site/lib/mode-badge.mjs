@@ -16,9 +16,8 @@ export function modeBadge(mode, state) {
   return `<span class="mbadge mbadge-${mode}">${modeIcon(mode)}${mode}${extra}</span>`;
 }
 
-// `{{badge_lan}}` and friends, so a static page names a mode with the same
-// component the model pages use.
-/** One `{{badge_<mode>}}` variable per mode, for `fill()`. */
+/** One `{{badge_<mode>}}` variable per mode, so a static page names a mode
+ * with the same component the model pages use. For `fill()`. */
 export function modeBadges() {
   return Object.fromEntries(MODES.map((m) => [`badge_${m}`, modeBadge(m)]));
 }

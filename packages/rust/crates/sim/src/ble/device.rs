@@ -157,10 +157,9 @@ impl BleDevice {
     /// Returns as soon as the frame is recorded; any answer is notified after
     /// [`BleFaults::latency`]. This wire acknowledges nothing.
     ///
-    /// An encoded device decodes the frame first. A handshake frame is
-    /// answered as `docs/protocol/ble.md` §9 says, a plaintext frame is
-    /// recorded as it came and answered with silence, and an encoded frame is
-    /// recorded decoded.
+    /// An encoded device decodes the frame first and records the plaintext. A
+    /// plaintext frame reaching it is recorded as it came and answered with
+    /// silence.
     ///
     /// # Errors
     ///

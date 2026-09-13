@@ -4,9 +4,6 @@
 //! `reply:` layout matches, write the next. The layout is the only
 //! correlation, so an unmatched notification is skipped. Every caller sends
 //! its own frames, since nothing tells two callers of one request apart.
-//!
-//! A frame that expects no answer goes out all the same, and the next frame
-//! follows it: a chunked transfer writes every frame and is answered once.
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};

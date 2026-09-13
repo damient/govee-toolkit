@@ -1,9 +1,5 @@
 //! The exchange that opens an encoded link: a session seed, then its
 //! confirmation. `docs/protocol/ble.md` 9.
-//!
-//! Both frames go out under [`Codec::base`], and the device answers each on
-//! the notify characteristic, encoded the same way. What follows on the link
-//! runs under the seed the device handed back.
 
 use std::time::Duration;
 

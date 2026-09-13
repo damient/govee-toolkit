@@ -1,7 +1,6 @@
 //! Wi-Fi provisioning against a simulated device.
 //!
-//! Shares the fake radio and fixtures of [`ble_sim`] through the same two
-//! modules, so these run in CI with no Bluetooth on the machine.
+//! Runs on the fake radio of [`ble_sim`], so it needs no Bluetooth.
 
 #![cfg(feature = "ble")]
 #![allow(clippy::expect_used)]

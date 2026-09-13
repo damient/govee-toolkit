@@ -118,9 +118,8 @@ impl Shared {
                 Some(id) => (id, Change::Refreshed),
                 None => (DeviceId::new(&device.endpoint), Change::New),
             };
-            // The flag is what the last advertisement said. A firmware update
-            // can raise it, and an advertisement that carries no
-            // advertisement data says nothing, so it leaves the record alone.
+            // An advertisement with no advertisement data says nothing about
+            // the flag, so it leaves the record alone.
             let encoded = device.beacon.map(|beacon| beacon.encoded);
             devices
                 .entry(id.clone())

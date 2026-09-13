@@ -5,9 +5,7 @@
 # request.
 #
 # Kept in step with ci.yml by hand: the workflow is the authority, this is the
-# local mirror of it. A check whose tool is missing is reported as skipped
-# rather than passed, because a skip that reads as a pass is how a red CI gets
-# discovered on the pull request instead of here.
+# local mirror of it. The reporter and the skip rule are in lib/qa.sh.
 #
 # A run that passes every check sweeps the artifacts older than its own, with
 # tools/clean-target.sh.
