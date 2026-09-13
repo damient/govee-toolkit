@@ -85,6 +85,8 @@ releases apart and keeps
 
 - A `ble` scan for one device listens a second window when the first hears
   nothing from that device. Another device on the air does not end the search.
+- Provisioning reports `no_role_arg` where an entry marks no argument for a
+  role, as every other path does. It reported `codec` with a message of its own.
 
 ## [0.6.0] — 2026-09-12
 

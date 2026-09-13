@@ -37,7 +37,8 @@ impl State {
     /// a confirmation is echoed back, and a command is handled as on a
     /// plaintext device, its answer encoded the same way.
     pub(super) fn encoded(&mut self, frame: &[u8], now: Instant) -> Option<(Vec<u8>, Duration)> {
-        let under_base = encode::apply(&encode::q(), frame, false);
+        let base = encode::q();
+        let under_base = encode::apply(&base, frame, false);
         if let [HANDSHAKE, REQUEST, ..] = under_base.as_slice()
             && under_base.len() == FRAME_LEN
         {
@@ -53,13 +54,8 @@ impl State {
             self.session = Some(seed);
             let mut answer = vec![HANDSHAKE, REQUEST];
             answer.extend_from_slice(&seed);
-            answer.resize(FRAME_LEN, 0);
-            let sum = bcc(&answer);
-            if let Some(last) = answer.last_mut() {
-                *last = sum;
-            }
             return Some((
-                encode::apply(&encode::q(), &answer, true),
+                encode::apply(&base, &sealed(answer), true),
                 self.faults.latency,
             ));
         }
@@ -106,7 +102,7 @@ impl State {
             return None;
         }
         let (&kind, &command_type) = (frame.first()?, frame.get(1)?);
-        let mut answer = match kind {
+        let answer = match kind {
             // Acknowledged under the two bytes it came with. See
             // `docs/protocol/ble.md` §1.4.
             WRITE => vec![WRITE, command_type, 0x00],
@@ -123,11 +119,7 @@ impl State {
             }
             _ => return None,
         };
-        answer.resize(FRAME_LEN, 0);
-        let sum = bcc(&answer);
-        if let Some(last) = answer.last_mut() {
-            *last = sum;
-        }
+        let answer = sealed(answer);
 
         self.sent = self.sent.wrapping_add(1);
         let dropped = crate::drops(self.faults.drop_one_in, self.sent);
@@ -154,4 +146,14 @@ pub(super) fn check(frame: &[u8]) -> std::io::Result<()> {
         ));
     }
     Ok(())
+}
+
+/// Pad an answer to [`FRAME_LEN`] and write its checksum into the last byte.
+fn sealed(mut answer: Vec<u8>) -> Vec<u8> {
+    answer.resize(FRAME_LEN, 0);
+    let sum = bcc(&answer);
+    if let Some(last) = answer.last_mut() {
+        *last = sum;
+    }
+    answer
 }

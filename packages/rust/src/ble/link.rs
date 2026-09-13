@@ -166,7 +166,7 @@ pub(crate) fn check_length(cmd: &str, frame: &[u8]) -> Result<()> {
     if frame.len() == FRAME_LEN {
         return Ok(());
     }
-    if frame.first() == Some(&HOST_COLOR_PROTYPE) && !frame.is_empty() && frame.len() < FRAME_LEN {
+    if frame.first() == Some(&HOST_COLOR_PROTYPE) && frame.len() < FRAME_LEN {
         return Ok(());
     }
     Err(Error::Serialize {

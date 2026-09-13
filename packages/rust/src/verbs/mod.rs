@@ -132,7 +132,7 @@ impl Resolved<'_> {
 }
 
 /// [`Error::NoRoleArg`] where the entry marks none.
-fn arg_for<'a>(
+pub(crate) fn arg_for<'a>(
     sku: &str,
     device: &'a Device,
     mode: Mode,

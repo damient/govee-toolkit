@@ -40,12 +40,12 @@ pub(super) fn check_mode_capabilities(device: &Device, mode: Mode) -> Vec<(&'sta
         }
     }
 
-    let mut blocked = support
+    let blocked: Vec<String> = support
         .unreachable
         .iter()
         .filter(|(_, reason)| **reason != Reason::Transport)
         .map(|(name, reason)| format!("`{name}` is `{reason}`"))
-        .peekable();
+        .collect();
 
     match support.support {
         Support::None if !reached.is_empty() => problems.push((
@@ -60,18 +60,18 @@ pub(super) fn check_mode_capabilities(device: &Device, mode: Mode) -> Vec<(&'sta
             "support",
             "is `capped`, but nothing is listed unreachable".to_owned(),
         )),
-        Support::Capped if blocked.peek().is_some() => problems.push((
+        Support::Capped if !blocked.is_empty() => problems.push((
             "support",
             format!(
                 "is `capped`, but {}; a capped mode reaches everything the transport carries, so that is `partial`",
-                blocked.collect::<Vec<_>>().join(", ")
+                blocked.join(", ")
             ),
         )),
         Support::Partial if support.unreachable.is_empty() => problems.push((
             "support",
             "is `partial`, but nothing is listed unreachable".to_owned(),
         )),
-        Support::Partial if blocked.peek().is_none() => problems.push((
+        Support::Partial if blocked.is_empty() => problems.push((
             "support",
             "is `partial`, but every capability out of reach is `transport`; a boundary of the transport is `capped`".to_owned(),
         )),
