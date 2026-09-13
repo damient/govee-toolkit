@@ -13,7 +13,7 @@ use serde::Deserialize;
 
 use super::spec::{ArgRole, ArgSpec};
 use super::{Command, Device, Mode};
-use crate::codec::capabilities::Capabilities;
+use crate::codec::capabilities::{Capabilities, CapabilityParams};
 use crate::codec::error::{Error, Result};
 
 /// Inclusive bounds for an integer argument.
@@ -48,41 +48,19 @@ pub enum CapabilityKeyword {
     Capability,
 }
 
-/// Which capability parameter a role takes its bounds from.
+/// Reads one parameter of [`CapabilityParams`] that carries a pair.
+type Read = fn(&CapabilityParams) -> Option<[i64; 2]>;
+
+/// Which capability parameter a role takes its bounds from, as the capability
+/// name, the parameter name, and how to read it.
 ///
 /// A role absent here carries no bounds anywhere in `capabilities:`, so
 /// `range: capability` on it is a mistake in the file rather than a gap.
-fn source(role: ArgRole) -> Option<(&'static str, Parameter)> {
+fn source(role: ArgRole) -> Option<(&'static str, &'static str, Read)> {
     match role {
-        ArgRole::Brightness => Some(("brightness", Parameter::Range)),
-        ArgRole::ColorTemp => Some(("colortemp", Parameter::RangeKelvin)),
+        ArgRole::Brightness => Some(("brightness", "range", |params| params.range)),
+        ArgRole::ColorTemp => Some(("colortemp", "range_kelvin", |params| params.range_kelvin)),
         _ => None,
-    }
-}
-
-/// The parameter of one capability that carries a pair.
-#[derive(Clone, Copy)]
-enum Parameter {
-    /// `range:`
-    Range,
-    /// `range_kelvin:`
-    RangeKelvin,
-}
-
-impl Parameter {
-    fn name(self) -> &'static str {
-        match self {
-            Self::Range => "range",
-            Self::RangeKelvin => "range_kelvin",
-        }
-    }
-
-    fn read(self, capabilities: &Capabilities, capability: &str) -> Option<[i64; 2]> {
-        let params = capabilities.get(capability)?;
-        match self {
-            Self::Range => params.range,
-            Self::RangeKelvin => params.range_kelvin,
-        }
     }
 }
 
@@ -96,9 +74,13 @@ impl Parameter {
 /// [`Error::CapabilityBounds`] where the argument carries no role that names
 /// a capability parameter, or where the device declares no such pair.
 pub fn resolve(file: &str, device: &mut Device) -> Result<()> {
-    let capabilities = device.capabilities.clone();
+    let Device {
+        capabilities,
+        commands,
+        ..
+    } = device;
     for mode in Mode::ALL {
-        resolve_table(file, mode, device.commands.get_mut(mode), &capabilities)?;
+        resolve_table(file, mode, commands.get_mut(mode), capabilities)?;
     }
     Ok(())
 }
@@ -117,16 +99,16 @@ fn resolve_table(
             if range.pair().is_some() {
                 continue;
             }
-            let pair = role
+            let found = role
                 .and_then(source)
-                .and_then(|(capability, parameter)| parameter.read(capabilities, capability))
-                .ok_or_else(|| Error::CapabilityBounds {
-                    file: file.to_owned(),
-                    mode,
-                    command: command.clone(),
-                    arg: arg.clone(),
-                    needs: needs(*role),
-                })?;
+                .and_then(|(capability, _, read)| capabilities.get(capability).and_then(read));
+            let pair = found.ok_or_else(|| Error::CapabilityBounds {
+                file: file.to_owned(),
+                mode,
+                command: command.clone(),
+                arg: arg.clone(),
+                needs: needs(*role),
+            })?;
             *range = Bounds::Literal(pair);
         }
     }
@@ -136,9 +118,7 @@ fn resolve_table(
 /// What the file must supply, for the error message.
 fn needs(role: Option<ArgRole>) -> String {
     match role.and_then(source) {
-        Some((capability, parameter)) => {
-            format!("`capabilities.{capability}.{}`", parameter.name())
-        }
+        Some((capability, parameter, _)) => format!("`capabilities.{capability}.{parameter}`"),
         None => "a role that names a capability parameter, such as `brightness` \
                  or `color_temp`"
             .to_owned(),
