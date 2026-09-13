@@ -5,10 +5,20 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+## [0.2.0] — 2026-09-13
+
 ### Changed
 
 - **Breaking:** `provision` reports what the device answered. The JSON carries
   `result`, `accepted` or `sent`, in place of `sent`.
+- The binary carries `lan`, `ble` and `cloud` by default, so a mode named at the
+  command line answers. `--no-default-features --features lan` builds it with
+  `lan` alone.
+- `doctor` reports every enabled mode this build carries no transport for,
+  before a command is sent.
+- A command over a mode this build carries no transport for fails with
+  `mode_not_implemented`. It reported `unknown_device`, which named the wrong
+  cause.
 
 ### Removed
 

@@ -7,6 +7,8 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.7.0] — 2026-09-13
+
 ### Added
 
 - `ble::encode` and `ble::session` — the encoded `ble` link of
