@@ -1,121 +1,71 @@
-# Device database
+# Device files
 
-One YAML file per SKU (or SKU family). These files are the **single source of
-truth** for protocol behavior: every SDK reads them instead of duplicating the
-protocol, and implements only the transports (UDP socket, BLE, HTTP) and
-generic parsing.
+One YAML file per device model. A device file says how that model speaks, and
+every SDK reads it. An SDK carries the transports (UDP, Bluetooth, HTTP) and
+generic parsing, never the protocol of one model.
 
-A device file declares which **modes** (`lan`, `ble`, `cloud`) the hardware
-supports and what each one can reach. It does **not** declare which modes are
-enabled — that is a user choice, made per device in the runtime configuration.
-See [`../docs/modes.md`](../docs/modes.md).
+A **mode** is one way to reach a device: `lan` over your network, `ble` over
+Bluetooth, `cloud` over Govee's API. A device file says which modes the
+hardware supports, not which ones are on. The user turns modes on per device,
+in the runtime configuration — see [`../docs/modes.md`](../docs/modes.md).
 
-- [`schema.yaml`](schema.yaml) — reference schema, field by field
-- [`families/`](families/) — command tables several SKUs share, pulled in by
+- [`schema.yaml`](schema.yaml) — every field, with its rules
+- [`families/`](families/) — command tables several models share, pulled in by
   `include:`
-- [`H61A0.yaml`](H61A0.yaml) — RGBIC LED Neon Rope Lights, verified over `lan`
-  including the undocumented segment channel, and over `ble` including Wi-Fi
-  provisioning
-- [`H6114.yaml`](H6114.yaml) — RGB Car LED Strip Lights, a `ble`-only device,
-  verified over `ble` including the music sub-mode
-- [`H6008.yaml`](H6008.yaml) — Smart LED Bulb RGBWW, verified over `lan` on
-  two units, white range measured
+- any `<SKU>.yaml` — a worked example. Start from the model closest to yours.
+- [`../docs/compatibility.md`](../docs/compatibility.md) — which devices work,
+  generated from these files
 
-For **which devices work**, rather than how to declare one, see
-[`../docs/compatibility.md`](../docs/compatibility.md), the readable view of
-these files.
+## Add a model
 
-## Adding a SKU
+1. Copy `schema.yaml` to `<SKU>.yaml`, in capitals: `H6159.yaml`.
+2. Fill in `sku`, `family`, `name` and `capabilities`. Leave out a capability
+   the hardware lacks, rather than setting it to `false`.
+3. Under `modes`, set a support level per mode and list what that mode reaches.
+   Put the rest under `unreachable`, with a reason. A mode you did not test
+   stays `unknown`: `none` claims the hardware cannot do it, and a failed probe
+   looks exactly like a missing feature.
+4. Fill in the `commands` table, and describe every undocumented command in
+   [`../docs/protocol/lan.md`](../docs/protocol/lan.md) as well. Mark commands
+   and arguments with the `role:` values [`schema.yaml`](schema.yaml) lists:
+   an SDK finds them by role, because no command name lives in SDK code.
+5. Attach a real capture under `../tests/fixtures/lan-captures/<SKU>/`.
+   **Redact it first** — git keeps a leaked capture after the fix. The
+   checklist is in
+   [`../tests/fixtures/README.md`](../tests/fixtures/README.md).
+6. Add a conformance vector per command, under
+   `../tests/fixtures/golden/<mode>/<SKU>.json`. Its `source` says where the
+   bytes come from: a capture, or the documented layout. Only a capture is
+   evidence.
+7. Fill in `verified`: who tested, the firmware version, the date. Write `?` or
+   `TODO` for what you did not test. That is a good answer.
+8. Run `cargo run -p xtask -- compat` from `../packages/rust` to regenerate the
+   compatibility tables. CI fails when they drift.
 
-1. Copy `schema.yaml` to `<SKU>.yaml` (uppercase, e.g. `H6159.yaml`).
-2. Fill in `sku`, `family`, `name`, then `capabilities`. One entry per
-   capability the hardware has; a capability it does not have is left out, not
-   set to `false`.
-3. Under `modes`, set the support level per mode (`full` | `partial` | `none` |
-   `unknown`), list the capabilities reachable in that mode, and put the rest
-   under `unreachable` with a reason (`transport` | `unimplemented` |
-   `unprobed`) — [`../docs/compatibility.md`](../docs/compatibility.md) says
-   what each one claims. A mode you did not probe stays `unknown`: `none` says
-   the hardware cannot do it, which is a claim, and a failed probe looks exactly
-   like an unimplemented feature.
-4. Fill in the `commands` table. Describe every undocumented command in
-   [`../docs/protocol/lan.md`](../docs/protocol/lan.md) as well. Mark the entry
-   that reports the device's state `role: status` — that is how an SDK finds it,
-   since no command name lives in SDK code. A file that marks none simply has no
-   status command: verification is skipped and `status()` fails, rather than an
-   SDK guessing an entry name. An entry whose arguments an SDK fills on its own
-   marks those too, with an argument `role:`; no argument name lives in SDK code
-   either. [`schema.yaml`](schema.yaml) lists both sets of roles.
-5. Add a real capture under `../tests/fixtures/lan-captures/<SKU>/`. **Redact
-   it first** — a capture carries your MAC, your IP, your SSID and possibly an
-   account token, and git keeps them after the fix. The checklist and the
-   placeholders to use are in
-   [`../tests/fixtures/README.md`](../tests/fixtures/README.md);
-   `../tools/check-captures.sh` re-checks what it can.
-6. Add a conformance vector for every command, under
-   `../tests/fixtures/golden/<mode>/<SKU>.json`. `cargo test` fails on a command
-   that has none, and its `source` has to say whether the bytes came from the
-   capture or were worked out from the documented layout.
-7. Fill in `verified` (who, firmware, date). Leave what you did not check as
-   `?` or `TODO` — the compatibility table reads `verified.date`, and an empty
-   one renders `?` rather than a tick.
-8. Regenerate the tables in
-   [`../docs/compatibility.md`](../docs/compatibility.md):
+`cargo test` in [`../packages/rust`](../packages/rust) then checks the file. It
+checks the shape only, never whether the device behaves that way.
 
-   ```bash
-   cd ../packages/rust && cargo run -p xtask -- compat
-   ```
+## One command in several modes
 
-   They are generated from these files and CI fails when they drift.
-
-## One command, several modes
-
-A command's **name and its argument names are the contract**; the layout is
-not. Two modes carry the same command in two formats — a `frame:` here, a
-`payload:` there — and a caller reaches both with one call. So a mode that gets
-a command another mode already carries reuses the name and the argument names.
-
-`music` is the example to follow. Over `ble` it is a `frame:` with `effect`,
-`sensitivity`, `color_mode`, `r`, `g` and `b`. A `lan` or a `cloud` entry for
-music declares those same six arguments over its own layout.
+A command's name and its argument names are the contract; the layout is not.
+Two modes carry one command in two formats — a `frame:` here, a `payload:`
+there — and one call reaches both. So a mode that gains a command another mode
+already carries takes the same names. `music` is the example to follow: the six
+arguments it declares over `ble` are the six a `lan` entry would declare.
 
 Two rules keep this honest:
 
 - name an argument for what the wire carries, not for what an SDK would like to
   offer. `color_mode` is `0` or `1` because the byte is;
-- a mode that cannot serve a field does not get a command with that field
-  missing. It declares no command at all, and the SDK fails explicitly — see
-  [`../docs/modes.md`](../docs/modes.md).
+- a mode that cannot carry a field does not get the command with that field
+  missing. It declares no command, and the SDK fails and says so.
 
-## SKU families
+## Several models in one file
 
-When several SKUs share the same protocol behavior in every mode, keep one
-file and list the others under `aliases`. Split into separate files as soon as
-any command differs.
+Where several models behave the same in every mode, keep one file and list the
+others under `aliases`. Split them as soon as one command differs.
 
-When several SKUs speak part of a dialect to the byte, put that part in
+Where several models share part of a dialect to the byte, put that part in
 [`families/<name>.yaml`](families/) and name it in each file's `include:`. A
-fragment carries the layout and nothing else: what one unit answered stays in
-the SKU file, under `verified:`. [`schema.yaml`](schema.yaml) has the rules.
-
-## Validation
-
-Device files are checked in CI by `cargo test` in
-[`../packages/rust`](../packages/rust). The checks are structural — they say
-whether a file is well-formed, never whether a device really behaves that way:
-
-- every `frame:` parses, and only refers to arguments the command declares;
-- every `${placeholder}` in a `payload:` has an argument behind it;
-- a command declaring a `frame:` carries it through `${frame}`;
-- at most one command per mode claims a given `role:`, at most one argument per
-  command claims a given argument `role:`, and a command with a `role:` declares
-  the arguments that role has an SDK fill;
-- a probed mode either reaches every capability the hardware has or explains
-  each one it does not, and names none the file did not declare;
-- `aliases` resolve on lookup and `candidate_aliases` deliberately do not;
-- every name in `include:` matches a fragment, and no command is declared both
-  by a file and by a family it includes.
-
-Add a conformance vector alongside a new command —
-[`../tests/fixtures/README.md`](../tests/fixtures/README.md). One vector per
-command is enough to stop every SDK from drifting on it.
+family carries the layout and nothing else: what one unit answered stays in
+that model's own file, under `verified:`.
