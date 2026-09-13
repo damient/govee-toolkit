@@ -16,7 +16,7 @@ differ, this page gives both layouts and the device file says which one its unit
 takes. A third family can differ again.
 
 One exception: **a hidden network (§4) has never been provisioned.** The
-trailing flag it takes comes from the vendor app, and no entry in a device file
+trailing flag it takes comes from the phone controller, and no entry in a device file
 encodes it.
 
 `packages/rust/src/ble/` carries the transport, behind the cargo feature of the
@@ -39,7 +39,7 @@ frames used here. Frames do not port between the two.
 | Notify characteristic | `00010203-0405-0607-0809-0a0b0c0d2b10` |
 
 One connection at a time. A connected device stops advertising, so a scan
-returns nothing while the vendor's app holds the link. Check that first when
+returns nothing while another controller holds the link. Check that first when
 discovery finds no device that is plainly there.
 
 ### 1.2 Frame format
@@ -75,7 +75,7 @@ read the SKU out of the name:
 | ---- | --- |
 | `GBK_<SKU>_<4 hex digits>` | the second underscore-separated field |
 | `GV<SKU><4 hex digits>`, the SKU starting `H` or `R` | the five characters after `GV` |
-| `ihoment_…`, `Govee_…`, `Minger_…` | the vendor's older brands |
+| `ihoment_…`, `Govee_…`, `Minger_…` | older name prefixes |
 
 The first two forms were both seen on units here; the third is reported rather
 than seen. In the `GV` form the four hex digits carry the last two bytes of the
@@ -115,6 +115,26 @@ the wait on the unit: write a value, drop the link after `n` ms, then read the
 value back. Record the result as `measurements.ble.write_drain_ms` in the
 device file.
 
+### 1.5 The advertisement data
+
+The advertisement carries a six-byte field. It says whether the device encodes
+its frames:
+
+```
+| 0: flags | 1..2: signature 88 EC | 3..4: pactType, big-endian | 5: pactCode |
+```
+
+Bit `0x40` of the flags byte says the device takes encoded frames only — see
+§9. The low nibble of the flags byte is a version of the layout; nothing here
+depends on it. `pactType` and `pactCode` name a firmware protocol generation.
+
+A platform reads the first two bytes of the field as a 16-bit prefix,
+little-endian, and hands the rest over. This layout does not start with such a
+prefix, so a reader puts the two bytes back before it reads the layout. A
+device file records nothing from this field. It is read live at each scan,
+because a firmware update can raise the encoding bit on a device that shipped
+without it.
+
 ## 2. Writes — `proType` `0x33`
 
 Every frame below is padded with zeros to byte 18, and byte 19 is the BCC.
@@ -138,8 +158,8 @@ range its unit takes, and nothing derives one scale from the other.
 Where the field takes the whole byte, `0` is a level and not an off switch: the
 device goes dark and still reports itself on, so only §2.1 turns it off.
 
-The vendor app drives this field over a narrower band than the firmware accepts.
-What the app offers is therefore not evidence of the range.
+The phone controller drives this field over a narrower band than the firmware
+accepts. What it offers is therefore not evidence of the range.
 
 ### 2.3 Color and white
 
@@ -185,7 +205,7 @@ Two traps:
 Sets the zones the mask names to one level, and leaves the rest alone.
 
 The mask field is 4 bytes, least significant byte first: zone 0 is bit 0 of the
-first byte. The vendor's own app writes all four. A unit with 15 zones therefore
+first byte. The phone controller writes all four. A unit with 15 zones therefore
 leaves the last two bytes zero, which is what the zero padding of §1.2 holds
 anyway, so a 2-byte mask builds the same frame on such a unit. A longer unit of
 the same product has more zones, and the field is what says a firmware can
@@ -208,7 +228,7 @@ ignores them in a scene and in music mode, where it paints the zones itself.
 A unit whose levels hold a ramp therefore fades from one end to the other on a
 solid color, and looks correct on every animation.
 
-The vendor's app does not expose this setting, so the frame above is the only
+The phone controller does not expose this setting, so the frame above is the only
 way to change it. Read the levels back with `aa a5 <group>` (§3) — three zones
 per group, and the only read that reports them.
 
@@ -250,8 +270,8 @@ The fields:
   `0` and at `1`, a fixed white at `2`, and nothing above that. An identifier is
   not a name — a device file records the ones somebody watched on its unit, and
   this project maps none of them to an effect.
-- `sensitivity` is how loud a sound must be to move the light. The vendor app
-  drives it over a hundred values.
+- `sensitivity` is how loud a sound must be to move the light. The phone
+  controller drives it over a hundred values.
 - `soft` chooses between two renderings of the same effect: `0` is sharp on the
   beat and `1` runs in fades. It was told apart on one family and changes
   nothing observable on another. The device file says which.
@@ -263,7 +283,7 @@ Three traps:
 - the firmware stores every byte of this frame and reports it back at §3, an
   effect it does not render included. A read that echoes a value is not
   evidence that the device plays it;
-- the vendor app also offers the microphone of the phone as the source. That is
+- the phone controller also offers its own microphone as the source. That is
   not a field of this frame. It is the channel of §8;
 - an identifier the firmware renders nothing for leaves the light on what the
   frame before it rendered. Turn the device off between two identifiers, or a
@@ -309,7 +329,7 @@ Three of these are traps:
 
 ## 4. Wi-Fi provisioning — `proType` `0xA1`, `commandType` `0x11`
 
-Plaintext. No encryption, no key exchange, no session token: anything within
+Plaintext. No encoding, no seed exchange, no session token: anything within
 Bluetooth range during provisioning sees the network password.
 
 `provision_wifi()` runs the whole of this. Provisioning is four writes, in
@@ -366,6 +386,11 @@ start    a1110001000000000000000000000000000000b1
 data 1   a1110104546573740361626300020000000000e2
 end      a111ff000000000000000000000000000000004f
 ```
+
+Write 300 ms between two frames of the transfer. This is the pace the phone
+controller keeps, for every device. Trap: a unit that takes the write budget of
+§5 on a single frame drops the transfer at that rate. It then answers nothing,
+and it stays off the network. The same transfer at 300 ms was accepted.
 
 Status comes back on the notify characteristic as `A1 11 <status>`; `0` means
 accepted. The codec reads no `reply:` on a chunked command, so the SDK does not
@@ -451,7 +476,7 @@ that frame has no room for the parameters, and without a transfer before it the
 firmware has none to render. The seven fields §2.7 lists belong to the effects
 that need no transfer.
 
-The colour count is one byte and the vendor app allows 1 to 8 entries. Which
+The colour count is one byte and the phone controller allows 1 to 8 entries. Which
 parameters follow the colours is a property of the effect, not of the protocol:
 a device file records the ones somebody drove on its unit, and the codec passes
 them through uninterpreted.
@@ -460,7 +485,7 @@ Status comes back on the notify characteristic as `A3 <commandType>
 <sub-command> <status>`; `0` means accepted. An accepted transfer is not a
 rendered effect — §7 — and neither is the sub-mode read of §3 echoing it back.
 
-Worked example — effect `0x32`, the seven-colour palette the vendor app sends
+Worked example — effect `0x32`, the seven-colour palette the phone controller sends
 with no saved one, and a three-byte tail:
 
 ```
@@ -522,3 +547,27 @@ each one is a trap for a caller that treats this as a colour command:
 A device can carry this channel and answer nothing at all on §2 and §3. The
 two are separate implementations in the firmware, so the silence of §7 on one
 says nothing about the other. Probe both before you record what a device does.
+
+## 9. The encoded link
+
+A device that sets bit `0x40` of the flags byte (§1.5) takes encoded frames
+only. A plaintext frame of §2 or §3 gets no answer at all: the silence is the
+same as §7, so the flag is the only sign. The host colour channel of §8 stays
+in the clear.
+
+The encoding keeps the frame length, and the XOR checksum of §1.2 is computed
+on the plaintext. A reply is decoded the same way.
+
+A handshake runs once, as soon as the link and its notifications are up, and
+before any command. It negotiates a session seed, under a base seed every
+device of a generation takes:
+
+| Step | Frame, plaintext | Answer, plaintext |
+| ---- | ---------------- | ----------------- |
+| 1 | `E7 01 <padding> <xor>` | `E7 01 <16-byte session seed> …` |
+| 2 | `E7 02 <padding> <xor>` | the same frame, echoed back |
+
+The padding carries nothing. The session seed covers every frame after step 2.
+
+Where the base seed lives is the owner's call: an SDK that ships it lets anyone
+who reads the code drive any device of this generation in range.

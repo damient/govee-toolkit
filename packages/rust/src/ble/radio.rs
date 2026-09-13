@@ -92,6 +92,7 @@ impl crate::ble::wire::Adapter for Radio {
             heard.push(Heard {
                 endpoint: peripheral.id().to_string(),
                 name,
+                adverts: properties.manufacturer_data.into_iter().collect(),
             });
         }
         Ok(heard)

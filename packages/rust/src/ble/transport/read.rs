@@ -45,7 +45,7 @@ impl Shared {
         }
 
         let route = self.route_and_claim(id, Instant::now(), false)?;
-        let link = self.connect(id, &route.endpoint).await?;
+        let link = self.connect(id, &route).await?;
 
         let mut captured = Captured::new();
         for (frame, layout) in exchanges {

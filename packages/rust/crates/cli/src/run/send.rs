@@ -1,11 +1,15 @@
 //! `send`: one device file entry, named as the file names it. The mode is
 //! resolved before the values are read, because the same entry name can
 //! declare different arguments on two modes.
+//!
+//! An entry that declares a `reply:` is read, and what the layout captured is
+//! printed under the names the device file gives the fields.
 
 use std::collections::BTreeMap;
 
 use govee_toolkit::codec::{ArgSpec, Args, Mode};
 use govee_toolkit::{DeviceId, Govee};
+use serde_json::json;
 
 use crate::output::{Failure, Writer};
 use crate::run::args;
@@ -25,10 +29,38 @@ pub(super) async fn run(
     // An entry this mode does not carry goes out with no arguments, so that
     // the codec reports the unknown command rather than an unknown argument
     // of it.
-    let values = match device.commands.get(mode).get(command) {
+    let spec = device.commands.get(mode).get(command);
+    let values = match spec {
         Some(spec) => read(&spec.args, mode, command, pairs)?,
         None => Args::new(),
     };
+
+    let answers = spec.is_some_and(|spec| {
+        spec.reply.is_some() || !spec.frames.is_empty() || !spec.reads.is_empty()
+    });
+    if answers {
+        let reply = handle.read(command, &values).await?;
+        let fields = reply.fields.to_json();
+        let text = fields
+            .as_object()
+            .map(|map| {
+                map.iter()
+                    .map(|(name, value)| format!("{name}={value}"))
+                    .collect::<Vec<_>>()
+                    .join("  ")
+            })
+            .unwrap_or_default();
+        writer.emit(
+            &json!({
+                "id": reply.id.to_string(),
+                "mode": mode.to_string(),
+                "command": command,
+                "fields": fields,
+            }),
+            &format!("{}  {mode}  {command}  {text}", reply.id),
+        );
+        return Ok(());
+    }
 
     let served = handle.send(command, &values).await?;
     report(writer, &served);

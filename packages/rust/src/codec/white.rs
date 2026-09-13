@@ -2,8 +2,9 @@
 //! it beside the kelvin value — `docs/protocol/ble.md` 2.3.
 //!
 //! The curve approximates the Planckian locus, sampled every 500 K from Tanner
-//! Helland's formula and interpolated between samples. It is not the vendor's
-//! rendering: nobody captured what the Govee app sends for a temperature.
+//! Helland's formula and interpolated between samples. It is not the firmware's
+//! rendering: nobody captured what the phone controller sends for a
+//! temperature.
 
 /// Ordered by kelvin, and never empty: [`rgb`] reads the ends of it.
 const CURVE: [(i64, [u8; 3]); 15] = [

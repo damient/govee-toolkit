@@ -1,5 +1,5 @@
 # H6008 — host colour frames, docs/protocol/ble.md 8.
-# Captured 2026-09-12 on a macOS host, over the write characteristic of
+# Captured 2026-09-12, over the write characteristic of
 # docs/protocol/ble.md 1.1, write without response. The notify characteristic
 # of the same section was subscribed throughout and answered none of these
 # writes. What each frame rendered was watched on the bulb.

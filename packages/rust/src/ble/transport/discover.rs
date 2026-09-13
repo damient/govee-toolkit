@@ -121,6 +121,10 @@ impl Shared {
                 Some(id) => (id, Change::Refreshed),
                 None => (DeviceId::new(&device.endpoint), Change::New),
             };
+            // The flag is what the last advertisement said. A firmware update
+            // can raise it, and an advertisement that carries no
+            // advertisement data says nothing, so it leaves the record alone.
+            let encoded = device.beacon.map(|beacon| beacon.encoded);
             devices
                 .entry(id.clone())
                 .and_modify(|tracked| {
@@ -131,11 +135,15 @@ impl Shared {
                         device.sku.clone_into(&mut tracked.sku);
                         tracked.pacer = Arc::new(Pacer::new(self.budget_for(&device.sku)));
                     }
+                    if let Some(encoded) = encoded {
+                        tracked.encoded = encoded;
+                    }
                 })
                 .or_insert_with(|| {
                     Tracked::new(
                         device.endpoint.clone(),
                         device.sku.clone(),
+                        encoded.unwrap_or(false),
                         self.options.policy,
                         self.budget_for(&device.sku),
                     )
@@ -170,8 +178,5 @@ async fn collect(adapter: &dyn Adapter) -> Result<Vec<Advertised>> {
         .heard()
         .await
         .map_err(|e| adapter_error("ble", "listing what the scan heard", e))?;
-    Ok(heard
-        .into_iter()
-        .filter_map(|device| Advertised::read(device.endpoint, &device.name))
-        .collect())
+    Ok(heard.iter().filter_map(Advertised::heard).collect())
 }

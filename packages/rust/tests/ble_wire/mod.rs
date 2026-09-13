@@ -56,7 +56,11 @@ impl Adapter for Radio {
             .adapter
             .heard()
             .into_iter()
-            .map(|(endpoint, name)| Heard { endpoint, name })
+            .map(|on_air| Heard {
+                endpoint: on_air.endpoint,
+                name: on_air.name,
+                adverts: on_air.adverts,
+            })
             .collect())
     }
 

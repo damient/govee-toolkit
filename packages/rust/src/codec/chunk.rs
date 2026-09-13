@@ -278,7 +278,7 @@ mod tests {
         .expect("the layouts parse")
     }
 
-    /// The seven colours the vendor app sends with no saved palette.
+    /// The seven colours the phone controller sends with no saved palette.
     fn palette() -> Args {
         Args::new().rgb(
             "colors",
