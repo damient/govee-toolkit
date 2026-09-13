@@ -51,8 +51,8 @@
 /* The family icon draws the shape of the product, so a reader finds a model by
    what it looks like before reading its name. Its column carries no head: the
    shape stands for the name beside it. */
-.matrix th:nth-child(2), .matrix .shape { width: 64px; }
-.matrix .shape { line-height: 0; text-align: center; }
+.matrix-list th:nth-child(2), .matrix-list .shape { width: 64px; }
+.matrix-list .shape { line-height: 0; text-align: center; }
 .family-icon { width: 19px; height: 19px; color: var(--muted); }
 
 .pill {
@@ -101,14 +101,14 @@
 }
 .mbadge .mode-icon { width: 14px; height: 14px; flex: none; }
 /* The three accents of the footer dots, in the same order. */
+.mbadge-lan { --tint: var(--accent-ember); }
+.mbadge-ble { --tint: var(--accent-cyan); }
+.mbadge-cloud { --tint: var(--accent-violet); }
 /* The family badge opens the row, and it names the product rather than a
    mode: it takes the neutral tint so that it reads as a label and not as a
    fourth mode. */
 .mbadge-family { --tint: var(--muted); }
 .mbadge .family-icon { width: 14px; height: 14px; color: inherit; }
-.mbadge-lan { --tint: var(--accent-ember); }
-.mbadge-ble { --tint: var(--accent-cyan); }
-.mbadge-cloud { --tint: var(--accent-violet); }
 .badge-unknown { border-style: dashed; }
 
 /* The command column holds identifiers. The head of a column is a label and
