@@ -134,11 +134,6 @@ overrides:
     brightness:
       notes: "Percent. See docs/protocol/ble.md 2.2."
 
-    read_mode:
-      notes: >-
-        The live sub-mode and its eight payload bytes, left uninterpreted. See
-        docs/protocol/ble.md 3.
-
   cloud:
     brightness:
       notes: >-
