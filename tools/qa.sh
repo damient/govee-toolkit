@@ -25,54 +25,16 @@ export CARGO_INCREMENTAL=${CARGO_INCREMENTAL:-0}
 
 MSRV=$(sed -n 's/^rust-version *= *"\([^"]*\)".*/\1/p' "$rust/Cargo.toml" | head -1)
 
-only=${1:-}
-names=() results=()
-log=$(mktemp -t govee-qa)
-trap 'rm -f "$log"' EXIT
+# shellcheck source=lib/qa.sh
+. "$root/tools/lib/qa.sh"
+qa_init govee-qa "${1:-}"
 
-# record <name> <state>, where state is pass, fail or skip.
-record() {
-  names+=("$1")
-  results+=("$2")
-  case $2 in
-  pass) printf '  ok\n' ;;
-  skip) printf '  skipped: %s\n' "${3:-}" ;;
-  fail)
-    printf '  FAILED\n'
-    sed 's/^/  | /' "$log"
-    ;;
-  esac
-}
-
-# check_in <dir> <name> <command...> — runs the command in the directory, with
-# output captured, so a passing check stays quiet and a failing one prints its
-# log.
-check_in() {
-  local dir=$1 name=$2
-  shift 2
-  if [ -n "$only" ] && [[ $name != *"$only"* ]]; then return; fi
-  printf '%s\n' "$name"
-  if (cd "$dir" && "$@") >"$log" 2>&1; then
-    record "$name" pass
-  else
-    record "$name" fail
-  fi
-}
-
-# check <name> <command...> — the same, in the Rust crate.
+# check <name> <command...> — in the Rust crate.
 check() {
   local name=$1
   shift
   check_in "$rust" "$name" "$@"
 }
-
-skip() {
-  if [ -n "$only" ] && [[ $1 != *"$only"* ]]; then return; fi
-  printf '%s\n' "$1"
-  record "$1" skip "$2"
-}
-
-have() { command -v "$1" >/dev/null 2>&1; }
 
 # The sweep at the end removes what is older than this stamp.
 "$root/tools/clean-target.sh" --stamp
@@ -139,23 +101,8 @@ check "file length" "$root/tools/check-file-length.sh" rust
 check "codec layering" "$root/tools/check-no-io.sh"
 check "capture redaction" "$root/tools/check-captures.sh"
 
-echo
-printf '%s\n' "-- summary"
-failed=0 skipped=0
-for i in "${!names[@]}"; do
-  case ${results[$i]} in
-  pass) printf 'pass  %s\n' "${names[$i]}" ;;
-  fail)
-    printf 'FAIL  %s\n' "${names[$i]}"
-    failed=$((failed + 1))
-    ;;
-  skip)
-    printf 'skip  %s\n' "${names[$i]}"
-    skipped=$((skipped + 1))
-    ;;
-  esac
-done
-printf '%d failed, %d skipped, %d total\n' "$failed" "$skipped" "${#names[@]}"
+qa_summary
+status=$?
 
 # The sweep runs whether or not a check failed: a failed run builds the same
 # artifacts as a run that passes, and a person who iterates on one failure
@@ -168,5 +115,4 @@ if [ -z "$only" ]; then
   "$root/tools/clean-target.sh"
 fi
 
-[ "$failed" -eq 0 ] || exit 1
-[ "$skipped" -eq 0 ] || exit 2
+exit "$status"
