@@ -103,7 +103,7 @@ impl DeviceHandle<'_> {
     async fn transfer(&self, sku: &str, command: &str, args: &Args) -> Result<Provisioned> {
         let encoded = self.govee.encode(sku, MODE, command, args)?;
         let transport = self.govee.transport(self.id(), MODE)?;
-        if encoded.reads().is_empty() {
+        if !encoded.answers() {
             transport
                 .send(self.id(), &encoded, crate::transport::Verify::None)
                 .await?;

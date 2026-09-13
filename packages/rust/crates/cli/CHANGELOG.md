@@ -15,6 +15,12 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 - **Breaking:** `describe --json` no longer carries `documented` on a command.
   A reader that keys off it reads the protocol docs instead.
 
+### Fixed
+
+- `send` reads back an entry whose `chunk:` block declares a `reply:`. It wrote
+  the frames and reported nothing, because the test for a declared answer read
+  the other three fields and not that block.
+
 ## [0.1.0] — 2026-09-12
 
 The first release of the `govee` binary. It wraps `govee-toolkit` and holds
