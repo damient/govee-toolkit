@@ -1,0 +1,27 @@
+# A configuration file for development, in place of
+# `~/.config/govee-toolkit/config.yaml`. Copy it to `config.local.yaml`, which
+# is gitignored, and name that file in `.env`:
+#
+#     GOVEE_CONFIG=config.local.yaml
+#
+# It says which modes are enabled, per device. What the hardware supports is
+# `devices/<SKU>.yaml` and is not editable here. Every key below is optional,
+# and an unknown key is refused rather than ignored. `docs/modes.md` describes
+# the two levels, and `packages/rust/src/config/mod.rs` documents every key.
+#
+# The cloud API key never goes here: people paste this file into bug reports.
+# It goes in `.env`, or in the file `cloud.key_file` names.
+
+# What applies to a device with no entry of its own.
+defaults:
+  # The enabled modes, in preference order. `lan` alone is the default, and it
+  # is the only mode that never leaves the local network.
+  modes: [lan]
+
+# Per device, keyed by the identity `govee scan` reports. One enabled mode
+# means one mode: where the device is unreachable in it, the command fails and
+# says so.
+# devices:
+#   "AA:BB:CC:DD:EE:FF":
+#     modes: [lan, ble]
+#     name: desk strip

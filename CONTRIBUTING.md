@@ -220,6 +220,19 @@ cp .env.example .env        # then fill GOVEE_API_KEY in
 network `govee provision` puts a device on. `--ssid` and `--password` override
 them.
 
+Three variables name the hardware a run drives, so that no path to a device
+is written into the code or into a file that is committed:
+
+- `GOVEE_TEST_SKU` is the SKU the examples look for. They walk the H61A0's
+  table when it is unset. It is the portable one: it selects a device in every
+  mode and on every machine.
+- `GOVEE_TEST_DEVICE` is the identity `govee scan` reports over `lan` and
+  `cloud`. It names one unit where two of the SKU answer.
+- `GOVEE_TEST_BLE_DEVICE` is the identity over `ble`, which is a different
+  string: a device that is new to the run takes the handle the platform
+  addresses the peripheral by. That handle is a Bluetooth address on one
+  platform and a per-host identifier on another, so the value is per host.
+
 `.env` is gitignored, and `.env.example` is the committed template. **Never
 commit a key.** Git keeps it after the fix, so a key that reaches a commit is
 revoked and reissued in the Govee Home app.
@@ -252,6 +265,24 @@ deterministic.
 
 `govee --no-env` reads no file, and `govee --env-file <PATH>` names one. A file
 named that way is an error when it is absent, because somebody asked for it.
+
+## Local configuration
+
+`config.yaml` says which modes are enabled, per device. `GOVEE_CONFIG` names
+the file in place of `~/.config/govee-toolkit/config.yaml`, and `.env` carries
+it like any other variable, so the file can sit beside the code:
+
+```bash
+cp config.example.yaml config.local.yaml
+echo 'GOVEE_CONFIG=config.local.yaml' >> .env
+```
+
+`config.local.yaml` is gitignored and `config.example.yaml` is the committed
+template. The path is relative to the working directory, so give an absolute
+path where you run a command from a subdirectory. A file that `GOVEE_CONFIG`
+names and that is absent is **not** an error, unlike `GOVEE_ENV_FILE`: the run
+takes the default configuration, which is `lan` alone. `govee doctor` reports
+the `.env` it read and not this file, so a wrong path here is silent.
 
 Two other paths reach the same key, and both are for an operator rather than a
 contributor: the `GOVEE_API_KEY` variable on its own, and a file of its own

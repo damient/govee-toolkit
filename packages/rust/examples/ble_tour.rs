@@ -6,8 +6,15 @@
 //!
 //! ```bash
 //! cargo run --example ble_tour --features ble
-//! GOVEE_SKU=H61A0 cargo run --example ble_tour --features ble
+//! GOVEE_TEST_SKU=H61A0 cargo run --example ble_tour --features ble
+//! GOVEE_TEST_BLE_DEVICE=<identity> cargo run --example ble_tour --features ble
 //! ```
+//!
+//! `GOVEE_TEST_BLE_DEVICE` names one unit where two of the SKU advertise. This
+//! mode has an identity of its own: where the device is new to the run, the
+//! identity is the handle the platform addresses the peripheral by, which is a
+//! Bluetooth address on one platform and a per-host identifier on another.
+//! `govee scan` reports what to write. `.env` carries both variables.
 //!
 //! It walks the H61A0's table. Another SKU names its own commands and
 //! arguments.
@@ -19,7 +26,7 @@
 use std::time::Duration;
 
 use govee_toolkit::stream::{Rate, Resolution, StreamOptions};
-use govee_toolkit::{Args, Config, Error, Govee};
+use govee_toolkit::{Args, Config, Device, DeviceId, Error, Govee};
 
 /// Every zone the H61A0's mask reaches. A zone past this is refused, not
 /// trimmed: the firmware would drop the bit in silence.
@@ -46,12 +53,19 @@ async fn main() -> Result<(), Error> {
         },
         ..Config::load()?
     };
-    let sku = config.env.var("GOVEE_SKU").unwrap_or("H61A0").to_owned();
+    let sku = config
+        .env
+        .var("GOVEE_TEST_SKU")
+        .unwrap_or("H61A0")
+        .to_owned();
+    let wanted = config.env.var("GOVEE_TEST_BLE_DEVICE").map(DeviceId::new);
     let govee = Govee::start(config).await?;
 
     println!("scanning...");
-    let Some(found) = govee.scan().await?.into_iter().find(|d| d.sku == sku) else {
-        println!("no {sku} is advertising");
+    let matches = |d: &Device| wanted.as_ref().map_or(d.sku == sku, |id| &d.id == id);
+    let Some(found) = govee.scan().await?.into_iter().find(matches) else {
+        let target = wanted.map_or(sku, |id| id.to_string());
+        println!("no {target} is advertising");
         return Ok(());
     };
     println!("{} — {} — modes {:?}", found.id, found.sku, found.modes);

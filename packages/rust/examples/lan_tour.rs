@@ -5,8 +5,12 @@
 //!
 //! ```bash
 //! cargo run --example lan_tour
-//! GOVEE_SKU=H61A0 cargo run --example lan_tour
+//! GOVEE_TEST_SKU=H61A0 cargo run --example lan_tour
+//! GOVEE_TEST_DEVICE=AA:BB:CC:DD:EE:FF cargo run --example lan_tour
 //! ```
+//!
+//! `GOVEE_TEST_DEVICE` names one unit where two of the SKU answer. `.env`
+//! carries both variables.
 //!
 //! It walks the H61A0's table. Another SKU names its own commands and
 //! arguments.
@@ -18,7 +22,7 @@
 use std::time::Duration;
 
 use govee_toolkit::stream::{Rate, Resolution, StreamOptions};
-use govee_toolkit::{Args, Config, Error, Govee};
+use govee_toolkit::{Args, Config, Device, DeviceId, Error, Govee};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -30,12 +34,19 @@ async fn main() -> Result<(), Error> {
         },
         ..Config::load()?
     };
-    let sku = config.env.var("GOVEE_SKU").unwrap_or("H61A0").to_owned();
+    let sku = config
+        .env
+        .var("GOVEE_TEST_SKU")
+        .unwrap_or("H61A0")
+        .to_owned();
+    let wanted = config.env.var("GOVEE_TEST_DEVICE").map(DeviceId::new);
     let govee = Govee::start(config).await?;
 
     println!("scanning...");
-    let Some(found) = govee.scan().await?.into_iter().find(|d| d.sku == sku) else {
-        println!("no {sku} answered discovery");
+    let matches = |d: &Device| wanted.as_ref().map_or(d.sku == sku, |id| &d.id == id);
+    let Some(found) = govee.scan().await?.into_iter().find(matches) else {
+        let target = wanted.map_or(sku, |id| id.to_string());
+        println!("no {target} answered discovery");
         return Ok(());
     };
     println!("{} — {} — modes {:?}", found.id, found.sku, found.modes);

@@ -7,13 +7,17 @@
 //!
 //! ```bash
 //! cargo run --example cloud_tour --features cloud
-//! GOVEE_SKU=H61A0 cargo run --example cloud_tour --features cloud
+//! GOVEE_TEST_SKU=H61A0 cargo run --example cloud_tour --features cloud
+//! GOVEE_TEST_DEVICE=AA:BB:CC:DD:EE:FF cargo run --example cloud_tour --features cloud
 //! ```
+//!
+//! `GOVEE_TEST_DEVICE` names one unit where two of the SKU answer. `.env`
+//! carries both variables.
 
 // The no-print lint is the library's rule; an example reports to its runner.
 #![allow(clippy::print_stdout)]
 
-use govee_toolkit::{Args, Config, Error, Govee};
+use govee_toolkit::{Args, Config, Device, DeviceId, Error, Govee};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -24,12 +28,19 @@ async fn main() -> Result<(), Error> {
         },
         ..Config::load()?
     };
-    let sku = config.env.var("GOVEE_SKU").unwrap_or("H61A0").to_owned();
+    let sku = config
+        .env
+        .var("GOVEE_TEST_SKU")
+        .unwrap_or("H61A0")
+        .to_owned();
+    let wanted = config.env.var("GOVEE_TEST_DEVICE").map(DeviceId::new);
     let govee = Govee::start(config).await?;
 
     println!("listing the account...");
-    let Some(found) = govee.scan().await?.into_iter().find(|d| d.sku == sku) else {
-        println!("the account owns no {sku}");
+    let matches = |d: &Device| wanted.as_ref().map_or(d.sku == sku, |id| &d.id == id);
+    let Some(found) = govee.scan().await?.into_iter().find(matches) else {
+        let target = wanted.map_or(sku, |id| id.to_string());
+        println!("the account owns no {target}");
         return Ok(());
     };
     println!("{} — {} — modes {:?}", found.id, found.sku, found.modes);
