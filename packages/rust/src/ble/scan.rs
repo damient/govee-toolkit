@@ -89,6 +89,9 @@ pub struct Beacon {
 /// The two bytes that follow the flags byte.
 const SIGNATURE: [u8; 2] = [0x88, 0xEC];
 
+/// Bytes of one advertisement entry this layout occupies.
+const LAYOUT_LEN: usize = 6;
+
 /// The bit of the flags byte that says the device takes encoded frames only.
 const ENCODED: u8 = 0x40;
 
@@ -102,9 +105,10 @@ impl Beacon {
     #[must_use]
     pub fn read(adverts: &[(u16, Vec<u8>)]) -> Option<Self> {
         adverts.iter().find_map(|(prefix, data)| {
-            let mut raw = Vec::with_capacity(data.len() + 2);
-            raw.extend_from_slice(&prefix.to_le_bytes());
-            raw.extend_from_slice(data);
+            let mut raw = [0u8; LAYOUT_LEN];
+            let (head, rest) = raw.split_at_mut(2);
+            head.copy_from_slice(&prefix.to_le_bytes());
+            rest.copy_from_slice(data.get(..LAYOUT_LEN - 2)?);
             Self::parse(&raw)
         })
     }
@@ -112,16 +116,17 @@ impl Beacon {
     /// Read the layout off the raw bytes of one advertisement entry.
     #[must_use]
     pub fn parse(raw: &[u8]) -> Option<Self> {
-        let (&flags, rest) = raw.split_first()?;
-        if rest.get(..2)? != SIGNATURE {
+        let &[flags, sign_hi, sign_lo, type_hi, type_lo, pact_code, ..] = raw else {
+            return None;
+        };
+        if [sign_hi, sign_lo] != SIGNATURE {
             return None;
         }
-        let pact_type = u16::from_be_bytes([*rest.get(2)?, *rest.get(3)?]);
         Some(Self {
             encoded: flags & ENCODED != 0,
             version: flags & 0x0F,
-            pact_type,
-            pact_code: *rest.get(4)?,
+            pact_type: u16::from_be_bytes([type_hi, type_lo]),
+            pact_code,
         })
     }
 }

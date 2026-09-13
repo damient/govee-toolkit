@@ -35,7 +35,7 @@ pub(crate) async fn establish(
     peripheral
         .write(WRITE_CHARACTERISTIC, &base.encode(&request))
         .await?;
-    let seed = await_reply(replies, timeout, "the session seed", |plain| {
+    let seed = await_reply(&base, replies, timeout, "the session seed", |plain| {
         encode::session_seed(plain)
     })
     .await?;
@@ -45,7 +45,7 @@ pub(crate) async fn establish(
     peripheral
         .write(WRITE_CHARACTERISTIC, &base.encode(&confirm))
         .await?;
-    await_reply(replies, timeout, "the confirmation", |plain| {
+    await_reply(&base, replies, timeout, "the confirmation", |plain| {
         encode::is_confirm(plain).then_some(())
     })
     .await?;
@@ -57,12 +57,12 @@ pub(crate) async fn establish(
 /// within `timeout`. Every other reply is skipped: the device may notify
 /// something else in between.
 async fn await_reply<T>(
+    base: &Codec,
     replies: &mut broadcast::Receiver<Vec<u8>>,
     timeout: Duration,
     what: &str,
     read: impl Fn(&[u8]) -> Option<T>,
 ) -> std::io::Result<T> {
-    let base = Codec::base();
     let waited = tokio::time::timeout(timeout, async {
         loop {
             match replies.recv().await {
