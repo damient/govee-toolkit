@@ -3,7 +3,10 @@
 /* The text and the code sit side by side only when the column that holds them
    is wide enough. The viewport says nothing useful here: two menus stand
    between it and this column. */
-.prose.reference { container-type: inline-size; }
+.prose.reference { container-type: inline-size; max-width: none; }
+
+/* A heading that opens the page carries no space over it. */
+.prose.reference .ref-group:first-of-type h2 { margin-top: 0; }
 
 .ref-entry {
   display: grid; gap: 20px; align-items: start;
