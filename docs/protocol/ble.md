@@ -227,10 +227,16 @@ zones. There is no mask here: to leave a zone alone, the frame must repeat the
 current level of that zone.
 
 The firmware keeps these levels, and they are separate from the global
-brightness of §2.2. It applies them in the static color modes of §2.3, and it
-ignores them in a scene and in music mode, where it paints the zones itself.
-A unit whose levels hold a ramp therefore fades from one end to the other on a
-solid color, and looks correct on every animation.
+brightness of §2.2. Which sub-mode it applies them in is a property of the
+family: one applies them in every static color mode of §2.3, another only in
+the masked sub-mode and not in the one-color sub-mode. It ignores them in a
+scene and in music mode, where it paints the zones itself. A unit whose levels
+hold a ramp therefore fades from one end to the other on a solid color, and
+looks correct on every animation. The device file says which sub-mode a unit
+needs.
+
+Trap: a level frame sent in a sub-mode that ignores it changes nothing and
+reports nothing. Paint the zones with §2.3 first, then dim them.
 
 The phone controller does not expose this setting, so the frame above is the only
 way to change it. Read the levels back with `aa a5 <group>` (§3) — three zones
@@ -293,16 +299,22 @@ The fields:
 - The last flag chooses the colors. `0` lets the firmware choose them and
   ignores the triplet, which the device keeps stored. `1` plays the triplet.
 
-Three traps:
+Four traps:
 
-- the firmware stores every byte of this frame and reports it back at §3, an
-  effect it does not render included. A read that echoes a value is not
-  evidence that the device plays it;
+- no read reports what this frame carried. One family stores every byte and
+  reports it back at §3, an effect it does not render included; another answers
+  a fixed payload that echoes nothing a caller wrote. A read is not evidence
+  that the device plays what it names, and a read that echoes nothing is not
+  evidence that the frame was dropped;
 - the phone controller also offers its own microphone as the source. That is
   not a field of this frame. It is the channel of §8;
 - an identifier the firmware renders nothing for leaves the light on what the
   frame before it rendered. Turn the device off between two identifiers, or a
-  value that renders nothing reads as the rendering it kept.
+  value that renders nothing reads as the rendering it kept;
+- another firmware answers an identifier it does not know with one same effect
+  instead. A rendering is therefore no evidence that an identifier names an
+  effect of its own: walk the identifiers from a state that renders nothing,
+  such as a solid color, and compare the renderings to each other.
 
 ## 3. Reads — `proType` `0xAA`
 

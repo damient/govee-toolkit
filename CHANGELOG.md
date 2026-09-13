@@ -25,6 +25,17 @@ at.
 
 #### Added
 
+- `H6022` over `ble`: power, brightness, colour, the white temperature,
+  segments, per-zone brightness and music. The mode is `full`.
+- `H6022` paints 15 zones over `ble`, against the 132 LEDs `lan` reaches, so one
+  zone is 8.8 LEDs and a zone edge falls inside a ring.
+- `H6022` declares `segment_brightness`, which `ble` reaches and `lan` does not.
+  Trap: the level frames apply in the masked sub-mode alone.
+- `H6022` includes the `ble-wifi-provision` family. The lamp asks for the
+  endpoint block and acknowledges the transfer.
+- `H6022` conformance vectors for every `ble` entry, built from the layouts of
+  `docs/protocol/ble.md` 2 to 4. No capture: each command was exercised on the
+  unit through the CLI.
 - `H6022`, the Table Lamp 2, over `lan`: power, brightness, colour, the white
   temperature and the segment channel. The mode is `capped`, and it carries no
   music command.

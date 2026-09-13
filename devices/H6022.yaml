@@ -6,6 +6,9 @@ sku: "H6022"
 family: "rgbic-table-lamp"
 name: "Table Lamp 2"
 aliases: []
+include:
+  - ble-wifi-provision
+
 candidate_aliases: []
 
 capabilities:
@@ -14,6 +17,7 @@ capabilities:
   color:
   colortemp:   { range_kelvin: [2700, 6500] }   # measured, see verified below
   music:       # the phone controller offers it, over the lamp's own microphone
+  segment_brightness:   # ble only, see the mode table
   segments:
     count: 132            # the phone controller paints a grid of 12 by 11
     native_pixels: 132    # one zone is one LED, see verified below
@@ -23,6 +27,7 @@ modes:
     support: capped
     capabilities: [power, brightness, color, colortemp, segments]
     unreachable:
+      segment_brightness: transport
       music: transport
     notes: >-
       Requires LAN Control enabled in the Govee Home app. The four documented
@@ -33,10 +38,20 @@ modes:
       over the segment channel is not this capability. See
       docs/protocol/lan.md 2.4.
   ble:
-    support: unknown
-    capabilities: []
+    support: full
+    capabilities: [power, brightness, color, colortemp, segments, segment_brightness, music]
     unreachable: {}
-    notes: ""
+    notes: >-
+      Reaches every capability without the lamp being on the network, over an
+      encoded link. The unit sets the encoding flag of docs/protocol/ble.md
+      1.5, so the transport runs the handshake of 9 before any command. Colour
+      and the white temperature share sub-mode 13, one colour over the whole
+      lamp. Segments are narrower here than over lan: zones are addressed
+      through a mask 15 bits wide, against the 132 LEDs the lan raw channel
+      reaches. Music runs off the lamp's own microphone, at sub-mode 19, which
+      lan carries no command for. Wi-Fi provisioning works from here, through
+      `provision_wifi()`. One connection at a time: a connected lamp stops
+      advertising. See docs/protocol/ble.md.
   cloud:
     support: unknown
     capabilities: []
@@ -126,7 +141,193 @@ commands:
         count, not the protocol's limit: 133 zones and above are dropped in
         silence. See `measurements`.
 
-  ble: {}
+  ble:
+    power:
+      role: power
+      frame: "33 01 ${on} <pad:20> <xor>"
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+      notes: "See docs/protocol/ble.md 2.1."
+
+    brightness:
+      role: brightness
+      frame: "33 04 ${level} <pad:20> <xor>"
+      args:
+        level: { type: int, range: [0, 100], role: brightness }
+      notes: >-
+        Percent, and global: it scales the whole lamp. Per-zone brightness is
+        `segment_brightness` below. See docs/protocol/ble.md 2.2.
+
+    color:
+      role: color
+      frame: "33 05 0D ${r} ${g} ${b} 00 00 00 00 00 <pad:20> <xor>"
+      args:
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: >-
+        Sub-mode 13, the one-colour layout of docs/protocol/ble.md 2.3: the
+        triplet, then a kelvin value and a white triplet left at zero. One
+        colour over every ring of the cylinder. To paint zones, use
+        `segment_color`.
+
+    colortemp:
+      role: color_temp
+      frame: "33 05 0D 00 00 00 ${kelvin:16} 00 00 00 <pad:20> <xor>"
+      args:
+        kelvin: { type: int, range: [2700, 6500], role: color_temp }
+      notes: >-
+        Sub-mode 13 with the colour triplet at zero. The firmware renders the
+        temperature itself, so the frame carries no white triplet and zeroes
+        that field: a frame sent with the field at zero reads back with the
+        rendering the firmware computed. It clamps a value outside the range
+        above in silence. See docs/protocol/ble.md 2.3.
+
+    segment_color:
+      frame: "33 05 15 01 (${colors}:rgb)×${nb} 00 00 00 00 00 ${zones:mask16} <pad:20> <xor>"
+      args:
+        colors: { type: rgb_list, max_len: 1, role: colors }
+        nb: { type: int, range: [1, 1] }
+        zones: { type: zones, count: 15, role: zones }
+      role: segment_color_masked
+      notes: >-
+        Paints one colour over the zones the mask names, and leaves the rest
+        alone. A saturated mask looks exactly like an ignored mask, so painting
+        every zone proves nothing about the mask being read — paint a subset,
+        as the `verified:` block below did. The kelvin and white fields stay
+        zero. See docs/protocol/ble.md 2.3.
+
+    segment_brightness_masked:
+      frame: "33 05 15 02 ${level} ${zones:mask16} <pad:20> <xor>"
+      args:
+        level: { type: int, range: [1, 100] }
+        zones: { type: zones, count: 15 }
+      notes: >-
+        Brightness of the zones the mask names, leaving the rest alone. Trap:
+        it applies only while the lamp is in sub-mode 21. Against sub-mode 13,
+        which `color` and `colortemp` set, it changes nothing. Send
+        `segment_color` first. See docs/protocol/ble.md 2.4.
+
+    segment_brightness:
+      frame: "33 05 15 03 ${levels:bytes} <pad:20> <xor>"
+      args:
+        levels: { type: bytes, max_len: 15 }
+      notes: >-
+        Every zone at once, one byte each in zone order, and there is no mask:
+        pass all fifteen. A shorter list is padded with zeros, which sets the
+        zones it does not cover to zero rather than leaving them alone. The
+        bytes are not interpreted here, so nothing checks each one against the
+        1..100 the firmware takes. The sub-mode 21 trap of
+        `segment_brightness_masked` applies here as well. See
+        docs/protocol/ble.md 2.5.
+
+    gradient:
+      role: segment_gradient
+      frame: "33 A3 ${on} <pad:20> <xor>"
+      args:
+        on: { type: int, range: [0, 1], role: gradient }
+      notes: >-
+        Whether the firmware interpolates between zones. The same setting the
+        lan segment channel carries as its `gradient` argument. TODO: nothing
+        established what this unit does with the byte. The diffuser blurs the
+        edge between two zones, so the eye reads no difference either way —
+        see `verified:`.
+
+    music:
+      role: music
+      frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
+      args:
+        effect: { type: int, range: [0, 7], role: effect }
+        sensitivity: { type: int, range: [0, 99], role: sensitivity }
+        soft: { type: int, range: [0, 1], role: soft }
+        color_mode: { type: int, range: [0, 1], role: color_mode }
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: >-
+        Sub-mode 19. The lamp listens on its own microphone. `effect` selects
+        the rendering: 0 to 7 each render one. A value above 7 renders one same
+        effect rather than nothing, so a rendering is not evidence that the
+        identifier names an effect of its own — see `verified:`. `color_mode` 0
+        leaves the colours to the firmware and 1 imposes the triplet. TODO:
+        nothing established what this unit does with `soft` or with
+        `sensitivity`. No read reports what was written: `read_mode` answers
+        sub-mode 19 with a payload that never echoes the frame. See
+        docs/protocol/ble.md 2.7.
+
+    status:
+      role: status
+      frames:
+        - send:  "AA 01 <pad:20> <xor>"
+          reply: "AA 01 ${on}"
+        - send:  "AA 04 <pad:20> <xor>"
+          reply: "AA 04 ${level}"
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+        level: { type: int, range: [0, 100], role: brightness }
+      notes: >-
+        Two reads: no single frame reports both. See docs/protocol/ble.md 3.
+
+    read_mode:
+      frame: "AA 05 <pad:20> <xor>"
+      reply: "AA 05 ${submode} ${payload:bytes:8}"
+      args:
+        submode: { type: int, range: [0, 255] }
+        payload: { type: bytes, max_len: 8 }
+      notes: >-
+        The live sub-mode and its eight payload bytes, left uninterpreted: their
+        meaning depends on the sub-mode. It reports the fields of a sub-mode 13
+        frame, so `color` and `colortemp` read back here. Under sub-mode 21 the
+        payload is zero, and under sub-mode 19 it never echoes what was
+        written — see `verified:`. See docs/protocol/ble.md 3.
+
+    read_segment_count:
+      frame: "AA 0F <pad:20> <xor>"
+      reply: "AA 0F ${segments}"
+      args:
+        segments: { type: int, range: [0, 255] }
+      notes: >-
+        Answers 15 on this unit, which is the width of the zone mask, not the
+        132 LEDs. See docs/protocol/ble.md 3.
+
+    read_ic_count:
+      frame: "AA 40 <pad:20> <xor>"
+      reply: "AA 40 ${pixels:16}"
+      args:
+        pixels: { type: int, range: [0, 65535] }
+      notes: >-
+        Answers 132 on this unit, matching the LED count measured over lan. See
+        docs/protocol/ble.md 3.
+
+    read_hardware_version:
+      frame: "AA 20 <pad:20> <xor>"
+      reply: "AA 20 ${version:ascii:17}"
+      args:
+        version: { type: string, max_len: 17 }
+      notes: >-
+        ASCII, zero-padded out to the checksum; 1.04.01 on this unit. The
+        length is what stops the field before that byte. See
+        docs/protocol/ble.md 3.
+
+    read_software_version:
+      frame: "AA 21 <pad:20> <xor>"
+      reply: "AA 21 ${version:ascii:17}"
+      args:
+        version: { type: string, max_len: 17 }
+      notes: >-
+        ASCII, zero-padded out to the checksum; 1.03.08 on this unit. See
+        docs/protocol/ble.md 3.
+
+    read_soft_version:
+      frame: "AA 06 <pad:20> <xor>"
+      reply: "AA 06 ${version:ascii:17}"
+      args:
+        version: { type: string, max_len: 17 }
+      notes: >-
+        A third version, 1.00.14 on this unit, against the 1.04.01 and 1.03.08
+        the two reads above answer. TODO: nothing established which module each
+        of the three names. See docs/protocol/ble.md 3.
+
   cloud: {}
 
 measurements:
@@ -134,9 +335,13 @@ measurements:
                             # above draw nothing and report nothing
   segment_grid: [12, 11]    # 12 LEDs around one ring, 11 rings up the cylinder
   zone_0_end: "base"        # zone 0 at the base, the last zone at the top
+  ble:
+    zone_mask_width: 15     # what AA 0F answers, against the 132 LEDs. One
+                            # zone is 8.8 LEDs, so no zone covers a whole ring
 
 verified:
   by: "damient"
+  firmware: "1.03.08"
   date: "2026-09-13"
   notes: >-
     lan mode exercised over UDP on one unit, through the Rust CLI. The unit
@@ -179,6 +384,64 @@ verified:
     with `gradient` 0.
 
     The lamp has a microphone and the phone controller offers a music mode.
-    lan carries no music command, so that is for a ble session.
+    lan carries no music command, so that is a ble session, below.
 
-    Firmware version NOT read: no mode that reports it was exercised.
+    ble mode reaches every capability, over the encoded link of
+    docs/protocol/ble.md 9. The unit advertises as `Govee_H6022_646E`, the
+    underscore grammar of 1.3, and the tail carries the last two bytes of the
+    identity lan reports. Its advertisement field reads `43 88 ec 00 02 02`:
+    the encoding flag set, layout version 3, pactType 2, pactCode 2. Every
+    command below went through the Rust CLI, which sends exactly the frames
+    this file declares.
+
+    The three version reads answer different values: `AA 20` 1.04.01, `AA 21`
+    1.03.08 and `AA 06` 1.00.14. `firmware:` above carries the `AA 21` one.
+
+    Power and brightness answer and read back over `AA 01` and `AA 04`.
+    Brightness is percent and it scales the whole lamp. Brightness 0 was NOT
+    walked over ble; what it renders is the lan measurement above.
+
+    Colour and the white temperature share sub-mode 13, one colour over every
+    ring. The firmware renders the temperature itself: a frame sent with the
+    white triplet at `00 00 00` reads back at `read_mode` with the triplet the
+    firmware computed, 2700 K as `ff 8d 0b` and 6500 K as `ff f1 e7`. The white
+    range was measured by anchoring the lamp at 4000 K and then asking for
+    another temperature. 2000 and 1000 K each read back as 2700, and 9000 and
+    12000 K each read back as 6500, with the anchor holding between each step.
+    The bounds are the lan ones, 2700 and 6500 K, and the firmware clamps
+    outside them in silence.
+
+    Segments paint through a mask 15 bits wide, at sub-mode 21. The mask is
+    read: against a lamp painted blue, zones 0 to 2 lit red at the base and
+    zones 8 to 14 lit green at the top, each leaving the rest blue. The 15
+    zones divide the 132 LEDs, so one zone is 8.8 LEDs and a zone boundary
+    falls inside a ring rather than between two rings — the edge of a painted
+    block stops part way along a ring. A zone index above 14 is refused here
+    rather than sent.
+
+    Per-zone brightness works, both by mask and as a list of fifteen. Trap:
+    only while the lamp is in sub-mode 21. The first attempt ran against a lamp
+    painted by `color`, which is sub-mode 13, and changed nothing at all; the
+    same frames dimmed the named zones once `segment_color` had painted the
+    lamp. A list of fifteen set the low seven zones to 10 and the high eight to
+    100, and then the reverse, and the lamp followed both ways.
+
+    Music renders from the lamp's own microphone. `color_mode` 1 imposes the
+    triplet: the lamp answered sound over an imposed blue. Effects 0 to 7 each
+    render, and the lowest few look alike to the eye. Trap: 8, 15 and 255 each
+    render one same effect rather than nothing, so a rendering is no evidence
+    that an identifier names an effect of its own. The H61A0 renders nothing
+    for those values, so this is not a property of the frame. `soft` was NOT
+    established: 0 and 1 render the same on effect 4. `sensitivity` was NOT
+    probed. `read_mode` answers sub-mode 19 with `65 64 00 00 00 ff 00 00`
+    whatever the frame carried, so it reports nothing a caller wrote.
+
+    Gradient was NOT established. `33 A3` draws no acknowledgement, and the
+    diffuser blurs the edge between two zones, so alternating red and blue
+    bands looked the same under both settings. The lan session reported the
+    same about its own `gradient` byte.
+
+    Wi-Fi provisioning: `AA AB` answers type 2 and no hidden-network flag, so
+    the transfer carries the endpoint block. The lamp accepted the transfer and
+    acknowledged it. Trap: it was already on the network the credentials named,
+    so joining a network it was not on is NOT established.
