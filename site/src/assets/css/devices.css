@@ -8,19 +8,52 @@
 .search input::placeholder { color: var(--muted); }
 .toolbar .note { margin: 0; }
 
+/* The table component. `.tablewrap` is the frame and `.matrix` the grid of
+   cells: the model index and every table of a model page use the two. The
+   classes below add what one table needs and the other does not. */
 .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
-.matrix { width: 100%; border-collapse: collapse; font-size: .95rem; min-width: 640px; }
+.matrix { width: 100%; border-collapse: collapse; font-size: .95rem; }
 .matrix th, .matrix td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); }
 .matrix thead th { font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .matrix tbody tr:last-child th, .matrix tbody tr:last-child td { border-bottom: 0; }
-.matrix tbody tr { cursor: pointer; }
-.matrix tbody tr:hover { background: var(--panel); }
-.matrix tbody tr:hover th[scope="row"] a { color: var(--ember); }
 .matrix th[scope="row"] { font-family: var(--mono); font-weight: 500; }
-/* The three mode columns hold one mark each: centered, they read as a row of
-   answers rather than as three ragged columns. */
-.matrix th:nth-child(n + 3), .matrix td:nth-child(n + 3) { text-align: center; }
-.matrix thead th:nth-child(n + 3) .mbadge { display: inline-flex; }
+
+/* The model index: every row leads to a page, and the six columns need more
+   width than a phone has. */
+.matrix-list { min-width: 640px; }
+.matrix-list tbody tr { cursor: pointer; }
+.matrix-list tbody tr:hover { background: var(--panel); }
+.matrix-list tbody tr:hover th[scope="row"] a { color: var(--ember); }
+/* The three mode columns answer one question each: centered, they read as a
+   row of answers rather than as three ragged columns. */
+.matrix-list th:nth-child(n + 4), .matrix-list td:nth-child(n + 4) { text-align: center; }
+.matrix-list td:nth-child(n + 4) .caps-row { justify-content: center; }
+.matrix-list thead th:nth-child(n + 4) .mbadge { display: inline-flex; }
+
+/* A model page holds the same two columns in every table, so they carry one
+   column width and wrap inside it rather than scrolling. */
+.prose .tablewrap { margin: 1.6em 0; }
+.is-device .matrix { table-layout: fixed; }
+.is-device .matrix th, .is-device .matrix td { overflow-wrap: break-word; }
+.is-device .matrix th:first-child, .is-device .matrix td:first-child { width: 38%; }
+
+/* The mode table pairs one badge with a row of chips, so its first column
+   takes the width of the badge and no more. */
+.is-device .matrix-modes { table-layout: auto; }
+.is-device .matrix-modes th:first-child, .is-device .matrix-modes td:first-child {
+  width: 1%; white-space: nowrap;
+}
+.matrix-modes .caps { margin: 0; }
+/* The answer of a mode that reaches nothing, in the marks the legend of the
+   model index gives them. */
+.mode-note { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); }
+
+/* The family icon draws the shape of the product, so a reader finds a model by
+   what it looks like before reading its name. Its column carries no head: the
+   shape stands for the name beside it. */
+.matrix th:nth-child(2), .matrix .shape { width: 64px; }
+.matrix .shape { line-height: 0; text-align: center; }
+.family-icon { width: 19px; height: 19px; color: var(--muted); }
 
 .pill {
   display: inline-block; font: 500 11px/1 var(--mono); letter-spacing: .06em;
@@ -67,9 +100,12 @@
   text-transform: none;
 }
 .mbadge .mode-icon { width: 14px; height: 14px; flex: none; }
-.mbadge-extra { display: inline-flex; gap: 7px; color: var(--muted); }
-.mbadge-extra [aria-hidden] { color: color-mix(in oklab, var(--tint) 45%, transparent); }
 /* The three accents of the footer dots, in the same order. */
+/* The family badge opens the row, and it names the product rather than a
+   mode: it takes the neutral tint so that it reads as a label and not as a
+   fourth mode. */
+.mbadge-family { --tint: var(--muted); }
+.mbadge .family-icon { width: 14px; height: 14px; color: inherit; }
 .mbadge-lan { --tint: var(--accent-ember); }
 .mbadge-ble { --tint: var(--accent-cyan); }
 .mbadge-cloud { --tint: var(--accent-violet); }
@@ -83,19 +119,38 @@
   font: 400 .95rem/1.5 var(--sans); color: var(--text);
 }
 
-/* A measured value can be one number, or a table of numbers per zone count.
-   One rule draws every depth. *//* A model page holds tables and chip rows, not running text: it fills the
+/* A model page holds tables and chip rows, not running text: it fills the
    shell, like the model index. `--shell` is the one width every page uses. */
 .is-device .prose { max-width: none; }
 .is-device .prose h3 { display: flex; align-items: center; gap: 10px; }
-.is-device .prose .caps { margin-bottom: 1.2em; }
+/* The chip row under a heading. The one inside a table cell carries no margin
+   of its own, so it stays centred against the badge beside it. */
+.is-device .prose .caps-lg { margin-bottom: 1.2em; }
 .muted { color: var(--muted); }
 
 
-.legend { display: grid; gap: 10px; margin-top: 1.6em; }
-.legend > div { display: flex; gap: 12px; align-items: baseline; }
-.legend dt { min-width: 84px; }
-.legend dd { margin: 0; color: var(--muted); font-size: .95rem; }
+/* One badge per capability a mode reaches. The name is in the badge for a
+   screen reader and in the tooltip for the eye: the icon alone names nothing. */
+.caps-row { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.cap-chip {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 7px;
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.cap-chip .cap-icon { width: 15px; height: 15px; }
+/* Above the badge, so the row below never covers it. The table wrapper scrolls
+   on x, which clips its y as well, and the head above the first row is what
+   keeps the topmost tooltip inside. */
+.cap-chip::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 7px); left: 50%;
+  transform: translateX(-50%); padding: 5px 8px; border-radius: 6px; z-index: 5;
+  background: var(--panel); border: 1px solid var(--line-strong); color: var(--text);
+  font: 400 11px/1 var(--mono); white-space: nowrap; pointer-events: none;
+  opacity: 0; visibility: hidden; transition: opacity .12s ease;
+}
+.cap-chip:hover::after { opacity: 1; visibility: visible; }
+
+@media (prefers-reduced-motion: reduce) { .cap-chip::after { transition: none; } }
 
 .caps { list-style: none; margin: 0 0 1.2em; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .caps li {
@@ -113,7 +168,16 @@
 .cap-icon[data-cap="music"] { color: var(--violet); }
 .cap-icon[data-cap="segments"] { color: var(--cyan); }
 .cap-icon[data-cap="segment_brightness"] { color: var(--amber); }
-/* `.prose ul` indents a list; a chip row is not one. */
+/* `.prose ul` indents a list and spaces its items; a chip row is neither. */
 .prose .caps { padding-left: 0; gap: 8px; }
+.prose .caps li { margin-bottom: 0; }
 .caps-lg li { font-size: 14px; padding: 10px 14px; border-radius: 8px; gap: 9px; }
 .caps-lg .cap-icon { width: 17px; height: 17px; }
+
+/* The legend names every mark of the table in the chip the model page uses,
+   so one mark reads the same on both pages. The two marks that carry a
+   sentence take the slot of the icon, and the row aligns them all. */
+.legend-caps { margin: 2.4em 0 0; }
+.legend-caps .pill { padding: 3px 8px; }
+.legend-caps .muted { width: 15px; text-align: center; }
+

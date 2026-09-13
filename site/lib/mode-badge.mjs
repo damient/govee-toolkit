@@ -5,15 +5,9 @@
 import { MODES } from "./config.mjs";
 import { modeIcon } from "./icons.mjs";
 
-/**
- * One badge. `state` is optional and renders behind a bar: pass the support
- * of the mode, or nothing when the badge only names it.
- */
-export function modeBadge(mode, state) {
-  const extra = state
-    ? `<span class="mbadge-extra"><span aria-hidden="true">|</span> ${state === "unknown" ? "?" : state}</span>`
-    : "";
-  return `<span class="mbadge mbadge-${mode}">${modeIcon(mode)}${mode}${extra}</span>`;
+/** One badge, naming the mode. */
+export function modeBadge(mode) {
+  return `<span class="mbadge mbadge-${mode}">${modeIcon(mode)}${mode}</span>`;
 }
 
 /** One `{{badge_<mode>}}` variable per mode, so a static page names a mode
