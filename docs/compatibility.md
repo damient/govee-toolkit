@@ -77,7 +77,7 @@ such in the device file until someone verifies them.
 <!-- generated: support-by-sku -->
 | SKU | Family | Name | `lan` | `ble` | `cloud` | Verified |
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
-| [H6008](../devices/H6008.yaml) | rgbww-bulb | Smart LED Bulb RGBWW | full | capped | full | ✅ 2026-09-12 |
+| [H6008](../devices/H6008.yaml) | rgbww-bulb | Smart LED Bulb RGBWW | full | full | full | ✅ 2026-09-13 |
 | [H6114](../devices/H6114.yaml) | rgb-car-strip | RGB Car LED Strip Lights | none | full | none | ✅ 2026-09-07 |
 | [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | capped | full | full | ✅ 2026-09-10 |
 <!-- /generated -->
@@ -96,7 +96,8 @@ Capabilities are hardware facts; what is reachable depends on the active mode.
 The columns are the capabilities the device files declare, so one no file
 declares has no column.
 Where the undocumented `razer` channel is implemented, `lan` reaches per-segment
-color beyond the 10 zones the Govee app exposes, but not per-segment brightness.
+color beyond the 10 zones the phone controller exposes, but not per-segment
+brightness.
 Where it is implemented, `ble` reaches per-segment brightness and a narrower
 per-segment color — fifteen zones by mask, fewer than the LEDs the unit
 addresses individually. The device file carries the counts.
@@ -109,7 +110,7 @@ addresses individually. The device file carries the counts.
   [`lan-supported-devices.md`](lan-supported-devices.md).
 - **`ble`** — a Bluetooth adapter on the host, and the device within range. One
   connection at a time: a connected device stops advertising, so a scan run
-  while another app holds the link finds nothing.
+  while another controller holds the link finds nothing.
 - **`cloud`** — a Govee API key, and the device registered to that account.
 
 ## Known limitations

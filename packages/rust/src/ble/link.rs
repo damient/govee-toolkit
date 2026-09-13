@@ -4,15 +4,24 @@
 //! link is opened once and kept. Replies carry no request id, so a caller
 //! subscribes before it writes and matches the answer against its command's
 //! `reply:` layout.
+//!
+//! A device that advertises the encoding flag gets the handshake of
+//! [`session`] as soon as the link is up. From then on every frame written is
+//! encoded and every reply is decoded before a caller sees it, so the layouts
+//! above this module read plaintext either way.
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+use std::time::Duration;
 
 use futures_util::StreamExt as _;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
+use crate::ble::encode::Codec;
 use crate::ble::wire::Peripheral;
-use crate::ble::{FRAME_LEN, HOST_COLOR_PROTYPE, NOTIFY_CHARACTERISTIC, WRITE_CHARACTERISTIC};
+use crate::ble::{
+    FRAME_LEN, HOST_COLOR_PROTYPE, NOTIFY_CHARACTERISTIC, WRITE_CHARACTERISTIC, session,
+};
 use crate::transport::error::{Error, Result};
 
 /// How many replies a subscriber may fall behind by before losing the oldest.
@@ -32,18 +41,28 @@ impl Drop for Listener {
 pub(crate) struct Link {
     peripheral: Arc<dyn Peripheral>,
     replies: broadcast::Sender<Vec<u8>>,
+    /// The session codec, once the handshake has run. Empty on a plaintext
+    /// link. Shared with the listener, which decodes replies under it.
+    session: Arc<OnceLock<Codec>>,
     _listener: Listener,
 }
 
 impl Link {
-    /// Connect, discover the vendor service and subscribe to notifications.
+    /// Connect, discover the service, subscribe to notifications, and run the
+    /// handshake if `encoded`.
     ///
     /// # Errors
     ///
     /// [`Error::Io`] if the device refuses the connection, if service
-    /// discovery fails, or if it does not carry the characteristics this
-    /// protocol needs.
-    pub(crate) async fn open(peripheral: Arc<dyn Peripheral>, endpoint: &str) -> Result<Self> {
+    /// discovery fails, if it does not carry the characteristics this
+    /// protocol needs, or if it does not answer a step of the handshake
+    /// within `handshake_timeout`.
+    pub(crate) async fn open(
+        peripheral: Arc<dyn Peripheral>,
+        endpoint: &str,
+        encoded: bool,
+        handshake_timeout: Duration,
+    ) -> Result<Self> {
         if !peripheral
             .is_connected()
             .await
@@ -74,15 +93,32 @@ impl Link {
 
         let (replies, _) = broadcast::channel(REPLY_BACKLOG);
         let publish = replies.clone();
+        let session: Arc<OnceLock<Codec>> = Arc::new(OnceLock::new());
+        let decoder = Arc::clone(&session);
         let listener = Listener(tokio::spawn(async move {
             while let Some(frame) = stream.next().await {
+                let frame = match decoder.get() {
+                    Some(codec) => codec.decode(&frame),
+                    None => frame,
+                };
                 let _ = publish.send(frame);
             }
         }));
 
+        if encoded {
+            // Subscribed before the request goes out: the device answers
+            // within milliseconds.
+            let mut raw = replies.subscribe();
+            let codec = session::establish(peripheral.as_ref(), &mut raw, handshake_timeout)
+                .await
+                .map_err(|e| adapter(endpoint, "opening the encoded link", e))?;
+            let _ = session.set(codec);
+        }
+
         Ok(Self {
             peripheral,
             replies,
+            session,
             _listener: listener,
         })
     }
@@ -93,7 +129,8 @@ impl Link {
         self.replies.subscribe()
     }
 
-    /// Write one frame, without waiting for a response.
+    /// Write one frame, without waiting for a response. On an encoded link the
+    /// frame goes out encoded under the session seed.
     ///
     /// # Errors
     ///
@@ -101,8 +138,16 @@ impl Link {
     /// carries, or [`Error::Io`] if the write fails.
     pub(crate) async fn write_frame(&self, cmd: &str, endpoint: &str, frame: &[u8]) -> Result<()> {
         check_length(cmd, frame)?;
+        let out;
+        let wire = match self.session.get() {
+            Some(codec) => {
+                out = codec.encode(frame);
+                out.as_slice()
+            }
+            None => frame,
+        };
         self.peripheral
-            .write(WRITE_CHARACTERISTIC, frame)
+            .write(WRITE_CHARACTERISTIC, wire)
             .await
             .map_err(|e| adapter(endpoint, "writing a frame", e))
     }

@@ -1,0 +1,36 @@
+# H6008 — the encoded 20-byte dialect, docs/protocol/ble.md 9.
+# Captured 2026-09-13, ble firmware 1.01.25. This unit sets
+# the encoding flag of docs/protocol/ble.md 1.5, so the plaintext dialect of
+# 2 and 3 answers nothing (see silence.txt) and every frame here is encoded.
+#
+# The advertisement field, as the host split it: prefix 0x8843, data
+# ec 00 01 01 01 00, which is the layout 43 88 ec 00 01 01 repeated over the
+# advertisement and the scan response. Flag 0x40 is set.
+#
+# Each line is one write on the write characteristic of 1.1 and, where the
+# device answered, the notification on the notify characteristic ~60 ms later.
+# `plain` is the frame before the encoding; `wire` is what went on the air.
+# The XOR checksum is on the plaintext.
+#
+# The handshake padding and the session seed are ephemeral: a fresh session
+# seed is negotiated at every connection, so nothing here identifies the unit.
+#
+# --- handshake, encoded under the base seed ---
+> plain e7 01 40 3c 92 24 d5 0c 2f 34 5c 71 ee 3b 8a 91 93 48 0d db
+> wire  62 50 d9 65 7e 67 28 e3 d9 84 b1 78 90 23 de 6e fb a6 4d 84
+< wire  86 de b2 b9 88 89 88 3f cd 9f 73 9b d9 08 8c c8 23 97 4d e8
+< plain e7 01 d1 ff 2c 59 86 b4 e1 0e 3c 69 96 c4 f1 1e 4b 79 0d b7   # session seed = bytes 2..18
+> plain e7 02 cd a8 74 1a 5f 8d ff ee 6a 00 84 3c 88 d6 6c 67 11 bb
+> wire  e4 02 cb 2f 06 35 3a ca cb dc 02 ef b4 6b 8d fc 04 89 51 e4
+< wire  e4 02 cb 2f 06 35 3a ca cb dc 02 ef b4 6b 8d fc 04 89 51 e4   # confirm, echoed
+#
+# --- commands, encoded under the session seed d1 ff 2c 59 86 b4 e1 0e 3c 69 96 c4 f1 1e 4b 79 ---
+> plain aa 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ab
+< plain aa 01 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 aa   # on
+> plain aa 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ac
+< plain aa 06 31 2e 30 31 2e 32 35 00 00 00 00 00 00 00 00 00 00 9b   # "1.01.25"
+> plain 33 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 32
+> wire  56 09 fb 54 ae 00 14 77 61 7a 47 b3 4b 10 11 0f 46 03 93 b6
+< plain 33 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 32   # off, status 00, the bulb went off
+> plain 33 01 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 33
+< plain 33 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 32   # on, the bulb came back

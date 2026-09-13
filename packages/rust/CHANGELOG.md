@@ -9,6 +9,12 @@ releases apart and keeps
 
 ### Added
 
+- `ble::encode` and `ble::session` — the encoded `ble` link of
+  [`docs/protocol/ble.md`](../../docs/protocol/ble.md) 9. A device that sets the
+  advertisement's encoding flag runs a session-seed handshake, then the
+  transport encodes every frame under it; a plaintext frame gets no answer.
+- `ble::Beacon` reads the advertisement data: the encoding flag, the layout
+  version, `pactType` and `pactCode`. See `docs/protocol/ble.md` 1.5.
 - `scan::sku_of` reads a `GV<SKU><4 hex digits>` advertised name, so `ble`
   discovers a device of that family. `GVH` and `GVR` join `NAME_PREFIXES`.
 - `Support::Capped` — a mode that reaches every capability the transport
@@ -23,6 +29,16 @@ releases apart and keeps
 
 ### Changed
 
+- **Breaking:** `ble::Options` carries `chunk_gap`, the wait between two frames
+  of a chunked command. `Options::default` sets it to 300 ms.
+- The `ble` send path waits `chunk_gap` between the frames of a chunked
+  command. A firmware drops a Wi-Fi transfer that arrives at the write budget
+  and answers nothing. Single-frame commands keep their pace.
+- **Breaking:** `ble::wire::Heard` carries `adverts`, and `scan::Advertised`
+  carries `beacon`. Construct each with the new field; `Advertised::heard` reads
+  both off one advertisement.
+- **Breaking:** `ble::Options` carries `handshake_timeout`, how long each step
+  of the handshake waits. `Options::default` sets it.
 - **Breaking:** `NAME_PREFIXES` is `[&str; 6]`. Bind it as a slice,
   `&NAME_PREFIXES`, rather than as an array of a fixed length.
 - **Breaking:** `Support` carries a fifth variant. Match `Support::Capped`

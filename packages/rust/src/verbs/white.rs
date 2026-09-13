@@ -53,7 +53,7 @@ impl DeviceHandle<'_> {
 }
 
 /// Every zone the mask of the entry can name, zero-based. The mask's own
-/// bound, not `capabilities.segments.count`: the count is what the vendor app
+/// bound, not `capabilities.segments.count`: the count is what the controller
 /// exposes, and the zones past it would hold the color they had.
 fn every_zone(entry: &Resolved<'_>) -> Result<Vec<u16>> {
     let count = mask_limit(entry.device, entry.mode, &entry.command).ok_or_else(|| {

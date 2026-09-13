@@ -1,42 +1,214 @@
 {
-  "description": "Conformance vectors for H6008 over ble. Every SDK — the Rust core, its bindings and any hand-written port — must produce exactly these bytes for these arguments. The wire carries no envelope here, so a vector states `frames_hex` and no `message`. These frames are the host colour channel: they are short and their last byte is a sum, not the XOR the 20-byte frames carry. See ../README.md.",
+  "description": "Conformance vectors for H6008 over ble. Every SDK — the Rust core, its bindings and any hand-written port — must produce exactly these bytes for these arguments. The wire carries no envelope here, so a vector states `frames_hex` and no `message`. These are the plaintext frames the codec builds; on this unit the transport encodes them under the session seed of docs/protocol/ble.md 9 before they reach the air, which is a transport step and not part of the bytes below. The `33 05 0D` frames are sub-mode 13, colour and white in one layout. `host_color` is the separate host colour channel of docs/protocol/ble.md 8: short, and its last byte is a sum, not the XOR the 20-byte frames carry. See ../README.md.",
   "sku": "H6008",
   "mode": "ble",
   "vectors": [
     {
+      "name": "power on",
+      "command": "power",
+      "args": {
+        "on": 1
+      },
+      "frames_hex": [
+        "3301010000000000000000000000000000000033"
+      ],
+      "source": "captured, tests/fixtures/ble-captures/H6008/encoded.txt — the bulb came back on"
+    },
+    {
+      "name": "power off",
+      "command": "power",
+      "args": {
+        "on": 0
+      },
+      "frames_hex": [
+        "3301000000000000000000000000000000000032"
+      ],
+      "source": "captured, tests/fixtures/ble-captures/H6008/encoded.txt — the bulb went off"
+    },
+    {
+      "name": "brightness, lowest",
+      "command": "brightness",
+      "args": {
+        "level": 1
+      },
+      "frames_hex": [
+        "3304010000000000000000000000000000000036"
+      ],
+      "source": "worked out from the layout of docs/protocol/ble.md 2.2; brightness 5 and 100 were exercised and read back over AA 04"
+    },
+    {
+      "name": "brightness, full",
+      "command": "brightness",
+      "args": {
+        "level": 100
+      },
+      "frames_hex": [
+        "3304640000000000000000000000000000000053"
+      ],
+      "source": "worked out from the layout of docs/protocol/ble.md 2.2; read back over AA 04"
+    },
+    {
       "name": "colour, full red",
       "command": "color",
-      "args": { "r": 255, "g": 0, "b": 0 },
-      "frames_hex": ["a50283ff000029"],
-      "source": "captured, tests/fixtures/ble-captures/H6008/color.txt — the unit rendered red"
+      "args": {
+        "r": 255,
+        "g": 0,
+        "b": 0
+      },
+      "frames_hex": [
+        "33050dff000000000000000000000000000000c4"
+      ],
+      "source": "captured over the encoded link; read back as sub-mode 13 payload ff 00 00 00 00 …"
     },
     {
       "name": "colour, full green",
       "command": "color",
-      "args": { "r": 0, "g": 255, "b": 0 },
-      "frames_hex": ["a5028300ff0029"],
-      "source": "captured, tests/fixtures/ble-captures/H6008/color.txt — the unit rendered green"
+      "args": {
+        "r": 0,
+        "g": 255,
+        "b": 0
+      },
+      "frames_hex": [
+        "33050d00ff0000000000000000000000000000c4"
+      ],
+      "source": "worked out from the layout of docs/protocol/ble.md 2.3"
     },
     {
-      "name": "colour, cold white",
-      "command": "color",
-      "args": { "r": 255, "g": 255, "b": 255 },
-      "frames_hex": ["a50283ffffff27"],
-      "source": "captured, tests/fixtures/ble-captures/H6008/color.txt — the unit rendered a cold white"
+      "name": "white, cold. Kelvin 6500, white triplet left zero",
+      "command": "colortemp",
+      "args": {
+        "kelvin": 6500,
+        "white_r": 0,
+        "white_g": 0,
+        "white_b": 0
+      },
+      "frames_hex": [
+        "33050d0000001964000000000000000000000046"
+      ],
+      "source": "captured over the encoded link; read back as sub-mode 13 payload 00 00 00 19 64 …"
     },
     {
-      "name": "colour, dark. The bulb stays on and renders nothing",
-      "command": "color",
-      "args": { "r": 0, "g": 0, "b": 0 },
-      "frames_hex": ["a502830000002a"],
-      "source": "captured, tests/fixtures/ble-captures/H6008/color.txt — the unit went dark and read back on over lan"
+      "name": "white, warm. Kelvin 2700",
+      "command": "colortemp",
+      "args": {
+        "kelvin": 2700,
+        "white_r": 0,
+        "white_g": 0,
+        "white_b": 0
+      },
+      "frames_hex": [
+        "33050d0000000a8c0000000000000000000000bd"
+      ],
+      "source": "captured over the encoded link; read back as sub-mode 13 payload 00 00 00 0a 8c …"
     },
     {
-      "name": "channel probe",
+      "name": "host colour, full blue. The clear channel of docs/protocol/ble.md 8",
+      "command": "host_color",
+      "args": {
+        "r": 0,
+        "g": 0,
+        "b": 255
+      },
+      "frames_hex": [
+        "a502830000ff29"
+      ],
+      "source": "captured, tests/fixtures/ble-captures/H6008/color.txt — the unit rendered blue"
+    },
+    {
+      "name": "status, both reads",
+      "command": "status",
+      "args": {},
+      "frames_hex": [
+        "aa010000000000000000000000000000000000ab",
+        "aa040000000000000000000000000000000000ae"
+      ],
+      "source": "captured, tests/fixtures/ble-captures/H6008/encoded.txt — read back on = true, brightness"
+    },
+    {
+      "name": "read the live sub-mode",
+      "command": "read_mode",
+      "args": {},
+      "frames_hex": [
+        "aa050000000000000000000000000000000000af"
+      ],
+      "source": "captured over the encoded link — answered sub-mode 13 after a colour write"
+    },
+    {
+      "name": "read the soft version",
+      "command": "read_soft_version",
+      "args": {},
+      "frames_hex": [
+        "aa060000000000000000000000000000000000ac"
+      ],
+      "source": "captured, tests/fixtures/ble-captures/H6008/encoded.txt — answered \"1.01.25\""
+    },
+    {
+      "name": "channel probe, the host colour channel of docs/protocol/ble.md 8",
       "command": "channel_probe",
       "args": {},
-      "frames_hex": ["a5029037"],
-      "source": "captured, tests/fixtures/ble-captures/H6008/channel_probe.txt — both units answered cdec505eb7"
+      "frames_hex": [
+        "a5029037"
+      ],
+      "source": "captured, tests/fixtures/ble-captures/H6008/channel_probe.txt — answered five bytes on both units"
+    },
+    {
+      "name": "which endpoint the device asks for",
+      "command": "read_dynamic_api",
+      "args": {},
+      "frames_hex": [
+        "aaab000000000000000000000000000000000001"
+      ],
+      "source": "captured, tests/fixtures/ble-captures/H6008/provision.txt — the unit answered type 2 and no hidden-network flag"
+    },
+    {
+      "name": "wake the wi-fi module",
+      "command": "wifi_link_start",
+      "args": {
+        "on": 1
+      },
+      "frames_hex": [
+        "3317010000000000000000000000000000000025"
+      ],
+      "source": "captured, tests/fixtures/ble-captures/H6008/provision.txt — written before the transfer, and nothing answers it"
+    },
+    {
+      "name": "transfer with no endpoint block",
+      "command": "wifi_provision",
+      "args": {
+        "network": "Test",
+        "password": "abc",
+        "run_mode": 0,
+        "timezone_hours": 2,
+        "iot_version": 0,
+        "timezone_minutes": 0
+      },
+      "frames_hex": [
+        "a1110001000000000000000000000000000000b1",
+        "a1110104546573740361626300020000000000e2",
+        "a111ff000000000000000000000000000000004f"
+      ],
+      "source": "worked out from the layout of docs/protocol/ble.md 4; this unit asks for an endpoint, so this form was never sent to it"
+    },
+    {
+      "name": "transfer with the endpoint block",
+      "command": "wifi_provision_with_api",
+      "args": {
+        "network": "Test",
+        "password": "abc",
+        "run_mode": 0,
+        "timezone_hours": 2,
+        "iot_version": 0,
+        "timezone_minutes": 0,
+        "api_url": "https://device.govee.com"
+      },
+      "frames_hex": [
+        "a1110003000000000000000000000000000000b3",
+        "a111010454657374036162630002000000186892",
+        "a11102747470733a2f2f6465766963652e676fb5",
+        "a111037665652e636f6d0000000000000000008a",
+        "a111ff000000000000000000000000000000004f"
+      ],
+      "source": "worked out from the layout of docs/protocol/ble.md 4; a transfer of this form was captured and acknowledged, but its bytes carry the network password, so the credentials here are placeholders"
     }
   ]
 }

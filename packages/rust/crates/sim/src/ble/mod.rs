@@ -1,4 +1,4 @@
-//! A fake Govee peripheral on GATT, and the adapter that finds it, so the
+//! A fake peripheral on GATT, and the adapter that finds it, so the
 //! `ble` transport can be tested in CI. It can be told to go silent, to answer
 //! late, to drop answers, to refuse the connection, and to stall under a burst
 //! (`docs/protocol/ble.md` §5).
@@ -7,8 +7,14 @@
 //! the length and the BCC and acknowledges a write (§1.4), but reads no
 //! payload. Set what a read answers with [`BleDevice::set_read_answer`], and
 //! assert on [`BleDevice::received`].
+//!
+//! Under [`BleOptions::encoded`] it advertises the encoding flag and takes
+//! encoded frames only (§9): it runs the handshake, answers nothing to a
+//! plaintext frame, and records what an encoded frame carried once decoded.
 
 mod device;
+pub mod encode;
+mod state;
 
 use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
@@ -18,7 +24,7 @@ use uuid::Uuid;
 
 pub use self::device::BleDevice;
 
-/// The vendor service, repeated here so a simulator can be started without
+/// The service, repeated here so a simulator can be started without
 /// depending on the transport crate. See `docs/protocol/ble.md` §1.1.
 pub const SERVICE: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_1910);
 /// The characteristic frames are written to.
@@ -72,11 +78,26 @@ pub struct BleOptions {
     /// The name it advertises. `None` builds `GBK_<SKU>_0000`, the shape
     /// `docs/protocol/ble.md` §1.3 documents.
     pub name: Option<String>,
-    /// Whether it carries the vendor service. `false` advertises and connects
+    /// Whether it carries the service. `false` advertises and connects
     /// but leaves the link nothing to write to.
     pub carries_service: bool,
+    /// Whether it advertises the encoding flag and takes encoded frames only.
+    /// See `docs/protocol/ble.md` §9.
+    pub encoded: bool,
     /// How it misbehaves.
     pub faults: BleFaults,
+}
+
+/// One advertisement, as a platform reports it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OnAir {
+    /// The handle the adapter addresses the device by.
+    pub endpoint: String,
+    /// The name it advertises.
+    pub name: String,
+    /// The advertisement data, split the way a platform splits it: the first
+    /// two bytes read as a 16-bit prefix, little-endian, and the rest.
+    pub adverts: Vec<(u16, Vec<u8>)>,
 }
 
 impl BleOptions {
@@ -88,6 +109,7 @@ impl BleOptions {
             sku: sku.into(),
             name: None,
             carries_service: true,
+            encoded: false,
             faults: BleFaults::default(),
         }
     }
@@ -156,12 +178,12 @@ impl BleAdapter {
         self.state.lock().map(|s| s.scans).unwrap_or_default()
     }
 
-    /// The advertisements heard so far, as a handle and a name.
+    /// The advertisements heard so far.
     ///
     /// Empty until a scan is running. A device holding a connection is not
     /// advertising and is not reported.
     #[must_use]
-    pub fn heard(&self) -> Vec<(String, String)> {
+    pub fn heard(&self) -> Vec<OnAir> {
         let Ok(mut state) = self.state.lock() else {
             return Vec::new();
         };
@@ -176,7 +198,11 @@ impl BleAdapter {
             .filter(|device| !device.is_connected())
             .map(|device| {
                 state.held.insert(device.endpoint());
-                (device.endpoint(), device.name())
+                OnAir {
+                    endpoint: device.endpoint(),
+                    name: device.name(),
+                    adverts: device.adverts(),
+                }
             })
             .collect()
     }

@@ -7,6 +7,8 @@ sku: "H6008"
 family: "rgbww-bulb"
 name: "Smart LED Bulb RGBWW"
 aliases: []
+include:
+  - ble-wifi-provision
 
 candidate_aliases:      # Govee's LAN list gives each of these the same
   - H6004               # description as the H6008. Nobody verified one. The
@@ -20,8 +22,8 @@ capabilities:
   brightness:  { range: [1, 100] }
   color:
   colortemp:   { range_kelvin: [2700, 6500] }   # measured, see verified below
-  # No music: the bulb carries no microphone, so no mode renders sound. The
-  # Govee app offers this model no music screen. See verified below.
+  # No music: the bulb carries no microphone, so no mode renders sound.
+  # See verified below.
   # No segments and no segment_brightness: the bulb shows one color.
 
 modes:
@@ -34,24 +36,23 @@ modes:
       commands answer, and the undocumented `status` command of
       docs/protocol/lan.md 2.2 answers as well.
   ble:
-    support: capped
-    capabilities: [color]
-    unreachable:
-      power: transport
-      brightness: transport
-      colortemp: transport
+    support: full
+    capabilities: [power, brightness, color, colortemp]
+    unreachable: {}
     notes: >-
-      Reaches one channel: the host colour frames of docs/protocol/ble.md 8.
-      The unit answers the channel request and renders the triplet it is sent.
-      That channel carries a colour and nothing else, so power, brightness and
-      the white temperature are out of its reach: the two frames it defines are
-      the request and one colour. Three limits come with the channel, and the
-      `color` command below states them: the render expires on its own, no read
-      reports it, and the stored brightness scales it. The 20-byte dialect of
-      docs/protocol/ble.md 2 and 3, which carries those three capabilities on
-      the models that answer it, answers nothing on this unit and changes
-      nothing that `lan` reads back. The advertised name is the `GV` form of
-      docs/protocol/ble.md 1.3, so a scan reports the unit and reads its SKU.
+      Reaches every capability, over an encoded link. The unit sets the
+      encoding flag of docs/protocol/ble.md 1.5, so it takes the 20-byte
+      dialect of 2 and 3 encoded and answers a plaintext frame with nothing.
+      The transport runs the handshake of 9, then power, brightness, colour
+      and the white temperature all answer, read back over the `status` and
+      `read_mode` frames below. Colour and white share sub-mode 13: the frame
+      carries a colour triplet, a kelvin value and a white triplet, and which
+      is non-zero says which the firmware renders. The host colour channel of 8
+      also answers, in the clear, and is kept as `host_color`: it is the
+      phone-driven colour path, not a substitute for `color`. The advertised
+      name is the `GV` form of 1.3, so a scan reports the unit and reads its
+      SKU. Wi-Fi provisioning of 4 works as well, and the unit accepts it while
+      it is already on a network.
   cloud:
     support: full
     capabilities: [power, brightness, color, colortemp]
@@ -80,7 +81,7 @@ commands:
         This firmware does not clamp, which docs/protocol/lan.md 2.1 describes
         for the models that do. It stores the byte it receives and reports it
         back: 0 reads as 0, 101 reads as 101, and 200 reads as -56. The range
-        above is the one the Govee app uses, and the codec enforces it.
+        above is the one the phone controller uses, and the codec enforces it.
 
     color:
       cmd: "colorwc"
@@ -122,8 +123,73 @@ commands:
         descriptor. Read-only in practice. See docs/protocol/lan.md 2.2.
 
   ble:
+    power:
+      role: power
+      frame: "33 01 ${on} <pad:20> <xor>"
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+      notes: "See docs/protocol/ble.md 2.1. This unit takes it encoded, see 9."
+
+    brightness:
+      role: brightness
+      frame: "33 04 ${level} <pad:20> <xor>"
+      args:
+        level: { type: int, range: [1, 100], role: brightness }
+      notes: "Percent. See docs/protocol/ble.md 2.2."
+
     color:
       role: color
+      frame: "33 05 0D ${r} ${g} ${b} 00 00 00 00 00 <pad:20> <xor>"
+      args:
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: >-
+        Sub-mode 13, the one-colour layout of docs/protocol/ble.md 2.3: the
+        triplet, then a kelvin value and a white triplet left at zero.
+
+    colortemp:
+      role: color_temp
+      frame: "33 05 0D 00 00 00 ${kelvin:16} ${white_r} ${white_g} ${white_b} <pad:20> <xor>"
+      args:
+        kelvin: { type: int, range: [2700, 6500], role: color_temp }
+        white_r: { type: int, range: [0, 255], role: white_red }
+        white_g: { type: int, range: [0, 255], role: white_green }
+        white_b: { type: int, range: [0, 255], role: white_blue }
+      notes: >-
+        Sub-mode 13 with the colour triplet at zero. See docs/protocol/ble.md
+        2.3.
+
+    status:
+      role: status
+      frames:
+        - send:  "AA 01 <pad:20> <xor>"
+          reply: "AA 01 ${on}"
+        - send:  "AA 04 <pad:20> <xor>"
+          reply: "AA 04 ${level}"
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+        level: { type: int, range: [1, 100], role: brightness }
+      notes: "Two reads: no single frame reports both. See docs/protocol/ble.md 3."
+
+    read_mode:
+      frame: "AA 05 <pad:20> <xor>"
+      reply: "AA 05 ${submode} ${payload:bytes:8}"
+      args:
+        submode: { type: int, range: [0, 255] }
+        payload: { type: bytes, max_len: 8 }
+      notes: >-
+        The live sub-mode and its eight payload bytes, left uninterpreted. See
+        docs/protocol/ble.md 3.
+
+    read_soft_version:
+      frame: "AA 06 <pad:20> <xor>"
+      reply: "AA 06 ${version:ascii:17}"
+      args:
+        version: { type: string, max_len: 17 }
+      notes: "The firmware version, as text. See docs/protocol/ble.md 3."
+
+    host_color:
       frame: "A5 02 83 ${r} ${g} ${b} <sum>"
       args:
         r: { type: int, range: [0, 255], role: red }
@@ -215,108 +281,88 @@ commands:
         send: 0 kelvin reports color mode rather than a temperature.
 
 measurements:
-  # Taken on the unit whose versions `verified` names, over the host colour
-  # channel of ../docs/protocol/ble.md 8. The 20-byte dialect answers nothing
-  # here, so none of the numbers that dialect calls for were taken.
+  # Taken on the unit whose versions `verified` names.
   ble:
-    read_round_trip_ms: 49        # channel probe, median of 20, 39 ms at best
-    render_hold_ms: 60000         # measured against a stored state of on. A
-                                  # stored state of off ended no render, see
-                                  # `verified:`
-    write_drain_ms: 25            # the shortest wait that rendered. 20 ms lost
-                                  # the frame. One trial per step, so this is
-                                  # the edge and not a margin
+    read_round_trip_ms: 49        # host colour channel probe, median of 20,
+                                  # 39 ms at best. Taken before the firmware
+                                  # update below; not retaken over the encoding
+    render_hold_ms: 60000         # host colour render, against a stored state
+                                  # of on. A stored state of off ended no
+                                  # render, see `verified:`
+    write_drain_ms: 25            # host colour channel, the shortest wait that
+                                  # rendered. 20 ms lost the frame. One trial
+                                  # per step, so this is the edge, not a margin
 
 verified:
   by: "damient"
-  firmware: "1.01.12"
-  date: "2026-09-12"
+  firmware: "1.01.25"
+  date: "2026-09-13"
   notes: >-
-    lan mode exercised over UDP on two units, against wifi soft version 1.01.12
-    and hard version 1.07.03, with the same two versions on the ble radio. Both
-    units answered the multicast discovery and every command in the table
-    above. Power, color and the two status commands were walked once each and
-    read back through devStatus. Brightness was walked over 0, 1, 50, 100, 101,
-    200 and 255: the firmware stores what it receives, so 101 reads back as 101
-    and 200 as -56, and nothing was clamped. The white range was measured by
-    anchoring the bulb at one temperature and then asking for another, so that
-    a clamp reads as a move to the bound and a refusal reads as the anchor:
-    2000 K from an anchor of 5000 K gives 2700 K, and 9000 K from an anchor of
-    3000 K gives 6500 K. The bounds were then walked one kelvin at a time: 2700
-    and 2701 are both applied, 2699 clamps up to 2700, 6499 and 6500 are both
-    applied, and 6501 clamps down to 6500. Both units gave the same four
-    numbers. The undocumented `status` command answers a `pt` of
-    `bb 01 00 b2 00 08`, the 0xB2 frame of docs/protocol/lan.md 2.3 with a
-    correct checksum. The `razer` segment channel was NOT probed.
+    lan mode exercised over UDP on two units, against wifi version 1.01.12.
+    Both units answered the multicast discovery and every command in the table
+    above, read back through devStatus. Brightness was walked over 0, 1, 50,
+    100, 101, 200 and 255: the firmware stores what it receives, so 101 reads
+    back as 101 and 200 as -56, and nothing was clamped. The white range was
+    measured by anchoring the bulb at one temperature and then asking for
+    another, so that a clamp reads as a move to the bound and a refusal reads
+    as the anchor. The bounds are 2700 and 6500 K, walked one kelvin at a time,
+    and the same on both units. The undocumented `status` command answers a
+    `pt` of `bb 01 00 b2 00 08`, the 0xB2 frame of docs/protocol/lan.md 2.3.
+    The `razer` segment channel was NOT probed.
 
-    cloud mode exercised against a live account on the same unit, on the same
-    date. Power, brightness, color and white were written and read back
-    through the state endpoint. The account declares a white range of 2000 to
-    9000 K for this model and the unit applies 2700 to 6500: the control
-    endpoint answered success for 2000 K and for 9000 K, and the state
-    endpoint then reported 2700 and 6500. So the same bounds hold over both
-    modes, and an answer of success is not an applied value.
+    cloud mode exercised against a live account on the same unit. Power,
+    brightness, color and white were written and read back through the state
+    endpoint. The account declares a white range of 2000 to 9000 K and the unit
+    applies 2700 to 6500: the control endpoint answered success for both
+    bounds, and the state endpoint then reported the applied value. An answer
+    of success is not an applied value.
 
-    The bulb carries no microphone. The owner established that in the Govee
-    Home app: the app offers this model no music screen. The cloud probe
-    agrees, and is the weaker of the two: the account lists no
-    `music_setting` capability for this model, while it lists one for the
-    H61A0, and the control endpoint answered HTTP 400 `devices not support
-    this instance` for it. So no mode carries music here, and the capability
-    is absent above rather than unreachable per mode.
+    The bulb carries no microphone, so no mode renders sound. The cloud probe
+    agrees: the account lists no `music_setting` capability for this model, and
+    the control endpoint answered HTTP 400 `devices not support this instance`
+    for it. So the capability is absent above rather than unreachable per mode.
 
-    ble mode reaches the host colour channel of docs/protocol/ble.md 8 and
-    nothing else. The unit advertises as `GVH6008` plus four hex digits, which
-    carry the last two bytes of its Wi-Fi MAC with the final byte one higher —
-    that held on both units. It accepts one GATT link and carries the write
-    and notify characteristics of docs/protocol/ble.md 1.1, and no `2b12`
-    characteristic.
+    ble mode reaches every capability, over the encoded link of
+    docs/protocol/ble.md 9. The unit advertises as `GVH6008` plus four hex
+    digits, which carry the last two bytes of its Wi-Fi MAC with the final byte
+    one higher — that held on both units. It accepts one GATT link, carries the
+    write and notify characteristics of docs/protocol/ble.md 1.1, and no
+    `2b12` characteristic. Its advertisement field reads `43 88 ec 00 01 01`:
+    the encoding flag set, layout version 3, pactType 1, pactCode 1. A
+    plaintext frame draws no notification and no error, and that silence is the
+    encoding and not a missing dialect.
 
-    The 20-byte dialect answers nothing. Every command type under `AA` was
-    walked, 0 to 255, and then every `proType` under command type `01`, 0 to
-    255: 512 frames, no notification, no error on any write. A `33 01 00`
-    power frame left the unit on, read back over `lan`. The notify
-    characteristic is not the silent part: it was subscribed for all 512
-    frames and it answers the channel probe below on the same subscription.
-    Nothing here establishes that the hardware lacks that dialect — a
-    malformed frame and an unimplemented command are the same silence, see
-    docs/protocol/ble.md 7.
+    Over the encoded link, power, brightness, colour and the white temperature
+    each answered and read back, through the Rust CLI, which sends exactly the
+    frames the device file declares. Colour and white share sub-mode 13. `AA
+    06` answered ble version 1.01.25, higher than the 1.01.12 the wifi radio
+    reported over lan, so the ble radio updated between sessions.
 
-    The host colour channel works. `A5 02 90` answers `cd ec 50 5e b7`, the
-    same five bytes on both units, so those bytes are a property of the
-    firmware and not of the unit. `A5 02 83 <R G B>` renders the triplet: red,
-    green, blue, cold white and a dim green were each sent and watched on the
-    bulb, and `00 00 00` rendered dark. The second unit rendered orange from
-    the same frame. Byte 1 must be `02`: the probe under `00`, `01`, `03`,
-    `04`, `06` and `90` answered nothing.
+    The host colour channel works, in the clear alongside the encoded dialect.
+    `A5 02 90` answers the same five bytes on both units, so those bytes are a
+    property of the firmware and not of the unit. `A5 02 83 <R G B>` renders
+    the triplet, and `00 00 00` renders dark. The second unit rendered orange
+    from the frame that rendered red on the first. Byte 1 must be `02`: the
+    probe under `00`, `01`, `03`, `04`, `06` and `90` answered nothing.
 
-    The write is one direction only, and this unit shows it. A colour frame
-    whose link was dropped as soon as the write returned rendered nothing: the
-    bulb stayed dark and nothing reported the loss. The wait was then walked in
-    two passes, one frame per step, each step a colour of its own against a
-    stored state of green: 0 ms and 20 ms rendered nothing, and 25, 30, 35, 40,
-    45, 50, 100, 200 and 500 ms each rendered. So `write_drain_ms` is 25 here.
-    Each step was walked once, so that number is the shortest wait that
-    rendered and not one established to render every time. See
-    docs/protocol/ble.md 1.4.
+    The write is one direction only. A colour frame whose link was dropped as
+    soon as the write returned rendered nothing, and nothing reported the loss.
+    See `measurements.ble.write_drain_ms` and docs/protocol/ble.md 1.4.
 
-    Three properties of the render were watched on the bulb. It survived the
-    link going down. It lit a bulb whose stored state was `off`, and
-    `devStatus` kept reporting `on=false` through it. The stored brightness
+    Three properties of the render were watched on the bulb. It survives the
+    link going down. It lights a bulb whose stored state is `off`, and
+    `devStatus` keeps reporting `on=false` through it. The stored brightness
     scales it: the same `FF FF FF` was dimmer at brightness 10 than at 100.
+    What ends a render is the firmware asserting the state it stores, so
+    against a stored state of `off` nothing ended it.
 
-    What ends a render is the firmware asserting the state it stores, and the
-    hold above is how long it waits. Measured against a stored state of on and
-    green, with a white render over it: the bulb came back to green one minute
-    after the write, to the second. Against a stored state of `off` the same
-    render was still there several minutes later, and nothing was seen to end
-    it: there is no lit state for the firmware to come back to. Both readings
-    were taken with no `lan` and no `ble` traffic in between, since a read
-    would be a candidate cause. A `lan` colour write does end a render, and
-    that one is the write and not the timer.
-
-    One host note, since it cost a session. On macOS, CoreBluetooth refuses to
-    discover the descriptors of the commissioning characteristics this unit
-    also carries, with `CBErrorDomain Code=8`. A client that fails the whole
-    connection on that error never reaches the Govee service at all, and the
-    unit reads as dead over `ble`. Tolerate the error per characteristic.
+    Wi-Fi provisioning works on this unit, over the encoded link. `AA AB`
+    answers type 2 and no hidden-network flag, so the transfer carries the
+    endpoint block. The unit was already on a network and bound to an account,
+    and it still accepted the transfer: it answered `A1 11 00` and it joined
+    the new network, which lan then reached. `33 17 01` draws no answer, and
+    none is due. Trap: the transfer needs 300 ms between frames. At the
+    `measurements.ble.write_drain_ms` pace the unit answered nothing at all and
+    stayed off the network. That number is the host colour channel and not this
+    path. See tests/fixtures/ble-captures/H6008/provision.txt and
+    docs/protocol/ble.md 4.

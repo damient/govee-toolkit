@@ -28,6 +28,11 @@ pub struct Heard {
     pub endpoint: String,
     /// The name the device advertises.
     pub name: String,
+    /// The advertisement entries, as the platform splits them: the 16-bit
+    /// prefix it read off the first two bytes, little-endian, and the bytes
+    /// after them. [`Beacon`](super::Beacon) joins them back together.
+    /// Empty when the advertisement carries none.
+    pub adverts: Vec<(u16, Vec<u8>)>,
 }
 
 /// One peripheral, as the link uses it.

@@ -1,0 +1,37 @@
+# H6008 — Wi-Fi provisioning over the encoded link, docs/protocol/ble.md 4.
+# Captured 2026-09-13, ble firmware 1.01.25. The unit was already on a network
+# and bound to an account; it accepted the transfer and joined the new network.
+#
+# Each line is one write on the write characteristic of 1.1 and, where the
+# device answered, the notification on the notify characteristic. The frames
+# below are the plaintext; the transport encodes each one under the session
+# seed of 9 before it reaches the air. The XOR checksum is on the plaintext.
+#
+# The four data packets of the transfer are NOT recorded here: they carry the
+# network name and the network password in the clear, and no substitute of the
+# same length exists for a password. The header states the count, so what the
+# packets carried is `04` packets of 16 bytes. See
+# tests/fixtures/golden/ble/H6008.json for the same transfer built from
+# placeholder credentials.
+#
+# --- which endpoint the device asks for ---
+> aa ab 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01
+< aa ab 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03
+# type 2, so the transfer carries `https://device.govee.com`; the second byte
+# is the hidden-network flag, and this unit does not ask for it.
+#
+# --- wake the Wi-Fi module, then wait 3 s ---
+> 33 17 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 25
+# No answer, and none is due: the phone controller writes this one and reads
+# nothing back.
+#
+# --- the transfer, 300 ms between frames ---
+> a1 11 00 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 b4
+# (four data packets, omitted — see the note above)
+> a1 11 ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 4f
+< a1 11 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 b0
+# Status 0: accepted. The same transfer paced at 25 ms between frames drew no
+# answer at all, and the unit stayed off the network.
+#
+# --- release the module ---
+> 33 17 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 24

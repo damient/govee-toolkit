@@ -23,6 +23,29 @@ at.
 
 ### 2026-09-13
 
+#### Added
+
+- `H6008` includes the `ble-wifi-provision` family, so `provision_wifi()` puts
+  the bulb on a Wi-Fi network. The unit accepts the transfer while it is already
+  on a network and bound to an account.
+- `H6008` conformance vectors for the four provisioning entries. The endpoint
+  read and the wake come from a capture; the two transfers are built from the
+  layout of `docs/protocol/ble.md` 4, with placeholder credentials.
+
+#### Changed
+
+- `H6008` reaches every capability over `ble`, not `color` alone: the unit
+  encodes the link (`docs/protocol/ble.md` 9), and the encoded 20-byte dialect
+  carries `power`, `brightness`, `color` and `colortemp`. The mode is `full`.
+- `H6008` `color` and `colortemp` over `ble` are sub-mode 13, one layout for a
+  colour triplet and a kelvin value. From frames exercised on the unit and read
+  back. The host colour channel of `docs/protocol/ble.md` 8 stays as
+  `host_color`.
+- `H6008` `verified` records the encoded `ble` link on firmware 1.01.25:
+  the handshake, then power, brightness, colour, white and the version read,
+  each read back. The earlier plaintext silence was the encoding, not a missing
+  dialect.
+
 #### Removed
 
 - `documented:` is gone from every command entry, from `devices/schema.yaml` and
@@ -45,7 +68,7 @@ at.
   reads back as 0, 101 as 101 and 200 as -56. The codec refuses all three.
 - `H6008` lists `H6004`, `H6006`, `H6009`, `H600A` and `H6010` as
   `candidate_aliases`: Govee describes them alike, and nobody verified one.
-- `H6008` reaches `color` over `ble`, through the host colour frames of
+- `H6008` declares `host_color` over `ble`, the host colour frames of
   `docs/protocol/ble.md` 8. From captured frames, watched on two units.
 - `H6008` declares `channel_probe` over `ble`, the request that asks whether a
   unit carries that channel. Both units answered the same five bytes.
@@ -55,8 +78,6 @@ at.
   holds the link that long after a write, or the frame never leaves.
 - `H6008` records that no read reports the `ble` colour render, and that the
   stored brightness scales it.
-- `H6008` puts `power`, `brightness` and `colortemp` out of reach over `ble`:
-  the host colour channel carries a colour alone, so the mode is `capped`.
 - `<sum>` in a `frame:` layout — the low byte of the sum of the bytes before
   it. A layout carries `<sum>` or `<xor>`, never both. See `devices/schema.yaml`.
 - `measurements.ble.render_hold_ms` — how long a firmware holds a colour from

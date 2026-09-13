@@ -31,6 +31,9 @@ pub(super) struct Tracked {
     /// see [`super::Transport::bind`].
     pub(super) endpoint: String,
     pub(super) sku: String,
+    /// Whether the advertisement carried the encoding flag. Read off the
+    /// last scan, since a firmware update can raise it.
+    pub(super) encoded: bool,
     pub(super) breaker: Breaker,
     pub(super) status: watch::Sender<Option<DeviceStatus>>,
     /// One budget per device, because the limit is one firmware's.
@@ -63,10 +66,17 @@ impl crate::transport::registry::Tracked for Tracked {
 }
 
 impl Tracked {
-    pub(super) fn new(endpoint: String, sku: String, policy: Policy, budget: Budget) -> Self {
+    pub(super) fn new(
+        endpoint: String,
+        sku: String,
+        encoded: bool,
+        policy: Policy,
+        budget: Budget,
+    ) -> Self {
         Self {
             endpoint,
             sku,
+            encoded,
             breaker: Breaker::new(policy),
             status: watch::Sender::new(None),
             pacer: Arc::new(Pacer::new(budget)),
@@ -78,6 +88,8 @@ impl Tracked {
 /// Where to send, and what to send it with.
 pub(super) struct Route {
     pub(super) endpoint: String,
+    /// Whether the link must run the handshake before the first frame.
+    pub(super) encoded: bool,
     pub(super) pacer: Arc<Pacer>,
     /// Whether this command pays for a verification.
     pub(super) verifying: bool,
@@ -149,13 +161,18 @@ impl Shared {
         } else {
             None
         };
-        let ((endpoint, pacer), verifying) =
+        let ((endpoint, encoded, pacer), verifying) =
             self.devices
                 .route_and_claim(id, Mode::Ble, now, interval, |tracked| {
-                    (tracked.endpoint.clone(), Arc::clone(&tracked.pacer))
+                    (
+                        tracked.endpoint.clone(),
+                        tracked.encoded,
+                        Arc::clone(&tracked.pacer),
+                    )
                 })?;
         Ok(Route {
             endpoint,
+            encoded,
             pacer,
             verifying,
         })
@@ -172,8 +189,10 @@ impl Shared {
     /// [`Error::ShutDown`] if the slot table is poisoned,
     /// [`Error::Unreachable`] if the connection takes longer than
     /// [`Options::connect_timeout`], or [`Error::Io`] if nothing advertises at
-    /// the handle after a scan, or if the connection fails.
-    pub(super) async fn link(&self, id: &DeviceId, endpoint: &str) -> Result<Arc<Link>> {
+    /// the handle after a scan, if the connection fails, or if an encoded
+    /// device does not answer the handshake.
+    pub(super) async fn link(&self, id: &DeviceId, route: &Route) -> Result<Arc<Link>> {
+        let endpoint = route.endpoint.as_str();
         let slot = self.links.slot(id)?;
         let mut open = slot.lock().await;
         if let Some(link) = open.as_ref() {
@@ -181,9 +200,9 @@ impl Shared {
         }
 
         // A handle is good only while the platform still holds the peripheral
-        // behind it, and macOS drops that when a link goes down. The device
-        // must advertise again before anything can connect to it. A scan costs
-        // seconds, so it runs only once the handle is gone.
+        // behind it, and a platform drops that when a link goes down. The
+        // device must advertise again before anything can connect to it. A
+        // scan costs seconds, so it runs only once the handle is gone.
         let peripheral = match self.peripheral(endpoint).await? {
             Some(peripheral) => peripheral,
             None => self.rediscover(endpoint).await?,
@@ -192,13 +211,20 @@ impl Shared {
         // as the platform waits, and every command to this device waits with
         // it.
         let timeout = self.options.connect_timeout;
-        let link = tokio::time::timeout(timeout, Link::open(peripheral, endpoint))
-            .await
-            .map_err(|_| Error::Unreachable {
-                id: id.clone(),
-                endpoint: endpoint.to_owned(),
-                timeout_ms: crate::transport::millis(timeout),
-            })??;
+        let opening = Link::open(
+            peripheral,
+            endpoint,
+            route.encoded,
+            self.options.handshake_timeout,
+        );
+        let link =
+            tokio::time::timeout(timeout, opening)
+                .await
+                .map_err(|_| Error::Unreachable {
+                    id: id.clone(),
+                    endpoint: endpoint.to_owned(),
+                    timeout_ms: crate::transport::millis(timeout),
+                })??;
         let link = Arc::new(link);
         *open = Some(Arc::clone(&link));
         Ok(link)
@@ -256,7 +282,14 @@ impl Shared {
         command: &Encoded,
     ) -> Result<()> {
         check_frames(command)?;
-        for frame in &command.frames {
+        // A chunked command needs more than the write budget between frames:
+        // the firmware drops a transfer that arrives faster and answers
+        // nothing.
+        let chunked = command.frames.len() > 1;
+        for (index, frame) in command.frames.iter().enumerate() {
+            if chunked && index > 0 {
+                tokio::time::sleep(self.options.chunk_gap).await;
+            }
             self.write_frame(id, route, link, &command.cmd, frame)
                 .await?;
         }
@@ -282,8 +315,8 @@ impl Shared {
     /// # Errors
     ///
     /// As for [`Shared::link`].
-    pub(super) async fn connect(&self, id: &DeviceId, endpoint: &str) -> Result<Arc<Link>> {
-        match self.link(id, endpoint).await {
+    pub(super) async fn connect(&self, id: &DeviceId, route: &Route) -> Result<Arc<Link>> {
+        match self.link(id, route).await {
             Ok(link) => Ok(link),
             Err(e) => {
                 self.record(id, false, Instant::now());

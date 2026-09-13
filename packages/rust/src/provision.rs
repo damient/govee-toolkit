@@ -13,7 +13,7 @@ use crate::error::{Error, Result};
 
 /// How long the Wi-Fi module takes to come up. Measured on one unit: a
 /// transfer with no delay after the wake left it off the network, and 3 s put
-/// it on. The vendor app waits the same.
+/// it on. The phone controller waits the same.
 const WAKE_DELAY: Duration = Duration::from_secs(3);
 
 /// What the firmware takes for `run_mode` and `iot_version` in production.
@@ -41,9 +41,10 @@ pub struct WifiCredentials {
 impl DeviceHandle<'_> {
     /// Put this device on a Wi-Fi network, then release the Wi-Fi module.
     ///
-    /// The device must be in Bluetooth range and closed in the vendor app,
-    /// which holds the one connection the radio accepts. The device joins the
-    /// network, and reaches `lan` only once the user enables LAN Control.
+    /// The device must be in Bluetooth range and closed in the phone
+    /// controller, which holds the one connection the radio accepts. The
+    /// device joins the network, and reaches `lan` only once the user
+    /// enables LAN Control.
     ///
     /// This reports what the writes did: the codec reads no reply on a chunked
     /// command, so a refused transfer looks like an accepted one here.

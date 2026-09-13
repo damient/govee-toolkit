@@ -3,15 +3,18 @@
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
-use super::{
-    BleFaults, BleOptions, FRAME_LEN, NOTIFY_CHARACTERISTIC, READ, SERVICE, WRITE,
-    WRITE_CHARACTERISTIC, bcc,
-};
+use super::state::State;
+use super::{BleFaults, BleOptions, NOTIFY_CHARACTERISTIC, SERVICE, WRITE_CHARACTERISTIC};
+
+/// The flags byte of the advertisement data, with and without the encoding
+/// bit. The low nibble is the layout version.
+const FLAGS_ENCODED: u8 = 0x43;
+const FLAGS_PLAIN: u8 = 0x03;
 
 /// How many answers a subscriber may fall behind by before losing the oldest.
 const NOTIFY_BACKLOG: usize = 32;
@@ -29,20 +32,6 @@ struct Inner {
     state: Mutex<State>,
 }
 
-#[derive(Debug)]
-struct State {
-    faults: BleFaults,
-    connected: bool,
-    received: Vec<Vec<u8>>,
-    answers: BTreeMap<u8, Vec<u8>>,
-    /// When each write of the current burst window arrived.
-    writes: Vec<Instant>,
-    /// While this is in the future, the firmware answers nothing.
-    unresponsive_until: Option<Instant>,
-    stalls: u32,
-    sent: u32,
-}
-
 impl BleDevice {
     /// A device on the air, answering nothing until a read is registered.
     #[must_use]
@@ -57,6 +46,8 @@ impl BleDevice {
                     connected: false,
                     received: Vec::new(),
                     answers: BTreeMap::new(),
+                    session: None,
+                    sessions: 0,
                     writes: Vec::new(),
                     unresponsive_until: None,
                     stalls: 0,
@@ -80,6 +71,26 @@ impl BleDevice {
             .name
             .clone()
             .unwrap_or_else(|| format!("GBK_{}_0000", self.inner.options.sku))
+    }
+
+    /// The advertisement data it advertises, as a platform splits it: the
+    /// layout of `docs/protocol/ble.md` §1.5, `pactType` 1 and `pactCode` 1,
+    /// with the encoding bit set under [`BleOptions::encoded`].
+    #[must_use]
+    pub fn adverts(&self) -> Vec<(u16, Vec<u8>)> {
+        let flags = if self.inner.options.encoded {
+            FLAGS_ENCODED
+        } else {
+            FLAGS_PLAIN
+        };
+        let prefix = u16::from_le_bytes([flags, 0x88]);
+        vec![(prefix, vec![0xEC, 0x00, 0x01, 0x01])]
+    }
+
+    /// The session seed the handshake handed out, if one has.
+    #[must_use]
+    pub fn session_seed(&self) -> Option<[u8; 16]> {
+        self.inner.state.lock().ok().and_then(|state| state.session)
     }
 
     /// Whether a link is up.
@@ -114,14 +125,16 @@ impl BleDevice {
         Ok(())
     }
 
-    /// Drop the connection. The device advertises again.
+    /// Drop the connection. The device advertises again, and the session seed
+    /// is gone with the link.
     pub fn disconnect(&self) {
         if let Ok(mut state) = self.inner.state.lock() {
             state.connected = false;
+            state.session = None;
         }
     }
 
-    /// The characteristics it carries. Empty but for the vendor service, and
+    /// The characteristics it carries. Empty but for the service, and
     /// empty altogether under [`BleOptions::carries_service`] set to `false`.
     #[must_use]
     pub fn characteristics(&self) -> Vec<Uuid> {
@@ -143,12 +156,18 @@ impl BleDevice {
     /// Returns as soon as the frame is recorded; any answer is notified after
     /// [`BleFaults::latency`]. This wire acknowledges nothing.
     ///
+    /// An encoded device decodes the frame first. A handshake frame is
+    /// answered as `docs/protocol/ble.md` §9 says, a plaintext frame is
+    /// recorded as it came and answered with silence, and an encoded frame is
+    /// recorded decoded.
+    ///
     /// # Errors
     ///
     /// [`std::io::ErrorKind::NotConnected`] with no link up,
     /// [`std::io::ErrorKind::Unsupported`] for any characteristic but the
-    /// write one, and [`std::io::ErrorKind::InvalidData`] for a frame that is
-    /// not [`FRAME_LEN`] bytes or whose BCC is wrong.
+    /// write one, and [`std::io::ErrorKind::InvalidData`] for a plaintext
+    /// frame that is not [`FRAME_LEN`](super::FRAME_LEN) bytes or whose BCC is
+    /// wrong.
     pub fn write(&self, characteristic: Uuid, frame: &[u8]) -> std::io::Result<()> {
         if characteristic != WRITE_CHARACTERISTIC {
             return Err(std::io::Error::new(
@@ -156,7 +175,9 @@ impl BleDevice {
                 format!("the device takes no write on {characteristic}"),
             ));
         }
-        check(frame)?;
+        if !self.inner.options.encoded {
+            super::state::check(frame)?;
+        }
 
         let answer = {
             let mut state = self.state()?;
@@ -166,10 +187,14 @@ impl BleDevice {
                     "the device holds no connection",
                 ));
             }
-            state.received.push(frame.to_vec());
             let now = Instant::now();
-            state.burst(now);
-            state.answer(frame, now)
+            if self.inner.options.encoded {
+                state.encoded(frame, now)
+            } else {
+                state.received.push(frame.to_vec());
+                state.burst(now);
+                state.answer(frame, now)
+            }
         };
 
         if let Some((frame, latency)) = answer {
@@ -242,74 +267,4 @@ impl BleDevice {
             .lock()
             .map_err(|_| std::io::Error::other("the simulator's state is poisoned"))
     }
-}
-
-impl State {
-    /// Count this write, and stall the firmware if the burst is too fast.
-    fn burst(&mut self, now: Instant) {
-        let Some(stall) = self.faults.stall else {
-            return;
-        };
-        self.writes
-            .retain(|at| now.duration_since(*at) < stall.within);
-        self.writes.push(now);
-        let over = u32::try_from(self.writes.len()).unwrap_or(u32::MAX) > stall.after;
-        if over && self.unresponsive_until.is_none_or(|until| until <= now) {
-            self.unresponsive_until = Some(now + stall.lasts);
-            self.stalls = self.stalls.wrapping_add(1);
-        }
-    }
-
-    /// The frame this one is answered with, and how late, or `None` for
-    /// silence.
-    fn answer(&mut self, frame: &[u8], now: Instant) -> Option<(Vec<u8>, Duration)> {
-        if self.faults.silent || self.unresponsive_until.is_some_and(|until| until > now) {
-            return None;
-        }
-        let (&kind, &command_type) = (frame.first()?, frame.get(1)?);
-        let mut answer = match kind {
-            // Acknowledged under the two bytes it came with. See
-            // `docs/protocol/ble.md` §1.4.
-            WRITE => vec![WRITE, command_type, 0x00],
-            // A read the device does not implement answers nothing at all.
-            READ => {
-                let mut bytes = vec![READ, command_type];
-                bytes.extend_from_slice(self.answers.get(&command_type)?);
-                bytes
-            }
-            // A multi-packet write answers once complete, and nothing here
-            // reassembles one.
-            _ => return None,
-        };
-        answer.resize(FRAME_LEN, 0);
-        let sum = bcc(&answer);
-        if let Some(last) = answer.last_mut() {
-            *last = sum;
-        }
-
-        self.sent = self.sent.wrapping_add(1);
-        let dropped = crate::drops(self.faults.drop_one_in, self.sent);
-        (!dropped).then_some((answer, self.faults.latency))
-    }
-}
-
-/// Refuse a frame the wire cannot carry.
-fn check(frame: &[u8]) -> std::io::Result<()> {
-    if frame.len() != FRAME_LEN {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            format!(
-                "the frame is {} bytes; this wire carries {FRAME_LEN}",
-                frame.len()
-            ),
-        ));
-    }
-    let sum = bcc(frame);
-    if frame.last() != Some(&sum) {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            format!("the frame's BCC is {:?}, not {sum:#04x}", frame.last()),
-        ));
-    }
-    Ok(())
 }

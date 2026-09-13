@@ -89,6 +89,11 @@ SKU.
 - **A kept comment states its fact and stops.** No preamble, no second sentence
   repeating the first, no re-describing the mechanism the reader is looking at.
 - **English throughout**, including code comments.
+- **Name no company and no app.** Do not write "company", "manufacturer",
+  "vendor" or "app". The software a user drives these devices with is "the
+  phone controller", or "another controller" where it competes for the link.
+  "Govee" stays where it names the devices or the public "Govee Home app"
+  switch a user must find.
 - **Describe the code as it is, not as it was.** Docs and comments carry no
   trace of refactored, renamed or deleted code: no "no longer", "used to",
   "previously", "this replaces the old X". Rewrite in the present. History that
@@ -132,6 +137,14 @@ SKU.
   Git keeps a leaked capture after the fix.
 - `docs/compatibility.md` holds two generated tables. After a device file
   changes, run `cargo run -p xtask -- compat`; CI fails on drift.
+- **The site reads the device files too.** After a change to `devices/*.yaml`
+  or to `docs/compatibility.md`, run `tools/qa-site.sh`. It rebuilds
+  `dist/catalog.json`, which the devices page reads, and then the site.
+- **`verified:` notes are short.** Record what was exercised, the numbers, and
+  every trap: a value the firmware clamps, an answer that is not an applied
+  value, a frame that two units render differently. Do not narrate the method,
+  and do not repeat what a capture, a conformance vector or a `measurements:`
+  comment already carries — point at it instead.
 
 ## Protocol work
 

@@ -1,29 +1,34 @@
 //! The `ble` transport: GATT over Bluetooth Low Energy.
 //!
-//! Carries the frames [`crate::codec`] produces over one vendor service, and
+//! Carries the frames [`crate::codec`] produces over one service, and
 //! implements [`crate::transport::Transport`] under `docs/modes.md`.
 //!
 //! The UUIDs and the frame length below were observed on one H61A0 and on no
 //! other unit; `docs/protocol/ble.md` says what was exercised.
 //!
-//! Three things are specific to this mode. A device takes one connection at a
+//! Four things are specific to this mode. A device takes one connection at a
 //! time and stops advertising while it is up, so the transport keeps one link
-//! per device. Writes are paced — see [`pace`]. And an advertisement carries
+//! per device. Writes are paced — see [`pace`]. An advertisement carries
 //! the Bluetooth address, not the Wi-Fi MAC this crate identifies a device by:
-//! nothing relates the two, see [`transport::Transport::bind`].
+//! nothing relates the two, see [`transport::Transport::bind`]. And a device
+//! whose advertisement carries the encoding flag takes encoded frames only,
+//! so the link runs the handshake of [`session`] before the first command —
+//! see [`encode`].
 //!
 //! No adapter is claimed until something needs one.
 
+pub mod encode;
 pub mod link;
 pub mod pace;
 pub mod radio;
 pub mod scan;
+pub mod session;
 pub mod transport;
 pub mod wire;
 
 pub use pace::{Budget, Budgets, Pacer};
 pub use radio::Radio;
-pub use scan::Advertised;
+pub use scan::{Advertised, Beacon};
 pub use transport::{Options, Transport};
 use uuid::Uuid;
 
@@ -33,7 +38,7 @@ pub use crate::transport::{
     Result, Sent, State, Transition, Verify,
 };
 
-/// The vendor service commands travel on.
+/// The service commands travel on.
 ///
 /// Observed on one unit, and on no other family.
 pub const SERVICE: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_1910);

@@ -240,7 +240,7 @@ impl Transport {
         let route =
             self.shared
                 .route_and_claim(id, Instant::now(), matches!(&verify, Verify::With(_)))?;
-        let link = self.shared.connect(id, &route.endpoint).await?;
+        let link = self.shared.connect(id, &route).await?;
         self.shared.write_frames(id, &route, &link, command).await?;
 
         let sent = Sent {
@@ -306,6 +306,7 @@ impl Transport {
                 Tracked::new(
                     endpoint.to_owned(),
                     sku.to_owned(),
+                    false,
                     self.shared.options.policy,
                     self.shared.budget_for(sku),
                 ),
