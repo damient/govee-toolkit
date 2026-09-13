@@ -1,0 +1,184 @@
+# On Govee's official LAN-control list — see ../docs/lan-supported-devices.md.
+
+schema_version: 1
+
+sku: "H6022"
+family: "rgbic-table-lamp"
+name: "Table Lamp 2"
+aliases: []
+candidate_aliases: []
+
+capabilities:
+  power:
+  brightness:  { range: [0, 100] }   # 0 renders the minimum, see verified below
+  color:
+  colortemp:   { range_kelvin: [2700, 6500] }   # measured, see verified below
+  music:       # the phone controller offers it, over the lamp's own microphone
+  segments:    # native_pixels is at least 132 and is not resolved: the frame
+               # ceiling stops the sweep there. See verified below. The zones
+               # the phone controller exposes were not counted
+
+modes:
+  lan:
+    support: capped
+    capabilities: [power, brightness, color, colortemp, segments]
+    unreachable:
+      music: transport
+    notes: >-
+      Requires LAN Control enabled in the Govee Home app. The four documented
+      commands answer and read back through `devStatus`, and the segment
+      channel of docs/protocol/lan.md 2.3 paints. Brightness is global here:
+      the segment channel carries color only. It carries no music command: the
+      lamp renders no music over lan, and a host that streams computed colors
+      over the segment channel is not this capability. See
+      docs/protocol/lan.md 2.4.
+  ble:
+    support: unknown
+    capabilities: []
+    unreachable: {}
+    notes: ""
+  cloud:
+    support: unknown
+    capabilities: []
+    unreachable: {}
+    notes: ""
+
+commands:
+  lan:
+    power:
+      cmd: "turn"
+      role: power
+      payload: { value: "${on}" }
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+
+    brightness:
+      cmd: "brightness"
+      role: brightness
+      payload: { value: "${level}" }
+      args:
+        level: { type: int, range: [0, 100], role: brightness }
+      notes: >-
+        Percent. The firmware clamps a value above 100 to 100 in silence, and
+        it stores 0. See `verified:` for what 0 renders.
+
+    color:
+      cmd: "colorwc"
+      role: color
+      payload:
+        color: { r: "${r}", g: "${g}", b: "${b}" }
+        colorTemInKelvin: 0
+      args:
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: "One color over every ring of the cylinder."
+
+    colortemp:
+      cmd: "colorwc"
+      role: color_temp
+      payload:
+        color: { r: 0, g: 0, b: 0 }
+        colorTemInKelvin: "${kelvin}"
+      args:
+        kelvin: { type: int, range: [2700, 6500], role: color_temp }
+      notes: >-
+        The firmware converts the temperature to RGB itself and ignores the
+        color field, so the payload carries no white triplet and zeroes that
+        field. It clamps a value outside the range above in silence. See
+        docs/protocol/lan.md 1, "Documented commands".
+
+    status:
+      cmd: "devStatus"
+      role: status
+      payload: {}
+      args: {}
+
+    raw_status:
+      cmd: "status"
+      payload: {}
+      args: {}
+      notes: "See docs/protocol/lan.md 2.2."
+
+    dreamview_enable:
+      cmd: "razer"
+      role: segment_enable
+      frame: "BB <len:16> <op:B1> ${on} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        on: { type: int, range: [0, 1], role: enable }
+      notes: >-
+        Arms the raw segment channel. Send turn(1) first. See
+        docs/protocol/lan.md 2.3.
+
+    segment_color:
+      cmd: "razer"
+      role: segment_color
+      frame: "BB <len:16> <op:B0> ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        gradient: { type: int, range: [0, 1], role: gradient }
+        nb_seg: { type: int, range: [1, 132] }
+        colors: { type: rgb_list, max_len: 132, role: colors }
+      notes: >-
+        len counts the payload only, 16-bit, header and checksum excluded. See
+        docs/protocol/lan.md 2.3. The ceiling of 132 zones is this firmware's,
+        not the protocol's: 133 zones and above are dropped in silence. See
+        `measurements.segment_max_zones`.
+
+  ble: {}
+  cloud: {}
+
+measurements:
+  segment_max_zones: 132    # the highest nbSeg this firmware renders. 133 and
+                            # above draw nothing and report nothing
+  zone_0_end: "base"        # zone 0 at the base, the last zone at the top
+
+verified:
+  by: "damient"
+  date: "2026-09-13"
+  notes: >-
+    lan mode exercised over UDP on one unit, through the Rust CLI. The unit
+    answers the multicast discovery. Power, brightness, color and the white
+    temperature were written and read back through `devStatus`.
+
+    Brightness is percent and the firmware clamps: 101, 200 and 255 each read
+    back as 100. It stores 0, and 0 renders the minimum rather than turning the
+    lamp off — `devStatus` keeps reporting `onOff` 1 through it, so only
+    `power` turns the lamp off.
+
+    The white range was measured by anchoring the lamp at 4000 K and then
+    asking for another temperature, so that a clamp reads as a move to the
+    bound and a refusal reads as the anchor. 2000, 1900 and 1000 K each read
+    back as 2700, and 9000, 9500 and 12000 K each read back as 6500. The bounds
+    are 2700 and 6500 K, and the firmware clamps outside them in silence.
+    Under a temperature the `color` field reads `00 00 00`.
+
+    Color and the white temperature both render over every ring of the
+    cylinder.
+
+    The segment channel paints. Zone 0 is at the base and the index climbs to
+    the top, but the chain wraps around the cylinder: one ring carries several
+    addressable positions, so a zone is a point on the chain and not a ring. A
+    pattern of alternating colors reads as scattered points rather than as
+    stacked bands.
+
+    The zone ceiling is 132 and it is the firmware's, not the protocol's.
+    Every count up to 132 paints. 133, 134, 135, 140, 160, 200 and 255 each
+    draw nothing and report nothing, and the display stays at what the last
+    accepted frame left. A frame of 132 zones carries a payload of 398 bytes
+    and one of 133 zones carries 401. Nothing established where between those
+    two the firmware stops, so 132 is a measured ceiling and not a boundary.
+
+    The native resolution is at least 132 and is NOT resolved: zone 124 and
+    zone 131 light two different LEDs, and the ceiling above stops the sweep
+    there. A count of the LEDs is for a mode that reaches past 132 zones.
+
+    Trap: the diffuser blurs the edge between two zones, so this unit reports
+    nothing about the `gradient` byte to the eye. Every frame above was sent
+    with `gradient` 0.
+
+    The lamp has a microphone and the phone controller offers a music mode.
+    lan carries no music command, so that is for a ble session.
+
+    Firmware version NOT read: no mode that reports it was exercised.

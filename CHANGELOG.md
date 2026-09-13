@@ -25,6 +25,12 @@ at.
 
 #### Added
 
+- `H6022`, the Table Lamp 2, over `lan`: power, brightness, colour, the white
+  temperature and the segment channel. The mode is `capped`, and it carries no
+  music command.
+- `H6022` conformance vectors for every `lan` entry, built from the layouts of
+  `docs/protocol/lan.md` 1 and 2.3. No capture: each command was exercised on
+  the unit through the CLI.
 - `H6008` includes the `ble-wifi-provision` family, so `provision_wifi()` puts
   the bulb on a Wi-Fi network. The unit accepts the transfer while it is already
   on a network and bound to an account.
