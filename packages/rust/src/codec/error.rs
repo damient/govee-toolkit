@@ -252,6 +252,46 @@ pub enum Error {
         command: String,
     },
 
+    /// An `overrides:` entry does not apply.
+    #[error("{file}: `overrides.{mode}.{command}`: {problem}")]
+    Override {
+        /// The device file.
+        file: String,
+        /// The mode whose table the patch names.
+        mode: crate::codec::Mode,
+        /// The command the patch names.
+        command: String,
+        /// Why it does not apply.
+        problem: String,
+    },
+
+    /// An argument still carries `range: capability` when a value is checked
+    /// against it. The catalog resolves the keyword on load, so this reports a
+    /// device built without it.
+    #[error("`{command}` argument `{arg}`: bounds still name a capability")]
+    UnresolvedBounds {
+        /// The command.
+        command: String,
+        /// The argument.
+        arg: String,
+    },
+
+    /// An argument asks for `range: capability` and the device file cannot
+    /// supply the pair.
+    #[error("{file}: `{mode}.{command}` argument `{arg}`: `range: capability` needs {needs}")]
+    CapabilityBounds {
+        /// The device file.
+        file: String,
+        /// The mode whose table carries the command.
+        mode: crate::codec::Mode,
+        /// The command that declares the argument.
+        command: String,
+        /// The argument.
+        arg: String,
+        /// What the file must declare for the keyword to resolve.
+        needs: String,
+    },
+
     /// Two device files claim the same SKU or alias.
     #[error("`{sku}` is declared by both `{first}` and `{second}`")]
     DuplicateSku {
@@ -297,6 +337,9 @@ impl Error {
             Self::DuplicateSku { .. } => "duplicate_sku",
             Self::UnknownFamily { .. } => "unknown_family",
             Self::DuplicateCommand { .. } => "duplicate_command",
+            Self::CapabilityBounds { .. } => "capability_bounds",
+            Self::UnresolvedBounds { .. } => "unresolved_bounds",
+            Self::Override { .. } => "override",
         }
     }
 }

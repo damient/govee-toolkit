@@ -11,6 +11,17 @@ releases apart and keeps
 
 ### Added
 
+- `codec::Bounds` — an integer argument's `range:`, either a pair or the
+  keyword `capability`, which takes the pair from the device's `capabilities:`
+  through the argument's role. The catalog resolves it on load.
+- `Device::overrides` — what a device file changes in a command an `include:`
+  brought in: one bound, the `notes:`, or `drop:` to remove the command. The
+  catalog applies it on load, so nothing on the send path reads it.
+- `Error::CapabilityBounds`, `Error::Override` and `Error::UnresolvedBounds`,
+  with the codes `capability_bounds`, `override` and `unresolved_bounds`.
+- `xtask dupes` — command layouts two device files declare and no shared table
+  carries. CI runs it.
+
 - `ble::encode` and `ble::session` — the encoded `ble` link of
   [`docs/protocol/ble.md`](../../docs/protocol/ble.md) 9. A device that sets the
   advertisement's encoding flag runs a session-seed handshake, then the

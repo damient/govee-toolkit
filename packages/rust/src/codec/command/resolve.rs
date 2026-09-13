@@ -87,7 +87,12 @@ pub(super) fn resolve(
 fn check(command: &str, name: &str, spec: &ArgSpec, value: &ArgValue) -> Result<()> {
     match (spec, value) {
         (ArgSpec::Int { range, .. }, ArgValue::Int(v)) => {
-            let (min, max) = (range[0], range[1]);
+            // The catalog resolves `capability` on load, so this only fires
+            // for a device built without going through it.
+            let [min, max] = range.pair().ok_or_else(|| Error::UnresolvedBounds {
+                command: command.to_owned(),
+                arg: name.to_owned(),
+            })?;
             if *v < min || *v > max {
                 return Err(Error::OutOfRange {
                     command: command.to_owned(),

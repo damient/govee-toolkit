@@ -98,7 +98,7 @@ fn command_json(command: &Command) -> Value {
 fn arg_json(spec: &ArgSpec) -> Value {
     let mut value = json!({ "type": kind(spec), "role": spec.role().map(|role| role.to_string()) });
     let bound = match spec {
-        ArgSpec::Int { range, .. } => json!(range),
+        ArgSpec::Int { range, .. } => json!(range.pair()),
         ArgSpec::Zones { count, .. } => json!(count),
         ArgSpec::RgbList { max_len, .. }
         | ArgSpec::String { max_len, .. }
@@ -176,7 +176,9 @@ fn role_of(command: &Command) -> String {
 
 fn bound_of(spec: &ArgSpec) -> String {
     match spec {
-        ArgSpec::Int { range, .. } => format!(" [{}, {}]", range[0], range[1]),
+        ArgSpec::Int { range, .. } => range
+            .pair()
+            .map_or_else(String::new, |[min, max]| format!(" [{min}, {max}]")),
         ArgSpec::Zones { count, .. } => count.map_or_else(String::new, |c| format!(" ({c} zones)")),
         ArgSpec::RgbList { max_len, .. }
         | ArgSpec::String { max_len, .. }

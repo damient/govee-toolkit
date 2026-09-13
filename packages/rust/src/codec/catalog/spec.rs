@@ -8,14 +8,17 @@ use std::fmt;
 
 use serde::Deserialize;
 
+use super::bounds::Bounds;
+
 /// How an argument may be supplied.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ArgSpec {
     /// A whole number, bounded inclusively.
     Int {
-        /// `[min, max]`, both inclusive.
-        range: [i64; 2],
+        /// `[min, max]`, both inclusive, or `capability` to take the pair
+        /// from the device's own `capabilities:`. See [`Bounds`].
+        range: Bounds,
         /// See [`ArgRole`].
         #[serde(default)]
         role: Option<ArgRole>,
