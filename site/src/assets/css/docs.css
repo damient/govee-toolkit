@@ -107,15 +107,10 @@
   display: inline-block; vertical-align: middle;
   margin-left: 14px; transform: translateY(-2px);
 }
-.prose table { width: 100%; border-collapse: collapse; margin: 1.6em 0; font-size: .95rem; display: block; overflow-x: auto; }
-/* The command tables of the three modes hold the same two columns, so they
-   carry one column width and fill the article. `display: block` scrolls a
-   wide table but lets a narrow one shrink, so these lay out as tables and
-   wrap instead. */
-.is-device .prose table { display: table; table-layout: fixed; }
-.is-device .prose th, .is-device .prose td { overflow-wrap: break-word; }
-.is-device .prose th:first-child, .is-device .prose td:first-child { width: 38%; }
-.prose th, .prose td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.prose th { font: 500 12px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.prose td { color: var(--prose); }
+/* A table a document writes in Markdown. One that carries `.matrix` is the
+   table component of `devices.css` and keeps its own frame. */
+.prose table:not(.matrix) { width: 100%; border-collapse: collapse; margin: 1.6em 0; font-size: .95rem; display: block; overflow-x: auto; }
+.prose table:not(.matrix) th, .prose table:not(.matrix) td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.prose table:not(.matrix) th { font: 500 12px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.prose table:not(.matrix) td { color: var(--prose); }
 .prose blockquote { margin: 1.6em 0; padding-left: 18px; border-left: 2px solid var(--amber); color: var(--muted); }

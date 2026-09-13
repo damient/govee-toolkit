@@ -19,11 +19,12 @@
     </div>
 
     <div class="tablewrap">
-      <table class="matrix">
+      <table class="matrix matrix-list">
         <caption class="visually-hidden">Support of each model, per mode</caption>
         <thead>
           <tr>
             <th scope="col">SKU</th>
+            <th scope="col"><span class="visually-hidden">Shape</span></th>
             <th scope="col">Name</th>
             <th scope="col">{{badge_lan}}</th>
             <th scope="col">{{badge_ble}}</th>
@@ -36,13 +37,11 @@
       </table>
     </div>
 
-    <dl class="legend">
-      <div><dt><span class="pill pill-full">full</span></dt><dd>Every capability the hardware has is reachable in this mode.</dd></div>
-      <div><dt><span class="pill pill-capped">capped</span></dt><dd>Every capability the transport carries is reachable.</dd></div>
-      <div><dt><span class="pill pill-partial">partial</span></dt><dd>This device file does not reach a capability yet.</dd></div>
-      <div><dt><span class="pill pill-unknown">?</span></dt><dd>Nobody looked yet.</dd></div>
-      <div><dt><span class="muted">—</span></dt><dd>The hardware cannot do it in this mode.</dd></div>
-    </dl>
+    <ul class="caps legend-caps">
+        {{caps_legend}}
+        <li><span class="pill pill-unknown">?</span>Not probed yet</li>
+        <li><span class="muted">—</span>Not available</li>
+    </ul>
   </div>
 </section>
 
