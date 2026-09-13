@@ -80,12 +80,10 @@
 }
 
 .prose { max-width: 78ch; }
-.prose.reference { max-width: none; }
 .prose h1 { font-size: clamp(1.9rem, 1.4rem + 1.8vw, 2.6rem); margin-bottom: .5em; }
 .prose h2 { margin-top: 2em; }
 /* A heading that opens an article carries no space over it either. */
-.prose h2#what-the-hardware-does,
-.prose.reference .ref-group:first-of-type h2 { margin-top: 0; }
+.prose h2#what-the-hardware-does { margin-top: 0; }
 .badge-count { display: inline-flex; gap: 8px; margin-left: 8px; color: var(--muted); }
 .badge-count [aria-hidden] { opacity: .45; }
 .prose h2 .anchor, .prose .anchor { text-decoration: none; }
