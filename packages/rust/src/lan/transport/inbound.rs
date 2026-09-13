@@ -94,7 +94,7 @@ impl Shared {
     /// A payload carrying an identity, an address and a SKU is a discovery
     /// reply; anything else from a known device is a status. That covers both
     /// `devStatus` and the undocumented `status` (`docs/protocol/lan.md`
-    /// §2.2).
+    /// 2.2).
     fn dispatch(&self, from: SocketAddr, bytes: &[u8]) {
         let Some(reply) = parse_reply(from, bytes) else {
             return;

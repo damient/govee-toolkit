@@ -10,7 +10,7 @@
 //!
 //! **It plays the wire, not the firmware.** It does not interpret writes: a
 //! command that is not a status request is recorded and acknowledged with
-//! nothing, which is what a real device does (`docs/protocol/lan.md` §2.1). To
+//! nothing, which is what a real device does (`docs/protocol/lan.md` 2.1). To
 //! model what each write means would put per-SKU semantics in Rust, which this
 //! project keeps in `devices/*.yaml`. Assert on [`Simulator::received`], and
 //! set the status a device reports with [`Simulator::set_status`].
@@ -42,7 +42,7 @@ use tokio::net::UdpSocket;
 use crate::serve::{Listen, bind};
 
 /// The documented ports, repeated here so a simulator can be started without
-/// depending on the transport crate. See `docs/protocol/lan.md` §1.
+/// depending on the transport crate. See `docs/protocol/lan.md` 1.
 pub const DISCOVERY_PORT: u16 = 4001;
 /// The port replies go to on a real network.
 pub const REPLY_PORT: u16 = 4002;
@@ -158,7 +158,7 @@ pub struct Received {
 impl Received {
     /// Whether this reads as a request for status: an envelope carrying no
     /// arguments. Every documented write carries at least one
-    /// (`docs/protocol/lan.md` §1), so the distinction needs no command names.
+    /// (`docs/protocol/lan.md` 1), so the distinction needs no command names.
     #[must_use]
     pub fn is_status_request(&self) -> bool {
         match &self.data {

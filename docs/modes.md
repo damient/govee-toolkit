@@ -33,7 +33,7 @@ Three `ble` constraints change what an application can do with it:
   the two, so `ble` enabled for a device is not enough to reach it. The
   application must tell the transport which address belongs to which identity,
   through `ble::Transport::bind`. A device seen only over Bluetooth has no Wi-Fi
-  MAC until something declares it — see `protocol/ble.md` §1.3.
+  MAC until something declares it — see `protocol/ble.md` 1.3.
 
 ## Two levels
 

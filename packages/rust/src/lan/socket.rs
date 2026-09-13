@@ -2,7 +2,7 @@
 //!
 //! The multicast `scan`, the commands to `<device>:4003` and the replies all
 //! go through it: a fresh socket per command costs a syscall and a port on the
-//! fast path (`docs/protocol/lan.md` §1). `scan` and `devStatus` answer on the
+//! fast path (`docs/protocol/lan.md` 1). `scan` and `devStatus` answer on the
 //! same port, so the receive loop dispatches on `msg.cmd`.
 
 use std::net::{Ipv4Addr, SocketAddr};

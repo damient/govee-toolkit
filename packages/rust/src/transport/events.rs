@@ -72,7 +72,7 @@ pub enum Change {
     /// A known device that moved — a new DHCP lease, usually.
     Moved,
     /// A known device whose reported firmware changed. An update can open or
-    /// close a behavior (`docs/protocol/lan.md` §2.8).
+    /// close a behavior (`docs/protocol/lan.md` 2.8).
     FirmwareChanged,
 }
 

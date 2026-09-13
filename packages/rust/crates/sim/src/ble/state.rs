@@ -103,8 +103,8 @@ impl State {
         }
         let (&kind, &command_type) = (frame.first()?, frame.get(1)?);
         let answer = match kind {
-            // Acknowledged under the two bytes it came with. See
-            // `docs/protocol/ble.md` §1.4.
+            // Acknowledged under the two bytes it came with.
+            // `docs/protocol/ble.md` 1.4.
             WRITE => vec![WRITE, command_type, 0x00],
             // A read the device does not implement answers nothing at all.
             READ => {
