@@ -78,7 +78,7 @@ such in the device file until someone verifies them.
 | SKU | Family | Name | `lan` | `ble` | `cloud` | Verified |
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
 | [H6008](../devices/H6008.yaml) | rgbww-bulb | Smart LED Bulb RGBWW | full | full | full | ✅ 2026-09-13 |
-| [H6022](../devices/H6022.yaml) | rgbic-table-lamp | Table Lamp 2 | capped | full | ? | ✅ 2026-09-13 |
+| [H6022](../devices/H6022.yaml) | rgbic-table-lamp | Table Lamp 2 | capped | full | capped | ✅ 2026-09-13 |
 | [H6114](../devices/H6114.yaml) | rgb-car-strip | RGB Car LED Strip Lights | none | full | none | ✅ 2026-09-07 |
 | [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | capped | full | full | ✅ 2026-09-10 |
 <!-- /generated -->

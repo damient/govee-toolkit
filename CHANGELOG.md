@@ -25,6 +25,16 @@ at.
 
 #### Added
 
+- `H6022` over `cloud`: power, brightness, colour, the white temperature,
+  segments and music. The mode is `capped`.
+- `H6022` paints 15 zones over `cloud`, the width the `ble` mask has, and zone 0
+  is at the base. This mode carries no per-zone brightness.
+- `H6022` renders four music effects over `cloud`, against the eight `ble`
+  renders. The identifiers are the API's own.
+- `H6022` over `cloud` refuses a value outside a declared range, where `lan` and
+  `ble` clamp in silence. Brightness 0 and 9000 K each answer 400.
+- `H6022` conformance vectors for every `cloud` entry. No capture: each command
+  was exercised on the unit through the CLI.
 - `H6022` over `ble`: power, brightness, colour, the white temperature,
   segments, per-zone brightness and music. The mode is `full`.
 - `H6022` paints 15 zones over `ble`, against the 132 LEDs `lan` reaches, so one
