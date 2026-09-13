@@ -189,9 +189,7 @@ impl Govee {
             .filter(|&mode| self.inner.config.missing_credential(mode).is_none())
             .map(|mode| Problem {
                 device: None,
-                message: format!(
-                    "`{mode}` is enabled but this build carries no transport for it; a transport is a cargo feature"
-                ),
+                message: format!("`{mode}` {}", crate::error::NO_TRANSPORT_IN_BUILD),
             })
             .collect()
     }

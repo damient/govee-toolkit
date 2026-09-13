@@ -4,6 +4,11 @@ use crate::codec::{ArgRole, Mode, Role};
 use crate::config::Problem;
 use crate::transport::DeviceId;
 
+/// Why an enabled mode has no transport. `doctor` reports the same fact
+/// before any command is sent, so the sentence lives here once.
+pub(crate) const NO_TRANSPORT_IN_BUILD: &str =
+    "is enabled but this build carries no transport for it; a transport is a cargo feature";
+
 /// Anything that can go wrong between a call and the bytes on the wire.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
@@ -44,9 +49,7 @@ pub enum Error {
     /// A mode the configuration enables has no transport in this build. A
     /// transport is a cargo feature, so a build carries the modes it was
     /// asked for and no other.
-    #[error(
-        "{id}: mode `{mode}` is enabled but this build carries no transport for it; a transport is a cargo feature"
-    )]
+    #[error("{id}: mode `{mode}` {NO_TRANSPORT_IN_BUILD}")]
     ModeNotImplemented {
         /// The device.
         id: DeviceId,

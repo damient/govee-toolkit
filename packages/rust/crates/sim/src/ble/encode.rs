@@ -1,8 +1,10 @@
 //! The device side of an encoded link: the codec and the handshake, as
 //! `docs/protocol/ble.md` 9 describes them.
 //!
-//! Written on its own rather than shared with the transport crate, so that a
-//! frame the transport encodes is decoded by a second implementation.
+//! This crate carries its own copy because `govee-toolkit` depends on it as a
+//! dev-dependency, so it cannot depend back on `govee-toolkit::ble::encode`.
+//! The capture-backed tests beside that module are what check the codec; this
+//! copy checks nothing on its own.
 
 use aes::Aes128;
 use aes::cipher::generic_array::GenericArray;

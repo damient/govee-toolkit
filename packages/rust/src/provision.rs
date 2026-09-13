@@ -127,7 +127,7 @@ impl DeviceHandle<'_> {
         let Some(command) = device.command_for(MODE, Role::WifiApiType) else {
             return Ok(None);
         };
-        let field = arg_named(sku, device, command, ArgRole::ApiType)?.to_owned();
+        let field = crate::verbs::arg_for(sku, device, MODE, command, ArgRole::ApiType)?.to_owned();
         let request = self.govee.encode(sku, MODE, command, &Args::new())?;
         let reply = self
             .govee
@@ -142,7 +142,7 @@ impl DeviceHandle<'_> {
 
     async fn set_wifi_link(&self, sku: &str, device: &Device, on: i64) -> Result<()> {
         let command = command_named(sku, device, Role::WifiLink)?;
-        let arg = arg_named(sku, device, command, ArgRole::Enable)?;
+        let arg = crate::verbs::arg_for(sku, device, MODE, command, ArgRole::Enable)?;
         let args = Args::new().int(arg, on);
         self.send_role(sku, command, &args).await
     }
@@ -167,34 +167,20 @@ impl WifiCredentials {
             None => Role::WifiProvision,
         };
         let command = command_named(sku, device, role)?.to_owned();
+        let named = |arg_role| crate::verbs::arg_for(sku, device, MODE, &command, arg_role);
 
         let mut args = Args::new()
-            .text(
-                arg_named(sku, device, &command, ArgRole::Network)?,
-                &self.network,
-            )
-            .text(
-                arg_named(sku, device, &command, ArgRole::Password)?,
-                &self.password,
-            )
+            .text(named(ArgRole::Network)?, &self.network)
+            .text(named(ArgRole::Password)?, &self.password)
+            .int(named(ArgRole::RunMode)?, PRODUCTION)
+            .int(named(ArgRole::IotVersion)?, PRODUCTION)
+            .int(named(ArgRole::TimezoneHours)?, self.utc_offset_hours.into())
             .int(
-                arg_named(sku, device, &command, ArgRole::RunMode)?,
-                PRODUCTION,
-            )
-            .int(
-                arg_named(sku, device, &command, ArgRole::IotVersion)?,
-                PRODUCTION,
-            )
-            .int(
-                arg_named(sku, device, &command, ArgRole::TimezoneHours)?,
-                self.utc_offset_hours.into(),
-            )
-            .int(
-                arg_named(sku, device, &command, ArgRole::TimezoneMinutes)?,
+                named(ArgRole::TimezoneMinutes)?,
                 self.utc_offset_minutes.into(),
             );
         if let Some(url) = api_url {
-            args = args.text(arg_named(sku, device, &command, ArgRole::ApiUrl)?, url);
+            args = args.text(named(ArgRole::ApiUrl)?, url);
         }
         Ok((command, args))
     }
@@ -236,19 +222,5 @@ fn command_named<'a>(sku: &str, device: &'a Device, role: Role) -> Result<&'a st
             sku: sku.to_owned(),
             mode: MODE,
             role,
-        })
-}
-
-fn arg_named<'a>(sku: &str, device: &'a Device, command: &str, role: ArgRole) -> Result<&'a str> {
-    device
-        .commands
-        .get(MODE)
-        .get(command)
-        .and_then(|spec| spec.arg_for(role))
-        .ok_or_else(|| {
-            Error::Codec(crate::codec::Error::UnknownArg {
-                command: command.to_owned(),
-                arg: format!("one marked `role: {role}` on `{sku}`"),
-            })
         })
 }
