@@ -42,7 +42,7 @@ Name which one, per comment:
 - a measured value, with what it was measured on;
 - a trap — what breaks if the obvious edit is made, why the slow or ugly form
   is the right one, why the tempting simplification is wrong;
-- a pointer that saves a search — `docs/protocol/lan.md` §2.1, a device file
+- a pointer that saves a search — `docs/protocol/lan.md` 2.1, a device file
   field, an RFC;
 - for `///` and `//!`: what a caller must know to use the item correctly —
   the errors it returns, the units, what it does not do.
@@ -166,7 +166,12 @@ Rewrite what breaks one:
 - an idiom, a metaphor or a rhetorical question is replaced with the fact it
   stood for;
 - "should" becomes "must" for an obligation and "can" for a possibility;
-- a sentence with more than one condition becomes a list.
+- a sentence with more than one condition becomes a list;
+- a pointer at a protocol section is `path/to/file.md N` — the path, then the
+  bare number. Do not write `§`. Carry the path every time, even where the
+  sentence before it named the same file: a bare `2.2` reads as a version
+  number. The one exception is a section of `docs/protocol/*.md` pointing at
+  another section of that same file, which keeps `§N`.
 
 Cut first, rewrite second: a sentence that carries no fact is deleted under
 rule 3 and never rewritten into a shorter one.
@@ -180,7 +185,7 @@ whether to trust a command, so they carry evidence and nothing else:
 - **what was observed, and on what.** "Both were sent to the unit" is
   evidence. "Should work" is not, and neither is a range read off the vendor's
   app;
-- **the pointer**: `docs/protocol/<mode>.md` §N, where the frame is described;
+- **the pointer**: `docs/protocol/<mode>.md` N, where the frame is described;
 - **a trap**: silent clamping, a field that must accompany another, a mask the
   firmware drops without saying so;
 - **an open question**, as an explicit `TODO`.

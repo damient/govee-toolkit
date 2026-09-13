@@ -75,7 +75,7 @@ impl BleDevice {
     }
 
     /// The advertisement data it advertises, as a platform splits it: the
-    /// layout of `docs/protocol/ble.md` §1.5, `pactType` 1 and `pactCode` 1,
+    /// layout of `docs/protocol/ble.md` 1.5, `pactType` 1 and `pactCode` 1,
     /// with the encoding bit set under [`BleOptions::encoded`].
     #[must_use]
     pub fn adverts(&self) -> Vec<(u16, Vec<u8>)> {

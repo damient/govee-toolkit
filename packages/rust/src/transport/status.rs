@@ -1,6 +1,6 @@
 //! What a device reports about itself.
 //!
-//! `devStatus` and the undocumented `status` of `docs/protocol/lan.md` §2.2
+//! `devStatus` and the undocumented `status` of `docs/protocol/lan.md` 2.2
 //! both land here. Every field is optional, since no firmware fills them all
 //! in, and `raw` keeps what was not recognized.
 
@@ -21,7 +21,7 @@ pub struct DeviceStatus {
     /// so far, but not normalized here.
     pub brightness: Option<i64>,
     /// `color`. Reset to `{0,0,0}` while the device is in white mode
-    /// (`docs/protocol/lan.md` §2.1).
+    /// (`docs/protocol/lan.md` 2.1).
     pub color: Option<[u8; 3]>,
     /// `colorTemInKelvin`. `0` means the device is in color mode.
     pub color_temp_kelvin: Option<i64>,

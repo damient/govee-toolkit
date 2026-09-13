@@ -3,7 +3,7 @@
 //! The send path resolves the device from what is already known, asks the
 //! breaker, and writes. Neither step touches the socket, and **no scan is ever
 //! issued for a command**. Verification follows on its own task and feeds the
-//! breaker — the fire-and-verify of `docs/protocol/lan.md` §1.
+//! breaker — the fire-and-verify of `docs/protocol/lan.md` 1.
 //!
 //! Replies carry no request id, and the source address is the only
 //! correlation. Each device owns a [`tokio::sync::watch`] channel holding its

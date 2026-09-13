@@ -2,7 +2,7 @@
 //!
 //! Discovery is a multicast round-trip and a command must not pay for one, so
 //! a scan's addresses are written down and the next process sends its first
-//! command without waiting (`docs/protocol/lan.md` §1). A hint, not a source
+//! command without waiting (`docs/protocol/lan.md` 1). A hint, not a source
 //! of truth: a cached address that stopped answering is the breaker's problem.
 
 use std::collections::BTreeMap;
