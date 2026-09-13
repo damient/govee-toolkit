@@ -2,6 +2,8 @@
 //!
 //! - `xtask catalog [path]` — the distributable catalog.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
+//! - `xtask dupes` — command layouts two device files declare, and no shared
+//!   table carries.
 //!
 //! The catalog is a build output for anyone who wants the device files without
 //! a YAML parser: never committed, produced by CI, attached to a release. See
@@ -21,6 +23,9 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
+mod dupes;
+mod merge;
+
 /// Kept in step with `govee_toolkit::codec::SCHEMA_VERSION`, which is what
 /// refuses a device file this build cannot read.
 const SCHEMA_VERSION: u64 = 1;
@@ -30,9 +35,13 @@ fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("compat") => compat(&root, args.iter().any(|a| a == "--check")),
+        Some("dupes") => {
+            let devices = root.join("devices");
+            dupes::dupes(&load(&devices), &load_families(&devices));
+        }
         Some("catalog") | None => catalog(&root, args.get(1).map(PathBuf::from)),
         Some(other) => {
-            eprintln!("unknown task `{other}`; expected `catalog` or `compat`");
+            eprintln!("unknown task `{other}`; expected `catalog`, `compat` or `dupes`");
             process::exit(2);
         }
     }
@@ -48,7 +57,7 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
 
     let mut catalog = Vec::with_capacity(entries.len());
     for (path, mut value) in entries {
-        resolve_includes(&path, &mut value, &families);
+        merge::flatten(&path, &mut value, &families);
         let declared = value
             .get("schema_version")
             .and_then(serde_json::Value::as_u64);
@@ -141,69 +150,6 @@ fn load_families(devices: &Path) -> BTreeMap<String, serde_json::Value> {
         families.insert(name, value);
     }
     families
-}
-
-/// Merge in every table a device file includes, and drop the `include:` key.
-///
-/// An unknown family and a command declared twice are errors here as they are
-/// in the crate, so the generated catalog cannot disagree with what the SDK
-/// loaded.
-fn resolve_includes(
-    path: &Path,
-    device: &mut serde_json::Value,
-    families: &BTreeMap<String, serde_json::Value>,
-) {
-    let Some(object) = device.as_object_mut() else {
-        return;
-    };
-    let Some(include) = object.remove("include") else {
-        return;
-    };
-    let names: Vec<String> = include
-        .as_array()
-        .map(|list| {
-            list.iter()
-                .filter_map(|v| v.as_str().map(ToOwned::to_owned))
-                .collect()
-        })
-        .unwrap_or_default();
-
-    for name in names {
-        let family = families
-            .get(&name)
-            .unwrap_or_else(|| panic!("{}: no family `{name}`", path.display()));
-        let Some(from) = family
-            .get("commands")
-            .and_then(serde_json::Value::as_object)
-        else {
-            continue;
-        };
-        let commands = object
-            .entry("commands")
-            .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
-        let Some(commands) = commands.as_object_mut() else {
-            continue;
-        };
-        for (mode, table) in from {
-            let Some(table) = table.as_object() else {
-                continue;
-            };
-            let into = commands
-                .entry(mode.clone())
-                .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
-            let Some(into) = into.as_object_mut() else {
-                continue;
-            };
-            for (command, spec) in table {
-                assert!(
-                    !into.contains_key(command),
-                    "{}: `{mode}.{command}` is declared here and in `{name}`",
-                    path.display()
-                );
-                into.insert(command.clone(), spec.clone());
-            }
-        }
-    }
 }
 
 /// Every device file, parsed, sorted by path — which sorts by SKU.
