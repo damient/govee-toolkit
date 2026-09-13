@@ -168,8 +168,32 @@ impl Govee {
     pub fn problems(&self) -> Vec<Problem> {
         let mut problems = self.inner.config.problems();
         problems.extend(self.missing_credentials());
+        problems.extend(self.absent_transports());
         problems.extend(self.check_devices());
         problems
+    }
+
+    /// Every enabled mode this build carries no transport for.
+    ///
+    /// A transport is a cargo feature, so a build carries the modes it was
+    /// asked for and no other. Not a startup error: a command over the mode
+    /// fails with [`Error::ModeNotImplemented`], and this is what `doctor`
+    /// answers before any command is sent. A mode that has a transport in this
+    /// build but no credential is [`Govee::missing_credentials`] instead.
+    fn absent_transports(&self) -> Vec<Problem> {
+        self.inner
+            .config
+            .enabled_modes()
+            .into_iter()
+            .filter(|mode| !self.inner.transports.contains_key(mode))
+            .filter(|&mode| self.inner.config.missing_credential(mode).is_none())
+            .map(|mode| Problem {
+                device: None,
+                message: format!(
+                    "`{mode}` is enabled but this build carries no transport for it; a transport is a cargo feature"
+                ),
+            })
+            .collect()
     }
 
     /// Every enabled mode whose credential the configuration does not carry.
