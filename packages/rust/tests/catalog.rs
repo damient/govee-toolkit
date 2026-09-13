@@ -167,8 +167,7 @@ fn a_schema_revision_this_build_does_not_know_is_refused() {
 
 /// A device file and the shared table it includes, as the loader sees them.
 const FAMILY: &str = "schema_version: 1\nfamily: shared\ncommands:\n  ble:\n    ping:\n      \
-     documented: false\n      frame: \"33 01 <pad:20> <xor>\"\n      \
-     notes: \"See docs/protocol/ble.md.\"\n";
+     frame: \"33 01 <pad:20> <xor>\"\n";
 
 fn device_including(include: &str, own_commands: &str) -> String {
     format!(
@@ -203,7 +202,7 @@ fn including_a_family_nothing_declares_is_an_error() {
 
 #[test]
 fn a_command_declared_twice_is_an_error_rather_than_an_override() {
-    let own = "    ping:\n      documented: false\n      frame: \"33 02 <pad:20> <xor>\"\n      \
+    let own = "    ping:\n      frame: \"33 02 <pad:20> <xor>\"\n      \
                notes: \"See docs/protocol/ble.md.\"\n";
     let error = Catalog::from_sources_with(
         [("d.yaml", device_including("shared", own).as_str())],

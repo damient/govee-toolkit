@@ -38,8 +38,7 @@ these files.
    what each one claims. A mode you did not probe stays `unknown`: `none` says
    the hardware cannot do it, which is a claim, and a failed probe looks exactly
    like an unimplemented feature.
-4. Fill in the `commands` table. Set `documented: false` for any undocumented
-   command, and document it in
+4. Fill in the `commands` table. Describe every undocumented command in
    [`../docs/protocol/lan.md`](../docs/protocol/lan.md) as well. Mark the entry
    that reports the device's state `role: status` — that is how an SDK finds it,
    since no command name lives in SDK code. A file that marks none simply has no
@@ -108,8 +107,6 @@ whether a file is well-formed, never whether a device really behaves that way:
 - every `frame:` parses, and only refers to arguments the command declares;
 - every `${placeholder}` in a `payload:` has an argument behind it;
 - a command declaring a `frame:` carries it through `${frame}`;
-- a command with `documented: false` has a `notes:` line pointing at
-  `../docs/protocol/`;
 - at most one command per mode claims a given `role:`, at most one argument per
   command claims a given argument `role:`, and a command with a `role:` declares
   the arguments that role has an SDK fill;

@@ -65,7 +65,6 @@ commands:
   lan:
     power:
       cmd: "turn"
-      documented: true
       role: power
       payload: { value: "${on}" }
       args:
@@ -73,7 +72,6 @@ commands:
 
     brightness:
       cmd: "brightness"
-      documented: true
       role: brightness
       payload: { value: "${level}" }
       args:
@@ -86,7 +84,6 @@ commands:
 
     color:
       cmd: "colorwc"
-      documented: true
       role: color
       payload:
         color: { r: "${r}", g: "${g}", b: "${b}" }
@@ -98,7 +95,6 @@ commands:
 
     colortemp:
       cmd: "colorwc"
-      documented: true
       role: color_temp
       payload:
         color: { r: 0, g: 0, b: 0 }
@@ -113,14 +109,12 @@ commands:
 
     status:
       cmd: "devStatus"
-      documented: true
       role: status
       payload: {}
       args: {}
 
     raw_status:
       cmd: "status"
-      documented: false
       payload: {}
       args: {}
       notes: >-
@@ -129,7 +123,6 @@ commands:
 
   ble:
     color:
-      documented: false
       role: color
       frame: "A5 02 83 ${r} ${g} ${b} <sum>"
       args:
@@ -149,7 +142,6 @@ commands:
         off. See docs/protocol/ble.md 8.
 
     channel_probe:
-      documented: false
       frame: "A5 02 90 <sum>"
       args: {}
       notes: >-
@@ -160,7 +152,6 @@ commands:
 
   cloud:
     power:
-      documented: true
       capability:
         type: "devices.capabilities.on_off"
         instance: "powerSwitch"
@@ -170,7 +161,6 @@ commands:
         on: { type: int, range: [0, 1], role: "on" }
 
     brightness:
-      documented: true
       capability:
         type: "devices.capabilities.range"
         instance: "brightness"
@@ -180,7 +170,6 @@ commands:
         level: { type: int, range: [1, 100], role: brightness }
 
     color:
-      documented: true
       capability:
         type: "devices.capabilities.color_setting"
         instance: "colorRgb"
@@ -196,7 +185,6 @@ commands:
         modes.
 
     colortemp:
-      documented: true
       role: color_temp
       capability:
         type: "devices.capabilities.color_setting"
@@ -211,7 +199,6 @@ commands:
         reports the bound. The range above is what the device applies.
 
     status:
-      documented: true
       role: status
       reads:
         - { instance: "powerSwitch", arg: "on" }

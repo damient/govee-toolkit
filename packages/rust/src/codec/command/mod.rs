@@ -196,7 +196,6 @@ capabilities: {}
 commands:
   ble:
     provision:
-      documented: true
       body: "${ssid:str8}"
       chunk:
         size: 16
@@ -217,7 +216,6 @@ capabilities: {}
 commands:
   ble:
     state:
-      documented: true
       role: status
       frames:
         - send: "AA <op:01> <pad:20> <xor>"
@@ -239,7 +237,6 @@ capabilities: {}
 commands:
   cloud:
     paint:
-      documented: true
       role: segment_color_masked
       capability:
         type: "devices.capabilities.segment_color_setting"

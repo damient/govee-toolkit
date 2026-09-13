@@ -262,7 +262,7 @@ async fn a_file_that_names_no_status_command_still_sends() {
             concat!(
                 "schema_version: 1\nsku: \"H61A0\"\nfamily: test\nname: Test\n",
                 "capabilities: {}\ncommands:\n  lan:\n    power:\n",
-                "      cmd: turn\n      documented: true\n",
+                "      cmd: turn\n",
                 "      payload: { value: \"${on}\" }\n",
                 "      args: { on: { type: int, range: [0, 1] } }\n"
             ),

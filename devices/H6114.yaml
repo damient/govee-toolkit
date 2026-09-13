@@ -57,7 +57,6 @@ commands:
 
   ble:
     power:
-      documented: false
       role: power
       frame: "33 01 ${on} <pad:20> <xor>"
       args:
@@ -65,7 +64,6 @@ commands:
       notes: "See docs/protocol/ble.md 2.1."
 
     brightness:
-      documented: false
       role: brightness
       frame: "33 04 ${level} <pad:20> <xor>"
       args:
@@ -78,7 +76,6 @@ commands:
         app: 1 is dimmer than 20 on the unit. See docs/protocol/ble.md 2.2.
 
     color:
-      documented: false
       role: color
       frame: "33 05 0D ${r} ${g} ${b} 00 00 00 00 00 <pad:20> <xor>"
       args:
@@ -94,7 +91,6 @@ commands:
         found that turns that off. See docs/protocol/ble.md 2.3.
 
     music:
-      documented: false
       role: music
       frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
       args:
@@ -117,7 +113,6 @@ commands:
         above and reads it back. See docs/protocol/ble.md 2.7.
 
     status:
-      documented: false
       role: status
       frames:
         - send:  "AA 01 <pad:20> <xor>"
@@ -131,7 +126,6 @@ commands:
         Two reads: no single frame reports both. See docs/protocol/ble.md 3.
 
     read_mode:
-      documented: false
       frame: "AA 05 <pad:20> <xor>"
       reply: "AA 05 ${submode} ${payload:bytes:8}"
       args:
@@ -145,7 +139,6 @@ commands:
         with every field of the frame. See docs/protocol/ble.md 3.
 
     read_software_version:
-      documented: false
       frame: "AA 06 <pad:20> <xor>"
       reply: "AA 06 ${version:ascii:17}"
       args:
@@ -155,7 +148,6 @@ commands:
         docs/protocol/ble.md 3.
 
     read_hardware_version:
-      documented: false
       frame: "AA 07 03 <pad:20> <xor>"
       reply: "AA 07 03 ${version:ascii:16}"
       args:

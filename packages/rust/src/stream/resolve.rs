@@ -346,13 +346,11 @@ modes:
 commands:
   ble:
     arm:
-      documented: true
       role: segment_enable
       frame: \"33 05 15 ${on} <pad:20> <xor>\"
       args:
         on: { type: int, range: [0, 1], role: enable }
     paint:
-      documented: true
       role: segment_color_masked
       frame: \"33 05 15 01 (${color}:rgb)×${n} <pad:20> <xor>\"
       args:

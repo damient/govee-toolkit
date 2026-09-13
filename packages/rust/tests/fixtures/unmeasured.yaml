@@ -18,7 +18,6 @@ commands:
   lan:
     dreamview_enable:
       cmd: "razer"
-      documented: false
       role: segment_enable
       frame: "BB <len:16> <op:B1> ${on} <xor>"
       payload: { pt: "${frame}" }
@@ -28,7 +27,6 @@ commands:
 
     segment_color:
       cmd: "razer"
-      documented: false
       role: segment_color
       frame: "BB <len:16> <op:B0> ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
       payload: { pt: "${frame}" }
