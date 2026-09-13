@@ -81,9 +81,8 @@ the mode rules, and a doc comment owns what a caller cannot see from the
 signature.
 
 **Exempt from the test:** a device file's `verified:` block and its
-`measurements:`, which are the record of what somebody exercised; the `notes:`
-pointer that `documented: false` requires, which `cargo test` enforces; and
-the usage text a script prints as its own `--help`.
+`measurements:`, which are the record of what somebody exercised; and the usage
+text a script prints as its own `--help`.
 
 **The `missing_docs` exception.** `packages/rust` sets `missing_docs = "warn"`
 and `qa.sh` runs with `-D warnings`, so every public item must carry a `///`:
@@ -181,8 +180,7 @@ whether to trust a command, so they carry evidence and nothing else:
 - **what was observed, and on what.** "Both were sent to the unit" is
   evidence. "Should work" is not, and neither is a range read off the vendor's
   app;
-- **the pointer**: `docs/protocol/<mode>.md` §N, required on `documented:
-  false`;
+- **the pointer**: `docs/protocol/<mode>.md` §N, where the frame is described;
 - **a trap**: silent clamping, a field that must accompany another, a mask the
   firmware drops without saying so;
 - **an open question**, as an explicit `TODO`.

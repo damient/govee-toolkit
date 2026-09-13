@@ -18,14 +18,12 @@ modes:
 commands:
   ble:
     power:
-      documented: false
       frame: "33 01 ${on} <pad:20> <xor>"
       args:
         on: { type: int, range: [0, 1] }
       notes: "See docs/protocol/ble.md."
 
     paint:
-      documented: false
       role: segment_color_masked
       frame: "33 05 15 01 (${colors}:rgb)×${nb} 00 00 00 00 00 ${zones:mask8} <pad:20> <xor>"
       args:
@@ -35,7 +33,6 @@ commands:
       notes: "See docs/protocol/ble.md."
 
     colortemp:
-      documented: false
       role: color_temp
       frame: "33 05 15 01 00 00 00 ${kelvin:16} ${white_r} ${white_g} ${white_b} ${zones:mask8} <pad:20> <xor>"
       args:
@@ -47,7 +44,6 @@ commands:
       notes: "See docs/protocol/ble.md."
 
     beat:
-      documented: false
       role: music
       frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${imposed} ${r} ${g} ${b} <pad:20> <xor>"
       args:
@@ -61,7 +57,6 @@ commands:
       notes: "See docs/protocol/ble.md."
 
     state:
-      documented: false
       role: status
       frames:
         - send: "aa 01 <pad:20> <xor>"
@@ -74,7 +69,6 @@ commands:
       notes: "See docs/protocol/ble.md."
 
     software:
-      documented: false
       frame: "aa 21 <pad:20> <xor>"
       reply: "aa 21 ${version:ascii}"
       args:
@@ -82,7 +76,6 @@ commands:
       notes: "See docs/protocol/ble.md."
 
     link:
-      documented: false
       role: wifi_link
       frame: "33 17 ${on} <pad:20> <xor>"
       args:
@@ -90,7 +83,6 @@ commands:
       notes: "See docs/protocol/ble.md."
 
     api:
-      documented: false
       role: wifi_api_type
       frame: "aa ab <pad:20> <xor>"
       reply: "aa ab ${kind} ${hidden}"
@@ -100,7 +92,6 @@ commands:
       notes: "See docs/protocol/ble.md."
 
     join:
-      documented: false
       role: wifi_provision
       body: "${network:str8} ${password:str8} ${mode} ${tz_h} ${iot} ${tz_m}"
       chunk:
@@ -118,7 +109,6 @@ commands:
       notes: "See docs/protocol/ble.md."
 
     join_api:
-      documented: false
       role: wifi_provision_with_api
       body: "${network:str8} ${password:str8} ${mode} ${tz_h} ${iot} ${tz_m} ${url:str16}"
       chunk:

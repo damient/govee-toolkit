@@ -19,7 +19,6 @@ commands:
   lan:
     arm:
       cmd: "razer"
-      documented: false
       role: segment_enable
       frame: "BB <len:16> <op:B1> ${on} <xor>"
       payload: { pt: "${frame}" }
@@ -29,7 +28,6 @@ commands:
 
     paint:
       cmd: "razer"
-      documented: false
       role: segment_color
       frame: "BB <len:16> <op:B0> ${count} (${colors}:rgb)×${count} <xor>"
       payload: { pt: "${frame}" }

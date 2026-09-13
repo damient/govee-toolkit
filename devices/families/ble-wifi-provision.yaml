@@ -14,7 +14,6 @@ description: >-
 commands:
   ble:
     read_dynamic_api:
-      documented: false
       frame: "AA AB <pad:20> <xor>"
       reply: "AA AB ${api_type} ${hide_ssid}"
       role: wifi_api_type
@@ -26,7 +25,6 @@ commands:
         carry the hidden-network flag. See ../../docs/protocol/ble.md 3 and 4.
 
     wifi_link_start:
-      documented: false
       frame: "33 17 ${on} <pad:20> <xor>"
       role: wifi_link
       args:
@@ -37,7 +35,6 @@ commands:
         halves. See ../../docs/protocol/ble.md 4.
 
     wifi_provision:
-      documented: false
       body: "${network:str8} ${password:str8} ${run_mode} ${timezone_hours} ${iot_version} ${timezone_minutes}"
       chunk:
         size: 16
@@ -58,7 +55,6 @@ commands:
         See ../../docs/protocol/ble.md 4.
 
     wifi_provision_with_api:
-      documented: false
       body: "${network:str8} ${password:str8} ${run_mode} ${timezone_hours} ${iot_version} ${timezone_minutes} ${api_url:str16}"
       chunk:
         size: 16

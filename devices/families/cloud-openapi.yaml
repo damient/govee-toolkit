@@ -14,7 +14,6 @@ description: >-
 commands:
   cloud:
     power:
-      documented: true
       capability:
         type: "devices.capabilities.on_off"
         instance: "powerSwitch"
@@ -24,7 +23,6 @@ commands:
         on: { type: int, range: [0, 1], role: "on" }
 
     brightness:
-      documented: true
       capability:
         type: "devices.capabilities.range"
         instance: "brightness"
@@ -39,7 +37,6 @@ commands:
         apply. Nobody probed 0 over this mode.
 
     color:
-      documented: true
       capability:
         type: "devices.capabilities.color_setting"
         instance: "colorRgb"
@@ -55,7 +52,6 @@ commands:
         over every mode.
 
     colortemp:
-      documented: true
       role: color_temp
       capability:
         type: "devices.capabilities.color_setting"
@@ -65,7 +61,6 @@ commands:
         kelvin: { type: int, range: [2000, 9000], role: color_temp }
 
     status:
-      documented: true
       role: status
       reads:
         - { instance: "powerSwitch", arg: "on" }

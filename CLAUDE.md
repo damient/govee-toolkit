@@ -115,9 +115,8 @@ SKU.
   configuration and never lives here. `none` says somebody established the
   hardware cannot do it; a mode nobody probed stays `unknown`, which is the
   default.
-- Undocumented commands get `documented: false`, plus a `notes:` line and a
-  pointer to the matching section of `docs/protocol/lan.md`. This is enforced by
-  `cargo test`.
+- Describe every undocumented command in the matching section of
+  `docs/protocol/lan.md`.
 - Attach a real capture under `tests/fixtures/lan-captures/<SKU>/`. Nothing
   points at it from the device file: the conformance vector's `source` is where
   a capture is claimed as the origin of the bytes.

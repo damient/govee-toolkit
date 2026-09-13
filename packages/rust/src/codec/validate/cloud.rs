@@ -86,7 +86,7 @@ mod tests {
             .collect()
     }
 
-    const POWER: &str = "    power:\n      documented: true\n      \
+    const POWER: &str = "    power:\n      \
         capability: { type: devices.capabilities.on_off, instance: powerSwitch }\n      \
         payload: \"${on}\"\n      args:\n        on: { type: int, range: [0, 1] }\n";
 
@@ -97,7 +97,7 @@ mod tests {
 
     #[test]
     fn an_entry_that_names_no_capability_and_reads_nothing_sends_nothing() {
-        let found = problems("    power:\n      documented: true\n");
+        let found = problems("    power:\n");
         assert!(
             found.iter().any(|p| p.contains("sends nothing")),
             "{found:?}"
@@ -106,8 +106,7 @@ mod tests {
 
     #[test]
     fn a_frame_belongs_to_another_wire() {
-        let found =
-            problems("    power:\n      documented: true\n      frame: \"AA 01 <pad:20> <xor>\"\n");
+        let found = problems("    power:\n      frame: \"AA 01 <pad:20> <xor>\"\n");
         assert!(
             found
                 .iter()
@@ -119,7 +118,7 @@ mod tests {
     #[test]
     fn an_answer_needs_an_argument_with_a_role_to_land_in() {
         let found = problems(
-            "    status:\n      documented: true\n      role: status\n      \
+            "    status:\n      role: status\n      \
              reads:\n        - { instance: powerSwitch, arg: on }\n      \
              args:\n        on: { type: int, range: [0, 1] }\n",
         );
@@ -133,7 +132,6 @@ mod tests {
     fn only_cloud_declares_a_capability() {
         let file = "schema_version: 1\nsku: HTEST\nfamily: test\nname: Test\n\
              capabilities: {}\ncommands:\n  lan:\n    power:\n      cmd: turn\n      \
-             documented: true\n      \
              capability: { type: devices.capabilities.on_off, instance: powerSwitch }\n";
         let catalog = Catalog::from_sources([("HTEST.yaml", file)]).expect("it parses");
         let device = catalog.device("HTEST").expect("the SKU resolves");

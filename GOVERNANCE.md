@@ -21,9 +21,9 @@ so a contributor knows what to expect before spending time on a change.
 
 A `devices/<SKU>.yaml` pull request is merged when:
 
-1. The file validates — `cargo test` checks the schema, and an undocumented
-   command carries `documented: false`, a `notes:` line and a pointer to the
-   matching section of [`docs/protocol/lan.md`](docs/protocol/lan.md).
+1. The file validates — `cargo test` checks the schema. Every undocumented
+   command is described in the matching section of
+   [`docs/protocol/lan.md`](docs/protocol/lan.md).
 2. A real capture is attached under `tests/fixtures/lan-captures/<SKU>/`,
    redacted.
 3. A conformance vector exists under `tests/fixtures/golden/` for every new

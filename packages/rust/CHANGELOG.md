@@ -31,6 +31,11 @@ releases apart and keeps
   unreachable capability is `transport` must be `capped`, and one that names an
   `unimplemented` or `unprobed` capability must be `partial`.
 
+### Removed
+
+- **Breaking:** `codec::Command` drops `documented`. Nothing read it but one
+  validation rule, which is gone with it.
+
 ## [0.6.0] — 2026-09-12
 
 A run reads its `GOVEE_*` variables from a `.env` file, and one painting

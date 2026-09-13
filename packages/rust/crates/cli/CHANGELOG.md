@@ -5,6 +5,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Removed
+
+- **Breaking:** `describe --json` no longer carries `documented` on a command.
+  A reader that keys off it reads the protocol docs instead.
+
 ## [0.1.0] — 2026-09-12
 
 The first release of the `govee` binary. It wraps `govee-toolkit` and holds

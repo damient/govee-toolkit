@@ -264,7 +264,6 @@ commands:
   lan:
     # <command-name>:
     #   cmd: <string sent in msg.cmd>
-    #   documented: true | false      # false = not in Govee's documentation
     #   role: status                  # optional; see below. Default: no role.
     #   payload: { }                  # JSON structure, ${placeholders} for args
     #   frame: ""                     # for raw-channel commands, the byte layout
@@ -273,9 +272,7 @@ commands:
     #   body: ""                      # a payload longer than one frame…
     #   chunk: { size, head_size, header, data, footer, then }  # …how to cut it
     #   args: { <name>: { type, range, role } }
-    #   notes: ""                     # behavior worth knowing before calling it;
-    #                                 # required when documented is false, and it
-    #                                 # must point at ../docs/protocol/lan.md
+    #   notes: ""                     # behavior worth knowing before calling it
     #
     # `role:` names an entry an SDK issues on its own initiative, so that no
     # command name lives in SDK code. At most one entry per mode can claim a
@@ -378,7 +375,6 @@ commands:
     #                   all of those, plus one marked `role: api_url`.
   ble:
     # <command-name>:
-    #   documented: true | false
     #   role: status                  # same roles as above
     #   frame: ""                     # same layout language as above; the wire
     #                                 # carries no envelope, so there is no
@@ -388,8 +384,7 @@ commands:
     #   body: ""                      # a payload longer than one frame…
     #   chunk: { size, head_size, header, data, footer, then }  # …how to cut it
     #   args: { <name>: { type, range, role } }
-    #   notes: ""                     # must point at ../docs/protocol/ble.md
-    #                                 # when documented is false
+    #   notes: ""                     # behavior worth knowing before calling it
     #
     # A frame on the 20-byte channel has a fixed size and carries its own
     # checksum, so each layout ends with `<pad:N> <xor>`, the three inside
@@ -398,7 +393,6 @@ commands:
     # is the payload the codec cuts up, not a frame, so it takes neither.
   cloud:
     # <command-name>:
-    #   documented: true | false
     #   capability:                   # what the API calls what this command
     #     type: ""                    # writes, spelled as the API spells it
     #     instance: ""
@@ -410,8 +404,7 @@ commands:
     #       arg: ""                   # That argument's `role:` says which
     #                                 # field of the status it fills
     #   args: { <name>: { type, range, role } }
-    #   notes: ""                     # must point at ../docs/protocol/cloud.md
-    #                                 # when documented is false
+    #   notes: ""                     # behavior worth knowing before calling it
     #
     # An entry writes one capability or reads capabilities back, never both.
     #

@@ -85,7 +85,6 @@ fn commands_json(device: &Device, mode: Mode) -> Value {
 fn command_json(command: &Command) -> Value {
     json!({
         "cmd": command.cmd,
-        "documented": command.documented,
         "role": command.role.map(|role| role.to_string()),
         "notes": command.notes,
         "args": command

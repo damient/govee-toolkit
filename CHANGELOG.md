@@ -21,6 +21,14 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-13
+
+#### Removed
+
+- `documented:` is gone from every command entry, from `devices/schema.yaml` and
+  from `catalog.json`. An undocumented command is described in
+  `docs/protocol/<mode>.md`, and a `notes:` line points at the section.
+
 ### 2026-09-12
 
 #### Added

@@ -9,7 +9,6 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
 
     problems.extend(check_arg_roles(command));
     problems.extend(check_reserved_args(command));
-    problems.extend(check_documentation(mode, command));
     problems.extend(check_declaration(command));
     problems.extend(super::cloud::check_cloud(mode, command));
 
@@ -126,24 +125,6 @@ fn check_reserved_args(command: &Command) -> Vec<String> {
         .filter(|arg| chunk::RESERVED.contains(&arg.as_str()))
         .map(|arg| format!("`{arg}` is a name the codec fills in; `args:` may not declare it"))
         .collect()
-}
-
-/// An undocumented command is only reproducible if the protocol section behind
-/// it is written down. See CLAUDE.md, "Device files".
-fn check_documentation(mode: Mode, command: &Command) -> Vec<String> {
-    if command.documented {
-        return Vec::new();
-    }
-    let expected = format!("docs/protocol/{mode}.md");
-    if command.notes.trim().is_empty() {
-        vec!["undocumented, but carries no `notes:`".to_owned()]
-    } else if !command.notes.contains(&expected) {
-        vec![format!(
-            "undocumented `notes:` does not point at {expected}"
-        )]
-    } else {
-        Vec::new()
-    }
 }
 
 /// `body:` and `chunk:` are one declaration in two halves: neither means

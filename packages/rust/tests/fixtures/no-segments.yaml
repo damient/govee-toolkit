@@ -17,7 +17,6 @@ commands:
   lan:
     power:
       cmd: "turn"
-      documented: true
       payload: { value: "${on}" }
       args:
         on: { type: int, range: [0, 1] }
