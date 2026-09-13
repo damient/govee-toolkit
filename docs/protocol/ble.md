@@ -251,9 +251,20 @@ it a frame of its own. This is not a fade over time: two colors sent one after
 the other cut to each other either way. The setting changes the boundary between
 two zones painted differently.
 
-A device with no zones accepts this frame and changes nothing observable, in
-either position. Where a firmware fades from one colour to the next, this is not
-the frame that turns the fade off, and no frame that does was found.
+A device with no zones can accept this frame and change nothing observable, in
+either position. Another answered nothing at all, where every other `0x33` write
+got the acknowledgement of §1.4. Read §7 before you conclude from that silence.
+
+Where a firmware fades from one colour to the next, this is not the frame that
+turns the fade off. A second command type carries the setting on another family:
+
+```
+33 14 <0|1>
+```
+
+Do not treat it as an alternative everywhere. On a family where `aa 14` reads
+the Wi-Fi MAC of §3, `33 14` answered nothing and changed nothing. No frame that
+turns a colour fade off was found.
 
 ### 2.7 Music sub-mode
 

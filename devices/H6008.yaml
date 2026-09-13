@@ -356,6 +356,12 @@ verified:
     What ends a render is the firmware asserting the state it stores, so
     against a stored state of `off` nothing ended it.
 
+    The colour fade was probed and not found. This firmware always fades from
+    one colour to the next, and no frame turned that off. `aa a3` answered
+    nothing. `33 a3 00` drew no acknowledgement, where `33 01 01` answered
+    `00` on the same link, and the fade survived it. `33 14 00` did the same,
+    and `aa 14` reads the Wi-Fi MAC instead. See docs/protocol/ble.md 2.6.
+
     Wi-Fi provisioning works on this unit, over the encoded link. `AA AB`
     answers type 2 and no hidden-network flag, so the transfer carries the
     endpoint block. The unit was already on a network and bound to an account,

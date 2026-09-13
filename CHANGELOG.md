@@ -51,6 +51,9 @@ at.
   the handshake, then power, brightness, colour, white and the version read,
   each read back. The earlier plaintext silence was the encoding, not a missing
   dialect.
+- `H6008` `verified` records that the colour fade was probed and not found. The
+  firmware always fades from one colour to the next. `aa a3`, `33 a3 00` and
+  `33 14 00` each answered nothing, and the fade survived every one of them.
 
 #### Removed
 
