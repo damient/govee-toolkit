@@ -6,7 +6,7 @@
 //! catalog that disagreed with what the SDK loaded would send one set of
 //! bytes and document another.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use serde_json::{Map, Value};
@@ -26,7 +26,7 @@ pub(crate) fn flatten(path: &Path, device: &mut Value, families: &BTreeMap<Strin
 }
 
 /// The command names the file declares itself, by mode.
-fn local_commands(device: &Value) -> BTreeMap<String, Vec<String>> {
+fn local_commands(device: &Value) -> BTreeMap<String, BTreeSet<String>> {
     let mut local = BTreeMap::new();
     let Some(commands) = device.get("commands").and_then(Value::as_object) else {
         return local;
@@ -95,7 +95,7 @@ fn resolve_includes(path: &Path, device: &mut Value, families: &BTreeMap<String,
 }
 
 /// Apply the `overrides:` block, and drop the key.
-fn apply_overrides(path: &Path, device: &mut Value, local: &BTreeMap<String, Vec<String>>) {
+fn apply_overrides(path: &Path, device: &mut Value, local: &BTreeMap<String, BTreeSet<String>>) {
     let Some(object) = device.as_object_mut() else {
         return;
     };
@@ -116,25 +116,28 @@ fn apply_overrides(path: &Path, device: &mut Value, local: &BTreeMap<String, Vec
             .and_then(Value::as_object_mut)
             .unwrap_or_else(|| panic!("{file}: `overrides.{mode}` names no command table"));
         for (command, patch) in patches {
+            let where_ = format!("{file}: `overrides.{mode}.{command}`");
             assert!(
-                !local
-                    .get(mode)
-                    .is_some_and(|names| names.iter().any(|n| n == command)),
-                "{file}: `overrides.{mode}.{command}`: this file declares the command itself"
+                !local.get(mode).is_some_and(|names| names.contains(command)),
+                "{where_}: this file declares the command itself"
             );
-            let Some(spec) = table.get_mut(command).and_then(Value::as_object_mut) else {
-                panic!(
-                    "{file}: `overrides.{mode}.{command}`: no table this file includes declares it"
-                )
-            };
-            patch_command(
-                &format!("{file}: `overrides.{mode}.{command}`"),
-                spec,
-                patch,
+            assert!(
+                table.get(command).is_some_and(Value::is_object),
+                "{where_}: no table this file includes declares it"
             );
             if patch.get("drop").and_then(Value::as_bool) == Some(true) {
+                assert!(
+                    patch.as_object().is_some_and(|fields| fields.len() == 1),
+                    "{where_}: `drop` removes the command, so it takes no other field"
+                );
                 table.remove(command);
+                continue;
             }
+            let spec = table
+                .get_mut(command)
+                .and_then(Value::as_object_mut)
+                .unwrap_or_else(|| unreachable!("{where_}: checked just above"));
+            patch_command(&where_, spec, patch);
         }
     }
 }
@@ -143,13 +146,6 @@ fn patch_command(where_: &str, spec: &mut Map<String, Value>, patch: &Value) {
     let Some(patch) = patch.as_object() else {
         return;
     };
-    if patch.get("drop").and_then(Value::as_bool) == Some(true) {
-        assert!(
-            patch.len() == 1,
-            "{where_}: `drop` removes the command, so it takes no other field"
-        );
-        return;
-    }
     if let Some(notes) = patch.get("notes") {
         assert!(
             spec.get("notes") != Some(notes),
