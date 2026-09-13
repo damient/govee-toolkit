@@ -214,6 +214,7 @@ commands:
   #
   # `args:` — one entry per argument, sent or captured:
   #   { type: int, range: [min, max] }        inclusive bounds
+  #   { type: int, range: capability }        the bounds `capabilities:` gives
   #   { type: rgb_list, max_len: <n> }        a list of RGB triples
   #   { type: string, max_len: <n> }          text; the cap counts UTF-8 bytes
   #   { type: zones, count: <n> }             zone indices, sent as a bitmask
@@ -221,6 +222,16 @@ commands:
   # The codec enforces bounds and never clamps them: the firmware clamps in
   # silence (../docs/protocol/lan.md 2.1), and an SDK that did the same would
   # report success for a value the device did not apply.
+  #
+  # `range: capability` takes the pair from `capabilities:`, through the
+  # argument's `role:`, so one number lives in one place: `brightness` reads
+  # `capabilities.brightness.range` and `color_temp` reads
+  # `capabilities.colortemp.range_kelvin`. The catalog resolves it on load. It
+  # is what lets a shared table declare a layout several models differ on the
+  # bounds of. Two errors: a role that names no such parameter, and a device
+  # that declares no such pair. Write the pair out instead where the bounds are
+  # a property of the mode and not of the hardware: what an answer may carry,
+  # or a floor the API imposes.
   #
   # Any kind takes an optional `role:`. It names the argument for an SDK that
   # fills it, or reads it back, on its own initiative — see the command `role:`
@@ -420,6 +431,39 @@ commands:
     # indices, ascending and each index once, where a frame carries a mask. All
     # three keep the argument names the `lan` and `ble` layouts give them, so
     # one command takes the same arguments over every mode.
+
+# optional — what this file changes in a command an `include:` brought in.
+#
+# A shared table carries the layout, and one model differs in a bound or in
+# what a caller must know before calling it. An override patches that one
+# field, so the model keeps the shared layout rather than copying it:
+#
+#   overrides:
+#     ble:
+#       music:
+#         args:
+#           effect: { range: [0, 1] }
+#         notes: >-
+#           0 and 1 each render an effect on this unit; 2 renders a fixed
+#           white and 3 to 7 render nothing.
+#       ping:
+#         drop: true
+#
+# `args:` patches one bound per argument — `range:` on an `int`, `max_len:` on
+# an `rgb_list`, a `string` or a `bytes`, `count:` on a `zones`. `notes:`
+# replaces what the table says. `drop:` removes the command, and takes no
+# other field: the hardware the family covers has it and this model does not.
+#
+# Five errors, never warnings: a command no included table carries, a command
+# this file declares itself — change it where it is written — an argument the
+# command does not declare, a field the argument's type has no room for, and a
+# value the table already gives. The last one is what catches an override that
+# went dead when the family changed.
+#
+# An override carries a measurement or a trap, so write what was exercised. A
+# bound with nothing behind it is a guess, and `?` or a `TODO` is a better
+# answer.
+overrides: {}
 
 measurements: {}        # optional — numbers taken from a physical unit:
                         # native_pixels, latency, sustainable frame rate…

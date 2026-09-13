@@ -1,0 +1,73 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "lan-documented"
+
+description: >-
+  The six entries Govee's own LAN protocol carries: power, brightness, color,
+  white temperature, the state read behind them, and the raw capability
+  descriptor. `brightness` and `colortemp` take their bounds from the
+  `capabilities:` of the device that includes this table. See
+  docs/protocol/lan.md 1 and 2.2.
+
+commands:
+  lan:
+    power:
+      cmd: "turn"
+      role: power
+      payload: { value: "${on}" }
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+
+    brightness:
+      cmd: "brightness"
+      role: brightness
+      payload: { value: "${level}" }
+      args:
+        level: { type: int, range: capability, role: brightness }
+      notes: >-
+        Whether the firmware clamps a value outside the bounds differs per
+        model, and the device file says.
+
+    color:
+      cmd: "colorwc"
+      role: color
+      payload:
+        color: { r: "${r}", g: "${g}", b: "${b}" }
+        colorTemInKelvin: 0
+      args:
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: >-
+        One command carries the color and the white temperature, and the
+        kelvin field at zero is what selects the color.
+
+    colortemp:
+      cmd: "colorwc"
+      role: color_temp
+      payload:
+        color: { r: 0, g: 0, b: 0 }
+        colorTemInKelvin: "${kelvin}"
+      args:
+        kelvin: { type: int, range: capability, role: color_temp }
+      notes: >-
+        The firmware converts the temperature to RGB itself and ignores the
+        color field, so the payload carries no white triplet and zeroes that
+        field.
+
+    status:
+      cmd: "devStatus"
+      role: status
+      payload: {}
+      args: {}
+
+    raw_status:
+      cmd: "status"
+      payload: {}
+      args: {}
+      notes: >-
+        Returns onOff, brightness and a frozen base64 `pt` capability
+        descriptor. Read-only in practice.

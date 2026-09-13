@@ -1,0 +1,23 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "ble-color"
+
+description: >-
+  The one-color entry of sub-mode 13: one color over the whole device. The
+  payload carries the triplet, a 16-bit kelvin field and a second triplet, and
+  this command zeroes the last two. What the firmware does with a non-zero
+  kelvin differs per model, so the white entry stays in the device file. See
+  docs/protocol/ble.md 2.3.
+
+commands:
+  ble:
+    color:
+      role: color
+      frame: "33 05 0D ${r} ${g} ${b} 00 00 00 00 00 <pad:20> <xor>"
+      args:
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }

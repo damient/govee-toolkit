@@ -1,0 +1,33 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "ble-music"
+
+description: >-
+  The music entry of sub-mode 19, off the device's own microphone. How many
+  effects the firmware renders, and what `soft` and `sensitivity` do, differ
+  per model: the device file narrows the bounds and says what it observed. See
+  docs/protocol/ble.md 2.7.
+
+commands:
+  ble:
+    music:
+      role: music
+      frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
+      args:
+        effect: { type: int, range: [0, 7], role: effect }
+        sensitivity: { type: int, range: [0, 99], role: sensitivity }
+        soft: { type: int, range: [0, 1], role: soft }
+        color_mode: { type: int, range: [0, 1], role: color_mode }
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: >-
+        Sub-mode 19. The device listens on its own microphone. `effect`
+        selects the rendering, and no identifier maps to a named effect.
+        `color_mode` 0 leaves the colors to the firmware and 1 imposes the
+        triplet. The zone mask has no field here. Trap: a value the firmware
+        does not render is acknowledged like any other, so a write that
+        returns success is not a write the device played.

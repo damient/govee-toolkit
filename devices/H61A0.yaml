@@ -7,8 +7,15 @@ family: "rgbic-neon-rope"
 name: "3m RGBIC LED Neon Rope Lights"
 aliases: []
 include:
+  - lan-documented
+  - lan-razer
+  - ble-core
+  - ble-reads
+  - ble-music
+  - ble-segments
   - ble-wifi-provision
   - cloud-openapi
+  - cloud-segments
 
 candidate_aliases:      # the same product at 2 m, 5 m, 4 m and 10 m. NOT
   - H61A1               # verified: segment count and native resolution both
@@ -69,121 +76,14 @@ modes:
       few seconds. See docs/protocol/cloud.md 5 and 6.
 
 commands:
-  lan:
-    power:
-      cmd: "turn"
-      role: power
-      payload: { value: "${on}" }
-      args:
-        on: { type: int, range: [0, 1], role: "on" }
-
-    brightness:
-      cmd: "brightness"
-      role: brightness
-      payload: { value: "${level}" }
-      args:
-        level: { type: int, range: [1, 100], role: brightness }   # the firmware clamps 0 to 1 and does not turn off
-
-    color:
-      cmd: "colorwc"
-      role: color
-      payload:
-        color: { r: "${r}", g: "${g}", b: "${b}" }
-        colorTemInKelvin: 0
-      args:
-        r: { type: int, range: [0, 255], role: red }
-        g: { type: int, range: [0, 255], role: green }
-        b: { type: int, range: [0, 255], role: blue }
-
-    colortemp:
-      cmd: "colorwc"
-      role: color_temp
-      payload:
-        color: { r: 0, g: 0, b: 0 }
-        colorTemInKelvin: "${kelvin}"
-      args:
-        kelvin: { type: int, range: [2000, 9000], role: color_temp }
-      notes: >-
-        The firmware converts the temperature to RGB itself and ignores the
-        color field, so the payload carries no white triplet and zeroes that
-        field. See docs/protocol/lan.md 1, "Documented commands".
-
-    status:
-      cmd: "devStatus"
-      role: status
-      payload: {}
-      args: {}
-
-    raw_status:
-      cmd: "status"
-      payload: {}
-      args: {}
-      notes: >-
-        Returns onOff, brightness and a frozen base64 `pt` capability
-        descriptor. Read-only in practice. See docs/protocol/lan.md 2.2.
-
-    dreamview_enable:
-      cmd: "razer"
-      role: segment_enable
-      frame: "BB <len:16> <op:B1> ${on} <xor>"
-      payload: { pt: "${frame}" }
-      args:
-        on: { type: int, range: [0, 1], role: enable }
-      notes: >-
-        Arms the raw segment channel. Send turn(1) first. See
-        docs/protocol/lan.md 2.3.
-
-    segment_color:
-      cmd: "razer"
-      role: segment_color
-      frame: "BB <len:16> <op:B0> ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
-      payload: { pt: "${frame}" }
-      args:
-        gradient: { type: int, range: [0, 1], role: gradient }   # 0 = hard zones, 1 = interpolated and wraps
-        nb_seg: { type: int, range: [1, 255] }
-        colors: { type: rgb_list, max_len: 255, role: colors }
-      notes: >-
-        len counts the payload only, 16-bit, header and checksum excluded. An
-        inconsistent length is dropped in silence. See docs/protocol/lan.md 2.3.
-
   # Every frame here is 20 bytes: proType, commandType, payload, then a XOR of
   # the 19 bytes before it. See docs/protocol/ble.md 1.2.
   ble:
-    power:
-      role: power
-      frame: "33 01 ${on} <pad:20> <xor>"
-      args:
-        on: { type: int, range: [0, 1], role: "on" }
-      notes: "See docs/protocol/ble.md 2.1."
-
-    brightness:
-      role: brightness
-      frame: "33 04 ${level} <pad:20> <xor>"
-      args:
-        level: { type: int, range: [1, 100], role: brightness }
-      notes: >-
-        Percent on this unit, not 0..255. See docs/protocol/ble.md 2.2.
-
-    color:
-      role: segment_color_masked
-      frame: "33 05 15 01 (${colors}:rgb)×${nb} 00 00 00 00 00 ${zones:mask16} <pad:20> <xor>"
-      args:
-        colors: { type: rgb_list, max_len: 1, role: colors }
-        nb: { type: int, range: [1, 1] }
-        zones: { type: zones, count: 15, role: zones }
-      notes: >-
-        Paints one color over the zones the mask names. The kelvin and white
-        fields stay zero: color and white are mutually exclusive, and a
-        non-zero kelvin is what turns this frame into the colortemp one. A
-        saturated mask looks exactly like an ignored mask, so painting every
-        zone proves nothing about the mask being read — paint a subset, as the
-        `verified:` block below did. See docs/protocol/ble.md 2.3.
-
     colortemp:
       role: color_temp
       frame: "33 05 15 01 00 00 00 ${kelvin:16} ${white_r} ${white_g} ${white_b} ${zones:mask16} <pad:20> <xor>"
       args:
-        kelvin: { type: int, range: [2000, 9000], role: color_temp }
+        kelvin: { type: int, range: capability, role: color_temp }
         white_r: { type: int, range: [0, 255], role: white_red }
         white_g: { type: int, range: [0, 255], role: white_green }
         white_b: { type: int, range: [0, 255], role: white_blue }
@@ -193,68 +93,6 @@ commands:
         kelvin value and its RGB rendering in the same frame, and one carrying
         only the kelvin value leaves the zones dark. See
         docs/protocol/ble.md 2.3.
-
-    segment_brightness_masked:
-      frame: "33 05 15 02 ${level} ${zones:mask16} <pad:20> <xor>"
-      args:
-        level: { type: int, range: [1, 100] }
-        zones: { type: zones, count: 15 }
-      notes: >-
-        Brightness of the zones the mask names, leaving the rest alone. See
-        docs/protocol/ble.md 2.4.
-
-    segment_brightness:
-      frame: "33 05 15 03 ${levels:bytes} <pad:20> <xor>"
-      args:
-        levels: { type: bytes, max_len: 15 }
-      notes: >-
-        Every zone at once, one byte each in zone order, and there is no mask:
-        pass all fifteen. A shorter list is padded with zeros, which sets the
-        zones it does not cover to zero rather than leaving them alone. The
-        bytes are not interpreted here, so nothing checks each one against the
-        1..100 the firmware takes: a 0 or a 200 in the list reaches the device
-        and the firmware clamps it in silence. TODO: give the `bytes` type a
-        per-element range, then add the error vector it makes writable.
-        See docs/protocol/ble.md 2.5.
-
-    gradient:
-      role: segment_gradient
-      frame: "33 A3 ${on} <pad:20> <xor>"
-      args:
-        on: { type: int, range: [0, 1], role: gradient }
-      notes: >-
-        Whether the firmware interpolates between zones, wrapping from the
-        last back to the first; 0 gives hard-edged zones. The same setting the
-        lan segment channel carries as its `gradient` argument. It is not a
-        fade over time: alternating two colors looks the same either way, and
-        what changes is the boundary between two zones painted differently. See
-        docs/protocol/ble.md 2.6.
-
-    music:
-      role: music
-      frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
-      args:
-        effect: { type: int, range: [0, 7], role: effect }
-        sensitivity: { type: int, range: [0, 99], role: sensitivity }
-        soft: { type: int, range: [0, 1], role: soft }
-        color_mode: { type: int, range: [0, 1], role: color_mode }
-        r: { type: int, range: [0, 255], role: red }
-        g: { type: int, range: [0, 255], role: green }
-        b: { type: int, range: [0, 255], role: blue }
-      notes: >-
-        Sub-mode 19. The device listens on its own microphone. `effect` selects
-        the rendering: 0 to 7 each render one, and 8 to 15, 50 and 255 render
-        nothing here — the rope keeps what the frame before it left. An effect
-        this frame cannot render is not one the device lacks: 50 renders over
-        `music_effect` below, which carries the parameters this frame has no
-        room for. Nothing maps an identifier to an effect. `soft` 0 renders
-        sharp on the beat and 1 renders in fades. `color_mode` 0 leaves the
-        colors to the firmware and
-        1 imposes the triplet. The zone mask has no field here. Every byte is
-        read back at `read_mode`, an effect the firmware does not render
-        included, so a read that echoes a value is not evidence that the device
-        plays it. See docs/protocol/ble.md 2.7.
-
     music_effect:
       body: >-
         ${colors_count} (${colors}:rgb)×${colors_count} ${params:bytes}
@@ -285,51 +123,6 @@ commands:
 
         The color list runs 1 to 8 entries, which is the vendor app's bound.
         See docs/protocol/ble.md 6.
-
-    status:
-      role: status
-      frames:
-        - send:  "AA 01 <pad:20> <xor>"
-          reply: "AA 01 ${on}"
-        - send:  "AA 04 <pad:20> <xor>"
-          reply: "AA 04 ${level}"
-      args:
-        on: { type: int, range: [0, 1], role: "on" }
-        level: { type: int, range: [1, 100], role: brightness }
-      notes: >-
-        Two reads: no single frame reports both. See docs/protocol/ble.md 3.
-
-    read_mode:
-      frame: "AA 05 <pad:20> <xor>"
-      reply: "AA 05 ${submode} ${payload:bytes:8}"
-      args:
-        submode: { type: int, range: [0, 255] }
-        payload: { type: bytes, max_len: 8 }
-      notes: >-
-        The live sub-mode and its eight payload bytes, left uninterpreted: their
-        meaning depends on the sub-mode. Answers 21 after a `color` frame and 19
-        after a `music` one, each with the fields of that frame. It reports what
-        was written, which is not the same as what the firmware renders. See
-        docs/protocol/ble.md 3.
-
-    read_segment_count:
-      frame: "AA 0F <pad:20> <xor>"
-      reply: "AA 0F ${segments}"
-      args:
-        segments: { type: int, range: [0, 255] }
-      notes: >-
-        Answers 15 on this unit, which is the width of the zone mask, not the
-        10 zones the app exposes nor the 42 ICs. See docs/protocol/ble.md 3.
-
-    read_ic_count:
-      frame: "AA 40 <pad:20> <xor>"
-      reply: "AA 40 ${pixels:16}"
-      args:
-        pixels: { type: int, range: [0, 65535] }
-      notes: >-
-        Answers 42 on this unit, matching the native resolution measured over
-        lan. See docs/protocol/ble.md 3.
-
     read_wifi_mac:
       frame: "AA 14 <pad:20> <xor>"
       reply: "AA 14 ${mac:bytes:6}"
@@ -338,27 +131,6 @@ commands:
       notes: >-
         The Wi-Fi MAC. An advertisement carries the Bluetooth address instead.
         See docs/protocol/ble.md 3.
-
-    read_hardware_version:
-      frame: "AA 20 <pad:20> <xor>"
-      reply: "AA 20 ${version:ascii:17}"
-      args:
-        version: { type: string, max_len: 17 }
-      notes: >-
-        ASCII, zero-padded out to the checksum; 1.02.00 on this unit. The
-        length is what stops the field before that byte. See
-        docs/protocol/ble.md 3.
-
-    read_software_version:
-      frame: "AA 21 <pad:20> <xor>"
-      reply: "AA 21 ${version:ascii:17}"
-      args:
-        version: { type: string, max_len: 17 }
-      notes: >-
-        ASCII, zero-padded out to the checksum; 2.06.02 on this unit. The
-        length is what stops the field before that byte. See
-        docs/protocol/ble.md 3.
-
     read_zone_state:
       frame: "AA A5 ${group} <pad:20> <xor>"
       args:
@@ -375,26 +147,6 @@ commands:
   # declares the segment capability per device, and only an RGBIC unit carries
   # it.
   cloud:
-    segment_color:
-      role: segment_color_masked
-      capability:
-        type: "devices.capabilities.segment_color_setting"
-        instance: "segmentedColorRgb"
-      payload:
-        segment: "${zones}"
-        rgb: "${colors:rgb24}"
-      args:
-        zones: { type: zones, count: 15, role: zones }
-        colors: { type: rgb_list, max_len: 1, role: colors }
-      notes: >-
-        Paints one color over the zones the array names, and leaves the rest
-        alone. The arguments are the ones the `ble` masked entry takes, so one
-        command takes the same arguments over both modes. A stream over this
-        mode sends one request per distinct color, and the API's own interval
-        between two requests about one device is 6 seconds: the transport
-        refuses a frame that waits longer than `max_wait`. See
-        docs/protocol/cloud.md 5.
-
     segment_brightness:
       capability:
         type: "devices.capabilities.segment_color_setting"
@@ -449,6 +201,85 @@ commands:
         The capability declares `autoColor` and `rgb` too. This entry sends
         neither: the device accepted both and played the same colors — see
         `verified:` below and docs/protocol/cloud.md 6.
+
+# What this unit does with a command a shared table declares. The layout stays
+# in the family; the numbers below were measured here.
+overrides:
+  lan:
+    brightness:
+      notes: >-
+        Percent. The firmware clamps 0 to 1 and does not turn the device off,
+        so only `power` does. See docs/protocol/lan.md 2.1.
+
+  ble:
+    brightness:
+      notes: >-
+        Percent on this unit, not 0..255. See docs/protocol/ble.md 2.2.
+
+    read_mode:
+      notes: >-
+        The live sub-mode and its eight payload bytes, left uninterpreted:
+        their meaning depends on the sub-mode. Answers 21 after a `color`
+        frame and 19 after a `music` one, each with the fields of that frame.
+        It reports what was written, which is not the same as what the
+        firmware renders. See docs/protocol/ble.md 3.
+
+    read_segment_count:
+      notes: >-
+        Answers 15 on this unit, which is the width of the zone mask, not the
+        10 zones the app exposes nor the 42 ICs. See docs/protocol/ble.md 3.
+
+    read_ic_count:
+      notes: >-
+        Answers 42 on this unit, matching the native resolution measured over
+        lan. See docs/protocol/ble.md 3.
+
+    read_hardware_version:
+      notes: >-
+        ASCII, zero-padded out to the checksum; 1.02.00 on this unit. The
+        length is what stops the field before that byte. See
+        docs/protocol/ble.md 3.
+
+    read_software_version:
+      notes: >-
+        ASCII, zero-padded out to the checksum; 2.06.02 on this unit. The
+        length is what stops the field before that byte. See
+        docs/protocol/ble.md 3.
+
+    gradient:
+      notes: >-
+        Whether the firmware interpolates between zones, wrapping from the
+        last back to the first; 0 gives hard-edged zones. The same setting the
+        lan segment channel carries as its `gradient` argument. It is not a
+        fade over time: alternating two colors looks the same either way, and
+        what changes is the boundary between two zones painted differently.
+        See docs/protocol/ble.md 2.6.
+
+    music:
+      notes: >-
+        Sub-mode 19. The device listens on its own microphone. `effect`
+        selects the rendering: 0 to 7 each render one, and 8 to 15, 50 and 255
+        render nothing here — the rope keeps what the frame before it left. An
+        effect this frame cannot render is not one the device lacks: 50
+        renders over `music_effect` below, which carries the parameters this
+        frame has no room for. Nothing maps an identifier to an effect. `soft`
+        0 renders sharp on the beat and 1 renders in fades. `color_mode` 0
+        leaves the colors to the firmware and 1 imposes the triplet. The zone
+        mask has no field here. Every byte is read back at `read_mode`, an
+        effect the firmware does not render included, so a read that echoes a
+        value is not evidence that the device plays it. See
+        docs/protocol/ble.md 2.7.
+
+  cloud:
+    segment_color:
+      notes: >-
+        Paints one color over the zones the array names, and leaves the rest
+        alone. The arguments are the ones the `ble` masked entry takes, so one
+        command takes the same arguments over both modes. A stream over this
+        mode sends one request per distinct color, and the API's own interval
+        between two requests about one device is 6 seconds: the transport
+        refuses a frame that waits longer than `max_wait`. See
+        docs/protocol/cloud.md 5.
 
 # Measured on one physical unit. These numbers depend on the unit's LENGTH as
 # much as on the SKU. See docs/protocol/lan.md 2.3 and 2.7.

@@ -1,0 +1,29 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "cloud-segments"
+
+description: >-
+  The segment entry Govee's documented HTTPS API carries: one color over the
+  zones an array names. The zone count is the width the `ble` mask has, not
+  the addressable LEDs. Include it where the account list declares
+  `segmentedColorRgb` for the SKU. See docs/protocol/cloud.md 5.
+
+commands:
+  cloud:
+    segment_color:
+      role: segment_color_masked
+      capability:
+        type: "devices.capabilities.segment_color_setting"
+        instance: "segmentedColorRgb"
+      payload:
+        segment: "${zones}"
+        rgb: "${colors:rgb24}"
+      args:
+        zones: { type: zones, count: 15, role: zones }
+        colors: { type: rgb_list, max_len: 1, role: colors }
+      notes: >-
+        The arguments are the ones the `ble` masked entry takes, so one call
+        reads the same over both modes.

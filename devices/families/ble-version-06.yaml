@@ -1,0 +1,23 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "ble-version-06"
+
+description: >-
+  The version read at `aa 06`. It is a version and nothing more: on one model
+  it answers what `aa 21` answers, and on another it answers a value of its
+  own. Nothing establishes which module it names, so the name carries the
+  opcode. See docs/protocol/ble.md 3.
+
+commands:
+  ble:
+    read_version_06:
+      frame: "AA 06 <pad:20> <xor>"
+      reply: "AA 06 ${version:ascii:17}"
+      args:
+        version: { type: string, max_len: 17 }
+      notes: >-
+        ASCII, zero-padded out to the checksum: the declared length is what
+        stops the field before that byte.

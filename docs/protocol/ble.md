@@ -331,8 +331,8 @@ bytes it was asked with.
 | `aa 14` | Wi-Fi MAC, 6 bytes |
 | `aa 20` | hard version, ASCII |
 | `aa 21` | soft version, ASCII |
-| `aa 06` | soft version, ASCII, on a family that answers nothing at `aa 21` |
-| `aa 07 03` | hard version, ASCII. The `03` is part of the request, and the answer repeats it |
+| `aa 06` | a version, ASCII. See the trap below |
+| `aa 07 03` | a version, ASCII. The `03` is part of the request, and the answer repeats it |
 | `aa ab` | dynamic API type, then the hidden-network flag. Two bytes. See §4 |
 | `aa a5 <group>` | brightness and color for three zones. Groups are 1-based, five of them |
 
@@ -340,7 +340,7 @@ A read frame can carry a sub-type byte, as `aa 07 03` does. The same frame
 without it gets no answer at all, which looks exactly like an unimplemented
 read — see §7.
 
-Three of these are traps:
+Four of these are traps:
 
 - **What `aa 05` reports depends on the family.** On one it mirrors back codes
   the device never played, and the device file declares no command for it. On
@@ -349,10 +349,15 @@ Three of these are traps:
 - **`aa a5` reports the stored color sub-mode**, not the live render. Nobody
   established the byte layout of its answer, so the device file sends the read
   and declares no `reply:` for it.
-- **`aa 07 11` gets no reply at all**, on the family where `aa 20` carries the
-  hard version. That is indistinguishable from an unimplemented feature — see
-  §7. The sub-type is what the answer depends on: `aa 07 03` answers on the
-  other family.
+- **`aa 07 11` gets no reply at all.** That is indistinguishable from an
+  unimplemented feature — see §7. The sub-type is what the answer depends on:
+  `aa 07 03` answers on the same device.
+- **Four version reads, and how many modules they name depends on the device.**
+  One unit answers `aa 06` with what `aa 21` answers, and `aa 07 03` with what
+  `aa 20` answers: two values. Another answers four values that all differ.
+  So an answer to `aa 06` or to `aa 07 03` is a version and nothing more — the
+  device file records what its unit answered, and names neither after a
+  module.
 
 ## 4. Wi-Fi provisioning — `proType` `0xA1`, `commandType` `0x11`
 

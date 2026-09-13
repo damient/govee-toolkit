@@ -68,4 +68,20 @@ others under `aliases`. Split them as soon as one command differs.
 Where several models share part of a dialect to the byte, put that part in
 [`families/<name>.yaml`](families/) and name it in each file's `include:`. A
 family carries the layout and nothing else: what one unit answered stays in
-that model's own file, under `verified:`.
+that model's own file, under `verified:`. Name a family after the wire it
+describes, not after a product — a model includes the dialects it speaks.
+
+`cargo run -p xtask -- dupes` reports a command layout two device files declare
+and no family carries. CI runs it, so the next model cannot copy a table
+instead of including one.
+
+Two mechanisms keep a family usable where one model differs:
+
+- `range: capability` on an integer argument takes the bounds from that
+  model's `capabilities:`, through the argument's `role:`. The number then
+  lives in one place, and a family declares a layout several models bound
+  differently.
+- `overrides:` patches one field of a command a family brought in — a bound, a
+  `notes:`, or `drop:` to remove the command. It reaches no local command: a
+  file changes its own command where it writes it. Both are documented in
+  [`schema.yaml`](schema.yaml).
