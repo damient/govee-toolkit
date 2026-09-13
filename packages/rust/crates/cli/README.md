@@ -53,10 +53,10 @@ file through a `role:`, so the Node and the Python packages get the same verb
 from the core. A device file that claims no entry for the role fails and names
 the role: no verb is served through another command.
 
-Every command above works. `provision` needs the `ble` feature, and it sends
-the Wi-Fi password in plaintext — anything in Bluetooth range while it runs
-reads it. [gvetk.com/docs/configure](https://gvetk.com/docs/configure/) covers
-the credentials and the `.env` file every subcommand reads.
+Every command above works. `provision` sends the Wi-Fi password in plaintext —
+anything in Bluetooth range while it runs reads it.
+[gvetk.com/docs/configure](https://gvetk.com/docs/configure/) covers the
+credentials and the `.env` file every subcommand reads.
 
 ## Modes
 
