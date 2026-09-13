@@ -5,8 +5,8 @@
 
 import { MODES } from "./config.mjs";
 import { escapeAttr, escapeHtml, fill } from "./html.mjs";
-import { familyIcon, icon } from "./icons.mjs";
-import { modeBadge } from "./mode-badge.mjs";
+import { familyIcon, icon, sharesMark } from "./icons.mjs";
+import { familyBadge, modeBadge } from "./mode-badge.mjs";
 
 // The order a reader looks for, not the order the catalog holds.
 const CAPS = [
@@ -24,11 +24,6 @@ const CAP_ORDER = new Map(CAPS.map(([key], at) => [key, at]));
 
 /** Sort rank of a capability key. An unknown key sorts last. */
 const order = (key) => CAP_ORDER.get(key) ?? CAPS.length;
-
-// `segment_brightness` shares the icon of `segments`, and only the color tells
-// the two apart. Side by side as badges they read as one mark repeated, so the
-// list carries the zones alone. The model page names both.
-const LIST_SKIP = new Set(["segment_brightness"]);
 
 /** Sorts by SKU, so that two builds of one catalog give one page. */
 export function sorted(catalog) {
@@ -61,12 +56,14 @@ export function renderIndex(template, devices) {
 // claims — the hardware cannot do it, or nobody looked.
 function modeCell(d, mode) {
   const state = support(d, mode);
+  // Two capabilities that share a mark read as one mark repeated, so the list
+  // carries one of them. The model page names both.
   const caps = [...(d.modes?.[mode]?.capabilities ?? [])]
-    .filter((c) => !LIST_SKIP.has(c))
+    .filter((c) => !sharesMark(c))
     .sort((a, b) => order(a) - order(b));
   if (!caps.length) {
     if (state === "none") return '<span class="muted">—</span>';
-    return state === "unknown" ? pill("unknown") : pill(state);
+    return pill(state);
   }
   const items = caps
     .map(
@@ -82,7 +79,7 @@ function modeCell(d, mode) {
 function capsLegend(devices) {
   const keys = new Set(devices.flatMap((d) => Object.keys(d.capabilities ?? {})));
   return [...keys]
-    .filter((key) => icon(key) && !LIST_SKIP.has(key))
+    .filter((key) => icon(key) && !sharesMark(key))
     .sort((a, b) => order(a) - order(b))
     .map((key) => `<li>${icon(key)}${escapeHtml(label(key))}</li>`)
     .join("\n        ");
@@ -125,7 +122,7 @@ function pageBody(d) {
       <a href="{{base}}devices/">Devices</a> <span aria-hidden="true">/</span> <span>${d.sku}</span>
     </nav>
     <h1>${title}</h1>
-    <p class="mode-line">${familyBadge(d)}${MODES.filter((m) => REACHES.has(support(d, m)))
+    <p class="mode-line">${familyBadge(d.family)}${MODES.filter((m) => REACHES.has(support(d, m)))
       .map((m) => modeBadge(m))
       .join("")}${badges(d)}</p>
   </div>
@@ -146,13 +143,6 @@ function pageBody(d) {
     </article>
   </div>
 </section>`;
-}
-
-// The family, in the badge the modes use: the shape and the key name the
-// product, and the badges beside it name what reaches it.
-function familyBadge(d) {
-  if (!d.family) return "";
-  return `<span class="mbadge mbadge-family">${familyIcon(d.family)}${escapeHtml(d.family)}</span>`;
 }
 
 function badges(d) {

@@ -3,11 +3,21 @@
 // writes in a configuration file.
 
 import { MODES } from "./config.mjs";
-import { modeIcon } from "./icons.mjs";
+import { escapeHtml } from "./html.mjs";
+import { familyIcon, modeIcon } from "./icons.mjs";
+
+const badge = (kind, iconHtml, text) =>
+  `<span class="mbadge mbadge-${kind}">${iconHtml}${text}</span>`;
 
 /** One badge, naming the mode. */
 export function modeBadge(mode) {
-  return `<span class="mbadge mbadge-${mode}">${modeIcon(mode)}${mode}</span>`;
+  return badge(mode, modeIcon(mode), mode);
+}
+
+/** One badge, naming the device family. Empty where the catalog names none.
+ * It takes the same box as a mode badge: the two sit on one line. */
+export function familyBadge(family) {
+  return family ? badge("family", familyIcon(family), escapeHtml(family)) : "";
 }
 
 /** One `{{badge_<mode>}}` variable per mode, so a static page names a mode

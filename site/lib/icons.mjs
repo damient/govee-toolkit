@@ -44,6 +44,12 @@ const svg = (found, klass, attrs = "") =>
       + ` aria-hidden="true">${found.inner}</svg>`
     : "";
 
+/** Whether `key` draws the icon of another capability. A list that shows one
+ * mark per icon leaves such a key out. */
+export function sharesMark(key) {
+  return CAP_FILES.has(key);
+}
+
 /** The icon of one capability, or an empty string when no file draws it. */
 export function icon(key) {
   const name = CAP_FILES.get(key) ?? key;
