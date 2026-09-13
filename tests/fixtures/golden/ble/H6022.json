@@ -1,0 +1,405 @@
+{
+  "description": "Conformance vectors for H6022 over ble. Every SDK \u2014 the Rust core, its bindings and any hand-written port \u2014 must produce exactly these bytes for these arguments. The wire carries no envelope here, so a vector states `frames_hex` and no `message`. These are the plaintext frames the codec builds; on this unit the transport encodes them under the session seed of docs/protocol/ble.md 9 before they reach the air, which is a transport step and not part of the bytes below. The `33 05 0D` frames are sub-mode 13, colour and white in one layout; the `33 05 15` frames are sub-mode 21, which paints and dims by a mask 15 bits wide. See ../README.md.",
+  "sku": "H6022",
+  "mode": "ble",
+  "vectors": [
+    {
+      "name": "power on",
+      "command": "power",
+      "args": {
+        "on": 1
+      },
+      "frames_hex": [
+        "3301010000000000000000000000000000000033"
+      ],
+      "source": "docs/protocol/ble.md 2.1 \u2014 exercised on the unit: the lamp came on"
+    },
+    {
+      "name": "power off",
+      "command": "power",
+      "args": {
+        "on": 0
+      },
+      "frames_hex": [
+        "3301000000000000000000000000000000000032"
+      ],
+      "source": "docs/protocol/ble.md 2.1 \u2014 exercised on the unit: the lamp went off"
+    },
+    {
+      "name": "brightness, lowest the phone controller sends",
+      "command": "brightness",
+      "args": {
+        "level": 1
+      },
+      "frames_hex": [
+        "3304010000000000000000000000000000000036"
+      ],
+      "source": "docs/protocol/ble.md 2.2 \u2014 worked out from the documented layout; 10, 50 and 100 were exercised and read back over AA 04"
+    },
+    {
+      "name": "brightness, half",
+      "command": "brightness",
+      "args": {
+        "level": 50
+      },
+      "frames_hex": [
+        "3304320000000000000000000000000000000005"
+      ],
+      "source": "docs/protocol/ble.md 2.2 \u2014 exercised on the unit and read back over AA 04"
+    },
+    {
+      "name": "brightness, full",
+      "command": "brightness",
+      "args": {
+        "level": 100
+      },
+      "frames_hex": [
+        "3304640000000000000000000000000000000053"
+      ],
+      "source": "docs/protocol/ble.md 2.2 \u2014 exercised on the unit and read back over AA 04"
+    },
+    {
+      "name": "colour, red",
+      "command": "color",
+      "args": {
+        "r": 255,
+        "g": 0,
+        "b": 0
+      },
+      "frames_hex": [
+        "33050dff000000000000000000000000000000c4"
+      ],
+      "source": "docs/protocol/ble.md 2.3 \u2014 exercised on the unit: every ring turned red"
+    },
+    {
+      "name": "colour, blue",
+      "command": "color",
+      "args": {
+        "r": 0,
+        "g": 0,
+        "b": 255
+      },
+      "frames_hex": [
+        "33050d0000ff00000000000000000000000000c4"
+      ],
+      "source": "docs/protocol/ble.md 2.3 \u2014 exercised on the unit and read back at AA 05 as sub-mode 13, payload 0000ff0000000000"
+    },
+    {
+      "name": "white, the warm bound",
+      "command": "colortemp",
+      "args": {
+        "kelvin": 2700
+      },
+      "frames_hex": [
+        "33050d0000000a8c0000000000000000000000bd"
+      ],
+      "source": "docs/protocol/ble.md 2.3 \u2014 exercised on the unit: the lamp went warm white, and AA 05 read back 2700 with the triplet ff8d0b the firmware computed"
+    },
+    {
+      "name": "white, the cool bound",
+      "command": "colortemp",
+      "args": {
+        "kelvin": 6500
+      },
+      "frames_hex": [
+        "33050d0000001964000000000000000000000046"
+      ],
+      "source": "docs/protocol/ble.md 2.3 \u2014 exercised on the unit: AA 05 read back 6500 with the triplet fff1e7"
+    },
+    {
+      "name": "segment colour, red over the three lowest zones",
+      "command": "segment_color",
+      "args": {
+        "colors": [
+          [
+            255,
+            0,
+            0
+          ]
+        ],
+        "nb": 1,
+        "zones": [
+          0,
+          1,
+          2
+        ]
+      },
+      "frames_hex": [
+        "33051501ff0000000000000007000000000000da"
+      ],
+      "source": "docs/protocol/ble.md 2.3 \u2014 exercised on the unit against a lamp painted blue: the base turned red and the rest stayed blue"
+    },
+    {
+      "name": "segment colour, green over every zone",
+      "command": "segment_color",
+      "args": {
+        "colors": [
+          [
+            0,
+            255,
+            0
+          ]
+        ],
+        "nb": 1,
+        "zones": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
+        ]
+      },
+      "frames_hex": [
+        "3305150100ff000000000000ff7f00000000005d"
+      ],
+      "source": "docs/protocol/ble.md 2.3 \u2014 exercised on the unit. A saturated mask is no evidence the mask is read; the subset above is"
+    },
+    {
+      "name": "segment brightness, the seven lowest zones dimmed",
+      "command": "segment_brightness_masked",
+      "args": {
+        "level": 10,
+        "zones": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "frames_hex": [
+        "330515020a7f0000000000000000000000000054"
+      ],
+      "source": "docs/protocol/ble.md 2.4 \u2014 exercised on the unit: the base dimmed and the top held. Trap: the same frame changed nothing while the lamp was in sub-mode 13"
+    },
+    {
+      "name": "all fifteen zone brightnesses at once",
+      "command": "segment_brightness",
+      "args": {
+        "levels": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100
+        ]
+      },
+      "frames_hex": [
+        "330515030a0a0a0a0a0a0a64646464646464642a"
+      ],
+      "source": "docs/protocol/ble.md 2.5 \u2014 exercised on the unit: the low seven zones dimmed and the high eight held, and the reverse list reversed the lamp"
+    },
+    {
+      "name": "gradient on",
+      "command": "gradient",
+      "args": {
+        "on": 1
+      },
+      "frames_hex": [
+        "33a3010000000000000000000000000000000091"
+      ],
+      "source": "docs/protocol/ble.md 2.6 \u2014 worked out from the documented layout. Sent to the unit, which showed no change either way: what the firmware does with the byte is NOT established"
+    },
+    {
+      "name": "gradient off",
+      "command": "gradient",
+      "args": {
+        "on": 0
+      },
+      "frames_hex": [
+        "33a3000000000000000000000000000000000090"
+      ],
+      "source": "docs/protocol/ble.md 2.6 \u2014 worked out from the documented layout, and see the vector above"
+    },
+    {
+      "name": "music, effect 0, colours left to the firmware",
+      "command": "music",
+      "args": {
+        "effect": 0,
+        "sensitivity": 50,
+        "soft": 0,
+        "color_mode": 0,
+        "r": 0,
+        "g": 0,
+        "b": 0
+      },
+      "frames_hex": [
+        "3305130032000000000000000000000000000017"
+      ],
+      "source": "docs/protocol/ble.md 2.7 \u2014 exercised on the unit: the lamp answered sound. No read reports the frame back"
+    },
+    {
+      "name": "music, effect 4, blue imposed",
+      "command": "music",
+      "args": {
+        "effect": 4,
+        "sensitivity": 50,
+        "soft": 0,
+        "color_mode": 1,
+        "r": 0,
+        "g": 0,
+        "b": 255
+      },
+      "frames_hex": [
+        "330513043200010000ff000000000000000000ed"
+      ],
+      "source": "docs/protocol/ble.md 2.7 \u2014 exercised on the unit: the lamp answered sound over an imposed blue"
+    },
+    {
+      "name": "status: power, then brightness",
+      "command": "status",
+      "args": {},
+      "frames_hex": [
+        "aa010000000000000000000000000000000000ab",
+        "aa040000000000000000000000000000000000ae"
+      ],
+      "source": "docs/protocol/ble.md 3 \u2014 both reads exercised on the unit, which answered the power and the brightness last written"
+    },
+    {
+      "name": "read the live sub-mode",
+      "command": "read_mode",
+      "args": {},
+      "frames_hex": [
+        "aa050000000000000000000000000000000000af"
+      ],
+      "source": "docs/protocol/ble.md 3 \u2014 exercised on the unit, which answered sub-mode 13 after a colour frame and 21 after a segment one"
+    },
+    {
+      "name": "read the zone count",
+      "command": "read_segment_count",
+      "args": {},
+      "frames_hex": [
+        "aa0f0000000000000000000000000000000000a5"
+      ],
+      "source": "docs/protocol/ble.md 3 \u2014 exercised on the unit, which answered 15"
+    },
+    {
+      "name": "read the LED count",
+      "command": "read_ic_count",
+      "args": {},
+      "frames_hex": [
+        "aa400000000000000000000000000000000000ea"
+      ],
+      "source": "docs/protocol/ble.md 3 \u2014 exercised on the unit, which answered 132"
+    },
+    {
+      "name": "read the hardware version",
+      "command": "read_hardware_version",
+      "args": {},
+      "frames_hex": [
+        "aa2000000000000000000000000000000000008a"
+      ],
+      "source": "docs/protocol/ble.md 3 \u2014 exercised on the unit, which answered 1.04.01"
+    },
+    {
+      "name": "read the software version",
+      "command": "read_software_version",
+      "args": {},
+      "frames_hex": [
+        "aa2100000000000000000000000000000000008b"
+      ],
+      "source": "docs/protocol/ble.md 3 \u2014 exercised on the unit, which answered 1.03.08"
+    },
+    {
+      "name": "read the third version field",
+      "command": "read_soft_version",
+      "args": {},
+      "frames_hex": [
+        "aa060000000000000000000000000000000000ac"
+      ],
+      "source": "docs/protocol/ble.md 3 \u2014 exercised on the unit, which answered 1.00.14"
+    },
+    {
+      "name": "read the dynamic API type",
+      "command": "read_dynamic_api",
+      "args": {},
+      "frames_hex": [
+        "aaab000000000000000000000000000000000001"
+      ],
+      "source": "docs/protocol/ble.md 3 \u2014 exercised on the unit, which answered api_type 2 and hide_ssid 0"
+    },
+    {
+      "name": "wake the Wi-Fi module before provisioning",
+      "command": "wifi_link_start",
+      "args": {
+        "on": 1
+      },
+      "frames_hex": [
+        "3317010000000000000000000000000000000025"
+      ],
+      "source": "docs/protocol/ble.md 4 \u2014 exercised on the unit, as the first half of a transfer the lamp acknowledged"
+    },
+    {
+      "name": "release the Wi-Fi module after provisioning",
+      "command": "wifi_link_start",
+      "args": {
+        "on": 0
+      },
+      "frames_hex": [
+        "3317000000000000000000000000000000000024"
+      ],
+      "source": "docs/protocol/ble.md 4 \u2014 exercised on the unit, as the last half of that transfer"
+    },
+    {
+      "name": "Wi-Fi provisioning, SSID Test, password abc, UTC+2",
+      "command": "wifi_provision",
+      "args": {
+        "network": "Test",
+        "password": "abc",
+        "run_mode": 0,
+        "timezone_hours": 2,
+        "timezone_minutes": 0,
+        "iot_version": 0
+      },
+      "frames_hex": [
+        "a1110001000000000000000000000000000000b1",
+        "a1110104546573740361626300020000000000e2",
+        "a111ff000000000000000000000000000000004f"
+      ],
+      "source": "docs/protocol/ble.md 4 \u2014 worked out from the documented layout, NOT sent to this lamp: it asks for the endpoint block, so `provision_wifi()` sends the entry below instead"
+    },
+    {
+      "name": "Wi-Fi provisioning carrying the API block, three data frames",
+      "command": "wifi_provision_with_api",
+      "args": {
+        "network": "Test",
+        "password": "abc",
+        "run_mode": 0,
+        "timezone_hours": 2,
+        "timezone_minutes": 0,
+        "iot_version": 0,
+        "api_url": "https://device.govee.com"
+      },
+      "frames_hex": [
+        "a1110003000000000000000000000000000000b3",
+        "a111010454657374036162630002000000186892",
+        "a11102747470733a2f2f6465766963652e676fb5",
+        "a111037665652e636f6d0000000000000000008a",
+        "a111ff000000000000000000000000000000004f"
+      ],
+      "source": "docs/protocol/ble.md 4 \u2014 worked out from the documented layout; these arguments were not sent, but the entry was, and the lamp acknowledged the transfer"
+    }
+  ]
+}
