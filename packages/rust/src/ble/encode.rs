@@ -57,7 +57,10 @@ const FRAME_LEN: usize = super::FRAME_LEN;
 #[derive(Clone)]
 pub struct Codec {
     aes: Aes128,
-    seed: Seed,
+    /// The stream stage's state after the key schedule of the seed. Built
+    /// once: the schedule is 512 loop iterations, and every frame on the link
+    /// would otherwise pay them to cover a tail of under 16 bytes.
+    schedule: [u8; 256],
 }
 
 impl std::fmt::Debug for Codec {
@@ -73,7 +76,7 @@ impl Codec {
     pub fn new(seed: Seed) -> Self {
         Self {
             aes: Aes128::new(GenericArray::from_slice(&seed)),
-            seed,
+            schedule: schedule(&seed),
         }
     }
 
@@ -112,17 +115,33 @@ impl Codec {
             }
             out.extend_from_slice(&block);
         }
-        out.extend(stream(&self.seed, tail));
+        self.stream_into(tail, &mut out);
         out
+    }
+
+    /// The stream stage over `data`, from a fresh copy of the schedule. It is
+    /// its own inverse.
+    // Every index below is a `u8` widened into a 256-entry table, so none of
+    // them can be out of range.
+    #[allow(clippy::indexing_slicing)]
+    fn stream_into(&self, data: &[u8], out: &mut Vec<u8>) {
+        let mut s = self.schedule;
+        let (mut i, mut j) = (0u8, 0u8);
+        for &byte in data {
+            i = i.wrapping_add(1);
+            j = j.wrapping_add(s[usize::from(i)]);
+            s.swap(usize::from(i), usize::from(j));
+            let k = s[usize::from(s[usize::from(i)].wrapping_add(s[usize::from(j)]))];
+            out.push(k ^ byte);
+        }
     }
 }
 
-/// The stream stage over `data`, from a fresh state built from `seed`. It is
-/// its own inverse.
-// Every index below is a `u8` widened into a 256-entry table, or a position
-// below `seed.len()`, so none of them can be out of range.
+/// The stream stage's state after the key schedule of `seed`.
+// Every index below is a position below `seed.len()` or a `u8` widened into a
+// 256-entry table, so none of them can be out of range.
 #[allow(clippy::indexing_slicing)]
-fn stream(seed: &Seed, data: &[u8]) -> Vec<u8> {
+fn schedule(seed: &Seed) -> [u8; 256] {
     let mut s: [u8; 256] = [0; 256];
     for (i, v) in (0u8..=u8::MAX).zip(s.iter_mut()) {
         *v = i;
@@ -132,16 +151,7 @@ fn stream(seed: &Seed, data: &[u8]) -> Vec<u8> {
         j = j.wrapping_add(s[i]).wrapping_add(k);
         s.swap(i, usize::from(j));
     }
-    let (mut i, mut j) = (0u8, 0u8);
-    data.iter()
-        .map(|&byte| {
-            i = i.wrapping_add(1);
-            j = j.wrapping_add(s[usize::from(i)]);
-            s.swap(usize::from(i), usize::from(j));
-            let k = s[usize::from(s[usize::from(i)].wrapping_add(s[usize::from(j)]))];
-            k ^ byte
-        })
-        .collect()
+    s
 }
 
 /// A handshake frame: the header, the command, noise up to the checksum,
@@ -151,19 +161,13 @@ fn stream(seed: &Seed, data: &[u8]) -> Vec<u8> {
 /// encode to the same bytes.
 fn handshake(command: u8, noise: &mut impl FnMut() -> u8) -> [u8; FRAME_LEN] {
     let mut frame = [0u8; FRAME_LEN];
-    if let Some((checksum, body)) = frame.split_last_mut() {
-        let mut bytes = body.iter_mut();
-        if let Some(byte) = bytes.next() {
-            *byte = HANDSHAKE;
-        }
-        if let Some(byte) = bytes.next() {
-            *byte = command;
-        }
-        for byte in bytes {
-            *byte = noise();
-        }
-        *checksum = xor(body);
+    let [head, kind, filler @ .., checksum] = &mut frame;
+    *head = HANDSHAKE;
+    *kind = command;
+    for byte in &mut *filler {
+        *byte = noise();
     }
+    *checksum = HANDSHAKE ^ command ^ xor(filler);
     frame
 }
 

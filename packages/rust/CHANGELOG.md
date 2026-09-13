@@ -73,6 +73,8 @@ releases apart and keeps
   has a transport in this build. A transport is a cargo feature.
 - `Error::ModeNotImplemented` states that the build carries no transport for the
   mode, and that a transport is a cargo feature.
+- The encoded `ble` link builds its stream key schedule once per codec. Every
+  frame rebuilt it, which is 512 iterations to cover a tail under 16 bytes.
 
 ### Removed
 

@@ -52,11 +52,11 @@ impl Shared {
         let mut captured = Captured::new();
         for (frame, layout) in request.exchanges() {
             // Subscribe before the write, or a reply that arrives first is
-            // lost.
-            let replies = link.replies();
+            // lost. A frame that expects none takes no receiver.
+            let replies = layout.map(|_| link.replies());
             self.write_frame(id, &route, &link, &request.cmd, frame)
                 .await?;
-            let Some(layout) = layout else {
+            let (Some(layout), Some(replies)) = (layout, replies) else {
                 continue;
             };
             let Some(fields) = await_reply(replies, layout, &request.cmd, timeout).await else {
