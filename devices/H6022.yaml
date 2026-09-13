@@ -53,10 +53,20 @@ modes:
       `provision_wifi()`. One connection at a time: a connected lamp stops
       advertising. See docs/protocol/ble.md.
   cloud:
-    support: unknown
-    capabilities: []
-    unreachable: {}
-    notes: ""
+    support: capped
+    capabilities: [power, brightness, color, colortemp, segments, music]
+    unreachable:
+      segment_brightness: transport
+    notes: >-
+      The documented HTTPS API, over a Govee account and internet. It reaches
+      the segment channel in color: 15 zones, the width the `ble` mask has,
+      against the 132 LEDs the lan raw channel reaches. It carries no per-zone
+      brightness: the account list declares no such instance for this device,
+      and the control endpoint refuses it. Music runs off the lamp's own
+      microphone, over four effects against the eight `ble` renders. This mode
+      refuses a value outside a declared range rather than clamp it, which the
+      other two modes do in silence. It opens no segment stream: it takes one
+      request every few seconds. See docs/protocol/cloud.md 5 and 6.
 
 commands:
   lan:
@@ -328,7 +338,121 @@ commands:
         the two reads above answer. TODO: nothing established which module each
         of the three names. See docs/protocol/ble.md 3.
 
-  cloud: {}
+  # Every entry here is local. The file does not include `cloud-openapi`: that
+  # family declares 2000 to 9000 K, and this device takes 2700 to 6500.
+  cloud:
+    power:
+      capability:
+        type: "devices.capabilities.on_off"
+        instance: "powerSwitch"
+      role: power
+      payload: "${on}"
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+      notes: >-
+        Trap: the lamp comes back at the brightness it stored, which is 1 after
+        an `off` at 1. A lamp that lit at the minimum reads as a lamp that did
+        not light. See `verified:`.
+
+    brightness:
+      capability:
+        type: "devices.capabilities.range"
+        instance: "brightness"
+      role: brightness
+      payload: "${level}"
+      args:
+        level: { type: int, range: [1, 100], role: brightness }
+      notes: >-
+        Percent. The API refuses 0 rather than clamp it, with 400 `Parameter
+        value out of range`. See `verified:`.
+
+    color:
+      capability:
+        type: "devices.capabilities.color_setting"
+        instance: "colorRgb"
+      role: color
+      payload: "${r,g,b:rgb24}"
+      args:
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: >-
+        This API carries the color as one integer. The three arguments keep the
+        names the `lan` and `ble` layouts give them, so one call reads the same
+        over every mode. One color over every ring of the cylinder.
+
+    status:
+      role: status
+      reads:
+        - { instance: "powerSwitch", arg: "on" }
+        - { instance: "brightness", arg: "level" }
+        - { instance: "colorRgb", arg: "color" }
+        - { instance: "colorTemperatureK", arg: "kelvin" }
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+        level: { type: int, range: [0, 100], role: brightness }
+        color: { type: int, range: [0, 16777215], role: color }
+        kelvin: { type: int, range: [0, 9000], role: color_temp }
+      notes: >-
+        The ranges here are what an answer may carry, not what a caller may
+        send: 0 kelvin reports color mode rather than a temperature. This mode
+        reads back no segment state and no music state: both instances answer
+        an empty value. See `verified:`.
+
+    colortemp:
+      role: color_temp
+      capability:
+        type: "devices.capabilities.color_setting"
+        instance: "colorTemperatureK"
+      payload: "${kelvin}"
+      args:
+        kelvin: { type: int, range: [2700, 6500], role: color_temp }
+      notes: >-
+        The range the account list declares for this device. The API refuses
+        a value outside it rather than clamp: `lan` and `ble` clamp in silence,
+        this mode answers 400. Under a temperature the state reports the color
+        as 0. See `verified:`.
+
+    segment_color:
+      role: segment_color_masked
+      capability:
+        type: "devices.capabilities.segment_color_setting"
+        instance: "segmentedColorRgb"
+      payload:
+        segment: "${zones}"
+        rgb: "${colors:rgb24}"
+      args:
+        zones: { type: zones, count: 15, role: zones }
+        colors: { type: rgb_list, max_len: 1, role: colors }
+      notes: >-
+        Paints one color over the zones the array names, and leaves the rest
+        alone. The arguments are the ones the `ble` masked entry takes, so one
+        command takes the same arguments over both modes. The account list
+        bounds the array at 15 entries and a zone index at 14, which is the
+        width of the `ble` mask and not the 132 LEDs. See
+        docs/protocol/cloud.md 5.
+
+    music:
+      role: music
+      capability:
+        type: "devices.capabilities.music_setting"
+        instance: "musicMode"
+      payload:
+        musicMode: "${effect}"
+        sensitivity: "${sensitivity}"
+      args:
+        effect: { type: int, range: [3, 6], role: effect }
+        sensitivity: { type: int, range: [0, 100], role: sensitivity }
+      notes: >-
+        The lamp listens on its own microphone. `effect` is the enum the
+        account list declares: 3 Rhythm, 4 Rolling, 5 Energic, 6 Spectrum.
+        Those names are the API's own, and nothing matches one to what the lamp
+        renders. The identifiers are the API's own too: they are not the
+        sub-mode codes the `ble` music frame takes. The range above spans the
+        four declared values and holds no other meaning.
+
+        The capability declares `autoColor` and `rgb` too. This entry sends
+        neither. See docs/protocol/cloud.md 6.
 
 measurements:
   segment_max_zones: 132    # the highest nbSeg this firmware renders. 133 and
@@ -445,3 +569,47 @@ verified:
     the transfer carries the endpoint block. The lamp accepted the transfer and
     acknowledged it. Trap: it was already on the network the credentials named,
     so joining a network it was not on is NOT established.
+
+    cloud mode reaches every capability but per-zone brightness. The account
+    addresses the lamp by a MAC, whose last two bytes are the ones the ble
+    advertisement carries. Every command below went through the Rust CLI, and
+    every refusal quoted is the API's own answer.
+
+    This mode refuses rather than clamps, which is the opposite of what the
+    other two do. Brightness 0 answers 400 `Parameter value out of range`, and
+    so do 2000 K and 9000 K, with the lamp holding the 4000 K anchor through
+    both. lan and ble clamp each of those in silence.
+
+    Power, brightness and the two color commands apply and read back through
+    the state endpoint. Brightness 100, 50 and 1 each read back as written.
+    Trap: `power` on brings the lamp back at the brightness it stored, so a
+    lamp that was turned off at 1 lights at the minimum and reads as a lamp
+    that did not light.
+
+    The white range is 2700 to 6500 K, the bounds the account list declares and
+    the bounds lan and ble measured. Under a temperature the state reports the
+    color as 0, and under a color it reports the temperature as 0.
+
+    Segments paint over 15 zones, the width the ble mask has. The zone array is
+    read: against a lamp painted blue, zones 0 to 2 lit red at the base and
+    zones 12 to 14 lit green at the top, each leaving the rest blue. Zone 0 is
+    at the base, the ble orientation.
+
+    Music renders from the lamp's own microphone. Effects 3, 4, 5 and 6 each
+    answer sound. Those four are the whole enum the account list declares, and
+    the API holds it: `musicMode` 1 and 19 each answer 400 `Parameter value out
+    of range`. ble renders something for a value outside its own range, so this
+    is a property of this mode and not of the lamp. `autoColor` and `rgb` were
+    NOT probed. `sensitivity` was NOT probed: every frame above carried 50.
+
+    Per-zone brightness and the gradient toggle are both out of reach here.
+    `segmentedBrightness` and `gradientToggle` each answer 400 `devices not
+    support this instance`. That refusal is the evidence, and the account list
+    declares neither instance for this device. The H61A0 declares both.
+
+    This mode reads back nothing it paints: `segmentedColorRgb` and `musicMode`
+    each answer an empty value at the state endpoint, whatever the lamp is
+    rendering. The answer to the control request is the only verification.
+
+    The state answer also carries an `online` flag, which the SDK models
+    nothing of.

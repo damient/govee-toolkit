@@ -1,0 +1,279 @@
+{
+  "description": "Conformance vectors for H6022 over cloud. Every SDK \u2014 the Rust core, its bindings and any hand-written port \u2014 must produce exactly these bodies for these arguments. See ../README.md.",
+  "sku": "H6022",
+  "mode": "cloud",
+  "vectors": [
+    {
+      "name": "power on",
+      "command": "power",
+      "args": {
+        "on": 1
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.on_off",
+          "instance": "powerSwitch",
+          "value": 1
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp lit at the brightness it had stored; no capture file"
+    },
+    {
+      "name": "power off",
+      "command": "power",
+      "args": {
+        "on": 0
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.on_off",
+          "instance": "powerSwitch",
+          "value": 0
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp went dark; no capture file"
+    },
+    {
+      "name": "brightness 100%",
+      "command": "brightness",
+      "args": {
+        "level": 100
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.range",
+          "instance": "brightness",
+          "value": 100
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp went to full and read back 100; no capture file"
+    },
+    {
+      "name": "brightness 1%, the lowest the API takes",
+      "command": "brightness",
+      "args": {
+        "level": 1
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.range",
+          "instance": "brightness",
+          "value": 1
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp went to its minimum and read back 1; no capture file"
+    },
+    {
+      "name": "colour red, packed into one integer",
+      "command": "color",
+      "args": {
+        "r": 255,
+        "g": 0,
+        "b": 0
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorRgb",
+          "value": 16711680
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp painted every ring red; no capture file"
+    },
+    {
+      "name": "colour blue, the low channel",
+      "command": "color",
+      "args": {
+        "r": 0,
+        "g": 0,
+        "b": 255
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorRgb",
+          "value": 255
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp painted every ring blue; no capture file"
+    },
+    {
+      "name": "colour temperature 2700 K, the warm bound",
+      "command": "colortemp",
+      "args": {
+        "kelvin": 2700
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorTemperatureK",
+          "value": 2700
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp went warm white and read back 2700; no capture file"
+    },
+    {
+      "name": "colour temperature 6500 K, the cold bound",
+      "command": "colortemp",
+      "args": {
+        "kelvin": 6500
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.color_setting",
+          "instance": "colorTemperatureK",
+          "value": 6500
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp went cold white and read back 6500; no capture file"
+    },
+    {
+      "name": "status request",
+      "command": "status",
+      "args": {},
+      "reads": {
+        "brightness": "level",
+        "colorRgb": "color",
+        "colorTemperatureK": "kelvin",
+        "powerSwitch": "on"
+      },
+      "source": "docs/protocol/cloud.md, the documented API; no capture"
+    },
+    {
+      "name": "segment colour over the three zones at the base",
+      "command": "segment_color",
+      "args": {
+        "zones": [
+          0,
+          1,
+          2
+        ],
+        "colors": [
+          [
+            255,
+            0,
+            0
+          ]
+        ]
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.segment_color_setting",
+          "instance": "segmentedColorRgb",
+          "value": {
+            "segment": [
+              0,
+              1,
+              2
+            ],
+            "rgb": 16711680
+          }
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp lit zones 0 to 2 red at the base and left the rest blue; no capture file"
+    },
+    {
+      "name": "segment colour over the three zones at the top",
+      "command": "segment_color",
+      "args": {
+        "zones": [
+          12,
+          13,
+          14
+        ],
+        "colors": [
+          [
+            0,
+            255,
+            0
+          ]
+        ]
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.segment_color_setting",
+          "instance": "segmentedColorRgb",
+          "value": {
+            "segment": [
+              12,
+              13,
+              14
+            ],
+            "rgb": 65280
+          }
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp lit zones 12 to 14 green at the top and left the rest blue; no capture file"
+    },
+    {
+      "name": "segment colour holds a zone once, in ascending order",
+      "command": "segment_color",
+      "args": {
+        "zones": [
+          2,
+          1,
+          1
+        ],
+        "colors": [
+          [
+            255,
+            40,
+            0
+          ]
+        ]
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.segment_color_setting",
+          "instance": "segmentedColorRgb",
+          "value": {
+            "segment": [
+              1,
+              2
+            ],
+            "rgb": 16721920
+          }
+        }
+      },
+      "source": "docs/protocol/cloud.md, the documented API; no capture"
+    },
+    {
+      "name": "music effect 3, the lowest value the API declares",
+      "command": "music",
+      "args": {
+        "effect": 3,
+        "sensitivity": 50
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.music_setting",
+          "instance": "musicMode",
+          "value": {
+            "musicMode": 3,
+            "sensitivity": 50
+          }
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp played and reacted to sound; no capture file"
+    },
+    {
+      "name": "music effect 6, the highest value the API declares",
+      "command": "music",
+      "args": {
+        "effect": 6,
+        "sensitivity": 50
+      },
+      "message": {
+        "capability": {
+          "type": "devices.capabilities.music_setting",
+          "instance": "musicMode",
+          "value": {
+            "musicMode": 6,
+            "sensitivity": 50
+          }
+        }
+      },
+      "source": "sent to the control endpoint on a live account, and the lamp played and reacted to sound; no capture file"
+    }
+  ]
+}
