@@ -18,7 +18,11 @@ name = "govee"
 path = "src/main.rs"
 
 [features]
-default = ["lan"]
+# The CLI carries every transport, where the library defaults to `lan` alone:
+# a person who installs the binary names a mode at the command line and expects
+# it to answer. On Linux `ble` reaches BlueZ over D-Bus, so a build from source
+# needs `libdbus-1-dev`.
+default = ["lan", "ble", "cloud"]
 # Each feature forwards to the same feature of the library, so a build of the
 # CLI carries the transports it was asked for and no other.
 lan = ["govee-toolkit/lan"]
