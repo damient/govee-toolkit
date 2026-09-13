@@ -1,9 +1,10 @@
 //! `provision`: put a device on a Wi-Fi network over `ble`.
 //!
-//! Nothing acknowledges the transfer, so a refused one looks like an accepted
-//! one here. The report says what was sent, never that the device joined.
+//! The device acknowledges the transfer where its file declares the answer to
+//! read. Even then the report says the device took the credentials, never that
+//! it joined the network.
 
-use govee_toolkit::{DeviceId, Env, Govee, WifiCredentials};
+use govee_toolkit::{DeviceId, Env, Govee, Provisioned, WifiCredentials};
 use serde_json::json;
 
 use crate::output::{Failure, Writer};
@@ -34,17 +35,29 @@ pub(super) async fn run(
         utc_offset_minutes: utc_offset.1,
     };
 
-    govee.device(id).provision_wifi(&credentials).await?;
+    let outcome = govee.device(id).provision_wifi(&credentials).await?;
 
+    let (result, report) = match outcome {
+        Provisioned::Accepted => (
+            "accepted",
+            format!(
+                "{id}  the device accepted the credentials for `{ssid}`; it joins the network on its own, so check the network"
+            ),
+        ),
+        Provisioned::Sent => (
+            "sent",
+            format!(
+                "{id}  credentials for `{ssid}` were sent; this device file declares no acknowledgement, so check the network"
+            ),
+        ),
+    };
     writer.emit(
         &json!({
             "id": id.to_string(),
             "network": ssid,
-            "sent": true,
+            "result": result,
         }),
-        &format!(
-            "{id}  credentials for `{ssid}` were sent; nothing acknowledges the transfer, so check the network"
-        ),
+        &report,
     );
     Ok(())
 }

@@ -37,6 +37,10 @@ pub const FRAME_LEN: usize = 20;
 pub const WRITE: u8 = 0x33;
 /// The `proType` of a single read.
 pub const READ: u8 = 0xaa;
+/// The `proType` of a chunked write.
+pub const MULTI_WRITE: u8 = 0xa1;
+/// The byte that closes a chunked write, where its index sits.
+pub const TRANSFER_END: u8 = 0xff;
 
 /// How many writes a second the firmware takes, and what it does past that.
 ///

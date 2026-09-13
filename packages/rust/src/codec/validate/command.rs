@@ -36,7 +36,11 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
             }
         }
     }
-    for captured in exchanges.iter().flat_map(Exchanges::capture_names) {
+    let captures = exchanges
+        .iter()
+        .flat_map(Exchanges::capture_names)
+        .chain(chunked.iter().flat_map(Layout::capture_names));
+    for captured in captures {
         if !command.args.contains_key(captured) {
             problems.push(format!(
                 "reply captures `{captured}`, which `args:` does not declare"

@@ -169,6 +169,13 @@ commands:
   #                    the header carries no body.
   #   then: "…"        one frame sent AFTER the footer, for a wire that stores
   #                    the transfer and plays it with a second frame.
+  #   reply: "…"       the acknowledgement the whole transfer expects, in the
+  #                    `reply:` grammar below. The device answers the transfer
+  #                    once, after the footer, so the frames before it go out
+  #                    unanswered. Declare it only where somebody read the
+  #                    answer back. Mark the status it captures
+  #                    `role: ack_status`: `provision_wifi()` reads the
+  #                    transfer's result there, and `0` accepts.
   #
   # A footer layout that reads `${chunk:bytes}` carries the LAST slice, so that
   # slice is not a data frame. A footer that reads none closes the transfer
@@ -257,6 +264,9 @@ commands:
   #   color_mode  int       whether that command imposes a color: 0 leaves the
   #                         colors to the firmware, 1 plays the triple the
   #                         same command marks red, green and blue
+  #   ack_status  int       the status a chunked transfer is acknowledged
+  #                         with, captured by the `reply:` in its `chunk:`
+  #                         block: 0 accepts the transfer
   #
   # Quote `role: "on"`: a YAML 1.1 reader takes a bare `on` for true.
   # A captured field with no role reaches the caller under the name this file
@@ -370,7 +380,10 @@ commands:
     #                   `role: run_mode`, `role: timezone_hours`,
     #                   `role: timezone_minutes` and `role: iot_version`. The
     #                   caller supplies the first two and the offset; the SDK
-    #                   sends 0 for the run mode and the IoT version.
+    #                   sends 0 for the run mode and the IoT version. Where the
+    #                   `chunk:` block declares a `reply:`, one captured field
+    #                   marked `role: ack_status` says whether the device took
+    #                   the transfer.
     #   wifi_provision_with_api
     #                   all of those, plus one marked `role: api_url`.
   ble:

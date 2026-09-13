@@ -99,7 +99,9 @@ commands:
         header: "A1 11 00 ${count} 00 <pad:20> <xor>"
         data:   "A1 11 ${index} ${chunk:bytes} <pad:20> <xor>"
         footer: "A1 11 FF <pad:20> <xor>"
+        reply:  "A1 11 ${ack}"
       args:
+        ack: { type: int, range: [0, 255], role: ack_status }
         network: { type: string, max_len: 32, role: network }
         password: { type: string, max_len: 63, role: password }
         mode: { type: int, range: [0, 255], role: run_mode }
@@ -116,7 +118,9 @@ commands:
         header: "A1 11 00 ${count} 00 <pad:20> <xor>"
         data:   "A1 11 ${index} ${chunk:bytes} <pad:20> <xor>"
         footer: "A1 11 FF <pad:20> <xor>"
+        reply:  "A1 11 ${ack}"
       args:
+        ack: { type: int, range: [0, 255], role: ack_status }
         network: { type: string, max_len: 32, role: network }
         password: { type: string, max_len: 63, role: password }
         mode: { type: int, range: [0, 255], role: run_mode }

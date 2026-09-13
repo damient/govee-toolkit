@@ -28,12 +28,18 @@ at.
 - `H6008` includes the `ble-wifi-provision` family, so `provision_wifi()` puts
   the bulb on a Wi-Fi network. The unit accepts the transfer while it is already
   on a network and bound to an account.
+- `chunk:` takes a `reply:`, the acknowledgement a whole transfer expects, and
+  an argument marked `role: ack_status` reads the status out of it.
+  `devices/schema.yaml` documents both.
 - `H6008` conformance vectors for the four provisioning entries. The endpoint
   read and the wake come from a capture; the two transfers are built from the
   layout of `docs/protocol/ble.md` 4, with placeholder credentials.
 
 #### Changed
 
+- The `ble-wifi-provision` family reads `A1 11 <status>` back on both
+  transfers, so a device that refuses the credentials is reported as refusing
+  them. See `docs/protocol/ble.md` 4.
 - `H6008` reaches every capability over `ble`, not `color` alone: the unit
   encodes the link (`docs/protocol/ble.md` 9), and the encoded 20-byte dialect
   carries `power`, `brightness`, `color` and `colortemp`. The mode is `full`.
