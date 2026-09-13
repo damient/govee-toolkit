@@ -175,7 +175,14 @@ async fn enabling_a_mode_the_hardware_lacks_is_reported() {
         .expect("the overlay applies");
 
     let rig = rig_with("defaults:\n  modes: [ble]\n", catalog).await;
-    let problems = rig.govee.problems();
+    // The device file is the subject here. A build with no `ble` transport
+    // reports that too, and names no device.
+    let problems: Vec<_> = rig
+        .govee
+        .problems()
+        .into_iter()
+        .filter(|problem| problem.device.is_some())
+        .collect();
     assert_eq!(problems.len(), 1, "{problems:?}");
     assert!(
         problems[0].message.contains("ble") && problems[0].message.contains("does not support"),
@@ -200,11 +207,13 @@ async fn enabling_a_mode_nobody_probed_is_not_a_configuration_error() {
         .expect("the overlay applies");
 
     let rig = rig_with("defaults:\n  modes: [ble]\n", catalog).await;
-    assert!(
-        rig.govee.problems().is_empty(),
-        "{:?}",
-        rig.govee.problems()
-    );
+    let about_the_device: Vec<_> = rig
+        .govee
+        .problems()
+        .into_iter()
+        .filter(|problem| problem.device.is_some())
+        .collect();
+    assert!(about_the_device.is_empty(), "{about_the_device:?}");
 
     let error = rig
         .govee
@@ -302,5 +311,47 @@ async fn a_scan_on_another_mode_touches_no_wire_of_this_one() {
         rig.simulator.received_count(),
         0,
         "a scan the caller ruled out must send nothing"
+    );
+}
+
+/// The build is the absence to report here too. A device nothing can look for
+/// is not an unknown device: no transport in this build can hear it.
+#[tokio::test]
+async fn ensuring_a_device_is_known_names_the_transport_the_build_lacks() {
+    let config: Config =
+        serde_norway::from_str("defaults:\n  modes: [lan]\n").expect("the configuration parses");
+    let govee = Govee::attach(
+        config,
+        Catalog::embedded().expect("catalog"),
+        std::iter::empty(),
+    )
+    .expect("no transport is not a startup error");
+
+    let error = govee
+        .ensure_known(&id())
+        .await
+        .expect_err("no lan transport, so no scan");
+
+    assert_eq!(error.code(), "mode_not_implemented");
+}
+
+#[tokio::test]
+async fn an_enabled_mode_the_build_lacks_is_a_problem_doctor_reports() {
+    let config: Config =
+        serde_norway::from_str("defaults:\n  modes: [lan]\n").expect("the configuration parses");
+    let govee = Govee::attach(
+        config,
+        Catalog::embedded().expect("catalog"),
+        std::iter::empty(),
+    )
+    .expect("no transport is not a startup error");
+
+    let problems = govee.problems();
+
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert!(
+        problems[0].message.contains("lan") && problems[0].message.contains("no transport"),
+        "{}",
+        problems[0]
     );
 }

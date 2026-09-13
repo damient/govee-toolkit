@@ -64,6 +64,12 @@ releases apart and keeps
 - Catalog validation reads the level off the reasons: a mode whose every
   unreachable capability is `transport` must be `capped`, and one that names an
   `unimplemented` or `unprobed` capability must be `partial`.
+- `Govee::problems()` reports every enabled mode this build carries no
+  transport for, so `doctor` answers it before any command is sent.
+- `ensure_known()` fails with `Error::ModeNotImplemented` where no enabled mode
+  has a transport in this build. A transport is a cargo feature.
+- `Error::ModeNotImplemented` states that the build carries no transport for the
+  mode, and that a transport is a cargo feature.
 
 ### Removed
 

@@ -28,6 +28,8 @@ impl Govee {
     /// [`Error::Transport`] with
     /// [`UnknownDevice`](crate::transport::Error::UnknownDevice)
     /// if no enabled mode finds the device, or whatever a scan fails with.
+    /// [`Error::ModeNotImplemented`] or [`Error::MissingCredential`] where no
+    /// enabled mode has a transport in this build.
     pub async fn ensure_known(&self, id: &DeviceId) -> Result<Mode> {
         let modes = self.inner.config.modes_for(id).to_vec();
         if let Some(mode) = self.first_mode_holding(id, &modes) {
@@ -44,6 +46,12 @@ impl Govee {
                 })
             })
             .collect();
+
+        // No enabled mode has a transport here. The device is not unknown: the
+        // build carries nothing that can look for it, and that is what to say.
+        if let (true, Some(&mode)) = (scans.is_empty(), modes.first()) {
+            return Err(self.no_transport(id, mode));
+        }
 
         // Awaited in the configuration's order. Every scan keeps running
         // while an earlier mode is awaited.
