@@ -17,8 +17,8 @@ govee scan
 govee color living-room "#ff3d00"
 ```
 
-`ble` and `cloud` are opt-in features: `cargo install govee-toolkit-cli
---features ble,cloud`.
+The binary carries `lan`, `ble` and `cloud`. On Linux, `ble` reaches BlueZ over
+D-Bus, so a build from source needs `libdbus-1-dev`.
 
 ## Start here
 
