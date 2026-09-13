@@ -71,6 +71,13 @@ impl Encoded {
         })
     }
 
+    /// Whether any frame expects an answer. False for a command that only
+    /// writes.
+    #[must_use]
+    pub fn answers(&self) -> bool {
+        self.replies.iter().any(Option::is_some)
+    }
+
     /// Every frame that expects an answer, paired with the layout to read it
     /// with. Empty for a command that only writes.
     #[must_use]

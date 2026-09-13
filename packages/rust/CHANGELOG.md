@@ -36,6 +36,9 @@ releases apart and keeps
   answer where the command declares one.
 - `govee_toolkit_sim::ble::BleDevice::set_transfer_status()` — what the
   simulated device acknowledges a chunked transfer with.
+- `codec::Command::answers()` and `codec::Encoded::answers()` — whether an entry
+  declares an answer to read back. They count the `reply:` of a `chunk:` block,
+  which reading the fields apart did not.
 
 ### Changed
 

@@ -36,7 +36,7 @@ impl Shared {
         request: &Encoded,
         timeout: Duration,
     ) -> Result<Reply> {
-        if request.reads().is_empty() {
+        if !request.answers() {
             return Err(Error::NoReplyLayout {
                 mode: Mode::Ble,
                 reason: format!(

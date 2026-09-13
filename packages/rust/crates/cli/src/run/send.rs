@@ -7,7 +7,7 @@
 
 use std::collections::BTreeMap;
 
-use govee_toolkit::codec::{ArgSpec, Args, Mode};
+use govee_toolkit::codec::{ArgSpec, Args, Command, Mode};
 use govee_toolkit::{DeviceId, Govee};
 use serde_json::json;
 
@@ -35,10 +35,7 @@ pub(super) async fn run(
         None => Args::new(),
     };
 
-    let answers = spec.is_some_and(|spec| {
-        spec.reply.is_some() || !spec.frames.is_empty() || !spec.reads.is_empty()
-    });
-    if answers {
+    if spec.is_some_and(Command::answers) {
         let reply = handle.read(command, &values).await?;
         let fields = reply.fields.to_json();
         let text = fields

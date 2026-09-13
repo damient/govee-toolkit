@@ -171,6 +171,19 @@ pub struct Command {
 }
 
 impl Command {
+    /// Whether the entry declares an answer to read back, in any of the four
+    /// shapes that can carry one.
+    #[must_use]
+    pub fn answers(&self) -> bool {
+        self.reply.is_some()
+            || !self.frames.is_empty()
+            || !self.reads.is_empty()
+            || self
+                .chunk
+                .as_ref()
+                .is_some_and(|chunk| chunk.reply.is_some())
+    }
+
     /// The name the file gave the argument declared with `role`. `None` if
     /// the command declares none.
     #[must_use]
