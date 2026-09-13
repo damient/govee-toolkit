@@ -138,9 +138,6 @@ overrides:
         field. It clamps a value outside the range above in silence. See
         docs/protocol/lan.md 1, "Documented commands".
 
-    raw_status:
-      notes: "See docs/protocol/lan.md 2.2."
-
     segment_color:
       args:
         nb_seg: { range: [1, 132] }
