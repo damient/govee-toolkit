@@ -168,11 +168,11 @@ SKU.
 `packages/rust` is the reference implementation and the only place protocol
 logic exists. It is **one crate**, `govee-toolkit`, with the layers as modules:
 `src/codec/` (no I/O), `src/transport/` (what every mode shares), `src/lan/`,
-`src/ble/`, `src/stream/` and the facade at the crate root. `crates/cli`
-publishes the `govee` binary as `govee-toolkit-cli` and holds no protocol
-logic; `crates/sim` and `crates/xtask` carry `publish = false`. A transport is a
-cargo feature — `lan` is on by default, `ble` is opt-in, and `cloud` joins them
-when it lands.
+`src/ble/`, `src/cloud/`, `src/stream/` and the facade at the crate root.
+`crates/cli` publishes the `govee` binary as `govee-toolkit-cli` and holds no
+protocol logic; `crates/sim` and `crates/xtask` carry `publish = false`. A
+transport is a cargo feature: the library defaults to `lan` alone, and the CLI
+to all three.
 
 The codec keeps building on its own (`cargo check --no-default-features`), and
 `tools/check-no-io.sh` fails the build if anything under `src/codec/` imports
@@ -205,14 +205,14 @@ so a feature that needs a newer compiler raises `rust-version` in the same
 commit.
 
 `tools/qa.sh` runs the CI checks locally — use it before pushing rather than
-reading the result off a pull request. `tools/qa-site.sh` does the same for
-the site, and `qa.sh` runs it as one of its checks. `ci.yml` runs on push to `main` and on
-pull request, skipping every job while the pull request is a draft, and tests on
-Linux, macOS and Windows because the multicast socket differs on each. Every
-third-party action is pinned to a commit SHA; keep it that way. The release
-workflows publish through trusted publishing — the registry trades the job's
-OIDC identity for a short-lived token, so no registry token is stored in the
-repository. A version already on the registry is skipped rather than failing
+reading the result off a pull request. `tools/qa-site.sh` does the same for the
+site, and `qa.sh` runs it as one of its checks. `ci.yml` runs on push to `main`
+and on pull request, skipping every job while the pull request is a draft, and
+tests on Linux, macOS and Windows because the multicast socket differs on each.
+Every third-party action is pinned to a commit SHA; keep it that way. The
+release workflows publish through trusted publishing — the registry trades the
+job's OIDC identity for a short-lived token, so no registry token is stored in
+the repository. A version already on the registry is skipped rather than failing
 the run, since a tag moved to a new commit reruns the job.
 
 ## Repository
