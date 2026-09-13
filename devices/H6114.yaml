@@ -8,6 +8,12 @@ sku: "H6114"
 family: "rgb-car-strip"
 name: "RGB Car LED Strip Lights"
 aliases: []
+include:
+  - ble-core
+  - ble-color
+  - ble-music
+  - ble-version-06
+
 candidate_aliases: []
 
 capabilities:
@@ -56,108 +62,70 @@ commands:
   lan: {}
 
   ble:
-    power:
-      role: power
-      frame: "33 01 ${on} <pad:20> <xor>"
-      args:
-        on: { type: int, range: [0, 1], role: "on" }
-      notes: "See docs/protocol/ble.md 2.1."
-
-    brightness:
-      role: brightness
-      frame: "33 04 ${level} <pad:20> <xor>"
-      args:
-        level: { type: int, range: [0, 255], role: brightness }
-      notes: >-
-        The whole byte, not percent: 0 and 255 both reach the firmware and both
-        are applied. `0` renders nothing and does NOT turn the device off — it
-        reports itself on with a brightness of 0, so only `power` turns it off.
-        The Govee app drives this field over 20..254, which is a choice of the
-        app: 1 is dimmer than 20 on the unit. See docs/protocol/ble.md 2.2.
-
-    color:
-      role: color
-      frame: "33 05 0D ${r} ${g} ${b} 00 00 00 00 00 <pad:20> <xor>"
-      args:
-        r: { type: int, range: [0, 255], role: red }
-        g: { type: int, range: [0, 255], role: green }
-        b: { type: int, range: [0, 255], role: blue }
-      notes: >-
-        Sub-mode 13. The payload is the color triplet, a 16-bit kelvin field and
-        a second triplet, and this command zeroes the last two: a non-zero
-        kelvin makes the firmware render the second triplet instead of the
-        first, and the firmware renders no temperature of its own. The device
-        fades from one color to the next rather than cutting, and no frame was
-        found that turns that off. See docs/protocol/ble.md 2.3.
-
-    music:
-      role: music
-      frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
-      args:
-        effect: { type: int, range: [0, 1], role: effect }
-        sensitivity: { type: int, range: [1, 100], role: sensitivity }
-        soft: { type: int, range: [0, 1], role: soft }
-        color_mode: { type: int, range: [0, 1], role: color_mode }
-        r: { type: int, range: [0, 255], role: red }
-        g: { type: int, range: [0, 255], role: green }
-        b: { type: int, range: [0, 255], role: blue }
-      notes: >-
-        Sub-mode 19. The device listens on its own microphone. `effect` selects
-        the rendering, and the range above is what renders a music effect: 0 and
-        1 each render one, 2 renders a fixed white, and 3 to 7 render nothing and
-        leave the strips dark. Nothing told 0 apart from 1 on this unit, so
-        neither identifier maps to an effect. `soft` changes nothing observable
-        here. `color_mode` 0 lets the firmware choose the colors and ignores the
-        triplet, which the device keeps stored from the last frame that carried
-        one; 1 plays the triplet. The firmware accepts a value past every range
-        above and reads it back. See docs/protocol/ble.md 2.7.
-
-    status:
-      role: status
-      frames:
-        - send:  "AA 01 <pad:20> <xor>"
-          reply: "AA 01 ${on}"
-        - send:  "AA 04 <pad:20> <xor>"
-          reply: "AA 04 ${level}"
-      args:
-        on: { type: int, range: [0, 1], role: "on" }
-        level: { type: int, range: [0, 255], role: brightness }
-      notes: >-
-        Two reads: no single frame reports both. See docs/protocol/ble.md 3.
-
-    read_mode:
-      frame: "AA 05 <pad:20> <xor>"
-      reply: "AA 05 ${submode} ${payload:bytes:8}"
-      args:
-        submode: { type: int, range: [0, 255] }
-        payload: { type: bytes, max_len: 8 }
-      notes: >-
-        The live sub-mode and its eight payload bytes, left uninterpreted: their
-        meaning depends on the sub-mode, and the color one and the music one are
-        the two this file works out. This read reports what is playing — writing
-        a color moved it to 13 with that color, and writing music moved it to 19
-        with every field of the frame. See docs/protocol/ble.md 3.
-
-    read_software_version:
-      frame: "AA 06 <pad:20> <xor>"
-      reply: "AA 06 ${version:ascii:17}"
-      args:
-        version: { type: string, max_len: 17 }
-      notes: >-
-        ASCII, zero-padded out to the checksum; 2.03.11 on this unit. See
-        docs/protocol/ble.md 3.
-
-    read_hardware_version:
+    read_version_0703:
       frame: "AA 07 03 <pad:20> <xor>"
       reply: "AA 07 03 ${version:ascii:16}"
       args:
         version: { type: string, max_len: 16 }
       notes: >-
-        The 03 is part of the request and the answer repeats it; 2.01.01 on this
-        unit. A frame of `AA 07` alone gets no answer at all. See
-        docs/protocol/ble.md 3.
+        The 03 is part of the request and the answer repeats it; 2.01.01 on
+        this unit. A frame of `AA 07` alone gets no answer at all. Nothing
+        establishes which module this version names, so the name carries the
+        opcode. See docs/protocol/ble.md 3.
 
   cloud: {}
+
+# What this unit does with a command a shared table declares. The layout stays
+# in the family; the numbers below were measured here.
+overrides:
+  ble:
+    read_version_06:
+      notes: >-
+        ASCII, zero-padded out to the checksum; 2.03.11 on this unit. See
+        docs/protocol/ble.md 3.
+
+    brightness:
+      notes: >-
+        The whole byte, not percent: 0 and 255 both reach the firmware and
+        both are applied. `0` renders nothing and does NOT turn the device off
+        — it reports itself on with a brightness of 0, so only `power` turns
+        it off. The Govee app drives this field over 20..254, which is a
+        choice of the app: 1 is dimmer than 20 on the unit. See
+        docs/protocol/ble.md 2.2.
+
+    color:
+      notes: >-
+        Sub-mode 13. The payload is the color triplet, a 16-bit kelvin field
+        and a second triplet, and this command zeroes the last two: a non-zero
+        kelvin makes the firmware render the second triplet instead of the
+        first, and the firmware renders no temperature of its own. The device
+        fades from one color to the next rather than cutting, and no frame was
+        found that turns that off. See docs/protocol/ble.md 2.3.
+
+    read_mode:
+      notes: >-
+        The live sub-mode and its eight payload bytes, left uninterpreted:
+        their meaning depends on the sub-mode, and the color one and the music
+        one are the two this file works out. This read reports what is playing
+        — writing a color moved it to 13 with that color, and writing music
+        moved it to 19 with every field of the frame. See
+        docs/protocol/ble.md 3.
+
+    music:
+      args:
+        effect: { range: [0, 1] }
+        sensitivity: { range: [1, 100] }
+      notes: >-
+        Sub-mode 19. The device listens on its own microphone. `effect`
+        selects the rendering, and the range above is what renders a music
+        effect: 0 and 1 each render one, 2 renders a fixed white, and 3 to 7
+        render nothing and leave the strips dark. Nothing told 0 apart from 1
+        on this unit, so neither identifier maps to an effect. `soft` changes
+        nothing observable here. `color_mode` 0 lets the firmware choose the
+        colors and ignores the triplet, which the device keeps stored from the
+        last frame that carried one; 1 plays the triplet. The firmware accepts
+        a value past every range above and reads it back. See
+        docs/protocol/ble.md 2.7.
 
 # Taken from Govee's published specification, not from a measurement of this
 # unit: four strips of 22 cm, 13 mm wide, not cuttable.
@@ -172,8 +140,9 @@ verified:
   firmware: "2.03.11"
   date: "2026-09-07"
   notes: >-
-    ble mode exercised over GATT, against soft version 2.03.11 and hard version
-    2.01.01. Every command in the table was sent to the device and its effect or
+    ble mode exercised over GATT. `aa 06` answered 2.03.11 and `aa 07 03`
+    answered 2.01.01; nothing establishes which module each names, and `aa 20`
+    and `aa 21` were not probed. Every command in the table was sent to the device and its effect or
     its answer observed. The unit carries the same GATT profile as the H61A0.
     Brightness was walked over 0, 1, 20, 254 and 255: 1 is visibly dimmer than
     the app's own floor of 20, and 0 goes dark while the device still reports

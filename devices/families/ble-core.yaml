@@ -1,0 +1,53 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "ble-core"
+
+description: >-
+  The four entries every device of this dialect carries: power, brightness,
+  the two reads that report them, and the live sub-mode. `brightness` takes
+  its bounds from `capabilities.brightness.range` of the device that includes
+  this table, because the unit of `level` is a property of the model. See
+  docs/protocol/ble.md 2 and 3.
+
+commands:
+  ble:
+    power:
+      role: power
+      frame: "33 01 ${on} <pad:20> <xor>"
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+
+    brightness:
+      role: brightness
+      frame: "33 04 ${level} <pad:20> <xor>"
+      args:
+        level: { type: int, range: capability, role: brightness }
+      notes: >-
+        One byte, in the unit the bounds above give: a percent on one model
+        and the whole 0..255 on another.
+
+    status:
+      role: status
+      frames:
+        - send:  "AA 01 <pad:20> <xor>"
+          reply: "AA 01 ${on}"
+        - send:  "AA 04 <pad:20> <xor>"
+          reply: "AA 04 ${level}"
+      args:
+        on: { type: int, range: [0, 1], role: "on" }
+        level: { type: int, range: capability, role: brightness }
+      notes: >-
+        Two reads: no single frame reports both.
+
+    read_mode:
+      frame: "AA 05 <pad:20> <xor>"
+      reply: "AA 05 ${submode} ${payload:bytes:8}"
+      args:
+        submode: { type: int, range: [0, 255] }
+        payload: { type: bytes, max_len: 8 }
+      notes: >-
+        The payload is left uninterpreted: its meaning depends on the
+        sub-mode.

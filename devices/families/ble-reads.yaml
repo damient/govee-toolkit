@@ -1,0 +1,49 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "ble-reads"
+
+description: >-
+  The four reads a device of this dialect answers beyond power and brightness:
+  the zone count, the IC count and the two versions. Include it where somebody
+  got an answer to each. See docs/protocol/ble.md 3.
+
+commands:
+  ble:
+    read_segment_count:
+      frame: "AA 0F <pad:20> <xor>"
+      reply: "AA 0F ${segments}"
+      args:
+        segments: { type: int, range: [0, 255] }
+      notes: >-
+        The width of the zone mask, which is neither the zones the phone
+        controller exposes nor the IC count.
+
+    read_ic_count:
+      frame: "AA 40 <pad:20> <xor>"
+      reply: "AA 40 ${pixels:16}"
+      args:
+        pixels: { type: int, range: [0, 65535] }
+      notes: >-
+        The addressable LEDs, 16-bit big-endian. It matches the native
+        resolution the lan segment channel reaches.
+
+    read_hardware_version:
+      frame: "AA 20 <pad:20> <xor>"
+      reply: "AA 20 ${version:ascii:17}"
+      args:
+        version: { type: string, max_len: 17 }
+      notes: >-
+        ASCII, zero-padded out to the checksum. The length is what stops the
+        field before that byte.
+
+    read_software_version:
+      frame: "AA 21 <pad:20> <xor>"
+      reply: "AA 21 ${version:ascii:17}"
+      args:
+        version: { type: string, max_len: 17 }
+      notes: >-
+        ASCII, zero-padded out to the checksum. The length is what stops the
+        field before that byte.

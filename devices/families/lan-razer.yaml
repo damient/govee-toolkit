@@ -1,0 +1,37 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "lan-razer"
+
+description: >-
+  The raw segment channel: one entry to arm it, one to paint. The bounds below
+  are the protocol's, not one model's — a device that drops a frame naming
+  more zones than it has narrows them in its own file. See
+  docs/protocol/lan.md 2.3.
+
+commands:
+  lan:
+    dreamview_enable:
+      cmd: "razer"
+      role: segment_enable
+      frame: "BB <len:16> <op:B1> ${on} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        on: { type: int, range: [0, 1], role: enable }
+      notes: >-
+        Arms the raw segment channel. Send turn(1) first.
+
+    segment_color:
+      cmd: "razer"
+      role: segment_color
+      frame: "BB <len:16> <op:B0> ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        gradient: { type: int, range: [0, 1], role: gradient }   # 0 = hard zones, 1 = interpolated and wraps
+        nb_seg: { type: int, range: [1, 255] }
+        colors: { type: rgb_list, max_len: 255, role: colors }
+      notes: >-
+        len counts the payload only, 16-bit, header and checksum excluded. An
+        inconsistent length is dropped in silence.

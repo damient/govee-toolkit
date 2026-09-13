@@ -84,6 +84,16 @@ signature.
 `measurements:`, which are the record of what somebody exercised; and the usage
 text a script prints as its own `--help`.
 
+**A family entry takes no `notes:` unless it has a fact to give.** In
+`devices/families/*.yaml`, `notes:` is optional and empty is the right answer
+more often than not. A cross-reference to `docs/protocol/*.md` is not a fact:
+the family's `description:` already points at the page, and the note is what
+`catalog.json` and `describe --json` carry to a reader who has no repository.
+Delete a family note that only restates the layout, the entry name or a
+section number; keep one that carries a trap, a unit or a bound. What one unit
+answered never goes there — that is the device file's `overrides:` or
+`verified:`.
+
 **The `missing_docs` exception.** `packages/rust` sets `missing_docs = "warn"`
 and `qa.sh` runs with `-D warnings`, so every public item must carry a `///`:
 there, the rule is not deletion but payload. Make it say what the signature

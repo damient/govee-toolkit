@@ -140,6 +140,13 @@ SKU.
 - **The site reads the device files too.** After a change to `devices/*.yaml`
   or to `docs/compatibility.md`, run `tools/qa-site.sh`. It rebuilds
   `dist/catalog.json`, which the devices page reads, and then the site.
+- **A family carries the layout; a `notes:` there is optional.** In
+  `devices/families/*.yaml`, leave the note out unless it gives a trap, a unit
+  or a bound. Never write a cross-reference to `docs/protocol/*.md` in one: the
+  `description:` already points at the page, and the note is what
+  `catalog.json` and `describe --json` hand a reader who has no repository. An
+  empty note is the right answer. What one unit answered goes in that model's
+  `overrides:` or `verified:`, never in the family.
 - **`verified:` notes are short.** Record what was exercised, the numbers, and
   every trap: a value the firmware clamps, an answer that is not an applied
   value, a frame that two units render differently. Do not narrate the method,

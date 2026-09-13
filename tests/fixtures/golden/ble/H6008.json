@@ -135,7 +135,7 @@
     },
     {
       "name": "read the soft version",
-      "command": "read_soft_version",
+      "command": "read_version_06",
       "args": {},
       "frames_hex": [
         "aa060000000000000000000000000000000000ac"

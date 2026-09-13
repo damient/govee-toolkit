@@ -78,7 +78,7 @@
     },
     {
       "name": "colour red over every zone the mask reaches",
-      "command": "color",
+      "command": "segment_color",
       "args": {
         "colors": [[255, 0, 0]],
         "zones": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
@@ -88,7 +88,7 @@
     },
     {
       "name": "colour green over zones 0 and 2 only",
-      "command": "color",
+      "command": "segment_color",
       "args": { "colors": [[0, 255, 0]], "zones": [0, 2] },
       "frames_hex": ["3305150100ff00000000000005000000000000d8"],
       "source": "docs/protocol/ble.md 2.3 — exercised on the unit; least significant bit first, so zones 0 and 2 are 0x05"
@@ -350,7 +350,7 @@
     },
     {
       "name": "a zone the mask cannot carry is rejected, not dropped in silence",
-      "command": "color",
+      "command": "segment_color",
       "args": { "colors": [[255, 0, 0]], "zones": [15] },
       "code": "out_of_range"
     },

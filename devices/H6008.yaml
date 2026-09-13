@@ -8,7 +8,12 @@ family: "rgbww-bulb"
 name: "Smart LED Bulb RGBWW"
 aliases: []
 include:
+  - lan-documented
+  - ble-core
+  - ble-color
+  - ble-version-06
   - ble-wifi-provision
+  - cloud-openapi
 
 candidate_aliases:      # Govee's LAN list gives each of these the same
   - H6004               # description as the H6008. Nobody verified one. The
@@ -63,132 +68,20 @@ modes:
       ones the API declares: see the `colortemp` entry.
 
 commands:
-  lan:
-    power:
-      cmd: "turn"
-      role: power
-      payload: { value: "${on}" }
-      args:
-        on: { type: int, range: [0, 1], role: "on" }
-
-    brightness:
-      cmd: "brightness"
-      role: brightness
-      payload: { value: "${level}" }
-      args:
-        level: { type: int, range: [1, 100], role: brightness }
-      notes: >-
-        This firmware does not clamp, which docs/protocol/lan.md 2.1 describes
-        for the models that do. It stores the byte it receives and reports it
-        back: 0 reads as 0, 101 reads as 101, and 200 reads as -56. The range
-        above is the one the phone controller uses, and the codec enforces it.
-
-    color:
-      cmd: "colorwc"
-      role: color
-      payload:
-        color: { r: "${r}", g: "${g}", b: "${b}" }
-        colorTemInKelvin: 0
-      args:
-        r: { type: int, range: [0, 255], role: red }
-        g: { type: int, range: [0, 255], role: green }
-        b: { type: int, range: [0, 255], role: blue }
-
-    colortemp:
-      cmd: "colorwc"
-      role: color_temp
-      payload:
-        color: { r: 0, g: 0, b: 0 }
-        colorTemInKelvin: "${kelvin}"
-      args:
-        kelvin: { type: int, range: [2700, 6500], role: color_temp }
-      notes: >-
-        The firmware converts the temperature to RGB itself and ignores the
-        color field, so the payload carries no white triplet and zeroes that
-        field. It clamps a value outside the range above in silence. See
-        docs/protocol/lan.md 1, "Documented commands".
-
-    status:
-      cmd: "devStatus"
-      role: status
-      payload: {}
-      args: {}
-
-    raw_status:
-      cmd: "status"
-      payload: {}
-      args: {}
-      notes: >-
-        Returns onOff, brightness and a frozen base64 `pt` capability
-        descriptor. Read-only in practice. See docs/protocol/lan.md 2.2.
-
+  # Every frame in this table is 20 bytes: proType, commandType, payload, then
+  # a XOR of the 19 bytes before it. See docs/protocol/ble.md 1.2.
   ble:
-    power:
-      role: power
-      frame: "33 01 ${on} <pad:20> <xor>"
-      args:
-        on: { type: int, range: [0, 1], role: "on" }
-      notes: "See docs/protocol/ble.md 2.1. This unit takes it encoded, see 9."
-
-    brightness:
-      role: brightness
-      frame: "33 04 ${level} <pad:20> <xor>"
-      args:
-        level: { type: int, range: [1, 100], role: brightness }
-      notes: "Percent. See docs/protocol/ble.md 2.2."
-
-    color:
-      role: color
-      frame: "33 05 0D ${r} ${g} ${b} 00 00 00 00 00 <pad:20> <xor>"
-      args:
-        r: { type: int, range: [0, 255], role: red }
-        g: { type: int, range: [0, 255], role: green }
-        b: { type: int, range: [0, 255], role: blue }
-      notes: >-
-        Sub-mode 13, the one-colour layout of docs/protocol/ble.md 2.3: the
-        triplet, then a kelvin value and a white triplet left at zero.
-
     colortemp:
       role: color_temp
       frame: "33 05 0D 00 00 00 ${kelvin:16} ${white_r} ${white_g} ${white_b} <pad:20> <xor>"
       args:
-        kelvin: { type: int, range: [2700, 6500], role: color_temp }
+        kelvin: { type: int, range: capability, role: color_temp }
         white_r: { type: int, range: [0, 255], role: white_red }
         white_g: { type: int, range: [0, 255], role: white_green }
         white_b: { type: int, range: [0, 255], role: white_blue }
       notes: >-
         Sub-mode 13 with the colour triplet at zero. See docs/protocol/ble.md
         2.3.
-
-    status:
-      role: status
-      frames:
-        - send:  "AA 01 <pad:20> <xor>"
-          reply: "AA 01 ${on}"
-        - send:  "AA 04 <pad:20> <xor>"
-          reply: "AA 04 ${level}"
-      args:
-        on: { type: int, range: [0, 1], role: "on" }
-        level: { type: int, range: [1, 100], role: brightness }
-      notes: "Two reads: no single frame reports both. See docs/protocol/ble.md 3."
-
-    read_mode:
-      frame: "AA 05 <pad:20> <xor>"
-      reply: "AA 05 ${submode} ${payload:bytes:8}"
-      args:
-        submode: { type: int, range: [0, 255] }
-        payload: { type: bytes, max_len: 8 }
-      notes: >-
-        The live sub-mode and its eight payload bytes, left uninterpreted. See
-        docs/protocol/ble.md 3.
-
-    read_soft_version:
-      frame: "AA 06 <pad:20> <xor>"
-      reply: "AA 06 ${version:ascii:17}"
-      args:
-        version: { type: string, max_len: 17 }
-      notes: "The firmware version, as text. See docs/protocol/ble.md 3."
-
     host_color:
       frame: "A5 02 83 ${r} ${g} ${b} <sum>"
       args:
@@ -216,69 +109,49 @@ commands:
         established the layout of that answer, so this entry declares no
         `reply:`. See docs/protocol/ble.md 8.
 
-  cloud:
-    power:
-      capability:
-        type: "devices.capabilities.on_off"
-        instance: "powerSwitch"
-      role: power
-      payload: "${on}"
-      args:
-        on: { type: int, range: [0, 1], role: "on" }
-
+# What this unit does with a command a shared table declares. The layout stays
+# in the family; the numbers below were measured here.
+overrides:
+  lan:
     brightness:
-      capability:
-        type: "devices.capabilities.range"
-        instance: "brightness"
-      role: brightness
-      payload: "${level}"
-      args:
-        level: { type: int, range: [1, 100], role: brightness }
-
-    color:
-      capability:
-        type: "devices.capabilities.color_setting"
-        instance: "colorRgb"
-      role: color
-      payload: "${r,g,b:rgb24}"
-      args:
-        r: { type: int, range: [0, 255], role: red }
-        g: { type: int, range: [0, 255], role: green }
-        b: { type: int, range: [0, 255], role: blue }
       notes: >-
-        This API carries the color as one integer. The three arguments keep the
-        names the `lan` layout gives them, so one call reads the same over both
-        modes.
+        This firmware does not clamp, which docs/protocol/lan.md 2.1 describes
+        for the models that do. It stores the byte it receives and reports it
+        back: 0 reads as 0, 101 reads as 101, and 200 reads as -56. The range
+        above is the one the phone controller uses, and the codec enforces it.
 
     colortemp:
-      role: color_temp
-      capability:
-        type: "devices.capabilities.color_setting"
-        instance: "colorTemperatureK"
-      payload: "${kelvin}"
-      args:
-        kelvin: { type: int, range: [2700, 6500], role: color_temp }
+      notes: >-
+        The firmware converts the temperature to RGB itself and ignores the
+        color field, so the payload carries no white triplet and zeroes that
+        field. It clamps a value outside the range above in silence. See
+        docs/protocol/lan.md 1, "Documented commands".
+
+  ble:
+    power:
+      notes: "See docs/protocol/ble.md 2.1. This unit takes it encoded, see 9."
+
+    brightness:
+      notes: "Percent. See docs/protocol/ble.md 2.2."
+
+    read_mode:
+      notes: >-
+        The live sub-mode and its eight payload bytes, left uninterpreted. See
+        docs/protocol/ble.md 3.
+
+  cloud:
+    brightness:
+      notes: >-
+        Percent. The API documents 0 as well, and nobody probed it over this
+        mode. This firmware does not clamp over `lan`, so what 0 reaches here
+        is unknown.
+
+    colortemp:
       notes: >-
         The account declares 2000 to 9000 K for this model. The firmware
         applies 2700 to 6500, the same bounds it applies over `lan`: the API
         answers success for 2000 and for 9000, and the state endpoint then
         reports the bound. The range above is what the device applies.
-
-    status:
-      role: status
-      reads:
-        - { instance: "powerSwitch", arg: "on" }
-        - { instance: "brightness", arg: "level" }
-        - { instance: "colorRgb", arg: "color" }
-        - { instance: "colorTemperatureK", arg: "kelvin" }
-      args:
-        on: { type: int, range: [0, 1], role: "on" }
-        level: { type: int, range: [0, 100], role: brightness }
-        color: { type: int, range: [0, 16777215], role: color }
-        kelvin: { type: int, range: [0, 9000], role: color_temp }
-      notes: >-
-        The ranges here are what an answer may carry, not what a caller may
-        send: 0 kelvin reports color mode rather than a temperature.
 
 measurements:
   # Taken on the unit whose versions `verified` names.
@@ -372,3 +245,7 @@ verified:
     stayed off the network. That number is the host colour channel and not this
     path. See tests/fixtures/ble-captures/H6008/provision.txt and
     docs/protocol/ble.md 4.
+    The four version reads were probed on 2026-09-13: `aa 06` and `aa 21` both
+    answer 1.01.25, and `aa 20` and `aa 07 03` both answer 1.07.03. Two values,
+    not four. The file declares `aa 06` alone; nothing establishes which module
+    each read names.

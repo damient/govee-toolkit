@@ -25,6 +25,15 @@ at.
 
 #### Added
 
+- Nine shared command tables in [`devices/families/`](devices/families/):
+  `lan-documented`, `lan-razer`, `ble-core`, `ble-reads`, `ble-version-06`,
+  `ble-color`, `ble-music`, `ble-segments` and `cloud-segments`.
+- `range: capability` on an integer argument takes the bounds from that model's
+  `capabilities:`, so a shared table declares a layout several models bound
+  differently. See [`devices/schema.yaml`](devices/schema.yaml).
+- `overrides:` patches one field of a command an `include:` brought in — a
+  bound, the `notes:`, or `drop:`. It reaches no command the file declares
+  itself.
 - `H6022` over `cloud`: power, brightness, colour, the white temperature,
   segments and music. The mode is `capped`.
 - `H6022` paints 15 zones over `cloud`, the width the `ble` mask has, and zone 0
@@ -66,6 +75,18 @@ at.
 
 #### Changed
 
+- `H6008`, `H6022`, `H6114` and `H61A0` declare their shared commands through
+  `include:` rather than a copy each. The bytes every entry builds are
+  unchanged, and the conformance vectors are what says so.
+- `H6008` and `H6022` include `cloud-openapi`. Each declares its own white
+  bounds, 2700 to 6500 K, through `range: capability`.
+- `H61A0` names its masked colour entry `segment_color`, as `H6022` does. It
+  was `color`, which is the name of the unmasked entry on another dialect.
+- The `aa 06` read is `read_version_06` on every file, and the `aa 07 03` read
+  is `read_version_0703`. Measured: the two reads answer values of their own on
+  the `H6022`, so neither names the soft or the hard version.
+- `H6008` and `H6022` `verified` records what the four version reads answer.
+  The `H6008` answers two values, the `H6022` four.
 - The `ble-wifi-provision` family reads `A1 11 <status>` back on both
   transfers, so a device that refuses the credentials is reported as refusing
   them. See `docs/protocol/ble.md` 4.

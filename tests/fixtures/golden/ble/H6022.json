@@ -324,7 +324,7 @@
     },
     {
       "name": "read the third version field",
-      "command": "read_soft_version",
+      "command": "read_version_06",
       "args": {},
       "frames_hex": [
         "aa060000000000000000000000000000000000ac"
