@@ -2,27 +2,8 @@
 //!
 //! A mode whose frames are a fixed size carries a longer payload as a start
 //! frame, a run of data frames and an end frame. The device file writes the
-//! three layouts and the slice size; this module cuts the body and fills in
-//! `count`, `total`, `index` and `chunk` — see `devices/schema.yaml`.
-//!
-//! ```yaml
-//! body: "${ssid:str8} ${password:str8}"
-//! chunk:
-//!   size: 16
-//!   header: "A1 <op:11> 00 ${count} 00 <pad:20> <xor>"
-//!   data:   "A1 <op:11> ${index} ${chunk:bytes} <pad:20> <xor>"
-//!   footer: "A1 <op:11> FF <pad:20> <xor>"
-//! ```
-//!
-//! Where the body starts and stops is the layouts' to say, because two
-//! dialects of one wire differ: a `head_size:` puts the first slice in the
-//! header, and a footer that reads `${chunk:bytes}` carries the last. A
-//! `then:` frame goes out after the transfer, for a wire that stores what was
-//! transferred and plays it with a second frame.
-//!
-//! A `reply:` in the block is the answer the whole transfer gets. It rides the
-//! footer, which is the frame that closes the transfer: the frames before it
-//! go out unanswered.
+//! layouts and the slice size; this module cuts the body and fills in the
+//! reserved names. See `devices/schema.yaml`, `body:` and `chunk:`.
 
 use std::sync::OnceLock;
 
@@ -43,8 +24,7 @@ pub const INDEX: &str = "index";
 pub const CHUNK: &str = "chunk";
 
 /// The names this module supplies. The validator refuses a command that
-/// declares one of them as an argument: it would overwrite a value the codec
-/// fills in.
+/// declares one of them as an argument.
 pub const RESERVED: [&str; 4] = [COUNT, TOTAL, INDEX, CHUNK];
 
 /// A command's `chunk:` block.
@@ -158,9 +138,8 @@ impl Layout {
         self.reply.iter().flat_map(ReplyLayout::capture_names)
     }
 
-    /// Build the header, one data frame per slice of the body, the footer, and
-    /// the `then:` frame where the block declares one. Each frame carries the
-    /// layout that reads its answer, which only the footer has.
+    /// Build every frame of the transfer. Each one carries the layout that
+    /// reads its answer, which only the footer has.
     ///
     /// # Errors
     ///
@@ -170,8 +149,6 @@ impl Layout {
         let (in_header, rest) = body.split_at(self.head_size.min(body.len()));
         let pieces: Vec<&[u8]> = rest.chunks(self.size).collect();
 
-        // A footer that reads the slice takes the last piece, so it is not a
-        // data frame. With no piece at all it carries an empty one.
         let (data, in_footer): (&[&[u8]], &[u8]) = if self.footer_takes_slice {
             pieces.split_last().map_or((&[], &[]), |(l, d)| (d, l))
         } else {
@@ -181,8 +158,8 @@ impl Layout {
         let mut frames = Vec::with_capacity(data.len() + 3);
         let total = i64::try_from(data.len() + 2).unwrap_or(i64::MAX);
 
-        // The slice and the index are replaced in place, so the caller's
-        // arguments are cloned once and not once per slice.
+        // Replaced in place below: one clone of the arguments, not one per
+        // slice.
         let mut filled = args.clone().int(COUNT, count).int(TOTAL, total);
         filled.insert(CHUNK, ArgValue::Bytes(in_header.to_vec()));
         frames.push(self.header.build(command, &filled)?);

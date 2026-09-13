@@ -67,9 +67,7 @@ fn a_slice_size_of_zero_would_never_terminate() {
     assert_eq!(err.code(), "chunk_syntax");
 }
 
-/// The dialect of `docs/protocol/ble.md` 6: the header carries the first
-/// thirteen bytes, the closing frame carries the last piece, and the count
-/// in the header is every frame of the transfer.
+/// The dialect of `docs/protocol/ble.md` 6.1.
 fn music() -> Layout {
     Layout::parse(
         "music",

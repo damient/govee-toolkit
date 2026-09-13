@@ -46,9 +46,7 @@ pub enum Error {
         modes: Vec<Mode>,
     },
 
-    /// A mode the configuration enables has no transport in this build. A
-    /// transport is a cargo feature, so a build carries the modes it was
-    /// asked for and no other.
+    /// A mode the configuration enables has no transport in this build.
     #[error("{id}: mode `{mode}` {NO_TRANSPORT_IN_BUILD}")]
     ModeNotImplemented {
         /// The device.

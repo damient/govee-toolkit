@@ -1,5 +1,3 @@
-// The development server. It serves `dist/` and nothing else.
-
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join } from "node:path";

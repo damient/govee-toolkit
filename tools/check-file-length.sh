@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 # Fails when a source file grows past the limit of its language.
 #
-# Neither Rust nor the web has a conventional file-length limit, and no
-# formatter enforces one; this is a repository rule. Per-function size is
-# covered separately by clippy::too_many_lines.
-#
-# The site is held tighter than Rust: a page of CSS or of JavaScript that one
-# person reads in one sitting is the unit the site is built from.
+# No formatter enforces a file-length limit; this is a repository rule.
+# Per-function size is covered separately by clippy::too_many_lines.
 
 set -euo pipefail
 

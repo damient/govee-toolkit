@@ -1,23 +1,15 @@
 //! Finding devices: which advertised names are ours, and what one carries.
 //!
-//! The SKU is written into the advertised name, under one of two
-//! grammars: between two underscores, or right after a `GV` prefix and before
-//! four hex digits. A family advertising under another name is not found — see
+//! The SKU comes out of the advertised name — `docs/protocol/ble.md` 1.3. A
+//! family that advertises under another name is not found; see
 //! [`Transport::bind`](super::transport::Transport::bind).
 //!
-//! `GBK_` and `GV` were both observed (`docs/protocol/ble.md` 1.3); the older
-//! brand prefixes are reported rather than seen.
-//!
-//! The advertisement data of the same advertisement says whether the device
-//! takes plaintext frames — see [`Beacon`] and `docs/protocol/ble.md` 1.5.
+//! The same advertisement says whether the device takes plaintext frames — see
+//! [`Beacon`] and `docs/protocol/ble.md` 1.5.
 
 use crate::ble::wire::Heard;
 
-/// How many characters a SKU has, in a name that delimits it by position
-/// rather than by underscores.
 const SKU_LEN: usize = 5;
-
-/// How many hex digits follow the SKU in such a name.
 const TAIL_LEN: usize = 4;
 
 /// The advertised-name prefixes recognized, matched case-insensitively.
@@ -27,10 +19,8 @@ pub const NAME_PREFIXES: [&str; 6] = ["GBK_", "GOVEE", "GVH", "GVR", "IHOMENT_",
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Advertised {
     /// The handle the platform addresses this peripheral by. This is where to
-    /// connect, and it is **not** the device's identity.
-    ///
-    /// The platform decides its shape: a Bluetooth address on one, a per-host
-    /// identifier on another. The adapter gets it back as it came.
+    /// connect, and it is **not** the device's identity. The platform decides
+    /// its shape, and the adapter gets it back as it came.
     pub endpoint: String,
     /// The name it advertises.
     pub name: String,
@@ -43,10 +33,7 @@ pub struct Advertised {
 
 impl Advertised {
     /// Read an advertisement, or `None` if the name is not one of ours or
-    /// carries no SKU.
-    ///
-    /// A name with no SKU field is refused rather than reported with an empty
-    /// one: nothing can be encoded for an unknown model.
+    /// carries no SKU. Nothing can be encoded for an unknown model.
     #[must_use]
     pub fn read(endpoint: impl Into<String>, name: &str) -> Option<Self> {
         let sku = sku_of(name)?;
@@ -58,8 +45,7 @@ impl Advertised {
         })
     }
 
-    /// Read everything an adapter heard: the name, and the advertisement
-    /// data.
+    /// Read the name and the advertisement data an adapter heard.
     #[must_use]
     pub fn heard(heard: &Heard) -> Option<Self> {
         let mut read = Self::read(heard.endpoint.clone(), &heard.name)?;
@@ -69,16 +55,11 @@ impl Advertised {
 }
 
 /// The advertisement data this transport reads, `docs/protocol/ble.md` 1.5.
-///
-/// Six bytes: a flags byte, the signature `88 EC`, a `pactType` on two bytes
-/// and a `pactCode` on one. Bit `0x40` of the flags says the device encodes
-/// every frame — see [`encode`](super::encode).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Beacon {
     /// Whether the device takes encoded frames only.
     pub encoded: bool,
-    /// The low nibble of the flags byte: a version of the layout. Nothing
-    /// here depends on it.
+    /// The low nibble of the flags byte. Nothing here depends on it.
     pub version: u8,
     /// The `pactType` field, big-endian.
     pub pact_type: u16,
@@ -86,22 +67,13 @@ pub struct Beacon {
     pub pact_code: u8,
 }
 
-/// The two bytes that follow the flags byte.
 const SIGNATURE: [u8; 2] = [0x88, 0xEC];
-
-/// Bytes of one advertisement entry this layout occupies.
 const LAYOUT_LEN: usize = 6;
-
-/// The bit of the flags byte that says the device takes encoded frames only.
 const ENCODED: u8 = 0x40;
 
 impl Beacon {
-    /// Read the advertisement data an adapter reports.
-    ///
-    /// A platform reads the first two bytes of each entry as a 16-bit prefix,
-    /// little-endian, and hands the rest over. This layout does not start
-    /// with such a prefix, so the two are put back together before parsing.
-    /// `None` if no entry carries the layout.
+    /// Read the advertisement data an adapter reports. `None` if no entry
+    /// carries the layout.
     #[must_use]
     pub fn read(adverts: &[(u16, Vec<u8>)]) -> Option<Self> {
         adverts.iter().find_map(|(prefix, data)| {
@@ -131,25 +103,17 @@ impl Beacon {
     }
 }
 
-/// Whether a name is one this transport recognizes.
-///
-/// This answers on the prefix alone. A name can carry a prefix and still hold
-/// no SKU this can read, so [`sku_of`] is what decides whether a device was
-/// found.
+/// Whether a name carries a prefix this transport recognizes. A name can carry
+/// one and still hold no SKU, so [`sku_of`] decides whether a device was found.
 #[must_use]
 pub fn is_govee(name: &str) -> bool {
     let upper = name.trim().to_uppercase();
     NAME_PREFIXES.iter().any(|prefix| upper.starts_with(prefix))
 }
 
-/// The SKU an advertised name carries.
-///
-/// Two grammars, and the name says which: an underscore-delimited name carries
-/// the SKU in its second field, and a `GV` name carries it in the five
-/// characters after the prefix, followed by four hex digits.
-///
-/// `None` for a name this transport does not recognize, and for a recognized
-/// name that matches neither grammar.
+/// The SKU an advertised name carries, in either grammar of
+/// `docs/protocol/ble.md` 1.3. `None` for a name this transport does not
+/// recognize, and for a recognized name that matches neither grammar.
 #[must_use]
 pub fn sku_of(name: &str) -> Option<String> {
     let name = name.trim();
@@ -162,10 +126,8 @@ pub fn sku_of(name: &str) -> Option<String> {
     positional_sku(name)
 }
 
-/// The SKU of a `GV<SKU><4 hex digits>` name.
-///
-/// The length is what tells this grammar from a longer name that merely starts
-/// the same way, so a name of any other length carries no SKU here.
+/// The length tells this grammar from a longer name that starts the same way,
+/// so a name of any other length carries no SKU.
 fn positional_sku(name: &str) -> Option<String> {
     let rest = name.get("GV".len()..)?;
     if !rest.is_ascii() || rest.len() != SKU_LEN + TAIL_LEN {
@@ -226,9 +188,8 @@ mod tests {
         assert_eq!(sku_of("GVH6008ZZZZ"), None);
     }
 
-    /// One bulb's advertisement, as a host reported it: the first two bytes
-    /// taken for a 16-bit prefix, and the payload repeated because the scan
-    /// response carries the same bytes.
+    /// One bulb's advertisement, as a host reported it. The payload repeats
+    /// because the scan response carries the same bytes.
     #[test]
     fn reads_the_encoding_flag_off_the_advertisement_data() {
         let heard = Heard {

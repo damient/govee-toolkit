@@ -3,12 +3,9 @@
 # order, and prints a pass/fail summary.
 #
 # Kept in step with pages.yml by hand: the workflow is the authority, this is
-# the local mirror of it. A check whose tool is missing is reported as skipped
-# rather than passed, because a skip that reads as a pass is how a red CI gets
-# discovered on the pull request instead of here.
+# the local mirror of it. The reporter and the skip rule are in lib/qa.sh.
 #
-# `tools/qa.sh` runs this script as one of its checks, so a full local run
-# covers the site as well.
+# `tools/qa.sh` runs this script as one of its checks.
 
 set -uo pipefail
 
@@ -41,7 +38,6 @@ fi
 
 if have npm && [ -d "$site/node_modules" ]; then
   check "site build" npm run --silent build
-  # The HTML linter reads dist/, so it runs after the build and not before.
   check "lint javascript" npm run --silent lint:js
   check "lint css" npm run --silent lint:css
   check "lint html" npm run --silent lint:html

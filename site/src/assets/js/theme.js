@@ -1,5 +1,5 @@
 // The head applies the theme before the first paint; this module only writes
-// it. sessionStorage keeps the choice for the tab and no longer.
+// it. sessionStorage keeps the choice for the tab and not beyond it.
 export function theme(button) {
   const system = matchMedia("(prefers-color-scheme: dark)");
   const current = () => document.documentElement.dataset.theme

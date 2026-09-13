@@ -71,7 +71,6 @@ pub enum Token {
 }
 
 impl Token {
-    /// Whether this token is a trailing checksum.
     fn is_checksum(&self) -> bool {
         matches!(self, Self::Xor | Self::Sum)
     }

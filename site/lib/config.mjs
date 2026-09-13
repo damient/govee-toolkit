@@ -6,9 +6,7 @@ import { fileURLToPath } from "node:url";
 
 /** The site directory: every input path starts here. */
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-/** The repository root, above the site. */
 export const repo = resolve(root, "..");
-/** The output directory. */
 export const dist = join(root, "dist");
 
 // The absolute form is for the canonical, the sitemap and the preview image,

@@ -1,4 +1,3 @@
-// The zones the decoration draws, and the color it paints them.
 
 // How many zones the decoration draws. This is a drawing count and not a
 // measurement: a real zone count belongs to a device file.

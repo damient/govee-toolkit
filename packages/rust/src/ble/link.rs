@@ -1,14 +1,11 @@
 //! One connection to one device: the two characteristics, and the replies.
 //!
-//! A device takes one connection and stops advertising while it is up, so the
-//! link is opened once and kept. Replies carry no request id, so a caller
-//! subscribes before it writes and matches the answer against its command's
-//! `reply:` layout.
+//! Replies carry no request id, so a caller subscribes before it writes and
+//! matches the answer against its command's `reply:` layout.
 //!
-//! A device that advertises the encoding flag gets the handshake of
-//! [`session`] as soon as the link is up. From then on every frame written is
-//! encoded and every reply is decoded before a caller sees it, so the layouts
-//! above this module read plaintext either way.
+//! On a link that advertises the encoding flag, [`session`] runs the handshake
+//! and every frame is encoded and decoded here, so the layouts above this
+//! module read plaintext either way.
 
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -106,8 +103,7 @@ impl Link {
         }));
 
         if encoded {
-            // Subscribed before the request goes out: the device answers
-            // within milliseconds.
+            // Subscribed before the request goes out; the answer is immediate.
             let mut raw = replies.subscribe();
             let codec = session::establish(peripheral.as_ref(), &mut raw, handshake_timeout)
                 .await
@@ -153,10 +149,8 @@ impl Link {
     }
 }
 
-/// Refuse a frame this wire cannot carry.
-///
-/// The wire carries two shapes: [`FRAME_LEN`] bytes, and the shorter host
-/// colour frame under [`HOST_COLOR_PROTYPE`].
+/// Refuse a frame this wire cannot carry: [`FRAME_LEN`] bytes, or the shorter
+/// host colour frame under [`HOST_COLOR_PROTYPE`].
 ///
 /// # Errors
 ///

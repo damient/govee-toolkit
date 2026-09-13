@@ -282,9 +282,7 @@ impl Shared {
         command: &Encoded,
     ) -> Result<()> {
         check_frames(command)?;
-        // A chunked command needs more than the write budget between frames:
-        // the firmware drops a transfer that arrives faster and answers
-        // nothing.
+        // The firmware drops a transfer paced faster than this, in silence.
         let chunked = command.frames.len() > 1;
         for (index, frame) in command.frames.iter().enumerate() {
             if chunked && index > 0 {

@@ -56,17 +56,13 @@ modes:
   #
   # support: full | capped | partial | none | unknown
   #   full    — the mode reaches every capability the hardware has
-  #   capped  — the mode reaches every capability the TRANSPORT carries, and
-  #             the transport carries less than the hardware has. Every name
-  #             under `unreachable` is `transport`. A boundary, not work left
-  #   partial — a name under `unreachable` is `unimplemented` or `unprobed`.
-  #             Work left on this device file
+  #   capped  — it reaches every capability the transport carries, and the
+  #             transport carries less
+  #   partial — a capability is out of reach because this file does not reach
+  #             it yet
   #   none    — somebody established that the hardware cannot do this mode
   #   unknown — nobody probed it. This is the default. A failed probe and an
   #             unimplemented feature look identical from outside
-  #
-  # The level follows from the reasons, and `cargo test` checks it against
-  # them: do not write `partial` for a transport boundary.
   #
   # capabilities: the names above this mode reaches; "all" means every
   #               capability the hardware has.
@@ -131,9 +127,7 @@ commands:
   #   <xor>                  XOR of every preceding byte. Must come last.
   #   <sum>                  low byte of the sum of every preceding byte. Must
   #                          come last. A layout carries <xor> or <sum>, never
-  #                          both. The wire decides which: the 20-byte frames
-  #                          take <xor> and the short host-audio frames take
-  #                          <sum>.
+  #                          both.
   #
   # Two errors, because the field would carry something other than what the
   # caller asked for:
@@ -380,10 +374,7 @@ commands:
     #                   `role: run_mode`, `role: timezone_hours`,
     #                   `role: timezone_minutes` and `role: iot_version`. The
     #                   caller supplies the first two and the offset; the SDK
-    #                   sends 0 for the run mode and the IoT version. Where the
-    #                   `chunk:` block declares a `reply:`, one captured field
-    #                   marked `role: ack_status` says whether the device took
-    #                   the transfer.
+    #                   sends 0 for the run mode and the IoT version.
     #   wifi_provision_with_api
     #                   all of those, plus one marked `role: api_url`.
   ble:

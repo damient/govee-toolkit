@@ -1,5 +1,5 @@
-// The stylesheet and the script. Both are bundled from an entry that imports
-// the rest, so a file stays small and the page still loads one of each.
+// Both are bundled from an entry that imports the rest, so a source file stays
+// small and the page still loads one stylesheet and one script.
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";

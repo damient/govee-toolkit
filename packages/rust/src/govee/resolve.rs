@@ -47,8 +47,8 @@ impl Govee {
             })
             .collect();
 
-        // No enabled mode has a transport here. The device is not unknown: the
-        // build carries nothing that can look for it, and that is what to say.
+        // The device is not unknown: the build carries nothing that can look
+        // for it, and that is what to say.
         if let (true, Some(&mode)) = (scans.is_empty(), modes.first()) {
             return Err(self.no_transport(id, mode));
         }

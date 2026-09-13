@@ -1,5 +1,5 @@
 //! The device's mutable state: what it received, what it answers, and the
-//! encoded-link handshake. Split from [`device`](super::device) for length.
+//! encoded-link handshake.
 
 use std::collections::BTreeMap;
 use std::time::{Duration, Instant};
@@ -28,14 +28,8 @@ pub(super) struct State {
     pub(super) transfer_status: u8,
 }
 impl State {
-    /// One frame on an encoded link, encoded or not.
-    ///
-    /// Before the handshake, the frame is decoded under the base seed: a
-    /// session seed request is answered with a seed, and anything else is
-    /// recorded as it came and answered with silence, as a plaintext frame on
-    /// such a device is. After it, the frame is decoded under the session seed,
-    /// a confirmation is echoed back, and a command is handled as on a
-    /// plaintext device, its answer encoded the same way.
+    /// One frame on an encoded link, under the base seed until the handshake
+    /// has run and under the session seed after it.
     pub(super) fn encoded(&mut self, frame: &[u8], now: Instant) -> Option<(Vec<u8>, Duration)> {
         let base = encode::q();
         let under_base = encode::apply(&base, frame, false);
@@ -148,7 +142,6 @@ pub(super) fn check(frame: &[u8]) -> std::io::Result<()> {
     Ok(())
 }
 
-/// Pad an answer to [`FRAME_LEN`] and write its checksum into the last byte.
 fn sealed(mut answer: Vec<u8>) -> Vec<u8> {
     answer.resize(FRAME_LEN, 0);
     let sum = bcc(&answer);

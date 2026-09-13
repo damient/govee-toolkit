@@ -1,16 +1,17 @@
 //! A fake peripheral on GATT, and the adapter that finds it, so the
 //! `ble` transport can be tested in CI. It can be told to go silent, to answer
 //! late, to drop answers, to refuse the connection, and to stall under a burst
-//! (`docs/protocol/ble.md` §5).
+//! (`docs/protocol/ble.md` 5).
 //!
 //! It plays the wire and not the firmware, as the `lan` device does: it checks
-//! the length and the BCC and acknowledges a write (§1.4), but reads no
-//! payload. Set what a read answers with [`BleDevice::set_read_answer`], and
-//! assert on [`BleDevice::received`].
+//! the length and the BCC and acknowledges a write (`docs/protocol/ble.md`
+//! 1.4), but reads no payload. Set what a read answers with
+//! [`BleDevice::set_read_answer`], and assert on [`BleDevice::received`].
 //!
 //! Under [`BleOptions::encoded`] it advertises the encoding flag and takes
-//! encoded frames only (§9): it runs the handshake, answers nothing to a
-//! plaintext frame, and records what an encoded frame carried once decoded.
+//! encoded frames only (`docs/protocol/ble.md` 9): it runs the handshake,
+//! answers nothing to a plaintext frame, and records what an encoded frame
+//! carried once decoded.
 
 mod device;
 pub mod encode;
@@ -25,7 +26,7 @@ use uuid::Uuid;
 pub use self::device::BleDevice;
 
 /// The service, repeated here so a simulator can be started without
-/// depending on the transport crate. See `docs/protocol/ble.md` §1.1.
+/// depending on the transport crate. See `docs/protocol/ble.md` 1.1.
 pub const SERVICE: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_1910);
 /// The characteristic frames are written to.
 pub const WRITE_CHARACTERISTIC: Uuid = Uuid::from_u128(0x0001_0203_0405_0607_0809_0a0b_0c0d_2b11);
@@ -80,13 +81,13 @@ pub struct BleOptions {
     /// The SKU its advertised name carries.
     pub sku: String,
     /// The name it advertises. `None` builds `GBK_<SKU>_0000`, the shape
-    /// `docs/protocol/ble.md` §1.3 documents.
+    /// `docs/protocol/ble.md` 1.3 documents.
     pub name: Option<String>,
     /// Whether it carries the service. `false` advertises and connects
     /// but leaves the link nothing to write to.
     pub carries_service: bool,
     /// Whether it advertises the encoding flag and takes encoded frames only.
-    /// See `docs/protocol/ble.md` §9.
+    /// See `docs/protocol/ble.md` 9.
     pub encoded: bool,
     /// How it misbehaves.
     pub faults: BleFaults,
@@ -99,8 +100,8 @@ pub struct OnAir {
     pub endpoint: String,
     /// The name it advertises.
     pub name: String,
-    /// The advertisement data, split the way a platform splits it: the first
-    /// two bytes read as a 16-bit prefix, little-endian, and the rest.
+    /// The advertisement data, split the way a platform splits it: a 16-bit
+    /// little-endian prefix, then the rest.
     pub adverts: Vec<(u16, Vec<u8>)>,
 }
 
@@ -122,7 +123,7 @@ impl BleOptions {
 /// A fake radio, holding the devices on the air.
 ///
 /// A device is reachable only once a scan has heard it, as on hardware, and a
-/// connected device stops advertising (`docs/protocol/ble.md` §1.1).
+/// connected device stops advertising (`docs/protocol/ble.md` 1.1).
 #[derive(Debug, Default)]
 pub struct BleAdapter {
     devices: Mutex<Vec<BleDevice>>,
@@ -230,11 +231,8 @@ impl BleAdapter {
     }
 }
 
-/// The BCC of a frame: the XOR of every byte but the last.
-///
-/// # Panics
-///
-/// Never: an empty frame answers 0.
+/// The BCC of a frame: the XOR of every byte but the last. An empty frame
+/// answers 0.
 #[must_use]
 pub fn bcc(frame: &[u8]) -> u8 {
     frame
