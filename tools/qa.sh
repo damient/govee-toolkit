@@ -61,6 +61,7 @@ else
 fi
 check "device catalog" cargo run -q -p xtask
 check "compatibility tables" cargo run -q -p xtask -- compat --check
+check "duplicated command layouts" cargo run -q -p xtask -- dupes
 
 if [ -z "$MSRV" ]; then
   skip "rust msrv" "no rust-version in packages/rust/Cargo.toml"
