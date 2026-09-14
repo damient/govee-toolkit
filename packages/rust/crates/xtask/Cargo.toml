@@ -11,9 +11,9 @@ authors.workspace = true
 publish = false
 
 [dependencies]
-# The catalog is serialized from the types the SDK loads, so the generated
-# file and the SDK cannot disagree. `default-features = false` leaves the
-# codec on its own: no transport, no async runtime.
+# The catalog is serialized from the types the SDK loads, so the two cannot
+# disagree. `default-features = false` leaves the codec alone, with no
+# transport and no async runtime.
 govee-toolkit = { path = "../..", default-features = false }
 serde_json.workspace = true
 serde_norway = "0.9"

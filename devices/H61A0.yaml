@@ -180,8 +180,6 @@ commands:
         list declares the instance as an enum over 0 and 1. See
         docs/protocol/cloud.md 5.
 
-# What this unit does with a command a shared table declares. The layout stays
-# in the family; the numbers below were measured here.
 overrides:
   lan:
     brightness:

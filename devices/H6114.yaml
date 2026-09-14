@@ -75,8 +75,6 @@ commands:
 
   cloud: {}
 
-# What this unit does with a command a shared table declares. The layout stays
-# in the family; the numbers below were measured here.
 overrides:
   ble:
     read_version_06:

@@ -1,12 +1,7 @@
 //! Bounds for an integer argument, and how a capability reference resolves.
 //!
-//! A device file writes `range: [min, max]`, or `range:
-//! <capability>.<parameter>` to take the pair from its own `capabilities:`. The
-//! reference keeps one number in one place: a shared table declares the layout,
-//! and the device file declares the bounds once, where a reader looks for them.
-//! The file names both halves, so a new capability needs no code here. The
-//! catalog resolves the reference when it loads the file, so nothing on the
-//! send path reads `capabilities:`.
+//! The catalog resolves a reference when it loads the device file, so nothing
+//! on the send path reads `capabilities:`.
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -30,10 +25,8 @@ pub enum Bounds {
 }
 
 impl Bounds {
-    /// The pair, or `None` while a reference is unresolved.
-    ///
-    /// Every device the catalog hands out carries pairs: a reference is
-    /// resolved on load, and a file it cannot be resolved for fails to load.
+    /// The pair, or `None` while a reference is unresolved. Every device the
+    /// catalog hands out carries pairs.
     #[must_use]
     pub fn pair(&self) -> Option<[i64; 2]> {
         match self {
@@ -136,7 +129,6 @@ fn resolve_table(
     Ok(())
 }
 
-/// The pair `reference` names, or what the file must fix.
 fn read(
     reference: &CapabilityRef,
     capabilities: &Capabilities,

@@ -1,10 +1,7 @@
 //! What a device file changes in a command an `include:` brought in.
 //!
-//! A shared table carries the layout, and one model differs in a bound or in
-//! what a reader must know before calling it. An override patches that one
-//! field, so the model keeps the shared layout rather than copying it. It
-//! reaches only a command a family declares: a local command is edited where
-//! it is written.
+//! An override reaches only a command a family declares. A local command is
+//! edited where it is written.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -43,8 +40,7 @@ impl Overrides {
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Override {
-    /// Remove the command. The hardware the family covers has it and this
-    /// model does not. Mutually exclusive with every other field.
+    /// Remove the command. Mutually exclusive with every other field.
     pub drop: bool,
     /// Replace what the family says a caller must know.
     pub notes: Option<String>,
@@ -55,8 +51,8 @@ pub struct Override {
     pub args: BTreeMap<String, ArgOverride>,
 }
 
-/// The bound of one argument. Every field is optional, and one that does not
-/// apply to the argument's type is an error rather than a value nothing reads.
+/// The bound of one argument. A field the argument's type has no room for is
+/// an error, not a value nothing reads.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ArgOverride {
@@ -70,15 +66,13 @@ pub struct ArgOverride {
 
 /// Apply `overrides` to `table`, which holds the commands of `mode`.
 ///
-/// `local` names the commands the device file declares itself. Those are
-/// refused: a file edits its own command where it writes it.
+/// `local` names the commands the device file declares itself.
 ///
 /// # Errors
 ///
 /// [`Error::Override`] where the patch names a command no included table
 /// carries, names a local command, names an argument the command does not
-/// declare, carries a field the argument's type has no room for, or sets a
-/// value the command already has.
+/// declare, or sets a value the command already has.
 pub fn apply(
     file: &str,
     mode: Mode,

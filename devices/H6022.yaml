@@ -80,8 +80,8 @@ modes:
       request every few seconds. See docs/protocol/cloud.md 5 and 6.
 
 commands:
-  # Every frame in this table is 20 bytes: proType, commandType, payload, then
-  # a XOR of the 19 bytes before it. See docs/protocol/ble.md 1.2.
+  # Every frame here is 20 bytes: proType, commandType, payload, then a XOR of
+  # the 19 bytes before it. See docs/protocol/ble.md 1.2.
   ble:
     colortemp:
       role: color_temp
@@ -95,8 +95,6 @@ commands:
         rendering the firmware computed. It clamps a value outside the range
         above in silence. See docs/protocol/ble.md 2.3.
 
-# What this unit does with a command a shared table declares. The layout stays
-# in the family; the numbers below were measured here.
 overrides:
   lan:
     brightness:
@@ -144,9 +142,10 @@ overrides:
 
     read_mode:
       notes_append: >-
-        It reports the fields of a sub-mode 13 frame, so `color` and `colortemp` read back here. Under
-        sub-mode 21 the payload is zero, and under sub-mode 19 it never echoes
-        what was written — see `verified:`. See docs/protocol/ble.md 3.
+        It reports the fields of a sub-mode 13 frame, so `color` and
+        `colortemp` read back here. Under sub-mode 21 the payload is zero, and
+        under sub-mode 19 it never echoes what was written — see `verified:`.
+        See docs/protocol/ble.md 3.
 
     read_segment_count:
       notes_append: >-
@@ -278,7 +277,7 @@ verified:
 
     One zone is one LED. Zone 124 and zone 131 light two different LEDs, and
     each index from 124 to 131 lights one. The grid is 12 LEDs around one ring
-    and 11 rings up the cylinder. A count of the LEDs is for a mode that reaches past 132 zones.
+    and 11 rings up the cylinder.
 
     Trap: the diffuser blurs the edge between two zones, so this unit reports
     nothing about the `gradient` byte to the eye. Every frame above was sent
@@ -295,8 +294,11 @@ verified:
     command below went through the Rust CLI, which sends exactly the frames
     this file declares.
 
-    The three version reads answer different values: `AA 20` 1.04.01, `AA 21`
-    1.03.08 and `AA 06` 1.00.14. `firmware:` above carries the `AA 21` one.
+    The four version reads answer four values that all differ: `AA 20` 1.04.01,
+    `AA 21` 1.03.08, `AA 06` 1.00.14 and `AA 07 03` 3.05.01. The H6008 answers
+    two values for the same four reads, so no read here is the same read as
+    another, and nothing establishes which module each one names. `firmware:`
+    above carries the `AA 21` one.
 
     Power and brightness answer and read back over `AA 01` and `AA 04`.
     Brightness is percent and it scales the whole lamp. Brightness 0 was NOT
@@ -390,8 +392,3 @@ verified:
 
     The state answer also carries an `online` flag, which the SDK models
     nothing of.
-    The four version reads were probed on 2026-09-13: `aa 06` answers 1.00.14,
-    `aa 21` answers 1.03.08, `aa 20` answers 1.04.01 and `aa 07 03` answers
-    3.05.01. Four values that all differ, against the two the H6008 answers, so
-    no read here is the same read as another. Nothing establishes which module
-    each names.

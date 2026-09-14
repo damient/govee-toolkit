@@ -32,9 +32,6 @@ export function sorted(catalog) {
 
 const support = (device, mode) => device.modes?.[mode]?.support ?? "unknown";
 
-// The support values that say a mode reaches the device. `none` is the hardware
-// that cannot do it and `unknown` is the mode nobody probed, and neither is a
-// mode a reader can drive.
 const REACHES = new Set(["full", "capped", "partial"]);
 const pill = (value) =>
   `<span class="pill pill-${value}">${value === "unknown" ? "?" : value}</span>`;
@@ -52,8 +49,7 @@ export function renderIndex(template, devices) {
 }
 
 // One cell of the list: the capabilities the mode reaches, as icons. A mode
-// that reaches none carries its state instead, and the two states are opposite
-// claims — the hardware cannot do it, or nobody looked.
+// that reaches none carries its state instead.
 function modeCell(d, mode) {
   const state = support(d, mode);
   // Two capabilities that share a mark read as one mark repeated, so the list
@@ -183,8 +179,7 @@ function counts(key, value, device) {
 }
 
 
-// Every mode holds a row. A mode that reaches nothing answers in words, where
-// the list of models answers in a mark: the row has the width for it.
+// Every mode holds a row, and one that reaches nothing answers in words.
 function modeCaps(d, mode) {
   const caps = [...(d.modes?.[mode]?.capabilities ?? [])].sort((a, b) => order(a) - order(b));
   if (caps.length) {

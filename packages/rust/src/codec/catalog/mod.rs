@@ -309,8 +309,7 @@ pub struct Device {
     /// commands they carry are merged into [`Device::commands`] on load, so
     /// nothing downstream can tell an included entry from a local one.
     ///
-    /// Not serialized: a generated catalog is flat, so a reader of it resolves
-    /// nothing.
+    /// Not serialized: the generated catalog is flat.
     #[serde(default, skip_serializing)]
     pub include: Vec<String>,
     /// What the hardware can do.
