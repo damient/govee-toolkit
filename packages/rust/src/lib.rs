@@ -54,6 +54,10 @@
 // nightly rustdoc feature, and `docsrs` is set by the docs.rs build alone.
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+/// The version of this crate. A binding reports it as the core it was built
+/// from, so no binding carries a copy of the number.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub mod codec;
 
 #[cfg(feature = "ble")]
