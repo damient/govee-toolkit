@@ -147,6 +147,11 @@ SKU.
   `catalog.json` and `describe --json` hand a reader who has no repository. An
   empty note is the right answer. What one unit answered goes in that model's
   `overrides:` or `verified:`, never in the family.
+- **An override adds to the shared note, it does not restate it.** In a
+  device file's `overrides:`, `notes_append:` keeps what the family says and
+  puts the model's fact after it. Write `notes:` only where the shared note is
+  wrong for the model: a replacement that repeats the family goes stale the
+  day the family changes.
 - **`verified:` notes are short.** Record what was exercised, the numbers, and
   every trap: a value the firmware clamps, an answer that is not an applied
   value, a frame that two units render differently. Do not narrate the method,

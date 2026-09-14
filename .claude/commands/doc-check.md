@@ -200,6 +200,13 @@ whether to trust a command, so they carry evidence and nothing else:
   firmware drops without saying so;
 - **an open question**, as an explicit `TODO`.
 
+In a device file's `overrides:`, check which key carries the note. A note that
+repeats the family's and then adds one fact is `notes_append:`, which keeps the
+shared sentence and appends the model's. `notes:` replaces, so it is right only
+where the family's sentence is wrong for this model. Rewrite an override that
+restates the family into the append form, carrying over the model's facts and
+nothing else.
+
 Delete from a `notes:`, do not reword: a restatement of the `frame:` above it
 token by token, a restatement of the argument's own `range:`, a sentence
 arguing why the SDK behaves as it does — that belongs in `docs/` and in the
