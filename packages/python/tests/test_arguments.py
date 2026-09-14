@@ -1,8 +1,10 @@
 """How a Python value crosses into a command argument.
 
-The binding converts before it sends. A value it accepts reaches the send
-path and fails there, on the unknown device these tests use; a value it
-refuses raises `ValueError` and nothing is sent either way.
+The binding reads the shape of a value and the device file states its type:
+the send path reads a list of whole numbers as zone indices, byte values or
+one color, under what the entry declares. A shape the binding takes reaches
+that path and fails there, on the unknown device these tests use; a shape it
+takes for no argument raises `ValueError` and nothing is sent either way.
 """
 
 import pytest
@@ -18,7 +20,7 @@ ACCEPTED = [
     pytest.param("text", id="str"),
     pytest.param(b"\x01\x02", id="bytes"),
     pytest.param([(255, 0, 0), (0, 255, 0)], id="colors"),
-    pytest.param([0, 1, 2], id="zones"),
+    pytest.param([0, 1, 2], id="whole numbers"),
 ]
 
 REFUSED = [
@@ -34,7 +36,7 @@ async def test_an_accepted_value_reaches_the_send_path(handle, value):
 
 
 @pytest.mark.parametrize("value", REFUSED)
-async def test_a_value_of_no_argument_type_is_refused(handle, value):
+async def test_a_shape_no_argument_takes_is_refused(handle, value):
     with pytest.raises(ValueError):
         await call(handle.send, "power", value=value)
 

@@ -5,6 +5,8 @@
 
 use std::future::Future;
 
+use govee_toolkit::codec::coerce::{self, Supplied};
+use govee_toolkit::codec::{Args, Error as CodecError};
 use govee_toolkit::{
     DeviceId, Error, Govee as CoreGovee, Music, Paint, Provisioned, Served as CoreServed,
     StreamOptions, WifiCredentials,
@@ -102,8 +104,9 @@ impl DeviceHandle {
 
     /// Send a command, named as the device file names it.
     ///
-    /// The arguments are the ones the entry declares. A value outside the
-    /// declared range raises `CodecError`, and nothing is sent.
+    /// The arguments are the ones the entry declares, and each value is read
+    /// under the type the entry declares for it. A value outside the declared
+    /// range raises `CodecError`, and nothing is sent.
     #[pyo3(signature = (command, **args))]
     fn send<'py>(
         &self,
@@ -111,8 +114,9 @@ impl DeviceHandle {
         command: String,
         args: Option<&Bound<'py, PyDict>>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let values = conv::args(args)?;
+        let supplied = conv::args(args)?;
         self.served(py, |govee, id| async move {
+            let values = declared(&govee, &id, &command, supplied)?;
             govee.device(&id).send(&command, &values).await
         })
     }
@@ -126,9 +130,10 @@ impl DeviceHandle {
         command: String,
         args: Option<&Bound<'py, PyDict>>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let values = conv::args(args)?;
+        let supplied = conv::args(args)?;
         let (govee, id) = self.parts();
         future_into_py(py, async move {
+            let values = map(declared(&govee, &id, &command, supplied))?;
             let reply = map(govee.device(&id).read(&command, &values).await)?;
             Ok(Reply::from(reply))
         })
@@ -317,6 +322,38 @@ impl DeviceHandle {
         let call = verb(govee, id);
         future_into_py(py, async move { Ok(Served::from(map(call.await)?)) })
     }
+}
+
+/// Read the supplied values under the types the device file declares, on the
+/// mode a send now would go over.
+///
+/// The mode is resolved first, because one entry name can declare different
+/// arguments on two modes. An entry the mode does not carry takes no
+/// arguments, so that the codec reports the unknown command rather than an
+/// unknown argument of it.
+fn declared(
+    govee: &CoreGovee,
+    id: &DeviceId,
+    command: &str,
+    supplied: Vec<(String, Supplied)>,
+) -> Result<Args, Error> {
+    let handle = govee.device(id);
+    let mode = handle.serving_mode()?;
+    let Some(entry) = handle.spec()?.commands.get(mode).get(command) else {
+        return Ok(Args::new());
+    };
+    let mut values = Args::new();
+    for (name, value) in supplied {
+        let spec = entry
+            .args
+            .get(&name)
+            .ok_or_else(|| CodecError::UnknownArg {
+                command: command.to_owned(),
+                arg: name.clone(),
+            })?;
+        values.insert(&name, coerce::read(command, &name, spec, value)?);
+    }
+    Ok(values)
 }
 
 /// Add the handle to the module.

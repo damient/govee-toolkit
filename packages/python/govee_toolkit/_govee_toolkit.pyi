@@ -259,7 +259,12 @@ class DeviceHandle:
         """Scan if no mode knows the device, then name the mode it answers on."""
 
     async def send(self, command: str, **args: Arg) -> Served:
-        """Send one device file command."""
+        """Send one device file command.
+
+        Every value is read under the type the entry declares for that
+        argument, so a list of whole numbers is zone indices, byte values or
+        one color as the file says.
+        """
 
     async def read(self, command: str, **args: Arg) -> Reply:
         """Send one device file command and read what it answers."""

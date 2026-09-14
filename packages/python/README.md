@@ -61,7 +61,9 @@ async def main():
 asyncio.run(main())
 ```
 
-`handle.send()` takes any command the device file declares. The common ones also
+`handle.send()` takes any command the device file declares. Each value is read
+under the type that entry declares for the argument, so `[0, 1, 2]` is zone
+indices, byte values or one color as the file says. The common ones also
 have a method: `power()`, `brightness()`, `color()`, `color_temp()`, `music()`,
 `segment()`, `gradient()` and `provision_wifi()`. `handle.read()` and
 `handle.status()` ask the device instead. `handle.open_stream()` opens a segment
