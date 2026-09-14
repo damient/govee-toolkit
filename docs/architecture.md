@@ -113,6 +113,11 @@ revision it was generated at; CI builds it on every run and a release attaches
 it. A third-party tool reads that one file instead of walking a directory and
 parsing YAML. It is a build output, never committed.
 
+`xtask` loads the device files through the crate and serializes the entries it
+holds. The catalog therefore says what the SDK reads, and the two cannot
+disagree. It is flat: an `include:` and an `overrides:` block are applied on
+load, so neither reaches the file and a reader of it resolves nothing.
+
 The crate **compiles the catalog in**, at build time, which keeps the SDK a
 single artifact: no data file to install, no path to configure. Loading
 an external catalog at runtime is deferred — it ships a device fix without a

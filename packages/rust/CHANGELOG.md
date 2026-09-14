@@ -11,6 +11,8 @@ releases apart and keeps
 
 ### Added
 
+- `serde::Serialize` on `codec::Device`, `codec::Family` and every type they
+  hold, so a catalog entry writes back out as JSON.
 - `codec::Bounds` — an integer argument's `range:`, either a pair or the
   keyword `capability`, which takes the pair from the device's `capabilities:`
   through the argument's role. The catalog resolves it on load.
@@ -55,6 +57,8 @@ releases apart and keeps
 
 ### Changed
 
+- `xtask catalog` serializes the entries the crate loads, so `catalog.json`
+  states what the SDK reads. An empty table or list is left out of the file.
 - **Breaking:** `provision_wifi()` returns `Provisioned` rather than `()`.
   `Provisioned::Accepted` says the device took the credentials; it says nothing
   about the network.

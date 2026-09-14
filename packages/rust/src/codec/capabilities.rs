@@ -11,31 +11,36 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 /// The capability carrying addressable zones.
 pub const SEGMENTS: &str = "segments";
 
 /// Parameters qualifying one capability, named below. All optional, and an
 /// unknown one fails the file to load.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CapabilityParams {
     /// Accepted bounds, inclusive — `brightness`.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub range: Option<[i64; 2]>,
     /// Accepted bounds in kelvin, inclusive — `colortemp`.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub range_kelvin: Option<[i64; 2]>,
     /// Zones the Govee app exposes — `segments`.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub count: Option<u32>,
     /// Individually addressable LEDs, measured on a physical unit —
     /// `segments`. Absent means nobody measured one; it is never
     /// extrapolated.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub native_pixels: Option<u32>,
 }
 
 /// What the hardware can do, regardless of mode. A capability it does not have
 /// is **absent**, never `false`.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(transparent)]
 pub struct Capabilities(BTreeMap<String, CapabilityParams>);
 
 impl Capabilities {
@@ -86,7 +91,7 @@ impl<'de> Deserialize<'de> for Capabilities {
 }
 
 /// The capabilities a mode reaches.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ModeCapabilities {
     /// The literal `all`: every capability the hardware has.
@@ -114,7 +119,7 @@ impl Default for ModeCapabilities {
 }
 
 /// The `all` keyword, as it appears in a device file.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AllKeyword {
     /// `capabilities: all`
@@ -124,7 +129,7 @@ pub enum AllKeyword {
 /// Why a capability the hardware has is out of a mode's reach.
 ///
 /// The vocabulary is documented in `docs/compatibility.md`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Reason {
     /// Established that this transport does not carry it. A claim about the
