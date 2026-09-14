@@ -11,6 +11,12 @@ releases apart and keeps
 
 - `codec::CapabilityRef` — the capability and the parameter an argument's
   `range:` names, and `codec::PAIR_PARAMS`, the parameters that carry a pair.
+- `notes_append:` in a device file's `overrides:`. It keeps what the included
+  table says and adds the model's fact after it, joined with a space, so that
+  a model no longer restates the shared note to add one sentence. It is
+  mutually exclusive with `notes:`, and `Error::Override` reports a patch that
+  carries both, one that appends to a command the table gives no note for, and
+  one whose text the table already says.
 
 ### Changed
 

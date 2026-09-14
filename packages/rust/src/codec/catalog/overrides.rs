@@ -48,6 +48,9 @@ pub struct Override {
     pub drop: bool,
     /// Replace what the family says a caller must know.
     pub notes: Option<String>,
+    /// Add one more thing a caller must know, after what the family says.
+    /// The two join with a space. Mutually exclusive with `notes`.
+    pub notes_append: Option<String>,
     /// Replace a bound, by argument name.
     pub args: BTreeMap<String, ArgOverride>,
 }
@@ -99,7 +102,7 @@ pub fn apply(
             return Err(fail("no table this file includes declares it".to_owned()));
         };
         if patch.drop {
-            if patch.notes.is_some() || !patch.args.is_empty() {
+            if patch.notes.is_some() || patch.notes_append.is_some() || !patch.args.is_empty() {
                 return Err(fail(
                     "`drop` removes the command, so it takes no other field".to_owned(),
                 ));
@@ -117,13 +120,38 @@ fn apply_one(
     patch: &Override,
     fail: &impl Fn(String) -> Error,
 ) -> Result<()> {
-    if let Some(notes) = &patch.notes {
-        if *notes == command.notes {
+    match (&patch.notes, &patch.notes_append) {
+        (Some(_), Some(_)) => {
             return Err(fail(
-                "`notes` repeats what the table already says".to_owned(),
+                "`notes` replaces the note and `notes_append` extends it, so a patch takes one \
+                 or the other"
+                    .to_owned(),
             ));
         }
-        command.notes.clone_from(notes);
+        (Some(notes), None) => {
+            if *notes == command.notes {
+                return Err(fail(
+                    "`notes` repeats what the table already says".to_owned(),
+                ));
+            }
+            command.notes.clone_from(notes);
+        }
+        (None, Some(extra)) => {
+            if command.notes.is_empty() {
+                return Err(fail(
+                    "the table gives no note to append to; write the whole note under `notes`"
+                        .to_owned(),
+                ));
+            }
+            if command.notes.contains(extra.as_str()) {
+                return Err(fail(
+                    "`notes_append` repeats what the table already says".to_owned(),
+                ));
+            }
+            command.notes.push(' ');
+            command.notes.push_str(extra);
+        }
+        (None, None) => {}
     }
     for (arg, bound) in &patch.args {
         let Some(spec) = command.args.get_mut(arg) else {
