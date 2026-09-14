@@ -1,4 +1,13 @@
 # Publishes packages/python. Triggered by a python-vX.Y.Z tag.
+#
+# The package is a compiled extension module, so the distribution is a set of
+# abi3 wheels built by maturin, one per platform and architecture.
+#
+# No sdist. `packages/rust/build.rs` embeds `devices/*.yaml` from ../../devices,
+# and an sdist of packages/python alone does not carry that directory, so it
+# cannot build. A source install needs the repository and GOVEE_DEVICES_DIR.
+#
+# armv7 and musl wheels are not built yet.
 name: Python release
 
 on:
@@ -6,26 +15,95 @@ on:
   push:
     tags: ["python-v*"]
 
+permissions:
+  contents: read
+
 jobs:
-  release:
+  # The tag, the manifest version and the changelog heading have to carry the
+  # same number before anything is built or published.
+  agree:
+    name: Tag, manifest and changelog agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: github.event_name == 'push'
+        run: tools/release-notes.sh python "$GITHUB_REF_NAME" > /dev/null
+
+  wheels:
+    name: Wheel (${{ matrix.name }})
+    needs: agree
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, name: linux-x86_64 }
+          - { os: ubuntu-24.04-arm, name: linux-aarch64 }
+          - { os: macos-13, name: macos-x86_64 }
+          - { os: macos-14, name: macos-aarch64 }
+          - { os: windows-2022, name: windows-x86_64 }
+          - { os: windows-11-arm, name: windows-aarch64 }
+    defaults:
+      run:
+        working-directory: packages/python
+        # The steps below use POSIX shell syntax; Windows would otherwise run
+        # them through PowerShell.
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # One interpreter builds the wheel: it is abi3, so it imports on
+          # every Python from 3.10 up.
+          python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+      # The binding builds the core with every transport, and btleplug reaches
+      # BlueZ over D-Bus, so the `ble` feature needs the dbus headers here.
+      # macOS and Windows carry their radio stack in the platform SDK.
+      - name: D-Bus headers
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
+      - run: pip install maturin
+      # maturin runs on the runner and not in a manylinux container, so a Linux
+      # wheel carries the manylinux tag of the runner's glibc. A distribution
+      # older than that runner cannot install it.
+      - name: Build the wheel
+        run: maturin build --release --out dist
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wheels-${{ matrix.name }}
+          path: packages/python/dist/*.whl
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    needs: wheels
     runs-on: ubuntu-latest
     permissions:
       id-token: write   # PyPI trusted publishing
       contents: write   # create the GitHub release
+      actions: read     # read this run's wheel artifacts
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The tag, the manifest version and the changelog heading have to carry
-      # the same number before anything is built or published.
-      - name: Tag, manifest and changelog agree
+      - name: Release notes
         if: github.event_name == 'push'
         run: |
           tools/release-notes.sh python "$GITHUB_REF_NAME" \
             > "$RUNNER_TEMP/notes.md"
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.11"
-      - run: pip install build
-      - run: python -m build packages/python
+      # `gh run download` rather than an action: nothing in this repository
+      # pins actions/download-artifact, and the gh CLI is already how the
+      # release workflows talk to GitHub. Every artifact lands in a directory
+      # of its own, so the wheels are collected into one directory after.
+      - name: Collect the wheels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          gh run download "$GITHUB_RUN_ID" --dir artifacts --pattern 'wheels-*'
+          find artifacts -name '*.whl' -exec mv {} dist/ \;
+          ls -l dist
       # Trusted publishing: PyPI trades this job's OIDC identity for a
       # short-lived token, so no registry token lives in the repository.
       # PyPI keeps a version forever, and a tag moved to a new commit reruns
@@ -33,7 +111,7 @@ jobs:
       # failure.
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
-          packages-dir: packages/python/dist
+          packages-dir: dist
           skip-existing: true
       - name: GitHub release
         if: github.event_name == 'push'

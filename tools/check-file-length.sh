@@ -37,6 +37,7 @@ over() {
 
 if [ "$group" != site ]; then
   over "$RUST_LIMIT" packages/rust/src packages/rust/tests packages/rust/crates \
+    packages/python/src \
     -name '*.rs' -not -path '*/target/*'
 fi
 
