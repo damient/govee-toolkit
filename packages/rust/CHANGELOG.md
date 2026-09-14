@@ -7,50 +7,43 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.8.0] — 2026-09-14
+
 ### Added
 
-- `codec::CapabilityRef` — the capability and the parameter an argument's
-  `range:` names, and `codec::PAIR_PARAMS`, the parameters that carry a pair.
+- `codec::Bounds` — an integer argument's `range:`, either a pair or
+  `<capability>.<parameter>`, which takes the pair from the device's
+  `capabilities:`. The catalog resolves it on load.
+- `codec::CapabilityRef` — the capability and the parameter a `range:` names,
+  and `codec::PAIR_PARAMS`, the parameters that carry a pair.
+- `Device::overrides` — what a device file changes in a command an `include:`
+  brought in: one bound, the `notes:`, or `drop:` to remove the command. The
+  catalog applies it on load, so nothing on the send path reads it.
 - `notes_append:` in a device file's `overrides:`. It keeps what the included
-  table says and adds the model's fact after it, joined with a space, so that
-  a model no longer restates the shared note to add one sentence. It is
-  mutually exclusive with `notes:`, and `Error::Override` reports a patch that
-  carries both, one that appends to a command the table gives no note for, and
-  one whose text the table already says.
+  table says and adds the model's fact after it. It is mutually exclusive with
+  `notes:`, and `Error::Override` reports a patch that carries both.
+- `Error::CapabilityBounds`, `Error::Override` and `Error::UnresolvedBounds`,
+  with the codes `capability_bounds`, `override` and `unresolved_bounds`.
+- `serde::Serialize` on `codec::Device`, `codec::Family` and every type they
+  hold, so a catalog entry writes back out as JSON.
+- `xtask dupes` — command layouts two device files declare and no shared table
+  carries. CI runs it.
 
 ### Changed
 
-- **Breaking:** `codec::Bounds::FromCapability` carries a `codec::CapabilityRef`
-  — the capability and the parameter a device file names, read from
-  `<capability>.<parameter>`. It replaces `codec::CapabilityKeyword`, which
-  resolved through the argument's role and reached two capabilities only.
-  `Bounds` takes `&self` rather than `Copy` for it.
-- **Breaking:** `Error::CapabilityBounds` carries `problem` in place of
-  `needs`. The code stays `capability_bounds`.
-- **Breaking:** `codec::ArgSpec::Int` carries `range: Option<Bounds>`. `None`
-  is an argument no device file bounds: the value goes out as the caller gave
-  it. Match on `Some` where the pair is read.
+- **Breaking:** `codec::ArgSpec::Int` carries `range: Option<Bounds>` in place
+  of `[i64; 2]`. `None` is an argument no device file bounds: the value goes
+  out as the caller gave it. Match on `Some` where the pair is read.
 - **Breaking:** the minimum supported Rust version is 1.89. Update the
   toolchain: the `aes` 0.9 block cipher the encoded `ble` link runs on needs it.
+- `xtask catalog` serializes the entries the crate loads, so `catalog.json`
+  states what the SDK reads. An empty table or list is left out of the file.
 - The `cloud` feature reads its TLS trust anchors from the platform store. A
   host whose store carries no root for the endpoint fails the request.
 
 ## [0.7.0] — 2026-09-13
 
 ### Added
-
-- `serde::Serialize` on `codec::Device`, `codec::Family` and every type they
-  hold, so a catalog entry writes back out as JSON.
-- `codec::Bounds` — an integer argument's `range:`, either a pair or the
-  keyword `capability`, which takes the pair from the device's `capabilities:`
-  through the argument's role. The catalog resolves it on load.
-- `Device::overrides` — what a device file changes in a command an `include:`
-  brought in: one bound, the `notes:`, or `drop:` to remove the command. The
-  catalog applies it on load, so nothing on the send path reads it.
-- `Error::CapabilityBounds`, `Error::Override` and `Error::UnresolvedBounds`,
-  with the codes `capability_bounds`, `override` and `unresolved_bounds`.
-- `xtask dupes` — command layouts two device files declare and no shared table
-  carries. CI runs it.
 
 - `ble::encode` and `ble::session` — the encoded `ble` link of
   [`docs/protocol/ble.md`](../../docs/protocol/ble.md) 9. A device that sets the
@@ -85,8 +78,6 @@ releases apart and keeps
 
 ### Changed
 
-- `xtask catalog` serializes the entries the crate loads, so `catalog.json`
-  states what the SDK reads. An empty table or list is left out of the file.
 - **Breaking:** `provision_wifi()` returns `Provisioned` rather than `()`.
   `Provisioned::Accepted` says the device took the credentials; it says nothing
   about the network.
