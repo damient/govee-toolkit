@@ -126,31 +126,27 @@ overrides:
         it stores 0. See `verified:` for what 0 renders.
 
     color:
-      notes: >-
-        One color over every ring of the cylinder, and the kelvin field at
-        zero is what selects the color. See docs/protocol/lan.md 1,
+      notes_append: >-
+        One color over every ring of the cylinder. See docs/protocol/lan.md 1,
         "Documented commands".
 
     colortemp:
-      notes: >-
-        The firmware converts the temperature to RGB itself and ignores the
-        color field, so the payload carries no white triplet and zeroes that
-        field. It clamps a value outside the range above in silence. See
+      notes_append: >-
+        It clamps a value outside the range above in silence. See
         docs/protocol/lan.md 1, "Documented commands".
 
     segment_color:
       args:
         nb_seg: { range: [1, 132] }
         colors: { max_len: 132 }
-      notes: >-
-        len counts the payload only, 16-bit, header and checksum excluded. See
-        docs/protocol/lan.md 2.3. The ceiling of 132 zones is this unit's LED
-        count, not the protocol's limit: 133 zones and above are dropped in
-        silence. See `measurements`.
+      notes_append: >-
+        The ceiling of 132 zones is this unit's LED count, not the protocol's
+        limit: 133 zones and above are dropped in silence. See `measurements`
+        and docs/protocol/lan.md 2.3.
 
   ble:
     read_version_06:
-      notes: >-
+      notes_append: >-
         A third version, 1.00.14 on this unit, against the 1.04.01 and 1.03.08
         the two reads above answer. TODO: nothing established which module each
         of the three names. See docs/protocol/ble.md 3.
@@ -168,33 +164,26 @@ overrides:
         `segment_color`.
 
     read_mode:
-      notes: >-
-        The live sub-mode and its eight payload bytes, left uninterpreted:
-        their meaning depends on the sub-mode. It reports the fields of a
-        sub-mode 13 frame, so `color` and `colortemp` read back here. Under
+      notes_append: >-
+        It reports the fields of a sub-mode 13 frame, so `color` and `colortemp` read back here. Under
         sub-mode 21 the payload is zero, and under sub-mode 19 it never echoes
         what was written — see `verified:`. See docs/protocol/ble.md 3.
 
     read_segment_count:
-      notes: >-
-        Answers 15 on this unit, which is the width of the zone mask, not the
-        132 LEDs. See docs/protocol/ble.md 3.
+      notes_append: >-
+        Answers 15 on this unit, not the 132 LEDs. See docs/protocol/ble.md 3.
 
     read_ic_count:
-      notes: >-
-        Answers 132 on this unit, matching the LED count measured over lan.
-        See docs/protocol/ble.md 3.
+      notes_append: >-
+        Answers 132 on this unit. See docs/protocol/ble.md 3.
 
     read_hardware_version:
-      notes: >-
-        ASCII, zero-padded out to the checksum; 1.04.01 on this unit. The
-        length is what stops the field before that byte. See
-        docs/protocol/ble.md 3.
+      notes_append: >-
+        1.04.01 on this unit. See docs/protocol/ble.md 3.
 
     read_software_version:
-      notes: >-
-        ASCII, zero-padded out to the checksum; 1.03.08 on this unit. See
-        docs/protocol/ble.md 3.
+      notes_append: >-
+        1.03.08 on this unit. See docs/protocol/ble.md 3.
 
     segment_brightness_masked:
       notes: >-
@@ -204,14 +193,9 @@ overrides:
         `segment_color` first. See docs/protocol/ble.md 2.4.
 
     segment_brightness:
-      notes: >-
-        Every zone at once, one byte each in zone order, and there is no mask:
-        pass all fifteen. A shorter list is padded with zeros, which sets the
-        zones it does not cover to zero rather than leaving them alone. The
-        bytes are not interpreted here, so nothing checks each one against the
-        1..100 the firmware takes. The sub-mode 21 trap of
-        `segment_brightness_masked` applies here as well. See
-        docs/protocol/ble.md 2.5.
+      notes_append: >-
+        The sub-mode 21 trap of `segment_brightness_masked` applies here as
+        well. See docs/protocol/ble.md 2.5.
 
     gradient:
       notes: >-
@@ -235,13 +219,11 @@ overrides:
 
   cloud:
     segment_color:
-      notes: >-
-        Paints one color over the zones the array names, and leaves the rest
-        alone. The arguments are the ones the `ble` masked entry takes, so one
-        command takes the same arguments over both modes. The account list
-        bounds the array at 15 entries and a zone index at 14, which is the
-        width of the `ble` mask and not the 132 LEDs. See
-        docs/protocol/cloud.md 5.
+      notes_append: >-
+        It paints one color over the zones the array names, and leaves the
+        rest alone. The account list bounds the array at 15 entries and a zone
+        index at 14, which is the width of the `ble` mask and not the 132
+        LEDs. See docs/protocol/cloud.md 5.
 
     power:
       notes: >-
@@ -255,10 +237,8 @@ overrides:
         value out of range`. See `verified:`.
 
     color:
-      notes: >-
-        This API carries the color as one integer. The three arguments keep
-        the names the `lan` and `ble` layouts give them, so one call reads the
-        same over every mode. One color over every ring of the cylinder.
+      notes_append: >-
+        One color over every ring of the cylinder.
 
     colortemp:
       notes: >-
@@ -268,11 +248,9 @@ overrides:
         as 0. See `verified:`.
 
     status:
-      notes: >-
-        The ranges here are what an answer may carry, not what a caller may
-        send: 0 kelvin reports color mode rather than a temperature. This mode
-        reads back no segment state and no music state: both instances answer
-        an empty value. See `verified:`.
+      notes_append: >-
+        This mode reads back no segment state and no music state: both
+        instances answer an empty value. See `verified:`.
 
 measurements:
   segment_max_zones: 132    # the highest nbSeg this firmware renders. 133 and

@@ -31,6 +31,10 @@ at.
 
 #### Changed
 
+- Twenty-three overrides across `H6008`, `H6022`, `H6114` and `H61A0` now
+  append to the family note rather than replace it. The resolved text is the
+  same, except where the replacement had dropped a sentence the family still
+  carries.
 - An integer argument takes its bounds from a capability as
   `range: <capability>.<parameter>`, in place of the keyword `range:
   capability`. The file names the parameter, so the bounds of any capability
