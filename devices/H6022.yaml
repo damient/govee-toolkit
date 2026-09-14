@@ -86,7 +86,7 @@ commands:
       role: color_temp
       frame: "33 05 0D 00 00 00 ${kelvin:16} 00 00 00 <pad:20> <xor>"
       args:
-        kelvin: { type: int, range: capability, role: color_temp }
+        kelvin: { type: int, range: colortemp.range_kelvin, role: color_temp }
       notes: >-
         Sub-mode 13 with the colour triplet at zero. The firmware renders the
         temperature itself, so the frame carries no white triplet and zeroes

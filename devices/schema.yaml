@@ -214,7 +214,7 @@ commands:
   #
   # `args:` — one entry per argument, sent or captured:
   #   { type: int, range: [min, max] }        inclusive bounds
-  #   { type: int, range: capability }        the bounds `capabilities:` gives
+  #   { type: int, range: <cap>.<param> }     the bounds `capabilities:` gives
   #   { type: rgb_list, max_len: <n> }        a list of RGB triples
   #   { type: string, max_len: <n> }          text; the cap counts UTF-8 bytes
   #   { type: zones, count: <n> }             zone indices, sent as a bitmask
@@ -223,14 +223,19 @@ commands:
   # silence (../docs/protocol/lan.md 2.1), and an SDK that did the same would
   # report success for a value the device did not apply.
   #
-  # `range: capability` takes the pair from `capabilities:`, through the
-  # argument's `role:`, so one number lives in one place: `brightness` reads
-  # `capabilities.brightness.range` and `color_temp` reads
-  # `capabilities.colortemp.range_kelvin`. The catalog resolves it on load. It
-  # is what lets a shared table declare a layout several models differ on the
-  # bounds of. Two errors: a role that names no such parameter, and a device
-  # that declares no such pair. Write the pair out instead where the bounds are
-  # a property of the mode and not of the hardware: what an answer may carry,
+  # A capability reference takes the pair from `capabilities:`, so one number
+  # lives in one place:
+  #
+  #   range: brightness.range
+  #   range: colortemp.range_kelvin
+  #
+  # The file names the capability and the parameter, so any capability serves.
+  # The parameter must carry a pair: `range` and `range_kelvin` do. The catalog
+  # resolves the reference on load. It is what lets a shared table declare a
+  # layout several models differ on the bounds of. Two errors: a parameter that
+  # carries no pair, and a device that declares no such pair. Write the pair
+  # out instead where the bounds are a property of the frame or of the mode and
+  # not of the hardware: a byte that takes 0 to 255, what an answer may carry,
   # or a floor the API imposes.
   #
   # Any kind takes an optional `role:`. It names the argument for an SDK that

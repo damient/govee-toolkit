@@ -1,78 +1,98 @@
-//! Bounds for an integer argument, and how `capability` resolves.
+//! Bounds for an integer argument, and how a capability reference resolves.
 //!
-//! A device file writes `range: [min, max]`, or the keyword `capability` to
-//! take the pair from the device's own `capabilities:`. The keyword keeps one
-//! number in one place: a shared table declares the layout, and the device
-//! file declares the bounds once, where a reader looks for them. The catalog
-//! resolves the keyword when it loads the file, so nothing on the send path
-//! reads `capabilities:`.
+//! A device file writes `range: [min, max]`, or `range:
+//! <capability>.<parameter>` to take the pair from its own `capabilities:`. The
+//! reference keeps one number in one place: a shared table declares the layout,
+//! and the device file declares the bounds once, where a reader looks for them.
+//! The file names both halves, so a new capability needs no code here. The
+//! catalog resolves the reference when it loads the file, so nothing on the
+//! send path reads `capabilities:`.
 
 use std::collections::BTreeMap;
+use std::fmt;
 
-use serde::{Deserialize, Serialize};
+use serde::de::Error as _;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use super::spec::{ArgRole, ArgSpec};
+use super::spec::ArgSpec;
 use super::{Command, Device, Mode};
-use crate::codec::capabilities::{Capabilities, CapabilityParams};
+use crate::codec::capabilities::{Capabilities, PAIR_PARAMS};
 use crate::codec::error::{Error, Result};
 
 /// Inclusive bounds for an integer argument.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Bounds {
     /// `[min, max]`, both inclusive.
     Literal([i64; 2]),
-    /// `capability`, before the catalog resolves it.
-    FromCapability(CapabilityKeyword),
+    /// A capability parameter, before the catalog resolves it.
+    FromCapability(CapabilityRef),
 }
 
 impl Bounds {
-    /// The pair, or `None` while `capability` is unresolved.
+    /// The pair, or `None` while a reference is unresolved.
     ///
-    /// Every device the catalog hands out carries pairs: the keyword is
+    /// Every device the catalog hands out carries pairs: a reference is
     /// resolved on load, and a file it cannot be resolved for fails to load.
     #[must_use]
-    pub fn pair(self) -> Option<[i64; 2]> {
+    pub fn pair(&self) -> Option<[i64; 2]> {
         match self {
-            Self::Literal(pair) => Some(pair),
+            Self::Literal(pair) => Some(*pair),
             Self::FromCapability(_) => None,
         }
     }
 }
 
-/// The `capability` keyword, as it appears in a device file.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CapabilityKeyword {
-    /// `range: capability`
-    Capability,
+/// Where a device file says the pair lives, in its own `capabilities:`.
+/// Written and read as `<capability>.<parameter>`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapabilityRef {
+    /// The capability name, as `capabilities:` writes it.
+    pub capability: String,
+    /// The parameter of that capability. It must carry a pair — see
+    /// [`PAIR_PARAMS`].
+    pub parameter: String,
 }
 
-/// Reads one parameter of [`CapabilityParams`] that carries a pair.
-type Read = fn(&CapabilityParams) -> Option<[i64; 2]>;
-
-/// Which capability parameter a role takes its bounds from, as the capability
-/// name, the parameter name, and how to read it.
-///
-/// A role absent here carries no bounds anywhere in `capabilities:`, so
-/// `range: capability` on it is a mistake in the file rather than a gap.
-fn source(role: ArgRole) -> Option<(&'static str, &'static str, Read)> {
-    match role {
-        ArgRole::Brightness => Some(("brightness", "range", |params| params.range)),
-        ArgRole::ColorTemp => Some(("colortemp", "range_kelvin", |params| params.range_kelvin)),
-        _ => None,
+impl fmt::Display for CapabilityRef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}", self.capability, self.parameter)
     }
 }
 
-/// Replace every `range: capability` in `device` with the pair its
+impl<'de> Deserialize<'de> for CapabilityRef {
+    fn deserialize<D: Deserializer<'de>>(de: D) -> std::result::Result<Self, D::Error> {
+        let text = String::deserialize(de)?;
+        let (capability, parameter) = text
+            .split_once('.')
+            .ok_or_else(|| D::Error::custom(format!("`{text}` names no parameter")))?;
+        if capability.is_empty() || parameter.contains('.') || parameter.is_empty() {
+            return Err(D::Error::custom(format!(
+                "`{text}` is not `<capability>.<parameter>`"
+            )));
+        }
+        Ok(Self {
+            capability: capability.to_owned(),
+            parameter: parameter.to_owned(),
+        })
+    }
+}
+
+impl Serialize for CapabilityRef {
+    fn serialize<S: Serializer>(&self, se: S) -> std::result::Result<S::Ok, S::Error> {
+        se.collect_str(self)
+    }
+}
+
+/// Replace every capability reference in `device` with the pair its
 /// `capabilities:` declares.
 ///
 /// Run after an `include:` merges, so a shared table reaches this too.
 ///
 /// # Errors
 ///
-/// [`Error::CapabilityBounds`] where the argument carries no role that names
-/// a capability parameter, or where the device declares no such pair.
+/// [`Error::CapabilityBounds`] where the parameter carries no pair, or where
+/// the device declares no such pair.
 pub fn resolve(file: &str, device: &mut Device) -> Result<()> {
     let Device {
         capabilities,
@@ -93,34 +113,40 @@ fn resolve_table(
 ) -> Result<()> {
     for (command, spec) in table.iter_mut() {
         for (arg, declared) in &mut spec.args {
-            let ArgSpec::Int { range, role } = declared else {
+            let ArgSpec::Int { range, .. } = declared else {
                 continue;
             };
-            if range.pair().is_some() {
+            let Bounds::FromCapability(reference) = range else {
                 continue;
-            }
-            let found = role
-                .and_then(source)
-                .and_then(|(capability, _, read)| capabilities.get(capability).and_then(read));
-            let pair = found.ok_or_else(|| Error::CapabilityBounds {
-                file: file.to_owned(),
-                mode,
-                command: command.clone(),
-                arg: arg.clone(),
-                needs: needs(*role),
-            })?;
+            };
+            let pair =
+                read(reference, capabilities).map_err(|problem| Error::CapabilityBounds {
+                    file: file.to_owned(),
+                    mode,
+                    command: command.clone(),
+                    arg: arg.clone(),
+                    problem,
+                })?;
             *range = Bounds::Literal(pair);
         }
     }
     Ok(())
 }
 
-/// What the file must supply, for the error message.
-fn needs(role: Option<ArgRole>) -> String {
-    match role.and_then(source) {
-        Some((capability, parameter, _)) => format!("`capabilities.{capability}.{parameter}`"),
-        None => "a role that names a capability parameter, such as `brightness` \
-                 or `color_temp`"
-            .to_owned(),
+/// The pair `reference` names, or what the file must fix.
+fn read(
+    reference: &CapabilityRef,
+    capabilities: &Capabilities,
+) -> std::result::Result<[i64; 2], String> {
+    let parameter = reference.parameter.as_str();
+    if !PAIR_PARAMS.contains(&parameter) {
+        let known = PAIR_PARAMS.join("`, `");
+        return Err(format!(
+            "`{parameter}` carries no pair; the parameters that do are `{known}`"
+        ));
     }
+    capabilities
+        .get(&reference.capability)
+        .and_then(|params| params.pair(parameter))
+        .ok_or_else(|| format!("this file declares no `capabilities.{reference}`"))
 }

@@ -16,8 +16,8 @@ use super::bounds::Bounds;
 pub enum ArgSpec {
     /// A whole number, bounded inclusively.
     Int {
-        /// `[min, max]`, both inclusive, or `capability` to take the pair
-        /// from the device's own `capabilities:`. See [`Bounds`].
+        /// `[min, max]`, both inclusive, or the capability parameter the
+        /// pair comes from. See [`Bounds`].
         range: Bounds,
         /// See [`ArgRole`].
         #[serde(default)]

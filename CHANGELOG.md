@@ -21,6 +21,16 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-14
+
+#### Changed
+
+- An integer argument takes its bounds from a capability as
+  `range: <capability>.<parameter>`, in place of the keyword `range:
+  capability`. The file names the parameter, so the bounds of any capability
+  reach an argument. `brightness.range` and `colortemp.range_kelvin` are what
+  the catalog uses today. See [`devices/schema.yaml`](devices/schema.yaml).
+
 ### 2026-09-13
 
 #### Added

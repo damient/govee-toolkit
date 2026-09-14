@@ -7,8 +7,20 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `codec::CapabilityRef` — the capability and the parameter an argument's
+  `range:` names, and `codec::PAIR_PARAMS`, the parameters that carry a pair.
+
 ### Changed
 
+- **Breaking:** `codec::Bounds::FromCapability` carries a `codec::CapabilityRef`
+  — the capability and the parameter a device file names, read from
+  `<capability>.<parameter>`. It replaces `codec::CapabilityKeyword`, which
+  resolved through the argument's role and reached two capabilities only.
+  `Bounds` takes `&self` rather than `Copy` for it.
+- **Breaking:** `Error::CapabilityBounds` carries `problem` in place of
+  `needs`. The code stays `capability_bounds`.
 - **Breaking:** the minimum supported Rust version is 1.89. Update the
   toolchain: the `aes` 0.9 block cipher the encoded `ble` link runs on needs it.
 - The `cloud` feature reads its TLS trust anchors from the platform store. A

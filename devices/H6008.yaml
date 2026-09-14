@@ -75,7 +75,7 @@ commands:
       role: color_temp
       frame: "33 05 0D 00 00 00 ${kelvin:16} ${white_r} ${white_g} ${white_b} <pad:20> <xor>"
       args:
-        kelvin: { type: int, range: capability, role: color_temp }
+        kelvin: { type: int, range: colortemp.range_kelvin, role: color_temp }
         white_r: { type: int, range: [0, 255], role: white_red }
         white_g: { type: int, range: [0, 255], role: white_green }
         white_b: { type: int, range: [0, 255], role: white_blue }

@@ -221,7 +221,7 @@ fn a_command_declared_twice_is_an_error_rather_than_an_override() {
 /// A shared table that takes its bounds from the device that includes it.
 const FAMILY_BOUNDS: &str = "schema_version: 1\nfamily: shared-bounds\ncommands:\n  ble:\n    \
      dim:\n      role: brightness\n      frame: \"33 04 ${level} <pad:20> <xor>\"\n      args:\n        \
-     level: { type: int, range: capability, role: brightness }\n";
+     level: { type: int, range: brightness.range, role: brightness }\n";
 
 fn device_with_capabilities(capabilities: &str) -> String {
     format!(
@@ -258,15 +258,26 @@ fn capability_bounds_the_device_does_not_declare_are_an_error() {
 }
 
 #[test]
-fn capability_bounds_on_an_argument_with_no_such_role_are_an_error() {
+fn capability_bounds_on_a_parameter_that_carries_no_pair_are_an_error() {
     let family = "schema_version: 1\nfamily: shared-bounds\ncommands:\n  ble:\n    dim:\n      \
                   frame: \"33 04 ${level} <pad:20> <xor>\"\n      args:\n        \
-                  level: { type: int, range: capability }\n";
+                  level: { type: int, range: brightness.count }\n";
     let device = device_with_capabilities("  brightness: { range: [1, 80] }\n");
     let error = Catalog::from_sources_with([("d.yaml", device.as_str())], [("f.yaml", family)])
-        .expect_err("no role names a capability parameter");
+        .expect_err("`count` carries no pair");
 
     assert_eq!(error.code(), "capability_bounds");
+}
+
+#[test]
+fn a_bound_that_names_no_parameter_is_refused() {
+    let family = "schema_version: 1\nfamily: shared-bounds\ncommands:\n  ble:\n    dim:\n      \
+                  frame: \"33 04 ${level} <pad:20> <xor>\"\n      args:\n        \
+                  level: { type: int, range: brightness }\n";
+    let device = device_with_capabilities("  brightness: { range: [1, 80] }\n");
+
+    Catalog::from_sources_with([("d.yaml", device.as_str())], [("f.yaml", family)])
+        .expect_err("`brightness` alone names no parameter");
 }
 
 /// A shared table with a bound and a note one model differs on.

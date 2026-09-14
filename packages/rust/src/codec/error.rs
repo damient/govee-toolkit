@@ -265,9 +265,9 @@ pub enum Error {
         problem: String,
     },
 
-    /// An argument still carries `range: capability` when a value is checked
-    /// against it. The catalog resolves the keyword on load, so this reports a
-    /// device built without it.
+    /// An argument still names a capability parameter when a value is checked
+    /// against it. The catalog resolves the reference on load, so this reports
+    /// a device built without it.
     #[error("`{command}` argument `{arg}`: bounds still name a capability")]
     UnresolvedBounds {
         /// The command.
@@ -276,9 +276,9 @@ pub enum Error {
         arg: String,
     },
 
-    /// An argument asks for `range: capability` and the device file cannot
-    /// supply the pair.
-    #[error("{file}: `{mode}.{command}` argument `{arg}`: `range: capability` needs {needs}")]
+    /// An argument takes its bounds from a capability parameter and the device
+    /// file cannot supply the pair.
+    #[error("{file}: `{mode}.{command}` argument `{arg}`: {problem}")]
     CapabilityBounds {
         /// The device file.
         file: String,
@@ -288,8 +288,8 @@ pub enum Error {
         command: String,
         /// The argument.
         arg: String,
-        /// What the file must declare for the keyword to resolve.
-        needs: String,
+        /// What the file must fix for the reference to resolve.
+        problem: String,
     },
 
     /// Two device files claim the same SKU or alias.

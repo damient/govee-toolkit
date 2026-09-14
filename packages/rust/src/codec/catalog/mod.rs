@@ -19,7 +19,7 @@ mod bounds;
 mod overrides;
 mod spec;
 
-pub use bounds::{Bounds, CapabilityKeyword, resolve as resolve_bounds};
+pub use bounds::{Bounds, CapabilityRef, resolve as resolve_bounds};
 pub use overrides::{ArgOverride, Override, Overrides, apply as apply_overrides};
 pub use spec::{ArgRole, ArgSpec, Role};
 

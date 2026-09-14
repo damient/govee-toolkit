@@ -44,9 +44,10 @@ pub mod white;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub use args::{ArgValue, Args};
-pub use capabilities::{Capabilities, CapabilityParams, ModeCapabilities, Reason};
+pub use capabilities::{Capabilities, CapabilityParams, ModeCapabilities, PAIR_PARAMS, Reason};
 pub use catalog::{
-    ArgRole, ArgSpec, Bounds, Command, Device, Family, Mode, ModeSupport, Modes, Role, Support,
+    ArgRole, ArgSpec, Bounds, CapabilityRef, Command, Device, Family, Mode, ModeSupport, Modes,
+    Role, Support,
 };
 pub use chunk::Chunk;
 pub use command::{Encoded, encode};

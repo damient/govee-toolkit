@@ -77,10 +77,9 @@ instead of including one.
 
 Two mechanisms keep a family usable where one model differs:
 
-- `range: capability` on an integer argument takes the bounds from that
-  model's `capabilities:`, through the argument's `role:`. The number then
-  lives in one place, and a family declares a layout several models bound
-  differently.
+- `range: <capability>.<parameter>` on an integer argument takes the bounds
+  from that model's `capabilities:`. The number then lives in one place, and a
+  family declares a layout several models bound differently.
 - `overrides:` patches one field of a command a family brought in — a bound, a
   `notes:`, or `drop:` to remove the command. It reaches no local command: a
   file changes its own command where it writes it. Both are documented in
