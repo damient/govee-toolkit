@@ -130,7 +130,7 @@ mod tests {
 
     fn int() -> ArgSpec {
         ArgSpec::Int {
-            range: Bounds::Literal([0, 100]),
+            range: Some(Bounds::Literal([0, 100])),
             role: None,
         }
     }

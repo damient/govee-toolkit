@@ -9,6 +9,8 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 - **Breaking:** the minimum supported Rust version is 1.89. Update the
   toolchain: `cargo install` builds from source, an installed binary does not.
+- `describe` reports no bound for an argument the device file does not bound.
+  `--json` carries `null` under `bound`, and the text output carries nothing.
 
 ## [0.2.0] — 2026-09-13
 

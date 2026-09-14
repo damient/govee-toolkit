@@ -7,7 +7,7 @@
     clippy::panic
 )]
 
-use govee_toolkit::codec::{ArgSpec, Catalog, Mode, Role, validate};
+use govee_toolkit::codec::{ArgSpec, Bounds, Catalog, Mode, Role, validate};
 
 #[test]
 fn every_device_file_is_well_formed() {
@@ -244,7 +244,7 @@ fn capability_bounds_reach_a_command_from_the_device_that_includes_it() {
     let ArgSpec::Int { range, .. } = &command.args["level"] else {
         panic!("`level` is an integer");
     };
-    assert_eq!(range.pair(), Some([1, 80]));
+    assert_eq!(range.as_ref().and_then(Bounds::pair), Some([1, 80]));
 }
 
 #[test]
@@ -313,7 +313,7 @@ fn an_override_narrows_a_bound_an_included_table_declares() {
     let ArgSpec::Int { range, .. } = &command.args["effect"] else {
         panic!("`effect` is an integer");
     };
-    assert_eq!(range.pair(), Some([0, 1]));
+    assert_eq!(range.as_ref().and_then(Bounds::pair), Some([0, 1]));
     assert_eq!(command.notes, "Two effects on this unit.");
 }
 

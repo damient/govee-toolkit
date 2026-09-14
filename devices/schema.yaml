@@ -215,6 +215,7 @@ commands:
   # `args:` — one entry per argument, sent or captured:
   #   { type: int, range: [min, max] }        inclusive bounds
   #   { type: int, range: <cap>.<param> }     the bounds `capabilities:` gives
+  #   { type: int }                           no bound; see below
   #   { type: rgb_list, max_len: <n> }        a list of RGB triples
   #   { type: string, max_len: <n> }          text; the cap counts UTF-8 bytes
   #   { type: zones, count: <n> }             zone indices, sent as a bitmask
@@ -222,6 +223,13 @@ commands:
   # The codec enforces bounds and never clamps them: the firmware clamps in
   # silence (../docs/protocol/lan.md 2.1), and an SDK that did the same would
   # report success for a value the device did not apply.
+  #
+  # Leave `range` out only where no bound belongs in a device file, and only
+  # on a mode that refuses a value it does not accept. An identifier a shared
+  # table cannot carry is the case: the set differs per SKU, so a table that
+  # named one would name a value some model does not have. The value then goes
+  # out as the caller gave it, and the mode answers. A mode that clamps in
+  # silence must carry the bound.
   #
   # A capability reference takes the pair from `capabilities:`, so one number
   # lives in one place:

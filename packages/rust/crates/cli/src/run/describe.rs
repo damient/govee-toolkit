@@ -1,6 +1,6 @@
 //! `describe`: what a device file declares. Reads no hardware.
 
-use govee_toolkit::codec::{ArgSpec, Command, Device, Mode, ModeSupport};
+use govee_toolkit::codec::{ArgSpec, Bounds, Command, Device, Mode, ModeSupport};
 use govee_toolkit::stream::reach;
 use govee_toolkit::{DeviceId, Govee};
 use serde_json::{Value, json};
@@ -98,7 +98,7 @@ fn command_json(command: &Command) -> Value {
 fn arg_json(spec: &ArgSpec) -> Value {
     let mut value = json!({ "type": kind(spec), "role": spec.role().map(|role| role.to_string()) });
     let bound = match spec {
-        ArgSpec::Int { range, .. } => json!(range.pair()),
+        ArgSpec::Int { range, .. } => json!(range.as_ref().and_then(Bounds::pair)),
         ArgSpec::Zones { count, .. } => json!(count),
         ArgSpec::RgbList { max_len, .. }
         | ArgSpec::String { max_len, .. }
@@ -177,7 +177,8 @@ fn role_of(command: &Command) -> String {
 fn bound_of(spec: &ArgSpec) -> String {
     match spec {
         ArgSpec::Int { range, .. } => range
-            .pair()
+            .as_ref()
+            .and_then(Bounds::pair)
             .map_or_else(String::new, |[min, max]| format!(" [{min}, {max}]")),
         ArgSpec::Zones { count, .. } => count.map_or_else(String::new, |c| format!(" ({c} zones)")),
         ArgSpec::RgbList { max_len, .. }

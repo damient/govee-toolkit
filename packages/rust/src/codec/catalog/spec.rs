@@ -14,11 +14,15 @@ use super::bounds::Bounds;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ArgSpec {
-    /// A whole number, bounded inclusively.
+    /// A whole number.
     Int {
         /// `[min, max]`, both inclusive, or the capability parameter the
-        /// pair comes from. See [`Bounds`].
-        range: Bounds,
+        /// pair comes from. See [`Bounds`]. Absent where no bound belongs in
+        /// a device file: the value goes out as the caller gave it, and the
+        /// mode answers what it does not accept.
+        #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        range: Option<Bounds>,
         /// See [`ArgRole`].
         #[serde(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
