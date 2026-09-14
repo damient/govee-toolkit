@@ -81,7 +81,7 @@ fn read(
                 names(declared)
             ))
         })?;
-        values.insert(name, args::parse(name, spec, text)?);
+        values.insert(name, args::parse(command, name, spec, text)?);
     }
     Ok(values)
 }

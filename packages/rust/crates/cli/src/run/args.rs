@@ -1,6 +1,8 @@
 //! Values a person types, read against the type the device file declares.
-//! Nothing here guesses a type, and the range stays the codec's to check.
+//! Nothing here guesses a type: `codec::coerce` reads every value under the
+//! declared `ArgSpec`, and the range stays the codec's to check.
 
+use govee_toolkit::codec::coerce::{self, Supplied};
 use govee_toolkit::codec::{ArgSpec, ArgValue};
 use govee_toolkit::stream::Resolution;
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -21,45 +23,28 @@ pub(super) fn kind(spec: &ArgSpec) -> &'static str {
 
 // A value of the right type but outside the declared range reaches the codec,
 // which refuses it there.
-pub(super) fn parse(name: &str, spec: &ArgSpec, text: &str) -> Result<ArgValue, Failure> {
-    match spec {
-        ArgSpec::Int { .. } => text
-            .trim()
-            .parse::<i64>()
-            .map(ArgValue::Int)
-            .map_err(|_| refused(name, text, "a whole number")),
-        ArgSpec::RgbList { .. } => list(text)
-            .map(rgb)
-            .collect::<Result<Vec<_>, _>>()
-            .map(ArgValue::Rgb),
-        ArgSpec::String { .. } => Ok(ArgValue::Text(text.to_owned())),
-        ArgSpec::Zones { .. } => zones(text).map(ArgValue::Zones),
-        ArgSpec::Bytes { .. } => bytes(name, text).map(ArgValue::Bytes),
-    }
+pub(super) fn parse(
+    command: &str,
+    name: &str,
+    spec: &ArgSpec,
+    text: &str,
+) -> Result<ArgValue, Failure> {
+    coerce::read(command, name, spec, Supplied::Text(text.to_owned()))
+        .map_err(|e| Failure::usage(e.to_string()))
 }
 
 pub(super) fn zones(text: &str) -> Result<Vec<u16>, Failure> {
-    list(text)
-        .map(|item| {
-            item.parse::<u16>()
-                .map_err(|_| Failure::usage(format!("`{item}` is not a zone index, zero-based")))
-        })
-        .collect()
+    coerce::zones(text)
+        .ok_or_else(|| Failure::usage(format!("`{text}` is not zone indices, zero-based")))
 }
 
 pub(super) fn rgb(text: &str) -> Result<[u8; 3], Failure> {
-    let text = text.trim();
-    let digits = text.strip_prefix('#').unwrap_or(text);
-    let value = (digits.len() == 6)
-        .then(|| u32::from_str_radix(digits, 16).ok())
-        .flatten()
-        .ok_or_else(|| Failure::usage(format!("`{text}` is not a color; write `#RRGGBB`")))?;
-    let [_, red, green, blue] = value.to_be_bytes();
-    Ok([red, green, blue])
+    coerce::rgb(text)
+        .ok_or_else(|| Failure::usage(format!("`{text}` is not a color; write `#RRGGBB`")))
 }
 
 pub(super) fn colors(text: &str) -> Result<Vec<[u8; 3]>, Failure> {
-    list(text).map(rgb).collect()
+    coerce::list(text).map(rgb).collect()
 }
 
 // `-` reads the list from one line of stdin, so a list of 42 colors reaches
@@ -89,39 +74,6 @@ pub(super) fn resolution(text: &str) -> Result<Resolution, Failure> {
     }
 }
 
-// A comma, a space or a tab separates the items.
-pub(super) fn list(text: &str) -> impl Iterator<Item = &str> {
-    text.split([',', ' ', '\t'])
-        .map(str::trim)
-        .filter(|item| !item.is_empty())
-}
-
-// Spaces and colons separate the pairs, or nothing does.
-fn bytes(name: &str, text: &str) -> Result<Vec<u8>, Failure> {
-    let digits: String = text
-        .chars()
-        .filter(|c| !c.is_whitespace() && *c != ':')
-        .collect();
-    if !digits.len().is_multiple_of(2) {
-        return Err(refused(name, text, "pairs of hexadecimal digits"));
-    }
-    let mut out = Vec::with_capacity(digits.len() / 2);
-    let mut rest = digits.as_str();
-    while !rest.is_empty() {
-        let (pair, tail) = rest.split_at(2);
-        out.push(
-            u8::from_str_radix(pair, 16)
-                .map_err(|_| refused(name, text, "pairs of hexadecimal digits"))?,
-        );
-        rest = tail;
-    }
-    Ok(out)
-}
-
-fn refused(name: &str, text: &str, wanted: &str) -> Failure {
-    Failure::usage(format!("`{name}`: `{text}` is not {wanted}"))
-}
-
 #[cfg(test)]
 mod tests {
     use govee_toolkit::codec::Bounds;
@@ -137,9 +89,13 @@ mod tests {
 
     #[test]
     fn a_value_is_read_under_the_declared_type() {
-        assert_eq!(parse("level", &int(), "50").ok(), Some(ArgValue::Int(50)));
+        assert_eq!(
+            parse("brightness", "level", &int(), "50").ok(),
+            Some(ArgValue::Int(50))
+        );
         assert_eq!(
             parse(
+                "segment",
                 "zones",
                 &ArgSpec::Zones {
                     count: None,
@@ -154,12 +110,15 @@ mod tests {
 
     #[test]
     fn a_value_of_the_wrong_type_is_refused() {
-        assert!(parse("level", &int(), "bright").is_err());
+        assert!(parse("brightness", "level", &int(), "bright").is_err());
     }
 
     #[test]
     fn a_range_belongs_to_the_codec_and_is_not_checked_here() {
-        assert_eq!(parse("level", &int(), "400").ok(), Some(ArgValue::Int(400)));
+        assert_eq!(
+            parse("brightness", "level", &int(), "400").ok(),
+            Some(ArgValue::Int(400))
+        );
     }
 
     #[test]
@@ -169,10 +128,10 @@ mod tests {
             role: None,
         };
         let wanted = Some(ArgValue::Bytes(vec![0xAA, 0x0F, 0x01]));
-        assert_eq!(parse("raw", &spec, "aa 0f 01").ok(), wanted);
-        assert_eq!(parse("raw", &spec, "aa:0f:01").ok(), wanted);
-        assert_eq!(parse("raw", &spec, "aa0f01").ok(), wanted);
-        assert!(parse("raw", &spec, "aa0").is_err());
+        assert_eq!(parse("raw", "data", &spec, "aa 0f 01").ok(), wanted);
+        assert_eq!(parse("raw", "data", &spec, "aa:0f:01").ok(), wanted);
+        assert_eq!(parse("raw", "data", &spec, "aa0f01").ok(), wanted);
+        assert!(parse("raw", "data", &spec, "aa0").is_err());
     }
 
     #[test]

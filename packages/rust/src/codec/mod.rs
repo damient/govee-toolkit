@@ -32,6 +32,7 @@ pub mod capabilities;
 pub mod catalog;
 pub mod chunk;
 pub mod cloud;
+pub mod coerce;
 pub mod command;
 pub mod error;
 pub mod exchange;
@@ -50,6 +51,7 @@ pub use catalog::{
     Role, Support,
 };
 pub use chunk::Chunk;
+pub use coerce::Supplied;
 pub use command::{Encoded, encode};
 pub use error::{Error, Result};
 pub use exchange::{Exchange, Exchanges, Step};

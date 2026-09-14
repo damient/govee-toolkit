@@ -11,6 +11,10 @@ releases apart and keeps
 
 - `VERSION` — the version of this crate. A binding reports the core it was
   built from without a copy of the number.
+- `codec::coerce` — reads one value under the type a device file declares, from
+  text or from a native value. `codec::Supplied` names the shape a caller gave.
+- `Error::ArgSyntax`, code `arg_syntax` — a value of the declared shape that
+  does not read as one: text that is not a number, a channel past 255.
 
 ## [0.8.0] — 2026-09-14
 
