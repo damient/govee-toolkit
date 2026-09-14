@@ -7,6 +7,11 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Changed
+
+- The `cloud` feature reads its TLS trust anchors from the platform store. A
+  host whose store carries no root for the endpoint fails the request.
+
 ## [0.7.0] — 2026-09-13
 
 ### Added
