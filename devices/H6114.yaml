@@ -80,9 +80,8 @@ commands:
 overrides:
   ble:
     read_version_06:
-      notes: >-
-        ASCII, zero-padded out to the checksum; 2.03.11 on this unit. See
-        docs/protocol/ble.md 3.
+      notes_append: >-
+        2.03.11 on this unit. See docs/protocol/ble.md 3.
 
     brightness:
       notes: >-
@@ -103,13 +102,11 @@ overrides:
         found that turns that off. See docs/protocol/ble.md 2.3.
 
     read_mode:
-      notes: >-
-        The live sub-mode and its eight payload bytes, left uninterpreted:
-        their meaning depends on the sub-mode, and the color one and the music
-        one are the two this file works out. This read reports what is playing
-        — writing a color moved it to 13 with that color, and writing music
-        moved it to 19 with every field of the frame. See
-        docs/protocol/ble.md 3.
+      notes_append: >-
+        The color sub-mode and the music sub-mode are the two this file works
+        out. This read reports what is playing — writing a color moved it to
+        13 with that color, and writing music moved it to 19 with every field
+        of the frame. See docs/protocol/ble.md 3.
 
     music:
       args:

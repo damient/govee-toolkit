@@ -121,10 +121,8 @@ overrides:
         above is the one the phone controller uses, and the codec enforces it.
 
     colortemp:
-      notes: >-
-        The firmware converts the temperature to RGB itself and ignores the
-        color field, so the payload carries no white triplet and zeroes that
-        field. It clamps a value outside the range above in silence. See
+      notes_append: >-
+        It clamps a value outside the range above in silence. See
         docs/protocol/lan.md 1, "Documented commands".
 
   ble:

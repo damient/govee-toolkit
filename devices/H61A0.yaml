@@ -217,43 +217,32 @@ overrides:
         Percent on this unit, not 0..255. See docs/protocol/ble.md 2.2.
 
     read_mode:
-      notes: >-
-        The live sub-mode and its eight payload bytes, left uninterpreted:
-        their meaning depends on the sub-mode. Answers 21 after a `color`
-        frame and 19 after a `music` one, each with the fields of that frame.
-        It reports what was written, which is not the same as what the
-        firmware renders. See docs/protocol/ble.md 3.
+      notes_append: >-
+        It answers 21 after a `color` frame and 19 after a `music` one, each
+        with the fields of that frame. It reports what was written, which is
+        not the same as what the firmware renders. See docs/protocol/ble.md 3.
 
     read_segment_count:
-      notes: >-
-        Answers 15 on this unit, which is the width of the zone mask, not the
-        10 zones the app exposes nor the 42 ICs. See docs/protocol/ble.md 3.
+      notes_append: >-
+        Answers 15 on this unit, against the 10 zones the phone controller
+        exposes and the 42 ICs. See docs/protocol/ble.md 3.
 
     read_ic_count:
-      notes: >-
-        Answers 42 on this unit, matching the native resolution measured over
-        lan. See docs/protocol/ble.md 3.
+      notes_append: >-
+        Answers 42 on this unit. See docs/protocol/ble.md 3.
 
     read_hardware_version:
-      notes: >-
-        ASCII, zero-padded out to the checksum; 1.02.00 on this unit. The
-        length is what stops the field before that byte. See
-        docs/protocol/ble.md 3.
+      notes_append: >-
+        1.02.00 on this unit. See docs/protocol/ble.md 3.
 
     read_software_version:
-      notes: >-
-        ASCII, zero-padded out to the checksum; 2.06.02 on this unit. The
-        length is what stops the field before that byte. See
-        docs/protocol/ble.md 3.
+      notes_append: >-
+        2.06.02 on this unit. See docs/protocol/ble.md 3.
 
     gradient:
-      notes: >-
-        Whether the firmware interpolates between zones, wrapping from the
-        last back to the first; 0 gives hard-edged zones. The same setting the
-        lan segment channel carries as its `gradient` argument. It is not a
-        fade over time: alternating two colors looks the same either way, and
-        what changes is the boundary between two zones painted differently.
-        See docs/protocol/ble.md 2.6.
+      notes_append: >-
+        Alternating two colors looks the same either way on this unit. See
+        docs/protocol/ble.md 2.6.
 
     music:
       notes: >-
@@ -272,14 +261,12 @@ overrides:
 
   cloud:
     segment_color:
-      notes: >-
-        Paints one color over the zones the array names, and leaves the rest
-        alone. The arguments are the ones the `ble` masked entry takes, so one
-        command takes the same arguments over both modes. A stream over this
-        mode sends one request per distinct color, and the API's own interval
-        between two requests about one device is 6 seconds: the transport
-        refuses a frame that waits longer than `max_wait`. See
-        docs/protocol/cloud.md 5.
+      notes_append: >-
+        It paints one color over the zones the array names, and leaves the
+        rest alone. A stream over this mode sends one request per distinct
+        color, and the API's own interval between two requests about one
+        device is 6 seconds: the transport refuses a frame that waits longer
+        than `max_wait`. See docs/protocol/cloud.md 5.
 
 # Measured on one physical unit. These numbers depend on the unit's LENGTH as
 # much as on the SKU. See docs/protocol/lan.md 2.3 and 2.7.
