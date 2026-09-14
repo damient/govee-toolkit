@@ -15,7 +15,7 @@ export const REFERENCE = { url: "reference/", title: "Reference", order: 4 };
 const LANGUAGES = [
   { id: "cli", label: "Command line" },
   { id: "rust", label: "Rust" },
-  { id: "python", label: "Python", planned: true },
+  { id: "python", label: "Python" },
   { id: "node", label: "Node.js", planned: true },
 ];
 
