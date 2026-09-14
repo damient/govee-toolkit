@@ -26,6 +26,8 @@ The first release that carries code. The version on PyPI before it was a
   ones. `status()` and `last_status()` read the state, `spec()` returns what
   `devices/<SKU>.yaml` declares, and `serving_mode()` and `ensure_known()`
   answer which mode a command takes.
+- `send()` and `read()` read each value under the type the entry declares:
+  `[0, 1, 2]` is zone indices, byte values or one color as the device file says.
 - `StatusStream` — `watch_status()` reports one device's status as answers
   arrive, over the mode that serves it. It requests nothing of its own.
 - `SegmentStream` — `open_stream()` opens the segment channel, `set_all()`,

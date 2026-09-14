@@ -1,6 +1,6 @@
 //! What crosses between a Python value and a core value.
 
-use govee_toolkit::codec::{ArgValue, Args};
+use govee_toolkit::codec::Supplied;
 use govee_toolkit::{Mode, Rate, Resolution};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyFloat, PyInt, PyString};
@@ -59,46 +59,44 @@ pub(crate) fn colors(value: &Bound<'_, PyAny>) -> PyResult<Vec<[u8; 3]>> {
         .collect::<PyResult<Vec<_>>>()
 }
 
-/// Read one argument value.
+/// Read the shape of one argument value.
 ///
-/// The Python type decides the argument type: `bytes` are sent as they are, a
-/// `str` is text, a `bool` and an `int` are whole numbers, a list of triples
-/// is a list of colors, and a list of whole numbers is a list of zone
-/// indices.
-pub(crate) fn arg_value(value: &Bound<'_, PyAny>) -> PyResult<ArgValue> {
+/// The shape is what Python gave, and never the argument's type: the device
+/// file declares that, and `codec::coerce` reads the value under it on the
+/// send path. A `bool` is a whole number, as it is in Python.
+pub(crate) fn supplied(value: &Bound<'_, PyAny>) -> PyResult<Supplied> {
     if let Ok(bytes) = value.cast::<PyBytes>() {
-        return Ok(ArgValue::Bytes(bytes.as_bytes().to_vec()));
+        return Ok(Supplied::Bytes(bytes.as_bytes().to_vec()));
     }
     if let Ok(text) = value.cast::<PyString>() {
-        return Ok(ArgValue::Text(text.extract()?));
+        return Ok(Supplied::Text(text.extract()?));
     }
     if let Ok(flag) = value.extract::<bool>() {
-        return Ok(ArgValue::Int(i64::from(flag)));
+        return Ok(Supplied::Int(i64::from(flag)));
     }
     if let Ok(number) = value.extract::<i64>() {
-        return Ok(ArgValue::Int(number));
+        return Ok(Supplied::Int(number));
     }
     if value.extract::<Vec<Vec<i64>>>().is_ok() {
-        return Ok(ArgValue::Rgb(colors(value)?));
+        return Ok(Supplied::Colors(colors(value)?));
     }
-    if let Ok(zones) = value.extract::<Vec<u16>>() {
-        return Ok(ArgValue::Zones(zones));
+    if let Ok(numbers) = value.extract::<Vec<i64>>() {
+        return Ok(Supplied::Ints(numbers));
     }
     Err(value_error(
-        "an argument is an int, a bool, a str, bytes, a list of colors or a list of zone indices",
+        "an argument is an int, a bool, a str, bytes, a list of colors or a list of whole numbers",
     ))
 }
 
-/// Read the arguments of a call.
-pub(crate) fn args(values: Option<&Bound<'_, PyDict>>) -> PyResult<Args> {
-    let mut built = Args::new();
+/// Read the shapes of the arguments of a call.
+pub(crate) fn args(values: Option<&Bound<'_, PyDict>>) -> PyResult<Vec<(String, Supplied)>> {
     let Some(values) = values else {
-        return Ok(built);
+        return Ok(Vec::new());
     };
-    for (name, value) in values {
-        built.insert(name.extract::<String>()?, arg_value(&value)?);
-    }
-    Ok(built)
+    values
+        .iter()
+        .map(|(name, value)| Ok((name.extract::<String>()?, supplied(&value)?)))
+        .collect()
 }
 
 /// Read how many zones a paint or a stream states: `"app"`, `"native"`, or a
