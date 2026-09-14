@@ -47,8 +47,10 @@ report reads the same either way.
 keeps the artifacts of every earlier build and collects none of them, so
 `packages/rust/target` grows without a bound: one week of probe runs left
 388054 files and 50 GiB. `cargo-sweep` reads the access time of each artifact,
-so it removes the stale ones and keeps what the last build touched. Install it
-with `cargo install cargo-sweep`; `clean-target.sh --help` lists the flags.
+so it removes the stale ones and keeps what the last build touched. It keeps
+every artifact of an installed toolchain, so the script removes the older
+copies of one artifact itself. Install cargo-sweep with `cargo install
+cargo-sweep`; `clean-target.sh --help` lists the flags.
 
 `qa.sh` stamps before its first check and sweeps after the last one, so a
 passing run keeps its own artifacts and drops everything older. A run for one
@@ -91,6 +93,8 @@ cd packages/rust
 cargo run -p xtask                    # dist/catalog.json, the release artifact
 cargo run -p xtask -- compat          # the tables in docs/compatibility.md
 cargo run -p xtask -- compat --check  # fails when they have drifted
+cargo run -p xtask -- dupes           # fails on a layout two device files
+                                      # declare and no family carries
 ```
 
 No script supplies the local credentials: the SDK reads the repository's
