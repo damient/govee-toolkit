@@ -10,23 +10,20 @@ use crate::errors::value_error;
 
 /// Read a mode by the name the device files and the configuration use.
 pub(crate) fn mode(name: &str) -> PyResult<Mode> {
-    match name {
-        "lan" => Ok(Mode::Lan),
-        "ble" => Ok(Mode::Ble),
-        "cloud" => Ok(Mode::Cloud),
-        other => Err(value_error(format!(
-            "`{other}` is not a mode; the modes are lan, ble and cloud"
-        ))),
-    }
+    Mode::ALL
+        .into_iter()
+        .find(|mode| mode.to_string() == name)
+        .ok_or_else(|| {
+            value_error(format!(
+                "`{name}` is not a mode; the modes are {}",
+                mode_names().join(", ")
+            ))
+        })
 }
 
-/// The name a mode carries everywhere else.
-pub(crate) fn mode_name(mode: Mode) -> &'static str {
-    match mode {
-        Mode::Lan => "lan",
-        Mode::Ble => "ble",
-        Mode::Cloud => "cloud",
-    }
+/// Every mode the core knows, by name.
+pub(crate) fn mode_names() -> Vec<String> {
+    Mode::ALL.iter().map(ToString::to_string).collect()
 }
 
 /// Read the modes of a list.
@@ -81,8 +78,7 @@ pub(crate) fn arg_value(value: &Bound<'_, PyAny>) -> PyResult<ArgValue> {
     if let Ok(number) = value.extract::<i64>() {
         return Ok(ArgValue::Int(number));
     }
-    if let Ok(triples) = value.extract::<Vec<Vec<i64>>>() {
-        let _ = triples;
+    if value.extract::<Vec<Vec<i64>>>().is_ok() {
         return Ok(ArgValue::Rgb(colors(value)?));
     }
     if let Ok(zones) = value.extract::<Vec<u16>>() {

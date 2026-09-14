@@ -12,7 +12,6 @@ use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::{Mutex, watch};
 
-use crate::conv::mode_name;
 use crate::types::DeviceStatus;
 
 /// The events of one SDK. Iterate it with `async for`.
@@ -76,7 +75,7 @@ fn describe(py: Python<'_>, event: &Event) -> PyResult<Py<PyAny>> {
             change,
         }) => {
             dict.set_item("type", "discovered")?;
-            dict.set_item("mode", mode_name(*mode))?;
+            dict.set_item("mode", mode.to_string())?;
             dict.set_item("id", device.id.to_string())?;
             dict.set_item("sku", &device.sku)?;
             dict.set_item("endpoint", &device.endpoint)?;
@@ -85,19 +84,19 @@ fn describe(py: Python<'_>, event: &Event) -> PyResult<Py<PyAny>> {
         }
         Event::Transport(TransportEvent::Forgotten { mode, id }) => {
             dict.set_item("type", "forgotten")?;
-            dict.set_item("mode", mode_name(*mode))?;
+            dict.set_item("mode", mode.to_string())?;
             dict.set_item("id", id.to_string())?;
         }
         Event::Transport(TransportEvent::Sent(sent)) => {
             dict.set_item("type", "sent")?;
-            dict.set_item("mode", mode_name(sent.mode))?;
+            dict.set_item("mode", sent.mode.to_string())?;
             dict.set_item("id", sent.id.to_string())?;
             dict.set_item("cmd", &sent.cmd)?;
             dict.set_item("endpoint", &sent.endpoint)?;
         }
         Event::Transport(TransportEvent::Status { mode, status }) => {
             dict.set_item("type", "status")?;
-            dict.set_item("mode", mode_name(*mode))?;
+            dict.set_item("mode", mode.to_string())?;
             dict.set_item("id", status.id.to_string())?;
             dict.set_item("status", DeviceStatus::from(status.clone()))?;
         }
@@ -107,7 +106,7 @@ fn describe(py: Python<'_>, event: &Event) -> PyResult<Py<PyAny>> {
             transition,
         }) => {
             dict.set_item("type", "health_changed")?;
-            dict.set_item("mode", mode_name(*mode))?;
+            dict.set_item("mode", mode.to_string())?;
             dict.set_item("id", id.to_string())?;
             dict.set_item("from", transition.from.to_string())?;
             dict.set_item("to", transition.to.to_string())?;

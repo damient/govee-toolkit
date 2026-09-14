@@ -29,7 +29,7 @@ __all__ = [
 
 __version__: str
 CORE_VERSION: str
-MODES: tuple[str, str, str]
+MODES: tuple[str, ...]
 
 Color: TypeAlias = tuple[int, int, int]
 Arg: TypeAlias = bool | int | str | bytes | Sequence[int] | Sequence[Color]

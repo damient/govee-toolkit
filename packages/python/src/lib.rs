@@ -13,18 +13,15 @@ mod events;
 mod govee;
 mod stream;
 mod types;
-mod verbs;
 
 use pyo3::prelude::*;
-
-/// The version of the core this binding was built from.
-const CORE_VERSION: &str = "0.8.0";
+use pyo3::types::PyTuple;
 
 #[pymodule]
 fn _govee_toolkit(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    module.add("CORE_VERSION", CORE_VERSION)?;
-    module.add("MODES", ("lan", "ble", "cloud"))?;
+    module.add("CORE_VERSION", govee_toolkit::VERSION)?;
+    module.add("MODES", PyTuple::new(module.py(), conv::mode_names())?)?;
     errors::register(module)?;
     types::register(module)?;
     catalog::register(module)?;

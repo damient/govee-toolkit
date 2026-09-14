@@ -3,17 +3,21 @@
 //! Every call goes over a mode the user enabled. Nothing falls back to another
 //! one: a device no enabled mode reaches raises, and says so.
 
-use govee_toolkit::{DeviceId, Govee as CoreGovee, Music, StreamOptions, WifiCredentials};
+use std::future::Future;
+
+use govee_toolkit::{
+    DeviceId, Error, Govee as CoreGovee, Music, Paint, Provisioned, Served as CoreServed,
+    StreamOptions, WifiCredentials,
+};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3_async_runtimes::tokio::future_into_py;
 
-use crate::conv::{self, mode_name, to_py};
+use crate::conv::{self, to_py};
 use crate::errors::map;
 use crate::events::StatusStream;
 use crate::stream::SegmentStream;
 use crate::types::{DeviceStatus, Health, Reply, Served};
-use crate::verbs;
 
 /// A handle on one identity. It holds no state of its own: every answer comes
 /// from the SDK it was made by.
@@ -44,7 +48,7 @@ impl DeviceHandle {
             .device(&self.id)
             .modes()
             .iter()
-            .map(|mode| mode_name(*mode).to_owned())
+            .map(ToString::to_string)
             .collect()
     }
 
@@ -61,7 +65,7 @@ impl DeviceHandle {
     /// The mode a command sent now would go over. Read from recorded state,
     /// so the answer can change before the next call.
     fn serving_mode(&self) -> PyResult<String> {
-        Ok(mode_name(map(self.govee.device(&self.id).serving_mode())?).to_owned())
+        Ok(map(self.govee.device(&self.id).serving_mode())?.to_string())
     }
 
     /// What `devices/<SKU>.yaml` declares for it. Reads no hardware.
@@ -92,8 +96,7 @@ impl DeviceHandle {
     fn ensure_known<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let (govee, id) = self.parts();
         future_into_py(py, async move {
-            let mode = map(verbs::ensure_known(govee, id).await)?;
-            Ok(mode_name(mode).to_owned())
+            Ok(map(govee.ensure_known(&id).await)?.to_string())
         })
     }
 
@@ -109,11 +112,8 @@ impl DeviceHandle {
         args: Option<&Bound<'py, PyDict>>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let values = conv::args(args)?;
-        let (govee, id) = self.parts();
-        future_into_py(py, async move {
-            Ok(Served::from(map(
-                verbs::send(govee, id, command, values).await
-            )?))
+        self.served(py, |govee, id| async move {
+            govee.device(&id).send(&command, &values).await
         })
     }
 
@@ -129,9 +129,8 @@ impl DeviceHandle {
         let values = conv::args(args)?;
         let (govee, id) = self.parts();
         future_into_py(py, async move {
-            Ok(Reply::from(map(
-                verbs::read(govee, id, command, values).await
-            )?))
+            let reply = map(govee.device(&id).read(&command, &values).await)?;
+            Ok(Reply::from(reply))
         })
     }
 
@@ -139,44 +138,39 @@ impl DeviceHandle {
     fn status<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let (govee, id) = self.parts();
         future_into_py(py, async move {
-            Ok(DeviceStatus::from(map(verbs::status(govee, id).await)?))
+            let status = map(govee.device(&id).status().await)?;
+            Ok(DeviceStatus::from(status))
         })
     }
 
     /// Turn the device on or off.
     fn power<'py>(&self, py: Python<'py>, on: bool) -> PyResult<Bound<'py, PyAny>> {
-        let (govee, id) = self.parts();
-        future_into_py(py, async move {
-            Ok(Served::from(map(verbs::power(govee, id, on).await)?))
-        })
+        self.served(
+            py,
+            |govee, id| async move { govee.device(&id).power(on).await },
+        )
     }
 
     /// Set the level, in the unit the device file declares.
     fn brightness<'py>(&self, py: Python<'py>, level: i64) -> PyResult<Bound<'py, PyAny>> {
-        let (govee, id) = self.parts();
-        future_into_py(py, async move {
-            Ok(Served::from(
-                map(verbs::brightness(govee, id, level).await)?,
-            ))
+        self.served(py, |govee, id| async move {
+            govee.device(&id).brightness(level).await
         })
     }
 
     /// Set one color, as three channels.
     fn color<'py>(&self, py: Python<'py>, rgb: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let rgb = conv::rgb(rgb)?;
-        let (govee, id) = self.parts();
-        future_into_py(py, async move {
-            Ok(Served::from(map(verbs::color(govee, id, rgb).await)?))
-        })
+        self.served(
+            py,
+            |govee, id| async move { govee.device(&id).color(rgb).await },
+        )
     }
 
     /// Set the white temperature, in kelvin. It ends color mode.
     fn color_temp<'py>(&self, py: Python<'py>, kelvin: i64) -> PyResult<Bound<'py, PyAny>> {
-        let (govee, id) = self.parts();
-        future_into_py(py, async move {
-            Ok(Served::from(map(
-                verbs::color_temp(govee, id, kelvin).await
-            )?))
+        self.served(py, |govee, id| async move {
+            govee.device(&id).color_temp(kelvin).await
         })
     }
 
@@ -201,9 +195,8 @@ impl DeviceHandle {
             soft,
             color,
         };
-        let (govee, id) = self.parts();
-        future_into_py(py, async move {
-            Ok(Served::from(map(verbs::music(govee, id, music).await)?))
+        self.served(py, |govee, id| async move {
+            govee.device(&id).music(&music).await
         })
     }
 
@@ -222,21 +215,22 @@ impl DeviceHandle {
     ) -> PyResult<Bound<'py, PyAny>> {
         let colors = conv::colors(colors)?;
         let resolution = conv::resolution_or_default(resolution)?;
-        let (govee, id) = self.parts();
-        future_into_py(py, async move {
-            Ok(Served::from(map(verbs::segment(
-                govee, id, zones, colors, resolution, gradient,
-            )
-            .await)?))
+        self.served(py, |govee, id| async move {
+            let paint = Paint {
+                zones: zones.as_deref(),
+                colors: &colors,
+                resolution,
+                gradient,
+            };
+            govee.device(&id).segment(&paint).await
         })
     }
 
     /// Ask the firmware to interpolate between zones, and to wrap from the
     /// last zone back to the first.
     fn gradient<'py>(&self, py: Python<'py>, on: bool) -> PyResult<Bound<'py, PyAny>> {
-        let (govee, id) = self.parts();
-        future_into_py(py, async move {
-            Ok(Served::from(map(verbs::gradient(govee, id, on).await)?))
+        self.served(py, |govee, id| async move {
+            govee.device(&id).gradient(on).await
         })
     }
 
@@ -265,8 +259,11 @@ impl DeviceHandle {
         };
         let (govee, id) = self.parts();
         future_into_py(py, async move {
-            let done = map(verbs::provision_wifi(govee, id, credentials).await)?;
-            Ok(verbs::provisioned_name(done))
+            let done = map(govee.device(&id).provision_wifi(&credentials).await)?;
+            Ok(match done {
+                Provisioned::Accepted => "accepted",
+                Provisioned::Sent => "sent",
+            })
         })
     }
 
@@ -290,10 +287,8 @@ impl DeviceHandle {
         };
         let (govee, id) = self.parts();
         future_into_py(py, async move {
-            Ok(SegmentStream::new(map(verbs::open_stream(
-                govee, id, options,
-            )
-            .await)?))
+            let stream = map(govee.device(&id).open_stream(options).await)?;
+            Ok(SegmentStream::new(stream))
         })
     }
 
@@ -306,6 +301,21 @@ impl DeviceHandle {
     /// What an async call takes with it.
     fn parts(&self) -> (CoreGovee, DeviceId) {
         (self.govee.clone(), self.id.clone())
+    }
+
+    /// Run one verb that answers what a mode served, and hand the answer back
+    /// as an awaitable.
+    fn served<'py, Fut>(
+        &self,
+        py: Python<'py>,
+        verb: impl FnOnce(CoreGovee, DeviceId) -> Fut,
+    ) -> PyResult<Bound<'py, PyAny>>
+    where
+        Fut: Future<Output = Result<CoreServed, Error>> + Send + 'static,
+    {
+        let (govee, id) = self.parts();
+        let call = verb(govee, id);
+        future_into_py(py, async move { Ok(Served::from(map(call.await)?)) })
     }
 }
 

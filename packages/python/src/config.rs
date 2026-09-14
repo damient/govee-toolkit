@@ -3,7 +3,6 @@
 use govee_toolkit::Config as CoreConfig;
 use pyo3::prelude::*;
 
-use crate::conv::mode_name;
 use crate::errors::map;
 
 /// The configuration in force.
@@ -53,7 +52,7 @@ impl Config {
             .defaults
             .modes
             .iter()
-            .map(|mode| mode_name(*mode).to_owned())
+            .map(ToString::to_string)
             .collect()
     }
 
