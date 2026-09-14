@@ -96,6 +96,19 @@ if [ -z "$only" ] || [[ site == *"$only"* ]]; then
   esac
 fi
 
+# The Python binding is a workspace of its own, with a script of its own. One
+# check here, one script there: its summary prints inside this one when it
+# fails. It exits 2 when it skipped a check, which is a skip here as well.
+if [ -z "$only" ] || [[ python == *"$only"* ]]; then
+  printf '%s\n' "python"
+  "$root/tools/qa-python.sh" >"$log" 2>&1
+  case $? in
+  0) record "python" pass ;;
+  2) record "python" skip "a python check was skipped; run tools/qa-python.sh" ;;
+  *) record "python" fail ;;
+  esac
+fi
+
 check "file length" "$root/tools/check-file-length.sh" rust
 check "codec layering" "$root/tools/check-no-io.sh"
 check "capture redaction" "$root/tools/check-captures.sh"

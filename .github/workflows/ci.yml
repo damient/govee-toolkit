@@ -328,25 +328,58 @@ jobs:
     name: Python
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/python
+    # packages/python carries no rust-toolchain.toml, and the nightly step
+    # below installs last, which makes nightly the default toolchain. Every
+    # step that is not the format check runs on stable.
+    env:
+      RUSTUP_TOOLCHAIN: stable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
+          # The wheel is abi3 for 3.10 and up, so one interpreter builds it and
+          # every supported one can import it.
           python-version: "3.11"
-      - run: pip install build pytest
-      # The distribution is built here rather than at release time: a manifest
-      # that cannot produce an sdist and a wheel is a release that fails after
-      # the tag is signed and pushed.
-      - name: Build the distribution
-        run: python -m build packages/python
-      # pytest exits 5 when it collects nothing, which is what tests/ holds
-      # until the PyO3 binding lands. Any other non-zero stays a failure.
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+          components: clippy
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: nightly
+          components: rustfmt
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: packages/python
+      # The binding builds the core with every transport, and btleplug reaches
+      # BlueZ over D-Bus, so the `ble` feature needs the dbus headers here.
+      - name: D-Bus headers
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
+      # packages/python is a workspace of its own, so these run inside it.
+      # rustfmt.toml uses nightly-only options.
+      - name: Format
+        run: cargo fmt --all --check
+        env:
+          RUSTUP_TOOLCHAIN: nightly
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: pip install maturin pytest pytest-asyncio
+      # The wheel is built here rather than at release time: a manifest that
+      # cannot produce one is a release that fails after the tag is signed and
+      # pushed. `maturin develop` needs a virtual environment; the wheel is
+      # built and installed instead, which is what a user gets.
+      - name: Build the wheel
+        run: maturin build --out target/wheels
+      - name: Install the wheel
+        run: pip install --no-index --no-deps --force-reinstall target/wheels/*.whl
+      # `pytest`, not `python -m pytest`: the second puts the working directory
+      # first on the import path, and `govee_toolkit/` there holds the Python
+      # half of the package without the extension module beside it.
       - name: Tests
-        working-directory: packages/python
-        run: |
-          status=0
-          python -m pytest || status=$?
-          [ "$status" -eq 0 ] || [ "$status" -eq 5 ]
+        run: pytest
 
   node:
     name: Node
