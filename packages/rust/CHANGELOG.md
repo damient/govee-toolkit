@@ -7,6 +7,11 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `VERSION` — the version of this crate. A binding reports the core it was
+  built from without a copy of the number.
+
 ## [0.8.0] — 2026-09-14
 
 ### Added
