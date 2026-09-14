@@ -26,7 +26,7 @@ commands:
       role: brightness
       payload: { value: "${level}" }
       args:
-        level: { type: int, range: capability, role: brightness }
+        level: { type: int, range: brightness.range, role: brightness }
       notes: >-
         Whether the firmware clamps a value outside the bounds differs per
         model, and the device file says.
@@ -52,7 +52,7 @@ commands:
         color: { r: 0, g: 0, b: 0 }
         colorTemInKelvin: "${kelvin}"
       args:
-        kelvin: { type: int, range: capability, role: color_temp }
+        kelvin: { type: int, range: colortemp.range_kelvin, role: color_temp }
       notes: >-
         The firmware converts the temperature to RGB itself and ignores the
         color field, so the payload carries no white triplet and zeroes that

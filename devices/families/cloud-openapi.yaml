@@ -58,7 +58,7 @@ commands:
         instance: "colorTemperatureK"
       payload: "${kelvin}"
       args:
-        kelvin: { type: int, range: capability, role: color_temp }
+        kelvin: { type: int, range: colortemp.range_kelvin, role: color_temp }
       notes: >-
         The bounds come from `capabilities.colortemp.range_kelvin` of the
         device that includes this table. The API documents 2000 to 9000 K, and

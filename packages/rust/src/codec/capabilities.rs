@@ -1,10 +1,10 @@
 //! What a device can do, and what a mode reaches of it.
 //!
-//! Capability names are data: the codec reads [`SEGMENTS`] for the zone
-//! counts a stream needs, and `brightness` and `colortemp` where a device file
-//! writes `range: capability` (see [`catalog::Bounds`]). Every other name is an
-//! opaque string. Parameters are the exception — an unknown one is refused, not
-//! ignored.
+//! Capability names are data: the codec reads [`SEGMENTS`] for the zone counts
+//! a stream needs, and every other name is an opaque string. A device file that
+//! takes an argument's bounds from a capability names both the capability and
+//! the parameter itself (see [`catalog::Bounds`]). Parameters are the exception
+//! to the opacity — an unknown one is refused, not ignored.
 //!
 //! [`catalog::Bounds`]: crate::codec::catalog::Bounds
 
@@ -15,6 +15,10 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 /// The capability carrying addressable zones.
 pub const SEGMENTS: &str = "segments";
+
+/// The parameters of [`CapabilityParams`] that carry a pair, so a device file
+/// can point an argument's `range:` at one. In the order they are declared.
+pub const PAIR_PARAMS: [&str; 2] = ["range", "range_kelvin"];
 
 /// Parameters qualifying one capability, named below. All optional, and an
 /// unknown one fails the file to load.
@@ -35,6 +39,19 @@ pub struct CapabilityParams {
     /// extrapolated.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub native_pixels: Option<u32>,
+}
+
+impl CapabilityParams {
+    /// The pair the parameter `name` declares. `None` where the parameter is
+    /// absent, and where it is not one of [`PAIR_PARAMS`].
+    #[must_use]
+    pub fn pair(&self, name: &str) -> Option<[i64; 2]> {
+        match name {
+            "range" => self.range,
+            "range_kelvin" => self.range_kelvin,
+            _ => None,
+        }
+    }
 }
 
 /// What the hardware can do, regardless of mode. A capability it does not have
@@ -150,5 +167,25 @@ impl fmt::Display for Reason {
             Self::Unimplemented => "unimplemented",
             Self::Unprobed => "unprobed",
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CapabilityParams, PAIR_PARAMS};
+
+    /// `pair` and `PAIR_PARAMS` name the same set, or a device file points at
+    /// a parameter the lookup silently answers nothing for.
+    #[test]
+    fn every_listed_parameter_reads_back() {
+        let params = CapabilityParams {
+            range: Some([1, 100]),
+            range_kelvin: Some([2000, 9000]),
+            ..CapabilityParams::default()
+        };
+        for name in PAIR_PARAMS {
+            assert!(params.pair(name).is_some(), "`{name}` reads nothing");
+        }
+        assert_eq!(params.pair("count"), None);
     }
 }

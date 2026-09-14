@@ -24,7 +24,7 @@ commands:
       role: brightness
       frame: "33 04 ${level} <pad:20> <xor>"
       args:
-        level: { type: int, range: capability, role: brightness }
+        level: { type: int, range: brightness.range, role: brightness }
       notes: >-
         One byte, in the unit the bounds above give: a percent on one model
         and the whole 0..255 on another.
@@ -38,7 +38,7 @@ commands:
           reply: "AA 04 ${level}"
       args:
         on: { type: int, range: [0, 1], role: "on" }
-        level: { type: int, range: capability, role: brightness }
+        level: { type: int, range: brightness.range, role: brightness }
       notes: >-
         Two reads: no single frame reports both.
 

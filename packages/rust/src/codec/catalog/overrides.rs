@@ -140,13 +140,13 @@ fn patch_arg(spec: &mut ArgSpec, patch: &ArgOverride) -> std::result::Result<(),
         ArgSpec::Int { range, .. } => {
             reject(patch.max_len.is_some(), "max_len", type_name)?;
             reject(patch.count.is_some(), "count", type_name)?;
-            let Some(new) = patch.range else {
+            let Some(new) = &patch.range else {
                 return Err("nothing to change".to_owned());
             };
             if new.pair() == range.pair() && new.pair().is_some() {
                 return Err("`range` repeats the bounds the table already gives".to_owned());
             }
-            *range = new;
+            *range = new.clone();
         }
         ArgSpec::RgbList { max_len, .. }
         | ArgSpec::String { max_len, .. }
