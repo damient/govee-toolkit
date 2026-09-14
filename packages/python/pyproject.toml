@@ -1,11 +1,15 @@
-# TODO: fill in once the PyO3 binding is written.
+# The wheel carries a compiled extension module, so the backend is maturin and
+# not a pure-Python one.
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.9,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "govee-toolkit"
-version = "0.0.0"
+# The number is written here and not taken from Cargo.toml:
+# `tools/release-notes.sh` reads this line to check the tag, the manifest and
+# the changelog against each other. Raise it here and in Cargo.toml together.
+version = "0.1.0"
 description = "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them."
 authors = [{ name = "damient" }]
 readme = "README.md"
@@ -22,7 +26,15 @@ Issues = "https://github.com/damient/govee-toolkit/issues"
 Changelog = "https://github.com/damient/govee-toolkit/blob/main/packages/python/CHANGELOG.md"
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "pytest-asyncio"]
+
+[tool.maturin]
+# A mixed layout: `govee_toolkit/` next to this file is the Python package, and
+# the crate builds the extension module inside it.
+module-name = "govee_toolkit._govee_toolkit"
+features = ["pyo3/extension-module"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Every test is a coroutine: the package is asyncio only.
+asyncio_mode = "auto"
