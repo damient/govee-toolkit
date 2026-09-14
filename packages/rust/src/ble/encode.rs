@@ -10,8 +10,8 @@
 //! [`Beacon`]: super::scan::Beacon
 
 use aes::Aes128;
-use aes::cipher::generic_array::GenericArray;
-use aes::cipher::{BlockDecrypt as _, BlockEncrypt as _, KeyInit as _};
+use aes::cipher::array::Array;
+use aes::cipher::{BlockCipherDecrypt as _, BlockCipherEncrypt as _, KeyInit as _};
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64;
 
@@ -71,7 +71,7 @@ impl Codec {
     #[must_use]
     pub fn new(seed: Seed) -> Self {
         Self {
-            aes: Aes128::new(GenericArray::from_slice(&seed)),
+            aes: Aes128::new(&seed.into()),
             schedule: schedule(&seed),
         }
     }
@@ -103,7 +103,7 @@ impl Codec {
         let mut out = Vec::with_capacity(frame.len());
         let (blocks, tail) = frame.as_chunks::<BLOCK>();
         for chunk in blocks {
-            let mut block = GenericArray::from(*chunk);
+            let mut block = Array::from(*chunk);
             if encode {
                 self.aes.encrypt_block(&mut block);
             } else {

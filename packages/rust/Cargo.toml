@@ -3,7 +3,7 @@ name = "govee-toolkit"
 description = "Control Govee devices over the LAN, over Bluetooth or through the cloud, including undocumented commands. Unofficial."
 version = "0.7.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.89"
 license = "MIT"
 homepage = "https://gvetk.com"
 repository = "https://github.com/damient/govee-toolkit"
@@ -31,7 +31,7 @@ members = ["crates/cli", "crates/sim", "crates/xtask"]
 [workspace.package]
 version = "0.7.0"
 edition = "2024"
-rust-version = "1.88"
+rust-version = "1.89"
 license = "MIT"
 homepage = "https://gvetk.com"
 repository = "https://github.com/damient/govee-toolkit"
@@ -80,7 +80,7 @@ thiserror = "2"
 
 # The block stage of the encoded `ble` link, `docs/protocol/ble.md` 9. The
 # stream stage of the frame tail is a few lines in `src/ble/encode.rs`.
-aes = { version = "0.8", optional = true }
+aes = { version = "0.9", optional = true }
 async-trait = { version = "0.1", optional = true }
 btleplug = { version = "0.13", optional = true }
 # A parser alone: `Iter` yields the pairs, and nothing is exported into the

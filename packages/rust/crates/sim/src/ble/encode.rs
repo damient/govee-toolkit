@@ -7,8 +7,8 @@
 //! copy checks nothing on its own.
 
 use aes::Aes128;
-use aes::cipher::generic_array::GenericArray;
-use aes::cipher::{BlockDecrypt as _, BlockEncrypt as _, KeyInit as _};
+use aes::cipher::array::Array;
+use aes::cipher::{BlockCipherDecrypt as _, BlockCipherEncrypt as _, KeyInit as _};
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64;
 
@@ -41,11 +41,11 @@ pub const CONFIRM: u8 = 0x02;
 /// Encode or decode one frame. The two are the same walk over the frame.
 #[must_use]
 pub fn apply(seed: &[u8; 16], frame: &[u8], encode: bool) -> Vec<u8> {
-    let aes = Aes128::new(GenericArray::from_slice(seed));
+    let aes = Aes128::new(&(*seed).into());
     let (blocks, tail) = frame.as_chunks::<16>();
     let mut out = Vec::with_capacity(frame.len());
     for chunk in blocks {
-        let mut block = GenericArray::from(*chunk);
+        let mut block = Array::from(*chunk);
         if encode {
             aes.encrypt_block(&mut block);
         } else {
