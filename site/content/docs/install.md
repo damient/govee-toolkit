@@ -2,13 +2,13 @@
 title: Install
 slug: install
 order: 2
-description: The Rust crate, the command line, and where the Python and Node.js packages stand.
+description: The Rust crate, the command line, the Python package, and where the Node.js package stands.
 ---
 
 # Install
 
 The Rust crate is the reference implementation. The command line needs no
-code. Python and Node.js bind to that same core and are not released yet.
+code. Python binds to that same core. Node.js is not released yet.
 
 ## Rust <span class="state ok">Available</span>
 
@@ -52,20 +52,32 @@ through the crate.
 
 [Every command, with an example in each language]({{base}}reference/)
 
-## Python <span class="state soon">Planned</span>
+## Python <span class="state ok">Available</span>
 
-A PyO3 binding over the Rust core, with wheels for the usual platforms. The
-name `govee-toolkit` is reserved on PyPI by a `0.0.0` placeholder: there is no
-code behind it yet.
+A PyO3 binding over the Rust core. The API is `asyncio` only, and the wheel
+carries the device catalog, so an install needs no data file and no Rust
+toolchain.
+
+<div class="terminal">
+<pre><code><span class="prompt">$</span> pip install govee-toolkit</code></pre>
+<button class="copy" type="button" data-copy="pip install govee-toolkit">Copy</button>
+</div>
 
 ```python
-# What it is meant to look like.
+from govee_toolkit import Govee
+
 govee = await Govee.start()
 for device in await govee.scan():
     await govee.device(device.id).power(True)
+await govee.close()
 ```
 
-[Where it sits in the order of work]({{repo}}/blob/main/docs/roadmap.md)
+The wheels are `abi3` for Python 3.10 and up, for Linux, macOS and Windows on
+`x86_64` and `aarch64`. There is no wheel for `armv7` and none for musl yet: on
+those platforms pip builds from the repository, which needs a Rust toolchain.
+
+[Package documentation]({{repo}}/tree/main/packages/python) ·
+[PyPI](https://pypi.org/project/govee-toolkit/)
 
 ## Node.js <span class="state soon">Planned</span>
 

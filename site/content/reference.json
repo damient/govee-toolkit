@@ -13,7 +13,7 @@
           "examples": {
             "cli": "govee scan\ngovee scan --mode lan",
             "rust": "let devices = govee.scan().await?;\nlet lan_only = govee.scan_on(&[Mode::Lan]).await?;",
-            "python": "devices = await govee.scan()\nlan_only = await govee.scan_on([Mode.LAN])",
+            "python": "devices = await govee.scan()\nlan_only = await govee.scan_on([\"lan\"])",
             "node": "const devices = await govee.scan()\nconst lanOnly = await govee.scanOn(['lan'])"
           }
         },
@@ -227,7 +227,7 @@
           "examples": {
             "cli": "govee send living-room brightness --arg level=40",
             "rust": "device.send(\"brightness\", &args).await?;\nlet reply = device.read(\"status\", &args).await?;",
-            "python": "await device.send(\"brightness\", {\"level\": 40})\nreply = await device.read(\"status\", {})",
+            "python": "await device.send(\"brightness\", level=40)\nreply = await device.read(\"status\")",
             "node": "await device.send('brightness', { level: 40 })\nconst reply = await device.read('status', {})"
           }
         },
@@ -242,7 +242,7 @@
           "examples": {
             "cli": "govee provision living-room --ssid my-network",
             "rust": "device.provision_wifi(&credentials).await?;",
-            "python": "await device.provision_wifi(credentials)",
+            "python": "await device.provision_wifi(\"network name\", \"password\")",
             "node": "await device.provisionWifi(credentials)"
           }
         },
@@ -254,7 +254,7 @@
           "examples": {
             "cli": "govee on living-room --mode lan",
             "rust": "let mode = device.serving_mode()?;\nlet health = device.health(Mode::Lan);",
-            "python": "mode = device.serving_mode()\nhealth = device.health(Mode.LAN)",
+            "python": "mode = device.serving_mode()\nhealth = device.health(\"lan\")",
             "node": "const mode = device.servingMode()\nconst health = device.health('lan')"
           }
         }

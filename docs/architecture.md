@@ -101,9 +101,10 @@ whole send path with no Bluetooth on the machine.
 
 - **Node** — `napi-rs`. Serves the playground, the Electron app and the
   Homebridge plugin.
-- **Python** — `PyO3` / `maturin`. Serves the Home Assistant component. It needs
-  wheels for aarch64, armv7 and musl, or Raspberry Pi users cannot install it;
-  that CI is part of the work, not an afterthought.
+- **Python** — `PyO3` / `maturin`, in `packages/python`: the facade as an
+  `asyncio` API, in `abi3` wheels for Linux, macOS and Windows on `x86_64` and
+  `aarch64`. It serves the Home Assistant component, which also needs `armv7`
+  and musl wheels; that CI is part of the work.
 
 ## The catalog as an artifact
 

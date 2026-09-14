@@ -59,10 +59,12 @@ known.
 
 The engine works over `lan`, over `ble` and over `cloud`, verified on real
 hardware: discovery, on/off, brightness, color, per-segment color, and live
-animation over the two local modes. It is usable today from Rust.
+animation over the two local modes. It is usable today from Rust and from
+Python. `pip install govee-toolkit` installs a binding over the same core, with
+an `asyncio` API — [`packages/python`](packages/python).
 
-Next comes the packaging around it — the Python and Node.js packages, then a
-desktop app, then Home Assistant, Homebridge and Matter.
+Next comes the Node.js package, then a desktop app, then Home Assistant,
+Homebridge and Matter.
 [`docs/roadmap.md`](docs/roadmap.md) tracks the order.
 
 ## Contributing
