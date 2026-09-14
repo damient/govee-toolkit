@@ -197,9 +197,10 @@ releases independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `python-vX.Y.Z`,
 `docs/versioning.md`.
 
 `govee-toolkit` is published on crates.io — the version is the one in
-`packages/rust/Cargo.toml`. The name is taken on PyPI and npm too, by a `0.0.0`
-placeholder each: those two packages have no code yet. The bare name `govee`
-on crates.io belongs to an unrelated project.
+`packages/rust/Cargo.toml`. On PyPI it is the Python binding, at the version in
+`packages/python/pyproject.toml`, which a `python-vX.Y.Z` tag publishes. On
+npm the name is taken by a `0.0.0` placeholder: that package has no code yet.
+The bare name `govee` on crates.io belongs to an unrelated project.
 
 In Rust: no `unsafe`, and no `panic` / `unwrap` / `expect` in library code. Out
 of range is an error, never a clamp — the firmware clamps in silence, and an SDK
