@@ -113,6 +113,7 @@ prune_incremental() {
   for dir in "$rust"/target/*/incremental; do
     [ -d "$dir" ] || continue
     # ls -t sorts by the last use, newest first.
+    # shellcheck disable=SC2012 # cargo writes these names; find cannot sort by time.
     ls -t "$dir" | awk -v keep="$keep_incremental" '
       { crate = $0; sub(/-[^-]*$/, "", crate); if (++seen[crate] > keep) print }
     ' | while IFS= read -r session; do
@@ -154,6 +155,7 @@ example_names() {
 # not carry has lost its source and goes, whatever its age. Pass `-` for $3 to
 # skip that test, which is what the dependency directory wants.
 list_stale_copies() {
+  # shellcheck disable=SC2012 # cargo writes these names; find cannot sort by time.
   ls -t "$1" 2>/dev/null | awk -v keep="$2" -v sources="$3" '
     BEGIN {
       check = (sources != "-")

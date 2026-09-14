@@ -35,9 +35,7 @@ def test_every_device_file_of_the_checkout_is_embedded(catalog):
     if root is None:
         pytest.skip("no checkout: the device files are not here to compare against")
     on_disk = {
-        path.stem
-        for path in (root / "devices").glob("*.yaml")
-        if path.stem != "schema"
+        path.stem for path in (root / "devices").glob("*.yaml") if path.stem != "schema"
     }
     assert on_disk
     assert on_disk <= set(catalog.skus())

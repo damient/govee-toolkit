@@ -5,7 +5,8 @@
 | Device simulator | [`packages/rust/crates/sim`](../packages/rust/crates/sim) |
 | Local CI mirror | [`qa.sh`](qa.sh), or `/qa` in Claude Code |
 | Local CI mirror, site only | [`qa-site.sh`](qa-site.sh) |
-| Pass/fail reporter both share | [`lib/qa.sh`](lib/qa.sh) |
+| Local CI mirror, Python only | [`qa-python.sh`](qa-python.sh) |
+| Pass/fail reporter the three share | [`lib/qa.sh`](lib/qa.sh) |
 | Build artifact sweep | [`clean-target.sh`](clean-target.sh) |
 | Redaction check | [`check-captures.sh`](check-captures.sh) |
 | File length, per language | [`check-file-length.sh`](check-file-length.sh) |
@@ -39,9 +40,31 @@ It needs `site/node_modules`, which `cd site && npm install` writes, and it
 regenerates `dist/catalog.json` when cargo is there. Both exit codes are the
 ones `qa.sh` uses: 1 for a failed check, 2 for a skipped one.
 
-`lib/qa.sh` holds what the two scripts share: the check runner, the skip rule
+`qa-python.sh` does the same for the Python binding, which is a cargo
+workspace of its own. It mirrors the `python` job of `ci.yml`: ruff for the
+format and the lint, mypy for the types, `mypy.stubtest` for the stubs,
+`cargo fmt` and clippy for the binding, then the wheel and pytest. `qa.sh` runs
+it as one check, and it runs on its own for the package alone:
+
+```bash
+tools/qa-python.sh          # every Python check
+tools/qa-python.sh lint     # the checks whose name holds "lint"
+```
+
+It needs `ruff`, `mypy` and `maturin`, and reports a missing one as skipped.
+`pip install ruff mypy maturin pytest pytest-asyncio` covers every check.
+
+The three checks that read the stubs do different work, and a green run needs
+all three. ruff checks their style, mypy checks that they are internally
+consistent, and only `stubtest` imports the built module and compares it against
+them. A signature that drifts from the Rust reaches a user's editor unless
+`stubtest` runs. What it must not report is listed, with the reason, in
+[`../packages/python/stubtest-allowlist.txt`](../packages/python/stubtest-allowlist.txt).
+
+`lib/qa.sh` holds what the three scripts share: the check runner, the skip rule
 and the summary. Each script sources it and declares its own checks, so the
-report reads the same either way.
+report reads the same either way. It carries no shebang, so it names its shell
+with a `# shellcheck shell=bash` directive.
 
 `clean-target.sh` removes the build artifacts that no later build reads. cargo
 keeps the artifacts of every earlier build and collects none of them, so
@@ -67,6 +90,12 @@ placeholders it accepts, and what to substitute for what, are in
 Its patterns are narrow on purpose — a false positive that blocks a legitimate
 capture costs more than a miss — so it is a backstop for the checklist, not a
 replacement for reading the capture.
+
+The scripts here are linted with `shellcheck -x` and formatted with
+`shfmt -i 2`, which `qa.sh` runs as two checks of its own and the `lint` job of
+`ci.yml` repeats. `-x` follows the `# shellcheck source=SCRIPTDIR/lib/qa.sh`
+directive, so the reporter is read rather than guessed at. No `-ci`: a case
+branch is not indented in this repository.
 
 `check-no-io.sh` fails when anything under `packages/rust/src/codec/` imports
 `std::net`, `std::fs`, `std::thread`, `tokio` or `socket2`, or writes an

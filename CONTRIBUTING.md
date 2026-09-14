@@ -352,6 +352,25 @@ cd site && npm run qa         # the same script
 
 It needs `site/node_modules`: run `cd site && npm install` once.
 
+The Python binding has checks of its own, and `tools/qa-python.sh` mirrors the
+`python` job of `ci.yml` the same way: ruff for the format and the lint, mypy
+for the types, `mypy.stubtest` for the stubs, `cargo fmt` and clippy for the
+binding, then the wheel and pytest. `qa.sh` runs it as one check.
+
+```bash
+tools/qa-python.sh            # every Python check
+tools/qa-python.sh lint       # one check, by substring
+pip install ruff mypy maturin pytest pytest-asyncio   # what it needs
+```
+
+The package ships `py.typed`, so its `.pyi` stubs are what a user's type checker
+reads. `stubtest` is the check that matters there: mypy reads the stubs and
+believes them, and only `stubtest` imports the built module and compares the two.
+Change a `#[pyo3(signature = ...)]` and the stub in the same commit.
+
+The shell scripts under `tools/` are linted with `shellcheck -x` and formatted
+with `shfmt -i 2`. `qa.sh` runs both, and so does the `lint` job.
+
 The MSRV in `packages/rust/Cargo.toml` is checked on every push. Raise it in the
 same commit as the feature that needs it, never after the fact.
 

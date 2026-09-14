@@ -23,7 +23,7 @@ export CARGO_INCREMENTAL=${CARGO_INCREMENTAL:-0}
 
 MSRV=$(sed -n 's/^rust-version *= *"\([^"]*\)".*/\1/p' "$rust/Cargo.toml" | head -1)
 
-# shellcheck source=lib/qa.sh
+# shellcheck source=SCRIPTDIR/lib/qa.sh
 . "$root/tools/lib/qa.sh"
 qa_init govee-qa "${1:-}"
 
@@ -81,6 +81,7 @@ msrv_links() {
 # checkout is read-only, and the artifacts stay in two named volumes. The run
 # writes nothing into the tree, and the next run reuses what this one built.
 # `--all-features` needs the D-Bus headers, as it does in ci.yml.
+# shellcheck disable=SC2329 # check_in invokes it through "$@".
 msrv_in_container() {
   docker run --rm \
     -v "$root:/io:ro" -v govee-msrv-target:/target -v govee-msrv-cargo:/cargo \
@@ -138,6 +139,22 @@ if [ -z "$only" ] || [[ python == *"$only"* ]]; then
   2) record "python" skip "a python check was skipped; run tools/qa-python.sh" ;;
   *) record "python" fail ;;
   esac
+fi
+
+# The scripts under tools/ are what every check above runs through, and they
+# had no check of their own. -x follows `# shellcheck source=`, which is how
+# lib/qa.sh is read.
+if have shellcheck; then
+  check_in "$root" "shell lint" shellcheck -x "$root"/tools/*.sh "$root"/tools/lib/*.sh
+else
+  skip "shell lint" "brew install shellcheck"
+fi
+
+# No -ci: a case branch is not indented in this repository.
+if have shfmt; then
+  check_in "$root" "shell fmt" shfmt -d -i 2 "$root"/tools/*.sh "$root"/tools/lib/*.sh
+else
+  skip "shell fmt" "brew install shfmt, or go install mvdan.cc/sh/v3/cmd/shfmt@latest"
 fi
 
 check "file length" "$root/tools/check-file-length.sh" rust

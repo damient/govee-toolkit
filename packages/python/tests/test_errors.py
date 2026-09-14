@@ -11,9 +11,7 @@ from govee_toolkit import (
 )
 
 
-@pytest.mark.parametrize(
-    "subclass", [CodecError, TransportError, ConfigError]
-)
+@pytest.mark.parametrize("subclass", [CodecError, TransportError, ConfigError])
 def test_every_failure_is_a_govee_failure(subclass):
     assert issubclass(subclass, GoveeError)
 
