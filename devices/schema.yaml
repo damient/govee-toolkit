@@ -451,18 +451,29 @@ commands:
 #         notes: >-
 #           0 and 1 each render an effect on this unit; 2 renders a fixed
 #           white and 3 to 7 render nothing.
+#       read_mode:
+#         notes_append: >-
+#           Under sub-mode 21 the payload is zero.
 #       ping:
 #         drop: true
 #
 # `args:` patches one bound per argument — `range:` on an `int`, `max_len:` on
-# an `rgb_list`, a `string` or a `bytes`, `count:` on a `zones`. `notes:`
-# replaces what the table says. `drop:` removes the command, and takes no
-# other field: the hardware the family covers has it and this model does not.
+# an `rgb_list`, a `string` or a `bytes`, `count:` on a `zones`. `drop:`
+# removes the command, and takes no other field: the hardware the family covers
+# has it and this model does not.
 #
-# Five errors, never warnings: a command no included table carries, a command
+# Two keys carry what a caller must know. `notes:` replaces what the table
+# says. `notes_append:` keeps it and adds one more thing after it, joined with
+# a space. Write `notes_append:` where the model adds to the shared note, so
+# that a later edit to the table reaches this model too. Write `notes:` where
+# the shared note is wrong for this model.
+#
+# Eight errors, never warnings: a command no included table carries, a command
 # this file declares itself — change it where it is written — an argument the
-# command does not declare, a field the argument's type has no room for, and a
-# value the table already gives. The last one is what catches an override that
+# command does not declare, a field the argument's type has no room for, a
+# value the table already gives, `notes:` and `notes_append:` together,
+# `notes_append:` on a command the table gives no note for, and a
+# `notes_append:` the table already says. The last three catch an override that
 # went dead when the family changed.
 #
 # An override carries a measurement or a trap, so write what was exercised. A

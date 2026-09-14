@@ -23,6 +23,12 @@ at.
 
 ### 2026-09-14
 
+#### Added
+
+- `notes_append:` in `overrides:`. A device file adds its fact after the note
+  the included table gives, in place of restating that note to extend it. See
+  [`devices/schema.yaml`](devices/schema.yaml).
+
 #### Changed
 
 - An integer argument takes its bounds from a capability as

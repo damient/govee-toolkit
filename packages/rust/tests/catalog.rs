@@ -361,3 +361,39 @@ fn an_override_of_a_command_the_file_declares_itself_is_an_error() {
 
     assert_eq!(error.code(), "override");
 }
+
+#[test]
+fn an_override_appends_to_the_note_an_included_table_declares() {
+    let catalog = load_override("    music:\n      notes_append: \"2 renders a fixed white.\"\n")
+        .expect("it loads");
+
+    let device = catalog.device("HOVR").expect("the device is there");
+    let (_, command) = device
+        .entry_for(Mode::Ble, Role::Music)
+        .expect("the family declares it");
+    assert_eq!(command.notes, "Eight effects. 2 renders a fixed white.");
+}
+
+#[test]
+fn an_override_that_both_replaces_and_appends_a_note_is_an_error() {
+    let error = load_override("    music:\n      notes: \"x\"\n      notes_append: \"y\"\n")
+        .expect_err("a patch takes one or the other");
+
+    assert_eq!(error.code(), "override");
+}
+
+#[test]
+fn an_append_to_a_command_the_table_gives_no_note_for_is_an_error() {
+    let error = load_override("    ping:\n      notes_append: \"x\"\n")
+        .expect_err("there is no note to append to");
+
+    assert_eq!(error.code(), "override");
+}
+
+#[test]
+fn an_append_the_table_already_says_is_an_error() {
+    let error = load_override("    music:\n      notes_append: \"Eight effects.\"\n")
+        .expect_err("the table already says it");
+
+    assert_eq!(error.code(), "override");
+}
