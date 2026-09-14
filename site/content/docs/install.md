@@ -72,7 +72,7 @@ for device in await govee.scan():
 await govee.close()
 ```
 
-The wheels are `abi3` for Python 3.10 and up: Linux, macOS and Windows on
+The wheels are `abi3` for Python 3.11 and up: Linux, macOS and Windows on
 `x86_64` and `aarch64`, Linux on `armv7`, and musl on `x86_64`, `aarch64` and
 `armv7`. On a platform with no wheel, pip builds from the repository, which
 needs a Rust toolchain.

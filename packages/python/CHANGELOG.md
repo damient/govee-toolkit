@@ -50,17 +50,19 @@ The first release that carries code. The version on PyPI before it was a
   an editor and a type checker read the extension module.
 - Wheels for Linux, macOS and Windows on `x86_64` and `aarch64`, for Linux on
   `armv7`, and for musl on `x86_64`, `aarch64` and `armv7`. The wheel is `abi3`
-  for Python 3.10 and up: one wheel per platform serves every version. The
-  `armv7` and musl wheels are cross-built in manylinux and musllinux containers,
-  and the D-Bus library that the `ble` mode needs is compiled from vendored
-  sources, so the build needs no target sysroot.
+  for Python 3.11 and up: one wheel per platform serves every version. CI
+  imports the wheel on the floor and on the newest release, so `abi3` is
+  checked and not assumed. The `armv7` and musl wheels are cross-built in
+  manylinux and musllinux containers, and the D-Bus library that the `ble` mode
+  needs is compiled from vendored sources, so the build needs no target
+  sysroot.
 - The release publishes no source distribution. `packages/rust/build.rs` reads
   `../../devices`, so a build outside the repository needs `GOVEE_DEVICES_DIR`
   and the device files it names.
 - The wheel embeds the device catalog, so an install needs no data file.
 - Package scaffolding: `pyproject.toml` declares the name `govee-toolkit`,
-  `requires-python >= 3.10` and no dependencies, with `authors`, `keywords` and
-  `[project.urls]`.
+  `requires-python >= 3.11` and no dependencies, with `authors`, `keywords`,
+  `classifiers` and `[project.urls]`.
 
 ### Changed
 

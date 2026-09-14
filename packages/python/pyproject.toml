@@ -14,9 +14,25 @@ description = "Control Govee devices from your own network: undocumented LAN fea
 authors = [{ name = "damient" }]
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = []
 keywords = ["govee", "led", "smart-home", "iot", "sdk"]
+# maturin fills in the license and the platform rows. These are the ones it
+# cannot know: the versions the abi3 wheel imports on, and what the package is.
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Rust",
+  "Topic :: Home Automation",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
 
 [project.urls]
 Homepage = "https://gvetk.com"

@@ -69,7 +69,7 @@ check "python binding clippy" cargo clippy --all-targets --all-features -- -D wa
 
 if ! have python3; then
   for name in "python wheel" "python tests"; do
-    skip "$name" "install Python 3.10 or newer"
+    skip "$name" "install Python 3.11 or newer"
   done
 elif ! have maturin; then
   for name in "python wheel" "python tests"; do
