@@ -71,6 +71,14 @@ The first release that carries code. The version on PyPI before it was a
 
 ### Fixed
 
+- `DeviceHandle.segment()` and `DeviceHandle.open_stream()` declare
+  `resolution` and `rate` as `Resolution | None` and `Rate | None`, with the
+  default `None`. The stubs named a default of `"app"` and `"measured"`, which
+  the module does not take: a caller that passed `None`, which the module does
+  take, got a type error.
+- `@final` on every class the module builds, and `__all__` in the stub for the
+  extension module. Neither is a change to what the module does; both were
+  missing from what a type checker reads.
 - `license = "MIT"` as an SPDX expression instead of a path to the repository's
   `LICENSE`. The build backend refuses a license file above the package
   directory, so no distribution could be built at all.

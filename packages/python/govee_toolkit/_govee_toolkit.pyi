@@ -3,15 +3,38 @@
 import os
 from collections.abc import Sequence
 from types import TracebackType
-from typing import Any
+from typing import Any, Self, TypeAlias, final
 
+__all__ = [
+    "CORE_VERSION",
+    "Catalog",
+    "CodecError",
+    "Config",
+    "ConfigError",
+    "Device",
+    "DeviceHandle",
+    "DeviceStatus",
+    "EventStream",
+    "Govee",
+    "GoveeError",
+    "Health",
+    "MODES",
+    "Reply",
+    "SegmentStream",
+    "Served",
+    "StatusStream",
+    "TransportError",
+    "__version__",
+]
+
+__version__: str
 CORE_VERSION: str
 MODES: tuple[str, str, str]
 
-Color = tuple[int, int, int]
-Arg = bool | int | str | bytes | Sequence[int] | Sequence[Color]
-Resolution = str | int
-Rate = str | float
+Color: TypeAlias = tuple[int, int, int]
+Arg: TypeAlias = bool | int | str | bytes | Sequence[int] | Sequence[Color]
+Resolution: TypeAlias = str | int
+Rate: TypeAlias = str | float
 
 class GoveeError(Exception):
     """Anything that went wrong between a call and the bytes on the wire."""
@@ -28,6 +51,7 @@ class TransportError(GoveeError):
 class ConfigError(GoveeError):
     """The configuration could not be read, or it enables what cannot work."""
 
+@final
 class Health:
     """A device's health in one mode."""
 
@@ -38,6 +62,7 @@ class Health:
     @property
     def available(self) -> bool: """Whether a command would be sent right now."""
 
+@final
 class Device:
     """A device the SDK knows about."""
 
@@ -52,6 +77,7 @@ class Device:
     @property
     def health(self) -> dict[str, Health]: """The health per enabled mode."""
 
+@final
 class Served:
     """A command that was served."""
 
@@ -64,6 +90,7 @@ class Served:
     @property
     def cmd(self) -> str: """The name the wire carries, where it carries one."""
 
+@final
 class DeviceStatus:
     """What a device reported about itself. No firmware fills every field."""
 
@@ -82,6 +109,7 @@ class DeviceStatus:
     @property
     def is_white(self) -> bool: """Whether the device is in white mode."""
 
+@final
 class Reply:
     """What one command's reply layouts captured."""
 
@@ -90,6 +118,7 @@ class Reply:
     @property
     def fields(self) -> dict[str, Any]: """Every field, by its device file name."""
 
+@final
 class Config:
     """The configuration in force. Every field is read-only."""
 
@@ -108,6 +137,7 @@ class Config:
     def stream_fallback_hz(self) -> float:
         """The rate a stream sends at when the device file measured none."""
 
+@final
 class Catalog:
     """The device files the core carries."""
 
@@ -118,6 +148,7 @@ class Catalog:
     def device(self, sku: str) -> dict[str, Any]: """The device file, resolved."""
     def __len__(self) -> int: """How many device files the catalog holds."""
 
+@final
 class SegmentStream:
     """An open segment stream. Close it, or use it as a context manager."""
 
@@ -137,7 +168,7 @@ class SegmentStream:
     def clear(self) -> None: """Write black to every zone."""
     def buffer(self) -> list[Color]: """The colors the next frame carries."""
     async def close(self) -> None: """Stop the stream and release the transport."""
-    async def __aenter__(self) -> SegmentStream: ...
+    async def __aenter__(self) -> Self: ...
     async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
@@ -145,18 +176,21 @@ class SegmentStream:
         tb: TracebackType | None,
     ) -> None: ...
 
+@final
 class EventStream:
     """An async iterator over the events the SDK reports."""
 
     def __aiter__(self) -> EventStream: ...
     async def __anext__(self) -> dict[str, Any]: ...
 
+@final
 class StatusStream:
     """An async iterator over one device's status, as answers arrive."""
 
     def __aiter__(self) -> StatusStream: ...
     async def __anext__(self) -> DeviceStatus: ...
 
+@final
 class DeviceHandle:
     """One device, and the commands it serves."""
 
@@ -212,10 +246,13 @@ class DeviceHandle:
         self,
         colors: Sequence[Color],
         zones: Sequence[int] | None = None,
-        resolution: Resolution = "app",
+        resolution: Resolution | None = None,
         gradient: bool = False,
     ) -> Served:
-        """Write colors to the zones named, or to every zone."""
+        """Write colors to the zones named, or to every zone.
+
+        `resolution` is `"app"` when it is `None`.
+        """
 
     async def gradient(self, on: bool) -> Served:
         """Turn the gradient between zones on or off."""
@@ -236,16 +273,19 @@ class DeviceHandle:
 
     async def open_stream(
         self,
-        resolution: Resolution = "app",
-        rate: Rate = "measured",
+        resolution: Resolution | None = None,
+        rate: Rate | None = None,
         gradient: bool = False,
     ) -> SegmentStream:
         """Open the raw segment channel and paint it frame by frame.
 
         Power the device on first: arming a dark strip paints nothing. The
         device goes back to the color it showed before once the stream closes.
+
+        `resolution` is `"app"` when it is `None`, and `rate` is `"measured"`.
         """
 
+@final
 class Govee:
     """The SDK. Start one and keep it."""
 
