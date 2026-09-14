@@ -29,6 +29,7 @@
 #   tools/clean-target.sh --dry-run    report what a run would remove
 #   tools/clean-target.sh --keep-incremental 0   drop every incremental session
 #   tools/clean-target.sh --keep-copies 3        keep 3 copies of each artifact
+#   tools/clean-target.sh --root packages/python sweep another cargo workspace
 #
 # Without cargo-sweep the script falls back to a full clean above
 # QA_CLEAN_ABOVE_GIB gibibytes (default 5):
@@ -37,7 +38,9 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-rust="$root/packages/rust"
+# The workspace to sweep. Every package here has a target directory of its own,
+# and each one is swept by a run of its own.
+workspace="$root/packages/rust"
 export PATH="$HOME/.cargo/bin:$PATH"
 
 above=${QA_CLEAN_ABOVE_GIB:-5}
@@ -76,6 +79,11 @@ while [ $# -gt 0 ]; do
     shift
     ;;
   --keep-copies=*) keep_copies=${1#*=} ;;
+  --root)
+    workspace=$2
+    shift
+    ;;
+  --root=*) workspace=${1#*=} ;;
   -h | --help)
     awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"
     exit 0
@@ -110,7 +118,7 @@ have_sweep() { cargo sweep --version >/dev/null 2>&1; }
 # configuration a person builds by hand is read again.
 prune_incremental() {
   local dir session
-  for dir in "$rust"/target/*/incremental; do
+  for dir in "$workspace"/target/*/incremental; do
     [ -d "$dir" ] || continue
     # ls -t sorts by the last use, newest first.
     # shellcheck disable=SC2012 # cargo writes these names; find cannot sort by time.
@@ -130,8 +138,8 @@ prune_incremental() {
 # where a name carries a dash.
 example_names() {
   local file name
-  for file in "$rust"/examples/*.rs "$rust"/examples/*/main.rs \
-    "$rust"/crates/*/examples/*.rs "$rust"/crates/*/examples/*/main.rs; do
+  for file in "$workspace"/examples/*.rs "$workspace"/examples/*/main.rs \
+    "$workspace"/crates/*/examples/*.rs "$workspace"/crates/*/examples/*/main.rs; do
     [ -e "$file" ] || continue
     name=${file##*/}
     if [ "$name" = main.rs ]; then
@@ -147,7 +155,7 @@ example_names() {
     /^\[\[example\]\]/ { in_example = 1; next }
     /^\[/ { in_example = 0 }
     in_example && /^name *=/ { gsub(/-/, "_", $2); printf "%s ", $2 }
-  ' "$rust"/Cargo.toml "$rust"/crates/*/Cargo.toml 2>/dev/null
+  ' "$workspace"/Cargo.toml "$workspace"/crates/*/Cargo.toml 2>/dev/null
 }
 
 # Prints the names to remove in the directory $1, and keeps the $2 most recent
@@ -193,7 +201,7 @@ list_stale_copies() {
 # Removes the stale copies from the directory $1 of every profile.
 prune_copies() {
   local subdir=$1 sources=$2 dir name
-  for dir in "$rust"/target/*/"$subdir"; do
+  for dir in "$workspace"/target/*/"$subdir"; do
     [ -d "$dir" ] || continue
     list_stale_copies "$dir" "$keep_copies" "$sources" | while IFS= read -r name; do
       if [ "$dry_run" = yes ]; then
@@ -209,7 +217,7 @@ prune_copies() {
 # them there when the link does not finish.
 prune_stray_objects() {
   local dir file name base
-  for dir in "$rust"/target/*/examples "$rust"/target/*/deps; do
+  for dir in "$workspace"/target/*/examples "$workspace"/target/*/deps; do
     [ -d "$dir" ] || continue
     for file in "$dir"/*.rcgu.o; do
       [ -e "$file" ] || continue
@@ -246,20 +254,20 @@ to_mib() {
 # The stamp is written before a build, so it runs whether or not target exists.
 if [ "$mode" = stamp ]; then
   if have_sweep; then
-    cargo sweep --stamp "$rust" >/dev/null
+    cargo sweep --stamp "$workspace" >/dev/null
   fi
   exit 0
 fi
 
-if [ ! -d "$rust/target" ]; then
+if [ ! -d "$workspace/target" ]; then
   echo "target is already gone"
   exit 0
 fi
 
-size() { printf '%d' "$(($(du -sk "$rust/target" | cut -f1) / 1024))"; }
+size() { printf '%d' "$(($(du -sk "$workspace/target" | cut -f1) / 1024))"; }
 before=$(size)
 printf 'target: %d MiB, %s files\n' "$before" \
-  "$(find "$rust/target" -type f | wc -l | tr -d ' ')"
+  "$(find "$workspace/target" -type f | wc -l | tr -d ' ')"
 
 report() {
   local after
@@ -273,7 +281,7 @@ full_clean() {
     echo "would run: cargo clean"
     exit 0
   fi
-  cd "$rust" && exec cargo clean
+  cd "$workspace" && exec cargo clean
 }
 
 if [ "$mode" = force ]; then
@@ -319,7 +327,7 @@ if [ "$mode" = maxsize ]; then
     exit 2
   fi
   sweep+=(--maxsize "$(to_mib "$maxsize")")
-elif [ -f "$rust/sweep.timestamp" ]; then
+elif [ -f "$workspace/sweep.timestamp" ]; then
   # Everything the stamped build did not touch.
   sweep+=(--file)
 else
@@ -328,6 +336,6 @@ else
   sweep+=(--installed)
 fi
 
-"${sweep[@]}" "$rust"
+"${sweep[@]}" "$workspace"
 
 report
