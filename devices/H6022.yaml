@@ -18,6 +18,7 @@ include:
   - ble-wifi-provision
   - cloud-openapi
   - cloud-segments
+  - cloud-music
 
 candidate_aliases: []
 
@@ -93,28 +94,6 @@ commands:
         that field: a frame sent with the field at zero reads back with the
         rendering the firmware computed. It clamps a value outside the range
         above in silence. See docs/protocol/ble.md 2.3.
-  cloud:
-    music:
-      role: music
-      capability:
-        type: "devices.capabilities.music_setting"
-        instance: "musicMode"
-      payload:
-        musicMode: "${effect}"
-        sensitivity: "${sensitivity}"
-      args:
-        effect: { type: int, range: [3, 6], role: effect }
-        sensitivity: { type: int, range: [0, 100], role: sensitivity }
-      notes: >-
-        The lamp listens on its own microphone. `effect` is the enum the
-        account list declares: 3 Rhythm, 4 Rolling, 5 Energic, 6 Spectrum.
-        Those names are the API's own, and nothing matches one to what the lamp
-        renders. The identifiers are the API's own too: they are not the
-        sub-mode codes the `ble` music frame takes. The range above spans the
-        four declared values and holds no other meaning.
-
-        The capability declares `autoColor` and `rgb` too. This entry sends
-        neither. See docs/protocol/cloud.md 6.
 
 # What this unit does with a command a shared table declares. The layout stays
 # in the family; the numbers below were measured here.

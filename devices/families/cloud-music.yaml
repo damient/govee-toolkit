@@ -1,0 +1,32 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "cloud-music"
+
+description: >-
+  The music entry Govee's documented HTTPS API carries: the device renders an
+  effect from its own microphone. Include it where the account list declares
+  `musicMode` for the SKU. See docs/protocol/cloud.md 6.
+
+commands:
+  cloud:
+    music:
+      role: music
+      capability:
+        type: "devices.capabilities.music_setting"
+        instance: "musicMode"
+      payload:
+        musicMode: "${effect}"
+        sensitivity: "${sensitivity}"
+      args:
+        effect: { type: int, role: effect }
+        sensitivity: { type: int, range: [0, 100], role: sensitivity }
+      notes: >-
+        `effect` takes the identifiers the account list declares for the SKU.
+        They are the API's own: they are not the sub-mode codes the `ble`
+        music frame takes, and nothing matches one to what the device renders.
+        This entry carries no bound for them, so the API refuses an identifier
+        it does not declare. The capability declares `autoColor` and `rgb`
+        too. This entry sends neither.
