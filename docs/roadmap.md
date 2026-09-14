@@ -9,7 +9,7 @@ ask for. Open an issue if something matters to you.
 | # | Milestone | Status |
 | - | --------- | ------ |
 | 1 | **Node** binding (napi-rs), with multi-arch builds | 🚧 Next |
-| 2 | **Python** wheels for `armv7` and for musl | 🔜 Planned |
+| 2 | **Python** wheels for `armv7` and for musl | ✅ Done |
 | 3 | Playground — backend, web UI, raw payload field | 🔜 Planned |
 | 4 | Electron app around the playground | 🔜 Planned |
 | 5 | Matter bridge — one integration, every controller | 🔜 Planned |

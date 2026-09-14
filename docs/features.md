@@ -42,7 +42,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | | Feature |
 | --- | ------- |
 | 🚧 | **Rust** (`packages/rust`) — the reference implementation and the only place protocol logic lives |
-| ✅ | **Python** (`packages/python`) — PyO3 binding, an `asyncio` API, `abi3` wheels for Linux, macOS and Windows on `x86_64` and `aarch64`. Wheels for `armv7` and for musl are planned |
+| ✅ | **Python** (`packages/python`) — PyO3 binding, an `asyncio` API, `abi3` wheels for Linux, macOS and Windows on `x86_64` and `aarch64`, and Linux wheels for `armv7` and for musl |
 | 🔜 | **Node.js / TypeScript** (`packages/node`) — napi-rs binding, npm |
 | ✅ | Each package versioned and released independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) |
 
