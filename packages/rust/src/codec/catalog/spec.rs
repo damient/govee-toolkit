@@ -6,12 +6,12 @@
 
 use std::fmt;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::bounds::Bounds;
 
 /// How an argument may be supplied.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ArgSpec {
     /// A whole number, bounded inclusively.
@@ -21,15 +21,18 @@ pub enum ArgSpec {
         range: Bounds,
         /// See [`ArgRole`].
         #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         role: Option<ArgRole>,
     },
     /// A list of RGB triples, for a frame repeat group.
     RgbList {
         /// Optional cap on the number of triples.
         #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         max_len: Option<usize>,
         /// See [`ArgRole`].
         #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         role: Option<ArgRole>,
     },
     /// Text, sent as UTF-8 behind a length prefix.
@@ -37,9 +40,11 @@ pub enum ArgSpec {
         /// Optional cap in bytes of UTF-8, not characters: the length prefix
         /// counts bytes.
         #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         max_len: Option<usize>,
         /// See [`ArgRole`].
         #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         role: Option<ArgRole>,
     },
     /// Zone indices, sent as a bitmask.
@@ -47,18 +52,22 @@ pub enum ArgSpec {
         /// How many zones exist. An index past it is refused rather than
         /// dropped into a bit the firmware ignores.
         #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         count: Option<usize>,
         /// See [`ArgRole`].
         #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         role: Option<ArgRole>,
     },
     /// Bytes this crate does not interpret.
     Bytes {
         /// Optional cap on the length.
         #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         max_len: Option<usize>,
         /// See [`ArgRole`].
         #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         role: Option<ArgRole>,
     },
 }
@@ -92,7 +101,7 @@ impl ArgSpec {
 /// What one declared argument carries, when the SDK fills it in or reads it
 /// back without being told a name. An argument the caller always passes needs
 /// no role, and a captured field needs one only where the SDK models it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ArgRole {
     /// Whether to arm or disarm, on a [`Role::SegmentEnable`] command. `1`
@@ -272,7 +281,7 @@ impl fmt::Display for ArgRole {
 }
 
 /// What a command is for, when the SDK must pick one without being told.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
     /// Reports the device's state. This is what fire-and-verify sends after a

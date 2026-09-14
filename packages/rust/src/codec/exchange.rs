@@ -17,7 +17,7 @@
 
 use std::sync::OnceLock;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::codec::args::Args;
 use crate::codec::error::Result;
@@ -29,12 +29,14 @@ use crate::codec::reply::Layout;
 pub type Built = (Vec<Vec<u8>>, Vec<Option<Layout>>);
 
 /// One entry of a command's `frames:` list.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Step {
     /// The frame layout to send. See [`crate::codec::frame`].
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub send: String,
     /// The layout of the reply it expects. See [`crate::codec::reply`].
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub reply: String,
 }
 

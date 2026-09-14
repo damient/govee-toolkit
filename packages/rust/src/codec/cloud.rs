@@ -5,10 +5,10 @@
 
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// The capability a command writes.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Capability {
     /// `type` in the device file and in the request.
     #[serde(rename = "type")]
@@ -18,7 +18,7 @@ pub struct Capability {
 }
 
 /// Which argument one capability answers into, on a status read.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Read {
     /// The capability instance the answer carries.
     pub instance: String,

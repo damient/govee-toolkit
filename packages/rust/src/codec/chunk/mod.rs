@@ -7,7 +7,7 @@
 
 use std::sync::OnceLock;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::codec::args::{ArgValue, Args};
 use crate::codec::error::{Error, Result};
@@ -28,7 +28,7 @@ pub const CHUNK: &str = "chunk";
 pub const RESERVED: [&str; 4] = [COUNT, TOTAL, INDEX, CHUNK];
 
 /// A command's `chunk:` block.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Chunk {
     /// Bytes of the body one data frame carries.
@@ -44,9 +44,11 @@ pub struct Chunk {
     pub footer: String,
     /// A frame sent after the transfer. Absent where the transfer is the
     /// whole command.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub then: Option<String>,
     /// The layout of the acknowledgement the transfer expects. Absent where
     /// nobody read one back.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reply: Option<String>,
 }
 

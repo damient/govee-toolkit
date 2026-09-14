@@ -9,7 +9,7 @@
 
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::spec::{ArgRole, ArgSpec};
 use super::{Command, Device, Mode};
@@ -17,7 +17,7 @@ use crate::codec::capabilities::{Capabilities, CapabilityParams};
 use crate::codec::error::{Error, Result};
 
 /// Inclusive bounds for an integer argument.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Bounds {
     /// `[min, max]`, both inclusive.
@@ -41,7 +41,7 @@ impl Bounds {
 }
 
 /// The `capability` keyword, as it appears in a device file.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CapabilityKeyword {
     /// `range: capability`

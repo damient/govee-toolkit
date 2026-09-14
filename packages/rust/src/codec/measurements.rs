@@ -8,7 +8,7 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::codec::catalog::Mode;
 
@@ -18,7 +18,7 @@ const DEFAULT_ARM_SETTLE: Duration = Duration::from_millis(50);
 
 /// One row of `measurements.frame_rate`: how fast one physical unit accepts
 /// segment frames at a given zone count.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct FrameRate {
     /// Zones the frames carried.
@@ -35,13 +35,23 @@ pub struct FrameRate {
 ///
 /// A bare list is the `lan` table; a mapping records one table per mode. A
 /// rate measured over one mode says nothing about another.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum FrameRates {
     /// Rows measured over `lan`.
     Lan(Vec<FrameRate>),
     /// Rows measured per mode.
     ByMode(BTreeMap<Mode, Vec<FrameRate>>),
+}
+
+impl FrameRates {
+    /// Whether nobody measured a rate, over any mode.
+    fn is_empty(&self) -> bool {
+        match self {
+            Self::Lan(rows) => rows.is_empty(),
+            Self::ByMode(by_mode) => by_mode.values().all(Vec::is_empty),
+        }
+    }
 }
 
 impl Default for FrameRates {
@@ -67,33 +77,56 @@ impl FrameRates {
 /// The `ble` transport paces its writes to [`Ble::write_budget_hz`], and holds
 /// a link open for [`Ble::write_drain_ms`] before it drops it. It reads no
 /// other field here.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Ble {
     /// Round trip of one read, in milliseconds.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub read_round_trip_ms: Option<f64>,
     /// Writes per second the unit held over seconds.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sustained_writes_hz: Option<f64>,
     /// Writes per second the transport paces itself to, at or under
     /// `sustained_writes_hz`. [`crate::codec::validate`] checks that.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub write_budget_hz: Option<f64>,
     /// How long a link must stay open after a write, in milliseconds, for the
     /// frame to leave.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub write_drain_ms: Option<u64>,
     /// Frames in one burst that left the firmware unresponsive. The count
     /// that broke the unit, never a burst allowance.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub burst_frames_before_stall: Option<u32>,
     /// How long the firmware stayed unresponsive after such a burst, in
     /// seconds.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub burst_recovery_s: Option<f64>,
     /// Zones the unit addressed by mask over this mode.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub addressable_zones: Option<u32>,
     /// How long the firmware held a colour from the host channel before it
     /// returned to its stored state, in milliseconds.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub render_hold_ms: Option<u64>,
     /// Everything else the block records.
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
+}
+
+impl Ble {
+    /// Whether the block records nothing.
+    fn is_empty(&self) -> bool {
+        self.read_round_trip_ms.is_none()
+            && self.sustained_writes_hz.is_none()
+            && self.write_budget_hz.is_none()
+            && self.write_drain_ms.is_none()
+            && self.burst_frames_before_stall.is_none()
+            && self.burst_recovery_s.is_none()
+            && self.addressable_zones.is_none()
+            && self.render_hold_ms.is_none()
+            && self.extra.is_empty()
+    }
 }
 
 /// Numbers taken from one physical unit.
@@ -104,25 +137,31 @@ pub struct Ble {
 /// [`Ble::write_drain_ms`].
 /// Everything else a device file records lands in [`Measurements::extra`],
 /// untouched.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Measurements {
     /// Length of the unit the numbers were taken on, in metres.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub unit_length_m: Option<f64>,
     /// Addressable LEDs counted on that unit.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub native_pixels: Option<u32>,
     /// Every zone count at which the rendering of this unit refines. The
     /// firmware groups the LEDs into blocks to serve the count a frame asks
     /// for, so a count between two of these values renders as the lower one.
     /// Empty where nobody swept the counts. See `docs/protocol/lan.md` 2.3.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub resolution_changepoints: Vec<u32>,
     /// Sustainable segment frame rates, by mode and zone count.
+    #[serde(skip_serializing_if = "FrameRates::is_empty")]
     pub frame_rate: FrameRates,
     /// How long the firmware needs after the arming frame before it renders a
     /// paint, in milliseconds. The channel accepts the paint either way and
     /// answers nothing, so a frame sent too early is lost in silence.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub arm_settle_ms: Option<u64>,
     /// What one unit did over `ble`.
+    #[serde(skip_serializing_if = "Ble::is_empty")]
     pub ble: Ble,
     /// Everything else the file records.
     #[serde(flatten)]

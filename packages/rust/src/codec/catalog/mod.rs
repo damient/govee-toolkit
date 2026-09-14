@@ -7,7 +7,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::codec::capabilities::{Capabilities, ModeCapabilities, Reason};
 use crate::codec::chunk::Chunk;
@@ -24,7 +24,7 @@ pub use overrides::{ArgOverride, Override, Overrides, apply as apply_overrides};
 pub use spec::{ArgRole, ArgSpec, Role};
 
 /// A way of talking to a device. Not a fallback chain — see `docs/modes.md`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
     /// UDP on the local network. The default, and the only mode that never
@@ -55,7 +55,7 @@ impl fmt::Display for Mode {
 }
 
 /// How much of a device's capability set a mode reaches.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Support {
     /// Every capability the hardware has.
@@ -91,7 +91,7 @@ impl fmt::Display for Support {
 }
 
 /// One entry of a device file's `modes:` table.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ModeSupport {
     /// Support level.
@@ -100,13 +100,15 @@ pub struct ModeSupport {
     pub capabilities: ModeCapabilities,
     /// Capabilities this mode does not reach, each with a reason. With
     /// `capabilities` it must cover the hardware's whole set.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub unreachable: BTreeMap<String, Reason>,
     /// Free-form notes.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub notes: String,
 }
 
 /// A device file's `modes:` table.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Modes {
     /// `lan` support.
@@ -130,37 +132,49 @@ impl Modes {
 }
 
 /// One command, in one mode.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Command {
     /// The value sent in `msg.cmd`, for `lan` and `cloud`. Empty where the mode
     /// puts the frame on the wire with no envelope around it.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub cmd: String,
     /// The `msg.data` template. Placeholders are whole strings, `"${name}"`.
+    #[serde(skip_serializing_if = "serde_json::Value::is_null")]
     pub payload: serde_json::Value,
     /// The byte layout of a raw-channel frame. See [`crate::codec::frame`].
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub frame: Option<String>,
     /// The layout of the reply `frame` expects. See [`crate::codec::reply`].
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reply: Option<String>,
     /// Several send/reply exchanges, issued in order. Mutually exclusive with
     /// `frame` and `body`. See [`crate::codec::exchange`].
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub frames: Vec<Step>,
     /// The byte layout of a payload too long for one frame, split by `chunk`.
     /// Mutually exclusive with `frame`.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
     /// How to cut `body` into frames. See [`Chunk`].
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub chunk: Option<Chunk>,
     /// Declared arguments.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub args: BTreeMap<String, ArgSpec>,
     /// Behavior worth knowing before calling it.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub notes: String,
     /// What the SDK may use this command for on its own. See [`Role`].
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub role: Option<Role>,
     /// The capability a `cloud` command writes. See
     /// [`crate::codec::cloud`].
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub capability: Option<Capability>,
     /// Which capability answers into which argument, on a `cloud` command that
     /// reads a status.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub reads: Vec<Read>,
 
     /// The exchanges, tokenized on first use, so the send path parses a
@@ -198,17 +212,20 @@ impl Command {
 }
 
 /// A device file's `commands:` table, one map per mode.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Commands {
     /// `lan` commands.
     #[serde(deserialize_with = "null_as_default")]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub lan: BTreeMap<String, Command>,
     /// `ble` commands.
     #[serde(deserialize_with = "null_as_default")]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub ble: BTreeMap<String, Command>,
     /// `cloud` commands.
     #[serde(deserialize_with = "null_as_default")]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub cloud: BTreeMap<String, Command>,
 }
 
@@ -233,16 +250,20 @@ impl Commands {
 }
 
 /// Who tested the device, against which firmware.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Verified {
     /// Who tested it.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub by: String,
     /// Firmware versions tested against.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub firmware: String,
     /// `YYYY-MM-DD`.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub date: String,
     /// What was exercised, and what was not.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub notes: String,
 }
 
@@ -250,7 +271,7 @@ pub struct Verified {
 ///
 /// A fragment carries no SKU and no capability: a dialect is a property of a
 /// family, and what one unit answered stays in that unit's file.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Family {
     /// Schema revision the fragment was written against.
     pub schema_version: u32,
@@ -265,7 +286,7 @@ pub struct Family {
 }
 
 /// One `devices/<SKU>.yaml` file.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Device {
     /// Schema revision the file was written against.
     pub schema_version: u32,
@@ -277,15 +298,20 @@ pub struct Device {
     pub name: String,
     /// SKUs **verified** to behave identically. These resolve to this file.
     #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub aliases: Vec<String>,
     /// SKUs that look like the same product but have not been verified. These
     /// deliberately do **not** resolve: a lookup for one is an unknown SKU.
     #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub candidate_aliases: Vec<String>,
     /// Shared command tables to pull in, by the `family:` each declares. The
     /// commands they carry are merged into [`Device::commands`] on load, so
     /// nothing downstream can tell an included entry from a local one.
-    #[serde(default)]
+    ///
+    /// Not serialized: a generated catalog is flat, so a reader of it resolves
+    /// nothing.
+    #[serde(default, skip_serializing)]
     pub include: Vec<String>,
     /// What the hardware can do.
     pub capabilities: Capabilities,
@@ -297,7 +323,7 @@ pub struct Device {
     pub commands: Commands,
     /// What this file changes in a command an `include:` brought in. Applied
     /// on load, so nothing downstream reads it. See [`Overrides`].
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
     pub overrides: Overrides,
     /// Numbers taken from one physical unit.
     #[serde(default)]
