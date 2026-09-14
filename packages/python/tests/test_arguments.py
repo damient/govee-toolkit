@@ -7,8 +7,7 @@ refuses raises `ValueError` and nothing is sent either way.
 
 import pytest
 
-from govee_toolkit import TransportError
-from helpers import call
+from helpers import call, refuses_unknown
 
 pytestmark = pytest.mark.asyncio
 
@@ -31,9 +30,7 @@ REFUSED = [
 
 @pytest.mark.parametrize("value", ACCEPTED)
 async def test_an_accepted_value_reaches_the_send_path(handle, value):
-    with pytest.raises(TransportError) as raised:
-        await call(handle.send, "power", value=value)
-    assert raised.value.code == "unknown_device"
+    await refuses_unknown(handle.send, "power", value=value)
 
 
 @pytest.mark.parametrize("value", REFUSED)
@@ -53,16 +50,12 @@ async def test_a_channel_outside_0_to_255_is_refused(handle):
 
 
 async def test_a_color_reaches_the_send_path(handle):
-    with pytest.raises(TransportError) as raised:
-        await call(handle.color, (255, 0, 0))
-    assert raised.value.code == "unknown_device"
+    await refuses_unknown(handle.color, (255, 0, 0))
 
 
 @pytest.mark.parametrize("resolution", ["app", "native", 12])
 async def test_a_resolution_is_a_name_or_a_zone_count(handle, resolution):
-    with pytest.raises(TransportError) as raised:
-        await call(handle.open_stream, resolution=resolution)
-    assert raised.value.code == "unknown_device"
+    await refuses_unknown(handle.open_stream, resolution=resolution)
 
 
 async def test_an_unnamed_resolution_is_refused(handle):

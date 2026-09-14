@@ -6,8 +6,7 @@ transport knows fails before a command is encoded, with `unknown_device`.
 
 import pytest
 
-from govee_toolkit import TransportError
-from helpers import call
+from helpers import refuses_unknown
 
 pytestmark = pytest.mark.asyncio
 
@@ -22,39 +21,27 @@ async def test_an_unknown_device_has_no_health(handle):
 
 
 async def test_send_refuses_an_unknown_device(handle):
-    with pytest.raises(TransportError) as raised:
-        await call(handle.send, "power")
-    assert raised.value.code == "unknown_device"
+    await refuses_unknown(handle.send, "power")
 
 
 async def test_a_verb_refuses_an_unknown_device(handle):
-    with pytest.raises(TransportError) as raised:
-        await call(handle.power, True)
-    assert raised.value.code == "unknown_device"
+    await refuses_unknown(handle.power, True)
 
 
 async def test_read_refuses_an_unknown_device(handle):
-    with pytest.raises(TransportError) as raised:
-        await call(handle.read, "status")
-    assert raised.value.code == "unknown_device"
+    await refuses_unknown(handle.read, "status")
 
 
 async def test_status_refuses_an_unknown_device(handle):
-    with pytest.raises(TransportError) as raised:
-        await call(handle.status)
-    assert raised.value.code == "unknown_device"
+    await refuses_unknown(handle.status)
 
 
 async def test_the_specification_needs_a_known_device(handle):
-    with pytest.raises(TransportError) as raised:
-        await call(handle.spec)
-    assert raised.value.code == "unknown_device"
+    await refuses_unknown(handle.spec)
 
 
 async def test_the_serving_mode_needs_a_known_device(handle):
-    with pytest.raises(TransportError) as raised:
-        await call(handle.serving_mode)
-    assert raised.value.code == "unknown_device"
+    await refuses_unknown(handle.serving_mode)
 
 
 async def test_no_mode_watches_a_device_no_mode_knows(govee, unknown_id):
