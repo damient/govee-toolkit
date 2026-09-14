@@ -42,6 +42,14 @@ Then fix every failure, and re-run the affected check to confirm.
   the per-check summary, and report that summary the same way. A linter
   finding is fixed in the source, never by turning the rule off, unless the
   rule is wrong for this repository — then say why in the configuration file.
+- `python` — one check here, a script of its own: run `./tools/qa-python.sh`
+  for the per-check summary, and report that summary the same way. A `python
+  stubs` failure is the stub and the module disagreeing: fix the `.pyi` to
+  match the `#[pyo3(signature = ...)]`, and add to `stubtest-allowlist.txt`
+  only what cannot exist at runtime, with the reason on the line above.
+- `shell lint` / `shell fmt` — `shfmt -w -i 2 tools/*.sh tools/lib/*.sh`
+  formats. A shellcheck finding is fixed in the script; a `# shellcheck
+  disable=` carries the reason on the same line.
 - `licenses and advisories` — a rejected license is a dependency to drop, not
   an entry to add to `deny.toml`; the repository is MIT with no copyleft
   dependencies.

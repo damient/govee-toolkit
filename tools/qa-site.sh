@@ -14,7 +14,7 @@ site="$root/site"
 export PATH="$HOME/.cargo/bin:$PATH"
 export CARGO_TERM_COLOR=always
 
-# shellcheck source=lib/qa.sh
+# shellcheck source=SCRIPTDIR/lib/qa.sh
 . "$root/tools/lib/qa.sh"
 qa_init govee-qa-site "${1:-}"
 

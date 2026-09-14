@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+#
 # The pass/fail reporter that tools/qa.sh and tools/qa-site.sh share.
 #
 # Source this file, call `qa_init <temp-file-label> <only>`, declare the checks
@@ -8,7 +10,10 @@
 # pull request instead of here. `qa_summary` returns 1 when a check failed and
 # 2 when one was skipped, so the caller can exit with what it returns.
 
-names=() results=() only= log=
+names=()
+results=()
+only=''
+log=''
 
 # qa_init <label> <only> — <label> names the temporary log, <only> filters the
 # checks by substring and is empty for a full run.

@@ -20,7 +20,7 @@ export CARGO_TERM_COLOR=always
 export RUSTFLAGS=${RUSTFLAGS:--D warnings}
 export CARGO_INCREMENTAL=${CARGO_INCREMENTAL:-0}
 
-# shellcheck source=lib/qa.sh
+# shellcheck source=SCRIPTDIR/lib/qa.sh
 . "$root/tools/lib/qa.sh"
 qa_init govee-qa-python "${1:-}"
 
@@ -47,6 +47,7 @@ python_tests() {
   rm -rf "$unpacked"
   mkdir -p "$unpacked"
   local wheel
+  # shellcheck disable=SC2012 # maturin writes the name; find cannot sort by time.
   wheel=$(ls target/wheels/*.whl 2>/dev/null | head -1)
   [ -n "$wheel" ] || return 1
   python3 -m zipfile -e "$wheel" "$unpacked" || return 1
@@ -57,6 +58,33 @@ python_tests() {
   (cd "$root" && PYTHONPATH="$py/$unpacked" python3 -m pytest \
     -c "$py/pyproject.toml" --rootdir "$py")
 }
+
+# stubtest imports the extension module and compares every name in it against
+# the stubs beside it. It is what catches a signature that drifted: mypy reads
+# the stubs alone and believes them. It runs against the unpacked wheel, so it
+# reads the stubs the wheel carries and not the ones in the tree.
+python_stubs() {
+  PYTHONPATH="$py/target/qa-wheel" python3 -m mypy.stubtest govee_toolkit \
+    --allowlist stubtest-allowlist.txt --concise
+}
+
+# ruff and mypy read the sources, not the built module, so they run whether or
+# not maturin is here. stubtest is the one that needs the wheel installed: it
+# imports the extension module and compares it against the stubs.
+if have ruff; then
+  check "python fmt" ruff format --check govee_toolkit tests
+  check "python lint" ruff check govee_toolkit tests
+else
+  for name in "python fmt" "python lint"; do
+    skip "$name" "pip install ruff"
+  done
+fi
+
+if have mypy; then
+  check "python types" mypy
+else
+  skip "python types" "pip install mypy"
+fi
 
 if have rustup && rustup toolchain list | grep -q '^nightly'; then
   # rustfmt.toml uses nightly-only options; stable rustfmt formats differently.
@@ -81,6 +109,12 @@ else
     check "python tests" python_tests
   else
     skip "python tests" "pip install pytest pytest-asyncio"
+  fi
+  # python_tests unpacks the wheel that python_stubs reads.
+  if python3 -c 'import mypy.stubtest' >/dev/null 2>&1; then
+    check "python stubs" python_stubs
+  else
+    skip "python stubs" "pip install mypy"
   fi
 fi
 

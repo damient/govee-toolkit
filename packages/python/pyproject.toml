@@ -50,6 +50,34 @@ dev = ["pytest", "pytest-asyncio"]
 module-name = "govee_toolkit._govee_toolkit"
 features = ["pyo3/extension-module"]
 
+[tool.ruff]
+# `tests/helpers.py` is imported as `helpers`, so the test directory is a source
+# root. Without it the import sorter files the module under third-party.
+src = [".", "tests"]
+
+[tool.ruff.lint]
+# The defaults, plus: import order (I), the stub rules (PYI) that the `.pyi`
+# files and `py.typed` make load-bearing, the bug patterns (B), and the
+# comprehension and modernity rules (C4, UP). `RUF` covers what ruff finds on
+# its own.
+select = ["E", "F", "I", "B", "C4", "UP", "PYI", "RUF"]
+# PYI021 is a typeshed rule: a stub published apart from its package carries no
+# docstring. These stubs ship inside the wheel, and an editor reads the
+# documentation off them, so the docstrings stay.
+ignore = ["PYI021"]
+
+[tool.ruff.lint.isort]
+# `__init__.pyi` re-exports with `X as X`. Without this the sorter gives each
+# name an import block of its own, which is 18 blocks for one module.
+combine-as-imports = true
+
+[tool.mypy]
+# The package ships `py.typed` and the stubs beside it, so what a user's type
+# checker reads is checked here first. `__init__.pyi` shadows `__init__.py`,
+# which is what an installed copy does as well.
+strict = true
+files = ["govee_toolkit"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # Every test is a coroutine: the package is asyncio only.

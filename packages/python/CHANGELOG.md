@@ -63,6 +63,11 @@ The first release that carries code. The version on PyPI before it was a
 - Package scaffolding: `pyproject.toml` declares the name `govee-toolkit`,
   `requires-python >= 3.11` and no dependencies, with `authors`, `keywords`,
   `classifiers` and `[project.urls]`.
+- ruff formats and lints the Python sources, and mypy type-checks them in strict
+  mode. `tools/qa-python.sh` and CI run all three.
+- `mypy.stubtest` compares the stubs against the built extension module, so a
+  signature that drifts from the Rust fails the build. What it must not report
+  is listed with its reason in `stubtest-allowlist.txt`.
 
 ### Changed
 
