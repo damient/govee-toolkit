@@ -68,6 +68,21 @@ pub enum Error {
         got: &'static str,
     },
 
+    /// A value has the shape the device file declares and does not read as
+    /// one: text that is not a number, a channel past 255, a zone index past
+    /// what the mode counts.
+    #[error("{command}: argument `{arg}`: `{got}` does not read as {expected}")]
+    ArgSyntax {
+        /// The command the codec encodes.
+        command: String,
+        /// The argument.
+        arg: String,
+        /// What the device file declares, written for a person.
+        expected: String,
+        /// What was supplied.
+        got: String,
+    },
+
     /// An integer argument fell outside the range the device file declares.
     #[error("{command}: argument `{arg}` = {value} is outside {min}..={max}")]
     OutOfRange {
@@ -320,6 +335,7 @@ impl Error {
             Self::MissingArg { .. } => "missing_arg",
             Self::UnknownArg { .. } => "unknown_arg",
             Self::ArgType { .. } => "arg_type",
+            Self::ArgSyntax { .. } => "arg_syntax",
             Self::OutOfRange { .. } => "out_of_range",
             Self::RepeatCountMismatch { .. } => "repeat_count_mismatch",
             Self::FrameSyntax { .. } => "frame_syntax",
