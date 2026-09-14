@@ -92,13 +92,14 @@ dotenvy = { version = "0.15", default-features = false, optional = true }
 futures-util = { version = "0.3", default-features = false, features = [
   "alloc",
 ], optional = true }
-# `rustls-tls` rather than the platform's TLS: one behaviour on Linux, macOS
-# and Windows, and no OpenSSL headers to install in CI.
-reqwest = { version = "0.12", default-features = false, features = [
+# `rustls` rather than the platform's TLS: no OpenSSL headers to install in CI.
+# The trust anchors come from the platform store, through
+# `rustls-platform-verifier`, so a host that trusts the endpoint decides.
+reqwest = { version = "0.13", default-features = false, features = [
   "charset",
   "http2",
   "json",
-  "rustls-tls",
+  "rustls",
 ], optional = true }
 socket2 = { version = "0.6", features = ["all"], optional = true }
 tokio = { version = "1", features = [
