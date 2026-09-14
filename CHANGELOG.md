@@ -28,6 +28,9 @@ at.
 - `notes_append:` in `overrides:`. A device file adds its fact after the note
   the included table gives, in place of restating that note to extend it. See
   [`devices/schema.yaml`](devices/schema.yaml).
+- `cloud-music`, a shared command table in
+  [`devices/families/`](devices/families/). It carries the `musicMode`
+  capability the documented HTTPS API declares. `H6022` and `H61A0` include it.
 
 #### Changed
 
@@ -43,6 +46,14 @@ at.
 - `range:` is optional on an integer argument. Leave it out where no bound
   belongs in a device file, and only on a mode that refuses a value it does not
   accept. See [`devices/schema.yaml`](devices/schema.yaml).
+- The `cloud` `music` entry of `H6022` and `H61A0` declares no bound for
+  `effect`. The identifier set differs per model, so the API refuses a value it
+  does not declare.
+
+#### Removed
+
+- Two `H61A0` conformance vectors that expected a `cloud` music effect of 0 or
+  12 to be refused before the request. The API answers them now.
 
 ### 2026-09-13
 

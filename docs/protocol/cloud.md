@@ -157,7 +157,9 @@ fields per device:
 
 - **The effect**, as an enum. The list gives each value a name. Those
   identifiers belong to this API. They are not the sub-mode codes the `ble`
-  music frame takes, and nothing maps one set onto the other.
+  music frame takes, and nothing maps one set onto the other. A device file
+  declares no bound for them: the set differs per model, and this API refuses
+  a value it does not declare.
 - **The sensitivity**, as a percentage.
 - **Two optional fields**, an automatic-color flag and one packed color.
 

@@ -224,18 +224,6 @@
       "code": "out_of_range"
     },
     {
-      "name": "music effect 0 is outside the enum the API declares",
-      "command": "music",
-      "args": { "effect": 0, "sensitivity": 50 },
-      "code": "out_of_range"
-    },
-    {
-      "name": "music effect past the eleventh is refused",
-      "command": "music",
-      "args": { "effect": 12, "sensitivity": 50 },
-      "code": "out_of_range"
-    },
-    {
       "name": "music sensitivity past 100 is refused rather than clamped",
       "command": "music",
       "args": { "effect": 1, "sensitivity": 101 },
