@@ -309,6 +309,11 @@ the install command — a skip is not a pass, and it exits non-zero for one, so
 a missing toolchain is discovered here rather than on the pull request. The
 workflow stays the authority; `qa.sh` is a mirror of it kept in step by hand.
 
+The MSRV check needs a toolchain that links on your host. An old toolchain next
+to a new SDK fails on the first build script. That failure says nothing about
+the code. `qa.sh` probes the toolchain first, and runs the check in a
+`rust:<version>` container when the probe fails. That path needs Docker.
+
 The individual commands, from `packages/rust`, for running one directly:
 
 ```bash

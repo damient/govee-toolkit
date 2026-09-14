@@ -63,12 +63,43 @@ check "device catalog" cargo run -q -p xtask
 check "compatibility tables" cargo run -q -p xtask -- compat --check
 check "duplicated command layouts" cargo run -q -p xtask -- dupes
 
+# The MSRV toolchain links every build script with the host's linker. An old
+# toolchain next to a new SDK fails there, on the first build script. That
+# failure says nothing about the code. `msrv_links` compiles an empty program,
+# which separates such a host from a real MSRV break.
+msrv_links() {
+  local dir status
+  dir=$(mktemp -d) || return 1
+  printf 'fn main() {}\n' >"$dir/probe.rs"
+  RUSTUP_TOOLCHAIN="$MSRV" rustc -o "$dir/probe" "$dir/probe.rs" >/dev/null 2>&1
+  status=$?
+  rm -rf "$dir"
+  return $status
+}
+
+# `rust:<version>` carries the toolchain and a linker that agrees with it. The
+# checkout is read-only, and the artifacts stay in two named volumes. The run
+# writes nothing into the tree, and the next run reuses what this one built.
+# `--all-features` needs the D-Bus headers, as it does in ci.yml.
+msrv_in_container() {
+  docker run --rm \
+    -v "$root:/io:ro" -v govee-msrv-target:/target -v govee-msrv-cargo:/cargo \
+    -e CARGO_TARGET_DIR=/target -e CARGO_HOME=/cargo -e CARGO_TERM_COLOR=never \
+    -w /io/packages/rust "rust:$MSRV" \
+    sh -c 'apt-get update -qq && apt-get install -y -qq libdbus-1-dev >/dev/null &&
+           cargo check --workspace --all-features'
+}
+
 if [ -z "$MSRV" ]; then
   skip "rust msrv" "no rust-version in packages/rust/Cargo.toml"
-elif have rustup && rustup toolchain list | grep -q "^$MSRV"; then
-  check "rust msrv ($MSRV)" env RUSTUP_TOOLCHAIN="$MSRV" cargo check --workspace --all-features
-else
+elif ! have rustup || ! rustup toolchain list | grep -q "^$MSRV"; then
   skip "rust msrv ($MSRV)" "rustup toolchain install $MSRV"
+elif msrv_links; then
+  check "rust msrv ($MSRV)" env RUSTUP_TOOLCHAIN="$MSRV" cargo check --workspace --all-features
+elif have docker && docker info >/dev/null 2>&1; then
+  check_in "$root" "rust msrv ($MSRV)" msrv_in_container
+else
+  skip "rust msrv ($MSRV)" "the $MSRV toolchain does not link on this host; start docker"
 fi
 
 if have cargo-deny; then
