@@ -148,16 +148,15 @@ jobs:
       # is how tools/lib/qa.sh is read.
       - name: Lint the shell scripts
         run: shellcheck -x tools/*.sh tools/lib/*.sh
+      # The runner does not carry shfmt. The version is pinned as well as the
+      # action: a later shfmt that formats one line differently would fail the
+      # job on code nobody touched.
+      - uses: mfinelli/setup-shfmt@a25fda4c1fe115aec0f85e04126610841bc3141d # v4.0.1
+        with:
+          shfmt-version: 3.14.1
       # No -ci: a case branch is not indented in this repository.
       - name: Check the shell formatting
-        run: |
-          curl -sSfL -o /tmp/shfmt \
-            https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_linux_amd64
-          echo "$SHFMT_SHA256  /tmp/shfmt" | sha256sum --check
-          chmod +x /tmp/shfmt
-          /tmp/shfmt -d -i 2 tools/*.sh tools/lib/*.sh
-        env:
-          SHFMT_SHA256: 76e77641faa025814b77f153b29796b8e6fa2fca03e0c76a691608b86c7ea7bf
+        run: shfmt -d -i 2 tools/*.sh tools/lib/*.sh
       - run: ./tools/check-file-length.sh
       - run: ./tools/check-no-io.sh
 
