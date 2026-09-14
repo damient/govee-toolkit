@@ -52,7 +52,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           # One interpreter builds the wheel: it is abi3, so it imports on
-          # every Python from 3.10 up.
+          # every Python from 3.11 up.
           python-version: "3.11"
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:

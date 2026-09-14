@@ -22,8 +22,8 @@ the repository check the core. Arguments in, exact bytes out.
 pip install govee-toolkit
 ```
 
-Python 3.10 and up. The wheel is `abi3`, so one wheel serves every version from
-3.10. The release builds wheels for Linux, macOS and Windows on `x86_64` and
+Python 3.11 and up. The wheel is `abi3`, so one wheel serves every version from
+3.11. The release builds wheels for Linux, macOS and Windows on `x86_64` and
 `aarch64`, for Linux on `armv7`, and for musl on `x86_64`, `aarch64` and
 `armv7`.
 
