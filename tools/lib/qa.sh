@@ -1,6 +1,6 @@
 # shellcheck shell=bash
 #
-# The pass/fail reporter that tools/qa.sh and tools/qa-site.sh share.
+# The pass/fail reporter that the scripts under tools/ share.
 #
 # Source this file, call `qa_init <temp-file-label> <only>`, declare the checks
 # with `check_in`, `skip` and `have`, and end with `qa_summary`.
@@ -50,6 +50,20 @@ check_in() {
   else
     record "$name" fail
   fi
+}
+
+# check_script <name> <path> — run another qa script as one check. It exits 2
+# when it skipped a check of its own, which is a skip here as well.
+check_script() {
+  local name=$1 script=$2
+  if [ -n "$only" ] && [[ $name != *"$only"* ]]; then return; fi
+  printf '%s\n' "$name"
+  "$script" >"$log" 2>&1
+  case $? in
+  0) record "$name" pass ;;
+  2) record "$name" skip "a $name check was skipped; run $script" ;;
+  *) record "$name" fail ;;
+  esac
 }
 
 # skip <name> <what is missing>

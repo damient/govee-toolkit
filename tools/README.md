@@ -76,8 +76,11 @@ copies of one artifact itself. Install cargo-sweep with `cargo install
 cargo-sweep`; `clean-target.sh --help` lists the flags.
 
 `qa.sh` stamps before its first check and sweeps after the last one, so a
-passing run keeps its own artifacts and drops everything older. A run for one
-check (`qa.sh clippy`) sweeps nothing: it builds a fraction of the artifacts.
+passing run keeps its own artifacts and drops everything older. The Python
+binding is a cargo workspace of its own, so it carries a target directory of
+its own: `qa.sh` stamps and sweeps it with a second run of the script, which
+`--root` points at that workspace. A run for one check (`qa.sh clippy`) sweeps
+nothing: it builds a fraction of the artifacts.
 
 `check-captures.sh` scans every tracked file under `tests/fixtures/` and
 `devices/` for what a packet capture carries out of a home network: a MAC that

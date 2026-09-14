@@ -34,8 +34,10 @@ check() {
   check_in "$rust" "$name" "$@"
 }
 
-# The sweep at the end removes what is older than this stamp.
+# The sweep at the end removes what is older than this stamp. The Python binding
+# is a cargo workspace of its own, so it carries a target directory of its own.
 "$root/tools/clean-target.sh" --stamp
+"$root/tools/clean-target.sh" --stamp --root "$root/packages/python"
 
 if have rustup && rustup toolchain list | grep -q '^nightly'; then
   # rustfmt.toml uses nightly-only options; stable rustfmt formats differently.
@@ -115,31 +117,11 @@ else
   skip "spelling" "cargo install typos-cli, or brew install typos-cli"
 fi
 
-# The site has checks of its own, and a workflow of its own. One check here,
-# one script there: its summary prints inside this one when it fails. It
-# exits 2 when it skipped a check, which is a skip here as well.
-if [ -z "$only" ] || [[ site == *"$only"* ]]; then
-  printf '%s\n' "site"
-  "$root/tools/qa-site.sh" >"$log" 2>&1
-  case $? in
-  0) record "site" pass ;;
-  2) record "site" skip "a site check was skipped; run tools/qa-site.sh" ;;
-  *) record "site" fail ;;
-  esac
-fi
-
-# The Python binding is a workspace of its own, with a script of its own. One
-# check here, one script there: its summary prints inside this one when it
-# fails. It exits 2 when it skipped a check, which is a skip here as well.
-if [ -z "$only" ] || [[ python == *"$only"* ]]; then
-  printf '%s\n' "python"
-  "$root/tools/qa-python.sh" >"$log" 2>&1
-  case $? in
-  0) record "python" pass ;;
-  2) record "python" skip "a python check was skipped; run tools/qa-python.sh" ;;
-  *) record "python" fail ;;
-  esac
-fi
+# The site and the Python binding each have checks of their own, and a workflow
+# of their own. One check here, one script there: the summary of the script
+# prints inside this one when it fails.
+check_script site "$root/tools/qa-site.sh"
+check_script python "$root/tools/qa-python.sh"
 
 # The scripts under tools/ are what every check above runs through, and they
 # had no check of their own. -x follows `# shellcheck source=`, which is how
@@ -173,6 +155,7 @@ status=$?
 if [ -z "$only" ]; then
   echo
   "$root/tools/clean-target.sh"
+  "$root/tools/clean-target.sh" --root "$root/packages/python"
 fi
 
 exit "$status"

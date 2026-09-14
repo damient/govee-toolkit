@@ -38,19 +38,22 @@ python_wheel() {
   maturin build --out target/wheels
 }
 
-# The tests import the extension module, so the wheel maturin wrote is
-# unpacked and put on the import path. `zipfile` is in the standard library, so
-# this needs neither pip nor the network, and it leaves the interpreter that
-# runs the script alone.
-python_tests() {
-  local unpacked=target/qa-wheel
+# The wheel maturin wrote, unpacked where the tests and stubtest both import it
+# from. `zipfile` is in the standard library, so this needs neither pip nor the
+# network, and it leaves the interpreter that runs the script alone.
+unpacked=target/qa-wheel
+unpack_wheel() {
   rm -rf "$unpacked"
   mkdir -p "$unpacked"
   local wheel
   # shellcheck disable=SC2012 # maturin writes the name; find cannot sort by time.
   wheel=$(ls target/wheels/*.whl 2>/dev/null | head -1)
   [ -n "$wheel" ] || return 1
-  python3 -m zipfile -e "$wheel" "$unpacked" || return 1
+  python3 -m zipfile -e "$wheel" "$unpacked"
+}
+
+python_tests() {
+  unpack_wheel || return 1
   # pytest runs from the repository root, not from packages/python: the working
   # directory comes first on the import path, and `govee_toolkit/` there holds
   # the Python half of the package without the extension module beside it. The
@@ -64,7 +67,8 @@ python_tests() {
 # the stubs alone and believes them. It runs against the unpacked wheel, so it
 # reads the stubs the wheel carries and not the ones in the tree.
 python_stubs() {
-  PYTHONPATH="$py/target/qa-wheel" python3 -m mypy.stubtest govee_toolkit \
+  unpack_wheel || return 1
+  PYTHONPATH="$py/$unpacked" python3 -m mypy.stubtest govee_toolkit \
     --allowlist stubtest-allowlist.txt --concise
 }
 
@@ -95,13 +99,18 @@ fi
 
 check "python binding clippy" cargo clippy --all-targets --all-features -- -D warnings
 
+# The wheel is what the tests and stubtest import, so what one tool is missing
+# skips all three.
+missing=
 if ! have python3; then
-  for name in "python wheel" "python tests"; do
-    skip "$name" "install Python 3.11 or newer"
-  done
+  missing="install Python 3.11 or newer"
 elif ! have maturin; then
-  for name in "python wheel" "python tests"; do
-    skip "$name" "pip install maturin"
+  missing="pip install maturin"
+fi
+
+if [ -n "$missing" ]; then
+  for name in "python wheel" "python tests" "python stubs"; do
+    skip "$name" "$missing"
   done
 else
   check "python wheel" python_wheel
@@ -110,7 +119,6 @@ else
   else
     skip "python tests" "pip install pytest pytest-asyncio"
   fi
-  # python_tests unpacks the wheel that python_stubs reads.
   if python3 -c 'import mypy.stubtest' >/dev/null 2>&1; then
     check "python stubs" python_stubs
   else
