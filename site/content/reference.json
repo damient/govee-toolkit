@@ -143,6 +143,10 @@
         {
           "id": "music",
           "title": "music",
+          "modes": [
+            "ble",
+            "cloud"
+          ],
           "summary": "Play an effect the device renders from its own microphone.",
           "detail": "The device listens and nothing streams from your host. The effect identifiers belong to the mode: the same number names another effect over another mode, and `lan` carries no music command at all. Nothing stops the effect — set a color, a temperature or the power to end it.",
           "examples": {
@@ -157,6 +161,10 @@
     {
       "id": "stream",
       "title": "Animate the segments",
+      "modes": [
+        "lan",
+        "ble"
+      ],
       "entries": [
         {
           "id": "open-stream",
@@ -226,6 +234,9 @@
         {
           "id": "provision",
           "title": "provision_wifi",
+          "modes": [
+            "ble"
+          ],
           "summary": "Put a new device on a Wi-Fi network, over Bluetooth.",
           "detail": "This is how a device out of the box becomes reachable over `lan`. The password travels in plaintext with no key exchange: anything in Bluetooth range while it runs can read it.",
           "examples": {

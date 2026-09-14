@@ -48,3 +48,8 @@
 .pane .planned {
   font: 400 12px/1.5 var(--mono); color: var(--muted); margin: 0 0 8px;
 }
+
+/* The mode badges of a command that one or two modes reach. A command every
+   mode reaches carries none, so the row is the exception. */
+.ref-modes { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: 10px; }
+.prose.reference h2, .ref-entry h3 { display: flex; flex-wrap: wrap; align-items: center; }
