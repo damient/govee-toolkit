@@ -5,6 +5,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Changed
+
+- **Breaking:** the minimum supported Rust version is 1.89. Update the
+  toolchain: `cargo install` builds from source, an installed binary does not.
+
 ## [0.2.0] — 2026-09-13
 
 ### Changed

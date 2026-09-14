@@ -9,6 +9,8 @@ releases apart and keeps
 
 ### Changed
 
+- **Breaking:** the minimum supported Rust version is 1.89. Update the
+  toolchain: the `aes` 0.9 block cipher the encoded `ble` link runs on needs it.
 - The `cloud` feature reads its TLS trust anchors from the platform store. A
   host whose store carries no root for the endpoint fails the request.
 

@@ -19,7 +19,7 @@ path = "src/main.rs"
 
 [dependencies]
 # The block stage of an encoded device, `docs/protocol/ble.md` 9.
-aes = "0.8"
+aes = "0.9"
 base64 = "0.23"
 serde_json.workspace = true
 socket2.workspace = true
