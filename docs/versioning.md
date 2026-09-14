@@ -177,5 +177,5 @@ manifest does not account for fails there, not on a registry that never takes a
 version back. The rest of what CI runs is in
 [`../CONTRIBUTING.md`](../CONTRIBUTING.md).
 
-PyPI and npm hold the name under a `0.0.0` placeholder each; the first real
-release of either is still ahead.
+npm holds the name under a `0.0.0` placeholder; the first real release of the
+Node package is still ahead.
