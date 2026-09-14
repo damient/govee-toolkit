@@ -48,9 +48,12 @@ The first release that carries code. The version on PyPI before it was a
   from; and `govee_toolkit.MODES`, the three mode names.
 - Typed stubs for the whole surface, and the `py.typed` marker beside them, so
   an editor and a type checker read the extension module.
-- Wheels for Linux, macOS and Windows, on `x86_64` and `aarch64`. The wheel is
-  `abi3` for Python 3.10 and up: one wheel per platform serves every version.
-  There is no wheel for `armv7` and none for musl yet.
+- Wheels for Linux, macOS and Windows on `x86_64` and `aarch64`, for Linux on
+  `armv7`, and for musl on `x86_64`, `aarch64` and `armv7`. The wheel is `abi3`
+  for Python 3.10 and up: one wheel per platform serves every version. The
+  `armv7` and musl wheels are cross-built in manylinux and musllinux containers,
+  and the D-Bus library that the `ble` mode needs is compiled from vendored
+  sources, so the build needs no target sysroot.
 - The release publishes no source distribution. `packages/rust/build.rs` reads
   `../../devices`, so a build outside the repository needs `GOVEE_DEVICES_DIR`
   and the device files it names.

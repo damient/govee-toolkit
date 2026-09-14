@@ -23,13 +23,14 @@ pip install govee-toolkit
 ```
 
 Python 3.10 and up. The wheel is `abi3`, so one wheel serves every version from
-3.10. The release builds wheels for Linux, macOS and Windows, on `x86_64` and
-`aarch64`.
+3.10. The release builds wheels for Linux, macOS and Windows on `x86_64` and
+`aarch64`, for Linux on `armv7`, and for musl on `x86_64`, `aarch64` and
+`armv7`.
 
-There is no wheel for `armv7` and none for musl yet, and the release publishes
-no source distribution. To run on those, build the wheel from a checkout of the
-repository with a Rust toolchain. The core embeds the device files at build
-time, so a build needs the `devices/` directory.
+The release publishes no source distribution. On a platform with no wheel, build
+the wheel from a checkout of the repository with a Rust toolchain. The core
+embeds the device files at build time, so a build needs the `devices/`
+directory.
 
 The wheel carries the device catalog, so there is no data file to install.
 `govee_toolkit.CORE_VERSION` reports the version of the core that the wheel was

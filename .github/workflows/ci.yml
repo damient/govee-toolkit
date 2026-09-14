@@ -354,10 +354,6 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: packages/python
-      # The binding builds the core with every transport, and btleplug reaches
-      # BlueZ over D-Bus, so the `ble` feature needs the dbus headers here.
-      - name: D-Bus headers
-        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
       # packages/python is a workspace of its own, so these run inside it.
       # rustfmt.toml uses nightly-only options.
       - name: Format

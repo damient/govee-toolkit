@@ -6,8 +6,6 @@
 # No sdist. `packages/rust/build.rs` embeds `devices/*.yaml` from ../../devices,
 # and an sdist of packages/python alone does not carry that directory, so it
 # cannot build. A source install needs the repository and GOVEE_DEVICES_DIR.
-#
-# armv7 and musl wheels are not built yet.
 name: Python release
 
 on:
@@ -59,12 +57,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: stable
-      # The binding builds the core with every transport, and btleplug reaches
-      # BlueZ over D-Bus, so the `ble` feature needs the dbus headers here.
-      # macOS and Windows carry their radio stack in the platform SDK.
-      - name: D-Bus headers
-        if: startsWith(matrix.os, 'ubuntu')
-        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
       - run: pip install maturin
       # maturin runs on the runner and not in a manylinux container, so a Linux
       # wheel carries the manylinux tag of the runner's glibc. A distribution
@@ -77,9 +69,52 @@ jobs:
           path: packages/python/dist/*.whl
           if-no-files-found: error
 
+  # armv7 and musl. No runner carries either platform. maturin-action builds
+  # each wheel in the image that matches its tag: a manylinux or a musllinux
+  # container that carries the cross compiler for the target. The D-Bus library
+  # is compiled from vendored sources, so no container needs a target sysroot.
+  # See `packages/python/Cargo.toml`.
+  wheels-cross:
+    name: Wheel (${{ matrix.name }})
+    needs: agree
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-armv7
+            target: armv7-unknown-linux-gnueabihf
+            manylinux: auto
+          - name: musl-x86_64
+            target: x86_64-unknown-linux-musl
+            manylinux: musllinux_1_2
+          - name: musl-aarch64
+            target: aarch64-unknown-linux-musl
+            manylinux: musllinux_1_2
+          - name: musl-armv7
+            target: armv7-unknown-linux-musleabihf
+            manylinux: musllinux_1_2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The action installs the toolchain and the target in the container, so
+      # no toolchain step runs on the runner. The wheel is abi3, so the build
+      # needs no interpreter for the target platform.
+      - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          args: --release --out dist
+          working-directory: packages/python
+          sccache: "true"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wheels-${{ matrix.name }}
+          path: packages/python/dist/*.whl
+          if-no-files-found: error
+
   publish:
     name: Publish
-    needs: wheels
+    needs: [wheels, wheels-cross]
     runs-on: ubuntu-latest
     permissions:
       id-token: write   # PyPI trusted publishing

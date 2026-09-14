@@ -33,6 +33,14 @@ serde = "1"
 serde_json = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
 
+# btleplug reaches BlueZ over D-Bus, and the D-Bus binding links a C library.
+# `vendored` compiles that library from the sources the crate ships. A build
+# then needs no D-Bus headers and no target sysroot, which is what the armv7
+# and the musl wheels need. Cargo unifies the feature into the copy `btleplug`
+# pulls in. Nothing in this crate calls the item.
+[target.'cfg(target_os = "linux")'.dependencies]
+libdbus-sys = { version = "0.2", features = ["vendored"] }
+
 [lints.rust]
 missing_docs = "warn"
 unreachable_pub = "warn"
