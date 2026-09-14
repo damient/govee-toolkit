@@ -1,0 +1,5 @@
+target/
+# The extension module maturin builds into the package directory.
+govee_toolkit/*.so
+govee_toolkit/*.pyd
+govee_toolkit/*.dylib

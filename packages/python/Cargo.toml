@@ -1,0 +1,52 @@
+[package]
+name = "govee-toolkit-python"
+description = "PyO3 binding over govee-toolkit. Not published to crates.io: it ships as the `govee-toolkit` wheel on PyPI."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+license = "MIT"
+homepage = "https://gvetk.com"
+repository = "https://github.com/damient/govee-toolkit"
+authors = ["damient"]
+publish = false
+
+# A workspace of its own: `packages/rust` is the crate the release workflow
+# packages, and a member outside its directory would travel with it.
+[workspace]
+
+[lib]
+# The module `govee_toolkit/__init__.py` imports. The leading underscore keeps
+# it apart from the Python package around it.
+name = "_govee_toolkit"
+crate-type = ["cdylib"]
+
+[dependencies]
+# Every transport: a wheel is installed, not compiled, so the user picks the
+# modes in the configuration and not with a cargo feature.
+govee-toolkit = { path = "../rust", features = ["lan", "ble", "cloud"] }
+# `abi3-py310` builds one wheel for every Python from 3.10 up.
+pyo3 = { version = "0.29", features = ["extension-module", "abi3-py310"] }
+pyo3-async-runtimes = { version = "0.29", features = ["tokio-runtime"] }
+# What turns `serde_json::Value` and the catalog types into Python objects.
+pythonize = "0.29"
+serde = "1"
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
+
+[lints.rust]
+missing_docs = "warn"
+unreachable_pub = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+indexing_slicing = "warn"
+todo = "warn"
+dbg_macro = "warn"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
