@@ -8,7 +8,7 @@ use govee_toolkit::transport::{Health as CoreHealth, Reply as CoreReply};
 use govee_toolkit::{Device as CoreDevice, DeviceStatus as CoreStatus, Served as CoreServed};
 use pyo3::prelude::*;
 
-use crate::conv::{mode_name, to_py};
+use crate::conv::to_py;
 
 /// A flag as Python writes it.
 fn python_bool(value: bool) -> &'static str {
@@ -87,15 +87,11 @@ impl From<CoreDevice> for Device {
             id: device.id.to_string(),
             sku: device.sku,
             name: device.name,
-            modes: device
-                .modes
-                .iter()
-                .map(|m| mode_name(*m).to_owned())
-                .collect(),
+            modes: device.modes.iter().map(ToString::to_string).collect(),
             health: device
                 .health
                 .into_iter()
-                .map(|(mode, health)| (mode_name(mode).to_owned(), health.into()))
+                .map(|(mode, health)| (mode.to_string(), health.into()))
                 .collect(),
         }
     }
@@ -133,7 +129,7 @@ impl From<CoreServed> for Served {
     fn from(served: CoreServed) -> Self {
         Self {
             id: served.id.to_string(),
-            mode: mode_name(served.mode).to_owned(),
+            mode: served.mode.to_string(),
             command: served.command,
             cmd: served.cmd,
         }

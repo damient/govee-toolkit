@@ -47,7 +47,7 @@ impl Catalog {
     }
 
     fn __repr__(&self) -> String {
-        format!("Catalog(devices={})", self.inner.devices().count())
+        format!("Catalog(devices={})", self.__len__())
     }
 }
 

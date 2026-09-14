@@ -6,7 +6,7 @@ use pyo3_async_runtimes::tokio::future_into_py;
 
 use crate::catalog::Catalog;
 use crate::config::Config;
-use crate::conv::{self, mode_name};
+use crate::conv;
 use crate::device::DeviceHandle;
 use crate::errors::map;
 use crate::events::EventStream;
@@ -83,7 +83,7 @@ impl Govee {
         self.inner
             .modes()
             .into_iter()
-            .map(|mode| mode_name(mode).to_owned())
+            .map(|mode| mode.to_string())
             .collect()
     }
 
