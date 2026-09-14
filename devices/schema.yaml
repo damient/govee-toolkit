@@ -224,9 +224,8 @@ commands:
   # silence (../docs/protocol/lan.md 2.1), and an SDK that did the same would
   # report success for a value the device did not apply.
   #
-  # Leave `range` out only where no bound belongs in a device file, and only
-  # on a mode that refuses a value it does not accept. An identifier a shared
-  # table cannot carry is the case: the set differs per SKU, so a table that
+  # Leave `range` out only on a mode that refuses a value it does not accept.
+  # An identifier set that differs per SKU is the case: a shared table that
   # named one would name a value some model does not have. The value then goes
   # out as the caller gave it, and the mode answers. A mode that clamps in
   # silence must carry the bound.
@@ -237,14 +236,11 @@ commands:
   #   range: brightness.range
   #   range: colortemp.range_kelvin
   #
-  # The file names the capability and the parameter, so any capability serves.
-  # The parameter must carry a pair: `range` and `range_kelvin` do. The catalog
-  # resolves the reference on load. It is what lets a shared table declare a
-  # layout several models differ on the bounds of. Two errors: a parameter that
-  # carries no pair, and a device that declares no such pair. Write the pair
-  # out instead where the bounds are a property of the frame or of the mode and
-  # not of the hardware: a byte that takes 0 to 255, what an answer may carry,
-  # or a floor the API imposes.
+  # Any capability serves, and the parameter must carry a pair: `range` and
+  # `range_kelvin` do. Two errors, never warnings: a parameter that carries no
+  # pair, and a device that declares no such pair. Write the pair out instead
+  # where the bounds are a property of the frame or of the mode and not of the
+  # hardware.
   #
   # Any kind takes an optional `role:`. It names the argument for an SDK that
   # fills it, or reads it back, on its own initiative — see the command `role:`
@@ -445,11 +441,8 @@ commands:
     # three keep the argument names the `lan` and `ble` layouts give them, so
     # one command takes the same arguments over every mode.
 
-# optional — what this file changes in a command an `include:` brought in.
-#
-# A shared table carries the layout, and one model differs in a bound or in
-# what a caller must know before calling it. An override patches that one
-# field, so the model keeps the shared layout rather than copying it:
+# optional — what this file changes in a command an `include:` brought in. The
+# model keeps the shared layout, and an override patches one field of it:
 #
 #   overrides:
 #     ble:
@@ -467,22 +460,16 @@ commands:
 #
 # `args:` patches one bound per argument — `range:` on an `int`, `max_len:` on
 # an `rgb_list`, a `string` or a `bytes`, `count:` on a `zones`. `drop:`
-# removes the command, and takes no other field: the hardware the family covers
-# has it and this model does not.
+# removes the command, and takes no other field.
 #
-# Two keys carry what a caller must know. `notes:` replaces what the table
-# says. `notes_append:` keeps it and adds one more thing after it, joined with
-# a space. Write `notes_append:` where the model adds to the shared note, so
-# that a later edit to the table reaches this model too. Write `notes:` where
-# the shared note is wrong for this model.
+# `notes:` replaces what the table says, and `notes_append:` keeps it and adds
+# one more thing after it, joined with a space. Write `notes_append:` where the
+# model adds to the shared note, so that a later edit to the table reaches this
+# model too. Write `notes:` where the shared note is wrong for this model.
 #
-# Eight errors, never warnings: a command no included table carries, a command
-# this file declares itself — change it where it is written — an argument the
-# command does not declare, a field the argument's type has no room for, a
-# value the table already gives, `notes:` and `notes_append:` together,
-# `notes_append:` on a command the table gives no note for, and a
-# `notes_append:` the table already says. The last three catch an override that
-# went dead when the family changed.
+# Every mismatch is an error, never a warning, down to a patch that sets a
+# value the table already gives: an override that went dead when the family
+# changed must be found, not ignored.
 #
 # An override carries a measurement or a trap, so write what was exercised. A
 # bound with nothing behind it is a guess, and `?` or a `TODO` is a better

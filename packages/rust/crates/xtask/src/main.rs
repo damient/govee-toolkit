@@ -46,10 +46,9 @@ fn main() {
 
 /// `devices/*.yaml` into one JSON document.
 ///
-/// The crate loads the files and the tables they include, then the entries it
-/// holds are serialized. The generated catalog is therefore flat and says
-/// exactly what the SDK reads: an `include:` and an `overrides:` block are
-/// already applied, and neither reaches the file.
+/// The crate loads the files, so the catalog says what the SDK reads. It is
+/// flat: an `include:` and an `overrides:` block are applied before this, and
+/// neither reaches the file.
 fn catalog(root: &Path, out: Option<PathBuf>) {
     let devices = root.join("devices");
     let out = out.unwrap_or_else(|| root.join("dist/catalog.json"));

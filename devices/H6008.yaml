@@ -68,8 +68,8 @@ modes:
       ones the API declares: see the `colortemp` entry.
 
 commands:
-  # Every frame in this table is 20 bytes: proType, commandType, payload, then
-  # a XOR of the 19 bytes before it. See docs/protocol/ble.md 1.2.
+  # Every frame here is 20 bytes: proType, commandType, payload, then a XOR of
+  # the 19 bytes before it. See docs/protocol/ble.md 1.2.
   ble:
     colortemp:
       role: color_temp
@@ -109,8 +109,6 @@ commands:
         established the layout of that answer, so this entry declares no
         `reply:`. See docs/protocol/ble.md 8.
 
-# What this unit does with a command a shared table declares. The layout stays
-# in the family; the numbers below were measured here.
 overrides:
   lan:
     brightness:
@@ -238,7 +236,7 @@ verified:
     stayed off the network. That number is the host colour channel and not this
     path. See tests/fixtures/ble-captures/H6008/provision.txt and
     docs/protocol/ble.md 4.
-    The four version reads were probed on 2026-09-13: `aa 06` and `aa 21` both
-    answer 1.01.25, and `aa 20` and `aa 07 03` both answer 1.07.03. Two values,
-    not four. The file declares `aa 06` alone; nothing establishes which module
-    each read names.
+
+    The four version reads answer two values: `aa 06` and `aa 21` both answer
+    1.01.25, and `aa 20` and `aa 07 03` both answer 1.07.03. The file declares
+    `aa 06` alone, and nothing establishes which module each read names.

@@ -159,13 +159,12 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: packages/rust
-      # devices/*.yaml stays the source of truth; this is the single file a
-      # third-party tool reads instead of the directory. It is
-      # generated, never committed, and attached to a release.
-      # A layout two device files declare is a family waiting to be written.
       - name: Check for duplicated command layouts
         working-directory: packages/rust
         run: cargo run -p xtask -- dupes
+      # devices/*.yaml stays the source of truth; this is the single file a
+      # third-party tool reads instead of the directory. It is
+      # generated, never committed, and attached to a release.
       - name: Generate dist/catalog.json
         working-directory: packages/rust
         run: cargo run -p xtask

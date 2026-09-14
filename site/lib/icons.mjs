@@ -1,11 +1,9 @@
-// One icon per capability, per mode and per device family. Each one is a file
-// under `src/icons/`, so it opens in a vector editor, and the site inlines it:
-// the site ships no icon font and no third-party sprite.
+// One icon per capability, per mode and per device family, as a file under
+// `src/icons/`: the site ships no icon font and no third-party sprite.
 //
-// The site keeps the `viewBox` and the shapes of a file and re-wraps them. The
-// class, the color and the stroke of the root tag are the site's, so an icon
-// follows the theme. A shape that carries a color of its own keeps it, and
-// that is how the mode icons draw one filled dot.
+// The site keeps a file's `viewBox` and shapes, and gives the root tag its own
+// class, color and stroke, so an icon follows the theme. A shape that carries a
+// color of its own keeps it, and that is how a mode icon draws one filled dot.
 
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";

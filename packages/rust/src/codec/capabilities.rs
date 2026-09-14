@@ -1,12 +1,8 @@
 //! What a device can do, and what a mode reaches of it.
 //!
 //! Capability names are data: the codec reads [`SEGMENTS`] for the zone counts
-//! a stream needs, and every other name is an opaque string. A device file that
-//! takes an argument's bounds from a capability names both the capability and
-//! the parameter itself (see [`catalog::Bounds`]). Parameters are the exception
-//! to the opacity — an unknown one is refused, not ignored.
-//!
-//! [`catalog::Bounds`]: crate::codec::catalog::Bounds
+//! a stream needs, and every other name is an opaque string. Parameters are the
+//! exception — an unknown one is refused, not ignored.
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -16,8 +12,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 /// The capability carrying addressable zones.
 pub const SEGMENTS: &str = "segments";
 
-/// The parameters of [`CapabilityParams`] that carry a pair, so a device file
-/// can point an argument's `range:` at one. In the order they are declared.
+/// The parameters of [`CapabilityParams`] an argument's `range:` can name.
 pub const PAIR_PARAMS: [&str; 2] = ["range", "range_kelvin"];
 
 /// Parameters qualifying one capability, named below. All optional, and an

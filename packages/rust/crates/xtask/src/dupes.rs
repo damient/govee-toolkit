@@ -1,9 +1,8 @@
 //! `xtask dupes` — command entries two device files declare identically, and
 //! no shared table carries.
 //!
-//! The layout of a command belongs in one place. Two files that declare one
-//! layout are a family waiting to be written, and this task is what stops the
-//! duplication from coming back with the next model.
+//! The layout of a command belongs in one place: two files that declare one
+//! layout need a family.
 //!
 //! `notes:` is excluded from the comparison: what one unit does is a property
 //! of that unit, and an `overrides:` entry is where it goes.
@@ -33,8 +32,7 @@ pub(crate) fn dupes(devices: &[(PathBuf, Value)], families: &BTreeMap<String, Va
             for (command, spec) in table.as_object().into_iter().flatten() {
                 let key = (mode.clone(), command.clone(), layout(spec));
                 // Keyed on the layout, not the name: a file that writes its
-                // own frame for a command a family also names is exempt only
-                // when the two layouts agree.
+                // own frame for a command a family names is not exempt.
                 if shared.contains(&key) {
                     continue;
                 }
@@ -43,7 +41,6 @@ pub(crate) fn dupes(devices: &[(PathBuf, Value)], families: &BTreeMap<String, Va
         }
     }
 
-    // `seen` is keyed `(mode, command, layout)`, so this stays in that order.
     let duplicated: Vec<((String, String), Vec<String>)> = seen
         .into_iter()
         .filter(|(_, skus)| skus.len() > 1)

@@ -125,9 +125,8 @@ prune_incremental() {
   done
 }
 
-# Prints the names of the examples that a workspace member declares. An example
-# reaches the artifact directory under the target name, and cargo writes an
-# underscore where the name has a dash.
+# The example names a workspace member declares. Cargo writes an underscore
+# where a name carries a dash.
 example_names() {
   local file name
   for file in "$rust"/examples/*.rs "$rust"/examples/*/main.rs \
@@ -155,7 +154,6 @@ example_names() {
 # not carry has lost its source and goes, whatever its age. Pass `-` for $3 to
 # skip that test, which is what the dependency directory wants.
 list_stale_copies() {
-  # ls -t sorts by the last use, newest first.
   ls -t "$1" 2>/dev/null | awk -v keep="$2" -v sources="$3" '
     BEGIN {
       check = (sources != "-")
@@ -172,7 +170,6 @@ list_stale_copies() {
         if (substr(head, i, 1) == "-") break
       if (i > 0) {
         tail = substr(head, i + 1)
-        # A cargo metadata hash is 16 hexadecimal digits.
         if (length(tail) == 16 && tail ~ /^[0-9a-f]+$/) {
           stem = substr(head, 1, i - 1)
           hash = tail
@@ -206,9 +203,8 @@ prune_copies() {
   done
 }
 
-# Removes the object files that no binary owns. rustc writes one `.rcgu.o` per
-# codegen unit next to the binary, and leaves them there when the link does not
-# finish.
+# rustc writes one `.rcgu.o` per codegen unit next to the binary, and leaves
+# them there when the link does not finish.
 prune_stray_objects() {
   local dir file name base
   for dir in "$rust"/target/*/examples "$rust"/target/*/deps; do
@@ -282,8 +278,8 @@ if [ "$mode" = force ]; then
   full_clean
 fi
 
-# These three run in every mode. cargo-sweep reports them as artifacts of an
-# installed toolchain and keeps them, so no sweep option reaches them.
+# cargo-sweep keeps these as artifacts of an installed toolchain, so no sweep
+# option reaches them and all three run in every mode.
 prune_copies examples "$(example_names)"
 prune_copies deps -
 prune_stray_objects
@@ -312,6 +308,7 @@ fi
 sweep=(cargo sweep)
 [ "$dry_run" = yes ] && sweep+=(--dry-run)
 
+# Before the sweep, which removes the stamp file the incremental prune reads.
 prune_incremental
 
 if [ "$mode" = maxsize ]; then

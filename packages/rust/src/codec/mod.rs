@@ -214,8 +214,8 @@ impl Catalog {
     /// patches the file declares against them.
     fn parse_device(&self, file: &str, yaml: &str) -> Result<Device> {
         let mut device = parse(file, yaml)?;
-        // What the file declares itself, kept so an `overrides:` entry that
-        // names one of them is refused rather than applied.
+        // Read before the merge, so an `overrides:` entry that names a local
+        // command is refused rather than applied.
         let local = Mode::ALL.map(|mode| {
             device
                 .commands
@@ -259,9 +259,9 @@ impl Catalog {
                 overrides.get(mode),
             )?;
         }
-        // After the merge and the patches, so a shared table's
-        // `range: capability` reaches the capabilities of the device that
-        // included it, and an override can supply bounds of its own.
+        // After the merge and the patches: a shared table resolves against the
+        // capabilities of the device that included it, and an override can
+        // carry a reference of its own.
         catalog::resolve_bounds(file, &mut device)?;
         Ok(device)
     }
