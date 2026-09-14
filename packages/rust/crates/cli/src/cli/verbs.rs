@@ -100,13 +100,14 @@ pub(crate) enum Verb {
     /// Play an effect the device renders from its own microphone.
     ///
     /// The device listens, and nothing streams from here. The effect
-    /// identifiers are the mode's own, and `describe` reports the range each
-    /// mode takes. Nothing stops the effect: set a color, a temperature or
-    /// the power to end it.
+    /// identifiers are the mode's own, and `describe` reports the range where
+    /// the device file declares one. Nothing stops the effect: set a color, a
+    /// temperature or the power to end it.
     Music {
         /// The device identity.
         device: String,
-        /// Which effect. Out of range is an error, never a clamp.
+        /// Which effect. Where the device file bounds it, out of range is an
+        /// error, never a clamp. Where it does not, the mode answers.
         effect: i64,
         /// How loud the sound must be for the device to answer it. Sent where
         /// the device file declares the argument.

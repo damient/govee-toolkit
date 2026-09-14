@@ -27,6 +27,9 @@ releases apart and keeps
   `Bounds` takes `&self` rather than `Copy` for it.
 - **Breaking:** `Error::CapabilityBounds` carries `problem` in place of
   `needs`. The code stays `capability_bounds`.
+- **Breaking:** `codec::ArgSpec::Int` carries `range: Option<Bounds>`. `None`
+  is an argument no device file bounds: the value goes out as the caller gave
+  it. Match on `Some` where the pair is read.
 - **Breaking:** the minimum supported Rust version is 1.89. Update the
   toolchain: the `aes` 0.9 block cipher the encoded `ble` link runs on needs it.
 - The `cloud` feature reads its TLS trust anchors from the platform store. A

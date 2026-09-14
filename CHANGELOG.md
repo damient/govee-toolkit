@@ -40,6 +40,9 @@ at.
   capability`. The file names the parameter, so the bounds of any capability
   reach an argument. `brightness.range` and `colortemp.range_kelvin` are what
   the catalog uses today. See [`devices/schema.yaml`](devices/schema.yaml).
+- `range:` is optional on an integer argument. Leave it out where no bound
+  belongs in a device file, and only on a mode that refuses a value it does not
+  accept. See [`devices/schema.yaml`](devices/schema.yaml).
 
 ### 2026-09-13
 

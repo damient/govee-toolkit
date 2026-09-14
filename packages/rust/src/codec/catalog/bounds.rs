@@ -113,7 +113,10 @@ fn resolve_table(
 ) -> Result<()> {
     for (command, spec) in table.iter_mut() {
         for (arg, declared) in &mut spec.args {
-            let ArgSpec::Int { range, .. } = declared else {
+            let ArgSpec::Int {
+                range: Some(range), ..
+            } = declared
+            else {
                 continue;
             };
             let Bounds::FromCapability(reference) = range else {
