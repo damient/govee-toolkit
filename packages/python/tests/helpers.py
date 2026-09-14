@@ -4,6 +4,10 @@ import inspect
 import re
 from pathlib import Path
 
+import pytest
+
+from govee_toolkit import TransportError
+
 VERSION = re.compile(r"^\d+\.\d+\.\d+")
 
 
@@ -18,6 +22,18 @@ async def call(method, *args, **kwargs):
     if inspect.isawaitable(answer):
         return await answer
     return answer
+
+
+async def refuses_unknown(method, *args, **kwargs):
+    """Assert the call fails with `unknown_device`, and nothing was sent.
+
+    The send path refuses to scan, so every call on an identity no transport
+    knows ends the same way. A call that reaches it is a call the binding
+    accepted the arguments of.
+    """
+    with pytest.raises(TransportError) as raised:
+        await call(method, *args, **kwargs)
+    assert raised.value.code == "unknown_device"
 
 
 def repository_root():
