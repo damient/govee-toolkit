@@ -64,8 +64,9 @@ The first release that carries code. The version on PyPI before it was a
   from, and `govee_toolkit.MODES`, the three mode names.
 - Typed stubs for the whole surface in `_govee_toolkit.pyi`, with the `py.typed`
   marker beside them. The type aliases live in `govee_toolkit/_types.py`.
-- Wheels for Linux, macOS and Windows on `x86_64` and `aarch64`, for Linux on
-  `armv7`, and for musl on `x86_64`, `aarch64` and `armv7`.
+- Wheels for Linux and Windows on `x86_64` and `aarch64`, for macOS on
+  `aarch64`, for Linux on `armv7`, and for musl on `x86_64`, `aarch64` and
+  `armv7`. macOS `x86_64` carries no wheel.
 - The wheel is `abi3` for Python 3.11 and up: one wheel per platform serves
   every version. CI imports it on the floor and on the newest release.
 - The `armv7` and musl wheels are cross-built in manylinux and musllinux
