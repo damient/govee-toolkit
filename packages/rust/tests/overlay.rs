@@ -89,6 +89,22 @@ fn an_overlay_may_not_steal_an_alias_from_a_device_it_does_not_replace() {
     assert_eq!(err.code(), "duplicate_sku");
 }
 
+/// The entries are shared, so a clone must not observe a later overlay.
+#[test]
+fn a_clone_taken_before_an_overlay_keeps_what_it_was_built_with() {
+    let mut catalog =
+        Catalog::from_sources([("shipped.yaml", yaml("H0007", &[]).as_str())]).expect("catalog");
+    let before = catalog.clone();
+    let local = yaml("H0007", &[]).replace("name: Test", "name: Local");
+
+    catalog
+        .overlay([("local.yaml", local.as_str())])
+        .expect("overlay");
+
+    assert_eq!(before.device("H0007").unwrap().name, "Test");
+    assert_eq!(catalog.device("H0007").unwrap().name, "Local");
+}
+
 /// The escape hatch is opt-in: nothing reads a local directory on its own.
 #[test]
 fn the_embedded_catalog_is_untouched_without_an_overlay() {
