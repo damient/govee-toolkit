@@ -111,16 +111,22 @@ def card():
         y = HEADLINE_BASELINE + i * HEADLINE_STEP
         out += draw(headline, line, 74, LEFT, y, color, track=-0.0188)
 
-    step = 2 * DOT_RADIUS + DOT_GAP
-    first = WIDTH / 2 - step * (len(ACCENTS) - 1) / 2
-    for i, color in enumerate(ACCENTS):
+    centers = dot_centers(WIDTH, len(ACCENTS), DOT_RADIUS, DOT_GAP)
+    for x, color in zip(centers, ACCENTS, strict=True):
         out.append(
-            f'  <circle cx="{first + i * step:g}" cy="{DOT_BASELINE}"'
+            f'  <circle cx="{x:g}" cy="{DOT_BASELINE}"'
             f' r="{DOT_RADIUS}" fill="{color}"/>'
         )
 
     out.append("</svg>")
     return "\n".join(out) + "\n"
+
+
+def dot_centers(width, count, radius, gap):
+    """The x of every dot of a row of touching-gap dots, centered on the card."""
+    step = 2 * radius + gap
+    first = width / 2 - step * (count - 1) / 2
+    return [first + i * step for i in range(count)]
 
 
 def rasterize(source, target, width, height, background=None):
