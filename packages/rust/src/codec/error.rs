@@ -47,12 +47,14 @@ pub enum Error {
     },
 
     /// An argument was supplied that the command does not declare.
-    #[error("{command}: unknown argument `{arg}`")]
+    #[error("{command}: unknown argument `{arg}`; it declares {declared}")]
     UnknownArg {
         /// The command the codec encodes.
         command: String,
         /// The supplied argument.
         arg: String,
+        /// The arguments the entry declares, comma-separated, or `none`.
+        declared: String,
     },
 
     /// An argument was supplied with the wrong shape.

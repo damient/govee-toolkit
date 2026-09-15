@@ -26,7 +26,7 @@ pub(crate) async fn dispatch(cli: &Cli, writer: &Writer) -> Result<(), Failure> 
 }
 
 async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure> {
-    let restrict = cli.global.mode.map(Mode::from);
+    let restrict = cli.global.mode;
     if let Some(device) = cli.command.device() {
         discover(govee, &DeviceId::new(device)).await?;
     }
@@ -168,7 +168,7 @@ fn configure(cli: &Cli) -> Result<Config, Failure> {
 
     // `--mode` narrows what the configuration enables and adds nothing:
     // sending over another mode would substitute one in silence.
-    let (Some(mode), Some(device)) = (cli.global.mode.map(Mode::from), cli.command.device()) else {
+    let (Some(mode), Some(device)) = (cli.global.mode, cli.command.device()) else {
         return Ok(config);
     };
     let id = DeviceId::new(device);

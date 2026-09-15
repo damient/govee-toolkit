@@ -9,6 +9,16 @@ releases apart and keeps
 
 ### Added
 
+- `FromStr` on `codec::Mode`, with `Mode::as_str()` and `Mode::NAMES`. A mode
+  reads back the name it prints, and `codec::UnknownMode` lists the names that
+  work.
+- `Display` and `as_str()` on `Provisioned` — `accepted` or `sent`.
+- `Default` for `Music` — effect `0`, sensitivity `50`, on the beat, and the
+  colors left to the firmware.
+- `codec::ArgSpec::kind()` — the name `devices/schema.yaml` gives the type,
+  which is the `type` the serialized form carries.
+- `codec::Command::declared()` — the arguments an entry declares, for a message
+  that names them.
 - `VERSION` — the version of this crate. A binding reports the core it was
   built from without a copy of the number.
 - `codec::coerce` — reads one value under the type a device file declares, from
@@ -28,6 +38,8 @@ releases apart and keeps
 
 ### Changed
 
+- **Breaking:** `codec::Error::UnknownArg` carries `declared`, the arguments the
+  entry declares. The message lists them.
 - `codec::Catalog` shares its entries: a clone costs a reference count, not a
   copy. `overlay()` copies once, and an earlier clone keeps what it held.
 

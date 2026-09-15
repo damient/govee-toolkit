@@ -27,6 +27,19 @@ pub struct Music {
     pub color: Option<[u8; 3]>,
 }
 
+impl Default for Music {
+    /// Effect `0`, sensitivity `50`, on the beat, and the colors left to the
+    /// firmware. Every surface takes these, so one call means one thing.
+    fn default() -> Self {
+        Self {
+            effect: 0,
+            sensitivity: 50,
+            soft: false,
+            color: None,
+        }
+    }
+}
+
 impl DeviceHandle<'_> {
     /// Play a music effect.
     ///
