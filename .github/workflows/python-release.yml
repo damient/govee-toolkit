@@ -37,8 +37,11 @@ jobs:
         include:
           - { os: ubuntu-24.04, name: linux-x86_64 }
           - { os: ubuntu-24.04-arm, name: linux-aarch64 }
-          - { os: macos-13, name: macos-x86_64 }
-          - { os: macos-14, name: macos-aarch64 }
+          # A plain macOS label names the arm64 image, and GitHub keeps the
+          # two most recent macOS versions. A label under that floor waits for
+          # a runner that never comes. macOS x86_64 carries no wheel, and
+          # there is no sdist, so an Intel Mac cannot install the package.
+          - { os: macos-15, name: macos-aarch64 }
           - { os: windows-2022, name: windows-x86_64 }
           - { os: windows-11-arm, name: windows-aarch64 }
     defaults:

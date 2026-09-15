@@ -23,9 +23,9 @@ pip install govee-toolkit
 ```
 
 Python 3.11 and up. The wheel is `abi3`, so one wheel serves every version from
-3.11. The release builds wheels for Linux, macOS and Windows on `x86_64` and
-`aarch64`, for Linux on `armv7`, and for musl on `x86_64`, `aarch64` and
-`armv7`.
+3.11. The release builds wheels for Linux and Windows on `x86_64` and
+`aarch64`, for macOS on `aarch64`, for Linux on `armv7`, and for musl on
+`x86_64`, `aarch64` and `armv7`.
 
 The release publishes no source distribution. On a platform with no wheel, build
 the wheel from a checkout of the repository with a Rust toolchain. The core
