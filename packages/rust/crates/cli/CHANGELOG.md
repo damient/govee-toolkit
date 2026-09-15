@@ -5,6 +5,12 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Changed
+
+- `send` reports an unknown argument as the crate does:
+  ``<command>: unknown argument `x`; it declares y, z``. The exit code stays
+  the usage one.
+
 ## [0.3.0] — 2026-09-14
 
 ### Changed

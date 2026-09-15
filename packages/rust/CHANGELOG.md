@@ -9,6 +9,15 @@ releases apart and keeps
 
 ### Added
 
+- `DeviceHandle::args()` — reads the values a caller supplied under the types
+  the device file declares, for the mode a send would go over. The CLI and the
+  bindings read a command's arguments through it.
+- `Event::to_json()` — one event as the record every surface prints, keyed by
+  `event`. `Event::lagged()` is the record for a subscription that fell behind,
+  and `Event::mode()` names the mode an event is about.
+- `describe()` — one device file as the reader's view of it: the modes, the
+  commands under the mode that carries them, and each argument's type, role and
+  bound. `govee describe --json` prints it.
 - `FromStr` on `codec::Mode`, with `Mode::as_str()` and `Mode::NAMES`. A mode
   reads back the name it prints, and `codec::UnknownMode` lists the names that
   work.

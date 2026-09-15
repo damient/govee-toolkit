@@ -6,7 +6,6 @@ use std::time::Duration;
 use govee_toolkit::codec::Mode;
 use govee_toolkit::transport::Event as TransportEvent;
 use govee_toolkit::{Event, Govee};
-use serde_json::{Value, json};
 use tokio::sync::broadcast::error::RecvError;
 
 use crate::output::{Failure, Writer, option};
@@ -28,11 +27,11 @@ pub(super) async fn run(
     loop {
         match events.recv().await {
             Ok(event) if skipped(&event, restrict) => {}
-            Ok(event) => writer.emit(&as_json(&event), &as_text(&event)),
+            Ok(event) => writer.emit(&event.to_json(), &as_text(&event)),
             // The stream drops the oldest events, so a slow reader loses
             // events rather than blocking the SDK.
             Err(RecvError::Lagged(missed)) => writer.emit(
-                &json!({ "event": "lagged", "missed": missed }),
+                &Event::lagged(missed),
                 &format!("lagged: {missed} events were dropped"),
             ),
             Err(RecvError::Closed) => return Ok(()),
@@ -57,77 +56,10 @@ fn rescan(govee: Govee, every_ms: u64, modes: Vec<Mode>) {
 /// Whether `--mode` rules this event out. An event that names no mode is
 /// about the device itself, and every run reports it.
 fn skipped(event: &Event, restrict: Option<Mode>) -> bool {
-    let (Some(only), Some(mode)) = (restrict, mode_of(event)) else {
+    let (Some(only), Some(mode)) = (restrict, event.mode()) else {
         return false;
     };
     only != mode
-}
-
-fn mode_of(event: &Event) -> Option<Mode> {
-    match event {
-        Event::Transport(
-            TransportEvent::Discovered { mode, .. }
-            | TransportEvent::Forgotten { mode, .. }
-            | TransportEvent::Status { mode, .. }
-            | TransportEvent::HealthChanged { mode, .. },
-        ) => Some(*mode),
-        Event::Transport(TransportEvent::Sent(sent)) => Some(sent.mode),
-        _ => None,
-    }
-}
-
-fn as_json(event: &Event) -> Value {
-    match event {
-        Event::UnknownSku { id, sku } => json!({
-            "event": "unknown_sku",
-            "id": id.to_string(),
-            "sku": sku,
-        }),
-        Event::Transport(TransportEvent::Discovered {
-            mode,
-            device,
-            change,
-        }) => json!({
-            "event": "discovered",
-            "mode": mode.to_string(),
-            "id": device.id.to_string(),
-            "sku": device.sku,
-            "endpoint": device.endpoint,
-            "firmware": device.firmware,
-            "change": change.to_string(),
-        }),
-        Event::Transport(TransportEvent::Forgotten { mode, id }) => json!({
-            "event": "forgotten",
-            "mode": mode.to_string(),
-            "id": id.to_string(),
-        }),
-        Event::Transport(TransportEvent::Sent(sent)) => json!({
-            "event": "sent",
-            "mode": sent.mode.to_string(),
-            "id": sent.id.to_string(),
-            "cmd": sent.cmd,
-            "endpoint": sent.endpoint,
-        }),
-        Event::Transport(TransportEvent::Status { mode, status }) => json!({
-            "event": "status",
-            "mode": mode.to_string(),
-            "id": status.id.to_string(),
-            "on": status.on,
-            "brightness": status.brightness,
-        }),
-        Event::Transport(TransportEvent::HealthChanged {
-            id,
-            mode,
-            transition,
-        }) => json!({
-            "event": "health_changed",
-            "mode": mode.to_string(),
-            "id": id.to_string(),
-            "from": transition.from.to_string(),
-            "to": transition.to.to_string(),
-        }),
-        _ => json!({ "event": "unknown" }),
-    }
 }
 
 fn as_text(event: &Event) -> String {

@@ -110,6 +110,8 @@ pub mod stream;
 pub mod transport;
 
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+mod describe;
+#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 mod device;
 
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
@@ -124,6 +126,8 @@ mod verbs;
 pub use codec::{Args, Catalog, Mode};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 pub use config::{CloudConfig, Config, DeviceConfig, LanConfig, Problem, StreamConfig};
+#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+pub use describe::describe;
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 pub use device::DeviceHandle;
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
