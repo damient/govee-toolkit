@@ -30,7 +30,7 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::codec::Mode;
 use crate::env::Env;
@@ -44,7 +44,7 @@ pub use self::cloud::{CloudConfig, KEY_ENV};
 pub use self::lan::LanConfig;
 
 /// The whole configuration file.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
     /// Where device files come from.
@@ -67,7 +67,7 @@ pub struct Config {
 }
 
 /// Segment streaming settings, applying to whichever mode a stream opens on.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct StreamConfig {
     /// The rate to send at when the device file records no measurement for the
@@ -86,7 +86,7 @@ impl Default for StreamConfig {
 /// Where device files come from. The compiled-in catalog is the normal
 /// source; a local directory is **opt-in**, so that what one person measured
 /// does not become what everyone's device is assumed to do.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CatalogConfig {
     /// Read `<config dir>/devices/*.yaml` and let them replace what the build
@@ -97,7 +97,7 @@ pub struct CatalogConfig {
 }
 
 /// What applies to a device with no entry of its own.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Defaults {
     /// The enabled modes, in preference order.
@@ -115,7 +115,7 @@ impl Default for Defaults {
 }
 
 /// One device's settings.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct DeviceConfig {
     /// The enabled modes, in preference order. Unset falls back to

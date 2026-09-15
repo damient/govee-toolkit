@@ -6,14 +6,14 @@
 
 use std::path::PathBuf;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "lan")]
 use crate::error::Result;
 use crate::transport::breaker::Policy;
 
 /// Transport tuning for `lan`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct LanConfig {
     /// Where discovery results are cached. Unset uses the default path;

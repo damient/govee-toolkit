@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::env::Env;
 use crate::transport::breaker::Policy;
@@ -14,7 +14,7 @@ pub const KEY_ENV: &str = "GOVEE_API_KEY";
 
 /// Transport tuning for `cloud`. The key itself is **not** a field here:
 /// `config.yaml` ends up in bug reports. See `docs/security.md`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CloudConfig {
     /// A file holding the API key alone. Read when [`KEY_ENV`] carries
