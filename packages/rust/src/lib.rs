@@ -137,7 +137,7 @@ pub use govee::Govee;
 #[cfg(feature = "ble")]
 pub use provision::{Provisioned, WifiCredentials};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
-pub use stream::{Rate, Reach, Resolution, SegmentStream, StreamOptions};
+pub use stream::{ParseError, Rate, Reach, Resolution, SegmentStream, StreamOptions};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 pub use transport::{DeviceId, DeviceStatus, Health, Reply, State, Transport};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]

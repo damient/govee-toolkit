@@ -46,6 +46,7 @@
 //! # }
 //! ```
 
+mod options;
 pub(crate) mod paint;
 mod reach;
 pub(crate) mod resolve;
@@ -56,6 +57,7 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::Notify;
 
+pub use self::options::{ParseError, Rate, Resolution, StreamOptions};
 pub use self::reach::{Reach, reach};
 use self::resolve::{plan, rate_hz};
 use self::sender::{Shared, send_enable};
@@ -67,48 +69,6 @@ use crate::transport::DeviceId;
 /// mode, in hertz. Below every rate measured so far. Every `ble` stream runs
 /// at it. Configurable as `stream.fallback_hz`.
 pub const FALLBACK_HZ: f64 = 10.0;
-
-/// How many zones one paint or one stream states.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum Resolution {
-    /// What the Govee app exposes, from `capabilities.segments.count`.
-    #[default]
-    App,
-    /// Every addressable LED, from `capabilities.segments.native_pixels`.
-    /// Fails when nobody measured it, and on a mode that paints by zone mask.
-    Native,
-    /// A count the caller picks. The firmware groups the LEDs to serve it, so
-    /// a count the unit renders as a smaller one fails with
-    /// [`Error::ResolutionNotDistinct`] where the file records
-    /// `measurements.resolution_changepoints`.
-    Exact(u16),
-}
-
-/// How fast frames go out.
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
-pub enum Rate {
-    /// From the device file's `measurements.frame_rate` for the mode the
-    /// stream opens on, falling back to [`FALLBACK_HZ`] when it records none
-    /// there. A rate measured over one mode is never carried to another.
-    #[default]
-    Measured,
-    /// A rate the caller picks, in hertz.
-    Fixed(f64),
-}
-
-/// How a stream is opened.
-#[derive(Debug, Clone, Default)]
-pub struct StreamOptions {
-    /// How many zones to carry.
-    pub resolution: Resolution,
-    /// How fast to send.
-    pub rate: Rate,
-    /// Ask the firmware to interpolate between zones, and to wrap from the
-    /// last zone back to the first. `false` gives hard-edged zones. `true` is
-    /// refused where the device file can carry the setting nowhere, rather
-    /// than dropped.
-    pub gradient: bool,
-}
 
 /// An open segment channel, armed until [`SegmentStream::close`]. Dropping it
 /// asks the emitting task to disarm, which reports no failure and does nothing

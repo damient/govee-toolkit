@@ -28,6 +28,8 @@ The first release that carries code. The version on PyPI before it was a
   answer which mode a command takes.
 - `send()` and `read()` read each value under the type the entry declares:
   `[0, 1, 2]` is zone indices, byte values or one color as the device file says.
+- `segment()` and `open_stream()` take a resolution or a rate as text: `"app"`,
+  `"native"` or a zone count, and `"measured"` or a rate in hertz.
 - `StatusStream` — `watch_status()` reports one device's status as answers
   arrive, over the mode that serves it. It requests nothing of its own.
 - `SegmentStream` — `open_stream()` opens the segment channel, `set_all()`,

@@ -1,7 +1,7 @@
 //! What crosses between a Python value and a core value.
 
 use govee_toolkit::codec::Supplied;
-use govee_toolkit::{Mode, Rate, Resolution};
+use govee_toolkit::{Mode, ParseError, Rate, Resolution};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyFloat, PyInt, PyString};
 use serde::Serialize;
@@ -103,13 +103,10 @@ pub(crate) fn args(values: Option<&Bound<'_, PyDict>>) -> PyResult<Vec<(String, 
 /// count.
 pub(crate) fn resolution(value: &Bound<'_, PyAny>) -> PyResult<Resolution> {
     if let Ok(name) = value.cast::<PyString>() {
-        return match name.extract::<String>()?.as_str() {
-            "app" => Ok(Resolution::App),
-            "native" => Ok(Resolution::Native),
-            other => Err(value_error(format!(
-                "`{other}` is not a resolution; write \"app\", \"native\" or a zone count"
-            ))),
-        };
+        return name
+            .extract::<String>()?
+            .parse()
+            .map_err(|e: ParseError| value_error(e.to_string()));
     }
     Ok(Resolution::Exact(value.extract::<u16>().map_err(|_| {
         value_error("a zone count is a whole number from 0 to 65535")
@@ -119,12 +116,10 @@ pub(crate) fn resolution(value: &Bound<'_, PyAny>) -> PyResult<Resolution> {
 /// Read how fast a stream sends: `"measured"`, or a rate in hertz.
 pub(crate) fn rate(value: &Bound<'_, PyAny>) -> PyResult<Rate> {
     if let Ok(name) = value.cast::<PyString>() {
-        return match name.extract::<String>()?.as_str() {
-            "measured" => Ok(Rate::Measured),
-            other => Err(value_error(format!(
-                "`{other}` is not a rate; write \"measured\" or a number of hertz"
-            ))),
-        };
+        return name
+            .extract::<String>()?
+            .parse()
+            .map_err(|e: ParseError| value_error(e.to_string()));
     }
     if value.is_instance_of::<PyFloat>() || value.is_instance_of::<PyInt>() {
         return Ok(Rate::Fixed(value.extract::<f64>()?));
