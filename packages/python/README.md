@@ -92,9 +92,11 @@ network.
 ## Errors
 
 `GoveeError` is the base class; `CodecError`, `TransportError` and `ConfigError`
-are its subclasses. Every one of them carries `.code`, the stable identifier
-that the core gives the failure. Match on the code, not on the message: the
-message is written for a person and can change.
+are its subclasses. The subclass says where the failure happened: `CodecError`
+if the command never reached the wire, `TransportError` if the link failed, and
+`ConfigError` if a setting cannot work. Every one of them carries `.code`, the
+stable identifier that the core gives the failure. Match on the code, not on
+the message: the message is written for a person and can change.
 
 A value the package cannot read at all, such as a color that is not three whole
 numbers, is a `ValueError`. It carries no code, because the core never saw it.
