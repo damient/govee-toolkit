@@ -15,7 +15,6 @@ Usage: `python3 tools/banner.py`
 from pathlib import Path
 
 from fontTools.pens.boundsPen import BoundsPen
-
 from og import ACCENTS, BACKGROUND, SITE, dot_centers, draw, mono, rasterize
 
 WIDTH, HEIGHT = 1280, 360

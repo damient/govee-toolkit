@@ -81,9 +81,11 @@ python_stubs() {
 }
 
 # ruff and mypy read the sources, so they run whether or not maturin is here.
+# ruff covers every Python source in the repository; pyproject.toml holds the
+# only configuration for it.
 if have ruff; then
-  check "python fmt" ruff format --check govee_toolkit tests
-  check "python lint" ruff check govee_toolkit tests
+  check "python fmt" ruff format --check govee_toolkit tests "$root/tools" "$root/site/tools"
+  check "python lint" ruff check govee_toolkit tests "$root/tools" "$root/site/tools"
 else
   for name in "python fmt" "python lint"; do
     skip "$name" "pip install ruff"

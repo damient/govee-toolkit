@@ -16,9 +16,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from fontTools.misc.transform import Transform
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
-from fontTools.misc.transform import Transform
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
