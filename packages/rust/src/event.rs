@@ -108,7 +108,7 @@ impl Event {
                 | TransportEvent::HealthChanged { mode, .. },
             ) => Some(*mode),
             Self::Transport(TransportEvent::Sent(sent)) => Some(sent.mode),
-            _ => None,
+            Self::UnknownSku { .. } => None,
         }
     }
 }

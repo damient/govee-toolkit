@@ -6,7 +6,7 @@
 
 use serde_json::{Map, Value, json};
 
-use crate::codec::{ArgSpec, Bounds, Command, Device, Mode, ModeSupport};
+use crate::codec::{ArgBound, ArgSpec, Command, Device, Mode, ModeSupport};
 use crate::stream::reach;
 
 /// One device file, as the record `govee describe --json` prints and every
@@ -95,14 +95,11 @@ fn arg_json(spec: &ArgSpec) -> Value {
     })
 }
 
-/// What the file bounds this argument by: the pair an `int` takes, the zones a
-/// mask counts, or the length the others cap.
 fn bound(spec: &ArgSpec) -> Value {
-    match spec {
-        ArgSpec::Int { range, .. } => json!(range.as_ref().and_then(Bounds::pair)),
-        ArgSpec::Zones { count, .. } => json!(count),
-        ArgSpec::RgbList { max_len, .. }
-        | ArgSpec::String { max_len, .. }
-        | ArgSpec::Bytes { max_len, .. } => json!(max_len),
+    match spec.bound() {
+        ArgBound::Range(pair) => json!(pair),
+        ArgBound::Zones(count) => json!(count),
+        ArgBound::MaxLen(len) => json!(len),
+        ArgBound::None => Value::Null,
     }
 }

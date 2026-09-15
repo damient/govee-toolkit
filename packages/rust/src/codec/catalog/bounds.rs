@@ -36,6 +36,40 @@ impl Bounds {
     }
 }
 
+/// What `devices/*.yaml` bounds one argument by. Every surface that reports a
+/// bound reads this, so a new [`ArgSpec`] states its bound once.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArgBound {
+    /// The inclusive pair an `int` takes.
+    Range([i64; 2]),
+    /// How many zones a mask counts.
+    Zones(usize),
+    /// The length a list, a text or a run of bytes caps at.
+    MaxLen(usize),
+    /// The file declares none.
+    None,
+}
+
+impl ArgSpec {
+    /// What the file bounds this argument by.
+    ///
+    /// [`ArgBound::None`] where the file declares no bound, and for an `int`
+    /// whose capability reference the catalog has not resolved yet.
+    #[must_use]
+    pub fn bound(&self) -> ArgBound {
+        match self {
+            Self::Int { range, .. } => range
+                .as_ref()
+                .and_then(Bounds::pair)
+                .map_or(ArgBound::None, ArgBound::Range),
+            Self::Zones { count, .. } => count.map_or(ArgBound::None, ArgBound::Zones),
+            Self::RgbList { max_len, .. }
+            | Self::String { max_len, .. }
+            | Self::Bytes { max_len, .. } => max_len.map_or(ArgBound::None, ArgBound::MaxLen),
+        }
+    }
+}
+
 /// Where a device file says the pair lives, in its own `capabilities:`.
 /// Written and read as `<capability>.<parameter>`.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -38,7 +38,8 @@ impl Mode {
     pub const ALL: [Mode; 3] = [Mode::Lan, Mode::Ble, Mode::Cloud];
 
     /// The same list, as the names the files use.
-    pub const NAMES: [&'static str; 3] = ["lan", "ble", "cloud"];
+    pub const NAMES: [&'static str; 3] =
+        [Mode::Lan.as_str(), Mode::Ble.as_str(), Mode::Cloud.as_str()];
 
     /// The name this mode carries in `devices/*.yaml` and in `config.yaml`.
     #[must_use]
@@ -84,12 +85,6 @@ mod tests {
         for mode in Mode::ALL {
             assert_eq!(mode.to_string().parse(), Ok(mode));
         }
-    }
-
-    #[test]
-    fn the_names_are_the_list_the_modes_print() {
-        let printed: Vec<String> = Mode::ALL.iter().map(ToString::to_string).collect();
-        assert_eq!(printed, Mode::NAMES);
     }
 
     #[test]
