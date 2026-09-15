@@ -26,6 +26,11 @@ releases apart and keeps
   family to the error class it raises, so every variant is classified in one
   place.
 
+### Changed
+
+- `codec::Catalog` shares its entries: a clone costs a reference count, not a
+  copy. `overlay()` copies once, and an earlier clone keeps what it held.
+
 ## [0.8.0] — 2026-09-14
 
 ### Added

@@ -43,6 +43,7 @@ pub mod validate;
 pub mod white;
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 pub use args::{ArgValue, Args};
 pub use capabilities::{Capabilities, CapabilityParams, ModeCapabilities, PAIR_PARAMS, Reason};
@@ -83,8 +84,15 @@ pub struct Overridden {
 }
 
 /// Every known device.
+///
+/// A clone shares the entries rather than copying them, so a binding can hand
+/// one out per call. [`Catalog::overlay`] copies once, and a clone taken
+/// before it keeps the entries it was built with.
 #[derive(Debug, Clone)]
-pub struct Catalog {
+pub struct Catalog(Arc<Inner>);
+
+#[derive(Debug, Clone, Default)]
+struct Inner {
     devices: Vec<Device>,
     /// Uppercased SKU or verified alias, to an index into `devices`.
     index: BTreeMap<String, usize>,
@@ -132,24 +140,16 @@ impl Catalog {
         sources: impl IntoIterator<Item = (&'a str, &'a str)>,
         families: impl IntoIterator<Item = (&'b str, &'b str)>,
     ) -> Result<Self> {
-        let mut catalog = Self {
-            devices: Vec::new(),
-            index: BTreeMap::new(),
-            origin: Vec::new(),
-            families: BTreeMap::new(),
-        };
+        let mut inner = Inner::default();
         for (file, yaml) in families {
             let family = parse_family(file, yaml)?;
-            catalog.families.insert(family.family.clone(), family);
+            inner.families.insert(family.family.clone(), family);
         }
         for (file, yaml) in sources {
-            let device = catalog.parse_device(file, yaml)?;
-            let position = catalog.devices.len();
-            catalog.claim_keys(&device, position, file)?;
-            catalog.devices.push(device);
-            catalog.origin.push(file.to_owned());
+            let device = inner.parse_device(file, yaml)?;
+            inner.push(device, file)?;
         }
-        Ok(catalog)
+        Ok(Self(Arc::new(inner)))
     }
 
     /// Replace catalog entries with locally supplied files.
@@ -172,9 +172,10 @@ impl Catalog {
     ) -> Result<Vec<Overridden>> {
         let mut replaced = Vec::new();
         let mut claimed: BTreeMap<String, String> = BTreeMap::new();
+        let inner = Arc::make_mut(&mut self.0);
 
         for (file, yaml) in sources {
-            let device = self.parse_device(file, yaml)?;
+            let device = inner.parse_device(file, yaml)?;
             let key = device.sku.to_uppercase();
             if let Some(first) = claimed.insert(key.clone(), file.to_owned()) {
                 return Err(Error::DuplicateSku {
@@ -184,16 +185,16 @@ impl Catalog {
                 });
             }
 
-            if let Some(position) = self.index.get(&key).copied() {
+            if let Some(position) = inner.index.get(&key).copied() {
                 // Drop every key the old entry answered to, including aliases
                 // the replacement does not declare.
-                self.index.retain(|_, i| *i != position);
-                let was = self.origin.get(position).cloned().unwrap_or_default();
-                self.claim_keys(&device, position, file)?;
-                if let Some(slot) = self.devices.get_mut(position) {
+                inner.index.retain(|_, i| *i != position);
+                let was = inner.origin.get(position).cloned().unwrap_or_default();
+                inner.claim_keys(&device, position, file)?;
+                if let Some(slot) = inner.devices.get_mut(position) {
                     *slot = device;
                 }
-                if let Some(slot) = self.origin.get_mut(position) {
+                if let Some(slot) = inner.origin.get_mut(position) {
                     file.clone_into(slot);
                 }
                 replaced.push(Overridden {
@@ -202,14 +203,41 @@ impl Catalog {
                     now: file.to_owned(),
                 });
             } else {
-                let position = self.devices.len();
-                self.claim_keys(&device, position, file)?;
-                self.devices.push(device);
-                self.origin.push(file.to_owned());
+                inner.push(device, file)?;
             }
         }
 
         Ok(replaced)
+    }
+
+    /// Look up a device by SKU or by verified alias. Case-insensitive.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::UnknownSku`] if nothing declares it.
+    pub fn device(&self, sku: &str) -> Result<&Device> {
+        self.0.device(sku)
+    }
+
+    /// Every device file in the catalog.
+    pub fn devices(&self) -> impl Iterator<Item = &Device> {
+        self.0.devices.iter()
+    }
+
+    /// Every SKU that resolves, aliases included.
+    pub fn skus(&self) -> impl Iterator<Item = &str> {
+        self.0.index.keys().map(String::as_str)
+    }
+}
+
+impl Inner {
+    /// Add a device at the end, under every key it answers to.
+    fn push(&mut self, device: Device, file: &str) -> Result<()> {
+        let position = self.devices.len();
+        self.claim_keys(&device, position, file)?;
+        self.devices.push(device);
+        self.origin.push(file.to_owned());
+        Ok(())
     }
 
     /// Parse a device file, merge in every table it includes, then apply the
@@ -291,12 +319,7 @@ impl Catalog {
         Ok(())
     }
 
-    /// Look up a device by SKU or by verified alias. Case-insensitive.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::UnknownSku`] if nothing declares it.
-    pub fn device(&self, sku: &str) -> Result<&Device> {
+    fn device(&self, sku: &str) -> Result<&Device> {
         // The index is keyed uppercase, so a caller that already holds an
         // uppercase SKU costs no allocation on the send path.
         self.index
@@ -306,16 +329,6 @@ impl Catalog {
             .ok_or_else(|| Error::UnknownSku {
                 sku: sku.to_owned(),
             })
-    }
-
-    /// Every device file in the catalog.
-    pub fn devices(&self) -> impl Iterator<Item = &Device> {
-        self.devices.iter()
-    }
-
-    /// Every SKU that resolves, aliases included.
-    pub fn skus(&self) -> impl Iterator<Item = &str> {
-        self.index.keys().map(String::as_str)
     }
 }
 
