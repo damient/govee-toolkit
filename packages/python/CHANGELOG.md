@@ -6,6 +6,9 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 
 ### Changed
 
+- The package ships one stub file, `_govee_toolkit.pyi`. The typed API is the
+  same: `govee_toolkit/__init__.py` carries the types it re-exports, and the
+  type aliases the stubs use live in `govee_toolkit/_types.py`.
 - A failure the core reports from the facade raises the subclass of its family,
   not the base `GoveeError`. `no_mode_available` and `provision_refused` raise
   `TransportError`; `mode_not_implemented` and `missing_credential` raise

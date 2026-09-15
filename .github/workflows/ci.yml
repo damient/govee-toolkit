@@ -425,7 +425,7 @@ jobs:
         run: |
           "$RUNNER_TEMP/venv-3.11/bin/pip" install mypy
           "$RUNNER_TEMP/venv-3.11/bin/python" -m mypy.stubtest govee_toolkit \
-            --allowlist stubtest-allowlist.txt --concise
+            --concise
 
   node:
     name: Node

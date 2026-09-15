@@ -3,7 +3,9 @@
 import os
 from collections.abc import Sequence
 from types import TracebackType
-from typing import Any, Self, TypeAlias, final
+from typing import Any, Self, final
+
+from ._types import Arg, Color, Rate, Resolution
 
 __all__ = [
     "CORE_VERSION",
@@ -30,11 +32,6 @@ __all__ = [
 __version__: str
 CORE_VERSION: str
 MODES: tuple[str, ...]
-
-Color: TypeAlias = tuple[int, int, int]
-Arg: TypeAlias = bool | int | str | bytes | Sequence[int] | Sequence[Color]
-Resolution: TypeAlias = str | int
-Rate: TypeAlias = str | float
 
 class GoveeError(Exception):
     """Anything that went wrong between a call and the bytes on the wire."""

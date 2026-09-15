@@ -66,15 +66,9 @@ select = ["E", "F", "I", "B", "C4", "UP", "PYI", "RUF"]
 # documentation off them, so the docstrings stay.
 ignore = ["PYI021"]
 
-[tool.ruff.lint.isort]
-# `__init__.pyi` re-exports with `X as X`. Without this the sorter gives each
-# name an import block of its own, which is 18 blocks for one module.
-combine-as-imports = true
-
 [tool.mypy]
 # The package ships `py.typed` and the stubs beside it, so what a user's type
-# checker reads is checked here first. `__init__.pyi` shadows `__init__.py`,
-# which is what an installed copy does as well.
+# checker reads is checked here first.
 strict = true
 files = ["govee_toolkit"]
 

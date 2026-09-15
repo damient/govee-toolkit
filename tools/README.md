@@ -58,8 +58,9 @@ The three checks that read the stubs do different work, and a green run needs
 all three. ruff checks their style, mypy checks that they are internally
 consistent, and only `stubtest` imports the built module and compares it against
 them. A signature that drifts from the Rust reaches a user's editor unless
-`stubtest` runs. What it must not report is listed, with the reason, in
-[`../packages/python/stubtest-allowlist.txt`](../packages/python/stubtest-allowlist.txt).
+`stubtest` runs. It runs with no allowlist: a name that the stubs carry and the
+built module does not is a failure, so a type alias lives in the real module
+`govee_toolkit/_types.py`.
 
 `lib/qa.sh` holds what the three scripts share: the check runner, the skip rule
 and the summary. Each script sources it and declares its own checks, so the
