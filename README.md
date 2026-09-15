@@ -1,3 +1,5 @@
+![Govee Toolkit](docs/assets/banner.png)
+
 # Govee Toolkit
 
 Control your Govee lights from your own machine, over your own network — no

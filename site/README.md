@@ -20,6 +20,7 @@ pages so that the header, the footer and the device tables exist once.
 | `public/` | Anything that must land at the root of the site, such as `CNAME`. |
 | `build.mjs` | The build. |
 | `tools/og.py` | Draws the social preview image and the touch icon. It writes `tools/og.svg` and both PNGs. |
+| `tools/banner.py` | Draws the README banner. It writes `tools/banner.svg` and `docs/assets/banner.png`. |
 | `dist/` | The output. It is not committed. |
 
 ## Build
@@ -136,6 +137,13 @@ python3 tools/og.py
 ```
 
 Edit `tools/og.py`, not `tools/og.svg`: the next run overwrites the SVG.
+
+`tools/banner.py` draws the banner at the top of the repository README. It uses
+the same helpers and writes `tools/banner.svg` and `docs/assets/banner.png`:
+
+```bash
+python3 tools/banner.py
+```
 
 ## The stylesheet and the script
 
