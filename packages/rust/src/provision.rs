@@ -45,12 +45,6 @@ impl Provisioned {
     }
 }
 
-impl std::fmt::Display for Provisioned {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
 /// What a device needs to join a network. The password travels in plaintext,
 /// with no key exchange and no session token: anything in Bluetooth range
 /// during provisioning reads it.

@@ -48,8 +48,8 @@ use std::sync::Arc;
 pub use args::{ArgValue, Args};
 pub use capabilities::{Capabilities, CapabilityParams, ModeCapabilities, PAIR_PARAMS, Reason};
 pub use catalog::{
-    ArgRole, ArgSpec, Bounds, CapabilityRef, Command, Device, Family, Mode, ModeSupport, Modes,
-    Role, Support, UnknownMode,
+    ArgBound, ArgRole, ArgSpec, Bounds, CapabilityRef, Command, Device, Family, Mode, ModeSupport,
+    Modes, Role, Support, UnknownMode,
 };
 pub use chunk::Chunk;
 pub use coerce::Supplied;

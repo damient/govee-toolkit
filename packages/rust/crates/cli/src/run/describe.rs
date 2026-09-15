@@ -3,7 +3,7 @@
 //! The record is the crate's own, so a binding prints the same one. The text
 //! form is this file's, and its layout can change at any release.
 
-use govee_toolkit::codec::{ArgSpec, Bounds, Command, Device, Mode};
+use govee_toolkit::codec::{ArgBound, ArgSpec, Command, Device, Mode};
 use govee_toolkit::stream::reach;
 use govee_toolkit::{DeviceId, Govee, describe};
 
@@ -90,17 +90,11 @@ fn role_of(command: &Command) -> String {
 }
 
 fn bound_of(spec: &ArgSpec) -> String {
-    match spec {
-        ArgSpec::Int { range, .. } => range
-            .as_ref()
-            .and_then(Bounds::pair)
-            .map_or_else(String::new, |[min, max]| format!(" [{min}, {max}]")),
-        ArgSpec::Zones { count, .. } => count.map_or_else(String::new, |c| format!(" ({c} zones)")),
-        ArgSpec::RgbList { max_len, .. }
-        | ArgSpec::String { max_len, .. }
-        | ArgSpec::Bytes { max_len, .. } => {
-            max_len.map_or_else(String::new, |len| format!(" (at most {len})"))
-        }
+    match spec.bound() {
+        ArgBound::Range([min, max]) => format!(" [{min}, {max}]"),
+        ArgBound::Zones(count) => format!(" ({count} zones)"),
+        ArgBound::MaxLen(len) => format!(" (at most {len})"),
+        ArgBound::None => String::new(),
     }
 }
 

@@ -21,11 +21,15 @@ releases apart and keeps
 - `FromStr` on `codec::Mode`, with `Mode::as_str()` and `Mode::NAMES`. A mode
   reads back the name it prints, and `codec::UnknownMode` lists the names that
   work.
-- `Display` and `as_str()` on `Provisioned` — `accepted` or `sent`.
+- `as_str()` on `Provisioned` — `accepted` or `sent`.
 - `Default` for `Music` — effect `0`, sensitivity `50`, on the beat, and the
   colors left to the firmware.
 - `codec::ArgSpec::kind()` — the name `devices/schema.yaml` gives the type,
   which is the `type` the serialized form carries.
+- `codec::ArgSpec::bound()` and `codec::ArgBound` — what the file bounds an
+  argument by: the pair an `int` takes, the zones a mask counts, the length the
+  others cap, or none. Every surface that reports a bound reads it, so a new
+  argument type states its bound once.
 - `codec::Command::declared()` — the arguments an entry declares, for a message
   that names them.
 - `serde::Serialize` on `Config` and every type it holds, so a binding hands the
