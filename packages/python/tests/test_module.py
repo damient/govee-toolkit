@@ -43,8 +43,11 @@ def test_an_unknown_name_is_an_attribute_error():
 def test_the_version_is_not_read_on_the_import():
     """The metadata read opens a file, so it waits for the first read."""
     source = "import govee_toolkit as g; print('__version__' in vars(g))"
+    # -P keeps the working directory off sys.path. Without it a run from
+    # packages/ imports the Python half of the package that sits there, which
+    # has no extension module beside it.
     done = subprocess.run(
-        [sys.executable, "-c", source], capture_output=True, text=True, check=True
+        [sys.executable, "-P", "-c", source], capture_output=True, text=True, check=True
     )
     assert done.stdout.strip() == "False"
 
