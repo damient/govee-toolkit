@@ -16,7 +16,7 @@ from pathlib import Path
 
 from fontTools.pens.boundsPen import BoundsPen
 
-from og import ACCENTS, BACKGROUND, SITE, draw, mono, rasterize
+from og import ACCENTS, BACKGROUND, SITE, dot_centers, draw, mono, rasterize
 
 WIDTH, HEIGHT = 1280, 360
 
@@ -100,17 +100,15 @@ def banner():
         out.append("    </radialGradient>")
     out.append("  </defs>")
 
-    step = 2 * DOT_RADIUS + DOT_GAP
-    first = WIDTH / 2 - step * (len(ACCENTS) - 1) / 2
-    for i, color in enumerate(ACCENTS):
-        x = first + i * step
+    centers = dot_centers(WIDTH, len(ACCENTS), DOT_RADIUS, DOT_GAP)
+    for i, x in enumerate(centers):
         out.append(
             f'  <circle cx="{x:g}" cy="{dot_baseline:g}"'
             f' r="{DOT_RADIUS * HALO_RADIUS:g}" fill="url(#halo{i})"/>'
         )
-    for i, color in enumerate(ACCENTS):
+    for x, color in zip(centers, ACCENTS, strict=True):
         out.append(
-            f'  <circle cx="{first + i * step:g}" cy="{dot_baseline:g}"'
+            f'  <circle cx="{x:g}" cy="{dot_baseline:g}"'
             f' r="{DOT_RADIUS}" fill="{color}"/>'
         )
 
