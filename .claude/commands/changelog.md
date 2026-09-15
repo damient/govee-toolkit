@@ -6,8 +6,9 @@ allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 Write the changelog entries for what the current branch changed.
 
 Arguments: $ARGUMENTS — a package name (`rust`, `python`, `node`) narrows the
-work to that file. `--pr` also brings the pull request title and body in step
-with the same set of changes.
+work to that file. A version against a package name — `rust 0.9`, `cli 0.4` —
+cuts that version as well; see "Cutting a version". `--pr` also brings the pull
+request title and body in step with the same set of changes.
 
 ## Where an entry goes
 
@@ -147,6 +148,35 @@ convention or slipped past CI. Read it and place it by what it changed.
    releases page, built by the release workflow; no table in the repository
    repeats it.
 
+## Cutting a version
+
+Only where the arguments ask for it. Without that ask, write the entries, name
+the bump the commit types imply, and leave every manifest alone.
+
+A cut is four edits per package. The release workflow needs all four, because
+`tools/release-notes.sh` fails where the tag, the manifest and the heading
+disagree:
+
+1. The `## [X.Y.Z] — YYYY-MM-DD` heading, above the entries at the top of that
+   package's changelog. Take the date from `date +%F`.
+2. The version in the manifest: `packages/rust/Cargo.toml` carries it twice,
+   under `[package]` and under `[workspace.package]`;
+   `packages/rust/crates/cli/Cargo.toml`, `packages/python/pyproject.toml` and
+   `packages/node/package.json` carry it once.
+3. Every pin on the version that moved. `crates/cli` depends on `govee-toolkit`
+   by version, so a core bump raises that pin in the same commit.
+4. The lock files: `cargo update --workspace --offline` in `packages/rust` and
+   in `packages/python`.
+
+Then update the `Version` column of the index table in the root file, and run
+`tools/release-notes.sh <pkg> <pkg>-vX.Y.Z` for every package that moved.
+
+A version the manifest declares and no tag shipped is unreleased — `git tag
+--list` is the check. Entries above such a heading belong in its section, not
+under a new one, and a first version breaks nothing: state what the package
+does, and drop the `**Breaking:**` framing and the `Fixed` bullets for code
+that never shipped.
+
 ## With `--pr`
 
 `gh pr view --json number,title,body` gives the number and what is there now.
@@ -170,4 +200,5 @@ commit types imply, so the version is a reading rather than a guess: a `!` or a
 a `feat` is the minor one, a `fix` or a `perf` the patch. Name the highest one
 in the range and the commit that forces it.
 
-Do not bump a manifest, tag, commit or push.
+Do not tag, commit or push, and bump no manifest the arguments did not ask
+for.
