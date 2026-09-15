@@ -16,43 +16,14 @@ use crate::codec::exchange::{Exchanges, Step};
 use crate::codec::measurements::Measurements;
 
 mod bounds;
+mod mode;
 mod overrides;
 mod spec;
 
 pub use bounds::{Bounds, CapabilityRef, resolve as resolve_bounds};
+pub use mode::{Mode, UnknownMode};
 pub use overrides::{ArgOverride, Override, Overrides, apply as apply_overrides};
 pub use spec::{ArgRole, ArgSpec, Role};
-
-/// A way of talking to a device. Not a fallback chain — see `docs/modes.md`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Mode {
-    /// UDP on the local network. The default, and the only mode that never
-    /// leaves it.
-    Lan,
-    /// Bluetooth Low Energy.
-    Ble,
-    /// Govee's cloud API.
-    Cloud,
-}
-
-impl Mode {
-    /// Every mode this crate knows, in preference order.
-    ///
-    /// What a caller that must name them all reads, so a new mode reaches it
-    /// without a second list.
-    pub const ALL: [Mode; 3] = [Mode::Lan, Mode::Ble, Mode::Cloud];
-}
-
-impl fmt::Display for Mode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Lan => "lan",
-            Self::Ble => "ble",
-            Self::Cloud => "cloud",
-        })
-    }
-}
 
 /// How much of a device's capability set a mode reaches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
@@ -198,6 +169,21 @@ impl Command {
                 .chunk
                 .as_ref()
                 .is_some_and(|chunk| chunk.reply.is_some())
+    }
+
+    /// The arguments this entry declares, comma-separated, or `none`. What an
+    /// error message names when a caller supplies an argument the entry does
+    /// not declare.
+    #[must_use]
+    pub fn declared(&self) -> String {
+        if self.args.is_empty() {
+            return "none".to_owned();
+        }
+        self.args
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 
     /// The name the file gave the argument declared with `role`. `None` if

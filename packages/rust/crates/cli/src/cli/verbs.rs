@@ -3,6 +3,7 @@
 //! second implementation. No command name lives here.
 
 use clap::{Subcommand, ValueEnum};
+use govee_toolkit::Music;
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub(crate) enum Toggle {
@@ -111,7 +112,7 @@ pub(crate) enum Verb {
         effect: i64,
         /// How loud the sound must be for the device to answer it. Sent where
         /// the device file declares the argument.
-        #[arg(long, default_value_t = 50, value_name = "LEVEL")]
+        #[arg(long, default_value_t = Music::default().sensitivity, value_name = "LEVEL")]
         sensitivity: i64,
         /// Render in fades rather than on the beat.
         #[arg(long)]

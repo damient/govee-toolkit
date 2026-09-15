@@ -37,25 +37,19 @@ pub(super) async fn run(
 
     let outcome = govee.device(id).provision_wifi(&credentials).await?;
 
-    let (result, report) = match outcome {
-        Provisioned::Accepted => (
-            "accepted",
-            format!(
-                "{id}  the device accepted the credentials for `{ssid}`; it joins the network on its own, so check the network"
-            ),
+    let report = match outcome {
+        Provisioned::Accepted => format!(
+            "{id}  the device accepted the credentials for `{ssid}`; it joins the network on its own, so check the network"
         ),
-        Provisioned::Sent => (
-            "sent",
-            format!(
-                "{id}  credentials for `{ssid}` were sent; this device file declares no acknowledgement, so check the network"
-            ),
+        Provisioned::Sent => format!(
+            "{id}  credentials for `{ssid}` were sent; this device file declares no acknowledgement, so check the network"
         ),
     };
     writer.emit(
         &json!({
             "id": id.to_string(),
             "network": ssid,
-            "result": result,
+            "result": outcome.as_str(),
         }),
         &report,
     );

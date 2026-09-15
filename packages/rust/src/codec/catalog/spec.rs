@@ -88,6 +88,19 @@ impl ArgSpec {
         }
     }
 
+    /// The name `devices/schema.yaml` gives this type, which is the `type`
+    /// the serialized form carries.
+    #[must_use]
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::Int { .. } => "int",
+            Self::RgbList { .. } => "rgb_list",
+            Self::String { .. } => "string",
+            Self::Zones { .. } => "zones",
+            Self::Bytes { .. } => "bytes",
+        }
+    }
+
     /// What the SDK fills this argument with, if the file says.
     #[must_use]
     pub fn role(&self) -> Option<ArgRole> {

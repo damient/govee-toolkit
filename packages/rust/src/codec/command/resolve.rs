@@ -28,6 +28,7 @@ pub(super) fn resolve(
             return Err(Error::UnknownArg {
                 command: command.to_owned(),
                 arg: name.to_owned(),
+                declared: spec.declared(),
             });
         }
     }

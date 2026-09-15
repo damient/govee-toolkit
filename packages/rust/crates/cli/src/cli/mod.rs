@@ -3,7 +3,8 @@
 
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::builder::{PossibleValuesParser, TypedValueParser as _};
+use clap::{Parser, Subcommand};
 use govee_toolkit::codec::Mode;
 
 mod verbs;
@@ -27,8 +28,17 @@ pub(crate) struct Global {
 
     /// Restrict the run to one mode. It never enables a mode the
     /// configuration leaves out, and it never falls back to another.
-    #[arg(long, global = true, value_enum, value_name = "MODE")]
-    pub mode: Option<ModeArg>,
+    ///
+    /// The names are the crate's own, so a mode reaches the command line
+    /// without a second list here.
+    #[arg(
+        long,
+        global = true,
+        value_name = "MODE",
+        value_parser = PossibleValuesParser::new(Mode::NAMES)
+            .try_map(|name| name.parse::<Mode>()),
+    )]
+    pub mode: Option<Mode>,
 
     /// Read the configuration from this file instead of the default path.
     #[arg(long, global = true, value_name = "PATH")]
@@ -42,26 +52,6 @@ pub(crate) struct Global {
     /// Read no `.env`. The process environment supplies the variables alone.
     #[arg(long, global = true)]
     pub no_env: bool,
-}
-
-#[derive(Debug, Clone, Copy, ValueEnum)]
-pub(crate) enum ModeArg {
-    /// UDP on the local network.
-    Lan,
-    /// Bluetooth Low Energy.
-    Ble,
-    /// Govee's cloud API.
-    Cloud,
-}
-
-impl From<ModeArg> for Mode {
-    fn from(arg: ModeArg) -> Self {
-        match arg {
-            ModeArg::Lan => Self::Lan,
-            ModeArg::Ble => Self::Ble,
-            ModeArg::Cloud => Self::Cloud,
-        }
-    }
 }
 
 #[derive(Debug, Subcommand)]

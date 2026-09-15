@@ -292,3 +292,14 @@ fn an_append_the_table_already_says_is_an_error() {
 
     assert_eq!(error.code(), "override");
 }
+
+#[test]
+fn an_argument_type_names_itself_as_the_serialized_form_does() {
+    let spec = ArgSpec::Zones {
+        count: None,
+        role: None,
+    };
+    let serialized = serde_json::to_value(&spec).unwrap();
+
+    assert_eq!(serialized["type"], spec.kind());
+}
