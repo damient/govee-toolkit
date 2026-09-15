@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser as _};
 use clap::{Parser, Subcommand};
+use govee_toolkit::Resolution;
 use govee_toolkit::codec::Mode;
 
 mod verbs;
@@ -115,7 +116,7 @@ pub(crate) enum Command {
         device: String,
         /// How many zones every frame states: `app`, `native`, or a count. A
         /// count the unit renders as a smaller one is refused.
-        #[arg(long, default_value = "app", value_name = "RESOLUTION")]
+        #[arg(long, default_value_t = Resolution::default().to_string(), value_name = "RESOLUTION")]
         resolution: String,
         /// Frames per second. The measured rate for this unit when absent.
         #[arg(long, value_name = "HZ")]

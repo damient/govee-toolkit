@@ -26,7 +26,7 @@ pub(super) async fn run(
 ) -> Result<(), Failure> {
     let options = StreamOptions {
         resolution: args::resolution(resolution)?,
-        rate: rate.map_or(Rate::Measured, Rate::Fixed),
+        rate: rate.map_or_else(Rate::default, Rate::Fixed),
         gradient,
     };
     let stream = govee.device(id).open_stream(options).await?;
