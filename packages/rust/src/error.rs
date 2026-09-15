@@ -250,8 +250,7 @@ pub enum Error {
 }
 
 /// What kind of failure an [`Error`] is. A binding maps this to the exception
-/// or the error class it raises, so a caller can catch a family without a
-/// match on every code.
+/// or the error class it raises.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Category {
@@ -264,7 +263,7 @@ pub enum Category {
 }
 
 impl Category {
-    /// A stable, language-neutral name: `codec`, `transport` or `config`.
+    /// A stable, language-neutral name.
     #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
@@ -330,10 +329,6 @@ impl Error {
     }
 
     /// The family this failure belongs to.
-    ///
-    /// The rule: a command that never reached the wire is
-    /// [`Category::Codec`], a link that failed is [`Category::Transport`],
-    /// and a setting that cannot work is [`Category::Config`].
     #[must_use]
     pub fn category(&self) -> Category {
         match self {

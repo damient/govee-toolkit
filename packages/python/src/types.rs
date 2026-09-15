@@ -1,8 +1,7 @@
 //! What the core reports, as Python objects.
 //!
-//! Every one holds the core value and reads the answers off it, so no field
-//! and no rule is written twice. Every one is read-only: it is an answer, not
-//! a request.
+//! Every one holds the core value and reads the answers off it. No field and
+//! no rule is written twice.
 
 use std::collections::BTreeMap;
 
@@ -12,7 +11,6 @@ use pyo3::prelude::*;
 
 use crate::conv::to_py;
 
-/// A flag as Python writes it.
 fn python_bool(value: bool) -> &'static str {
     if value { "True" } else { "False" }
 }
@@ -164,8 +162,7 @@ impl From<CoreServed> for Served {
     }
 }
 
-/// What a device reported about itself. Every field is optional: no firmware
-/// fills them all in.
+/// What a device reported about itself. No firmware fills every field.
 #[pyclass(
     frozen,
     skip_from_py_object,
@@ -267,7 +264,6 @@ impl From<CoreReply> for Reply {
     }
 }
 
-/// Add the answer types to the module.
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<Health>()?;
     module.add_class::<Device>()?;

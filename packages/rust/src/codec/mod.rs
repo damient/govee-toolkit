@@ -85,9 +85,9 @@ pub struct Overridden {
 
 /// Every known device.
 ///
-/// A clone shares the entries rather than copying them, so a binding can hand
-/// one out per call. [`Catalog::overlay`] copies once, and a clone taken
-/// before it keeps the entries it was built with.
+/// A clone shares the entries rather than copying them. [`Catalog::overlay`]
+/// copies once, and a clone taken before it keeps the entries it was built
+/// with.
 #[derive(Debug, Clone)]
 pub struct Catalog(Arc<Inner>);
 
@@ -231,7 +231,6 @@ impl Catalog {
 }
 
 impl Inner {
-    /// Add a device at the end, under every key it answers to.
     fn push(&mut self, device: Device, file: &str) -> Result<()> {
         let position = self.devices.len();
         self.claim_keys(&device, position, file)?;

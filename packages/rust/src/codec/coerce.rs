@@ -1,27 +1,19 @@
 //! Values read under the type a device file declares.
 //!
-//! A person types text on the command line and a binding hands over a native
-//! value. Neither front end decides what an argument is: the declared
-//! [`ArgSpec`] does, and this module is where the two meet. A front end that
-//! guessed the type from what it received would send a zone bitmask for a
-//! color, or text for a number, on a device file the caller never read.
-//!
-//! The range stays the encoder's to check. A value of the declared type and
-//! the wrong size passes here and reaches [`Error::OutOfRange`].
+//! The declared [`ArgSpec`] decides what an argument is, never the front end
+//! that supplied it. The range stays the encoder's to check: a value of the
+//! declared type and the wrong size passes here and reaches
+//! [`Error::OutOfRange`].
 
 use crate::codec::args::{self, ArgValue};
 use crate::codec::catalog::ArgSpec;
 use crate::codec::error::{Error, Result};
 
-/// The name a type-mismatch error uses for a flat list of numbers. It is a
-/// shape a caller supplies, and never a type a device file declares.
+/// The name a type-mismatch error uses for a flat list of numbers. A caller
+/// supplies this shape; a device file never declares it.
 const INTS: &str = "a list of whole numbers";
 
 /// A value as a caller supplied it, before the device file says what it is.
-///
-/// A front end reports the shape it received and nothing more. [`read`] turns
-/// one into the [`ArgValue`] the declared type asks for, or reports why it
-/// cannot.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Supplied {
     /// One whole number.
@@ -53,14 +45,9 @@ impl Supplied {
 
 /// Read one supplied value under the type `spec` declares.
 ///
-/// Text reads under every declared type: a whole number for `int`, `#RRGGBB`
-/// colors for `rgb_list`, zero-based indices for `zones`, pairs of
-/// hexadecimal digits for `bytes`, and itself for `string`. A comma, a space
-/// or a tab separates the items of a list.
-///
-/// A native value reads under the type it can only mean: a flat list of three
-/// numbers is one color under `rgb_list`, byte values under `bytes`, and zone
-/// indices under `zones`.
+/// Text reads under every declared type — [`rgb`], [`zones`], [`bytes`] and
+/// [`list`] give the syntax. A flat list of three numbers is one color under
+/// `rgb_list`, byte values under `bytes`, and zone indices under `zones`.
 ///
 /// # Errors
 ///

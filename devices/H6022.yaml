@@ -236,9 +236,7 @@ measurements:
   segment_grid: [12, 11]    # 12 LEDs around one ring, 11 rings up the cylinder
   zone_0_end: "base"        # zone 0 at the base, the last zone at the top
   segment_chain: "snake"    # the chain folds back at each ring: zone 12 is the
-                            # LED above zone 11, not the one above zone 0. A
-                            # client that paints every ring the same way moves
-                            # every second ring backwards
+                            # LED above zone 11, not the one above zone 0
   ble:
     zone_mask_width: 15     # what AA 0F answers, against the 132 LEDs. One
                             # zone is 8.8 LEDs, so no zone covers a whole ring

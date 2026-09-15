@@ -1,7 +1,7 @@
 //! The modes, and the one name each of them carries.
 //!
 //! [`Mode`] prints and reads back the name `devices/*.yaml` and `config.yaml`
-//! use, so a caller that takes a mode as text holds no table of its own.
+//! use.
 
 use std::fmt;
 use std::str::FromStr;
@@ -22,7 +22,7 @@ pub enum Mode {
     Cloud,
 }
 
-/// A text that names no [`Mode`]. The message lists the names that work.
+/// A text that names no [`Mode`].
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[error("`{value}` is not a mode; the modes are {}", Mode::NAMES.join(", "))]
 pub struct UnknownMode {
@@ -32,9 +32,6 @@ pub struct UnknownMode {
 
 impl Mode {
     /// Every mode this crate knows, in preference order.
-    ///
-    /// What a caller that must name them all reads, so a new mode reaches it
-    /// without a second list.
     pub const ALL: [Mode; 3] = [Mode::Lan, Mode::Ble, Mode::Cloud];
 
     /// The same list, as the names the files use.

@@ -1,15 +1,13 @@
 //! How a stream is opened, and the names a person writes for it.
 //!
-//! [`Resolution`] and [`Rate`] read back from the same text they print, so an
-//! application that takes either as text holds no table of its own.
+//! [`Resolution`] and [`Rate`] read back from the same text they print.
 
 use std::fmt;
 use std::str::FromStr;
 
 use thiserror::Error;
 
-/// A text that names no [`Resolution`] and no [`Rate`]. The message states
-/// what to write instead.
+/// A text that names no [`Resolution`] and no [`Rate`].
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[error("`{value}` is not {subject}; write {expected}")]
 pub struct ParseError {
@@ -30,8 +28,8 @@ pub enum Resolution {
     /// Every addressable LED, from `capabilities.segments.native_pixels`.
     /// Fails when nobody measured it, and on a mode that paints by zone mask.
     Native,
-    /// A count the caller picks. The firmware groups the LEDs to serve it, so
-    /// a count the unit renders as a smaller one fails with
+    /// A count the caller picks. A count the unit renders as a smaller one
+    /// fails with
     /// [`Error::ResolutionNotDistinct`](crate::Error::ResolutionNotDistinct)
     /// where the file records `measurements.resolution_changepoints`.
     Exact(u16),
@@ -123,9 +121,8 @@ pub struct StreamOptions {
     /// How fast to send.
     pub rate: Rate,
     /// Ask the firmware to interpolate between zones, and to wrap from the
-    /// last zone back to the first. `false` gives hard-edged zones. `true` is
-    /// refused where the device file can carry the setting nowhere, rather
-    /// than dropped.
+    /// last zone back to the first. `true` is refused where the device file
+    /// can carry the setting nowhere, rather than dropped.
     pub gradient: bool,
 }
 

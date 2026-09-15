@@ -36,8 +36,7 @@ impl Bounds {
     }
 }
 
-/// What `devices/*.yaml` bounds one argument by. Every surface that reports a
-/// bound reads this, so a new [`ArgSpec`] states its bound once.
+/// What `devices/*.yaml` bounds one argument by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArgBound {
     /// The inclusive pair an `int` takes.

@@ -144,13 +144,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: crate-ci/typos@d43b6c087ac471e2ea7b8af622ff15f05c0c365b # v1.50.1
-      # The runner carries shellcheck. -x follows `# shellcheck source=`, which
-      # is how tools/lib/qa.sh is read.
+      # -x follows `# shellcheck source=`, which is how tools/lib/qa.sh is read.
       - name: Lint the shell scripts
         run: shellcheck -x tools/*.sh tools/lib/*.sh
-      # The runner does not carry shfmt. The version is pinned as well as the
-      # action: a later shfmt that formats one line differently would fail the
-      # job on code nobody touched.
+      # The shfmt version is pinned as well as the action: a later one that
+      # formats a line differently would fail the job on code nobody touched.
       - uses: mfinelli/setup-shfmt@a25fda4c1fe115aec0f85e04126610841bc3141d # v4.0.1
         with:
           shfmt-version: 3.14.1
@@ -359,8 +357,8 @@ jobs:
           python-version: |
             3.14
             3.11
-          # The wheel is never installed from the index, so the cache holds the
-          # check tools alone: ruff, mypy, maturin and pytest.
+          # The wheel is never installed from the index, so the cache holds
+          # the check tools alone.
           cache: pip
           cache-dependency-path: packages/python/pyproject.toml
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
@@ -384,8 +382,6 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
       - run: pip install maturin ruff mypy
       # ruff and mypy read the sources, so they run before the wheel exists.
-      # `ruff format --check` writes nothing; it fails on a file it would
-      # rewrite.
       - name: Format the Python sources
         run: ruff format --check govee_toolkit tests
       - name: Lint the Python sources
@@ -395,14 +391,13 @@ jobs:
         run: mypy
       # The wheel is built here rather than at release time: a manifest that
       # cannot produce one is a release that fails after the tag is signed and
-      # pushed. `maturin develop` needs a virtual environment; the wheel is
-      # built and installed instead, which is what a user gets.
+      # pushed. It is built and installed, not `maturin develop`, so the check
+      # runs on what a user gets.
       - name: Build the wheel
         run: maturin build --out target/wheels
-      # One wheel, every supported interpreter: abi3 says it imports on the
-      # floor and up, and this is what checks the claim. Each version gets a
-      # virtual environment of its own, so the absolute path to `pytest`
-      # selects the interpreter and two copies never compete on PATH.
+      # abi3 claims the wheel imports on the floor and up; this checks it.
+      # Each version gets an environment of its own, so the absolute path to
+      # `pytest` selects the interpreter.
       # `pytest`, not `python -m pytest`: the second puts the working directory
       # first on the import path, and `govee_toolkit/` there holds the Python
       # half of the package without the extension module beside it.
@@ -419,8 +414,7 @@ jobs:
           done
       # mypy reads the stubs and believes them. stubtest imports the built
       # module and compares it against them, so a signature that drifted fails
-      # here instead of in a user's editor. The interpreter that runs it needs
-      # the wheel installed, and the floor is the one the wheel targets.
+      # here and not in a user's editor. It needs the wheel installed.
       - name: Check the stubs against the built module
         run: |
           "$RUNNER_TEMP/venv-3.11/bin/pip" install mypy

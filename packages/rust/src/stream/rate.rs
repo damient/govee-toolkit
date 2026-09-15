@@ -3,7 +3,6 @@
 use crate::codec::{Device, Mode};
 use crate::stream::Rate;
 
-/// The rate to send at, and a warning when nothing was measured for this mode.
 pub(crate) fn rate_hz(
     device: &Device,
     sku: &str,

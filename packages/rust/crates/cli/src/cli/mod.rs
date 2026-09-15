@@ -30,8 +30,7 @@ pub(crate) struct Global {
     /// Restrict the run to one mode. It never enables a mode the
     /// configuration leaves out, and it never falls back to another.
     ///
-    /// The names are the crate's own, so a mode reaches the command line
-    /// without a second list here.
+    /// The names are the crate's own.
     #[arg(
         long,
         global = true,

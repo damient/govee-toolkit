@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
-# Runs every check the `python` job of .github/workflows/ci.yml runs on
-# packages/python, in the same order, and prints a pass/fail summary.
+# Runs the `python` job of .github/workflows/ci.yml on packages/python, in the
+# same order. The workflow is the authority; this mirror is kept in step by
+# hand. `tools/qa.sh` runs it as one of its checks.
 #
-# Kept in step with ci.yml by hand: the workflow is the authority, this is the
-# local mirror of it. The reporter and the skip rule are in lib/qa.sh.
-#
-# `tools/qa.sh` runs this script as one of its checks.
-#
-# Nothing here reaches the network beyond what cargo already needs: the tests
-# read the wheel maturin wrote, and pytest comes from the interpreter that runs
-# the script.
+# Nothing here reaches the network beyond what cargo already needs.
 
 set -uo pipefail
 
@@ -31,11 +25,10 @@ check() {
   check_in "$py" "$name" "$@"
 }
 
-# The interpreter that the tests and stubtest run on. `python3` on the PATH
-# carries neither pytest nor mypy on most machines, so a virtual environment
-# under `target/` wins when it has both. `GOVEE_QA_PYTHON` names another one.
-# `tools/README.md` gives the command that makes the environment; nothing here
-# creates it, because that reaches the network.
+# The interpreter the tests and stubtest run on. `python3` on the PATH carries
+# neither pytest nor mypy on most machines, so an environment under `target/`
+# wins when it has both, and `GOVEE_QA_PYTHON` names another one. Nothing here
+# creates that environment — `tools/README.md` gives the command.
 tools_python() {
   local candidate
   for candidate in "${GOVEE_QA_PYTHON:-}" "$py/target/qa-tools-venv/bin/python" \
@@ -53,11 +46,8 @@ tools_python() {
 # Where the wheel is unpacked for the checks that import it.
 unpacked=target/qa-wheel
 
-# A stale wheel from an earlier run would be read instead of this one, so both
-# output directories are emptied first. The wheel is unpacked here, once, for
-# the tests and stubtest that follow. `zipfile` is in the standard library, so
-# this needs neither pip nor the network, and it leaves the interpreter that
-# runs the script alone.
+# Both output directories are emptied first: a stale wheel from an earlier run
+# would be read instead of this one.
 python_wheel() {
   rm -rf target/wheels "$unpacked"
   maturin build --out target/wheels || return 1
@@ -70,10 +60,9 @@ python_wheel() {
 }
 
 # in_wheel <module> [args...] — run a module of the tools interpreter against
-# the unpacked wheel, from the repository root. The working directory comes
-# first on the import path, and `packages/python/govee_toolkit/` holds the
-# extension module an earlier `maturin develop` left there, so the run must
-# start where that directory is not the package it imports.
+# the unpacked wheel. It starts from the repository root: the working directory
+# comes first on the import path, and `packages/python/govee_toolkit/` can hold
+# what an earlier `maturin develop` left there.
 in_wheel() {
   [ -d "$unpacked" ] || return 1
   (cd "$root" && PYTHONPATH="$py/$unpacked" "$tools_py" -m "$@")
@@ -84,17 +73,14 @@ python_tests() {
   in_wheel pytest -c "$py/pyproject.toml" --rootdir "$py"
 }
 
-# stubtest imports the extension module and compares every name in it against
-# the stubs beside it. It is what catches a signature that drifted: mypy reads
-# the stubs alone and believes them. It runs against the unpacked wheel, so it
-# reads the stubs the wheel carries and not the ones in the tree.
+# stubtest compares every name in the extension module against the stubs. It
+# catches a signature that drifted; mypy reads the stubs alone and believes
+# them. It runs against the unpacked wheel, not the tree.
 python_stubs() {
   in_wheel mypy.stubtest govee_toolkit --concise
 }
 
-# ruff and mypy read the sources, not the built module, so they run whether or
-# not maturin is here. stubtest is the one that needs the wheel installed: it
-# imports the extension module and compares it against the stubs.
+# ruff and mypy read the sources, so they run whether or not maturin is here.
 if have ruff; then
   check "python fmt" ruff format --check govee_toolkit tests
   check "python lint" ruff check govee_toolkit tests
