@@ -50,19 +50,17 @@ tools_python() {
   return 1
 }
 
-# A stale wheel from an earlier run would be installed instead of this one, so
-# the output directory is emptied first.
-python_wheel() {
-  rm -rf target/wheels
-  maturin build --out target/wheels
-}
-
-# The wheel maturin wrote, unpacked where the tests and stubtest both import it
-# from. `zipfile` is in the standard library, so this needs neither pip nor the
-# network, and it leaves the interpreter that runs the script alone.
+# Where the wheel is unpacked for the checks that import it.
 unpacked=target/qa-wheel
-unpack_wheel() {
-  rm -rf "$unpacked"
+
+# A stale wheel from an earlier run would be read instead of this one, so both
+# output directories are emptied first. The wheel is unpacked here, once, for
+# the tests and stubtest that follow. `zipfile` is in the standard library, so
+# this needs neither pip nor the network, and it leaves the interpreter that
+# runs the script alone.
+python_wheel() {
+  rm -rf target/wheels "$unpacked"
+  maturin build --out target/wheels || return 1
   mkdir -p "$unpacked"
   local wheel
   # shellcheck disable=SC2012 # maturin writes the name; find cannot sort by time.
@@ -71,14 +69,19 @@ unpack_wheel() {
   python3 -m zipfile -e "$wheel" "$unpacked"
 }
 
+# in_wheel <module> [args...] — run a module of the tools interpreter against
+# the unpacked wheel, from the repository root. The working directory comes
+# first on the import path, and `packages/python/govee_toolkit/` holds the
+# extension module an earlier `maturin develop` left there, so the run must
+# start where that directory is not the package it imports.
+in_wheel() {
+  [ -d "$unpacked" ] || return 1
+  (cd "$root" && PYTHONPATH="$py/$unpacked" "$tools_py" -m "$@")
+}
+
+# The configuration is named, so the run keeps testpaths and the asyncio mode.
 python_tests() {
-  unpack_wheel || return 1
-  # pytest runs from the repository root, not from packages/python: the working
-  # directory comes first on the import path, and `govee_toolkit/` there holds
-  # the Python half of the package without the extension module beside it. The
-  # configuration is named, so the run keeps testpaths and the asyncio mode.
-  (cd "$root" && PYTHONPATH="$py/$unpacked" "$tools_py" -m pytest \
-    -c "$py/pyproject.toml" --rootdir "$py")
+  in_wheel pytest -c "$py/pyproject.toml" --rootdir "$py"
 }
 
 # stubtest imports the extension module and compares every name in it against
@@ -86,13 +89,7 @@ python_tests() {
 # the stubs alone and believes them. It runs against the unpacked wheel, so it
 # reads the stubs the wheel carries and not the ones in the tree.
 python_stubs() {
-  unpack_wheel || return 1
-  # From the repository root, as the tests run: the working directory comes
-  # first on the import path, and `packages/python/govee_toolkit/` holds the
-  # extension module an earlier `maturin develop` left there. stubtest must
-  # read the wheel this run built.
-  (cd "$root" && PYTHONPATH="$py/$unpacked" "$tools_py" -m mypy.stubtest \
-    govee_toolkit --concise)
+  in_wheel mypy.stubtest govee_toolkit --concise
 }
 
 # ruff and mypy read the sources, not the built module, so they run whether or
@@ -113,12 +110,7 @@ else
   skip "python types" "pip install mypy"
 fi
 
-if have rustup && rustup toolchain list | grep -q '^nightly'; then
-  # rustfmt.toml uses nightly-only options; stable rustfmt formats differently.
-  check "python binding fmt" env RUSTUP_TOOLCHAIN=nightly cargo fmt --all --check
-else
-  skip "python binding fmt" "rustup toolchain install nightly"
-fi
+check_fmt_nightly "python binding fmt" "$py"
 
 check "python binding clippy" cargo clippy --all-targets --all-features -- -D warnings
 
