@@ -79,7 +79,9 @@ msrv_links() {
 # checkout is read-only, and the artifacts stay in two named volumes. The run
 # writes nothing into the tree, and the next run reuses what this one built.
 # `--all-features` needs the D-Bus headers, as it does in ci.yml.
-# shellcheck disable=SC2329 # check_in invokes it through "$@".
+# check_in invokes it through "$@". Two codes cover two shellcheck versions:
+# 0.10 reports the function, 0.9 reports the body.
+# shellcheck disable=SC2329,SC2317
 msrv_in_container() {
   docker run --rm \
     -v "$root:/io:ro" -v govee-msrv-target:/target -v govee-msrv-cargo:/cargo \
