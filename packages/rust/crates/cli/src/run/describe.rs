@@ -1,16 +1,17 @@
 //! `describe`: what a device file declares. Reads no hardware.
+//!
+//! The record is the crate's own, so a binding prints the same one. The text
+//! form is this file's, and its layout can change at any release.
 
-use govee_toolkit::codec::{ArgSpec, Bounds, Command, Device, Mode, ModeSupport};
+use govee_toolkit::codec::{ArgSpec, Bounds, Command, Device, Mode};
 use govee_toolkit::stream::reach;
-use govee_toolkit::{DeviceId, Govee};
-use serde_json::{Value, json};
+use govee_toolkit::{DeviceId, Govee, describe};
 
 use crate::output::{Failure, Writer};
-use crate::run::args::kind;
 
 pub(super) fn run(govee: &Govee, writer: &Writer, target: &str) -> Result<(), Failure> {
     let device = resolve(govee, target)?;
-    writer.emit(&as_json(device), &as_text(device));
+    writer.emit(&describe(device), &as_text(device));
     Ok(())
 }
 
@@ -22,92 +23,6 @@ fn resolve<'a>(govee: &'a Govee, target: &str) -> Result<&'a Device, Failure> {
         .find(|device| device.id == id)
         .map_or_else(|| target.to_owned(), |device| device.sku);
     Ok(govee.catalog().device(&sku)?)
-}
-
-fn as_json(device: &Device) -> Value {
-    json!({
-        "sku": device.sku,
-        "name": device.name,
-        "family": device.family,
-        "aliases": device.aliases,
-        "candidate_aliases": device.candidate_aliases,
-        "capabilities": device.capabilities.names().collect::<Vec<_>>(),
-        "segments": {
-            "count": device.capabilities.segment_count(),
-            "native_pixels": device.capabilities.native_pixels(),
-            "refines_at": device.measurements.resolution_changepoints,
-        },
-        "modes": Mode::ALL
-            .iter()
-            .map(|mode| (mode.to_string(), mode_json(device, *mode)))
-            .collect::<serde_json::Map<_, _>>(),
-        "commands": Mode::ALL
-            .iter()
-            .map(|mode| (mode.to_string(), commands_json(device, *mode)))
-            .collect::<serde_json::Map<_, _>>(),
-        "verified": {
-            "by": device.verified.by,
-            "firmware": device.verified.firmware,
-            "date": device.verified.date,
-            "notes": device.verified.notes,
-        },
-    })
-}
-
-fn mode_json(device: &Device, mode: Mode) -> Value {
-    let support: &ModeSupport = device.modes.get(mode);
-    json!({
-        "support": support.support.to_string(),
-        "capabilities": support.capabilities.resolve(&device.capabilities),
-        "segments": reach(device, mode).map(|reach| json!({
-            "zones": reach.zones,
-            "native": reach.native,
-        })),
-        "unreachable": support
-            .unreachable
-            .iter()
-            .map(|(name, reason)| (name.clone(), Value::from(reason.to_string())))
-            .collect::<serde_json::Map<_, _>>(),
-        "notes": support.notes,
-    })
-}
-
-fn commands_json(device: &Device, mode: Mode) -> Value {
-    device
-        .commands
-        .get(mode)
-        .iter()
-        .map(|(name, command)| (name.clone(), command_json(command)))
-        .collect::<serde_json::Map<_, _>>()
-        .into()
-}
-
-fn command_json(command: &Command) -> Value {
-    json!({
-        "cmd": command.cmd,
-        "role": command.role.map(|role| role.to_string()),
-        "notes": command.notes,
-        "args": command
-            .args
-            .iter()
-            .map(|(name, spec)| (name.clone(), arg_json(spec)))
-            .collect::<serde_json::Map<_, _>>(),
-    })
-}
-
-fn arg_json(spec: &ArgSpec) -> Value {
-    let mut value = json!({ "type": kind(spec), "role": spec.role().map(|role| role.to_string()) });
-    let bound = match spec {
-        ArgSpec::Int { range, .. } => json!(range.as_ref().and_then(Bounds::pair)),
-        ArgSpec::Zones { count, .. } => json!(count),
-        ArgSpec::RgbList { max_len, .. }
-        | ArgSpec::String { max_len, .. }
-        | ArgSpec::Bytes { max_len, .. } => json!(max_len),
-    };
-    if let Value::Object(fields) = &mut value {
-        fields.insert("bound".to_owned(), bound);
-    }
-    value
 }
 
 fn as_text(device: &Device) -> String {
@@ -161,7 +76,7 @@ fn as_text(device: &Device) -> String {
         for (name, command) in device.commands.get(mode) {
             lines.push(format!("  {name}{}", role_of(command)));
             for (arg, spec) in &command.args {
-                lines.push(format!("    {arg}: {}{}", kind(spec), bound_of(spec)));
+                lines.push(format!("    {arg}: {}{}", spec.kind(), bound_of(spec)));
             }
         }
     }

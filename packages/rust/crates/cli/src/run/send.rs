@@ -1,18 +1,15 @@
-//! `send`: one device file entry, named as the file names it. The mode is
-//! resolved before the values are read, because the same entry name can
-//! declare different arguments on two modes.
+//! `send`: one device file entry, named as the file names it. The crate
+//! resolves the mode and reads every value under the type the entry declares
+//! for it — see [`govee_toolkit::DeviceHandle::args`].
 //!
 //! An entry that declares a `reply:` is read, and what the layout captured is
 //! printed under the names the device file gives the fields.
 
-use std::collections::BTreeMap;
-
-use govee_toolkit::codec::{ArgSpec, Args, Command, Mode};
-use govee_toolkit::{DeviceId, Govee};
+use govee_toolkit::codec::{self, Command, Supplied};
+use govee_toolkit::{DeviceId, Error, Govee};
 use serde_json::json;
 
 use crate::output::{Failure, Writer};
-use crate::run::args;
 use crate::run::verbs::report;
 
 pub(super) async fn run(
@@ -25,17 +22,14 @@ pub(super) async fn run(
     let handle = govee.device(id);
     let mode = handle.serving_mode()?;
     let device = handle.spec()?;
+    let values = handle.args(command, supplied(pairs)?).map_err(usage)?;
 
-    // An entry this mode does not carry goes out with no arguments, so that
-    // the codec reports the unknown command rather than an unknown argument
-    // of it.
-    let spec = device.commands.get(mode).get(command);
-    let values = match spec {
-        Some(spec) => read(&spec.args, mode, command, pairs)?,
-        None => Args::new(),
-    };
-
-    if spec.is_some_and(Command::answers) {
+    if device
+        .commands
+        .get(mode)
+        .get(command)
+        .is_some_and(Command::answers)
+    {
         let reply = handle.read(command, &values).await?;
         let fields = reply.fields.to_json();
         let text = fields
@@ -64,35 +58,25 @@ pub(super) async fn run(
     Ok(())
 }
 
-fn read(
-    declared: &BTreeMap<String, ArgSpec>,
-    mode: Mode,
-    command: &str,
-    pairs: &[String],
-) -> Result<Args, Failure> {
-    let mut values = Args::new();
-    for pair in pairs {
-        let (name, text) = pair
-            .split_once('=')
-            .ok_or_else(|| Failure::usage(format!("`{pair}` is not `name=value`")))?;
-        let spec = declared.get(name).ok_or_else(|| {
-            Failure::usage(format!(
-                "`commands.{mode}.{command}` declares no argument `{name}`; it declares {}",
-                names(declared)
-            ))
-        })?;
-        values.insert(name, args::parse(command, name, spec, text)?);
-    }
-    Ok(values)
+/// Each `name=value` as the shape a person typed: text, which the crate reads
+/// under the declared type.
+fn supplied(pairs: &[String]) -> Result<Vec<(String, Supplied)>, Failure> {
+    pairs
+        .iter()
+        .map(|pair| {
+            let (name, text) = pair
+                .split_once('=')
+                .ok_or_else(|| Failure::usage(format!("`{pair}` is not `name=value`")))?;
+            Ok((name.to_owned(), Supplied::Text(text.to_owned())))
+        })
+        .collect()
 }
 
-fn names(declared: &BTreeMap<String, ArgSpec>) -> String {
-    if declared.is_empty() {
-        return "none".to_owned();
+/// An argument the entry does not declare is a mistake on the command line,
+/// so it exits with the usage code rather than the refusal one.
+fn usage(error: Error) -> Failure {
+    if matches!(&error, Error::Codec(codec::Error::UnknownArg { .. })) {
+        return Failure::usage(error.to_string());
     }
-    declared
-        .keys()
-        .map(String::as_str)
-        .collect::<Vec<_>>()
-        .join(", ")
+    Failure::from(error)
 }

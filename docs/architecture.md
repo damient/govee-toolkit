@@ -99,6 +99,15 @@ whole send path with no Bluetooth on the machine.
 
 ## Bindings
 
+A binding reads Python or JavaScript values, calls the crate and hands back
+what the crate answered. Nothing else lives there: no command name, no mode
+name, no default value and no record shape. Where a surface must print an
+answer, the crate builds the record — `Event::to_json` for an event,
+`describe` for a device file — so the CLI, the bindings and an application read
+one shape. Where a surface must read a value, the crate reads it:
+`DeviceHandle::args` takes what a caller supplied and reads it under the types
+the device file declares.
+
 - **Node** — `napi-rs`. Serves the playground, the Electron app and the
   Homebridge plugin.
 - **Python** — `PyO3` / `maturin`, in `packages/python`: the facade as an

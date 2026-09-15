@@ -3,7 +3,8 @@
 //! Every method here goes through the mode the user enabled. Nothing falls back
 //! to another one — see `docs/modes.md`.
 
-use crate::codec::{Args, Device, Mode};
+use crate::codec::coerce::{self, Supplied};
+use crate::codec::{Args, Device, Error as CodecError, Mode};
 // Used by the doc comments only.
 #[cfg(doc)]
 use crate::error::Error;
@@ -71,6 +72,44 @@ impl DeviceHandle<'_> {
     /// it reports.
     pub fn spec(&self) -> Result<&Device> {
         Ok(self.govee.catalog().device(&self.govee.sku(&self.id)?)?)
+    }
+
+    /// Read values a caller supplied under the types the device file
+    /// declares, for the mode a send now would go over.
+    ///
+    /// The mode is resolved first, because one entry name can declare
+    /// different arguments on two modes. An entry the mode does not carry
+    /// takes no arguments, so that [`DeviceHandle::send`] reports the unknown
+    /// command rather than an unknown argument of it.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::serving_mode`] and [`DeviceHandle::spec`], plus
+    /// [`crate::codec::Error::UnknownArg`] where the entry declares no such
+    /// argument, and whatever
+    /// [`coerce::read`](crate::codec::coerce::read) reports for a value that
+    /// does not read under the declared type.
+    pub fn args<I>(&self, command: &str, supplied: I) -> Result<Args>
+    where
+        I: IntoIterator<Item = (String, Supplied)>,
+    {
+        let mode = self.serving_mode()?;
+        let Some(entry) = self.spec()?.commands.get(mode).get(command) else {
+            return Ok(Args::new());
+        };
+        let mut values = Args::new();
+        for (name, value) in supplied {
+            let spec = entry
+                .args
+                .get(&name)
+                .ok_or_else(|| CodecError::UnknownArg {
+                    command: command.to_owned(),
+                    arg: name.clone(),
+                    declared: entry.declared(),
+                })?;
+            values.insert(&name, coerce::read(command, &name, spec, value)?);
+        }
+        Ok(values)
     }
 
     /// Send a command, named as the device file names it.
