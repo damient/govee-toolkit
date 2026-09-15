@@ -7,9 +7,8 @@ The API is asyncio only. Modes are explicit: a command goes over an enabled
 mode, or it fails and says so.
 """
 
-from importlib import metadata as _metadata
+from typing import TYPE_CHECKING
 
-from . import _govee_toolkit as _core
 from ._govee_toolkit import (
     CORE_VERSION,
     MODES,
@@ -31,10 +30,30 @@ from ._govee_toolkit import (
     TransportError,
 )
 
-try:
-    __version__ = _metadata.version("govee-toolkit")
-except _metadata.PackageNotFoundError:
-    __version__ = _core.__version__
+__version__: str
+"""The version of the installed distribution."""
+
+# The module reads `__version__` off the distribution metadata on the first
+# read, and not on the import: the read opens a file on the disk.
+#
+# A type checker must not see the `__getattr__`, or it answers `str` for every
+# name the module does not have. `__version__` above is what it reads instead.
+if not TYPE_CHECKING:
+
+    def __getattr__(name):
+        if name != "__version__":
+            raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+        from importlib import metadata
+
+        try:
+            version = metadata.version("govee-toolkit")
+        except metadata.PackageNotFoundError:
+            from . import _govee_toolkit
+
+            version = _govee_toolkit.__version__
+        globals()["__version__"] = version
+        return version
+
 
 __all__ = [
     "CORE_VERSION",
