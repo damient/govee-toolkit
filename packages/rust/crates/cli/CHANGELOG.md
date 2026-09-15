@@ -5,6 +5,8 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+## [0.4.0] — 2026-09-15
+
 ### Changed
 
 - `send` reports an unknown argument as the crate does:

@@ -7,6 +7,8 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.9.0] — 2026-09-15
+
 ### Added
 
 - `DeviceHandle::args()` — reads the values a caller supplied under the types

@@ -9,8 +9,8 @@ shipped.
 
 | Package | Changelog | Version |
 | ------- | --------- | ------- |
-| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.8.0 |
-| `govee-toolkit-cli` (Rust) | [`packages/rust/crates/cli/CHANGELOG.md`](packages/rust/crates/cli/CHANGELOG.md) | 0.3.0 |
+| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.9.0 |
+| `govee-toolkit-cli` (Rust) | [`packages/rust/crates/cli/CHANGELOG.md`](packages/rust/crates/cli/CHANGELOG.md) | 0.4.0 |
 | `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 0.1.0 |
 | `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 0.0.0 |
 
