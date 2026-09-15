@@ -383,9 +383,9 @@ jobs:
       - run: pip install maturin ruff mypy
       # ruff and mypy read the sources, so they run before the wheel exists.
       - name: Format the Python sources
-        run: ruff format --check govee_toolkit tests
+        run: ruff format --check govee_toolkit tests ../../tools ../../site/tools
       - name: Lint the Python sources
-        run: ruff check govee_toolkit tests
+        run: ruff check govee_toolkit tests ../../tools ../../site/tools
       # The package ships py.typed, so a user's type checker reads these stubs.
       - name: Type-check the Python sources
         run: mypy

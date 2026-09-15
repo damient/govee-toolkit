@@ -375,7 +375,9 @@ reads. The stub owns the types and the binding owns the prose:
   and the `python` job run it with `--check`, which fails on drift.
 
 The shell scripts under `tools/` are linted with `shellcheck -x` and formatted
-with `shfmt -i 2`. `qa.sh` runs both, and so does the `lint` job.
+with `shfmt -i 2`. `qa.sh` runs both, and so does the `lint` job. ruff covers
+every Python source in the repository, `tools/` and `site/tools/` included;
+`packages/python/pyproject.toml` holds the only configuration for it.
 
 The MSRV in `packages/rust/Cargo.toml` is checked on every push. Raise it in the
 same commit as the feature that needs it, never after the fact.
