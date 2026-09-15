@@ -10,6 +10,15 @@
   font: 600 15px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
   color: var(--text); text-decoration: none; white-space: nowrap;
 }
+.brand-dots { display: flex; align-items: center; gap: 5px; margin-right: 14px; }
+.brand-dots i {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--dot);
+  box-shadow: 0 0 8px 0 var(--dot), 0 0 16px 1px color-mix(in oklab, var(--dot) 45%, transparent);
+}
+.brand-dots i:nth-child(1) { --dot: var(--accent-ember); }
+.brand-dots i:nth-child(2) { --dot: var(--accent-cyan); }
+.brand-dots i:nth-child(3) { --dot: var(--accent-violet); }
+
 .links { margin-left: auto; display: flex; align-items: center; gap: clamp(12px, 2.4vw, 26px); }
 .controls { display: flex; align-items: center; gap: 8px; margin-left: 14px; }
 .links a {
