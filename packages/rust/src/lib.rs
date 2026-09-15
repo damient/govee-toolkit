@@ -129,7 +129,7 @@ pub use device::DeviceHandle;
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 pub use env::Env;
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
-pub use error::{Error, Result};
+pub use error::{Category, Error, Result};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 pub use event::{Device, Event, Served};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]

@@ -20,6 +20,11 @@ releases apart and keeps
   hertz. `stream::ParseError` states what to write instead.
 - `Display` on `transport::Change` — `new`, `refreshed`, `moved`,
   `firmware_changed`, the names an event carries.
+- `Category` and `Error::category()` — the family a failure belongs to:
+  `Codec` for a command that never reached the wire, `Transport` for a link
+  that failed, `Config` for a setting that cannot work. A binding maps the
+  family to the error class it raises, so every variant is classified in one
+  place.
 
 ## [0.8.0] — 2026-09-14
 
