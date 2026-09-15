@@ -21,6 +21,13 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-15
+
+#### Added
+
+- `H6022` records `measurements.segment_chain`. Its LED chain folds back at
+  each ring, so a client that paints a grid reverses every second ring.
+
 ### 2026-09-14
 
 #### Added
