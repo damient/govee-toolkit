@@ -75,6 +75,19 @@ skip() {
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# check_fmt_nightly <name> <dir> — cargo fmt in the directory, under nightly.
+# rustfmt.toml uses nightly-only options; stable rustfmt formats differently.
+# Returns 0 when nightly is here, so a caller that needs it for another check
+# reads the answer from this one.
+check_fmt_nightly() {
+  if have rustup && rustup toolchain list | grep -q '^nightly'; then
+    check_in "$2" "$1" env RUSTUP_TOOLCHAIN=nightly cargo fmt --all --check
+    return 0
+  fi
+  skip "$1" "rustup toolchain install nightly"
+  return 1
+}
+
 # Print the summary. Returns 1 if a check failed, 2 if one was skipped.
 qa_summary() {
   local failed=0 skipped=0 i

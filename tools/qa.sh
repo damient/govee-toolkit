@@ -39,12 +39,9 @@ check() {
 "$root/tools/clean-target.sh" --stamp
 "$root/tools/clean-target.sh" --stamp --root "$root/packages/python"
 
-if have rustup && rustup toolchain list | grep -q '^nightly'; then
-  # rustfmt.toml uses nightly-only options; stable rustfmt formats differently.
-  check "rust fmt" env RUSTUP_TOOLCHAIN=nightly cargo fmt --all --check
+if check_fmt_nightly "rust fmt" "$rust"; then
   nightly=yes
 else
-  skip "rust fmt" "rustup toolchain install nightly"
   nightly=no
 fi
 
