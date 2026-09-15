@@ -189,8 +189,9 @@ impl DeviceHandle<'_> {
     /// interpolation the mode carries nowhere,
     /// [`Error::ZoneCountUnknown`] if the count asked for is not recorded for
     /// this unit,
-    /// [`Error::NativeZonesUnreachable`] or [`Error::ZoneCountUnsupported`] if
-    /// the mode paints by zone mask and cannot address the count asked for,
+    /// [`Error::NativeZonesUnreachable`] if the mode paints by zone mask and
+    /// cannot reach native resolution, [`Error::ZoneCountUnsupported`] if the
+    /// mask is narrower than a count the caller states,
     /// [`Error::Codec`] if the zone count is outside what the command declares,
     /// or [`Error::Transport`] if arming cannot be sent.
     pub async fn open_stream(&self, options: StreamOptions) -> Result<SegmentStream> {

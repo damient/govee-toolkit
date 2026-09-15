@@ -48,6 +48,7 @@
 
 mod options;
 pub(crate) mod paint;
+mod rate;
 mod reach;
 pub(crate) mod resolve;
 mod sender;
@@ -58,8 +59,9 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::Notify;
 
 pub use self::options::{ParseError, Rate, Resolution, StreamOptions};
+use self::rate::rate_hz;
 pub use self::reach::{Reach, reach};
-use self::resolve::{plan, rate_hz};
+use self::resolve::plan;
 use self::sender::{Shared, send_enable};
 use crate::error::{Error, Result};
 use crate::govee::Govee;

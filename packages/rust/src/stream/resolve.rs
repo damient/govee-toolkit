@@ -6,7 +6,7 @@
 use crate::codec::frame::Token;
 use crate::codec::{ArgRole, ArgSpec, Command, Device, Mode, Role};
 use crate::error::{Error, Result};
-use crate::stream::{Rate, Resolution, StreamOptions};
+use crate::stream::{Resolution, StreamOptions};
 
 /// How the device file paints zones over the chosen mode.
 #[derive(Debug, Clone)]
@@ -188,8 +188,25 @@ fn mask_bits(command: &str, spec: &Command, arg: &str) -> Option<usize> {
         })
 }
 
-/// The zone count the stream carries, refused where the mode cannot address
-/// it.
+/// The argument of `command` marked `role`.
+fn arg_named<'a>(device: &'a Device, mode: Mode, command: &str, role: ArgRole) -> Result<&'a str> {
+    device
+        .commands
+        .get(mode)
+        .get(command)
+        .and_then(|spec| spec.arg_for(role))
+        .ok_or_else(|| Error::NoRoleArg {
+            sku: device.sku.clone(),
+            mode,
+            command: command.to_owned(),
+            arg_role: role,
+        })
+}
+
+/// The zone count the stream carries.
+///
+/// Where a mask names fewer zones than the device file states, `App` falls to
+/// the width of the mask. A count the caller picked is refused instead.
 ///
 /// Zero means nobody recorded the count. A stream armed on it would send
 /// frames the codec refuses, and nothing reads that refusal.
@@ -232,55 +249,22 @@ fn zone_count(
     if let Painter::Masked { limit, .. } = painter
         && count > *limit
     {
-        return Err(Error::ZoneCountUnsupported {
-            sku: device.sku.clone(),
-            mode,
-            zones: count,
-            limit: *limit,
-        });
+        // `App` is a count of the unit, not of this mode: a mask that names
+        // fewer zones still covers the whole device, so fall to the width the
+        // mask has. A count the caller picked is refused instead, since the
+        // caller states how many zones it paints. `Native` never arrives
+        // here: a masked painter refuses it above.
+        if let Resolution::Exact(_) = resolution {
+            return Err(Error::ZoneCountUnsupported {
+                sku: device.sku.clone(),
+                mode,
+                zones: count,
+                limit: *limit,
+            });
+        }
+        return Ok(*limit);
     }
     Ok(count)
-}
-
-/// The rate to send at, and a warning when nothing was measured for this mode.
-pub(crate) fn rate_hz(
-    device: &Device,
-    sku: &str,
-    mode: Mode,
-    zones: usize,
-    rate: Rate,
-    fallback: f64,
-) -> f64 {
-    match rate {
-        Rate::Fixed(hz) => hz,
-        Rate::Measured => device
-            .measurements
-            .clean_hz(mode, u32::try_from(zones).unwrap_or(u32::MAX))
-            .unwrap_or_else(|| {
-                tracing::warn!(
-                    %sku,
-                    %mode,
-                    fallback_hz = fallback,
-                    "no `measurements.frame_rate` for this unit on this mode; streaming at the fallback rate"
-                );
-                fallback
-            }),
-    }
-}
-
-/// The argument of `command` marked `role`.
-fn arg_named<'a>(device: &'a Device, mode: Mode, command: &str, role: ArgRole) -> Result<&'a str> {
-    device
-        .commands
-        .get(mode)
-        .get(command)
-        .and_then(|spec| spec.arg_for(role))
-        .ok_or_else(|| Error::NoRoleArg {
-            sku: device.sku.clone(),
-            mode,
-            command: command.to_owned(),
-            arg_role: role,
-        })
 }
 
 #[cfg(test)]
@@ -291,6 +275,7 @@ mod tests {
     use crate::codec::Catalog;
 
     const MASKED: &str = include_str!("../../tests/fixtures/masked-zones.yaml");
+    const NARROW: &str = include_str!("../../tests/fixtures/narrow-mask.yaml");
 
     fn catalog() -> Catalog {
         Catalog::from_sources([("masked-zones.yaml", MASKED)]).expect("the device file parses")
@@ -360,6 +345,30 @@ commands:
 ";
 
     #[test]
+    fn the_app_count_falls_to_the_width_of_the_mask() {
+        let catalog =
+            Catalog::from_sources([("narrow-mask.yaml", NARROW)]).expect("the device file parses");
+        let device = catalog.device("HTEST5").expect("the SKU resolves");
+        let planned = |resolution| {
+            plan(
+                device,
+                Mode::Ble,
+                &StreamOptions {
+                    resolution,
+                    ..StreamOptions::default()
+                },
+            )
+        };
+
+        // The mask covers the whole device, so the count falls to its width.
+        assert_eq!(planned(Resolution::App).unwrap().zones, 15);
+
+        // A count the caller states is refused instead.
+        let error = planned(Resolution::Exact(132)).expect_err("the mask names 15");
+        assert_eq!(error.code(), "zone_count_unsupported");
+    }
+
+    #[test]
     fn a_mask_the_file_bounds_by_nothing_refuses_to_open() {
         let catalog =
             Catalog::from_sources([("unbounded.yaml", UNBOUNDED)]).expect("the device file parses");
@@ -367,18 +376,5 @@ commands:
         let error = plan(device, Mode::Ble, &StreamOptions::default())
             .expect_err("nothing says how far the mask reaches");
         assert_eq!(error.code(), "zone_mask_unbounded");
-    }
-
-    #[test]
-    fn the_rate_comes_from_the_row_measured_over_this_mode() {
-        let catalog = catalog();
-        let device = catalog.device("HTEST3").expect("the SKU resolves");
-        let hz = rate_hz(device, "HTEST3", Mode::Ble, 15, Rate::Measured, 10.0);
-        assert!((hz - 8.0).abs() < f64::EPSILON);
-
-        // Nothing was measured over `lan`, and a `ble` row does not stand in
-        // for it.
-        let hz = rate_hz(device, "HTEST3", Mode::Lan, 15, Rate::Measured, 10.0);
-        assert!((hz - 10.0).abs() < f64::EPSILON);
     }
 }

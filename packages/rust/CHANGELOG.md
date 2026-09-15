@@ -54,6 +54,9 @@ releases apart and keeps
   entry declares. The message lists them.
 - `codec::Catalog` shares its entries: a clone costs a reference count, not a
   copy. `overlay()` copies once, and an earlier clone keeps what it held.
+- `Resolution::App` falls to the width of the zone mask where a mode's mask
+  names fewer zones than the device file states for the unit. A count the
+  caller states is still refused, with `zone_count_unsupported`.
 
 ## [0.8.0] — 2026-09-14
 

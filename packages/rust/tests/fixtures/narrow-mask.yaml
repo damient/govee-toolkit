@@ -1,0 +1,27 @@
+# A fictional device whose mask names fewer zones than the unit carries: 132
+# LEDs behind 15 bits, the shape a mode with a narrow mask has. Only the tests
+# use it.
+schema_version: 1
+sku: "HTEST5"
+family: "test"
+name: "Masked segment device, a mask narrower than the unit"
+
+capabilities:
+  segments:
+    count: 132
+    native_pixels: 132
+
+modes:
+  ble:
+    support: partial
+    capabilities: ["segments"]
+
+commands:
+  ble:
+    paint:
+      role: segment_color_masked
+      frame: "33 05 15 01 (${color}:rgb)×${n} ${mask:mask16} <pad:20> <xor>"
+      args:
+        n: { type: int, range: [1, 1] }
+        color: { type: rgb_list, max_len: 1, role: colors }
+        mask: { type: zones, count: 15, role: zones }
