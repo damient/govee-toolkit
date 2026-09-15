@@ -38,8 +38,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-# The workspace to sweep. Every package here has a target directory of its own,
-# and each one is swept by a run of its own.
+# The workspace to sweep. One run sweeps one target directory.
 workspace="$root/packages/rust"
 export PATH="$HOME/.cargo/bin:$PATH"
 

@@ -69,11 +69,10 @@ jobs:
           path: packages/python/dist/*.whl
           if-no-files-found: error
 
-  # armv7 and musl. No runner carries either platform. maturin-action builds
-  # each wheel in the image that matches its tag: a manylinux or a musllinux
-  # container that carries the cross compiler for the target. The D-Bus library
-  # is compiled from vendored sources, so no container needs a target sysroot.
-  # See `packages/python/Cargo.toml`.
+  # armv7 and musl. No runner carries either platform, so maturin-action builds
+  # each wheel in a container that carries the cross compiler for the target.
+  # The D-Bus library is vendored, so no container needs a target sysroot —
+  # see `packages/python/Cargo.toml`.
   wheels-cross:
     name: Wheel (${{ matrix.name }})
     needs: agree
@@ -127,10 +126,10 @@ jobs:
         run: |
           tools/release-notes.sh python "$GITHUB_REF_NAME" \
             > "$RUNNER_TEMP/notes.md"
-      # `gh run download` rather than an action: nothing in this repository
-      # pins actions/download-artifact, and the gh CLI is already how the
-      # release workflows talk to GitHub. Every artifact lands in a directory
-      # of its own, so the wheels are collected into one directory after.
+      # `gh run download` rather than an action: nothing here pins
+      # actions/download-artifact, and the gh CLI is already how the release
+      # workflows talk to GitHub. It lands every artifact in a directory of its
+      # own, so the wheels are collected afterwards.
       - name: Collect the wheels
         env:
           GH_TOKEN: ${{ github.token }}

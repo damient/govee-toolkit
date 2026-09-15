@@ -249,11 +249,7 @@ fn zone_count(
     if let Painter::Masked { limit, .. } = painter
         && count > *limit
     {
-        // `App` is a count of the unit, not of this mode: a mask that names
-        // fewer zones still covers the whole device, so fall to the width the
-        // mask has. A count the caller picked is refused instead, since the
-        // caller states how many zones it paints. `Native` never arrives
-        // here: a masked painter refuses it above.
+        // `Native` never arrives here: a masked painter refuses it above.
         if let Resolution::Exact(_) = resolution {
             return Err(Error::ZoneCountUnsupported {
                 sku: device.sku.clone(),
@@ -360,10 +356,8 @@ commands:
             )
         };
 
-        // The mask covers the whole device, so the count falls to its width.
         assert_eq!(planned(Resolution::App).unwrap().zones, 15);
 
-        // A count the caller states is refused instead.
         let error = planned(Resolution::Exact(132)).expect_err("the mask names 15");
         assert_eq!(error.code(), "zone_count_unsupported");
     }

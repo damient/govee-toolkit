@@ -190,8 +190,7 @@ impl DeviceHandle {
     /// the device renders. `color` imposes a color, and `None` leaves the
     /// colors to the firmware.
     ///
-    /// `None` takes the core's default for `sensitivity` and for `soft`,
-    /// which every surface takes.
+    /// `None` takes the core's default for `sensitivity` and for `soft`.
     #[pyo3(signature = (effect, sensitivity=None, soft=None, color=None))]
     fn music<'py>(
         &self,
@@ -309,13 +308,10 @@ impl DeviceHandle {
 }
 
 impl DeviceHandle {
-    /// What an async call takes with it.
     fn parts(&self) -> (CoreGovee, DeviceId) {
         (self.govee.clone(), self.id.clone())
     }
 
-    /// Run one verb that answers what a mode served, and hand the answer back
-    /// as an awaitable.
     fn served<'py, Fut>(
         &self,
         py: Python<'py>,
@@ -330,7 +326,6 @@ impl DeviceHandle {
     }
 }
 
-/// Add the handle to the module.
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<DeviceHandle>()
 }

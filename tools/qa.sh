@@ -34,8 +34,7 @@ check() {
   check_in "$rust" "$name" "$@"
 }
 
-# The sweep at the end removes what is older than this stamp. The Python binding
-# is a cargo workspace of its own, so it carries a target directory of its own.
+# The sweep at the end removes what is older than this stamp.
 "$root/tools/clean-target.sh" --stamp
 "$root/tools/clean-target.sh" --stamp --root "$root/packages/python"
 
@@ -114,15 +113,14 @@ else
   skip "spelling" "cargo install typos-cli, or brew install typos-cli"
 fi
 
-# The site and the Python binding each have checks of their own, and a workflow
-# of their own. One check here, one script there: the summary of the script
-# prints inside this one when it fails.
+# The site and the Python binding each carry a script and a workflow of their
+# own. One check here runs one script there, and its summary prints inside this
+# one when it fails.
 check_script site "$root/tools/qa-site.sh"
 check_script python "$root/tools/qa-python.sh"
 
-# The scripts under tools/ are what every check above runs through, and they
-# had no check of their own. -x follows `# shellcheck source=`, which is how
-# lib/qa.sh is read.
+# Every check above runs through the scripts under tools/. -x follows
+# `# shellcheck source=`, which is how lib/qa.sh is read.
 if have shellcheck; then
   check_in "$root" "shell lint" shellcheck -x "$root"/tools/*.sh "$root"/tools/lib/*.sh
 else

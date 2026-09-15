@@ -26,7 +26,6 @@ pub(crate) struct EventStream {
 }
 
 impl EventStream {
-    /// Subscribe to what an SDK reports.
     pub(crate) fn new(govee: &Govee) -> Self {
         Self {
             events: Arc::new(Mutex::new(govee.events())),
@@ -57,7 +56,6 @@ impl EventStream {
     }
 }
 
-/// Add the event streams to the module.
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<EventStream>()?;
     module.add_class::<StatusStream>()
@@ -79,7 +77,6 @@ pub(crate) struct StatusStream {
 }
 
 impl StatusStream {
-    /// Watch what one transport hears from one device.
     pub(crate) fn new(statuses: watch::Receiver<Option<CoreStatus>>) -> Self {
         Self {
             statuses: Arc::new(Mutex::new(statuses)),

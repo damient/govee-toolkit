@@ -1,6 +1,5 @@
-# Stable options apply everywhere. The rest are nightly-only: CI formats with
-# `cargo +nightly fmt`, so run the same locally or the check job will disagree
-# with you. See ../../CONTRIBUTING.md.
+# The options below the stable two are nightly-only. Format with
+# `cargo +nightly fmt`. See ../../CONTRIBUTING.md.
 edition = "2024"
 max_width = 100
 

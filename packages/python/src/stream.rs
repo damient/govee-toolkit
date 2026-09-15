@@ -24,7 +24,6 @@ pub(crate) struct SegmentStream {
 }
 
 impl SegmentStream {
-    /// Wrap a channel the core armed.
     pub(crate) fn new(stream: CoreStream) -> Self {
         let zones = stream.zones();
         let rate_hz = stream.rate_hz();
@@ -42,7 +41,6 @@ impl SegmentStream {
             .map_err(|_| value_error("this stream failed while another call held it"))
     }
 
-    /// Run one writer against the open channel.
     fn with<T>(
         &self,
         call: impl FnOnce(&CoreStream) -> Result<T, govee_toolkit::Error>,
@@ -70,7 +68,7 @@ impl SegmentStream {
         self.rate_hz
     }
 
-    /// How many frames left.
+    /// How many frames reached the wire.
     #[getter]
     fn frames_sent(&self) -> PyResult<u64> {
         self.with(|stream| Ok(stream.frames_sent()))
@@ -151,7 +149,6 @@ impl SegmentStream {
     }
 }
 
-/// Add the stream to the module.
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<SegmentStream>()
 }

@@ -144,7 +144,6 @@ impl Govee {
     }
 }
 
-/// Add the facade to the module.
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<Govee>()
 }

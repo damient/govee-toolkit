@@ -5,7 +5,6 @@
 
 use govee_toolkit::codec::Catalog;
 
-/// A minimal, well-formed device file.
 fn yaml(sku: &str, aliases: &[&str]) -> String {
     format!(
         "schema_version: 1\nsku: \"{sku}\"\nfamily: test\nname: Test\naliases: {aliases:?}\ncapabilities: {{}}\n"
@@ -43,8 +42,6 @@ fn an_overlay_adds_a_sku_the_build_does_not_carry() {
     assert!(catalog.device("H0000").is_ok());
 }
 
-/// Replacing a device replaces it whole. An alias the old file declared must
-/// stop resolving, or a lookup would silently reach the wrong definition.
 #[test]
 fn a_replacement_drops_the_aliases_it_no_longer_declares() {
     let mut catalog = Catalog::from_sources([("shipped.yaml", yaml("H0001", &["H0002"]).as_str())])
@@ -89,7 +86,6 @@ fn an_overlay_may_not_steal_an_alias_from_a_device_it_does_not_replace() {
     assert_eq!(err.code(), "duplicate_sku");
 }
 
-/// The entries are shared, so a clone must not observe a later overlay.
 #[test]
 fn a_clone_taken_before_an_overlay_keeps_what_it_was_built_with() {
     let mut catalog =
@@ -105,7 +101,6 @@ fn a_clone_taken_before_an_overlay_keeps_what_it_was_built_with() {
     assert_eq!(catalog.device("H0007").unwrap().name, "Local");
 }
 
-/// The escape hatch is opt-in: nothing reads a local directory on its own.
 #[test]
 fn the_embedded_catalog_is_untouched_without_an_overlay() {
     let catalog = Catalog::embedded().expect("embedded catalog");

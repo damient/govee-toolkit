@@ -8,18 +8,15 @@ use serde::Serialize;
 
 use crate::errors::value_error;
 
-/// Read a mode by the name the device files and the configuration use.
 pub(crate) fn mode(name: &str) -> PyResult<Mode> {
     name.parse()
         .map_err(|e: UnknownMode| value_error(e.to_string()))
 }
 
-/// Read the modes of a list.
 pub(crate) fn modes(names: Vec<String>) -> PyResult<Vec<Mode>> {
     names.into_iter().map(|name| mode(&name)).collect()
 }
 
-/// Read one RGB triple out of channels already extracted.
 pub(crate) fn triple(channels: &[i64]) -> PyResult<[u8; 3]> {
     let [r, g, b] = channels else {
         return Err(value_error(format!(
@@ -33,7 +30,6 @@ pub(crate) fn triple(channels: &[i64]) -> PyResult<[u8; 3]> {
     Ok([channel(r)?, channel(g)?, channel(b)?])
 }
 
-/// Read one RGB triple. Every channel is a whole number from 0 to 255.
 pub(crate) fn rgb(value: &Bound<'_, PyAny>) -> PyResult<[u8; 3]> {
     let channels: Vec<i64> = value.extract().map_err(|_| {
         value_error("a color is three whole numbers from 0 to 255, such as (255, 0, 0)")
@@ -41,7 +37,7 @@ pub(crate) fn rgb(value: &Bound<'_, PyAny>) -> PyResult<[u8; 3]> {
     triple(&channels)
 }
 
-/// Read a color, or a list of them. One color is not wrapped by the caller.
+/// Read a color, or a list of them. One color needs no wrapping list.
 pub(crate) fn colors(value: &Bound<'_, PyAny>) -> PyResult<Vec<[u8; 3]>> {
     if let Ok(one) = rgb(value) {
         return Ok(vec![one]);
@@ -52,11 +48,9 @@ pub(crate) fn colors(value: &Bound<'_, PyAny>) -> PyResult<Vec<[u8; 3]>> {
         .collect::<PyResult<Vec<_>>>()
 }
 
-/// Read the shape of one argument value.
-///
-/// The shape is what Python gave, and never the argument's type: the device
-/// file declares that, and `codec::coerce` reads the value under it on the
-/// send path. A `bool` is a whole number, as it is in Python.
+/// Read the shape of one argument value, never its type: the device file
+/// declares the type, and `codec::coerce` reads the value under it. A `bool`
+/// is a whole number, as it is in Python.
 pub(crate) fn supplied(value: &Bound<'_, PyAny>) -> PyResult<Supplied> {
     if let Ok(bytes) = value.cast::<PyBytes>() {
         return Ok(Supplied::Bytes(bytes.as_bytes().to_vec()));
@@ -85,7 +79,6 @@ pub(crate) fn supplied(value: &Bound<'_, PyAny>) -> PyResult<Supplied> {
     ))
 }
 
-/// Read the shapes of the arguments of a call.
 pub(crate) fn args(values: Option<&Bound<'_, PyDict>>) -> PyResult<Vec<(String, Supplied)>> {
     let Some(values) = values else {
         return Ok(Vec::new());
@@ -96,8 +89,6 @@ pub(crate) fn args(values: Option<&Bound<'_, PyDict>>) -> PyResult<Vec<(String, 
         .collect()
 }
 
-/// Read how many zones a paint or a stream states: `"app"`, `"native"`, or a
-/// count.
 pub(crate) fn resolution(value: &Bound<'_, PyAny>) -> PyResult<Resolution> {
     if let Ok(name) = value.cast::<PyString>() {
         return name
@@ -110,7 +101,6 @@ pub(crate) fn resolution(value: &Bound<'_, PyAny>) -> PyResult<Resolution> {
     })?))
 }
 
-/// Read how fast a stream sends: `"measured"`, or a rate in hertz.
 pub(crate) fn rate(value: &Bound<'_, PyAny>) -> PyResult<Rate> {
     if let Ok(name) = value.cast::<PyString>() {
         return name
@@ -124,12 +114,10 @@ pub(crate) fn rate(value: &Bound<'_, PyAny>) -> PyResult<Rate> {
     Err(value_error("a rate is \"measured\" or a number of hertz"))
 }
 
-/// Read a resolution, or the one the core defaults to.
 pub(crate) fn resolution_or_default(value: Option<&Bound<'_, PyAny>>) -> PyResult<Resolution> {
     value.map_or_else(|| Ok(Resolution::default()), resolution)
 }
 
-/// Read a rate, or the one the core defaults to.
 pub(crate) fn rate_or_default(value: Option<&Bound<'_, PyAny>>) -> PyResult<Rate> {
     value.map_or_else(|| Ok(Rate::default()), rate)
 }

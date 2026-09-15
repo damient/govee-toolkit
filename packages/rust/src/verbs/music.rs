@@ -29,7 +29,7 @@ pub struct Music {
 
 impl Default for Music {
     /// Effect `0`, sensitivity `50`, on the beat, and the colors left to the
-    /// firmware. Every surface takes these, so one call means one thing.
+    /// firmware. Every surface takes these.
     fn default() -> Self {
         Self {
             effect: 0,

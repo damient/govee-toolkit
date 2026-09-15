@@ -34,7 +34,6 @@ create_exception!(
     "The configuration could not be read, or it enables something that cannot work."
 );
 
-/// Turn a core error into the exception that carries it.
 pub(crate) fn to_py(error: &Error) -> PyErr {
     let message = error.to_string();
     let raised = match error.category() {
@@ -53,7 +52,6 @@ pub(crate) fn to_py(error: &Error) -> PyErr {
     raised
 }
 
-/// What a call into the core returns, as Python sees it.
 pub(crate) fn map<T>(result: Result<T, Error>) -> PyResult<T> {
     result.map_err(|error| to_py(&error))
 }
@@ -63,8 +61,6 @@ pub(crate) fn value_error(message: impl Into<String>) -> PyErr {
     PyValueError::new_err(message.into())
 }
 
-/// Add the exceptions to the module.
-///
 /// The base class carries an empty `code`, so the attribute is there on an
 /// exception a caller builds as well as on one the binding raises.
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {

@@ -51,7 +51,6 @@ impl Catalog {
     }
 }
 
-/// Add the catalog to the module.
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<Catalog>()
 }

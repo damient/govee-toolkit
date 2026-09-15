@@ -6,11 +6,8 @@ use pyo3::prelude::*;
 use crate::conv::to_py;
 use crate::errors::map;
 
-/// The configuration in force.
-///
-/// Read it from the file, or build the default one and enable the modes a
-/// device needs. Every field is read-only: the SDK reads the configuration
-/// once, at startup.
+/// The configuration in force. Every field is read-only: the SDK reads the
+/// configuration once, at startup.
 #[pyclass(frozen, from_py_object, module = "govee_toolkit", name = "Config")]
 #[derive(Debug, Clone)]
 pub(crate) struct Config {
@@ -67,8 +64,7 @@ impl Config {
             .collect()
     }
 
-    /// The whole configuration, as the core serializes it. What a caller
-    /// reads a setting the getters above do not name. It carries no
+    /// The whole configuration, as the core serializes it. It carries no
     /// credential: a key comes from the environment, never from the file.
     fn to_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         to_py(py, &self.inner)
@@ -89,7 +85,6 @@ impl Config {
     }
 }
 
-/// Add the configuration to the module.
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<Config>()
 }

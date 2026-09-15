@@ -1,8 +1,7 @@
 //! What the facade reports: its event stream, and the two shapes an
 //! application reads devices through.
 //!
-//! [`Event::to_json`] is the record every surface prints, so the CLI, the
-//! bindings and any application read one shape.
+//! [`Event::to_json`] is the record every surface prints.
 
 use std::collections::BTreeMap;
 
@@ -30,10 +29,8 @@ pub enum Event {
 }
 
 impl Event {
-    /// This event as the record every surface prints.
-    ///
-    /// `event` names which one it is. Every variant is named here, so a new
-    /// one does not reach a reader as a record with no name.
+    /// This event as the record every surface prints. `event` names which one
+    /// it is.
     #[must_use]
     pub fn to_json(&self) -> Value {
         match self {
