@@ -4,6 +4,15 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Changed
+
+- A failure the core reports from the facade raises the subclass of its family,
+  not the base `GoveeError`. `no_mode_available` and `provision_refused` raise
+  `TransportError`; `mode_not_implemented` and `missing_credential` raise
+  `ConfigError`; the device file, zone, resolution and stream rate failures
+  raise `CodecError`. Catch `GoveeError` to catch every one, and match on
+  `.code`, which does not change.
+
 ## [0.1.0] — 2026-09-14
 
 The first release that carries code. The version on PyPI before it was a

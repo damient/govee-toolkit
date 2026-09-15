@@ -4,7 +4,7 @@
 //! Match on that rather than on the message: the message is written for a
 //! person and can change.
 
-use govee_toolkit::Error;
+use govee_toolkit::{Category, Error};
 use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
 use pyo3::{Bound, create_exception};
@@ -37,10 +37,12 @@ create_exception!(
 /// Turn a core error into the exception that carries it.
 pub(crate) fn to_py(error: &Error) -> PyErr {
     let message = error.to_string();
-    let raised = match error {
-        Error::Codec(_) => CodecError::new_err(message),
-        Error::Transport(_) => TransportError::new_err(message),
-        Error::Config { .. } | Error::Configuration(_) => ConfigError::new_err(message),
+    let raised = match error.category() {
+        Category::Codec => CodecError::new_err(message),
+        Category::Transport => TransportError::new_err(message),
+        Category::Config => ConfigError::new_err(message),
+        // `Category` is `#[non_exhaustive]`: a family this build does not know
+        // reaches Python as the base class, never as the wrong subclass.
         _ => GoveeError::new_err(message),
     };
     // An exception instance carries a `__dict__`, so the code reaches Python
