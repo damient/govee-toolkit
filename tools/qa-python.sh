@@ -87,7 +87,12 @@ python_tests() {
 # reads the stubs the wheel carries and not the ones in the tree.
 python_stubs() {
   unpack_wheel || return 1
-  PYTHONPATH="$py/$unpacked" "$tools_py" -m mypy.stubtest govee_toolkit --concise
+  # From the repository root, as the tests run: the working directory comes
+  # first on the import path, and `packages/python/govee_toolkit/` holds the
+  # extension module an earlier `maturin develop` left there. stubtest must
+  # read the wheel this run built.
+  (cd "$root" && PYTHONPATH="$py/$unpacked" "$tools_py" -m mypy.stubtest \
+    govee_toolkit --concise)
 }
 
 # ruff and mypy read the sources, not the built module, so they run whether or

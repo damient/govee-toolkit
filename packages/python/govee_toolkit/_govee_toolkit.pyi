@@ -158,6 +158,8 @@ class Config:
     @property
     def stream_fallback_hz(self) -> float:
         """The rate a stream sends at when the device file measured none."""
+    def to_dict(self) -> dict[str, Any]:
+        """The whole configuration. It carries no credential."""
 
 @final
 class Catalog:
@@ -216,7 +218,11 @@ class SegmentStream:
 
 @final
 class EventStream:
-    """An async iterator over the events the SDK reports."""
+    """An async iterator over the events the SDK reports.
+
+    Every event is a dict, and `event` names which one it is. The records are
+    the core's own, so `govee watch --json` prints the same ones.
+    """
 
     def __aiter__(self) -> EventStream: ...
     async def __anext__(self) -> dict[str, Any]: ...
@@ -252,6 +258,8 @@ class DeviceHandle:
 
     def spec(self) -> dict[str, Any]:
         """What the device file declares."""
+    def describe(self) -> dict[str, Any]:
+        """The same, as the record `govee describe` prints."""
     async def ensure_known(self) -> str:
         """Scan if no mode knows the device, then name the mode it answers on."""
 
@@ -283,14 +291,15 @@ class DeviceHandle:
     async def music(
         self,
         effect: int,
-        sensitivity: int = 0,
-        soft: bool = False,
+        sensitivity: int | None = None,
+        soft: bool | None = None,
         color: Color | None = None,
     ) -> Served:
         """Play an effect the device renders from its own microphone.
 
         The effect identifiers are the mode's own. `color` imposes a color,
-        and `None` leaves the colors to the firmware.
+        and `None` leaves the colors to the firmware. `None` takes the core's
+        default for the other two, which every surface takes.
         """
 
     async def segment(

@@ -6,6 +6,7 @@ transport knows fails before a command is encoded, with `unknown_device`.
 
 import pytest
 
+import govee_toolkit
 from helpers import refuses_unknown
 
 pytestmark = pytest.mark.asyncio
@@ -48,3 +49,19 @@ async def test_no_mode_watches_a_device_no_mode_knows(govee, unknown_id):
     """A watch reads from the mode that would serve a command, and there is
     none."""
     assert govee.device(unknown_id).watch_status() is None
+
+
+async def test_the_description_needs_a_known_device(handle):
+    await refuses_unknown(handle.describe)
+
+
+async def test_every_mode_the_module_names_reads_back(handle):
+    """`MODES` is the core's own list, so a name in it names a mode."""
+    for mode in govee_toolkit.MODES:
+        assert handle.health(mode) is None
+
+
+async def test_a_name_that_is_no_mode_says_which_ones_are(handle):
+    with pytest.raises(ValueError) as raised:
+        handle.health("wifi")
+    assert "lan, ble, cloud" in str(raised.value)

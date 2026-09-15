@@ -21,7 +21,10 @@ use pyo3::types::PyTuple;
 fn _govee_toolkit(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("__version__", env!("CARGO_PKG_VERSION"))?;
     module.add("CORE_VERSION", govee_toolkit::VERSION)?;
-    module.add("MODES", PyTuple::new(module.py(), conv::mode_names())?)?;
+    module.add(
+        "MODES",
+        PyTuple::new(module.py(), govee_toolkit::Mode::NAMES)?,
+    )?;
     errors::register(module)?;
     types::register(module)?;
     catalog::register(module)?;

@@ -3,6 +3,7 @@
 use govee_toolkit::Config as CoreConfig;
 use pyo3::prelude::*;
 
+use crate::conv::to_py;
 use crate::errors::map;
 
 /// The configuration in force.
@@ -64,6 +65,13 @@ impl Config {
             .keys()
             .map(std::string::ToString::to_string)
             .collect()
+    }
+
+    /// The whole configuration, as the core serializes it. What a caller
+    /// reads a setting the getters above do not name. It carries no
+    /// credential: a key comes from the environment, never from the file.
+    fn to_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.inner)
     }
 
     /// The rate a stream sends at when the device file measured none.

@@ -5,11 +5,9 @@
 
 use std::future::Future;
 
-use govee_toolkit::codec::coerce::{self, Supplied};
-use govee_toolkit::codec::{Args, Error as CodecError};
 use govee_toolkit::{
-    DeviceId, Error, Govee as CoreGovee, Music, Paint, Provisioned, Served as CoreServed,
-    StreamOptions, WifiCredentials,
+    DeviceId, Error, Govee as CoreGovee, Music, Paint, Served as CoreServed, StreamOptions,
+    WifiCredentials, describe,
 };
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -75,6 +73,13 @@ impl DeviceHandle {
         to_py(py, map(self.govee.device(&self.id).spec())?)
     }
 
+    /// What `devices/<SKU>.yaml` declares, as the record `govee describe`
+    /// prints: the modes in one place, the commands under the mode that
+    /// carries them, and each argument's type, role and bound.
+    fn describe(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &describe(map(self.govee.device(&self.id).spec())?))
+    }
+
     /// The last status heard, without asking for a new one.
     fn last_status(&self) -> Option<DeviceStatus> {
         self.govee
@@ -116,7 +121,7 @@ impl DeviceHandle {
     ) -> PyResult<Bound<'py, PyAny>> {
         let supplied = conv::args(args)?;
         self.served(py, |govee, id| async move {
-            let values = declared(&govee, &id, &command, supplied)?;
+            let values = govee.device(&id).args(&command, supplied)?;
             govee.device(&id).send(&command, &values).await
         })
     }
@@ -133,7 +138,7 @@ impl DeviceHandle {
         let supplied = conv::args(args)?;
         let (govee, id) = self.parts();
         future_into_py(py, async move {
-            let values = map(declared(&govee, &id, &command, supplied))?;
+            let values = map(govee.device(&id).args(&command, supplied))?;
             let reply = map(govee.device(&id).read(&command, &values).await)?;
             Ok(Reply::from(reply))
         })
@@ -184,20 +189,24 @@ impl DeviceHandle {
     /// The identifiers are the mode's own: one the entry accepts is not one
     /// the device renders. `color` imposes a color, and `None` leaves the
     /// colors to the firmware.
-    #[pyo3(signature = (effect, sensitivity=0, soft=false, color=None))]
+    ///
+    /// `None` takes the core's default for `sensitivity` and for `soft`,
+    /// which every surface takes.
+    #[pyo3(signature = (effect, sensitivity=None, soft=None, color=None))]
     fn music<'py>(
         &self,
         py: Python<'py>,
         effect: i64,
-        sensitivity: i64,
-        soft: bool,
+        sensitivity: Option<i64>,
+        soft: Option<bool>,
         color: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let color = color.map(conv::rgb).transpose()?;
+        let default = Music::default();
         let music = Music {
             effect,
-            sensitivity,
-            soft,
+            sensitivity: sensitivity.unwrap_or(default.sensitivity),
+            soft: soft.unwrap_or(default.soft),
             color,
         };
         self.served(py, |govee, id| async move {
@@ -265,10 +274,7 @@ impl DeviceHandle {
         let (govee, id) = self.parts();
         future_into_py(py, async move {
             let done = map(govee.device(&id).provision_wifi(&credentials).await)?;
-            Ok(match done {
-                Provisioned::Accepted => "accepted",
-                Provisioned::Sent => "sent",
-            })
+            Ok(done.as_str())
         })
     }
 
@@ -322,38 +328,6 @@ impl DeviceHandle {
         let call = verb(govee, id);
         future_into_py(py, async move { Ok(Served::from(map(call.await)?)) })
     }
-}
-
-/// Read the supplied values under the types the device file declares, on the
-/// mode a send now would go over.
-///
-/// The mode is resolved first, because one entry name can declare different
-/// arguments on two modes. An entry the mode does not carry takes no
-/// arguments, so that the codec reports the unknown command rather than an
-/// unknown argument of it.
-fn declared(
-    govee: &CoreGovee,
-    id: &DeviceId,
-    command: &str,
-    supplied: Vec<(String, Supplied)>,
-) -> Result<Args, Error> {
-    let handle = govee.device(id);
-    let mode = handle.serving_mode()?;
-    let Some(entry) = handle.spec()?.commands.get(mode).get(command) else {
-        return Ok(Args::new());
-    };
-    let mut values = Args::new();
-    for (name, value) in supplied {
-        let spec = entry
-            .args
-            .get(&name)
-            .ok_or_else(|| CodecError::UnknownArg {
-                command: command.to_owned(),
-                arg: name.clone(),
-            })?;
-        values.insert(&name, coerce::read(command, &name, spec, value)?);
-    }
-    Ok(values)
 }
 
 /// Add the handle to the module.

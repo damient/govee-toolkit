@@ -22,3 +22,14 @@ def test_a_missing_file_is_the_default_configuration(tmp_path):
 def test_load_without_a_file_is_the_default_configuration():
     loaded = Config.load()
     assert loaded.default_modes == ["lan"]
+
+
+def test_the_whole_configuration_reads_as_a_dict():
+    config = Config().to_dict()
+    assert config["defaults"]["modes"] == ["lan"]
+    assert config["devices"] == {}
+    assert config["stream"]["fallback_hz"] > 0
+
+
+def test_the_configuration_dict_carries_no_credential():
+    assert "env" not in Config().to_dict()

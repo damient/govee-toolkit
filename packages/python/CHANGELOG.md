@@ -4,8 +4,22 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `DeviceHandle.describe()` — what `devices/<SKU>.yaml` declares, as the record
+  `govee describe` prints. `spec()` still returns the device file itself.
+- `Config.to_dict()` — the whole configuration, for a setting the getters do
+  not name. It carries no credential.
+
 ### Changed
 
+- **Breaking:** an event dict is keyed by `event`, not `type`, and a `status`
+  event carries `on` and `brightness` directly. The records are the core's own,
+  so `govee watch --json` prints the same ones.
+- **Breaking:** `music()` takes `sensitivity=None` and `soft=None`. `None`
+  takes the core's default, which is sensitivity `50` and on the beat. It
+  took `0` and sent it.
+- A name that names no mode reports the names that work.
 - `govee_toolkit.__version__` reads the distribution metadata on the first
   read, and not on the import. The value does not change.
 - The package ships one stub file, `_govee_toolkit.pyi`. The typed API is the
