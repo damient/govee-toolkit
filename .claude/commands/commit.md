@@ -108,4 +108,19 @@ request. Run `/qa` when you want them locally.
 `git log --oneline` for what you made, and `git status --short` to show what is
 left. Report each commit as one line, then the files you excluded and why.
 
-Do not push, do not tag, and do not open or update a pull request.
+By default the command stops here: it does not push, does not tag, and does not
+open or update a pull request.
+
+Push only when the user asks for it, in `$ARGUMENTS` or in the request that
+started the command — "push", "commit and push", "commit + push". Then:
+
+- Push the current branch, and set the upstream on a branch that has none:
+  `git push -u origin HEAD`.
+- Never push to `main`. On `main`, stop after the commits and say the branch is
+  wrong.
+- Never force-push. `--force` and `--force-with-lease` need an explicit ask
+  every time.
+- Report the branch and the remote you pushed to.
+
+A push is still not a tag and not a pull request. Do those only when the user
+names them.
