@@ -96,6 +96,8 @@ else
   skip "python types" "pip install mypy"
 fi
 
+check_in "$root" "python stub prose" "$root/tools/sync-stubs.py" --check
+
 check_fmt_nightly "python binding fmt" "$py"
 
 check "python binding clippy" cargo clippy --all-targets --all-features -- -D warnings

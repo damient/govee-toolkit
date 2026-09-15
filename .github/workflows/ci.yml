@@ -412,6 +412,10 @@ jobs:
             "$venv/pytest"
             echo "::endgroup::"
           done
+      # The binding owns the prose; stubtest checks the types, not the text.
+      - name: Check the stub prose against the binding
+        run: ./tools/sync-stubs.py --check
+        working-directory: .
       # mypy reads the stubs and believes them. stubtest imports the built
       # module and compares it against them, so a signature that drifted fails
       # here and not in a user's editor. It needs the wheel installed.

@@ -58,7 +58,8 @@ src = [".", "tests"]
 select = ["E", "F", "I", "B", "C4", "UP", "PYI", "RUF"]
 # PYI021 is a typeshed rule: a stub published apart from its package carries no
 # docstring. These stubs ship inside the wheel, and an editor reads the
-# documentation off them, so the docstrings stay.
+# documentation off them, so the docstrings stay. `tools/sync-stubs.py` writes
+# them from the binding.
 ignore = ["PYI021"]
 
 [tool.mypy]

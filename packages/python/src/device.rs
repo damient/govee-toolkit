@@ -161,7 +161,8 @@ impl DeviceHandle {
         )
     }
 
-    /// Set the level, in the unit the device file declares.
+    /// Set the level, in the unit the device file declares. A level outside
+    /// that range is an error, never a clamp.
     fn brightness<'py>(&self, py: Python<'py>, level: i64) -> PyResult<Bound<'py, PyAny>> {
         self.served(py, |govee, id| async move {
             govee.device(&id).brightness(level).await
@@ -216,7 +217,7 @@ impl DeviceHandle {
     /// Paint the segments once.
     ///
     /// One color fills every zone, and a list states them all. A zone list
-    /// takes one color.
+    /// takes one color. `resolution` takes `"app"` when it is `None`.
     #[pyo3(signature = (colors, zones=None, resolution=None, gradient=false))]
     fn segment<'py>(
         &self,
@@ -282,6 +283,9 @@ impl DeviceHandle {
     /// Power the device on first: arming a dark strip paints nothing. The
     /// channel holds the colors only while it is armed, and the device goes
     /// back to the color it showed before once the stream closes.
+    ///
+    /// `resolution` takes `"app"` when it is `None`, and `rate` takes
+    /// `"measured"`.
     #[pyo3(signature = (resolution=None, rate=None, gradient=false))]
     fn open_stream<'py>(
         &self,
