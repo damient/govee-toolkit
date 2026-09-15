@@ -3,7 +3,7 @@
 //! second implementation. No command name lives here.
 
 use clap::{Subcommand, ValueEnum};
-use govee_toolkit::Music;
+use govee_toolkit::{Music, Resolution};
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub(crate) enum Toggle {
@@ -71,7 +71,7 @@ pub(crate) enum Verb {
         zones: Option<String>,
         /// How many zones the frame states: `app`, `native`, or a count. A
         /// count the unit renders as a smaller one is refused.
-        #[arg(long, default_value = "app", value_name = "RESOLUTION")]
+        #[arg(long, default_value_t = Resolution::default().to_string(), value_name = "RESOLUTION")]
         resolution: String,
         /// One `#RRGGBB` for every zone, or one per zone, comma-separated.
         /// `-` reads that list from one line of stdin.
