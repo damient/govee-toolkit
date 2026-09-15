@@ -1,5 +1,8 @@
 """What the module exports, and what it says about itself."""
 
+import subprocess
+import sys
+
 import pytest
 
 import govee_toolkit
@@ -28,6 +31,22 @@ EXPORTED = (
 def test_the_module_exports_the_public_api(name):
     assert hasattr(govee_toolkit, name)
     assert name in govee_toolkit.__all__
+
+
+def test_an_unknown_name_is_an_attribute_error():
+    """The module reads `__version__` lazily, and answers nothing else."""
+    unknown = "no_such_name"
+    with pytest.raises(AttributeError):
+        getattr(govee_toolkit, unknown)
+
+
+def test_the_version_is_not_read_on_the_import():
+    """The metadata read opens a file, so it waits for the first read."""
+    source = "import govee_toolkit as g; print('__version__' in vars(g))"
+    done = subprocess.run(
+        [sys.executable, "-c", source], capture_output=True, text=True, check=True
+    )
+    assert done.stdout.strip() == "False"
 
 
 def test_the_version_is_a_release_number():

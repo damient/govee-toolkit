@@ -6,6 +6,8 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 
 ### Changed
 
+- `govee_toolkit.__version__` reads the distribution metadata on the first
+  read, and not on the import. The value does not change.
 - The package ships one stub file, `_govee_toolkit.pyi`. The typed API is the
   same: `govee_toolkit/__init__.py` carries the types it re-exports, and the
   type aliases the stubs use live in `govee_toolkit/_types.py`.
