@@ -1,6 +1,8 @@
 //! What the core reports, as Python objects.
 //!
-//! Every one is read-only: it is an answer, not a request.
+//! Every one holds the core value and reads the answers off it, so no field
+//! and no rule is written twice. Every one is read-only: it is an answer, not
+//! a request.
 
 use std::collections::BTreeMap;
 
@@ -19,36 +21,42 @@ fn python_bool(value: bool) -> &'static str {
 #[pyclass(frozen, skip_from_py_object, module = "govee_toolkit", name = "Health")]
 #[derive(Debug, Clone)]
 pub(crate) struct Health {
-    /// `"ok"`, `"degraded"` or `"down"`.
-    #[pyo3(get)]
-    pub(crate) state: String,
-    /// Consecutive unanswered verifications.
-    #[pyo3(get)]
-    pub(crate) failures: u32,
-    /// Whether a command would be sent right now.
-    #[pyo3(get)]
-    pub(crate) available: bool,
+    inner: CoreHealth,
 }
 
 #[pymethods]
 impl Health {
+    /// `"ok"`, `"degraded"` or `"down"`.
+    #[getter]
+    fn state(&self) -> String {
+        self.inner.state.to_string()
+    }
+
+    /// Consecutive unanswered verifications.
+    #[getter]
+    fn failures(&self) -> u32 {
+        self.inner.failures
+    }
+
+    /// Whether a command would be sent right now.
+    #[getter]
+    fn available(&self) -> bool {
+        self.inner.available
+    }
+
     fn __repr__(&self) -> String {
         format!(
             "Health(state='{}', failures={}, available={})",
-            self.state,
-            self.failures,
-            python_bool(self.available)
+            self.state(),
+            self.failures(),
+            python_bool(self.available())
         )
     }
 }
 
 impl From<CoreHealth> for Health {
-    fn from(health: CoreHealth) -> Self {
-        Self {
-            state: health.state.to_string(),
-            failures: health.failures,
-            available: health.available,
-        }
+    fn from(inner: CoreHealth) -> Self {
+        Self { inner }
     }
 }
 
@@ -56,44 +64,54 @@ impl From<CoreHealth> for Health {
 #[pyclass(frozen, skip_from_py_object, module = "govee_toolkit", name = "Device")]
 #[derive(Debug, Clone)]
 pub(crate) struct Device {
-    /// The MAC it reports, uppercased.
-    #[pyo3(get)]
-    pub(crate) id: String,
-    /// The SKU it is encoded under.
-    #[pyo3(get)]
-    pub(crate) sku: String,
-    /// The name the configuration gives it, if any.
-    #[pyo3(get)]
-    pub(crate) name: Option<String>,
-    /// The enabled modes, in preference order.
-    #[pyo3(get)]
-    pub(crate) modes: Vec<String>,
-    /// Its health per enabled mode. A mode is absent when no transport has
-    /// heard from it.
-    #[pyo3(get)]
-    pub(crate) health: BTreeMap<String, Health>,
+    inner: CoreDevice,
 }
 
 #[pymethods]
 impl Device {
+    /// The MAC it reports, uppercased.
+    #[getter]
+    fn id(&self) -> String {
+        self.inner.id.to_string()
+    }
+
+    /// The SKU it is encoded under.
+    #[getter]
+    fn sku(&self) -> String {
+        self.inner.sku.clone()
+    }
+
+    /// The name the configuration gives it, if any.
+    #[getter]
+    fn name(&self) -> Option<String> {
+        self.inner.name.clone()
+    }
+
+    /// The enabled modes, in preference order.
+    #[getter]
+    fn modes(&self) -> Vec<String> {
+        self.inner.modes.iter().map(ToString::to_string).collect()
+    }
+
+    /// Its health per enabled mode. A mode is absent when no transport has
+    /// heard from it.
+    #[getter]
+    fn health(&self) -> BTreeMap<String, Health> {
+        self.inner
+            .health
+            .iter()
+            .map(|(mode, health)| (mode.to_string(), Health::from(*health)))
+            .collect()
+    }
+
     fn __repr__(&self) -> String {
-        format!("Device(id='{}', sku='{}')", self.id, self.sku)
+        format!("Device(id='{}', sku='{}')", self.id(), self.inner.sku)
     }
 }
 
 impl From<CoreDevice> for Device {
-    fn from(device: CoreDevice) -> Self {
-        Self {
-            id: device.id.to_string(),
-            sku: device.sku,
-            name: device.name,
-            modes: device.modes.iter().map(ToString::to_string).collect(),
-            health: device
-                .health
-                .into_iter()
-                .map(|(mode, health)| (mode.to_string(), health.into()))
-                .collect(),
-        }
+    fn from(inner: CoreDevice) -> Self {
+        Self { inner }
     }
 }
 
@@ -101,38 +119,48 @@ impl From<CoreDevice> for Device {
 #[pyclass(frozen, skip_from_py_object, module = "govee_toolkit", name = "Served")]
 #[derive(Debug, Clone)]
 pub(crate) struct Served {
-    /// The device it went to.
-    #[pyo3(get)]
-    pub(crate) id: String,
-    /// The mode that served it.
-    #[pyo3(get)]
-    pub(crate) mode: String,
-    /// The device file entry that was sent.
-    #[pyo3(get)]
-    pub(crate) command: String,
-    /// The name the wire carries, where it carries one.
-    #[pyo3(get)]
-    pub(crate) cmd: String,
+    inner: CoreServed,
 }
 
 #[pymethods]
 impl Served {
+    /// The device it went to.
+    #[getter]
+    fn id(&self) -> String {
+        self.inner.id.to_string()
+    }
+
+    /// The mode that served it.
+    #[getter]
+    fn mode(&self) -> String {
+        self.inner.mode.to_string()
+    }
+
+    /// The device file entry that was sent.
+    #[getter]
+    fn command(&self) -> String {
+        self.inner.command.clone()
+    }
+
+    /// The name the wire carries, where it carries one.
+    #[getter]
+    fn cmd(&self) -> String {
+        self.inner.cmd.clone()
+    }
+
     fn __repr__(&self) -> String {
         format!(
             "Served(id='{}', mode='{}', command='{}')",
-            self.id, self.mode, self.command
+            self.id(),
+            self.mode(),
+            self.inner.command
         )
     }
 }
 
 impl From<CoreServed> for Served {
-    fn from(served: CoreServed) -> Self {
-        Self {
-            id: served.id.to_string(),
-            mode: served.mode.to_string(),
-            command: served.command,
-            cmd: served.cmd,
-        }
+    fn from(inner: CoreServed) -> Self {
+        Self { inner }
     }
 }
 
@@ -146,55 +174,63 @@ impl From<CoreServed> for Served {
 )]
 #[derive(Debug, Clone)]
 pub(crate) struct DeviceStatus {
-    /// Which device answered.
-    #[pyo3(get)]
-    pub(crate) id: String,
-    /// Whether it is on.
-    #[pyo3(get)]
-    pub(crate) on: Option<bool>,
-    /// The level it reports. A percentage on every unit seen so far, and not
-    /// normalized here.
-    #[pyo3(get)]
-    pub(crate) brightness: Option<i64>,
-    /// The color, as three channels. Reset to `(0, 0, 0)` in white mode.
-    #[pyo3(get)]
-    pub(crate) color: Option<(u8, u8, u8)>,
-    /// The white temperature. `0` means the device is in color mode.
-    #[pyo3(get)]
-    pub(crate) color_temp_kelvin: Option<i64>,
-    raw: serde_json::Value,
+    inner: CoreStatus,
 }
 
 #[pymethods]
 impl DeviceStatus {
+    /// Which device answered.
+    #[getter]
+    fn id(&self) -> String {
+        self.inner.id.to_string()
+    }
+
+    /// Whether it is on.
+    #[getter]
+    fn on(&self) -> Option<bool> {
+        self.inner.on
+    }
+
+    /// The level it reports. A percentage on every unit seen so far, and not
+    /// normalized here.
+    #[getter]
+    fn brightness(&self) -> Option<i64> {
+        self.inner.brightness
+    }
+
+    /// The color, as three channels. Reset to `(0, 0, 0)` in white mode.
+    #[getter]
+    fn color(&self) -> Option<(u8, u8, u8)> {
+        self.inner.color.map(|[r, g, b]| (r, g, b))
+    }
+
+    /// The white temperature. `0` means the device is in color mode.
+    #[getter]
+    fn color_temp_kelvin(&self) -> Option<i64> {
+        self.inner.color_temp_kelvin
+    }
+
     /// The whole reply, with every field the SDK does not model.
     #[getter]
     fn raw(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
-        to_py(py, &self.raw)
+        to_py(py, &self.inner.raw)
     }
 
     /// Whether the device is in white mode. Mutually exclusive with color.
     #[getter]
     fn is_white(&self) -> bool {
-        self.color_temp_kelvin.is_some_and(|k| k > 0)
+        self.inner.is_white()
     }
 
     fn __repr__(&self) -> String {
-        let on = self.on.map_or("None", python_bool);
-        format!("DeviceStatus(id='{}', on={on})", self.id)
+        let on = self.inner.on.map_or("None", python_bool);
+        format!("DeviceStatus(id='{}', on={on})", self.id())
     }
 }
 
 impl From<CoreStatus> for DeviceStatus {
-    fn from(status: CoreStatus) -> Self {
-        Self {
-            id: status.id.to_string(),
-            on: status.on,
-            brightness: status.brightness,
-            color: status.color.map(|[r, g, b]| (r, g, b)),
-            color_temp_kelvin: status.color_temp_kelvin,
-            raw: status.raw,
-        }
+    fn from(inner: CoreStatus) -> Self {
+        Self { inner }
     }
 }
 
@@ -202,32 +238,32 @@ impl From<CoreStatus> for DeviceStatus {
 #[pyclass(frozen, skip_from_py_object, module = "govee_toolkit", name = "Reply")]
 #[derive(Debug, Clone)]
 pub(crate) struct Reply {
-    /// Which device answered.
-    #[pyo3(get)]
-    pub(crate) id: String,
-    fields: serde_json::Value,
+    inner: CoreReply,
 }
 
 #[pymethods]
 impl Reply {
+    /// Which device answered.
+    #[getter]
+    fn id(&self) -> String {
+        self.inner.id.to_string()
+    }
+
     /// Every field the exchanges captured, by the name the device file gives
     /// it.
     #[getter]
     fn fields(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
-        to_py(py, &self.fields)
+        to_py(py, &self.inner.fields.to_json())
     }
 
     fn __repr__(&self) -> String {
-        format!("Reply(id='{}')", self.id)
+        format!("Reply(id='{}')", self.id())
     }
 }
 
 impl From<CoreReply> for Reply {
-    fn from(reply: CoreReply) -> Self {
-        Self {
-            id: reply.id.to_string(),
-            fields: reply.fields.to_json(),
-        }
+    fn from(inner: CoreReply) -> Self {
+        Self { inner }
     }
 }
 

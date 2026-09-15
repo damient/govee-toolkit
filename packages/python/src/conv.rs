@@ -1,6 +1,6 @@
 //! What crosses between a Python value and a core value.
 
-use govee_toolkit::codec::Supplied;
+use govee_toolkit::codec::{Supplied, UnknownMode};
 use govee_toolkit::{Mode, ParseError, Rate, Resolution};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyFloat, PyInt, PyString};
@@ -10,20 +10,8 @@ use crate::errors::value_error;
 
 /// Read a mode by the name the device files and the configuration use.
 pub(crate) fn mode(name: &str) -> PyResult<Mode> {
-    Mode::ALL
-        .into_iter()
-        .find(|mode| mode.to_string() == name)
-        .ok_or_else(|| {
-            value_error(format!(
-                "`{name}` is not a mode; the modes are {}",
-                mode_names().join(", ")
-            ))
-        })
-}
-
-/// Every mode the core knows, by name.
-pub(crate) fn mode_names() -> Vec<String> {
-    Mode::ALL.iter().map(ToString::to_string).collect()
+    name.parse()
+        .map_err(|e: UnknownMode| value_error(e.to_string()))
 }
 
 /// Read the modes of a list.

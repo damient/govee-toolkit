@@ -2,23 +2,23 @@
 
 use std::sync::Arc;
 
-use govee_toolkit::transport::Event as TransportEvent;
 use govee_toolkit::{DeviceStatus as CoreStatus, Event, Govee};
 use pyo3::exceptions::PyStopAsyncIteration;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 use pyo3_async_runtimes::tokio::future_into_py;
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::{Mutex, watch};
 
+use crate::conv::to_py;
 use crate::types::DeviceStatus;
 
 /// The events of one SDK. Iterate it with `async for`.
 ///
-/// Every event is a dict, and `type` says which one it is. A subscription
-/// that falls behind reports `{"type": "lagged", "missed": n}` rather than
-/// hide the gap.
+/// Every event is a dict, and `event` says which one it is. The records are
+/// the core's own, so `govee watch --json` prints the same ones. A
+/// subscription that falls behind reports `{"event": "lagged", "missed": n}`
+/// rather than hide the gap.
 #[pyclass(frozen, module = "govee_toolkit", name = "EventStream")]
 #[derive(Debug)]
 pub(crate) struct EventStream {
@@ -43,81 +43,18 @@ impl EventStream {
     fn __anext__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let events = Arc::clone(&self.events);
         future_into_py(py, async move {
-            let received = events.lock().await.recv().await;
-            match received {
-                Ok(event) => Python::attach(|py| describe(py, &event)),
-                Err(RecvError::Lagged(missed)) => Python::attach(|py| {
-                    let dict = PyDict::new(py);
-                    dict.set_item("type", "lagged")?;
-                    dict.set_item("missed", missed)?;
-                    Ok(dict.unbind().into_any())
-                }),
-                Err(RecvError::Closed) => Err(PyStopAsyncIteration::new_err(
-                    "the SDK that reported these events is gone",
-                )),
-            }
+            let record = match events.lock().await.recv().await {
+                Ok(event) => event.to_json(),
+                Err(RecvError::Lagged(missed)) => Event::lagged(missed),
+                Err(RecvError::Closed) => {
+                    return Err(PyStopAsyncIteration::new_err(
+                        "the SDK that reported these events is gone",
+                    ));
+                }
+            };
+            Python::attach(|py| to_py(py, &record))
         })
     }
-}
-
-/// One event, as the dict Python reads.
-fn describe(py: Python<'_>, event: &Event) -> PyResult<Py<PyAny>> {
-    let dict = PyDict::new(py);
-    match event {
-        Event::UnknownSku { id, sku } => {
-            dict.set_item("type", "unknown_sku")?;
-            dict.set_item("id", id.to_string())?;
-            dict.set_item("sku", sku)?;
-        }
-        Event::Transport(TransportEvent::Discovered {
-            mode,
-            device,
-            change,
-        }) => {
-            dict.set_item("type", "discovered")?;
-            dict.set_item("mode", mode.to_string())?;
-            dict.set_item("id", device.id.to_string())?;
-            dict.set_item("sku", &device.sku)?;
-            dict.set_item("endpoint", &device.endpoint)?;
-            dict.set_item("firmware", device.firmware.clone())?;
-            dict.set_item("change", change.to_string())?;
-        }
-        Event::Transport(TransportEvent::Forgotten { mode, id }) => {
-            dict.set_item("type", "forgotten")?;
-            dict.set_item("mode", mode.to_string())?;
-            dict.set_item("id", id.to_string())?;
-        }
-        Event::Transport(TransportEvent::Sent(sent)) => {
-            dict.set_item("type", "sent")?;
-            dict.set_item("mode", sent.mode.to_string())?;
-            dict.set_item("id", sent.id.to_string())?;
-            dict.set_item("cmd", &sent.cmd)?;
-            dict.set_item("endpoint", &sent.endpoint)?;
-        }
-        Event::Transport(TransportEvent::Status { mode, status }) => {
-            dict.set_item("type", "status")?;
-            dict.set_item("mode", mode.to_string())?;
-            dict.set_item("id", status.id.to_string())?;
-            dict.set_item("status", DeviceStatus::from(status.clone()))?;
-        }
-        Event::Transport(TransportEvent::HealthChanged {
-            id,
-            mode,
-            transition,
-        }) => {
-            dict.set_item("type", "health_changed")?;
-            dict.set_item("mode", mode.to_string())?;
-            dict.set_item("id", id.to_string())?;
-            dict.set_item("from", transition.from.to_string())?;
-            dict.set_item("to", transition.to.to_string())?;
-        }
-        // A variant this build does not name still reaches the caller.
-        other => {
-            dict.set_item("type", "other")?;
-            dict.set_item("detail", format!("{other:?}"))?;
-        }
-    }
-    Ok(dict.unbind().into_any())
 }
 
 /// Add the event streams to the module.
