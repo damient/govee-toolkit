@@ -19,12 +19,9 @@ pub(crate) fn modes(names: Vec<String>) -> PyResult<Vec<Mode>> {
     names.into_iter().map(|name| mode(&name)).collect()
 }
 
-/// Read one RGB triple. Every channel is a whole number from 0 to 255.
-pub(crate) fn rgb(value: &Bound<'_, PyAny>) -> PyResult<[u8; 3]> {
-    let channels: Vec<i64> = value.extract().map_err(|_| {
-        value_error("a color is three whole numbers from 0 to 255, such as (255, 0, 0)")
-    })?;
-    let [r, g, b] = channels.as_slice() else {
+/// Read one RGB triple out of channels already extracted.
+pub(crate) fn triple(channels: &[i64]) -> PyResult<[u8; 3]> {
+    let [r, g, b] = channels else {
         return Err(value_error(format!(
             "a color carries 3 channels, not {}",
             channels.len()
@@ -34,6 +31,14 @@ pub(crate) fn rgb(value: &Bound<'_, PyAny>) -> PyResult<[u8; 3]> {
         u8::try_from(*v).map_err(|_| value_error(format!("{v} is outside a color channel's 0-255")))
     };
     Ok([channel(r)?, channel(g)?, channel(b)?])
+}
+
+/// Read one RGB triple. Every channel is a whole number from 0 to 255.
+pub(crate) fn rgb(value: &Bound<'_, PyAny>) -> PyResult<[u8; 3]> {
+    let channels: Vec<i64> = value.extract().map_err(|_| {
+        value_error("a color is three whole numbers from 0 to 255, such as (255, 0, 0)")
+    })?;
+    triple(&channels)
 }
 
 /// Read a color, or a list of them. One color is not wrapped by the caller.
@@ -65,8 +70,12 @@ pub(crate) fn supplied(value: &Bound<'_, PyAny>) -> PyResult<Supplied> {
     if let Ok(number) = value.extract::<i64>() {
         return Ok(Supplied::Int(number));
     }
-    if value.extract::<Vec<Vec<i64>>>().is_ok() {
-        return Ok(Supplied::Colors(colors(value)?));
+    if let Ok(rows) = value.extract::<Vec<Vec<i64>>>() {
+        return Ok(Supplied::Colors(
+            rows.iter()
+                .map(|row| triple(row))
+                .collect::<PyResult<Vec<_>>>()?,
+        ));
     }
     if let Ok(numbers) = value.extract::<Vec<i64>>() {
         return Ok(Supplied::Ints(numbers));
@@ -115,14 +124,14 @@ pub(crate) fn rate(value: &Bound<'_, PyAny>) -> PyResult<Rate> {
     Err(value_error("a rate is \"measured\" or a number of hertz"))
 }
 
-/// Read a resolution, or the default one: what the phone controller exposes.
+/// Read a resolution, or the one the core defaults to.
 pub(crate) fn resolution_or_default(value: Option<&Bound<'_, PyAny>>) -> PyResult<Resolution> {
-    value.map_or(Ok(Resolution::App), resolution)
+    value.map_or_else(|| Ok(Resolution::default()), resolution)
 }
 
-/// Read a rate, or the default one: what the device file measured.
+/// Read a rate, or the one the core defaults to.
 pub(crate) fn rate_or_default(value: Option<&Bound<'_, PyAny>>) -> PyResult<Rate> {
-    value.map_or(Ok(Rate::Measured), rate)
+    value.map_or_else(|| Ok(Rate::default()), rate)
 }
 
 /// Hand a value the core serializes to Python, as dicts and lists.

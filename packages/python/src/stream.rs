@@ -1,6 +1,6 @@
 //! The raw segment channel, armed until it closes.
 
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 use govee_toolkit::SegmentStream as CoreStream;
 use pyo3::prelude::*;
@@ -35,15 +35,19 @@ impl SegmentStream {
         }
     }
 
+    /// The open channel, or what a writer that panicked left behind.
+    fn locked(&self) -> PyResult<MutexGuard<'_, Option<CoreStream>>> {
+        self.inner
+            .lock()
+            .map_err(|_| value_error("this stream failed while another call held it"))
+    }
+
     /// Run one writer against the open channel.
     fn with<T>(
         &self,
         call: impl FnOnce(&CoreStream) -> Result<T, govee_toolkit::Error>,
     ) -> PyResult<T> {
-        let guard = self
-            .inner
-            .lock()
-            .map_err(|_| value_error("this stream failed while another call held it"))?;
+        let guard = self.locked()?;
         let stream = guard
             .as_ref()
             .ok_or_else(|| value_error("this stream is closed"))?;
@@ -116,11 +120,7 @@ impl SegmentStream {
 
     /// Disarm the channel and wait for the last frame to leave.
     fn close<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let taken = self
-            .inner
-            .lock()
-            .map_err(|_| value_error("this stream failed while another call held it"))?
-            .take();
+        let taken = self.locked()?.take();
         future_into_py(py, async move {
             if let Some(stream) = taken {
                 map(stream.close().await)?;
