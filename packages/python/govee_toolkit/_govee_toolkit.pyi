@@ -309,9 +309,10 @@ class DeviceHandle:
         resolution: Resolution | None = None,
         gradient: bool = False,
     ) -> Served:
-        """Write colors to the zones named, or to every zone.
+        """Paint the segments once.
 
-        `resolution` is `"app"` when it is `None`.
+        One color fills every zone, and a list states them all. A zone list
+        takes one color. `resolution` is `"app"` when it is `None`.
         """
 
     async def gradient(self, on: bool) -> Served:
