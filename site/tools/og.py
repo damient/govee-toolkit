@@ -132,7 +132,7 @@ def rasterize(source, target, width, height, background=None):
         command += ["-b", background]
     command += ["-f", "png", "-o", str(target), str(source)]
     subprocess.run(command, check=True)
-    print(f"wrote {target.relative_to(SITE)}")
+    print(f"wrote {target.relative_to(SITE.parent)}")
 
 
 def touch_icon():
