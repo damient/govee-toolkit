@@ -51,8 +51,18 @@ tools/qa-python.sh          # every Python check
 tools/qa-python.sh lint     # the checks whose name holds "lint"
 ```
 
-It needs `ruff`, `mypy` and `maturin`, and reports a missing one as skipped.
-`pip install ruff mypy maturin pytest pytest-asyncio` covers every check.
+It needs `ruff`, `mypy` and `maturin` on the `PATH`, and reports a missing one
+as skipped. The tests and `stubtest` run on an interpreter that imports
+`pytest`, `pytest_asyncio` and `mypy.stubtest`, which the `python3` on the
+`PATH` rarely does. Make that interpreter once:
+
+```bash
+python3 -m venv packages/python/target/qa-tools-venv
+packages/python/target/qa-tools-venv/bin/pip install pytest pytest-asyncio mypy
+```
+
+The script finds it there. `GOVEE_QA_PYTHON` names another one, and the
+directory is under `target/`, which git ignores.
 
 The three checks that read the stubs do different work, and a green run needs
 all three. ruff checks their style, mypy checks that they are internally
