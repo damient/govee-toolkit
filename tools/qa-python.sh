@@ -31,6 +31,25 @@ check() {
   check_in "$py" "$name" "$@"
 }
 
+# The interpreter that the tests and stubtest run on. `python3` on the PATH
+# carries neither pytest nor mypy on most machines, so a virtual environment
+# under `target/` wins when it has both. `GOVEE_QA_PYTHON` names another one.
+# `tools/README.md` gives the command that makes the environment; nothing here
+# creates it, because that reaches the network.
+tools_python() {
+  local candidate
+  for candidate in "${GOVEE_QA_PYTHON:-}" "$py/target/qa-tools-venv/bin/python" \
+    "$(command -v python3)"; do
+    [ -x "$candidate" ] || continue
+    if "$candidate" -c 'import pytest, pytest_asyncio, mypy.stubtest' \
+      >/dev/null 2>&1; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
 # A stale wheel from an earlier run would be installed instead of this one, so
 # the output directory is emptied first.
 python_wheel() {
@@ -58,7 +77,7 @@ python_tests() {
   # directory comes first on the import path, and `govee_toolkit/` there holds
   # the Python half of the package without the extension module beside it. The
   # configuration is named, so the run keeps testpaths and the asyncio mode.
-  (cd "$root" && PYTHONPATH="$py/$unpacked" python3 -m pytest \
+  (cd "$root" && PYTHONPATH="$py/$unpacked" "$tools_py" -m pytest \
     -c "$py/pyproject.toml" --rootdir "$py")
 }
 
@@ -68,7 +87,7 @@ python_tests() {
 # reads the stubs the wheel carries and not the ones in the tree.
 python_stubs() {
   unpack_wheel || return 1
-  PYTHONPATH="$py/$unpacked" python3 -m mypy.stubtest govee_toolkit --concise
+  PYTHONPATH="$py/$unpacked" "$tools_py" -m mypy.stubtest govee_toolkit --concise
 }
 
 # ruff and mypy read the sources, not the built module, so they run whether or
@@ -113,15 +132,13 @@ if [ -n "$missing" ]; then
   done
 else
   check "python wheel" python_wheel
-  if python3 -c 'import pytest, pytest_asyncio' >/dev/null 2>&1; then
+  if tools_py=$(tools_python); then
     check "python tests" python_tests
-  else
-    skip "python tests" "pip install pytest pytest-asyncio"
-  fi
-  if python3 -c 'import mypy.stubtest' >/dev/null 2>&1; then
     check "python stubs" python_stubs
   else
-    skip "python stubs" "pip install mypy"
+    for name in "python tests" "python stubs"; do
+      skip "$name" "make target/qa-tools-venv: python3 -m venv it, then install pytest pytest-asyncio mypy in it"
+    done
   fi
 fi
 
