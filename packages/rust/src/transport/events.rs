@@ -4,6 +4,7 @@
 //! No type here names a mode in its shape. An endpoint is a string the
 //! transport defines, and an application shows it rather than parses it.
 
+use std::fmt;
 use std::time::Instant;
 
 use crate::codec::Mode;
@@ -74,6 +75,17 @@ pub enum Change {
     /// A known device whose reported firmware changed. An update can open or
     /// close a behavior (`docs/protocol/lan.md` 2.8).
     FirmwareChanged,
+}
+
+impl fmt::Display for Change {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::New => "new",
+            Self::Refreshed => "refreshed",
+            Self::Moved => "moved",
+            Self::FirmwareChanged => "firmware_changed",
+        })
+    }
 }
 
 /// Something worth telling the application about.

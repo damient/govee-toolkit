@@ -4,7 +4,7 @@
 
 use govee_toolkit::codec::coerce::{self, Supplied};
 use govee_toolkit::codec::{ArgSpec, ArgValue};
-use govee_toolkit::stream::Resolution;
+use govee_toolkit::stream::{ParseError, Resolution};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::output::Failure;
@@ -63,15 +63,8 @@ pub(super) async fn colors_or_stdin(text: &str) -> Result<Vec<[u8; 3]>, Failure>
 }
 
 pub(super) fn resolution(text: &str) -> Result<Resolution, Failure> {
-    match text {
-        "app" => Ok(Resolution::App),
-        "native" => Ok(Resolution::Native),
-        other => other.parse::<u16>().map(Resolution::Exact).map_err(|_| {
-            Failure::usage(format!(
-                "`{other}` is not a zone count; write `app`, `native`, or a number"
-            ))
-        }),
-    }
+    text.parse()
+        .map_err(|e: ParseError| Failure::usage(e.to_string()))
 }
 
 #[cfg(test)]
@@ -150,11 +143,10 @@ mod tests {
         assert!(colors("#ff0000,green").is_err());
     }
 
+    // The names themselves are the core's, and `stream::options` tests them.
     #[test]
-    fn a_resolution_reads_by_name_or_by_number() {
+    fn a_resolution_that_names_nothing_is_a_usage_failure() {
         assert_eq!(resolution("app").ok(), Some(Resolution::App));
-        assert_eq!(resolution("native").ok(), Some(Resolution::Native));
-        assert_eq!(resolution("30").ok(), Some(Resolution::Exact(30)));
         assert!(resolution("many").is_err());
     }
 }

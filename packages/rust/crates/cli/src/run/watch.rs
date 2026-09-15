@@ -94,7 +94,7 @@ fn as_json(event: &Event) -> Value {
             "sku": device.sku,
             "endpoint": device.endpoint,
             "firmware": device.firmware,
-            "change": change_name(*change),
+            "change": change.to_string(),
         }),
         Event::Transport(TransportEvent::Forgotten { mode, id }) => json!({
             "event": "forgotten",
@@ -141,10 +141,7 @@ fn as_text(event: &Event) -> String {
             change,
         }) => format!(
             "{}  {mode}  discovered  {}  {}  {}",
-            device.id,
-            change_name(*change),
-            device.sku,
-            device.endpoint
+            device.id, change, device.sku, device.endpoint
         ),
         Event::Transport(TransportEvent::Forgotten { mode, id }) => {
             format!("{id}  {mode}  forgotten")
@@ -168,15 +165,5 @@ fn as_text(event: &Event) -> String {
             transition.from, transition.to
         ),
         _ => "unknown event".to_owned(),
-    }
-}
-
-fn change_name(change: govee_toolkit::transport::Change) -> &'static str {
-    use govee_toolkit::transport::Change;
-    match change {
-        Change::New => "new",
-        Change::Refreshed => "refreshed",
-        Change::Moved => "moved",
-        Change::FirmwareChanged => "firmware_changed",
     }
 }

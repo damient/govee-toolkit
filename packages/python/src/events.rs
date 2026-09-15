@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use govee_toolkit::transport::{Change, Event as TransportEvent};
+use govee_toolkit::transport::Event as TransportEvent;
 use govee_toolkit::{DeviceStatus as CoreStatus, Event, Govee};
 use pyo3::exceptions::PyStopAsyncIteration;
 use pyo3::prelude::*;
@@ -80,7 +80,7 @@ fn describe(py: Python<'_>, event: &Event) -> PyResult<Py<PyAny>> {
             dict.set_item("sku", &device.sku)?;
             dict.set_item("endpoint", &device.endpoint)?;
             dict.set_item("firmware", device.firmware.clone())?;
-            dict.set_item("change", change_name(*change))?;
+            dict.set_item("change", change.to_string())?;
         }
         Event::Transport(TransportEvent::Forgotten { mode, id }) => {
             dict.set_item("type", "forgotten")?;
@@ -118,16 +118,6 @@ fn describe(py: Python<'_>, event: &Event) -> PyResult<Py<PyAny>> {
         }
     }
     Ok(dict.unbind().into_any())
-}
-
-/// What a discovery changed about what was already known.
-fn change_name(change: Change) -> &'static str {
-    match change {
-        Change::New => "new",
-        Change::Refreshed => "refreshed",
-        Change::Moved => "moved",
-        Change::FirmwareChanged => "firmware_changed",
-    }
 }
 
 /// Add the event streams to the module.

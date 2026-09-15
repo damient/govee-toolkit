@@ -15,6 +15,11 @@ releases apart and keeps
   text or from a native value. `codec::Supplied` names the shape a caller gave.
 - `Error::ArgSyntax`, code `arg_syntax` — a value of the declared shape that
   does not read as one: text that is not a number, a channel past 255.
+- `Display` and `FromStr` on `stream::Resolution` and `stream::Rate`. Each reads
+  back the text it prints: `app`, `native`, a zone count; `measured`, a rate in
+  hertz. `stream::ParseError` states what to write instead.
+- `Display` on `transport::Change` — `new`, `refreshed`, `moved`,
+  `firmware_changed`, the names an event carries.
 
 ## [0.8.0] — 2026-09-14
 
