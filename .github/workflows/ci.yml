@@ -419,10 +419,13 @@ jobs:
       # mypy reads the stubs and believes them. stubtest imports the built
       # module and compares it against them, so a signature that drifted fails
       # here and not in a user's editor. It needs the wheel installed.
+      # -P keeps the working directory off sys.path. Without it `-m` imports
+      # the `govee_toolkit/` directory here, which has no extension module
+      # beside it, in place of the wheel installed in the environment.
       - name: Check the stubs against the built module
         run: |
           "$RUNNER_TEMP/venv-3.11/bin/pip" install mypy
-          "$RUNNER_TEMP/venv-3.11/bin/python" -m mypy.stubtest govee_toolkit \
+          "$RUNNER_TEMP/venv-3.11/bin/python" -P -m mypy.stubtest govee_toolkit \
             --concise
 
   node:
