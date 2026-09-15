@@ -364,9 +364,15 @@ pip install ruff mypy maturin pytest pytest-asyncio   # what it needs
 ```
 
 The package ships `py.typed`, so its `.pyi` stubs are what a user's type checker
-reads. `stubtest` is the check that matters there: mypy reads the stubs and
-believes them, and only `stubtest` imports the built module and compares the two.
-Change a `#[pyo3(signature = ...)]` and the stub in the same commit.
+reads. The stub owns the types and the binding owns the prose:
+
+- `stubtest` imports the built module and compares the types against the stub.
+  mypy reads the stubs and believes them, so `stubtest` is the check that
+  catches a signature that drifted. Change a `#[pyo3(signature = ...)]` and the
+  stub in the same commit.
+- `tools/sync-stubs.py` writes the stub docstrings from the doc comments of
+  `packages/python/src`. Edit the `///`, run the tool, and commit both. `qa.sh`
+  and the `python` job run it with `--check`, which fails on drift.
 
 The shell scripts under `tools/` are linted with `shellcheck -x` and formatted
 with `shfmt -i 2`. `qa.sh` runs both, and so does the `lint` job.

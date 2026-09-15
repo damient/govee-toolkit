@@ -12,7 +12,19 @@
 | File length, per language | [`check-file-length.sh`](check-file-length.sh) |
 | Codec layering | [`check-no-io.sh`](check-no-io.sh) |
 | Release notes from the changelog | [`release-notes.sh`](release-notes.sh) |
+| Stub prose from the binding | [`sync-stubs.py`](sync-stubs.py) |
 | Generated catalog and tables | [`packages/rust/crates/xtask`](../packages/rust/crates/xtask) |
+
+`sync-stubs.py` writes the docstrings of
+`packages/python/govee_toolkit/_govee_toolkit.pyi` from the `///` of
+`packages/python/src`. The stub owns the types, which `mypy.stubtest` checks
+against the built module; nothing checked the prose, and the two wordings
+drifted apart. Run it after editing a doc comment of the binding:
+
+```bash
+tools/sync-stubs.py           # rewrite the stubs
+tools/sync-stubs.py --check   # what CI runs
+```
 
 The simulator is a Rust crate rather than a tool of its own: the transport tests
 drive it in-process on ephemeral loopback ports, and a second implementation of

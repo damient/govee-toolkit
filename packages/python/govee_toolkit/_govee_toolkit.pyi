@@ -40,13 +40,15 @@ class GoveeError(Exception):
     """The stable identifier the core gives the failure."""
 
 class CodecError(GoveeError):
-    """An unknown SKU, an unknown command, or an argument out of range."""
+    """An unknown SKU, an unknown command, or an argument out of range. Nothing was
+    sent.
+    """
 
 class TransportError(GoveeError):
     """A mode failed to carry the command, or nothing answered in time."""
 
 class ConfigError(GoveeError):
-    """The configuration could not be read, or it enables what cannot work."""
+    """The configuration could not be read, or it enables something that cannot work."""
 
 @final
 class Health:
@@ -74,13 +76,15 @@ class Device:
         """The SKU it is encoded under."""
     @property
     def name(self) -> str | None:
-        """The name the configuration gives it."""
+        """The name the configuration gives it, if any."""
     @property
     def modes(self) -> list[str]:
         """The enabled modes, in preference order."""
     @property
     def health(self) -> dict[str, Health]:
-        """The health per enabled mode."""
+        """Its health per enabled mode. A mode is absent when no transport has heard
+        from it.
+        """
 
 @final
 class Served:
@@ -111,47 +115,55 @@ class DeviceStatus:
         """Whether it is on."""
     @property
     def brightness(self) -> int | None:
-        """The level it reports, unmodified."""
+        """The level it reports. A percentage on every unit seen so far, and not
+        normalized here.
+        """
     @property
     def color(self) -> Color | None:
-        """The color, as three channels."""
+        """The color, as three channels. Reset to `(0, 0, 0)` in white mode."""
     @property
     def color_temp_kelvin(self) -> int | None:
-        """`0` means color mode."""
+        """The white temperature. `0` means the device is in color mode."""
     @property
     def raw(self) -> dict[str, Any]:
-        """The whole reply, every field included."""
+        """The whole reply, with every field the SDK does not model."""
     @property
     def is_white(self) -> bool:
-        """Whether the device is in white mode."""
+        """Whether the device is in white mode. Mutually exclusive with color."""
 
 @final
 class Reply:
-    """What one command's reply layouts captured."""
+    """What one command's `reply:` layouts captured."""
 
     @property
     def id(self) -> str:
         """Which device answered."""
     @property
     def fields(self) -> dict[str, Any]:
-        """Every field, by its device file name."""
+        """Every field the exchanges captured, by the name the device file gives it."""
 
 @final
 class Config:
-    """The configuration in force. Every field is read-only."""
+    """The configuration in force. Every field is read-only: the SDK reads the
+    configuration once, at startup.
+    """
 
     def __init__(self) -> None:
-        """Build the default configuration: `lan` alone."""
+        """The default configuration: `lan` alone, and no device entry."""
     @staticmethod
     def load() -> Config:
-        """Read the file. A missing file is the default."""
+        """Read `$XDG_CONFIG_HOME/govee-toolkit/config.yaml`.
+
+        A missing file is the default configuration, not an error. A file that does not
+        parse raises `ConfigError`.
+        """
     @staticmethod
     def load_from(path: str | os.PathLike[str]) -> Config:
         """Read the configuration from one path."""
 
     @property
     def default_modes(self) -> list[str]:
-        """The modes a device without an entry gets."""
+        """The modes enabled for a device with no entry of its own."""
     @property
     def devices(self) -> list[str]:
         """The identity of every device the file names."""
@@ -159,55 +171,69 @@ class Config:
     def stream_fallback_hz(self) -> float:
         """The rate a stream sends at when the device file measured none."""
     def to_dict(self) -> dict[str, Any]:
-        """The whole configuration. It carries no credential."""
+        """The whole configuration, as the core serializes it. It carries no credential:
+        a key comes from the environment, never from the file.
+        """
 
 @final
 class Catalog:
-    """The device files the core carries."""
+    """Every device the build knows. Reads no hardware."""
 
     @staticmethod
     def embedded() -> Catalog:
-        """The catalog built into this build."""
+        """The catalog compiled into this build."""
     def skus(self) -> list[str]:
         """Every SKU that resolves, verified aliases included."""
     def has(self, sku: str) -> bool:
-        """Whether the catalog holds this SKU."""
+        """Whether a SKU resolves."""
     def device(self, sku: str) -> dict[str, Any]:
-        """The device file, resolved."""
+        """One device file, with every `include:` and every override applied.
+
+        Raises `CodecError` with the code `unknown_sku` when nothing declares it.
+        """
     def __len__(self) -> int:
         """How many device files the catalog holds."""
 
 @final
 class SegmentStream:
-    """An open segment stream. Close it, or use it as a context manager."""
+    """An open segment channel. The writers never block: each one replaces what the next
+    frame carries.
+
+    Close it, or leave it with `async with`. A stream that is dropped disarms the
+    channel as well, and reports no failure.
+    """
 
     @property
     def zones(self) -> int:
-        """How many zones the stream writes."""
+        """How many zones the frames carry. The firmware reads the count off the frame,
+        so it never changes while the stream is open.
+        """
     @property
     def rate_hz(self) -> float:
-        """The rate the stream sends at."""
+        """How fast frames go out, in hertz."""
     @property
     def frames_sent(self) -> int:
         """How many frames reached the wire."""
     @property
     def frames_superseded(self) -> int:
-        """How many frames a later frame replaced."""
+        """How many frames a later write replaced before they left."""
     @property
     def error(self) -> str | None:
-        """What stopped the stream, if anything did."""
+        """What the emitting task failed with, if it failed. The stream stops sending,
+        and the writers keep answering.
+        """
     def set_all(self, colors: Sequence[Color]) -> None:
-        """Write one color per zone."""
+        """State every zone. The count must be the stream's own."""
     def set_zone(self, index: int, color: Color) -> None:
-        """Write one zone."""
+        """State one zone, by its zero-based index."""
     def fill(self, color: Color) -> None:
-        """Write one color to every zone."""
+        """Put one color in every zone."""
     def clear(self) -> None:
-        """Write black to every zone."""
+        """Put black in every zone. The channel stays armed."""
     def buffer(self) -> list[Color]:
-        """The colors the next frame carries."""
+        """What the next frame carries."""
     async def close(self) -> None:
-        """Stop the stream and release the transport."""
+        """Disarm the channel and wait for the last frame to leave."""
     async def __aenter__(self) -> Self: ...
     async def __aexit__(
         self,
@@ -218,10 +244,11 @@ class SegmentStream:
 
 @final
 class EventStream:
-    """An async iterator over the events the SDK reports.
+    """The events of one SDK. Iterate it with `async for`.
 
-    Every event is a dict, and `event` names which one it is. The records are
-    the core's own, so `govee watch --json` prints the same ones.
+    Every event is a dict, and `event` says which one it is. The records are the core's
+    own, so `govee watch --json` prints the same ones. A subscription that falls behind
+    reports `{"event": "lagged", "missed": n}` rather than hide the gap.
     """
 
     def __aiter__(self) -> EventStream: ...
@@ -229,62 +256,77 @@ class EventStream:
 
 @final
 class StatusStream:
-    """An async iterator over one device's status, as answers arrive."""
+    """One device's status, as answers arrive. Iterate it with `async for`.
+
+    It requests nothing: it reports the answers a status request or a verification
+    already brought back.
+    """
 
     def __aiter__(self) -> StatusStream: ...
     async def __anext__(self) -> DeviceStatus: ...
 
 @final
 class DeviceHandle:
-    """One device, and the commands it serves."""
+    """A handle on one identity. It holds no state of its own: every answer comes from
+    the SDK it was made by.
+    """
 
     @property
     def id(self) -> str:
-        """The identity the handle names."""
+        """The MAC the device reports, uppercased."""
     @property
     def modes(self) -> list[str]:
-        """The enabled modes, in preference order."""
+        """The modes enabled for it, in preference order."""
     def health(self, mode: str) -> Health | None:
-        """Its health in one mode. `None` when that mode never heard from it."""
+        """Its health in one mode. `None` when the transport that serves that mode has
+        never heard from it.
+        """
 
     def serving_mode(self) -> str:
-        """The mode a command would go over."""
+        """The mode a command sent now would go over. Read from recorded state, so the
+        answer can change before the next call.
+        """
     def watch_status(self) -> StatusStream | None:
-        """Watch its status as answers arrive, over the mode that serves it.
-
-        `None` when no enabled mode can serve it, or when that transport has
-        heard nothing. It requests nothing of its own.
+        """Watch its status as answers arrive, over the mode that would serve a command
+        now. `None` when no enabled mode can, or when that transport has heard nothing.
         """
 
     def spec(self) -> dict[str, Any]:
-        """What the device file declares."""
+        """What `devices/<SKU>.yaml` declares for it. Reads no hardware."""
     def describe(self) -> dict[str, Any]:
-        """The same, as the record `govee describe` prints."""
+        """What `devices/<SKU>.yaml` declares, as the record `govee describe` prints:
+        the modes in one place, the commands under the mode that carries them, and each
+        argument's type, role and bound.
+        """
     async def ensure_known(self) -> str:
-        """Scan if no mode knows the device, then name the mode it answers on."""
+        """Scan for the device if no mode knows it yet, then answer the mode a command
+        would go over.
+        """
 
     async def send(self, command: str, **args: Arg) -> Served:
-        """Send one device file command.
+        """Send a command, named as the device file names it.
 
-        Every value is read under the type the entry declares for that
-        argument, so a list of whole numbers is zone indices, byte values or
-        one color as the file says.
+        The arguments are the ones the entry declares, and each value is read under the
+        type the entry declares for it. A value outside the declared range raises
+        `CodecError`, and nothing is sent.
         """
 
     async def read(self, command: str, **args: Arg) -> Reply:
-        """Send one device file command and read what it answers."""
+        """Run a command's exchanges and return what its `reply:` layouts captured."""
 
     async def status(self) -> DeviceStatus:
-        """Ask the device for its state."""
+        """Ask the device for its state and wait for the answer."""
     def last_status(self) -> DeviceStatus | None:
-        """The last status read."""
+        """The last status heard, without asking for a new one."""
     async def power(self, on: bool) -> Served:
         """Turn the device on or off."""
     async def brightness(self, level: int) -> Served:
-        """Set the brightness. Out of range is an error, never a clamp."""
+        """Set the level, in the unit the device file declares. A level outside that
+        range is an error, never a clamp.
+        """
 
     async def color(self, rgb: Color) -> Served:
-        """Set one color on the device."""
+        """Set one color, as three channels."""
     async def color_temp(self, kelvin: int) -> Served:
         """Set the white temperature, in kelvin. It ends color mode."""
 
@@ -297,9 +339,10 @@ class DeviceHandle:
     ) -> Served:
         """Play an effect the device renders from its own microphone.
 
-        The effect identifiers are the mode's own. `color` imposes a color,
-        and `None` leaves the colors to the firmware. `None` takes the core's
-        default for the other two, which every surface takes.
+        The identifiers are the mode's own: one the entry accepts is not one the device
+        renders. `color` imposes a color, and `None` leaves the colors to the firmware.
+
+        `None` takes the core's default for `sensitivity` and for `soft`.
         """
 
     async def segment(
@@ -311,12 +354,14 @@ class DeviceHandle:
     ) -> Served:
         """Paint the segments once.
 
-        One color fills every zone, and a list states them all. A zone list
-        takes one color. `resolution` is `"app"` when it is `None`.
+        One color fills every zone, and a list states them all. A zone list takes one
+        color. `resolution` takes `"app"` when it is `None`.
         """
 
     async def gradient(self, on: bool) -> Served:
-        """Turn the gradient between zones on or off."""
+        """Ask the firmware to interpolate between zones, and to wrap from the last zone
+        back to the first.
+        """
 
     async def provision_wifi(
         self,
@@ -327,9 +372,12 @@ class DeviceHandle:
     ) -> str:
         """Put the device on a Wi-Fi network over `ble`.
 
-        The network must be 2.4 GHz, and the password travels in plaintext.
-        Answers `"accepted"` where the device acknowledged the transfer, and
-        `"sent"` where its device file declares no acknowledgement.
+        The device must be in Bluetooth range and closed in the phone controller. The
+        password travels in plaintext: anything in Bluetooth range during the transfer
+        reads it. The network must be 2.4 GHz.
+
+        Answers `"accepted"` where the device acknowledged the transfer, and `"sent"`
+        where its device file declares no acknowledgement.
         """
 
     async def open_stream(
@@ -340,46 +388,61 @@ class DeviceHandle:
     ) -> SegmentStream:
         """Open the raw segment channel and paint it frame by frame.
 
-        Power the device on first: arming a dark strip paints nothing. The
-        device goes back to the color it showed before once the stream closes.
+        Power the device on first: arming a dark strip paints nothing. The channel holds
+        the colors only while it is armed, and the device goes back to the color it
+        showed before once the stream closes.
 
-        `resolution` is `"app"` when it is `None`, and `rate` is `"measured"`.
+        `resolution` takes `"app"` when it is `None`, and `rate` takes `"measured"`.
         """
 
 @final
 class Govee:
-    """The SDK. Start one and keep it."""
+    """The SDK. Start one and keep it: it holds the catalog, the configuration and one
+    transport per mode.
+    """
 
     @staticmethod
     async def start(
         config: Config | None = None, catalog: Catalog | None = None
     ) -> Govee:
-        """Start the SDK.
-
-        Without a configuration, it reads the file. Without a catalog, it
-        reads the device files the wheel carries.
+        """Start the SDK. Without a configuration, it reads the file. Without a catalog,
+        it reads the one the wheel carries.
         """
 
     async def scan(self) -> list[Device]:
-        """Scan every mode for devices."""
+        """Run a discovery scan on every mode and return what answered.
+
+        The scans run at the same time, so the call takes the longest window and not
+        their sum. Nothing on the send path calls this.
+        """
     async def scan_on(self, modes: Sequence[str]) -> list[Device]:
-        """Run a discovery scan on the modes named."""
+        """Run a discovery scan on the modes named.
+
+        A mode this build carries no transport for contributes nothing and is not an
+        error.
+        """
 
     def devices(self) -> list[Device]:
-        """Every device known, across every mode."""
+        """Every device known, across every mode. One reachable over two modes appears
+        once.
+        """
     def modes(self) -> list[str]:
-        """The modes this build carries a transport for."""
+        """The modes this build carries a transport for. Not a preference order: that is
+        each device's own configuration.
+        """
     def problems(self) -> list[str]:
-        """What is wrong with the configuration."""
+        """Everything wrong with the configuration, as one sentence each."""
     @property
     def config(self) -> Config:
         """The configuration in force."""
     @property
     def catalog(self) -> Catalog:
-        """The device files this build carries."""
+        """The device catalog in force."""
     def device(self, id: str) -> DeviceHandle:
-        """A handle on one device."""
+        """A handle for one device, by the MAC it reports."""
     def events(self) -> EventStream:
-        """An async iterator over the SDK's events."""
+        """Subscribe to what the SDK reports. Iterate it with `async for`."""
     async def close(self) -> None:
-        """Release what every transport holds. Call it before the program ends."""
+        """Release what every transport holds. Call it before the program ends, or `ble`
+        loses the last frame it wrote.
+        """
