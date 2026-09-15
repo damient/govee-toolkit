@@ -38,3 +38,6 @@ release/
 
 # The local configuration. The template is committed and the file is not.
 /config.local.yaml
+
+# Local experiments, kept out of the published tree.
+/.examples/
