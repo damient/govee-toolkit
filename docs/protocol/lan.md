@@ -224,6 +224,14 @@ model: two devices sharing a SKU in different lengths do not share a value.
 Record measured numbers in `devices/<SKU>.yaml`; never extrapolate one from
 another.
 
+**The chain can fold back.** A unit that wraps its LEDs into a grid can run the
+chain along one row and then back along the row above it. The zone after the
+last zone of a row is then the zone above it, not the zone at the start of the
+next row. A client that paints a grid must reverse every second row there, or
+every second row moves the other way. Paint one column to see which layout a
+unit has: the right one draws a straight line, and the other draws a zigzag.
+The layout is a property of the unit — record it in `devices/<SKU>.yaml`.
+
 ### 2.4 Music mode — host-side, nothing to discover on the device
 
 The vendor's desktop app captures audio, computes a spectrum, groups the LEDs

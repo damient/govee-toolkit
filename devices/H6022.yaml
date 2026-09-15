@@ -235,6 +235,10 @@ measurements:
                             # above draw nothing and report nothing
   segment_grid: [12, 11]    # 12 LEDs around one ring, 11 rings up the cylinder
   zone_0_end: "base"        # zone 0 at the base, the last zone at the top
+  segment_chain: "snake"    # the chain folds back at each ring: zone 12 is the
+                            # LED above zone 11, not the one above zone 0. A
+                            # client that paints every ring the same way moves
+                            # every second ring backwards
   ble:
     zone_mask_width: 15     # what AA 0F answers, against the 132 LEDs. One
                             # zone is 8.8 LEDs, so no zone covers a whole ring
@@ -242,7 +246,7 @@ measurements:
 verified:
   by: "damient"
   firmware: "1.03.08"
-  date: "2026-09-13"
+  date: "2026-09-15"
   notes: >-
     lan mode exercised over UDP on one unit, through the Rust CLI. The unit
     answers the multicast discovery. Power, brightness, color and the white
@@ -278,6 +282,11 @@ verified:
     One zone is one LED. Zone 124 and zone 131 light two different LEDs, and
     each index from 124 to 131 lights one. The grid is 12 LEDs around one ring
     and 11 rings up the cylinder.
+
+    The chain folds back at each ring: zone 12 is the LED above zone 11. One
+    column of the grid reads as a straight vertical line where every second
+    ring is reversed, and as a zigzag where every ring carries the same
+    direction. A frame that paints a grid must reverse every second ring.
 
     Trap: the diffuser blurs the edge between two zones, so this unit reports
     nothing about the `gradient` byte to the eye. Every frame above was sent
