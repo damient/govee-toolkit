@@ -249,6 +249,38 @@ pub enum Error {
     },
 }
 
+/// What kind of failure an [`Error`] is. A binding maps this to the exception
+/// or the error class it raises, so a caller can catch a family without a
+/// match on every code.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum Category {
+    /// The command could not be built. Nothing was sent.
+    Codec,
+    /// A mode failed to carry the command, or the device refused it.
+    Transport,
+    /// The configuration is unreadable, or it enables what cannot work.
+    Config,
+}
+
+impl Category {
+    /// A stable, language-neutral name: `codec`, `transport` or `config`.
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Codec => "codec",
+            Self::Transport => "transport",
+            Self::Config => "config",
+        }
+    }
+}
+
+impl std::fmt::Display for Category {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Result alias for this crate.
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -294,6 +326,39 @@ impl Error {
             Self::Env { .. } => "env",
             Self::ProvisionRefused { .. } => "provision_refused",
             Self::LocalDevices { .. } => "local_devices",
+        }
+    }
+
+    /// The family this failure belongs to.
+    ///
+    /// The rule: a command that never reached the wire is
+    /// [`Category::Codec`], a link that failed is [`Category::Transport`],
+    /// and a setting that cannot work is [`Category::Config`].
+    #[must_use]
+    pub fn category(&self) -> Category {
+        match self {
+            Self::Codec(_)
+            | Self::NoRoleCommand { .. }
+            | Self::NoRoleArg { .. }
+            | Self::ZoneCountUnknown { .. }
+            | Self::ZoneCountMismatch { .. }
+            | Self::ColorCountMismatch { .. }
+            | Self::ZoneListColorCount { .. }
+            | Self::ResolutionNotDistinct { .. }
+            | Self::ZoneOutOfRange { .. }
+            | Self::NativeZonesUnreachable { .. }
+            | Self::ZoneCountUnsupported { .. }
+            | Self::ZoneMaskUnbounded { .. }
+            | Self::StreamRateOutOfRange { .. } => Category::Codec,
+            Self::Transport(_) | Self::NoModeAvailable { .. } | Self::ProvisionRefused { .. } => {
+                Category::Transport
+            }
+            Self::Config { .. }
+            | Self::Configuration(_)
+            | Self::ModeNotImplemented { .. }
+            | Self::MissingCredential { .. }
+            | Self::Env { .. }
+            | Self::LocalDevices { .. } => Category::Config,
         }
     }
 }
