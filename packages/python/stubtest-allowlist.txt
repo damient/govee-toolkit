@@ -1,9 +1,0 @@
-# What `mypy.stubtest` must not report. One entry per line, a regular
-# expression over the fully qualified name. Keep the reason with the entry.
-#
-# The type aliases exist for a reader and for a type checker. The extension
-# module builds no object for them, so stubtest sees a stub-only name.
-govee_toolkit._govee_toolkit.Arg
-govee_toolkit._govee_toolkit.Color
-govee_toolkit._govee_toolkit.Rate
-govee_toolkit._govee_toolkit.Resolution

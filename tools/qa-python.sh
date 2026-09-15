@@ -68,8 +68,7 @@ python_tests() {
 # reads the stubs the wheel carries and not the ones in the tree.
 python_stubs() {
   unpack_wheel || return 1
-  PYTHONPATH="$py/$unpacked" python3 -m mypy.stubtest govee_toolkit \
-    --allowlist stubtest-allowlist.txt --concise
+  PYTHONPATH="$py/$unpacked" python3 -m mypy.stubtest govee_toolkit --concise
 }
 
 # ruff and mypy read the sources, not the built module, so they run whether or
