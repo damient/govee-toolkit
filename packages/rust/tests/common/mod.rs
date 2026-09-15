@@ -83,7 +83,22 @@ impl Rig {
 
         let govee = Govee::attach(config, catalog, [Arc::new(transport) as Arc<_>])
             .expect("the configuration applies");
-        govee.scan().await.expect("the scan goes out");
+        // A scan is one UDP request that nothing retries, and the window above
+        // is short. A loaded host can starve the simulator's task for the whole
+        // window, which leaves the device unknown and fails a later send with
+        // `UnknownDevice`. Ask again rather than widen the window: the rig is
+        // ready as soon as one reply lands.
+        let deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            let found = govee.scan().await.expect("the scan goes out");
+            if found.iter().any(|device| device.id == id()) {
+                break;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "the simulator answered no scan in 10s"
+            );
+        }
         Self { govee, simulator }
     }
 }
