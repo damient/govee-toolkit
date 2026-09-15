@@ -28,6 +28,9 @@ releases apart and keeps
   which is the `type` the serialized form carries.
 - `codec::Command::declared()` — the arguments an entry declares, for a message
   that names them.
+- `serde::Serialize` on `Config` and every type it holds, so a binding hands the
+  whole configuration to a caller. `Config::env` is skipped: an API key comes
+  from the environment and never serializes.
 - `VERSION` — the version of this crate. A binding reports the core it was
   built from without a copy of the number.
 - `codec::coerce` — reads one value under the type a device file declares, from
