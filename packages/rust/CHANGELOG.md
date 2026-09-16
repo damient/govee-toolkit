@@ -7,6 +7,8 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.10.0] — 2026-09-16
+
 ### Added
 
 - The `transport` cargo feature — the facade, which every mode turns on. It
@@ -34,14 +36,14 @@ releases apart and keeps
 
 ### Changed
 
+- **Breaking:** the zone ceiling is one rule over what the mode paints, so it
+  covers a whole-frame mode too. A stated count past the bound of the paint
+  command's color list, and `Resolution::Native` past it, are refused with
+  `zone_count_unsupported`. Ask for `Resolution::App`, which falls to that
+  bound.
 - The `status` event carries the color and the white temperature. Its record
   and its line are the ones `DeviceStatus` renders, so an event and a `status`
   command report the same fields.
-- The zone ceiling is one rule over what the mode paints, so it covers a
-  whole-frame mode too. `Resolution::App` falls to the bound of the paint
-  command's color list where the device file states more zones than the list
-  carries. A count the caller states, and `Resolution::Native`, are refused
-  with `zone_count_unsupported` rather than reaching the codec.
 
 ## [0.9.0] — 2026-09-15
 
