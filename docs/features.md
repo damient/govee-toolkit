@@ -31,9 +31,9 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 
 | | Feature |
 | --- | ------- |
-| ✅ | **`lan`** — power, brightness, color and color temperature over UDP, plus per-segment color |
-| ✅ | **`ble`** — power, brightness, color, color temperature and music over GATT, plus per-zone color. Off-network, within radio range, behind the `ble` cargo feature |
-| ✅ | **`cloud`** — the documented HTTPS API, behind the `cloud` cargo feature. Reaches any device the account owns, throttled, with segments and music where the account list declares them. No segment stream |
+| ✅ | **`lan`** — the undocumented UDP protocol on the local network. Reaches a device on the same network, with no cloud round-trip |
+| ✅ | **`ble`** — GATT over Bluetooth Low Energy, behind the `ble` cargo feature. Reaches a device off the network, within radio range |
+| ✅ | **`cloud`** — the documented HTTPS API, behind the `cloud` cargo feature. Reaches any device the account owns |
 
 ## SDKs
 
