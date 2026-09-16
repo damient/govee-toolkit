@@ -5,6 +5,20 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+## [0.5.0] — 2026-09-16
+
+### Changed
+
+- **Breaking:** `stream` and `segment` refuse a zone count past what the mode
+  paints, and `--resolution native` where the mode's color list is shorter
+  than the unit's pixels, with `zone_count_unsupported`. Ask for
+  `--resolution app`.
+- A `status` record under `watch --json` carries `color` as `#RRGGBB`,
+  `color_temp_kelvin` and `raw`. It reports what `status --json` reports, so
+  the two surfaces agree on one reply.
+- `send`, `status` and `stream` resolve the mode, the SKU and the device file
+  once per command. A command reads its arguments and sends over one mode.
+
 ## [0.4.0] — 2026-09-15
 
 ### Changed

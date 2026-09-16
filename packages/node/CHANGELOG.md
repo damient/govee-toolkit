@@ -4,7 +4,7 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
-## [0.1.0]
+## [0.1.0] — 2026-09-16
 
 The first version that carries code. The version on npm before it is a `0.0.0`
 placeholder that holds the name.
@@ -53,8 +53,9 @@ placeholder that holds the name.
   `catalog.device()` returns a whole resolved device file.
 - `Device`, `DeviceStatus`, `Health`, `Reply` and `Served` — the values the
   calls above return.
-- An event is an object keyed by `event`, and a `status` event carries `on` and
-  `brightness` directly. `govee watch --json` prints the same records.
+- An event is an object keyed by `event`, and a `status` event carries `on`,
+  `brightness`, `color` and `color_temp_kelvin` directly. `govee watch --json`
+  prints the same records.
 - Every call that reaches a device returns a promise, and the core's Tokio
   runtime runs under it. There is no synchronous wrapper.
 - Every failure is an `Error` carrying `code`, the stable identifier the core

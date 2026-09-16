@@ -4,8 +4,16 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.2.0] — 2026-09-16
+
 ### Changed
 
+- **Breaking:** `segment()` and `open_stream()` refuse a zone count past what
+  the mode paints, and `resolution="native"` where the mode's color list is
+  shorter than the unit's pixels, with `zone_count_unsupported`. Pass
+  `resolution="app"`, which falls to that bound.
+- A `status` event carries `color` as `#RRGGBB`, `color_temp_kelvin` and
+  `raw`, so the event reports what `DeviceStatus` reports.
 - `send()` and `read()` resolve the mode, the SKU and the device file once per
   call. The record `send()` answers names the mode the bytes went over.
 

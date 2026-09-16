@@ -8,7 +8,7 @@ name = "govee-toolkit"
 # The number is written here and not taken from Cargo.toml:
 # `tools/release-notes.sh` reads this line to check the tag, the manifest and
 # the changelog against each other. Raise it here and in Cargo.toml together.
-version = "0.1.0"
+version = "0.2.0"
 description = "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them."
 authors = [{ name = "damient" }]
 readme = "README.md"
