@@ -87,10 +87,12 @@ jobs:
         working-directory: packages/node
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Do not set `registry-url`: it writes an `_authToken` that expands to an
+      # empty string, and npm then skips the OIDC exchange and answers 403.
+      # npmjs.org is the default registry, so the publish reaches it anyway.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
-          registry-url: "https://registry.npmjs.org"
       # Trusted publishing needs npm 11.5.1 or newer; node 24 ships past that.
       - name: Release notes
         if: github.event_name == 'push'
