@@ -25,8 +25,9 @@ pages so that the header, the footer and the device tables exist once.
 
 ## Build
 
-The devices page reads `../dist/catalog.json`, which `xtask` generates from
-`devices/*.yaml`. Generate it first:
+The build needs Node 26 or later. The devices page reads
+`../dist/catalog.json`, which `xtask` generates from `devices/*.yaml`.
+Generate it first:
 
 ```bash
 npm run catalog
