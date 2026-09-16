@@ -1,5 +1,5 @@
 {
-  "intro": "Every command the toolkit carries, with the same action in each language. Python and Node.js bind to the same core. The Node.js package is written and not released yet.",
+  "intro": "Every command the toolkit carries, with the same action in each language. Python and Node.js bind to the same core.",
   "groups": [
     {
       "id": "find",
