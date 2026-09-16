@@ -41,21 +41,16 @@
 .card:nth-child(3)::before { animation-delay: -2.2s; }
 .card:nth-child(4)::before { animation-delay: -3.3s; }
 .card:hover { background: var(--panel-2); }
-.card-head {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin-bottom: .45em;
-}
 .card > h3 { margin: 0 0 .45em; }
-.card-head h3 { margin: 0; }
-.card-head .state { flex: none; font-size: 10px; padding: 4px 6px; letter-spacing: .08em; }
 .card p { color: var(--muted); font-size: .95rem; margin: 0; }
-.state {
-  font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
-  padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line-strong);
-  color: var(--muted);
+
+/* The mark rides beside the words, so the text keeps room for it. */
+.card.marked > h3, .card.marked p { padding-right: 104px; }
+.card-mark {
+  position: absolute; top: 50%; right: 30px; transform: translateY(-50%);
+  width: 40px; height: 40px; color: var(--muted); opacity: .8;
 }
-.state.ok { color: var(--ok); border-color: color-mix(in oklab, var(--ok) 40%, transparent); }
-.state.soon { color: var(--soon); border-color: color-mix(in oklab, var(--soon) 40%, transparent); }
+.card.marked:hover .card-mark { color: var(--accent); opacity: 1; }
 
 /* --- Modes -------------------------------------------------------------- */
 
@@ -68,6 +63,12 @@
   background: var(--panel); border: 1px solid var(--line); border-left: 0;
 }
 .mode-card h3 { margin-bottom: .75em; }
+/* The badge is the heading of its card, so it is drawn larger than the one a
+   table row carries. */
+.mode-card h3 .mbadge {
+  gap: 9px; padding: 8px 16px 8px 13px; font-size: 16px; letter-spacing: .05em;
+}
+.mode-card h3 .mode-icon { width: 19px; height: 19px; }
 .mode-card .tag { font: 500 12px/1 var(--mono); letter-spacing: .06em; color: var(--muted); margin-bottom: 1em; }
 .mode-card p:last-child { color: var(--muted); font-size: .95rem; margin: 0; }
 /* The card accent is the tint of the badge it carries. */
@@ -76,6 +77,11 @@
 .mode-card.cloud { --accent: var(--accent-violet); }
 .mode-card.ble::before { animation-delay: -1.5s; }
 .mode-card.cloud::before { animation-delay: -3s; }
+/* The link that closes a section stands under its cards, on their center. */
+#languages .btn, .slab.modes .btn {
+  display: block; width: fit-content; margin-inline: auto;
+}
+#languages .btn { margin-top: 2.2em; }
 
 
 /* --- Page head ---------------------------------------------------------- */

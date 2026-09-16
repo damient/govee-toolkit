@@ -67,7 +67,6 @@
   --azure: light-dark(#1f5bc4, #7aa2ff);
 
   --ok: light-dark(#0d7a6e, #45e3d0);
-  --soon: light-dark(#8a5a05, #ffb35c);
 
   /* The code surface. It carries its own line, dim and strong-line tokens,
      because every rule that draws on it must follow the ground it sits on. */
