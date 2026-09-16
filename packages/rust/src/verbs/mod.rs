@@ -101,7 +101,7 @@ impl<'a> DeviceHandle<'a> {
 /// One entry of a device file, on the mode that carries it. It holds the
 /// resolution the entry was read under, so the send does not resolve twice.
 pub(crate) struct RoleEntry<'a> {
-    pub(crate) call: Resolved<'a>,
+    call: Resolved<'a>,
     pub(crate) command: String,
     spec: &'a Command,
 }
@@ -117,6 +117,12 @@ impl<'a> RoleEntry<'a> {
 
     pub(crate) fn device(&self) -> &'a Device {
         self.call.spec()
+    }
+
+    /// Send another command of the same device file, under the resolution
+    /// this entry was read with.
+    pub(crate) async fn send_command(&self, command: &str, args: &Args) -> Result<Served> {
+        self.call.send(command, args).await
     }
 
     /// [`Error::NoRoleArg`] where the entry marks no such argument.
