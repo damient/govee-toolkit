@@ -16,6 +16,14 @@ releases apart and keeps
   `status()` and `answers()`, plus the mode, the SKU and the device file entry
   it was read under.
 
+### Changed
+
+- The zone ceiling is one rule over what the mode paints, so it covers a
+  whole-frame mode too. `Resolution::App` falls to the bound of the paint
+  command's color list where the device file states more zones than the list
+  carries. A count the caller states, and `Resolution::Native`, are refused
+  with `zone_count_unsupported` rather than reaching the codec.
+
 ## [0.9.0] — 2026-09-15
 
 ### Added

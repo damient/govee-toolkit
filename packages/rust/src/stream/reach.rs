@@ -10,28 +10,36 @@ pub struct Reach {
     pub native: bool,
 }
 
-/// What the mode's painting command reaches, read off the device file. The
-/// zone count is the bound of the color list where one frame states every
-/// zone, and the bound of the mask where the frame names the zones it paints.
+/// What the mode's painting command reaches, read off the device file. `None`
+/// where the mode paints no zones, or where the file bounds the paint by
+/// nothing.
 #[must_use]
 pub fn reach(device: &Device, mode: Mode) -> Option<Reach> {
-    let native = device.capabilities.native_pixels();
-    match painter(device, mode, false).ok()? {
+    let painter = painter(device, mode, false).ok()?;
+    let zones = ceiling(device, mode, &painter)?;
+    let native = match painter {
+        Painter::Whole { .. } => device
+            .capabilities
+            .native_pixels()
+            .and_then(|pixels| usize::try_from(pixels).ok())
+            .is_some_and(|pixels| pixels <= zones),
+        Painter::Masked { .. } => false,
+    };
+    Some(Reach { zones, native })
+}
+
+/// How many zones one paint carries over `mode`.
+///
+/// The bound of the color list where one frame states every zone, and the
+/// bound of the mask where the frame names the zones it paints. `None` where
+/// the file bounds the color list by nothing, and the paint then carries what
+/// the caller states.
+pub(crate) fn ceiling(device: &Device, mode: Mode, painter: &Painter) -> Option<usize> {
+    match painter {
         Painter::Whole {
             command, colors, ..
-        } => {
-            let zones = color_limit(device, mode, &command, &colors)?;
-            Some(Reach {
-                zones,
-                native: native
-                    .and_then(|pixels| usize::try_from(pixels).ok())
-                    .is_some_and(|pixels| pixels <= zones),
-            })
-        }
-        Painter::Masked { limit, .. } => Some(Reach {
-            zones: limit,
-            native: false,
-        }),
+        } => color_limit(device, mode, command, colors),
+        Painter::Masked { limit, .. } => Some(*limit),
     }
 }
 
@@ -48,6 +56,11 @@ mod tests {
 
     use super::*;
     use crate::codec::Catalog;
+    use crate::stream::resolve::plan;
+    use crate::stream::{Resolution, StreamOptions};
+
+    const NARROW_MASK: &str = include_str!("../../tests/fixtures/narrow-mask.yaml");
+    const NARROW_COLORS: &str = include_str!("../../tests/fixtures/narrow-colors.yaml");
 
     #[test]
     fn a_whole_frame_mode_reaches_every_led_of_this_unit() {
@@ -74,5 +87,53 @@ mod tests {
         let catalog = Catalog::embedded().expect("the catalog parses");
         let device = catalog.device("H6114").expect("the SKU resolves");
         assert_eq!(reach(device, Mode::Lan), None);
+    }
+
+    #[test]
+    fn the_app_count_falls_to_the_width_of_the_mask() {
+        let catalog = Catalog::from_sources([("narrow-mask.yaml", NARROW_MASK)])
+            .expect("the device file parses");
+        let device = catalog.device("HTEST5").expect("the SKU resolves");
+        let planned = |resolution| {
+            plan(
+                device,
+                Mode::Ble,
+                &StreamOptions {
+                    resolution,
+                    ..StreamOptions::default()
+                },
+            )
+        };
+
+        assert_eq!(planned(Resolution::App).unwrap().zones, 15);
+
+        let error = planned(Resolution::Exact(132)).expect_err("the mask names 15");
+        assert_eq!(error.code(), "zone_count_unsupported");
+    }
+
+    #[test]
+    fn a_whole_frame_mode_carries_no_more_than_its_color_list() {
+        let catalog = Catalog::from_sources([("narrow-colors.yaml", NARROW_COLORS)])
+            .expect("the device file parses");
+        let device = catalog.device("HTEST6").expect("the SKU resolves");
+        let planned = |resolution| {
+            plan(
+                device,
+                Mode::Lan,
+                &StreamOptions {
+                    resolution,
+                    ..StreamOptions::default()
+                },
+            )
+        };
+
+        // 40 zones on the unit, 20 colors in one frame.
+        assert_eq!(planned(Resolution::App).unwrap().zones, 20);
+        assert_eq!(planned(Resolution::Exact(20)).unwrap().zones, 20);
+
+        for resolution in [Resolution::Native, Resolution::Exact(24)] {
+            let error = planned(resolution).expect_err("the frame carries 20");
+            assert_eq!(error.code(), "zone_count_unsupported");
+        }
     }
 }
