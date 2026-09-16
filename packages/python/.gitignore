@@ -1,4 +1,5 @@
 target/
+sweep.timestamp
 # The extension module maturin builds into the package directory.
 govee_toolkit/*.so
 govee_toolkit/*.pyd

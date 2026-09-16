@@ -1,3 +1,4 @@
 target/
+sweep.timestamp
 # The native addon napi builds into the package directory.
 *.node
