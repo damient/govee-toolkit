@@ -5,15 +5,12 @@
 
 use std::collections::BTreeMap;
 
+use govee_toolkit::summary::{Style, Summary};
 use govee_toolkit::transport::{Health as CoreHealth, Reply as CoreReply};
 use govee_toolkit::{Device as CoreDevice, DeviceStatus as CoreStatus, Served as CoreServed};
 use pyo3::prelude::*;
 
 use crate::conv::to_py;
-
-fn python_bool(value: bool) -> &'static str {
-    if value { "True" } else { "False" }
-}
 
 /// A device's health in one mode.
 #[pyclass(frozen, skip_from_py_object, module = "govee_toolkit", name = "Health")]
@@ -43,12 +40,7 @@ impl Health {
     }
 
     fn __repr__(&self) -> String {
-        format!(
-            "Health(state='{}', failures={}, available={})",
-            self.state(),
-            self.failures(),
-            python_bool(self.available())
-        )
+        self.inner.summary(Style::Python)
     }
 }
 
@@ -103,7 +95,7 @@ impl Device {
     }
 
     fn __repr__(&self) -> String {
-        format!("Device(id='{}', sku='{}')", self.id(), self.inner.sku)
+        self.inner.summary(Style::Python)
     }
 }
 
@@ -147,12 +139,7 @@ impl Served {
     }
 
     fn __repr__(&self) -> String {
-        format!(
-            "Served(id='{}', mode='{}', command='{}')",
-            self.id(),
-            self.mode(),
-            self.inner.command
-        )
+        self.inner.summary(Style::Python)
     }
 }
 
@@ -220,8 +207,7 @@ impl DeviceStatus {
     }
 
     fn __repr__(&self) -> String {
-        let on = self.inner.on.map_or("None", python_bool);
-        format!("DeviceStatus(id='{}', on={on})", self.id())
+        self.inner.summary(Style::Python)
     }
 }
 
@@ -254,7 +240,7 @@ impl Reply {
     }
 
     fn __repr__(&self) -> String {
-        format!("Reply(id='{}')", self.id())
+        self.inner.summary(Style::Python)
     }
 }
 

@@ -5,21 +5,9 @@
 //! to. Match on `code` rather than on the message: the message is written for
 //! a person and can change.
 
-use govee_toolkit::{Category, Error};
+use govee_toolkit::Error;
 use napi::bindgen_prelude::{Function, JsObjectValue, Object, Unknown};
 use napi::{Env, JsValue};
-
-/// The name a failure of this family carries. `Category` is
-/// `#[non_exhaustive]`: a family this build does not know reaches JavaScript
-/// as the base name, never as the wrong one.
-fn family(error: &Error) -> &'static str {
-    match error.category() {
-        Category::Codec => "CodecError",
-        Category::Transport => "TransportError",
-        Category::Config => "ConfigError",
-        _ => "GoveeError",
-    }
-}
 
 /// Build one JavaScript error object.
 ///
@@ -44,7 +32,13 @@ fn build(env: &Env, constructor: &str, name: &str, code: &str, message: String) 
 
 /// A core failure, as the error JavaScript sees.
 pub(crate) fn to_js(env: &Env, error: &Error) -> napi::Error {
-    build(env, "Error", family(error), error.code(), error.to_string())
+    build(
+        env,
+        "Error",
+        error.category().class_name(),
+        error.code(),
+        error.to_string(),
+    )
 }
 
 /// Hand a core result to JavaScript.

@@ -263,6 +263,9 @@ pub enum Category {
 }
 
 impl Category {
+    /// The name of the class every failure belongs to, whatever its category.
+    pub const BASE_CLASS: &'static str = "GoveeError";
+
     /// A stable, language-neutral name.
     #[must_use]
     pub fn as_str(self) -> &'static str {
@@ -270,6 +273,17 @@ impl Category {
             Self::Codec => "codec",
             Self::Transport => "transport",
             Self::Config => "config",
+        }
+    }
+
+    /// The name a binding gives the error class of this category. Every
+    /// binding raises the same name for the same failure.
+    #[must_use]
+    pub fn class_name(self) -> &'static str {
+        match self {
+            Self::Codec => "CodecError",
+            Self::Transport => "TransportError",
+            Self::Config => "ConfigError",
         }
     }
 }

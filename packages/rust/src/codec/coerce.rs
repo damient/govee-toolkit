@@ -91,7 +91,7 @@ pub fn read(command: &str, arg: &str, spec: &ArgSpec, value: Supplied) -> Result
 
         (ArgSpec::RgbList { .. }, Supplied::Colors(list)) => Ok(ArgValue::Rgb(list)),
         (ArgSpec::RgbList { .. }, Supplied::Ints(channels)) => {
-            triple(command, arg, &channels).map(|color| ArgValue::Rgb(vec![color]))
+            one_color(command, arg, &channels).map(|color| ArgValue::Rgb(vec![color]))
         }
         (ArgSpec::RgbList { .. }, Supplied::Text(text)) => colors(&text)
             .map(ArgValue::Rgb)
@@ -165,26 +165,57 @@ fn zone(command: &str, arg: &str, index: i64) -> Result<u16> {
         .map_err(|_| syntax(command, arg, "a zone index, zero-based", &index.to_string()))
 }
 
-fn triple(command: &str, arg: &str, channels: &[i64]) -> Result<[u8; 3]> {
-    let shown = || {
-        channels
-            .iter()
-            .map(i64::to_string)
-            .collect::<Vec<_>>()
-            .join(", ")
-    };
+fn one_color(command: &str, arg: &str, channels: &[i64]) -> Result<[u8; 3]> {
+    triple(channels).map_err(|refused| match refused {
+        NotAColor::Channels { .. } => {
+            let shown = channels
+                .iter()
+                .map(i64::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
+            syntax(command, arg, "one color, as three channels", &shown)
+        }
+        NotAColor::Channel { value } => {
+            syntax(command, arg, "a channel from 0 to 255", &value.to_string())
+        }
+    })
+}
+
+/// A list of channels that is not one color.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
+pub enum NotAColor {
+    /// The list does not hold three channels.
+    #[error("a color carries 3 channels, not {count}")]
+    Channels {
+        /// How many the list holds.
+        count: usize,
+    },
+    /// One channel is outside a byte.
+    #[error("{value} is outside a color channel's 0-255")]
+    Channel {
+        /// The channel that was supplied.
+        value: i64,
+    },
+}
+
+/// Read one color from three channels.
+///
+/// A binding reads a color this way, so every language refuses the same lists
+/// with the same words.
+///
+/// # Errors
+///
+/// [`NotAColor`] where the list does not hold three channels, or one channel
+/// is outside 0-255.
+pub fn triple(channels: &[i64]) -> std::result::Result<[u8; 3], NotAColor> {
     let [red, green, blue] = channels else {
-        return Err(syntax(
-            command,
-            arg,
-            "one color, as three channels",
-            &shown(),
-        ));
+        return Err(NotAColor::Channels {
+            count: channels.len(),
+        });
     };
-    let channel = |value: &i64| {
-        u8::try_from(*value)
-            .map_err(|_| syntax(command, arg, "a channel from 0 to 255", &value.to_string()))
-    };
+    let channel =
+        |value: &i64| u8::try_from(*value).map_err(|_| NotAColor::Channel { value: *value });
     Ok([channel(red)?, channel(green)?, channel(blue)?])
 }
 
@@ -300,6 +331,21 @@ mod tests {
         assert!(read_it(&rgb_list(), Supplied::Ints(vec![255, 0])).is_err());
         assert!(read_it(&rgb_list(), Supplied::Ints(vec![300, 0, 0])).is_err());
         assert!(read_it(&zones_spec(), Supplied::Int(-1)).is_err());
+    }
+
+    #[test]
+    fn a_color_reads_from_three_channels_and_says_what_is_wrong() {
+        let refused = |channels: &[i64]| triple(channels).err().map(|e| e.to_string());
+
+        assert_eq!(triple(&[255, 0, 0]), Ok([255, 0, 0]));
+        assert_eq!(
+            refused(&[255, 0]).as_deref(),
+            Some("a color carries 3 channels, not 2")
+        );
+        assert_eq!(
+            refused(&[300, 0, 0]).as_deref(),
+            Some("300 is outside a color channel's 0-255")
+        );
     }
 
     #[test]

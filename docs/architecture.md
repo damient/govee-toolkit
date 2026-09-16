@@ -101,14 +101,17 @@ whole send path with no Bluetooth on the machine.
 
 A binding reads Python or JavaScript values, calls the crate and hands back
 what the crate answered. Nothing else lives there: no command name, no mode
-name, no default value and no record shape. Where a surface must print an
-answer, the crate builds the record — `Event::to_json` for an event,
-`describe` for a device file — so the CLI, the bindings and an application read
-one shape. Where a surface must read a value, the crate reads it:
-`DeviceHandle::args` takes what a caller supplied and reads it under the types
-the device file declares. A surface that reads values and then sends holds one
-`DeviceHandle::resolve`, so the mode, the SKU and the device file are read once
-and the bytes go over the mode the values were read for.
+name, no default value, no record shape and no error class name. Where a
+surface must print an answer, the crate builds it — `Event::to_json` for an
+event, `describe` for a device file, `summary::Summary` for the line a binding
+prints beside a value — so the CLI, the bindings and an application read one
+shape. `Category::class_name` names the error class a binding raises, so one
+failure carries one name in every language. Where a surface must read a value,
+the crate reads it: `DeviceHandle::args` takes what a caller supplied and reads
+it under the types the device file declares, and `codec::coerce::triple` reads
+one color from three channels. A surface that reads values and then sends
+holds one `DeviceHandle::resolve`, so the mode, the SKU and the device file are
+read once and the bytes go over the mode the values were read for.
 
 - **Node** — `napi-rs`, in `packages/node`: the facade as a promise-based API,
   in one prebuilt addon per platform. The runners build Linux and Windows on

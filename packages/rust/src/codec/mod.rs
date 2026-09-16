@@ -52,7 +52,7 @@ pub use catalog::{
     Modes, Role, Support, UnknownMode,
 };
 pub use chunk::Chunk;
-pub use coerce::Supplied;
+pub use coerce::{NotAColor, Supplied};
 pub use command::{Encoded, encode};
 pub use error::{Error, Result};
 pub use exchange::{Exchange, Exchanges, Step};
