@@ -96,7 +96,7 @@ function row(d) {
  * Builds the page of one model. The caller emits it: this returns the URL, the
  * title, the description and the body, and never touches the file system.
  */
-export function devicePage(d) {
+export function devicePage(d, reference) {
   const modes = MODES.map((m) => `${m} ${support(d, m)}`).join(", ");
   const verified = d.verified?.date
     ? `Verified on ${d.verified.date}.`
@@ -105,12 +105,12 @@ export function devicePage(d) {
     url: `devices/${d.sku}/`,
     title: `${d.sku} — ${d.name}`,
     description: `What govee-toolkit reaches on the ${d.sku} (${d.name}): ${modes}. ${verified}`,
-    body: pageBody(d),
+    body: pageBody(d, reference),
     breadcrumb: [["Devices", "devices/"], [d.sku, `devices/${d.sku}/`]],
   };
 }
 
-function pageBody(d) {
+function pageBody(d, reference) {
   const title = d.name ? `${d.sku} — ${escapeHtml(d.name)}` : d.sku;
 
   return `<section class="pagehead">
@@ -130,7 +130,7 @@ function pageBody(d) {
     <article class="prose">
       ${capabilities(d)}
       ${modeSections(d)}
-      ${usage(d)}
+      ${usage(d, reference)}
       ${aliases(d)}
       <div class="endgrid">
         <section>${verification(d)}</section>

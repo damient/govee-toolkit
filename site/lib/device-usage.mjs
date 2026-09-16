@@ -2,19 +2,19 @@
 // device file serves, with the bounds of this model and the same action in
 // each language.
 //
+// The actions are the entries of `content/reference.json` that carry a
+// `roles:` and an `action:`. The reference page renders those same entries
+// with the generic values, so the two pages cannot drift.
+//
 // Nothing here names a model or a command the device file declares. An action
 // reaches the device file through a `role:`, which is what the command line
 // already names, and every number comes from the catalog.
 
 import { MODES } from "./config.mjs";
+import { examples } from "./examples.mjs";
 import { escapeAttr, escapeHtml } from "./html.mjs";
 import { langBlock } from "./languages.mjs";
 import { modeBadge, modeMark } from "./mode-badge.mjs";
-
-// The identity a reader replaces with their own.
-const ID = "DEVICE";
-const HEX = "#ff3d00";
-const RGB = "255, 61, 0";
 
 /** Collects the roles the device file serves, and where each argument is
  * bounded. One role can hold a different range in each mode. */
@@ -75,7 +75,7 @@ const boundsList = (rows) => (rows.length ? `<ul class="bounds">${rows.join("")}
 // range, and hold one row each where they do not.
 function bounds(entry, args) {
   const rows = [];
-  for (const [role, label] of args) {
+  for (const [label, role] of Object.entries(args)) {
     const byMode = entry.ranges.get(role);
     if (!byMode?.size) continue;
     const forms = new Set([...byMode.values()].map((r) => `${r[0]}–${r[1]}`));
@@ -93,169 +93,66 @@ function bounds(entry, args) {
 
 const zones = (device) => device.capabilities?.segments ?? null;
 
-const ACTIONS = [
-  {
-    id: "power",
-    title: "Turn it on and off",
-    roles: ["power"],
-    examples: () => ({
-      cli: `govee on ${ID}\ngovee off ${ID}`,
-      rust: "device.power(true).await?;",
-      python: "await device.power(True)",
-      node: "await device.power(true)",
-    }),
-  },
-  {
-    id: "brightness",
-    title: "Set the brightness",
-    roles: ["brightness"],
-    args: [["brightness", "level"]],
-    examples: (entry) => {
-      const level = pick(entry, "brightness", 50);
-      return {
-        cli: `govee brightness ${ID} ${level}`,
-        rust: `device.brightness(${level}).await?;`,
-        python: `await device.brightness(${level})`,
-        node: `await device.brightness(${level})`,
-      };
-    },
-  },
-  {
-    id: "color",
-    title: "Set one color",
-    roles: ["color"],
-    examples: () => ({
-      cli: `govee color ${ID} "${HEX}"`,
-      rust: `device.color([${RGB}]).await?;`,
-      python: `await device.color((${RGB}))`,
-      node: `await device.color([${RGB}])`,
-    }),
-  },
-  {
-    id: "colortemp",
-    title: "Set the white temperature",
-    summary: "White and color are mutually exclusive: this ends the color the device shows.",
-    roles: ["color_temp"],
-    args: [["color_temp", "kelvin"]],
-    examples: (entry) => {
-      const kelvin = pick(entry, "color_temp", 4000);
-      return {
-        cli: `govee colortemp ${ID} ${kelvin}`,
-        rust: `device.color_temp(${kelvin}).await?;`,
-        python: `await device.color_temp(${kelvin})`,
-        node: `await device.colorTemp(${kelvin})`,
-      };
-    },
-  },
-  {
-    id: "segment",
-    title: "Paint the zones",
-    roles: ["segment_color", "segment_color_masked"],
-    extra: (device) => {
-      const seg = zones(device);
-      const items = [];
-      if (seg?.count) items.push(`<li><code>zones</code> ${seg.count}</li>`);
-      if (seg?.native_pixels) items.push(`<li><code>pixels</code> ${seg.native_pixels}</li>`);
-      return boundsList(items);
-    },
-    examples: (entry, device) => {
-      const seg = zones(device);
-      const masked = entry.has.has("segment_color_masked")
-        ? `\ngovee segment ${ID} --zones 0,1,2 "${HEX}"`
-        : "";
-      const native = seg?.native_pixels && seg.native_pixels !== seg.count
-        ? `\n# One color per pixel: ${seg.native_pixels} on this unit, in zone order.`
-          + `\ngovee segment ${ID} --resolution native "${HEX},#00a3ff,..."`
-        : "";
-      return {
-        cli: `govee segment ${ID} "${HEX}"${masked}${native}`,
-        rust: "device.segment(&Paint {\n"
-          + "    zones: None,\n    colors: &frame,\n"
-          + "    resolution: Resolution::default(),\n    gradient: false,\n}).await?;",
-        python: "await device.segment(colors=frame)",
-        node: "await device.segment(frame)",
-      };
-    },
-  },
-  {
-    id: "gradient",
-    title: "Interpolate between the zones",
-    summary: "The interpolation wraps from the last zone back to the first.",
-    roles: ["segment_gradient"],
-    examples: () => ({
-      cli: `govee gradient ${ID} on`,
-      rust: "device.gradient(true).await?;",
-      python: "await device.gradient(True)",
-      node: "await device.gradient(true)",
-    }),
-  },
-  {
-    id: "music",
-    title: "Play a music effect",
-    summary: "The device listens on its own microphone.",
-    roles: ["music"],
-    args: [["effect", "effect"], ["sensitivity", "sensitivity"]],
-    examples: (entry) => {
-      const effect = pick(entry, "effect", 3);
-      const level = pick(entry, "sensitivity", 60);
-      return {
-        cli: `govee music ${ID} ${effect} --sensitivity ${level}`,
-        rust: `device.music(&Music {\n    effect: ${effect},\n    sensitivity: ${level},\n`
-          + "    soft: false,\n    color: None,\n}).await?;",
-        python: `await device.music(effect=${effect}, sensitivity=${level})`,
-        node: `await device.music(${effect}, ${level})`,
-      };
-    },
-  },
-  {
-    id: "status",
-    title: "Read the state back",
-    roles: ["status"],
-    examples: () => ({
-      cli: `govee status ${ID}`,
-      rust: "let state = device.status().await?;",
-      python: "state = await device.status()",
-      node: "const state = await device.status()",
-    }),
-  },
-  {
-    id: "provision",
-    title: "Put it on a Wi-Fi network",
-    roles: ["wifi_provision", "wifi_provision_with_api"],
-    examples: () => ({
-      cli: `govee provision ${ID} --ssid my-network`,
-      rust: "device.provision_wifi(&credentials).await?;",
-      python: 'await device.provision_wifi("network name", "password")',
-      node: 'await device.provisionWifi("network name", "password")',
-    }),
-  },
-];
+// True where the unit renders more LEDs than it has zones, so a frame can
+// state one color per LED.
+function native(device) {
+  const seg = zones(device);
+  return Boolean(seg?.native_pixels) && seg.native_pixels !== seg.count;
+}
+
+function segments(device) {
+  const seg = zones(device);
+  const rows = [];
+  if (seg?.count) rows.push(`<li><code>zones</code> ${seg.count}</li>`);
+  if (seg?.native_pixels) rows.push(`<li><code>pixels</code> ${seg.native_pixels}</li>`);
+  return boundsList(rows);
+}
+
+// The values this unit puts in the placeholders, and the names it satisfies.
+// An `adds` block that asks for a name the unit misses stays out.
+function unit(item, entry, device) {
+  const values = {};
+  for (const [name, role] of Object.entries(item.args ?? {})) {
+    values[name] = pick(entry, role, item.values?.[name]);
+  }
+  const can = new Set(entry.has);
+  if (native(device)) can.add("native_pixels");
+  return { values, can };
+}
 
 // A badge marks the exception: an action every mode serves carries none.
-function block(action, entry, device) {
+function block(item, entry, device) {
+  const { action } = item;
   const served = MODES.filter((m) => entry.modes.has(m));
   const marks = served.length === MODES.length
     ? ""
     : `<span class="ref-modes">${served.map(modeBadge).join("")}</span>`;
   const summary = action.summary ? `<p class="summary">${escapeHtml(action.summary)}</p>` : "";
-  return `<article class="ref-entry" id="send-${escapeAttr(action.id)}">
+  const extra = action.segments ? segments(device) : "";
+  const { values, can } = unit(item, entry, device);
+  return `<article class="ref-entry" id="send-${escapeAttr(item.id)}">
             <div class="ref-text">
-              <h3><a class="anchor" href="#send-${escapeAttr(action.id)}">${escapeHtml(action.title)}</a>${marks}</h3>
-              ${summary}${action.extra?.(device) ?? ""}${bounds(entry, action.args ?? [])}
+              <h3><a class="anchor" href="#send-${escapeAttr(item.id)}">${escapeHtml(action.title)}</a>${marks}</h3>
+              ${summary}${extra}${bounds(entry, item.args ?? {})}
             </div>
-            ${langBlock(`send-${action.id}`, action.examples(entry, device))}
+            ${langBlock(`send-${item.id}`, examples(item, values, can))}
           </article>`;
 }
 
 /**
  * The section, or an empty string where the device file serves no action. The
- * caller places it: this returns markup and reads nothing but the catalog.
+ * caller places it: this returns markup and reads nothing but the catalog and
+ * the reference content.
  */
-export function usage(device) {
+export function usage(device, reference) {
   const roles = index(device);
-  const blocks = ACTIONS.map((action) => {
-    const entry = merge(roles, action.roles);
-    return entry ? block(action, entry, device) : "";
+  const actions = reference.groups
+    .flatMap((group) => group.entries)
+    .filter((item) => item.action)
+    .sort((a, b) => a.action.order - b.action.order);
+  const blocks = actions.map((item) => {
+    const entry = merge(roles, item.roles);
+    return entry ? block(item, entry, device) : "";
   }).filter(Boolean);
   if (!blocks.length) return "";
   return `<h2 id="send">What you can send</h2>

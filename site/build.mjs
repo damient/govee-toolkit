@@ -85,7 +85,7 @@ async function main() {
       body: page.render ? page.render(sources[at], devices) : sources[at],
     })),
     ...devices.map((device) => {
-      const page = devicePage(device);
+      const page = devicePage(device, reference);
       return {
         url: page.url,
         nav: "devices",

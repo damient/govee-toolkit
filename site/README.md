@@ -11,7 +11,7 @@ pages so that the header, the footer and the device tables exist once.
 | ---- | ------------- |
 | `src/layout.html` | The shell of every page. |
 | `src/pages/*.html` | The hand-written pages: home and devices. |
-| `content/reference.json` | The reference page: one entry per command, with an example in each language. |
+| `content/reference.json` | One entry per command, with an example in each language. It feeds the reference page and the "What you can send" section of every model page. |
 | `src/assets/css/*.css` | The stylesheet. `site.css` imports the rest. |
 | `src/assets/js/*.js` | The browser script. `site.js` wires the rest to the page. |
 | `src/assets/` | The fonts and the images. |
@@ -97,6 +97,48 @@ language:
 The menu, the anchors and the language tabs are generated. A language the
 build marks as planned carries a dot and a note, so a reader never takes a
 shape for a release. Leave a language out and its tab does not appear.
+
+## One entry on a model page
+
+A model page names the same entries under "What you can send". The entry
+reaches a device file through `roles:`, and `action:` says how the model page
+renders it:
+
+```json
+{
+  "id": "brightness",
+  "title": "brightness",
+  "roles": ["brightness"],
+  "args": { "level": "brightness" },
+  "values": { "level": 40 },
+  "action": { "order": 20, "title": "Set the brightness" },
+  "examples": { "cli": "govee brightness DEVICE {level}" }
+}
+```
+
+| Field | What it does |
+| ----- | ------------ |
+| `roles` | The device-file roles that serve the entry. A model page shows the entry where it serves one of them. An entry without `roles` stays on the reference page. |
+| `action.order` | Where the block sits on a model page. |
+| `action.title` | The heading a model page uses, which is a sentence and not a command name. |
+| `action.summary` | One line under that heading. Optional. |
+| `action.segments` | Adds the zone count and the native resolution of the unit. |
+| `args` | A placeholder, and the argument role that bounds it. A model page lists the range and puts a value inside it in the example. |
+| `values` | The value each placeholder takes where nothing bounds it. The reference page always takes these. |
+
+An example fills every `{name}` from `values`, and a name that neither
+`values` nor the model supplies is left alone: a Rust format string survives.
+
+An `adds` block joins the example of the entry, and carries the languages it
+applies to. Its `needs` names what the model must satisfy: a role it serves,
+or `native_pixels`, which says the unit renders more LEDs than it has zones.
+The reference page satisfies every name, so it shows every block.
+
+```json
+"adds": [
+  { "needs": ["segment_color_masked"], "examples": { "cli": "govee segment DEVICE --zones 0,1,2 \"#ff3d00\"" } }
+]
+```
 
 ## The top bar
 
