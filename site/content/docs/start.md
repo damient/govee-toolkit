@@ -30,16 +30,3 @@ Not every model has the switch. Govee publishes the list of models that do, and
 {{badge_cloud}} — this mode goes through Govee's own API, so it needs an API key
 and the device registered to that account. Ask for the key in the Govee Home app:
 profile, then settings, then **Apply for API key**.
-
-## Where to go next
-
-- [Install]({{base}}docs/install/) — the command line, the Rust crate, and
-  where Python and Node.js stand.
-- [Configure]({{base}}docs/configure/) — where the credentials live, and
-  which ones each mode needs.
-- [Reference]({{base}}reference/) — every command and every method, with an
-  example in each language.
-- [Modes]({{base}}docs/modes/) — Wi-Fi, Bluetooth or the cloud, and how you
-  choose.
-- [Troubleshooting]({{base}}docs/troubleshooting/) — nothing answers the
-  scan, a command does nothing, a value is refused.
