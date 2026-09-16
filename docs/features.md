@@ -18,7 +18,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **`lan` mode, low latency** — reused UDP socket, fire-and-verify, no cloud round-trip |
 | ✅ | **Per-device throttle on `cloud`** — one request per device per interval, and an explicit failure rather than an invisible queue |
 | ✅ | **Discovery** — multicast scan at startup, periodic background refresh, persistent on-disk cache |
-| 🚧 | **Undocumented LAN commands** — the raw segment channel is documented and verified on one device. Each further command needs the same treatment once somebody finds it |
+| ✅ | **Undocumented LAN commands** — the raw segment channel is documented and verified on one device. Each further command needs the same treatment once somebody finds it |
 | ✅ | **Segment streaming** (`packages/rust/src/stream`) — frames over the raw segment channel, at the rate measured on the unit |
 | ✅ | **Per-device mode selection** — one mode for strict behavior, several for switching, see [`modes.md`](modes.md) |
 | ✅ | **Per-device, per-mode circuit breaker** — `OK` / `DEGRADED` / `DOWN`. The breaker decides from state it already holds, not from a fresh timeout per call |
@@ -41,7 +41,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 
 | | Feature |
 | --- | ------- |
-| 🚧 | **Rust** (`packages/rust`) — the reference implementation and the only place protocol logic lives |
+| ✅ | **Rust** (`packages/rust`) — the reference implementation and the only place protocol logic lives |
 | ✅ | **Python** (`packages/python`) — PyO3 binding, an `asyncio` API, `abi3` wheels for Linux, macOS and Windows on `x86_64` and `aarch64`, and Linux wheels for `armv7` and for musl |
 | 🚧 | **Node.js / TypeScript** (`packages/node`) — napi-rs binding, a promise-based API and TypeScript types; prebuilt addons for Linux and Windows on `x86_64` and `aarch64` and for macOS on `aarch64`. The first npm release is ahead |
 | ✅ | Each package versioned and released independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) |
@@ -51,7 +51,6 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | | Feature |
 | --- | ------- |
 | 🔜 | **Web playground** — device list with per-mode state badges, power / brightness / color controls, latency log |
-| 🔜 | **Raw payload field** — send a custom JSON command straight to a device, to try a discovery before you formalize it |
 | 🔜 | **Desktop app (Electron)** — same backend and UI as the playground, auto-discovery on launch, tray icon |
 | ✅ | **Device simulator** (`packages/rust/crates/sim`) — a fake `lan` device on UDP and a fake `ble` peripheral on GATT, both with fault injection, so tests run without hardware or an adapter |
 | 🔜 | **Art-Net / DMX bridge** — maps DMX channels to Govee devices and segments |
