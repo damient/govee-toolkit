@@ -5,6 +5,9 @@
   "description": "The govee-toolkit website, built for GitHub Pages.",
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
     "catalog": "cargo run --manifest-path ../packages/rust/Cargo.toml -p xtask -- catalog",
     "build": "node build.mjs",
