@@ -61,7 +61,7 @@ impl DeviceHandle<'_> {
 
     async fn segment_all(&self, paint: &Paint<'_>) -> Result<Served> {
         let call = self.resolve()?;
-        let (mode, sku, device) = (call.mode(), call.sku().to_owned(), call.spec());
+        let (mode, sku, device) = (call.mode(), call.sku(), call.spec());
 
         let plan = plan(
             device,
@@ -72,9 +72,9 @@ impl DeviceHandle<'_> {
                 ..StreamOptions::default()
             },
         )?;
-        let colors = colors(&sku, &plan, paint.colors)?;
+        let colors = colors(sku, &plan, paint.colors)?;
 
-        self.arm(mode, &sku, device).await?;
+        self.arm(mode, sku, device).await?;
         if let Some((entry, value)) = &plan.gradient {
             let args = Args::new().int(entry.arg.as_str(), *value);
             call.send(&entry.command, &args).await?;
@@ -86,7 +86,9 @@ impl DeviceHandle<'_> {
             served = Some(call.send(&command, &args).await?);
         }
         // The plan refuses a zone count of zero, so one color gives one frame.
-        served.ok_or(Error::ZoneCountUnknown { sku })
+        served.ok_or_else(|| Error::ZoneCountUnknown {
+            sku: sku.to_owned(),
+        })
     }
 
     async fn segment_zones(&self, zones: &[u16], paint: &Paint<'_>) -> Result<Served> {
@@ -124,7 +126,7 @@ impl DeviceHandle<'_> {
             )?
             .to_owned();
             let args = Args::new().int(arg, i64::from(gradient));
-            entry.call.send(&command, &args).await?;
+            entry.send_command(&command, &args).await?;
         }
 
         let mut args = Args::new()
