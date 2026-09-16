@@ -4,11 +4,10 @@
 use std::time::Duration;
 
 use govee_toolkit::codec::Mode;
-use govee_toolkit::transport::Event as TransportEvent;
 use govee_toolkit::{Event, Govee};
 use tokio::sync::broadcast::error::RecvError;
 
-use crate::output::{Failure, Writer, option};
+use crate::output::{Failure, Writer};
 
 pub(super) async fn run(
     govee: &Govee,
@@ -27,7 +26,7 @@ pub(super) async fn run(
     loop {
         match events.recv().await {
             Ok(event) if skipped(&event, restrict) => {}
-            Ok(event) => writer.emit(&event.to_json(), &as_text(&event)),
+            Ok(event) => writer.emit(&event.to_json(), &event.to_string()),
             // The stream drops the oldest events, so a slow reader loses
             // events rather than blocking the SDK.
             Err(RecvError::Lagged(missed)) => writer.emit(
@@ -60,42 +59,4 @@ fn skipped(event: &Event, restrict: Option<Mode>) -> bool {
         return false;
     };
     only != mode
-}
-
-fn as_text(event: &Event) -> String {
-    match event {
-        Event::UnknownSku { id, sku } => {
-            format!("{id}  unknown sku  {sku}")
-        }
-        Event::Transport(TransportEvent::Discovered {
-            mode,
-            device,
-            change,
-        }) => format!(
-            "{}  {mode}  discovered  {}  {}  {}",
-            device.id, change, device.sku, device.endpoint
-        ),
-        Event::Transport(TransportEvent::Forgotten { mode, id }) => {
-            format!("{id}  {mode}  forgotten")
-        }
-        Event::Transport(TransportEvent::Sent(sent)) => format!(
-            "{}  {}  sent  {}  {}",
-            sent.id, sent.mode, sent.cmd, sent.endpoint
-        ),
-        Event::Transport(TransportEvent::Status { mode, status }) => format!(
-            "{}  {mode}  status  on={}  brightness={}",
-            status.id,
-            option(status.on.map(|on| on.to_string())),
-            option(status.brightness.map(|value| value.to_string())),
-        ),
-        Event::Transport(TransportEvent::HealthChanged {
-            id,
-            mode,
-            transition,
-        }) => format!(
-            "{id}  {mode}  health  {} -> {}",
-            transition.from, transition.to
-        ),
-        _ => "unknown event".to_owned(),
-    }
 }

@@ -15,6 +15,8 @@ releases apart and keeps
   can answer two modes. `Resolved` carries `args()`, `send()`, `read()`,
   `status()` and `answers()`, plus the mode, the SKU and the device file entry
   it was read under.
+- `Display` on `Event` — the line a text surface prints, beside
+  `Event::to_json()`. A new variant fails the build until both render it.
 
 ### Changed
 

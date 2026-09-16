@@ -1,9 +1,12 @@
 //! What the facade reports: its event stream, and the two shapes an
 //! application reads devices through.
 //!
-//! [`Event::to_json`] is the record every surface prints.
+//! [`Event::to_json`] is the record every surface prints, and [`Event`]'s
+//! [`fmt::Display`] is the one line a text surface prints. Both live here, so
+//! a new variant fails the build until both render it.
 
 use std::collections::BTreeMap;
+use std::fmt;
 
 use serde_json::{Value, json};
 
@@ -110,6 +113,54 @@ impl Event {
     }
 }
 
+impl fmt::Display for Event {
+    /// One line for this event: the identity first, then the mode, then what
+    /// happened. A field the device did not report is `?`.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnknownSku { id, sku } => write!(f, "{id}  unknown sku  {sku}"),
+            Self::Transport(TransportEvent::Discovered {
+                mode,
+                device,
+                change,
+            }) => write!(
+                f,
+                "{}  {mode}  discovered  {change}  {}  {}",
+                device.id, device.sku, device.endpoint
+            ),
+            Self::Transport(TransportEvent::Forgotten { mode, id }) => {
+                write!(f, "{id}  {mode}  forgotten")
+            }
+            Self::Transport(TransportEvent::Sent(sent)) => write!(
+                f,
+                "{}  {}  sent  {}  {}",
+                sent.id, sent.mode, sent.cmd, sent.endpoint
+            ),
+            Self::Transport(TransportEvent::Status { mode, status }) => write!(
+                f,
+                "{}  {mode}  status  on={}  brightness={}",
+                status.id,
+                reported(status.on),
+                reported(status.brightness),
+            ),
+            Self::Transport(TransportEvent::HealthChanged {
+                id,
+                mode,
+                transition,
+            }) => write!(
+                f,
+                "{id}  {mode}  health  {} -> {}",
+                transition.from, transition.to
+            ),
+        }
+    }
+}
+
+/// A value the device reported, or `?` where it reported none.
+fn reported(value: Option<impl fmt::Display>) -> String {
+    value.map_or_else(|| "?".to_owned(), |value| value.to_string())
+}
+
 /// A command that was served.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Served {
@@ -139,4 +190,44 @@ pub struct Device {
     /// Its health per enabled mode. A mode is absent when this build carries
     /// no transport for it, or when that transport has heard nothing.
     pub health: BTreeMap<Mode, Health>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::transport::DeviceStatus;
+
+    fn id() -> DeviceId {
+        DeviceId::new("aa:bb:cc:dd:ee:ff")
+    }
+
+    #[test]
+    fn a_status_line_marks_what_the_device_did_not_report() {
+        let event = Event::Transport(TransportEvent::Status {
+            mode: Mode::Lan,
+            status: DeviceStatus {
+                id: id(),
+                on: Some(true),
+                brightness: None,
+                color: None,
+                color_temp_kelvin: None,
+                raw: Value::Null,
+            },
+        });
+
+        assert_eq!(
+            event.to_string(),
+            "AA:BB:CC:DD:EE:FF  lan  status  on=true  brightness=?"
+        );
+    }
+
+    #[test]
+    fn an_unknown_sku_line_names_the_device_and_what_it_reported() {
+        let event = Event::UnknownSku {
+            id: id(),
+            sku: "H6199".to_owned(),
+        };
+
+        assert_eq!(event.to_string(), "AA:BB:CC:DD:EE:FF  unknown sku  H6199");
+    }
 }
