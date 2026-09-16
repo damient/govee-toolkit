@@ -180,10 +180,10 @@ pub enum Error {
         mode: Mode,
     },
 
-    /// A caller stated more zones than the mode's mask can name. The firmware
-    /// drops the bits past the last zone in silence, so such a frame would
-    /// look sent and paint nothing.
-    #[error("{sku}: {zones} zones asked for, and mode `{mode}` names {limit} at most")]
+    /// A caller stated more zones than the mode paints. The firmware drops
+    /// what is past the last zone in silence, so such a frame would look sent
+    /// and paint nothing.
+    #[error("{sku}: {zones} zones asked for, and mode `{mode}` paints {limit} at most")]
     ZoneCountUnsupported {
         /// The SKU asked for.
         sku: String,
@@ -191,7 +191,7 @@ pub enum Error {
         mode: Mode,
         /// What the caller asked for.
         zones: usize,
-        /// What the device file declares the mask can name.
+        /// What the device file declares the mode paints.
         limit: usize,
     },
 

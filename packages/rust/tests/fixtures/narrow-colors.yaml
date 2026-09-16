@@ -1,0 +1,29 @@
+# A fictional device whose paint frame carries fewer colors than the unit has
+# zones: 40 LEDs behind a list of 20, the shape a whole-frame mode with a
+# bounded color list has. Only the tests use it.
+schema_version: 1
+sku: "HTEST6"
+family: "test"
+name: "Whole-frame segment device, a color list narrower than the unit"
+
+capabilities:
+  segments:
+    count: 40
+    native_pixels: 40
+
+modes:
+  lan:
+    support: partial
+    capabilities: ["segments"]
+
+commands:
+  lan:
+    paint:
+      cmd: "razer"
+      role: segment_color
+      frame: "BB <len:16> <op:B0> ${gradient} ${nb_seg} (${colors}:rgb)×${nb_seg} <xor>"
+      payload: { pt: "${frame}" }
+      args:
+        gradient: { type: int, range: [0, 1], role: gradient }
+        nb_seg: { type: int, range: [1, 20] }
+        colors: { type: rgb_list, max_len: 20, role: colors }

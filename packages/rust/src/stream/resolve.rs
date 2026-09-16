@@ -6,6 +6,7 @@
 use crate::codec::frame::Token;
 use crate::codec::{ArgRole, ArgSpec, Command, Device, Mode, Role};
 use crate::error::{Error, Result};
+use crate::stream::reach::ceiling;
 use crate::stream::{Resolution, StreamOptions};
 
 /// How the device file paints zones over the chosen mode.
@@ -205,8 +206,8 @@ fn arg_named<'a>(device: &'a Device, mode: Mode, command: &str, role: ArgRole) -
 
 /// The zone count the stream carries.
 ///
-/// Where a mask names fewer zones than the device file states, `App` falls to
-/// the width of the mask. A count the caller picked is refused instead.
+/// Where the mode paints fewer zones than the device file states, `App` falls
+/// to what the mode carries. A count the caller picked is refused instead.
 ///
 /// Zero means nobody recorded the count. A stream armed on it would send
 /// frames the codec refuses, and nothing reads that refusal.
@@ -246,21 +247,25 @@ fn zone_count(
         });
     }
     let count = usize::try_from(count).unwrap_or(usize::MAX);
-    if let Painter::Masked { limit, .. } = painter
-        && count > *limit
-    {
-        // `Native` never arrives here: a masked painter refuses it above.
-        if let Resolution::Exact(_) = resolution {
-            return Err(Error::ZoneCountUnsupported {
-                sku: device.sku.clone(),
-                mode,
-                zones: count,
-                limit: *limit,
-            });
-        }
-        return Ok(*limit);
+    let Some(limit) = ceiling(device, mode, painter) else {
+        return Ok(count);
+    };
+    if count <= limit {
+        return Ok(count);
     }
-    Ok(count)
+    // One paint covers the whole device whatever it names, so the count the
+    // device file states for the unit falls to what the mode carries. A count
+    // the caller states is refused, and so is `Native`: there the caller asked
+    // for zones the mode paints nothing with.
+    if let Resolution::App = resolution {
+        return Ok(limit);
+    }
+    Err(Error::ZoneCountUnsupported {
+        sku: device.sku.clone(),
+        mode,
+        zones: count,
+        limit,
+    })
 }
 
 #[cfg(test)]
@@ -271,7 +276,6 @@ mod tests {
     use crate::codec::Catalog;
 
     const MASKED: &str = include_str!("../../tests/fixtures/masked-zones.yaml");
-    const NARROW: &str = include_str!("../../tests/fixtures/narrow-mask.yaml");
 
     fn catalog() -> Catalog {
         Catalog::from_sources([("masked-zones.yaml", MASKED)]).expect("the device file parses")
@@ -339,28 +343,6 @@ commands:
         color: { type: rgb_list, max_len: 1, role: colors }
         mask: { type: zones, role: zones }
 ";
-
-    #[test]
-    fn the_app_count_falls_to_the_width_of_the_mask() {
-        let catalog =
-            Catalog::from_sources([("narrow-mask.yaml", NARROW)]).expect("the device file parses");
-        let device = catalog.device("HTEST5").expect("the SKU resolves");
-        let planned = |resolution| {
-            plan(
-                device,
-                Mode::Ble,
-                &StreamOptions {
-                    resolution,
-                    ..StreamOptions::default()
-                },
-            )
-        };
-
-        assert_eq!(planned(Resolution::App).unwrap().zones, 15);
-
-        let error = planned(Resolution::Exact(132)).expect_err("the mask names 15");
-        assert_eq!(error.code(), "zone_count_unsupported");
-    }
 
     #[test]
     fn a_mask_the_file_bounds_by_nothing_refuses_to_open() {
