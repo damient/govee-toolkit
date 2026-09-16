@@ -1,6 +1,6 @@
 //! What crosses between a Python value and a core value.
 
-use govee_toolkit::codec::{Supplied, UnknownMode};
+use govee_toolkit::codec::{Supplied, UnknownMode, coerce};
 use govee_toolkit::{Mode, ParseError, Rate, Resolution};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyFloat, PyInt, PyString};
@@ -17,17 +17,8 @@ pub(crate) fn modes(names: Vec<String>) -> PyResult<Vec<Mode>> {
     names.into_iter().map(|name| mode(&name)).collect()
 }
 
-pub(crate) fn triple(channels: &[i64]) -> PyResult<[u8; 3]> {
-    let [r, g, b] = channels else {
-        return Err(value_error(format!(
-            "a color carries 3 channels, not {}",
-            channels.len()
-        )));
-    };
-    let channel = |v: &i64| {
-        u8::try_from(*v).map_err(|_| value_error(format!("{v} is outside a color channel's 0-255")))
-    };
-    Ok([channel(r)?, channel(g)?, channel(b)?])
+fn triple(channels: &[i64]) -> PyResult<[u8; 3]> {
+    coerce::triple(channels).map_err(|refused| value_error(refused.to_string()))
 }
 
 pub(crate) fn rgb(value: &Bound<'_, PyAny>) -> PyResult<[u8; 3]> {

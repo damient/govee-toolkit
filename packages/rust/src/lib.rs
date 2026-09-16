@@ -107,6 +107,12 @@ pub mod stream;
     docsrs,
     doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
 )]
+pub mod summary;
+#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
+)]
 pub mod transport;
 
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
@@ -146,6 +152,8 @@ pub use provision::{Provisioned, WifiCredentials};
 pub use resolved::Resolved;
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 pub use stream::{ParseError, Rate, Reach, Resolution, SegmentStream, StreamOptions};
+#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+pub use summary::{Style, Summary};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
 pub use transport::{DeviceId, DeviceStatus, Health, Reply, State, Transport};
 #[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]

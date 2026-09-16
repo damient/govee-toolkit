@@ -17,6 +17,12 @@ releases apart and keeps
   it was read under.
 - `Display` on `Event` — the line a text surface prints, beside
   `Event::to_json()`. A new variant fails the build until both render it.
+- `summary::Summary` — the line a binding prints for a `Device`, `Served`,
+  `Health`, `DeviceStatus` or `Reply`, in `summary::Style`'s literals.
+- `codec::coerce::triple()` and `codec::NotAColor` — one color read from three
+  channels, and the words every binding refuses a bad list with.
+- `Category::class_name()` and `Category::BASE_CLASS` — the error class name
+  a binding raises for a category, and the base class it descends from.
 - `DeviceStatus::to_json()` and `Display` on `DeviceStatus` — the record and
   the line every surface prints a status through. The record carries `id`,
   `on`, `brightness`, `color` as `#RRGGBB`, `color_temp_kelvin` and `raw`, and

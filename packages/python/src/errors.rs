@@ -63,12 +63,19 @@ pub(crate) fn value_error(message: impl Into<String>) -> PyErr {
 
 /// The base class carries an empty `code`, so the attribute is there on an
 /// exception a caller builds as well as on one the binding raises.
+///
+/// The core names every class, so a failure raises the same name here and in
+/// every other binding.
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
-    let base = module.py().get_type::<GoveeError>();
+    let py = module.py();
+    let base = py.get_type::<GoveeError>();
     base.setattr("code", "")?;
-    module.add("GoveeError", base)?;
-    module.add("CodecError", module.py().get_type::<CodecError>())?;
-    module.add("TransportError", module.py().get_type::<TransportError>())?;
-    module.add("ConfigError", module.py().get_type::<ConfigError>())?;
+    module.add(Category::BASE_CLASS, base)?;
+    module.add(Category::Codec.class_name(), py.get_type::<CodecError>())?;
+    module.add(
+        Category::Transport.class_name(),
+        py.get_type::<TransportError>(),
+    )?;
+    module.add(Category::Config.class_name(), py.get_type::<ConfigError>())?;
     Ok(())
 }

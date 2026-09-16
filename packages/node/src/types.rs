@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 
+use govee_toolkit::summary::{Style, Summary};
 use govee_toolkit::transport::{Health as CoreHealth, Reply as CoreReply};
 use govee_toolkit::{Device as CoreDevice, DeviceStatus as CoreStatus, Served as CoreServed};
 use napi::Env;
@@ -40,12 +41,7 @@ impl Health {
 
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
-        format!(
-            "Health(state='{}', failures={}, available={})",
-            self.state(),
-            self.failures(),
-            self.available()
-        )
+        self.inner.summary(Style::Javascript)
     }
 }
 
@@ -100,7 +96,7 @@ impl Device {
 
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
-        format!("Device(id='{}', sku='{}')", self.id(), self.inner.sku)
+        self.inner.summary(Style::Javascript)
     }
 }
 
@@ -144,12 +140,7 @@ impl Served {
 
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
-        format!(
-            "Served(id='{}', mode='{}', command='{}')",
-            self.id(),
-            self.mode(),
-            self.inner.command
-        )
+        self.inner.summary(Style::Javascript)
     }
 }
 
@@ -212,11 +203,7 @@ impl DeviceStatus {
 
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
-        let on = self
-            .inner
-            .on
-            .map_or_else(|| "null".to_owned(), |on| on.to_string());
-        format!("DeviceStatus(id='{}', on={on})", self.id())
+        self.inner.summary(Style::Javascript)
     }
 }
 
@@ -249,7 +236,7 @@ impl Reply {
 
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
-        format!("Reply(id='{}')", self.id())
+        self.inner.summary(Style::Javascript)
     }
 }
 

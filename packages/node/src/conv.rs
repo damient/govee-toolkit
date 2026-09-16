@@ -1,6 +1,6 @@
 //! What crosses between a JavaScript value and a core value.
 
-use govee_toolkit::codec::{Supplied, UnknownMode};
+use govee_toolkit::codec::{Supplied, UnknownMode, coerce};
 use govee_toolkit::{Mode, ParseError, Rate, Resolution};
 use napi::bindgen_prelude::{JsObjectValue, Object, Unknown};
 use napi::{Env, JsValue, ValueType};
@@ -49,18 +49,8 @@ fn ints(env: &Env, array: &Object<'_>) -> napi::Result<Vec<i64>> {
         .collect()
 }
 
-pub(crate) fn triple(env: &Env, channels: &[i64]) -> napi::Result<[u8; 3]> {
-    let [r, g, b] = channels else {
-        return Err(value_error(
-            env,
-            format!("a color carries 3 channels, not {}", channels.len()),
-        ));
-    };
-    let channel = |v: &i64| {
-        u8::try_from(*v)
-            .map_err(|_| value_error(env, format!("{v} is outside a color channel's 0-255")))
-    };
-    Ok([channel(r)?, channel(g)?, channel(b)?])
+fn triple(env: &Env, channels: &[i64]) -> napi::Result<[u8; 3]> {
+    coerce::triple(channels).map_err(|refused| value_error(env, refused.to_string()))
 }
 
 pub(crate) fn rgb(env: &Env, value: &Unknown<'_>) -> napi::Result<[u8; 3]> {
