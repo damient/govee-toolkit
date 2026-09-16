@@ -181,3 +181,37 @@
 .legend-caps .pill { padding: 3px 8px; }
 .legend-caps .muted { width: 15px; text-align: center; }
 
+
+/* The action blocks take the two-column layout of the reference page. The
+   column that holds them is the container: the viewport says nothing useful,
+   since a menu stands between it and this column. */
+.usage { container-type: inline-size; }
+.usage .ref-entry { border-top: 1px solid var(--line); padding-top: 28px; }
+.usage .ref-entry:first-child { border-top: 0; margin-top: 1.4em; padding-top: 0; }
+.usage .ref-entry:last-child { padding-bottom: 0; }
+.is-device .usage h3 { font-size: 1.05rem; margin: 0 0 .6em; }
+
+/* What this model bounds. The mode badge stands on a row only where the modes
+   disagree on the range. */
+.bounds { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.prose .bounds { padding-left: 0; }
+.prose .bounds li {
+  display: inline-flex; align-items: center; gap: 8px; margin-bottom: 0;
+  font: 400 12px/1 var(--mono); color: var(--prose);
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 9px;
+}
+.bounds li code { background: none; border: 0; padding: 0; color: var(--text); }
+
+/* The two closing blocks stand side by side where the column is wide enough.
+   Each one holds two lines: one under the other they read as a gap. */
+.endgrid { display: grid; gap: 1.6em 40px; margin-top: 2em; }
+
+@media (min-width: 900px) { .endgrid { grid-template-columns: 1fr 1fr; } }
+
+.endgrid h2 { margin-top: 0; }
+.endcta { margin-top: 2.6em; text-align: center; }
+.endgrid p:last-child { margin-bottom: 0; }
+
+/* The icon alone, where the row beside it already carries a word. */
+.mbadge-mini { padding: 4px; }

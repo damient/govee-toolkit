@@ -39,14 +39,13 @@
 .tabs button[aria-selected="true"] {
   color: var(--text); background: var(--panel-2); border-color: var(--line);
 }
-.pane { position: relative; }
+/* The button sits against the code block, not against the pane: a pane that
+   carries a note over the code would otherwise hold the button above it. */
+.pane .code { position: relative; }
 .pane pre {
   margin: 0; background: var(--code-bg); border: 1px solid var(--code-line);
   border-radius: var(--radius);
   padding: 16px 52px 16px 18px; overflow-x: auto; color: var(--code-text); line-height: 1.7;
-}
-.pane .planned {
-  font: 400 12px/1.5 var(--mono); color: var(--muted); margin: 0 0 8px;
 }
 
 /* The mode badges of a command that one or two modes reach. A command every

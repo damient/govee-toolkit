@@ -14,6 +14,13 @@ export function modeBadge(mode) {
   return badge(mode, modeIcon(mode), mode);
 }
 
+/** The same badge with the icon alone, for a row that already carries a word.
+ * The name stays in the markup, for a screen reader and for a pointer. */
+export function modeMark(mode) {
+  return `<span class="mbadge mbadge-${mode} mbadge-mini" title="${mode}">${modeIcon(mode)}`
+    + `<span class="visually-hidden">${mode}</span></span>`;
+}
+
 /** One badge, naming the device family. Empty where the catalog names none.
  * It takes the same box as a mode badge: the two sit on one line. */
 export function familyBadge(family) {

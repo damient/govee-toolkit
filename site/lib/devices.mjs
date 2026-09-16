@@ -4,6 +4,7 @@
 // device files the day one of them changes.
 
 import { MODES } from "./config.mjs";
+import { usage } from "./device-usage.mjs";
 import { escapeAttr, escapeHtml, fill } from "./html.mjs";
 import { familyIcon, icon, sharesMark } from "./icons.mjs";
 import { familyBadge, modeBadge } from "./mode-badge.mjs";
@@ -129,13 +130,17 @@ function pageBody(d) {
     <article class="prose">
       ${capabilities(d)}
       ${modeSections(d)}
-      ${commands(d)}
+      ${usage(d)}
       ${aliases(d)}
-      ${verification(d)}
-      <h2 id="the-device-file">The device file</h2>
-      <p>This page states what <a href="{{repo}}/blob/main/devices/${d.sku}.yaml"><code>devices/${d.sku}.yaml</code></a>
-      holds.</p>
-      <p><a href="{{base}}devices/">Back to every model</a></p>
+      <div class="endgrid">
+        <section>${verification(d)}</section>
+        <section>
+          <h2 id="the-device-file">The device file</h2>
+          <p>This page states what <a href="{{repo}}/blob/main/devices/${d.sku}.yaml"><code>devices/${d.sku}.yaml</code></a>
+          holds.</p>
+        </section>
+      </div>
+      <p class="endcta"><a class="btn" href="{{base}}devices/">Discover other devices</a></p>
     </article>
   </div>
 </section>`;
@@ -205,35 +210,6 @@ function modeSections(d) {
           </tbody>
         </table>
       </div>`;
-}
-
-function commands(d) {
-  const sections = MODES.map((m) => {
-    const table = d.commands?.[m] ?? {};
-    const names = Object.keys(table).sort();
-    if (!names.length) return "";
-    const rows = names
-      .map((name) => {
-        const command = table[name];
-        const args = Object.keys(command.args ?? {});
-        const takes = args.length ? args.map((a) => `<code>${escapeHtml(a)}</code>`).join(", ") : "—";
-        return `<tr><th scope="row"><code>${escapeHtml(name)}</code></th><td>${takes}</td></tr>`;
-      })
-      .join("\n          ");
-    return `<h3 id="commands-${m}">${modeBadge(m)}</h3>
-      <div class="tablewrap">
-        <table class="matrix">
-          <thead><tr><th scope="col">Command</th><th scope="col">Arguments</th></tr></thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
-      </div>`;
-  }).filter(Boolean).join("\n      ");
-
-  if (!sections) return "";
-  return `<h2 id="commands">The commands the file declares</h2>
-      ${sections}`;
 }
 
 function aliases(d) {
