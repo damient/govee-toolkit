@@ -432,6 +432,14 @@ jobs:
     name: Node
     if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/node
+    # packages/node carries no rust-toolchain.toml, and the nightly step below
+    # installs last, which makes nightly the default toolchain. Every step that
+    # is not the format check runs on stable.
+    env:
+      RUSTUP_TOOLCHAIN: stable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -439,14 +447,37 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: packages/node/package-lock.json
-      # What the release workflow runs, run on every pull request: a package
-      # that only builds on someone's laptop fails after the tag is pushed.
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+          components: clippy
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: nightly
+          components: rustfmt
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: packages/node
+      # packages/node is a workspace of its own, so these run inside it.
+      # rustfmt.toml uses nightly-only options.
+      - name: Format the Rust binding
+        run: cargo fmt --all --check
+        env:
+          RUSTUP_TOOLCHAIN: nightly
+      - name: Lint the Rust binding
+        run: cargo clippy --all-targets --all-features -- -D warnings
       - run: npm ci
-        working-directory: packages/node
-      - run: npm run build
-        working-directory: packages/node
+      # The debug profile: what this build produces is read by the two steps
+      # below and by nothing else, and the release profile takes minutes on
+      # this crate. The release workflow builds the addon that ships.
+      - name: Build the addon and the types
+        run: npm run build:debug
+      # The addon loader and the type definition are generated from the
+      # binding and committed, so a signature that drifted fails here rather
+      # than in a user's editor.
+      - name: The generated binding is in step with the Rust sources
+        run: git diff --exit-code -- binding.cjs binding.d.cts
       - run: npm test
-        working-directory: packages/node
 
   docs:
     name: Documentation

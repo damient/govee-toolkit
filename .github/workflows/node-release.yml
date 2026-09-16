@@ -1,4 +1,14 @@
 # Publishes packages/node. Triggered by a node-vX.Y.Z tag.
+#
+# The package carries a compiled addon, so what ships is one package per
+# platform, each holding one `.node` binary, plus the `govee-toolkit` package
+# that loads whichever one is installed. npm resolves them through
+# `optionalDependencies`, which `napi prepublish` writes from `napi.targets`
+# in package.json.
+#
+# No source build. `packages/rust/build.rs` embeds `devices/*.yaml` from
+# ../../devices, and a package of packages/node alone does not carry that
+# directory. A source install needs the repository and GOVEE_DEVICES_DIR.
 name: Node release
 
 on:
@@ -6,36 +16,108 @@ on:
   push:
     tags: ["node-v*"]
 
+permissions:
+  contents: read
+
 jobs:
-  release:
+  # The tag, the manifest version and the changelog heading have to carry the
+  # same number before anything is built or published.
+  agree:
+    name: Tag, manifest and changelog agree
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: write   # create the GitHub release
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The tag, the manifest version and the changelog heading have to carry
-      # the same number before anything is built or published.
-      - name: Tag, manifest and changelog agree
-        if: github.event_name == 'push'
+      - if: github.event_name == 'push'
+        run: tools/release-notes.sh node "$GITHUB_REF_NAME" > /dev/null
+
+  addons:
+    name: Addon (${{ matrix.name }})
+    needs: agree
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, name: linux-x64-gnu, target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-24.04-arm, name: linux-arm64-gnu, target: aarch64-unknown-linux-gnu }
+          # A plain macOS label names the arm64 image, and GitHub keeps the two
+          # most recent macOS versions. A label under that floor waits for a
+          # runner that never comes. macOS x86_64 carries no addon, and there
+          # is no source build, so an Intel Mac cannot install the package.
+          - { os: macos-15, name: darwin-arm64, target: aarch64-apple-darwin }
+          - { os: windows-2022, name: win32-x64-msvc, target: x86_64-pc-windows-msvc }
+          - { os: windows-11-arm, name: win32-arm64-msvc, target: aarch64-pc-windows-msvc }
+    defaults:
+      run:
+        working-directory: packages/node
+        # The steps below use POSIX shell syntax; Windows would otherwise run
+        # them through PowerShell.
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - run: npm ci
+      # The addon alone: the loader, the types and the JavaScript layer are
+      # built once, in the publish job.
+      - name: Build the addon
         run: |
-          tools/release-notes.sh node "$GITHUB_REF_NAME" \
-            > "$RUNNER_TEMP/notes.md"
+          npx napi build --platform --release --target ${{ matrix.target }} \
+            --js binding.cjs --dts binding.d.cts
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: addon-${{ matrix.name }}
+          path: packages/node/*.node
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    needs: addons
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # npm trusted publishing
+      contents: write   # create the GitHub release
+      actions: read     # read this run's addon artifacts
+    defaults:
+      run:
+        working-directory: packages/node
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
       # Trusted publishing needs npm 11.5.1 or newer; node 24 ships past that.
+      - name: Release notes
+        if: github.event_name == 'push'
+        working-directory: .
+        run: |
+          tools/release-notes.sh node "$GITHUB_REF_NAME" \
+            > "$RUNNER_TEMP/notes.md"
       - run: npm ci
-        working-directory: packages/node
-      - run: npm run build
-        working-directory: packages/node
+      # `gh run download` rather than an action: nothing here pins
+      # actions/download-artifact, and the gh CLI is already how the release
+      # workflows talk to GitHub. `napi artifacts` then moves each `.node`
+      # into the platform package that ships it.
+      - name: Collect the addons
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "$GITHUB_RUN_ID" --dir artifacts --pattern 'addon-*'
+          npm run artifacts
+          ls -l npm/*/
+      - name: Build the JavaScript layer
+        run: npm run build:ts
       # npm keeps a version forever, and a tag moved to a new commit reruns
       # this job. A version already up is skipped rather than failing the run
       # on an upload npm would refuse anyway.
       - name: Is this version already on npm?
         id: npm
-        working-directory: packages/node
         run: |
           version=$(node -p "require('./package.json').version")
           if npm view "govee-toolkit@$version" version >/dev/null 2>&1; then
@@ -46,12 +128,16 @@ jobs:
       # Trusted publishing: npm trades this job's OIDC identity for a
       # short-lived token, so no registry token lives in the repository. It
       # also signs the provenance attestation, hence no `--provenance` flag.
+      #
+      # `prepublishOnly` runs `napi prepublish`, which publishes one package
+      # per platform and writes them into this package's optionalDependencies
+      # before the tarball is packed.
       - name: Publish
         if: steps.npm.outputs.published == 'false'
-        working-directory: packages/node
         run: npm publish
       - name: GitHub release
         if: github.event_name == 'push'
+        working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
