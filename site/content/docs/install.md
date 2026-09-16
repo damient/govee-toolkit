@@ -2,15 +2,15 @@
 title: Install
 slug: install
 order: 2
-description: The Rust crate, the command line, the Python package, and where the Node.js package stands.
+description: The Rust crate, the command line, the Python package, and the Node.js package.
 ---
 
 # Install
 
 The Rust crate is the reference implementation. The command line needs no
-code. Python binds to that same core. Node.js is not released yet.
+code. Python and Node.js bind to that same core.
 
-## Rust <span class="state ok">Available</span>
+## Rust
 
 Async, on Tokio. The `lan` feature is on by default. `ble` and `cloud` are
 opt-in.
@@ -37,7 +37,7 @@ need nothing.
 [Crate documentation]({{repo}}/tree/main/packages/rust) ·
 [crates.io](https://crates.io/crates/govee-toolkit)
 
-## Command line <span class="state ok">Available</span>
+## Command line
 
 The binary is `govee`. It holds no protocol logic: it reads the device files
 through the crate.
@@ -52,7 +52,7 @@ through the crate.
 
 [Every command, with an example in each language]({{base}}reference/)
 
-## Python <span class="state ok">Available</span>
+## Python
 
 A PyO3 binding over the Rust core. The API is `asyncio` only, and the wheel
 carries the device catalog, so an install needs no data file and no Rust
@@ -80,12 +80,16 @@ needs a Rust toolchain.
 [Package documentation]({{repo}}/tree/main/packages/python) ·
 [PyPI](https://pypi.org/project/govee-toolkit/)
 
-## Node.js <span class="state soon">Planned</span>
+## Node.js
 
-A napi-rs binding over the same core, with TypeScript types. The binding is
-written and the addon builds for Linux and Windows on `x86_64` and `aarch64`
-and for macOS on `aarch64`. The name `govee-toolkit` on npm still carries a
-`0.0.0` placeholder: the first release is ahead.
+A napi-rs binding over the same core, with TypeScript types. The package
+carries the device catalog, so an install needs no data file and no Rust
+toolchain.
+
+<div class="terminal">
+<pre><code><span class="prompt">$</span> npm install govee-toolkit</code></pre>
+<button class="copy" type="button" data-copy="npm install govee-toolkit">Copy</button>
+</div>
 
 ```javascript
 import { Govee } from "govee-toolkit"
@@ -97,4 +101,11 @@ for (const device of await govee.scan()) {
 await govee.close()
 ```
 
-[Where it sits in the order of work]({{repo}}/blob/main/docs/roadmap.md)
+The package needs Node.js 20 or later. The addon ships for Linux and Windows
+on `x86_64` and `aarch64`, and for macOS on `aarch64`. There is no source
+build: the device catalog is compiled into the addon from `devices/*.yaml`,
+which the package does not carry, so a platform with no addon needs the
+repository.
+
+[Package documentation]({{repo}}/tree/main/packages/node) ·
+[npm](https://www.npmjs.com/package/govee-toolkit)
