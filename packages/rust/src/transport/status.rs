@@ -5,6 +5,9 @@
 //! in, and `raw` keeps what was not recognized.
 
 use std::collections::BTreeMap;
+use std::fmt;
+
+use serde_json::{Value, json};
 
 use crate::codec::args::ArgValue;
 use crate::codec::{ArgRole, Captured};
@@ -98,12 +101,51 @@ impl DeviceStatus {
         }
     }
 
+    /// This status as the record every surface prints. A field the device did
+    /// not report is `null`, and `color` is `#RRGGBB`.
+    #[must_use]
+    pub fn to_json(&self) -> Value {
+        json!({
+            "id": self.id.to_string(),
+            "on": self.on,
+            "brightness": self.brightness,
+            "color": self.color.map(hex),
+            "color_temp_kelvin": self.color_temp_kelvin,
+            "raw": self.raw,
+        })
+    }
+
     /// Whether the device is in white mode. Mutually exclusive with color, so
     /// a non-zero temperature means the color in the same reply is not lit.
     #[must_use]
     pub fn is_white(&self) -> bool {
         self.color_temp_kelvin.is_some_and(|k| k > 0)
     }
+}
+
+impl fmt::Display for DeviceStatus {
+    /// The reported fields in one line, without the identity: the caller
+    /// writes that, since it knows what else belongs on the line.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "on={}  brightness={}  color={}  kelvin={}",
+            reported(self.on),
+            reported(self.brightness),
+            reported(self.color.map(hex)),
+            reported(self.color_temp_kelvin),
+        )
+    }
+}
+
+/// A value the device reported, or `?` where it reported none.
+pub(crate) fn reported(value: Option<impl fmt::Display>) -> String {
+    value.map_or_else(|| "?".to_owned(), |value| value.to_string())
+}
+
+/// `rgb` as `#RRGGBB`.
+fn hex(rgb: [u8; 3]) -> String {
+    format!("#{:02X}{:02X}{:02X}", rgb[0], rgb[1], rgb[2])
 }
 
 #[cfg(test)]
@@ -184,6 +226,34 @@ mod tests {
         assert_eq!(status.color, None);
         assert_eq!(status.color_temp_kelvin, None);
         assert_eq!(status.raw["pt"], "uwABsQEK");
+    }
+
+    #[test]
+    fn a_status_line_marks_what_the_device_did_not_report() {
+        let status = DeviceStatus::from_data(id(), data(r#"{"onOff":1,"brightness":50}"#));
+
+        assert_eq!(
+            status.to_string(),
+            "on=true  brightness=50  color=?  kelvin=?"
+        );
+    }
+
+    #[test]
+    fn a_status_record_carries_every_modelled_field() {
+        let reply = r#"{"onOff":0,"brightness":10,"color":{"r":255,"g":128,"b":0},
+                        "colorTemInKelvin":0}"#;
+        let status = DeviceStatus::from_data(id(), data(reply));
+
+        let record = status.to_json();
+        assert_eq!(record["id"], "AA:BB:CC:DD:EE:FF");
+        assert_eq!(record["on"], false);
+        assert_eq!(record["color"], "#FF8000");
+        assert_eq!(record["color_temp_kelvin"], 0);
+        assert_eq!(record["raw"], status.raw);
+        assert_eq!(
+            status.to_string(),
+            "on=false  brightness=10  color=#FF8000  kelvin=0"
+        );
     }
 
     proptest::proptest! {

@@ -67,13 +67,14 @@ impl Event {
                 "cmd": sent.cmd,
                 "endpoint": sent.endpoint,
             }),
-            Self::Transport(TransportEvent::Status { mode, status }) => json!({
-                "event": "status",
-                "mode": mode.to_string(),
-                "id": status.id.to_string(),
-                "on": status.on,
-                "brightness": status.brightness,
-            }),
+            Self::Transport(TransportEvent::Status { mode, status }) => {
+                let mut record = status.to_json();
+                if let Some(fields) = record.as_object_mut() {
+                    fields.insert("event".to_owned(), json!("status"));
+                    fields.insert("mode".to_owned(), json!(mode.to_string()));
+                }
+                record
+            }
             Self::Transport(TransportEvent::HealthChanged {
                 id,
                 mode,
@@ -136,13 +137,9 @@ impl fmt::Display for Event {
                 "{}  {}  sent  {}  {}",
                 sent.id, sent.mode, sent.cmd, sent.endpoint
             ),
-            Self::Transport(TransportEvent::Status { mode, status }) => write!(
-                f,
-                "{}  {mode}  status  on={}  brightness={}",
-                status.id,
-                reported(status.on),
-                reported(status.brightness),
-            ),
+            Self::Transport(TransportEvent::Status { mode, status }) => {
+                write!(f, "{}  {mode}  status  {status}", status.id)
+            }
             Self::Transport(TransportEvent::HealthChanged {
                 id,
                 mode,
@@ -154,11 +151,6 @@ impl fmt::Display for Event {
             ),
         }
     }
-}
-
-/// A value the device reported, or `?` where it reported none.
-fn reported(value: Option<impl fmt::Display>) -> String {
-    value.map_or_else(|| "?".to_owned(), |value| value.to_string())
 }
 
 /// A command that was served.
@@ -217,7 +209,7 @@ mod tests {
 
         assert_eq!(
             event.to_string(),
-            "AA:BB:CC:DD:EE:FF  lan  status  on=true  brightness=?"
+            "AA:BB:CC:DD:EE:FF  lan  status  on=true  brightness=?  color=?  kelvin=?"
         );
     }
 
