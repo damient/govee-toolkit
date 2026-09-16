@@ -1,12 +1,15 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    // `Symbol.asyncDispose`, which `await using` reads, is declared in
+    // `esnext.disposable` alone.
+    "lib": ["ES2022", "ESNext.Disposable"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "lib",
     "strict": true,
     "declaration": true
   },
-  "include": ["src"]
+  "include": ["lib"]
 }
