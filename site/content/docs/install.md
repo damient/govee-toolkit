@@ -45,8 +45,8 @@ through the crate.
 <div class="terminal">
 <pre><code><span class="prompt">$</span> cargo install govee-toolkit-cli
 <span class="prompt">$</span> govee scan
-<span class="prompt">$</span> govee on living-room
-<span class="prompt">$</span> govee color living-room "#ff3d00"</code></pre>
+<span class="prompt">$</span> govee on DEVICE
+<span class="prompt">$</span> govee color DEVICE "#ff3d00"</code></pre>
 <button class="copy" type="button" data-copy="cargo install govee-toolkit-cli">Copy</button>
 </div>
 

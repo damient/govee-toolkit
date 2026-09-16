@@ -86,7 +86,7 @@ language:
   "title": "power",
   "summary": "Turn the device on or off.",
   "examples": {
-    "cli": "govee on living-room",
+    "cli": "govee on DEVICE",
     "rust": "device.power(true).await?;",
     "python": "await device.power(True)",
     "node": "await device.power(true)"

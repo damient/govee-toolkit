@@ -14,7 +14,7 @@ Bluetooth or through the cloud. The binary is `govee`.
 ```sh
 cargo install govee-toolkit-cli
 govee scan
-govee color living-room "#ff3d00"
+govee color DEVICE "#ff3d00"
 ```
 
 The binary carries `lan`, `ble` and `cloud`. On Linux, `ble` reaches BlueZ over
