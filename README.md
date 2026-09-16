@@ -65,8 +65,9 @@ animation over the two local modes. It is usable today from Rust and from
 Python. `pip install govee-toolkit` installs a binding over the same core, with
 an `asyncio` API — [`packages/python`](packages/python).
 
-Next comes the Node.js package, then a desktop app, then Home Assistant,
-Homebridge and Matter.
+The Node.js binding is written and waits on its first npm release —
+[`packages/node`](packages/node). After it come a desktop app, then Home
+Assistant, Homebridge and Matter.
 [`docs/roadmap.md`](docs/roadmap.md) tracks the order.
 
 ## Contributing

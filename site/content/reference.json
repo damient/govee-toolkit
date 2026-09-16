@@ -1,5 +1,5 @@
 {
-  "intro": "Every command the toolkit carries, with the same action in each language. Python and Node.js bind to the same core and are not released yet, so their examples show the shape they will have.",
+  "intro": "Every command the toolkit carries, with the same action in each language. Python and Node.js bind to the same core. The Node.js package is written and not released yet.",
   "groups": [
     {
       "id": "find",
@@ -137,7 +137,7 @@
             "cli": "govee segment DEVICE \"#ff3d00\"\ngovee segment DEVICE --zones 1,2,3 \"#ff3d00\"\n# One color per LED: 42 of them on this unit, in zone order.\ngovee segment DEVICE --resolution native \"#ff3d00,#00a3ff,#000000,...\"\n# The same list, from a pipe or a file.\necho \"#ff3d00,#00a3ff,#000000,...\" | govee segment DEVICE --resolution native -",
             "rust": "device.segment(&Paint {\n    zones: None,\n    colors: &frame,\n    resolution: Resolution::Native,\n    gradient: false,\n}).await?;",
             "python": "await device.segment(colors=frame, resolution=\"native\")",
-            "node": "await device.segment({ colors: frame, resolution: \"native\" })"
+            "node": "await device.segment(frame, null, \"native\")"
           }
         },
         {
@@ -153,7 +153,7 @@
             "cli": "govee music DEVICE 3 --sensitivity 60",
             "rust": "device.music(&Music { effect: 3, sensitivity: 60, soft: false, color: None }).await?;",
             "python": "await device.music(effect=3, sensitivity=60)",
-            "node": "await device.music({ effect: 3, sensitivity: 60 })"
+            "node": "await device.music(3, 60)"
           }
         }
       ]
@@ -228,7 +228,7 @@
             "cli": "govee send DEVICE brightness --arg level=40",
             "rust": "device.send(\"brightness\", &args).await?;\nlet reply = device.read(\"status\", &args).await?;",
             "python": "await device.send(\"brightness\", level=40)\nreply = await device.read(\"status\")",
-            "node": "await device.send('brightness', { level: 40 })\nconst reply = await device.read('status', {})"
+            "node": "await device.send('brightness', { level: 40 })\nconst reply = await device.read('status')"
           }
         },
         {
@@ -243,7 +243,7 @@
             "cli": "govee provision DEVICE --ssid my-network",
             "rust": "device.provision_wifi(&credentials).await?;",
             "python": "await device.provision_wifi(\"network name\", \"password\")",
-            "node": "await device.provisionWifi(credentials)"
+            "node": "await device.provisionWifi(\"network name\", \"password\")"
           }
         },
         {
