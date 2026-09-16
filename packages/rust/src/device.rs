@@ -3,14 +3,15 @@
 //! Every method here goes through the mode the user enabled. Nothing falls back
 //! to another one — see `docs/modes.md`.
 
-use crate::codec::coerce::{self, Supplied};
-use crate::codec::{Args, Device, Error as CodecError, Mode};
+use crate::codec::coerce::Supplied;
+use crate::codec::{Args, Device, Mode};
 // Used by the doc comments only.
 #[cfg(doc)]
 use crate::error::Error;
 use crate::error::Result;
 use crate::event::Served;
 use crate::govee::Govee;
+use crate::resolved::Resolved;
 use crate::stream::{SegmentStream, StreamOptions};
 use crate::transport::{DeviceId, DeviceStatus, Health, Reply, Verify};
 
@@ -25,9 +26,7 @@ impl<'a> DeviceHandle<'a> {
     pub(crate) fn new(govee: &'a Govee, id: DeviceId) -> Self {
         Self { govee, id }
     }
-}
 
-impl DeviceHandle<'_> {
     /// The device's identity.
     #[must_use]
     pub fn id(&self) -> &DeviceId {
@@ -74,6 +73,23 @@ impl DeviceHandle<'_> {
         Ok(self.govee.catalog().device(&self.govee.sku(&self.id)?)?)
     }
 
+    /// Resolve the mode, the SKU and the device file once, for a caller
+    /// that builds arguments and then sends.
+    ///
+    /// Every other method here resolves them again per call. Two resolutions
+    /// can answer two modes, so a caller that reads the mode and then sends
+    /// must hold one [`Resolved`] over both.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::serving_mode`] and [`DeviceHandle::spec`].
+    pub fn resolve(&self) -> Result<Resolved<'a>> {
+        let mode = self.govee.choose(&self.id)?;
+        let sku = self.govee.sku(&self.id)?;
+        let device = self.govee.catalog().device(&sku)?;
+        Ok(Resolved::new(self.clone(), mode, sku, device))
+    }
+
     /// Read values a caller supplied under the types the device file
     /// declares, for the mode a send now would go over.
     ///
@@ -84,32 +100,13 @@ impl DeviceHandle<'_> {
     ///
     /// # Errors
     ///
-    /// As for [`DeviceHandle::serving_mode`] and [`DeviceHandle::spec`], plus
-    /// [`crate::codec::Error::UnknownArg`] where the entry declares no such
-    /// argument, and whatever
-    /// [`coerce::read`](crate::codec::coerce::read) reports for a value that
-    /// does not read under the declared type.
+    /// As for [`DeviceHandle::resolve`], plus what [`Resolved::args`]
+    /// reports.
     pub fn args<I>(&self, command: &str, supplied: I) -> Result<Args>
     where
         I: IntoIterator<Item = (String, Supplied)>,
     {
-        let mode = self.serving_mode()?;
-        let Some(entry) = self.spec()?.commands.get(mode).get(command) else {
-            return Ok(Args::new());
-        };
-        let mut values = Args::new();
-        for (name, value) in supplied {
-            let spec = entry
-                .args
-                .get(&name)
-                .ok_or_else(|| CodecError::UnknownArg {
-                    command: command.to_owned(),
-                    arg: name.clone(),
-                    declared: entry.declared(),
-                })?;
-            values.insert(&name, coerce::read(command, &name, spec, value)?);
-        }
-        Ok(values)
+        self.resolve()?.args(command, supplied)
     }
 
     /// Send a command, named as the device file names it.
@@ -205,15 +202,7 @@ impl DeviceHandle<'_> {
     /// As for [`DeviceHandle::send`], plus
     /// [`crate::transport::Error::Unreachable`] if nothing answers in time.
     pub async fn status(&self) -> Result<DeviceStatus> {
-        let mode = self.govee.choose(&self.id)?;
-        let request = self
-            .govee
-            .status_request(&self.govee.sku(&self.id)?, mode)?;
-        Ok(self
-            .govee
-            .transport(&self.id, mode)?
-            .status(&self.id, &request)
-            .await?)
+        self.resolve()?.status().await
     }
 
     /// Run a command's exchanges and return what its `reply:` layouts
@@ -229,14 +218,7 @@ impl DeviceHandle<'_> {
     /// reply to read or the chosen mode does not answer in frames, and
     /// [`crate::transport::Error::Unreachable`] if nothing answers in time.
     pub async fn read(&self, command: &str, args: &Args) -> Result<Reply> {
-        let mode = self.govee.choose(&self.id)?;
-        let sku = self.govee.sku(&self.id)?;
-        let request = self.govee.encode(&sku, mode, command, args)?;
-        Ok(self
-            .govee
-            .transport(&self.id, mode)?
-            .read(&self.id, &request)
-            .await?)
+        self.resolve()?.read(command, args).await
     }
 
     /// The last status heard, without asking for a new one.

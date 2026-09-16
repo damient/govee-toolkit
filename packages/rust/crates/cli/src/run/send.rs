@@ -1,11 +1,11 @@
 //! `send`: one device file entry, named as the file names it. The crate
-//! resolves the mode and reads every value under the type the entry declares
-//! for it — see [`govee_toolkit::DeviceHandle::args`].
+//! resolves the mode once and reads every value under the type the entry
+//! declares for it — see [`govee_toolkit::DeviceHandle::resolve`].
 //!
 //! An entry that declares a `reply:` is read, and what the layout captured is
 //! printed under the names the device file gives the fields.
 
-use govee_toolkit::codec::{self, Command, Supplied};
+use govee_toolkit::codec::{self, Supplied};
 use govee_toolkit::{DeviceId, Error, Govee};
 use serde_json::json;
 
@@ -20,17 +20,12 @@ pub(super) async fn run(
     pairs: &[String],
 ) -> Result<(), Failure> {
     let handle = govee.device(id);
-    let mode = handle.serving_mode()?;
-    let device = handle.spec()?;
-    let values = handle.args(command, supplied(pairs)?).map_err(usage)?;
+    let call = handle.resolve()?;
+    let mode = call.mode();
+    let values = call.args(command, supplied(pairs)?).map_err(usage)?;
 
-    if device
-        .commands
-        .get(mode)
-        .get(command)
-        .is_some_and(Command::answers)
-    {
-        let reply = handle.read(command, &values).await?;
+    if call.answers(command) {
+        let reply = call.read(command, &values).await?;
         let fields = reply.fields.to_json();
         let text = fields
             .as_object()
@@ -53,7 +48,7 @@ pub(super) async fn run(
         return Ok(());
     }
 
-    let served = handle.send(command, &values).await?;
+    let served = call.send(command, &values).await?;
     report(writer, &served);
     Ok(())
 }

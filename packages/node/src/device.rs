@@ -129,8 +129,10 @@ impl DeviceHandle {
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let supplied = conv::args(env, args)?;
         self.served(env, |govee, id| async move {
-            let values = govee.device(&id).args(&command, supplied)?;
-            govee.device(&id).send(&command, &values).await
+            let handle = govee.device(&id);
+            let call = handle.resolve()?;
+            let values = call.args(&command, supplied)?;
+            call.send(&command, &values).await
         })
     }
 
@@ -149,10 +151,10 @@ impl DeviceHandle {
         let supplied = conv::args(env, args)?;
         let (govee, id) = self.parts();
         promise(env, async move {
-            let values = govee.device(&id).args(&command, supplied)?;
-            Ok(Reply::from(
-                govee.device(&id).read(&command, &values).await?,
-            ))
+            let handle = govee.device(&id);
+            let call = handle.resolve()?;
+            let values = call.args(&command, supplied)?;
+            Ok(Reply::from(call.read(&command, &values).await?))
         })
     }
 

@@ -19,8 +19,9 @@ use crate::codec::{ArgRole, ArgValue, Args, Mode, Role};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::Served;
+use crate::resolved::Resolved;
 
-impl DeviceHandle<'_> {
+impl<'a> DeviceHandle<'a> {
     /// Turn the device on or off.
     ///
     /// # Errors
@@ -52,7 +53,7 @@ impl DeviceHandle<'_> {
     /// As for [`DeviceHandle::power`], for `role: color` and the three
     /// components `role: red`, `role: green` and `role: blue`.
     pub async fn color(&self, rgb: [u8; 3]) -> Result<Served> {
-        let entry = self.resolve(Role::Color)?;
+        let entry = self.role_entry(Role::Color)?;
 
         let mut args = Args::new();
         for (arg_role, value) in [
@@ -64,7 +65,7 @@ impl DeviceHandle<'_> {
             args.insert(name, ArgValue::Int(i64::from(value)));
         }
 
-        entry.send(self, &args).await
+        entry.send(&args).await
     }
 
     /// Resolve `role` for the mode a send would go over now.
@@ -72,49 +73,57 @@ impl DeviceHandle<'_> {
     /// # Errors
     ///
     /// As for [`DeviceHandle::send`], plus [`Error::NoRoleCommand`].
-    fn resolve(&self, role: Role) -> Result<Resolved<'_>> {
-        let mode = self.serving_mode()?;
-        let sku = self.govee.sku(self.id())?;
-        let device = self.govee.catalog().device(&sku)?;
-        let (command, spec) = device
-            .entry_for(mode, role)
-            .ok_or_else(|| Error::NoRoleCommand {
-                sku: sku.clone(),
-                mode,
-                role,
-            })?;
-        Ok(Resolved {
-            mode,
-            sku,
-            device,
-            command: command.to_owned(),
+    fn role_entry(&self, role: Role) -> Result<RoleEntry<'a>> {
+        let call = self.resolve()?;
+        let (command, spec) =
+            call.spec()
+                .entry_for(call.mode(), role)
+                .ok_or_else(|| Error::NoRoleCommand {
+                    sku: call.sku().to_owned(),
+                    mode: call.mode(),
+                    role,
+                })?;
+        let command = command.to_owned();
+        Ok(RoleEntry {
+            call,
+            command,
             spec,
         })
     }
 
     async fn one_arg(&self, role: Role, arg_role: ArgRole, value: i64) -> Result<Served> {
-        let entry = self.resolve(role)?;
+        let entry = self.role_entry(role)?;
         let args = Args::new().int(entry.arg(arg_role)?, value);
-        entry.send(self, &args).await
+        entry.send(&args).await
     }
 }
 
-/// One entry of a device file, resolved for the mode that carries it. It holds
-/// the SKU it was read for, so the send does not resolve it twice.
-pub(crate) struct Resolved<'a> {
-    pub(crate) mode: Mode,
-    pub(crate) sku: String,
-    pub(crate) device: &'a Device,
+/// One entry of a device file, on the mode that carries it. It holds the
+/// resolution the entry was read under, so the send does not resolve twice.
+pub(crate) struct RoleEntry<'a> {
+    pub(crate) call: Resolved<'a>,
     pub(crate) command: String,
     spec: &'a Command,
 }
 
-impl Resolved<'_> {
+impl<'a> RoleEntry<'a> {
+    pub(crate) fn mode(&self) -> Mode {
+        self.call.mode()
+    }
+
+    pub(crate) fn sku(&self) -> &str {
+        self.call.sku()
+    }
+
+    pub(crate) fn device(&self) -> &'a Device {
+        self.call.spec()
+    }
+
     /// [`Error::NoRoleArg`] where the entry marks no such argument.
     pub(crate) fn arg(&self, arg_role: ArgRole) -> Result<&str> {
         self.marked(arg_role).ok_or_else(|| Error::NoRoleArg {
-            sku: self.sku.clone(),
-            mode: self.mode,
+            sku: self.sku().to_owned(),
+            mode: self.mode(),
             command: self.command.clone(),
             arg_role,
         })
@@ -124,10 +133,8 @@ impl Resolved<'_> {
         self.spec.arg_for(arg_role)
     }
 
-    pub(crate) async fn send(&self, handle: &DeviceHandle<'_>, args: &Args) -> Result<Served> {
-        handle
-            .send_resolved(self.mode, &self.sku, &self.command, args)
-            .await
+    pub(crate) async fn send(&self, args: &Args) -> Result<Served> {
+        self.call.send(&self.command, args).await
     }
 }
 
