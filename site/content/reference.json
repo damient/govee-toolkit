@@ -44,6 +44,8 @@
         {
           "id": "status",
           "title": "status",
+          "roles": ["status"],
+          "action": { "order": 80, "title": "Read the state back" },
           "summary": "Ask the device for its current state.",
           "detail": "`last_status` returns the state already known and sends nothing.",
           "examples": {
@@ -85,6 +87,8 @@
         {
           "id": "power",
           "title": "power",
+          "roles": ["power"],
+          "action": { "order": 10, "title": "Turn it on and off" },
           "summary": "Turn the device on or off.",
           "examples": {
             "cli": "govee on DEVICE\ngovee off DEVICE",
@@ -96,18 +100,24 @@
         {
           "id": "brightness",
           "title": "brightness",
+          "roles": ["brightness"],
+          "args": { "level": "brightness" },
+          "values": { "level": 40 },
+          "action": { "order": 20, "title": "Set the brightness" },
           "summary": "Set the brightness of the whole device.",
           "detail": "The device file carries the range. A value outside it is an error, never a clamp. On a verified model `0` is clamped by the firmware to `1` and does not turn the device off.",
           "examples": {
-            "cli": "govee brightness DEVICE 40",
-            "rust": "device.brightness(40).await?;",
-            "python": "await device.brightness(40)",
-            "node": "await device.brightness(40)"
+            "cli": "govee brightness DEVICE {level}",
+            "rust": "device.brightness({level}).await?;",
+            "python": "await device.brightness({level})",
+            "node": "await device.brightness({level})"
           }
         },
         {
           "id": "color",
           "title": "color",
+          "roles": ["color"],
+          "action": { "order": 30, "title": "Set one color" },
           "summary": "Set one color for the whole device.",
           "examples": {
             "cli": "govee color DEVICE \"#ff3d00\"",
@@ -119,41 +129,91 @@
         {
           "id": "color-temp",
           "title": "color_temp",
+          "roles": ["color_temp"],
+          "args": { "kelvin": "color_temp" },
+          "values": { "kelvin": 4000 },
+          "action": {
+            "order": 40,
+            "title": "Set the white temperature",
+            "summary": "White and color are mutually exclusive: this ends the color the device shows."
+          },
           "summary": "Set the white temperature, in kelvin.",
           "detail": "It ends the color the device showed: white and color are two states that exclude each other. Where the mode carries the RGB rendering in the same frame, the core computes it and sends both.",
           "examples": {
-            "cli": "govee colortemp DEVICE 4000",
-            "rust": "device.color_temp(4000).await?;",
-            "python": "await device.color_temp(4000)",
-            "node": "await device.colorTemp(4000)"
+            "cli": "govee colortemp DEVICE {kelvin}",
+            "rust": "device.color_temp({kelvin}).await?;",
+            "python": "await device.color_temp({kelvin})",
+            "node": "await device.colorTemp({kelvin})"
           }
         },
         {
           "id": "segment",
           "title": "segment",
+          "roles": ["segment_color", "segment_color_masked"],
+          "action": { "order": 50, "title": "Paint the zones", "segments": true },
           "summary": "Paint the zones.",
           "detail": "One color fills every zone. A list of colors states one zone each, which is how a mode that addresses every LED is painted pixel by pixel: ask for the native resolution and pass that many colors. With a list of zones, the zones you name take the one color and the rest stay as they are; that needs a mode that paints by mask. A count the unit renders as a smaller one is refused, and the message names the counts it refines at.",
           "examples": {
-            "cli": "govee segment DEVICE \"#ff3d00\"\ngovee segment DEVICE --zones 1,2,3 \"#ff3d00\"\n# One color per LED: 42 of them on this unit, in zone order.\ngovee segment DEVICE --resolution native \"#ff3d00,#00a3ff,#000000,...\"\n# The same list, from a pipe or a file.\necho \"#ff3d00,#00a3ff,#000000,...\" | govee segment DEVICE --resolution native -",
-            "rust": "device.segment(&Paint {\n    zones: None,\n    colors: &frame,\n    resolution: Resolution::Native,\n    gradient: false,\n}).await?;",
-            "python": "await device.segment(colors=frame, resolution=\"native\")",
-            "node": "await device.segment(frame, null, \"native\")"
+            "cli": "govee segment DEVICE \"#ff3d00\"",
+            "rust": "device.segment(&Paint {\n    zones: None,\n    colors: &frame,\n    resolution: Resolution::default(),\n    gradient: false,\n}).await?;",
+            "python": "await device.segment(colors=frame)",
+            "node": "await device.segment(frame)"
+          },
+          "adds": [
+            {
+              "needs": ["segment_color_masked"],
+              "examples": {
+                "cli": "govee segment DEVICE --zones 0,1,2 \"#ff3d00\""
+              }
+            },
+            {
+              "needs": ["native_pixels"],
+              "examples": {
+                "cli": "# One color per LED, in zone order. `describe` reports how many.\ngovee segment DEVICE --resolution native \"#ff3d00,#00a3ff,#000000,...\"\n# The same list, from a pipe or a file.\necho \"#ff3d00,#00a3ff,#000000,...\" | govee segment DEVICE --resolution native -",
+                "rust": "device.segment(&Paint {\n    zones: None,\n    colors: &frame,\n    resolution: Resolution::Native,\n    gradient: false,\n}).await?;",
+                "python": "await device.segment(colors=frame, resolution=\"native\")",
+                "node": "await device.segment(frame, null, \"native\")"
+              }
+            }
+          ]
+        },
+        {
+          "id": "gradient",
+          "title": "gradient",
+          "roles": ["segment_gradient"],
+          "action": {
+            "order": 60,
+            "title": "Interpolate between the zones",
+            "summary": "The interpolation wraps from the last zone back to the first."
+          },
+          "summary": "Set whether the firmware interpolates between zones, without painting.",
+          "detail": "The interpolation wraps from the last zone back to the first, so one lit zone at one end also lights the other. It is refused over a mode that carries the setting inside its painting frame: nothing there holds what the device shows, so the colors cannot be repainted under the other setting. Pass `--gradient` to `segment` over such a mode, which sets both at once.",
+          "examples": {
+            "cli": "govee gradient DEVICE on",
+            "rust": "device.gradient(true).await?;",
+            "python": "await device.gradient(True)",
+            "node": "await device.gradient(true)"
           }
         },
         {
           "id": "music",
           "title": "music",
-          "modes": [
-            "ble",
-            "cloud"
-          ],
+          "modes": ["ble", "cloud"],
+          "roles": ["music"],
+          "args": { "effect": "effect", "sensitivity": "sensitivity" },
+          "values": { "effect": 3, "sensitivity": 60 },
+          "action": {
+            "order": 70,
+            "title": "Play a music effect",
+            "summary": "The device listens on its own microphone."
+          },
           "summary": "Play an effect the device renders from its own microphone.",
           "detail": "The device listens and nothing streams from your host. The effect identifiers belong to the mode: the same number names another effect over another mode, and `lan` carries no music command at all. Nothing stops the effect — set a color, a temperature or the power to end it.",
           "examples": {
-            "cli": "govee music DEVICE 3 --sensitivity 60",
-            "rust": "device.music(&Music { effect: 3, sensitivity: 60, soft: false, color: None }).await?;",
-            "python": "await device.music(effect=3, sensitivity=60)",
-            "node": "await device.music(3, 60)"
+            "cli": "govee music DEVICE {effect} --sensitivity {sensitivity}",
+            "rust": "device.music(&Music {\n    effect: {effect},\n    sensitivity: {sensitivity},\n    soft: false,\n    color: None,\n}).await?;",
+            "python": "await device.music(effect={effect}, sensitivity={sensitivity})",
+            "node": "await device.music({effect}, {sensitivity})"
           }
         }
       ]
@@ -161,10 +221,7 @@
     {
       "id": "stream",
       "title": "Animate the segments",
-      "modes": [
-        "lan",
-        "ble"
-      ],
+      "modes": ["lan", "ble"],
       "entries": [
         {
           "id": "open-stream",
@@ -234,9 +291,9 @@
         {
           "id": "provision",
           "title": "provision_wifi",
-          "modes": [
-            "ble"
-          ],
+          "modes": ["ble"],
+          "roles": ["wifi_provision", "wifi_provision_with_api"],
+          "action": { "order": 90, "title": "Put it on a Wi-Fi network" },
           "summary": "Put a new device on a Wi-Fi network, over Bluetooth.",
           "detail": "This is how a device out of the box becomes reachable over `lan`. The password travels in plaintext with no key exchange: anything in Bluetooth range while it runs can read it.",
           "examples": {

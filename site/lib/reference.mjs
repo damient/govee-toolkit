@@ -3,6 +3,7 @@
 
 import { base } from "./config.mjs";
 import { docShell } from "./docs.mjs";
+import { examples } from "./examples.mjs";
 import { escapeAttr, escapeHtml, inline } from "./html.mjs";
 import { langBlock } from "./languages.mjs";
 import { modeBadge } from "./mode-badge.mjs";
@@ -51,6 +52,6 @@ function referenceEntry(entry) {
               <p class="summary">${escapeHtml(entry.summary)}</p>
               ${detail}
             </div>
-            ${langBlock(entry.id, entry.examples)}
+            ${langBlock(entry.id, examples(entry, {}, null))}
           </article>`;
 }
