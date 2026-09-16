@@ -70,91 +70,70 @@ pub mod cloud;
 #[cfg_attr(docsrs, doc(cfg(feature = "lan")))]
 pub mod lan;
 
-// The facade needs a transport, but not a particular one: each gate below
-// names the modes that carry one.
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
-)]
+// The facade needs a transport, but not a particular one. Every mode turns the
+// `transport` feature on, so one gate serves all three.
+#[cfg(feature = "transport")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
 pub mod config;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
-)]
+#[cfg(feature = "transport")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
 pub mod env;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
-)]
+#[cfg(feature = "transport")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
 pub mod error;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
-)]
+#[cfg(feature = "transport")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
 pub mod paths;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
-)]
+#[cfg(feature = "transport")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
 pub mod stream;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
-)]
+#[cfg(feature = "transport")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
 pub mod summary;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(feature = "lan", feature = "ble", feature = "cloud")))
-)]
+#[cfg(feature = "transport")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
 pub mod transport;
 
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 mod describe;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 mod device;
 
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 mod event;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 mod govee;
 #[cfg(feature = "ble")]
 mod provision;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 mod resolved;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 mod verbs;
 
 pub use codec::{Args, Catalog, Mode};
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use config::{CloudConfig, Config, DeviceConfig, LanConfig, Problem, StreamConfig};
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use describe::describe;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use device::DeviceHandle;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use env::Env;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use error::{Category, Error, Result};
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use event::{Device, Event, Served};
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use govee::Govee;
 #[cfg(feature = "ble")]
 pub use provision::{Provisioned, WifiCredentials};
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use resolved::Resolved;
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use stream::{ParseError, Rate, Reach, Resolution, SegmentStream, StreamOptions};
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use summary::{Style, Summary};
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use transport::{DeviceId, DeviceStatus, Health, Reply, State, Transport};
-#[cfg(any(feature = "lan", feature = "ble", feature = "cloud"))]
+#[cfg(feature = "transport")]
 pub use verbs::{Music, Paint};

@@ -42,34 +42,21 @@ authors = ["damient"]
 # bytes out, no socket and no async runtime. Every binding encodes through that
 # build, and `tools/check-no-io.sh` guards it.
 default = ["lan"]
-# A feature is public API (`docs/versioning.md`), so each transport spells its
-# dependencies out rather than shares an internal feature. `async-trait` is
-# what puts the async `Transport` trait behind a `dyn`.
-lan = [
+# A feature is public API (`docs/versioning.md`). `transport` carries the
+# facade: the configuration, the error, the event and the `Transport` trait,
+# none of which belong to one mode. Every mode turns it on, so a user names a
+# mode and never this feature. `async-trait` is what puts the async `Transport`
+# trait behind a `dyn`.
+transport = [
+  "dep:async-trait",
   "dep:dotenvy",
   "dep:futures-util",
-  "dep:socket2",
-  "dep:async-trait",
   "dep:tokio",
   "dep:tracing",
 ]
-cloud = [
-  "dep:dotenvy",
-  "dep:reqwest",
-  "dep:async-trait",
-  "dep:tokio",
-  "dep:tracing",
-]
-ble = [
-  "dep:aes",
-  "dep:dotenvy",
-  "dep:btleplug",
-  "dep:futures-util",
-  "dep:uuid",
-  "dep:async-trait",
-  "dep:tokio",
-  "dep:tracing",
-]
+lan = ["transport", "dep:socket2"]
+cloud = ["transport", "dep:reqwest"]
+ble = ["transport", "dep:aes", "dep:btleplug", "dep:uuid"]
 
 [dependencies]
 base64 = "0.23"
