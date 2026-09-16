@@ -106,7 +106,9 @@ answer, the crate builds the record — `Event::to_json` for an event,
 `describe` for a device file — so the CLI, the bindings and an application read
 one shape. Where a surface must read a value, the crate reads it:
 `DeviceHandle::args` takes what a caller supplied and reads it under the types
-the device file declares.
+the device file declares. A surface that reads values and then sends holds one
+`DeviceHandle::resolve`, so the mode, the SKU and the device file are read once
+and the bytes go over the mode the values were read for.
 
 - **Node** — `napi-rs`, in `packages/node`: the facade as a promise-based API,
   in one prebuilt addon per platform. The runners build Linux and Windows on

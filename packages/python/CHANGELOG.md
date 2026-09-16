@@ -4,6 +4,11 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Changed
+
+- `send()` and `read()` resolve the mode, the SKU and the device file once per
+  call. The record `send()` answers names the mode the bytes went over.
+
 ## [0.1.0] — 2026-09-15
 
 The first release that carries code. The version on PyPI before it was a
