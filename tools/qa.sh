@@ -37,6 +37,7 @@ check() {
 # The sweep at the end removes what is older than this stamp.
 "$root/tools/clean-target.sh" --stamp
 "$root/tools/clean-target.sh" --stamp --root "$root/packages/python"
+"$root/tools/clean-target.sh" --stamp --root "$root/packages/node"
 
 if check_fmt_nightly "rust fmt" "$rust"; then
   nightly=yes
@@ -115,11 +116,12 @@ else
   skip "spelling" "cargo install typos-cli, or brew install typos-cli"
 fi
 
-# The site and the Python binding each carry a script and a workflow of their
-# own. One check here runs one script there, and its summary prints inside this
-# one when it fails.
+# The site, the Python binding and the Node binding each carry a script and a
+# workflow of their own. One check here runs one script there, and its summary
+# prints inside this one when it fails.
 check_script site "$root/tools/qa-site.sh"
 check_script python "$root/tools/qa-python.sh"
+check_script node "$root/tools/qa-node.sh"
 
 # Every check above runs through the scripts under tools/. -x follows
 # `# shellcheck source=`, which is how lib/qa.sh is read.
@@ -153,6 +155,7 @@ if [ -z "$only" ]; then
   echo
   "$root/tools/clean-target.sh"
   "$root/tools/clean-target.sh" --root "$root/packages/python"
+  "$root/tools/clean-target.sh" --root "$root/packages/node"
 fi
 
 exit "$status"
