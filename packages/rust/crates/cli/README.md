@@ -1,90 +1,80 @@
-# govee-toolkit-cli
+![Govee Toolkit](https://raw.githubusercontent.com/damient/govee-toolkit/main/docs/assets/banner.png)
 
-Discover Govee devices and send commands from your terminal, over the LAN, over
-Bluetooth or through the cloud. The binary is `govee`.
+# Govee Toolkit CLI
 
-**Documentation: [gvetk.com](https://gvetk.com)**
+Your lights live on your network, and your commands stay there with them. Wi-Fi
+or a Bluetooth link is all the toolkit needs, straight from your own machine.
+The cloud waits as a third mode for the days you are away. And the toolkit
+sends commands you have never seen before: the undocumented ones, read off the
+wire.
 
-[![govee-toolkit-cli on crates.io](https://img.shields.io/crates/v/govee-toolkit-cli?logo=rust&logoColor=white&label=crates.io)](https://crates.io/crates/govee-toolkit-cli)
+[![status](https://img.shields.io/badge/status-beta-yellow)](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 
-> Community project. Not affiliated with, sponsored by or endorsed by Govee.
+[![govee-toolkit on crates.io](https://img.shields.io/crates/v/govee-toolkit?logo=rust&logoColor=white&label=govee-toolkit)](https://crates.io/crates/govee-toolkit)
+[![govee-toolkit-cli on crates.io](https://img.shields.io/crates/v/govee-toolkit-cli?logo=rust&logoColor=white&label=govee-toolkit-cli)](https://crates.io/crates/govee-toolkit-cli)
+[![govee-toolkit on PyPI](https://img.shields.io/pypi/v/govee-toolkit?logo=python&logoColor=white&label=govee-toolkit)](https://pypi.org/project/govee-toolkit/)
+[![govee-toolkit on npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=govee-toolkit)](https://www.npmjs.com/package/govee-toolkit)
 
-```sh
-cargo install govee-toolkit-cli
-govee scan
-govee color DEVICE "#ff3d00"
-```
+<!-- TODO: demo GIF here — a strip running per-segment colors. -->
 
-The binary carries `lan`, `ble` and `cloud`. On Linux, `ble` reaches BlueZ over
-D-Bus, so a build from source needs `libdbus-1-dev`.
+## What it does
 
-## Start here
+- Switch a device on and off, and set the brightness, the color and the white
+  temperature.
+- Address every segment of a strip on its own, not only the preset effects.
+- Drive a strip frame by frame in real time: music reactive, screen ambilight,
+  or your own source.
+- Put a device out of the box on your Wi-Fi over Bluetooth, which is what makes
+  it reachable over `lan`.
 
-| You want to | Go to |
-| ----------- | ----- |
-| Install it and send a first command | [gvetk.com/docs/start](https://gvetk.com/docs/start/) |
-| Know whether your model works | [gvetk.com/devices](https://gvetk.com/devices/) |
-| Pick and configure the modes | [gvetk.com/docs/modes][modes] |
-| Read every command, with an example | [gvetk.com/reference](https://gvetk.com/reference/) |
+A command travels over your Wi-Fi (`lan`), over Bluetooth (`ble`) or through
+Govee's servers (`cloud`). You choose which modes to allow, per device. One
+allowed mode means one mode: an unreachable device fails with an error rather
+than taking a slower path in silence.
 
-## Commands
+<br>
 
-| Command | What it does |
-| ------- | ------------ |
-| `scan` | Discover devices and report what answered. |
-| `devices` | List the devices already known, without touching the network. |
-| `describe <target>` | Report what a device file declares. Reads no hardware. |
-| `doctor` | Report everything wrong with the configuration. |
-| `status <device>` | Ask the device for its state. |
-| `on`, `off`, `brightness`, `color` | The verbs, by `role:`. |
-| `colortemp <device> <kelvin>` | Set the white temperature. |
-| `segment <device> [--zones] <color>` | Paint zones one color. |
-| `music <device> <effect>` | Play an effect from the device's own microphone. |
-| `send <device> <command> --arg n=v` | One device file entry, by name. |
-| `stream <device>` | Feed the segment channel, one frame per line of stdin. |
-| `watch` | Print events as they arrive. |
-| `provision <device> --ssid` | Put a device on a Wi-Fi network over `ble`. |
+<p align="center">
+  <a href="https://gvetk.com/docs/start/"><img alt="Get started" src="https://img.shields.io/badge/Get%20started-0b7285?style=for-the-badge"></a>
+  <a href="https://gvetk.com/devices/"><img alt="Devices" src="https://img.shields.io/badge/Devices-3b444b?style=for-the-badge"></a>
+  <a href="https://gvetk.com/docs/modes/"><img alt="Modes" src="https://img.shields.io/badge/Modes-3b444b?style=for-the-badge"></a>
+  <a href="https://gvetk.com/reference/"><img alt="API reference" src="https://img.shields.io/badge/API%20reference-3b444b?style=for-the-badge"></a>
+  <a href="https://github.com/damient/govee-toolkit/blob/main/devices/README.md"><img alt="Add a device" src="https://img.shields.io/badge/Add%20a%20device-3b444b?style=for-the-badge"></a>
+</p>
 
-The CLI holds no protocol logic. `send` names an entry of the device file, so
-it works for a SKU this build has never heard of. Each verb reaches the device
-file through a `role:`, so the Node and the Python packages get the same verb
-from the core. A device file that claims no entry for the role fails and names
-the role: no verb is served through another command.
+## Where the project is
 
-Every command above works. `provision` sends the Wi-Fi password in plaintext —
-anything in Bluetooth range while it runs reads it.
-[gvetk.com/docs/configure](https://gvetk.com/docs/configure/) covers the
-credentials and the `.env` file every subcommand reads.
+The engine works over `lan`, over `ble` and over `cloud`, verified on real
+hardware: discovery, on/off, brightness, color, per-segment color, and live
+animation over the two local modes. It is usable today from Rust, from Python
+and from Node.js.
 
-## Modes
+Next come a desktop app, then Home Assistant, Homebridge and Matter.
+[`docs/roadmap.md`](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md) tracks the order.
 
-`--mode` restricts the run to one mode. It never enables a mode the
-configuration leaves out, and it never falls back to another one. A device that
-no enabled mode reaches is an error — see [gvetk.com/docs/modes][modes].
+## Contributing
 
-## Output
+The protocol is implemented once, in Rust; Python and Node.js bind to that core.
+Command names, byte layouts and measured limits live in
+[`devices/`](https://github.com/damient/govee-toolkit/tree/main/devices), never in code, so adding a model is editing one file.
+[`docs/architecture.md`](https://github.com/damient/govee-toolkit/blob/main/docs/architecture.md) explains the shape of the code,
+and [`CONTRIBUTING.md`](https://github.com/damient/govee-toolkit/blob/main/CONTRIBUTING.md) covers how to document a newly
+discovered command.
 
-`--json` writes one JSON object per line on stdout, and an error object on
-stderr. That form is the contract, and an error's `kind` is the core's own
-error code. The text form is for a person, and its layout can change at any
-release.
+Confirming whether your model works needs no code:
+[`devices/README.md`](https://github.com/damient/govee-toolkit/blob/main/devices/README.md) walks through it.
 
-| Exit code | Meaning |
-| --------- | ------- |
-| 0 | Success. |
-| 1 | A failure no other code names. |
-| 2 | The command line is wrong. |
-| 3 | The configuration cannot be read or cannot be applied. |
-| 4 | No enabled mode reaches the device. |
-| 5 | The command or an argument is refused. Nothing was sent. |
-| 6 | This build does not carry what the command line names. |
+## Legal notice
+
+The "Govee" trademark is used descriptively only, to identify compatible
+devices. This project is not affiliated with, sponsored by, or endorsed by
+Govee.
 
 ## License
 
 [MIT](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 
-<!-- Absolute: this file is the crate description on crates.io, where a
+<!-- Absolute: this file is the package description on the registry, where a
      relative link out of the package directory is dead. -->
-[modes]: https://gvetk.com/docs/modes/

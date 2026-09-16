@@ -2,13 +2,13 @@
 
 # Govee Toolkit
 
-Control your Govee lights from your own machine, over your own network — no
-internet, no Govee account, no cloud round-trip. It also sends commands the
-official app does not expose.
+Your lights live on your network, and your commands stay there with them. Wi-Fi
+or a Bluetooth link is all the toolkit needs, straight from your own machine.
+The cloud waits as a third mode for the days you are away. And the toolkit
+sends commands you have never seen before: the undocumented ones, read off the
+wire.
 
-**Documentation: [gvetk.com](https://gvetk.com)**
-
-[![status](https://img.shields.io/badge/status-alpha-orange)](docs/roadmap.md)
+[![status](https://img.shields.io/badge/status-beta-yellow)](docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 
@@ -16,8 +16,6 @@ official app does not expose.
 [![govee-toolkit-cli on crates.io](https://img.shields.io/crates/v/govee-toolkit-cli?logo=rust&logoColor=white&label=govee-toolkit-cli)](https://crates.io/crates/govee-toolkit-cli)
 [![govee-toolkit on PyPI](https://img.shields.io/pypi/v/govee-toolkit?logo=python&logoColor=white&label=govee-toolkit)](https://pypi.org/project/govee-toolkit/)
 [![govee-toolkit on npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=govee-toolkit)](https://www.npmjs.com/package/govee-toolkit)
-
-> Community project. Not affiliated with, sponsored by or endorsed by Govee.
 
 <!-- TODO: demo GIF here — a strip running per-segment colors. -->
 
@@ -36,36 +34,22 @@ Govee's servers (`cloud`). You choose which modes to allow, per device. One
 allowed mode means one mode: an unreachable device fails with an error rather
 than taking a slower path in silence.
 
-## Start here
+<br>
 
-| You want to | Go to |
-| ----------- | ----- |
-| Install it and send a first command | [gvetk.com/docs/start](https://gvetk.com/docs/start/) |
-| Know whether your model works | [gvetk.com/devices](https://gvetk.com/devices/) |
-| Pick and configure the modes | [gvetk.com/docs/modes](https://gvetk.com/docs/modes/) |
-| Read the API | [gvetk.com/reference](https://gvetk.com/reference/) |
-| Report a device, or add one | [`devices/README.md`](devices/README.md) |
-
-## Which devices work
-
-Find your model number — it looks like `H61A0`, on the box and in the Govee app
-under your device's settings. 271 models ship a "LAN Control" switch, and
-everything over `lan` needs that switch on.
-
-One model is confirmed end to end so far, the **H61A0**, segments included. The
-other 270 are untested rather than unsupported, so a test on yours moves the
-project forward. [gvetk.com/devices](https://gvetk.com/devices/) tracks what is
-known.
+<p align="center">
+  <a href="https://gvetk.com/docs/start/"><img alt="Get started" src="https://img.shields.io/badge/Get%20started-0b7285?style=for-the-badge"></a>
+  <a href="https://gvetk.com/devices/"><img alt="Devices" src="https://img.shields.io/badge/Devices-3b444b?style=for-the-badge"></a>
+  <a href="https://gvetk.com/docs/modes/"><img alt="Modes" src="https://img.shields.io/badge/Modes-3b444b?style=for-the-badge"></a>
+  <a href="https://gvetk.com/reference/"><img alt="API reference" src="https://img.shields.io/badge/API%20reference-3b444b?style=for-the-badge"></a>
+  <a href="devices/README.md"><img alt="Add a device" src="https://img.shields.io/badge/Add%20a%20device-3b444b?style=for-the-badge"></a>
+</p>
 
 ## Where the project is
 
 The engine works over `lan`, over `ble` and over `cloud`, verified on real
 hardware: discovery, on/off, brightness, color, per-segment color, and live
-animation over the two local modes. It is usable today from Rust, from
-Python and from Node.js. `pip install govee-toolkit` installs a binding over
-the same core with an `asyncio` API — [`packages/python`](packages/python) —
-and `npm install govee-toolkit` installs a promise-based one —
-[`packages/node`](packages/node).
+animation over the two local modes. It is usable today from Rust, from Python
+and from Node.js.
 
 Next come a desktop app, then Home Assistant, Homebridge and Matter.
 [`docs/roadmap.md`](docs/roadmap.md) tracks the order.
@@ -84,7 +68,6 @@ Confirming whether your model works needs no code:
 
 ## Legal notice
 
-Protocol reverse engineering is carried out for **interoperability** purposes.
 The "Govee" trademark is used descriptively only, to identify compatible
 devices. This project is not affiliated with, sponsored by, or endorsed by
 Govee.
