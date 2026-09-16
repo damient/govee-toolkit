@@ -81,18 +81,22 @@ pub(crate) fn rgb(env: &Env, value: &Unknown<'_>) -> napi::Result<[u8; 3]> {
 }
 
 /// Read a color, or an array of them. One color needs no wrapping array.
+///
+/// Three numbers are one color, and anything else is an array of colors.
 pub(crate) fn colors(env: &Env, value: &Unknown<'_>) -> napi::Result<Vec<[u8; 3]>> {
-    if let Ok(one) = rgb(env, value) {
-        return Ok(vec![one]);
+    let refused = || value_error(env, "a paint is one color, or an array of colors");
+    if value.get_type()? != ValueType::Object {
+        return Err(refused());
     }
     let array = value.coerce_to_object()?;
     if !array.is_array()? {
-        return Err(value_error(
-            env,
-            "a paint is one color, or an array of colors",
-        ));
+        return Err(refused());
     }
-    (0..array.get_array_length()?)
+    let length = array.get_array_length()?;
+    if length > 0 && array.get_element::<Unknown<'_>>(0)?.get_type()? == ValueType::Number {
+        return Ok(vec![triple(env, &ints(env, &array)?)?]);
+    }
+    (0..length)
         .map(|index| rgb(env, &array.get_element::<Unknown<'_>>(index)?))
         .collect()
 }
@@ -153,13 +157,11 @@ pub(crate) fn args(env: &Env, values: Option<Object<'_>>) -> napi::Result<Vec<(S
     };
     Object::keys(&values)?
         .into_iter()
-        .filter_map(|name| {
-            let read = values
-                .get::<Unknown<'_>>(&name)
-                .transpose()?
-                .and_then(|value| supplied(env, &value))
-                .map(|value| (name, value));
-            Some(read)
+        .map(|name| {
+            let Some(value) = values.get::<Unknown<'_>>(&name)? else {
+                return Err(value_error(env, format!("{name} carries no value")));
+            };
+            Ok((name, supplied(env, &value)?))
         })
         .collect()
 }
