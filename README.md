@@ -61,13 +61,13 @@ known.
 
 The engine works over `lan`, over `ble` and over `cloud`, verified on real
 hardware: discovery, on/off, brightness, color, per-segment color, and live
-animation over the two local modes. It is usable today from Rust and from
-Python. `pip install govee-toolkit` installs a binding over the same core, with
-an `asyncio` API — [`packages/python`](packages/python).
+animation over the two local modes. It is usable today from Rust, from
+Python and from Node.js. `pip install govee-toolkit` installs a binding over
+the same core with an `asyncio` API — [`packages/python`](packages/python) —
+and `npm install govee-toolkit` installs a promise-based one —
+[`packages/node`](packages/node).
 
-The Node.js binding is written and waits on its first npm release —
-[`packages/node`](packages/node). After it come a desktop app, then Home
-Assistant, Homebridge and Matter.
+Next come a desktop app, then Home Assistant, Homebridge and Matter.
 [`docs/roadmap.md`](docs/roadmap.md) tracks the order.
 
 ## Contributing

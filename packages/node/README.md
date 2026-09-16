@@ -11,10 +11,6 @@ undocumented commands observed on the wire.
 
 > Community project. Not affiliated with, sponsored by or endorsed by Govee.
 
-> 🚧 **The first release is ahead.** The binding below is written and tested,
-> and the version on npm today is still the `0.0.0` placeholder that holds the
-> name. Watch the repository to hear when it lands.
-
 ## What it is
 
 A [napi-rs](https://napi.rs) binding over the Rust core — not a
@@ -22,6 +18,10 @@ reimplementation. The protocol is written once, so this package cannot drift
 from it: both are held to the same conformance vectors, arguments in and exact
 bytes out. One prebuilt addon per platform, so there is no Rust toolchain to
 install. Types ship with the package.
+
+```sh
+npm install govee-toolkit
+```
 
 ```ts
 import { Govee } from "govee-toolkit";
@@ -75,11 +75,11 @@ with no addon needs the checkout.
 `integrations/homebridge` all go through this package. None of them carry
 protocol code of their own.
 
-## Meanwhile
+## Elsewhere
 
 | You want to | Go to |
 | ----------- | ----- |
-| Send a command today, from Rust or the terminal | [gvetk.com/docs/start](https://gvetk.com/docs/start/) |
+| Start from the terminal, or from Rust | [gvetk.com/docs/start](https://gvetk.com/docs/start/) |
 | Know whether your model works | [gvetk.com/devices](https://gvetk.com/devices/) |
 | Pick and configure the modes | [gvetk.com/docs/modes](https://gvetk.com/docs/modes/) |
 | Read every command and method | [gvetk.com/reference](https://gvetk.com/reference/) |
