@@ -9,6 +9,9 @@ releases apart and keeps
 
 ### Added
 
+- The `transport` cargo feature — the facade, which every mode turns on. It
+  carries the configuration, the error, the event and the `Transport` trait,
+  none of which belong to one mode. Name a mode, not this feature.
 - `DeviceHandle::resolve()` and `Resolved` — the mode, the SKU and the device
   file read once, for a caller that builds arguments and then sends. Every
   other method on the handle resolves them again per call, and two resolutions

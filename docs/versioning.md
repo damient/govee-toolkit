@@ -58,10 +58,12 @@ and `cargo-semver-checks` cannot see it — the changelog entry is what records
 it.
 
 A transport is a **cargo feature**, and a feature is public API. `lan` is on by
-default. Adding a feature (`ble`, `cloud`) is a minor change. Removing one, or
-moving an item out of the default set, is breaking — a user who builds with
-`--no-default-features` is relying on exactly what is left, and the codec-only
-build is a supported configuration, checked in CI.
+default. Every transport turns `transport` on, which carries the facade — the
+configuration, the error, the event and the `Transport` trait. Name a mode, not
+that feature. Adding a feature (`ble`, `cloud`) is a minor change. Removing
+one, or moving an item out of the default set, is breaking — a user who builds
+with `--no-default-features` is relying on exactly what is left, and the
+codec-only build is a supported configuration, checked in CI.
 
 `govee_toolkit::codec` is public because a binding needs it. It carries the same
 promise as the rest of the crate.
