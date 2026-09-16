@@ -109,3 +109,15 @@
 .prose table:not(.matrix) th { font: 500 12px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .prose table:not(.matrix) td { color: var(--prose); }
 .prose blockquote { margin: 1.6em 0; padding-left: 18px; border-left: 2px solid var(--amber); color: var(--muted); }
+
+/* --- The pager ---------------------------------------------------------- */
+
+/* The two links that close a page. One link alone keeps its side: the first
+   page has no `Prev` and the last no `Next`. */
+.pager {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  margin-top: 3.2em; padding-top: 1.8em; border-top: 1px solid var(--line);
+}
+.pager .next { margin-left: auto; }
+.pager-link { display: inline-flex; align-items: center; gap: 9px; }
+.pager-link svg { width: 17px; height: 17px; flex: none; }

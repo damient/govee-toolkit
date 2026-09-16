@@ -15,9 +15,34 @@ export function docShell({ base, nav, current, toc, body, klass = "" }) {
       ${sideNav(base, nav, current)}
       <article class="prose${klass ? ` ${klass}` : ""}">
         ${body}
+        ${pager(base, nav, current)}
       </article>
       ${pageToc(toc)}
     </div>`;
+}
+
+/**
+ * The two links that close a page: the page before it and the page after it,
+ * in menu order. The first page carries no `Prev` and the last no `Next`.
+ */
+function pager(base, nav, current) {
+  const at = nav.findIndex((item) => item.url === current);
+  const links = [
+    pagerLink(base, nav[at - 1], "prev"),
+    pagerLink(base, nav[at + 1], "next"),
+  ].filter(Boolean);
+  if (!links.length) return "";
+  return `<nav class="pager" aria-label="Documentation pages">
+          ${links.join("\n          ")}
+        </nav>`;
+}
+
+function pagerLink(base, item, klass) {
+  if (!item) return "";
+  const prev = klass === "prev";
+  const icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${prev ? "m14 6-6 6 6 6" : "m10 6 6 6-6 6"}"/></svg>`;
+  const text = `<span>${escapeHtml(item.title)}</span>`;
+  return `<a class="${prev ? "btn ghost" : "btn"} pager-link ${klass}" rel="${klass}" href="${base}${item.url}">${prev ? icon + text : text + icon}</a>`;
 }
 
 // The two menus as one control, for a screen too narrow to carry a column on
