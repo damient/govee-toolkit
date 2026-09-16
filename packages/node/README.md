@@ -1,94 +1,80 @@
-# govee-toolkit (Node.js)
+![Govee Toolkit](https://raw.githubusercontent.com/damient/govee-toolkit/main/docs/assets/banner.png)
 
-Control Govee devices over the LAN from Node.js or TypeScript, including
-undocumented commands observed on the wire.
+# Govee Toolkit
 
-**Documentation: [gvetk.com](https://gvetk.com)**
+Your lights live on your network, and your commands stay there with them. Wi-Fi
+or a Bluetooth link is all the toolkit needs, straight from your own machine.
+The cloud waits as a third mode for the days you are away. And the toolkit
+sends commands you have never seen before: the undocumented ones, read off the
+wire.
 
-[![govee-toolkit on npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/govee-toolkit)
+[![status](https://img.shields.io/badge/status-beta-yellow)](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 
-> Community project. Not affiliated with, sponsored by or endorsed by Govee.
+[![govee-toolkit on crates.io](https://img.shields.io/crates/v/govee-toolkit?logo=rust&logoColor=white&label=govee-toolkit)](https://crates.io/crates/govee-toolkit)
+[![govee-toolkit-cli on crates.io](https://img.shields.io/crates/v/govee-toolkit-cli?logo=rust&logoColor=white&label=govee-toolkit-cli)](https://crates.io/crates/govee-toolkit-cli)
+[![govee-toolkit on PyPI](https://img.shields.io/pypi/v/govee-toolkit?logo=python&logoColor=white&label=govee-toolkit)](https://pypi.org/project/govee-toolkit/)
+[![govee-toolkit on npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=govee-toolkit)](https://www.npmjs.com/package/govee-toolkit)
 
-## What it is
+<!-- TODO: demo GIF here — a strip running per-segment colors. -->
 
-A [napi-rs](https://napi.rs) binding over the Rust core — not a
-reimplementation. The protocol is written once, so this package cannot drift
-from it: both are held to the same conformance vectors, arguments in and exact
-bytes out. One prebuilt addon per platform, so there is no Rust toolchain to
-install. Types ship with the package.
+## What it does
 
-```sh
-npm install govee-toolkit
-```
+- Switch a device on and off, and set the brightness, the color and the white
+  temperature.
+- Address every segment of a strip on its own, not only the preset effects.
+- Drive a strip frame by frame in real time: music reactive, screen ambilight,
+  or your own source.
+- Put a device out of the box on your Wi-Fi over Bluetooth, which is what makes
+  it reachable over `lan`.
 
-```ts
-import { Govee } from "govee-toolkit";
+A command travels over your Wi-Fi (`lan`), over Bluetooth (`ble`) or through
+Govee's servers (`cloud`). You choose which modes to allow, per device. One
+allowed mode means one mode: an unreachable device fails with an error rather
+than taking a slower path in silence.
 
-const govee = await Govee.start(); // reads ~/.config/govee-toolkit/config.yaml
+<br>
 
-for (const device of await govee.scan()) {
-  console.log(device.id, device.sku, device.modes);
-}
+<p align="center">
+  <a href="https://gvetk.com/docs/start/"><img alt="Get started" src="https://img.shields.io/badge/Get%20started-0b7285?style=for-the-badge"></a>
+  <a href="https://gvetk.com/devices/"><img alt="Devices" src="https://img.shields.io/badge/Devices-3b444b?style=for-the-badge"></a>
+  <a href="https://gvetk.com/docs/modes/"><img alt="Modes" src="https://img.shields.io/badge/Modes-3b444b?style=for-the-badge"></a>
+  <a href="https://gvetk.com/reference/"><img alt="API reference" src="https://img.shields.io/badge/API%20reference-3b444b?style=for-the-badge"></a>
+  <a href="https://github.com/damient/govee-toolkit/blob/main/devices/README.md"><img alt="Add a device" src="https://img.shields.io/badge/Add%20a%20device-3b444b?style=for-the-badge"></a>
+</p>
 
-const served = await govee.device(deviceId).send("power", { on: 1 });
-console.log("served over", served.mode);
+## Where the project is
 
-await govee.close();
-```
+The engine works over `lan`, over `ble` and over `cloud`, verified on real
+hardware: discovery, on/off, brightness, color, per-segment color, and live
+animation over the two local modes. It is usable today from Rust, from Python
+and from Node.js.
 
-Command names — `power`, `brightness`, `color` — are entries in the device's
-YAML file, not identifiers in this package. A name a device does not define, or
-an argument outside its declared range, is an error before anything reaches the
-network.
+Next come a desktop app, then Home Assistant, Homebridge and Matter.
+[`docs/roadmap.md`](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md) tracks the order.
 
-## Modes are explicit
+## Contributing
 
-`lan`, `ble` and `cloud` are modes the user enables per device. One enabled
-mode means one mode: a device no enabled mode reaches fails and says so.
-Nothing falls back.
+The protocol is implemented once, in Rust; Python and Node.js bind to that core.
+Command names, byte layouts and measured limits live in
+[`devices/`](https://github.com/damient/govee-toolkit/tree/main/devices), never in code, so adding a model is editing one file.
+[`docs/architecture.md`](https://github.com/damient/govee-toolkit/blob/main/docs/architecture.md) explains the shape of the code,
+and [`CONTRIBUTING.md`](https://github.com/damient/govee-toolkit/blob/main/CONTRIBUTING.md) covers how to document a newly
+discovered command.
 
-## What a failure carries
+Confirming whether your model works needs no code:
+[`devices/README.md`](https://github.com/damient/govee-toolkit/blob/main/devices/README.md) walks through it.
 
-Every failure is a JavaScript `Error` with two properties:
+## Legal notice
 
-- `code` — the stable identifier the core gives the failure, such as
-  `unknown_device` or `zone_count_mismatch`. Match on this.
-- `name` — the family: `CodecError` where nothing was sent, `TransportError`
-  where a mode failed to carry the command, `ConfigError` where the
-  configuration cannot be applied.
-
-A value this package refuses before the core sees it is a `TypeError`, with
-the code `invalid_argument`.
-
-## Platforms
-
-Prebuilt addons for Linux and Windows on `x86_64` and `aarch64`, and for macOS
-on `aarch64`. npm installs the one that matches. There is no source build: the
-device catalog is compiled into the addon from the repository, so a platform
-with no addon needs the checkout.
-
-## It is also the JavaScript transport
-
-`apps/playground`, `apps/desktop`, `packages/artnet-dmx-bridge` and
-`integrations/homebridge` all go through this package. None of them carry
-protocol code of their own.
-
-## Elsewhere
-
-| You want to | Go to |
-| ----------- | ----- |
-| Start from the terminal, or from Rust | [gvetk.com/docs/start](https://gvetk.com/docs/start/) |
-| Know whether your model works | [gvetk.com/devices](https://gvetk.com/devices/) |
-| Pick and configure the modes | [gvetk.com/docs/modes](https://gvetk.com/docs/modes/) |
-| Read every command and method | [gvetk.com/reference](https://gvetk.com/reference/) |
-| Report a device, or add one | [`devices/README.md`][devices-readme] |
+The "Govee" trademark is used descriptively only, to identify compatible
+devices. This project is not affiliated with, sponsored by, or endorsed by
+Govee.
 
 ## License
 
 [MIT](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 
-<!-- Absolute: this file is the package description on npm, where a relative
-     link out of the package directory is dead. -->
-[devices-readme]: https://github.com/damient/govee-toolkit/blob/main/devices/README.md
+<!-- Absolute: this file is the package description on the registry, where a
+     relative link out of the package directory is dead. -->

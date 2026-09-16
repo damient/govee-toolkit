@@ -1,132 +1,80 @@
-# govee-toolkit (Python)
+![Govee Toolkit](https://raw.githubusercontent.com/damient/govee-toolkit/main/docs/assets/banner.png)
 
-Control Govee devices over the LAN from Python, with the undocumented commands
-observed on the wire.
+# Govee Toolkit
 
-**Documentation: [gvetk.com](https://gvetk.com)**
+Your lights live on your network, and your commands stay there with them. Wi-Fi
+or a Bluetooth link is all the toolkit needs, straight from your own machine.
+The cloud waits as a third mode for the days you are away. And the toolkit
+sends commands you have never seen before: the undocumented ones, read off the
+wire.
 
-[![govee-toolkit on PyPI](https://img.shields.io/pypi/v/govee-toolkit?logo=python&logoColor=white&label=PyPI)](https://pypi.org/project/govee-toolkit/)
+[![status](https://img.shields.io/badge/status-beta-yellow)](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
 
-> Community project. Not affiliated with, sponsored by or endorsed by Govee.
+[![govee-toolkit on crates.io](https://img.shields.io/crates/v/govee-toolkit?logo=rust&logoColor=white&label=govee-toolkit)](https://crates.io/crates/govee-toolkit)
+[![govee-toolkit-cli on crates.io](https://img.shields.io/crates/v/govee-toolkit-cli?logo=rust&logoColor=white&label=govee-toolkit-cli)](https://crates.io/crates/govee-toolkit-cli)
+[![govee-toolkit on PyPI](https://img.shields.io/pypi/v/govee-toolkit?logo=python&logoColor=white&label=govee-toolkit)](https://pypi.org/project/govee-toolkit/)
+[![govee-toolkit on npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=govee-toolkit)](https://www.npmjs.com/package/govee-toolkit)
 
-The package is a [PyO3][pyo3] binding over the Rust core in
-[`packages/rust`][rust], not a second implementation of the protocol. It builds
-no frame of its own: the core builds every byte, and the conformance vectors in
-the repository check the core. Arguments in, exact bytes out.
+<!-- TODO: demo GIF here — a strip running per-segment colors. -->
 
-## Install
+## What it does
 
-```console
-pip install govee-toolkit
-```
-
-Python 3.11 and up. The wheel is `abi3`, so one wheel serves every version from
-3.11. The release builds wheels for Linux and Windows on `x86_64` and
-`aarch64`, for macOS on `aarch64`, for Linux on `armv7`, and for musl on
-`x86_64`, `aarch64` and `armv7`.
-
-The release publishes no source distribution. On a platform with no wheel, build
-the wheel from a checkout of the repository with a Rust toolchain. The core
-embeds the device files at build time, so a build needs the `devices/`
-directory.
-
-The wheel carries the device catalog, so there is no data file to install.
-`govee_toolkit.CORE_VERSION` reports the version of the core that the wheel was
-built from.
-
-## A first command
-
-The API is `asyncio` only.
-
-```python
-import asyncio
-from govee_toolkit import Govee
-
-async def main():
-    # Reads $XDG_CONFIG_HOME/govee-toolkit/config.yaml.
-    govee = await Govee.start()
-
-    devices = await govee.scan()
-    for device in devices:
-        print(device.id, device.sku, device.modes)
-
-    handle = govee.device(devices[0].id)
-    served = await handle.send("power", on=True)
-    print("served over", served.mode)
-
-    await govee.close()
-
-asyncio.run(main())
-```
-
-`handle.send()` takes any command the device file declares. Each value is read
-under the type that entry declares for the argument, so `[0, 1, 2]` is zone
-indices, byte values or one color as the file says. The common ones also
-have a method: `power()`, `brightness()`, `color()`, `color_temp()`, `music()`,
-`segment()`, `gradient()` and `provision_wifi()`. `handle.read()` and
-`handle.status()` ask the device instead. `handle.open_stream()` opens a segment
-stream and paints frame by frame.
-
-## Modes
+- Switch a device on and off, and set the brightness, the color and the white
+  temperature.
+- Address every segment of a strip on its own, not only the preset effects.
+- Drive a strip frame by frame in real time: music reactive, screen ambilight,
+  or your own source.
+- Put a device out of the box on your Wi-Fi over Bluetooth, which is what makes
+  it reachable over `lan`.
 
 A command travels over your Wi-Fi (`lan`), over Bluetooth (`ble`) or through
-Govee's servers (`cloud`). You enable the modes per device, in the configuration
-file. One enabled mode means one mode: an unreachable device fails with an error
-and says so. The package never substitutes a mode.
+Govee's servers (`cloud`). You choose which modes to allow, per device. One
+allowed mode means one mode: an unreachable device fails with an error rather
+than taking a slower path in silence.
 
-`handle.serving_mode()` names the mode a command goes over now, from the state
-the SDK recorded. `await handle.ensure_known()` scans first if no mode knows the
-device yet, then answers the same question.
-[gvetk.com/docs/modes](https://gvetk.com/docs/modes/) has the rules.
+<br>
 
-## Where command names come from
+<p align="center">
+  <a href="https://gvetk.com/docs/start/"><img alt="Get started" src="https://img.shields.io/badge/Get%20started-0b7285?style=for-the-badge"></a>
+  <a href="https://gvetk.com/devices/"><img alt="Devices" src="https://img.shields.io/badge/Devices-3b444b?style=for-the-badge"></a>
+  <a href="https://gvetk.com/docs/modes/"><img alt="Modes" src="https://img.shields.io/badge/Modes-3b444b?style=for-the-badge"></a>
+  <a href="https://gvetk.com/reference/"><img alt="API reference" src="https://img.shields.io/badge/API%20reference-3b444b?style=for-the-badge"></a>
+  <a href="https://github.com/damient/govee-toolkit/blob/main/devices/README.md"><img alt="Add a device" src="https://img.shields.io/badge/Add%20a%20device-3b444b?style=for-the-badge"></a>
+</p>
 
-`power`, `brightness` and `color` are entries in the device's YAML file in
-[`devices/`][devices], not identifiers in this package. `handle.spec()` returns
-what that file declares for your device. A name the device does not define, or
-an argument outside the declared range, is an error before anything reaches the
-network.
+## Where the project is
 
-## Errors
+The engine works over `lan`, over `ble` and over `cloud`, verified on real
+hardware: discovery, on/off, brightness, color, per-segment color, and live
+animation over the two local modes. It is usable today from Rust, from Python
+and from Node.js.
 
-`GoveeError` is the base class; `CodecError`, `TransportError` and `ConfigError`
-are its subclasses. The subclass says where the failure happened: `CodecError`
-if the command never reached the wire, `TransportError` if the link failed, and
-`ConfigError` if a setting cannot work. Every one of them carries `.code`, the
-stable identifier that the core gives the failure. Match on the code, not on
-the message: the message is written for a person and can change.
+Next come a desktop app, then Home Assistant, Homebridge and Matter.
+[`docs/roadmap.md`](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md) tracks the order.
 
-A value the package cannot read at all, such as a color that is not three whole
-numbers, is a `ValueError`. It carries no code, because the core never saw it.
+## Contributing
 
-```python
-from govee_toolkit import GoveeError
+The protocol is implemented once, in Rust; Python and Node.js bind to that core.
+Command names, byte layouts and measured limits live in
+[`devices/`](https://github.com/damient/govee-toolkit/tree/main/devices), never in code, so adding a model is editing one file.
+[`docs/architecture.md`](https://github.com/damient/govee-toolkit/blob/main/docs/architecture.md) explains the shape of the code,
+and [`CONTRIBUTING.md`](https://github.com/damient/govee-toolkit/blob/main/CONTRIBUTING.md) covers how to document a newly
+discovered command.
 
-try:
-    await handle.brightness(50)
-except GoveeError as err:
-    print(err.code)  # for example "unknown_command" or "no_mode_available"
-```
+Confirming whether your model works needs no code:
+[`devices/README.md`](https://github.com/damient/govee-toolkit/blob/main/devices/README.md) walks through it.
 
-## Next
+## Legal notice
 
-| You want to | Go to |
-| ----------- | ----- |
-| Install it and send a first command | [gvetk.com/docs/start](https://gvetk.com/docs/start/) |
-| Know whether your model works | [gvetk.com/devices](https://gvetk.com/devices/) |
-| Pick and configure the modes | [gvetk.com/docs/modes](https://gvetk.com/docs/modes/) |
-| Read every command and method | [gvetk.com/reference](https://gvetk.com/reference/) |
-| Report a device, or add one | [`devices/README.md`][devices-readme] |
+The "Govee" trademark is used descriptively only, to identify compatible
+devices. This project is not affiliated with, sponsored by, or endorsed by
+Govee.
 
 ## License
 
 [MIT](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 
-<!-- Absolute: this file is the package description on PyPI, where a relative
-     link out of the package directory is dead. -->
-[pyo3]: https://pyo3.rs
-[rust]: https://github.com/damient/govee-toolkit/tree/main/packages/rust
-[devices]: https://github.com/damient/govee-toolkit/tree/main/devices
-[devices-readme]: https://github.com/damient/govee-toolkit/blob/main/devices/README.md
+<!-- Absolute: this file is the package description on the registry, where a
+     relative link out of the package directory is dead. -->
