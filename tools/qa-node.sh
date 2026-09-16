@@ -26,9 +26,6 @@ check() {
   check_in "$node_pkg" "$name" "$@"
 }
 
-# The addon and the type definition are generated from the binding and
-# committed, so a signature that drifted shows up as a diff rather than in a
-# user's editor. `npm run build` is what writes them.
 generated_in_step() {
   git -C "$root" diff --exit-code -- \
     packages/node/binding.cjs packages/node/binding.d.cts
@@ -47,8 +44,6 @@ elif [ ! -d "$node_pkg/node_modules" ]; then
     skip "$name" "npm ci, in packages/node"
   done
 else
-  # The debug profile: this build is read by the tests below and by nothing
-  # else, and the release profile takes minutes on this crate.
   check "node build" npm run build:debug
   check "node generated binding" generated_in_step
   check "node tests" npm test

@@ -1,14 +1,7 @@
 // The "What you can send" section of a model page: one block per action the
 // device file serves, with the bounds of this model and the same action in
-// each language.
-//
-// The actions are the entries of `content/reference.json` that carry a
-// `roles:` and an `action:`. The reference page renders those same entries
-// with the generic values, so the two pages cannot drift.
-//
-// Nothing here names a model or a command the device file declares. An action
-// reaches the device file through a `role:`, which is what the command line
-// already names, and every number comes from the catalog.
+// each language. The reference page renders those same entries with the
+// generic values, so the two pages cannot drift. See ../README.md.
 
 import { MODES } from "./config.mjs";
 import { examples } from "./examples.mjs";
@@ -16,8 +9,7 @@ import { escapeAttr, escapeHtml } from "./html.mjs";
 import { langBlock } from "./languages.mjs";
 import { modeBadge, modeMark } from "./mode-badge.mjs";
 
-/** Collects the roles the device file serves, and where each argument is
- * bounded. One role can hold a different range in each mode. */
+/** One role can hold a different range in each mode. */
 function index(device) {
   const roles = new Map();
   for (const mode of MODES) {
@@ -37,7 +29,6 @@ function index(device) {
   return roles;
 }
 
-// Merges the roles one action covers into a single entry.
 function merge(roles, wanted) {
   const entry = { modes: new Set(), ranges: new Map(), has: new Set() };
   for (const role of wanted) {
@@ -71,8 +62,8 @@ function pick(entry, role, fallback) {
 
 const boundsList = (rows) => (rows.length ? `<ul class="bounds">${rows.join("")}</ul>` : "");
 
-// One row per bounded argument. The modes share a row where they agree on the
-// range, and hold one row each where they do not.
+// The modes share a row where they agree on the range, and hold one row each
+// where they do not.
 function bounds(entry, args) {
   const rows = [];
   for (const [label, role] of Object.entries(args)) {
@@ -109,7 +100,6 @@ function segments(device) {
 }
 
 // The values this unit puts in the placeholders, and the names it satisfies.
-// An `adds` block that asks for a name the unit misses stays out.
 function unit(item, entry, device) {
   const values = {};
   for (const [name, role] of Object.entries(item.args ?? {})) {

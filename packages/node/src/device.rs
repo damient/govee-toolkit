@@ -1,7 +1,4 @@
 //! One device, and everything a caller can ask of it.
-//!
-//! Every call goes over a mode the user enabled. Nothing falls back to another
-//! one: a device no enabled mode reaches throws, and says so.
 
 use std::future::Future;
 
@@ -72,8 +69,7 @@ impl DeviceHandle {
     }
 
     /// What `devices/<SKU>.yaml` declares, as the record `govee describe`
-    /// prints: the modes in one place, the commands under the mode that
-    /// carries them, and each argument's type, role and bound.
+    /// prints.
     #[napi]
     pub fn describe(&self, env: &Env) -> napi::Result<serde_json::Value> {
         to_js(
@@ -114,9 +110,9 @@ impl DeviceHandle {
 
     /// Send a command, named as the device file names it.
     ///
-    /// The arguments are the ones the entry declares, and each value is read
-    /// under the type the entry declares for it. A value outside the declared
-    /// range throws with the code the codec gives it, and nothing is sent.
+    /// Each value is read under the type the entry declares for it. A value
+    /// outside the declared range throws with the code the codec gives it,
+    /// and nothing is sent.
     #[napi]
     pub fn send<'env>(
         &self,
@@ -247,10 +243,9 @@ impl DeviceHandle {
 
     /// Paint the segments once.
     ///
-    /// One color fills every zone, and an array states them all. A
-    /// `Uint8Array` states them all as well, with three bytes for every
-    /// zone. A zone list takes one color. `resolution` takes `"app"` when it
-    /// is `null`.
+    /// One color fills every zone. An array of colors, or a `Uint8Array` of
+    /// three bytes per zone, states them all. A zone list takes one color.
+    /// `resolution` takes `"app"` when it is `null`.
     #[napi]
     pub fn segment<'env>(
         &self,

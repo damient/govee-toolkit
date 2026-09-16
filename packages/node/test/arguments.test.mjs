@@ -1,11 +1,8 @@
 // How a JavaScript value crosses into a command argument.
 //
-// The binding reads the shape of a value and the device file states its type:
-// the send path reads an array of whole numbers as zone indices, byte values
-// or one color, under what the entry declares. A shape the binding takes
-// reaches that path and fails there, on the unknown device these tests use; a
-// shape it takes for no argument is a `TypeError` and nothing is sent either
-// way.
+// The binding reads the shape, and the device file states the type. A shape
+// the binding takes reaches the send path and fails there, on the unknown
+// device these tests use. A shape it takes for no argument is a `TypeError`.
 
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -58,10 +55,8 @@ test("a channel outside 0 to 255 is refused", () =>
 test("a color reaches the send path", () =>
   onHandle((handle) => refusesUnknown(() => handle.color([255, 0, 0]))));
 
-// The bytes of a `Uint8Array` cross the binding once, where an array of
-// numbers crosses it once per number. Both forms state the same color. A
-// channel outside 0 to 255 has no test here: `Uint8Array` wraps the value
-// before the binding reads it.
+// Both forms state the same color. A channel outside 0 to 255 has no test
+// here: `Uint8Array` wraps the value before the binding reads it.
 
 test("a color is three bytes", () =>
   onHandle((handle) => refusesUnknown(() => handle.color(new Uint8Array([255, 0, 0])))));

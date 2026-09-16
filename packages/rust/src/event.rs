@@ -1,9 +1,8 @@
 //! What the facade reports: its event stream, and the two shapes an
 //! application reads devices through.
 //!
-//! [`Event::to_json`] is the record every surface prints, and [`Event`]'s
-//! [`fmt::Display`] is the one line a text surface prints. Both live here, so
-//! a new variant fails the build until both render it.
+//! [`Event::to_json`] and [`Event`]'s [`fmt::Display`] both live here, so a
+//! new variant fails the build until both render it.
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -116,7 +115,7 @@ impl Event {
 
 impl fmt::Display for Event {
     /// One line for this event: the identity first, then the mode, then what
-    /// happened. A field the device did not report is `?`.
+    /// happened.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnknownSku { id, sku } => write!(f, "{id}  unknown sku  {sku}"),

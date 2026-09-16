@@ -70,8 +70,6 @@ pub mod cloud;
 #[cfg_attr(docsrs, doc(cfg(feature = "lan")))]
 pub mod lan;
 
-// The facade needs a transport, but not a particular one. Every mode turns the
-// `transport` feature on, so one gate serves all three.
 #[cfg(feature = "transport")]
 #[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
 pub mod config;

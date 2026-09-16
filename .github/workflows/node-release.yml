@@ -6,9 +6,8 @@
 # `optionalDependencies`, which `napi prepublish` writes from `napi.targets`
 # in package.json.
 #
-# No source build. `packages/rust/build.rs` embeds `devices/*.yaml` from
-# ../../devices, and a package of packages/node alone does not carry that
-# directory. A source install needs the repository and GOVEE_DEVICES_DIR.
+# No source build: `packages/rust/build.rs` embeds `devices/*.yaml` from
+# ../../devices, which a package of packages/node alone does not carry.
 name: Node release
 
 on:

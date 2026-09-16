@@ -127,7 +127,6 @@ mod tests {
             )
         };
 
-        // 40 zones on the unit, 20 colors in one frame.
         assert_eq!(planned(Resolution::App).unwrap().zones, 20);
         assert_eq!(planned(Resolution::Exact(20)).unwrap().zones, 20);
 

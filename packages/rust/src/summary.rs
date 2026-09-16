@@ -1,8 +1,7 @@
 //! The one-line summary a binding prints for a value the core reports.
 //!
-//! One definition answers every language. A host language writes a boolean
-//! and an absent value its own way, so [`Style`] carries those literals and
-//! the bodies stay here.
+//! [`Style`] carries the literals a host language writes, so one body answers
+//! every language.
 
 use crate::transport::{Health, Reply};
 use crate::{Device, DeviceStatus, Served};

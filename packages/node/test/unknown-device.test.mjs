@@ -1,8 +1,5 @@
-// A handle for an identity no scan found.
-//
-// Nothing reaches the wire here. The send path refuses to scan, so a device
-// no transport knows fails before a command is encoded, with
-// `unknown_device`.
+// A handle for an identity no scan found. The send path refuses to scan, so
+// such a device fails with `unknown_device` before a command is encoded.
 
 import assert from "node:assert/strict";
 import test from "node:test";

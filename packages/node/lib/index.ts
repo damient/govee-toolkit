@@ -4,9 +4,6 @@
  * Every behavior is in the addon this module re-exports, which binds the
  * `govee-toolkit` core. What is added here is what an addon cannot declare:
  * the asynchronous iterators, and the disposer a segment stream closes on.
- *
- * Modes are explicit: a command goes over an enabled mode, or it fails and
- * says so.
  */
 import {
   Catalog,
@@ -77,7 +74,7 @@ export const MODES: readonly string[] = Object.freeze(modes());
  */
 const asyncDispose: symbol = Symbol.asyncDispose ?? Symbol.for("Symbol.asyncDispose");
 
-/** Read one source until it answers `null`, which is where it ends. */
+/** `null` from the source is where it ends. */
 function iterate<T>(
   source: { next(): Promise<T | null | undefined> },
 ): AsyncIterableIterator<T> {

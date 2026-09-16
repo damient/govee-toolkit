@@ -42,10 +42,8 @@ authors = ["damient"]
 # bytes out, no socket and no async runtime. Every binding encodes through that
 # build, and `tools/check-no-io.sh` guards it.
 default = ["lan"]
-# A feature is public API (`docs/versioning.md`). `transport` carries the
-# facade: the configuration, the error, the event and the `Transport` trait,
-# none of which belong to one mode. Every mode turns it on, so a user names a
-# mode and never this feature. `async-trait` is what puts the async `Transport`
+# A feature is public API, and `transport` is not one a user names
+# (`docs/versioning.md`). `async-trait` is what puts the async `Transport`
 # trait behind a `dyn`.
 transport = [
   "dep:async-trait",
