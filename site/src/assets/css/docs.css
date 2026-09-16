@@ -102,11 +102,6 @@
    carries the space a `pre` would have of its own. */
 .prose .terminal { margin-block: 1.4em; }
 .prose .terminal pre { background: none; border: 0; border-radius: 0; padding: 0; }
-/* A heading can carry a state badge. It rides beside the words, not under. */
-.prose h2 .state {
-  display: inline-block; vertical-align: middle;
-  margin-left: 14px; transform: translateY(-2px);
-}
 /* A table a document writes in Markdown. One that carries `.matrix` is the
    table component of `devices.css` and keeps its own frame. */
 .prose table:not(.matrix) { width: 100%; border-collapse: collapse; margin: 1.6em 0; font-size: .95rem; display: block; overflow-x: auto; }
