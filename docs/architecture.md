@@ -108,8 +108,12 @@ one shape. Where a surface must read a value, the crate reads it:
 `DeviceHandle::args` takes what a caller supplied and reads it under the types
 the device file declares.
 
-- **Node** — `napi-rs`. Serves the playground, the Electron app and the
-  Homebridge plugin.
+- **Node** — `napi-rs`, in `packages/node`: the facade as a promise-based API,
+  in one prebuilt addon per platform. The runners build Linux and Windows on
+  `x86_64` and `aarch64`, and macOS on `aarch64`. A thin TypeScript layer over
+  the addon carries the asynchronous iterators and the disposer, which an addon
+  cannot declare. It serves the playground, the Electron app and the Homebridge
+  plugin.
 - **Python** — `PyO3` / `maturin`, in `packages/python`: the facade as an
   `asyncio` API, in `abi3` wheels. The runners build Linux, macOS and Windows on
   `x86_64` and `aarch64`; containers cross-build the Linux `armv7`, musl

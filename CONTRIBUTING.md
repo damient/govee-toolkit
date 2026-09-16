@@ -357,6 +357,11 @@ The Python binding has checks of its own, and `tools/qa-python.sh` mirrors the
 for the types, `mypy.stubtest` for the stubs, `cargo fmt` and clippy for the
 binding, then the wheel and pytest. `qa.sh` runs it as one check.
 
+`tools/qa-node.sh` mirrors the `node` job the same way: `cargo fmt` and clippy
+for the binding, then the addon, the generated loader and type definition, and
+`node --test`. It needs `packages/node/node_modules`: run `cd packages/node &&
+npm ci` once. `qa.sh` runs it as one check too.
+
 ```bash
 tools/qa-python.sh            # every Python check
 tools/qa-python.sh lint       # one check, by substring

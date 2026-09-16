@@ -82,16 +82,19 @@ needs a Rust toolchain.
 
 ## Node.js <span class="state soon">Planned</span>
 
-A napi-rs binding over the same core, with TypeScript types. The name
-`govee-toolkit` is reserved on npm by a `0.0.0` placeholder: there is no code
-behind it yet.
+A napi-rs binding over the same core, with TypeScript types. The binding is
+written and the addon builds for Linux and Windows on `x86_64` and `aarch64`
+and for macOS on `aarch64`. The name `govee-toolkit` on npm still carries a
+`0.0.0` placeholder: the first release is ahead.
 
 ```javascript
-// What it is meant to look like.
+import { Govee } from "govee-toolkit"
+
 const govee = await Govee.start()
 for (const device of await govee.scan()) {
   await govee.device(device.id).power(true)
 }
+await govee.close()
 ```
 
 [Where it sits in the order of work]({{repo}}/blob/main/docs/roadmap.md)
