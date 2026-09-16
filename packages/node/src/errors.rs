@@ -1,9 +1,6 @@
-//! What a core failure becomes in JavaScript.
-//!
-//! Every failure is a JavaScript `Error` carrying `code`, the stable
-//! identifier the core gives the failure, and `name`, the family it belongs
-//! to. Match on `code` rather than on the message: the message is written for
-//! a person and can change.
+//! What a core failure becomes in JavaScript: an `Error` carrying `code`, the
+//! stable identifier the core gives the failure, and `name`, its family.
+//! Match on `code`; the message is written for a person and can change.
 
 use govee_toolkit::Error;
 use napi::bindgen_prelude::{Function, JsObjectValue, Object, Unknown};
@@ -11,13 +8,10 @@ use napi::{Env, JsValue};
 
 /// Build one JavaScript error object.
 ///
-/// napi carries a fixed set of status codes, so the object is built here and
-/// thrown as itself: `napi::Error::from` keeps a reference to it, and the
-/// thrown value is the object with its `name` and its `code`.
-///
-/// An environment that refuses to build the object leaves the message alone
-/// and drops the two properties: a failure that cannot be reported is worse
-/// than one reported with less.
+/// napi carries a fixed set of status codes, so the object is thrown as
+/// itself through `napi::Error::from`. An environment that refuses to build
+/// it falls back to the message alone: a failure reported with less beats one
+/// not reported.
 fn build(env: &Env, constructor: &str, name: &str, code: &str, message: String) -> napi::Error {
     let object = |message: &str| -> napi::Result<napi::Error> {
         let global = env.get_global()?;

@@ -6,7 +6,8 @@
 | Local CI mirror | [`qa.sh`](qa.sh), or `/qa` in Claude Code |
 | Local CI mirror, site only | [`qa-site.sh`](qa-site.sh) |
 | Local CI mirror, Python only | [`qa-python.sh`](qa-python.sh) |
-| Pass/fail reporter the three share | [`lib/qa.sh`](lib/qa.sh) |
+| Local CI mirror, Node only | [`qa-node.sh`](qa-node.sh) |
+| Pass/fail reporter the four share | [`lib/qa.sh`](lib/qa.sh) |
 | Build artifact sweep | [`clean-target.sh`](clean-target.sh) |
 | Redaction check | [`check-captures.sh`](check-captures.sh) |
 | File length, per language | [`check-file-length.sh`](check-file-length.sh) |
@@ -84,7 +85,20 @@ them. A signature that drifts from the Rust reaches a user's editor unless
 built module does not is a failure, so a type alias lives in the real module
 `govee_toolkit/_types.py`.
 
-`lib/qa.sh` holds what the three scripts share: the check runner, the skip rule
+`qa-node.sh` mirrors the `node` job of `ci.yml`: `cargo fmt` and clippy for
+the binding, then the addon, the generated loader and type definition, and
+`node --test`. `qa.sh` runs it as one check, and it runs on its own for the
+package alone:
+
+```bash
+tools/qa-node.sh            # every Node check
+tools/qa-node.sh clippy     # the checks whose name holds "clippy"
+```
+
+It needs Node.js 20 or newer and `packages/node/node_modules`, which
+`cd packages/node && npm ci` writes, and reports a missing one as skipped.
+
+`lib/qa.sh` holds what the four scripts share: the check runner, the skip rule
 and the summary. Each script sources it and declares its own checks, so the
 report reads the same either way. It carries no shebang, so it names its shell
 with a `# shellcheck shell=bash` directive.

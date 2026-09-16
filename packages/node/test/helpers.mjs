@@ -1,8 +1,5 @@
-// What every test in this directory shares.
-//
-// No test here reaches hardware and no test here reaches the network. The
-// catalog is compiled into the addon, and a device that no scan found fails
-// before any byte leaves the process.
+// What every test in this directory shares. No test here reaches hardware or
+// the network.
 
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -10,13 +7,11 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Point every path the core reads at an empty temporary directory. The core
-// reads the configuration file, the device cache and a `.env` from the
-// machine. A cache written by a real run puts devices in `govee.devices()`
-// that no test discovered, and the checkout's own `.env` names a
-// configuration file through `GOVEE_CONFIG`. `GOVEE_ENV_FILE` replaces the
-// `.env` search, and the process environment wins over a file, so both are
-// set here.
+// Point every path the core reads at an empty temporary directory. A cache
+// written by a real run puts devices in `govee.devices()` that no test
+// discovered, and the checkout's own `.env` names a configuration file
+// through `GOVEE_CONFIG`. `GOVEE_ENV_FILE` replaces the `.env` search, and
+// the process environment wins over a file, so both are set here.
 const state = mkdtempSync(join(tmpdir(), "govee-node-test-"));
 const empty = join(state, "env");
 writeFileSync(empty, "");

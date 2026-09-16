@@ -125,7 +125,7 @@ impl DeviceStatus {
 
 impl fmt::Display for DeviceStatus {
     /// The reported fields in one line, without the identity: the caller
-    /// writes that, since it knows what else belongs on the line.
+    /// writes that.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -143,7 +143,6 @@ pub(crate) fn reported(value: Option<impl fmt::Display>) -> String {
     value.map_or_else(|| "?".to_owned(), |value| value.to_string())
 }
 
-/// `rgb` as `#RRGGBB`.
 fn hex(rgb: [u8; 3]) -> String {
     format!("#{:02X}{:02X}{:02X}", rgb[0], rgb[1], rgb[2])
 }

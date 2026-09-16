@@ -1,15 +1,9 @@
-//! One identity, with the mode and the SKU read once.
-//!
-//! Every call on a [`DeviceHandle`] resolves the mode, the SKU and the device
-//! file before it encodes. A caller that builds arguments and then sends pays
-//! for that twice, and the second resolution can answer a different mode than
-//! the arguments were built for. [`DeviceHandle::resolve`] does it once and
-//! hands back what the send path needs.
+//! One identity, with the mode, the SKU and the device file read once, by
+//! [`DeviceHandle::resolve`].
 
 use crate::codec::coerce::{self, Supplied};
 use crate::codec::{Args, Device, Error as CodecError, Mode};
 use crate::device::DeviceHandle;
-// Used by the doc comments only.
 #[cfg(doc)]
 use crate::error::Error;
 use crate::error::Result;

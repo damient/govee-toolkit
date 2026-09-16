@@ -10,9 +10,8 @@ use crate::errors::to_js;
 
 /// Drive one core call and answer the promise it settles.
 ///
-/// The call runs on napi's own runtime. The failure is turned into a
-/// JavaScript error on the JavaScript thread, which is where the object it
-/// carries can be built.
+/// The failure crosses on the JavaScript thread, which is the only place the
+/// error object can be built.
 pub(crate) fn promise<T, Fut>(env: &Env, call: Fut) -> napi::Result<PromiseRaw<'_, T>>
 where
     T: ToNapiValue + Send + 'static,

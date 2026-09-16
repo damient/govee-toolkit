@@ -137,10 +137,8 @@ impl SegmentStream {
         self.with(env, CoreStream::clear)
     }
 
-    /// What the next frame carries: three bytes for every zone, in the order
-    /// the zones take them. `setAll` takes the same run back.
-    ///
-    /// The run is a copy. A write to it paints nothing.
+    /// What the next frame carries, in the run `setAll` takes back. It is a
+    /// copy: a write to it paints nothing.
     #[napi]
     pub fn buffer(&self, env: &Env) -> napi::Result<Uint8Array> {
         let zones = self.with(env, |stream| Ok(stream.buffer()))?;

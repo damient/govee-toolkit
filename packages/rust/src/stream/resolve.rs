@@ -207,7 +207,8 @@ fn arg_named<'a>(device: &'a Device, mode: Mode, command: &str, role: ArgRole) -
 /// The zone count the stream carries.
 ///
 /// Where the mode paints fewer zones than the device file states, `App` falls
-/// to what the mode carries. A count the caller picked is refused instead.
+/// to what the mode carries. A count the caller picked, and `Native`, are
+/// refused instead.
 ///
 /// Zero means nobody recorded the count. A stream armed on it would send
 /// frames the codec refuses, and nothing reads that refusal.
@@ -253,10 +254,6 @@ fn zone_count(
     if count <= limit {
         return Ok(count);
     }
-    // One paint covers the whole device whatever it names, so the count the
-    // device file states for the unit falls to what the mode carries. A count
-    // the caller states is refused, and so is `Native`: there the caller asked
-    // for zones the mode paints nothing with.
     if let Resolution::App = resolution {
         return Ok(limit);
     }

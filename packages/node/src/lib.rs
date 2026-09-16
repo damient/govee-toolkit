@@ -1,12 +1,11 @@
 //! The Node.js binding over `govee-toolkit`.
 //!
 //! Nothing here is protocol logic: it reads JavaScript values, calls the core
-//! and hands back what the core answered. The device files decide what bytes
-//! reach the hardware.
+//! and hands back what the core answered.
 //!
-//! napi reads every argument off a JavaScript value, so a string argument is
-//! an owned `String` and the environment arrives by reference. Both are what
-//! the macro accepts, not a choice made here.
+//! The two allows below are what the napi macro accepts, not a choice made
+//! here: an argument arrives as an owned `String`, and the environment by
+//! reference.
 #![allow(clippy::needless_pass_by_value, clippy::trivially_copy_pass_by_ref)]
 
 mod catalog;

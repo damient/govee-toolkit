@@ -21,8 +21,6 @@ pub(crate) fn modes(env: &Env, names: Vec<String>) -> napi::Result<Vec<Mode>> {
 /// the value the caller wrote and the value that arrives are two numbers.
 const MAX_SAFE_INTEGER: f64 = 9_007_199_254_740_991.0;
 
-/// Read a number that carries no fraction. A level, a zone and a channel are
-/// all whole numbers, and JavaScript writes every one of them as a `number`.
 fn whole(env: &Env, value: &Unknown<'_>) -> napi::Result<i64> {
     let number = value.coerce_to_number()?.get_double()?;
     if !number.is_finite() || number.fract() != 0.0 {
@@ -34,14 +32,13 @@ fn whole(env: &Env, value: &Unknown<'_>) -> napi::Result<i64> {
             format!("{number} is past the largest whole number JavaScript carries exactly"),
         ));
     }
-    // The fraction is gone and the bound is under 2^53, so the cast keeps the
-    // value the caller wrote.
+    // Checked above: no fraction, and under 2^53.
     #[allow(clippy::cast_possible_truncation)]
     Ok(number as i64)
 }
 
-/// Read an array of whole numbers. Anything that is not an array is refused
-/// by the caller, which states what it wanted.
+/// Anything that is not an array is refused by the caller, which states what
+/// it wanted.
 fn ints(env: &Env, array: &Object<'_>) -> napi::Result<Vec<i64>> {
     let length = array.get_array_length()?;
     (0..length)
@@ -53,14 +50,10 @@ fn triple(env: &Env, channels: &[i64]) -> napi::Result<[u8; 3]> {
     coerce::triple(channels).map_err(|refused| value_error(env, refused.to_string()))
 }
 
-/// The channels of a color, or of a paint, in the two forms the caller
-/// writes them: the bytes of a `Uint8Array`, or an array of numbers.
-///
-/// The bytes cross the binding once. An array costs one crossing for every
-/// number it holds, which is ten per zone on the stream path.
+/// The channels of a color, or of a paint: the bytes of a `Uint8Array`, or an
+/// array of numbers.
 pub(crate) type Channels<'a> = Either<&'a [u8], Unknown<'a>>;
 
-/// Read one color as an array of numbers.
 fn rgb_array(env: &Env, value: &Unknown<'_>) -> napi::Result<[u8; 3]> {
     let refused = || {
         value_error(
@@ -89,8 +82,7 @@ pub(crate) fn rgb(env: &Env, value: &Channels<'_>) -> napi::Result<[u8; 3]> {
     }
 }
 
-/// Read a flat byte run as a paint: red, green and blue for every zone, in
-/// the order the zones take them.
+/// Red, green and blue for every zone, in the order the zones take them.
 fn packed(env: &Env, bytes: &[u8]) -> napi::Result<Vec<[u8; 3]>> {
     let (zones, rest) = bytes.as_chunks::<3>();
     if !rest.is_empty() {
@@ -105,7 +97,6 @@ fn packed(env: &Env, bytes: &[u8]) -> napi::Result<Vec<[u8; 3]>> {
     Ok(zones.to_vec())
 }
 
-/// Read a color, or an array of them, as arrays of numbers.
 fn colors_array(env: &Env, value: &Unknown<'_>) -> napi::Result<Vec<[u8; 3]>> {
     let refused = || value_error(env, "a paint is one color, an array of colors, or bytes");
     if value.get_type()? != ValueType::Object {
@@ -124,8 +115,6 @@ fn colors_array(env: &Env, value: &Unknown<'_>) -> napi::Result<Vec<[u8; 3]>> {
         .collect()
 }
 
-/// Read a color, or an array of them. One color needs no wrapping array.
-///
 /// Three numbers are one color, and anything else is an array of colors. A
 /// byte run is three bytes for every zone.
 pub(crate) fn colors(env: &Env, value: &Channels<'_>) -> napi::Result<Vec<[u8; 3]>> {
@@ -152,8 +141,7 @@ fn byte_run(
     }
 }
 
-/// Read the bytes of a typed array, element by element. A typed array is no
-/// array, so the count comes off `length`.
+/// A typed array is no array, so the count comes off `length`.
 fn bytes(env: &Env, array: &Object<'_>) -> napi::Result<Vec<u8>> {
     let length = array.get::<u32>("length")?.unwrap_or(0);
     (0..length)
@@ -166,8 +154,7 @@ fn bytes(env: &Env, array: &Object<'_>) -> napi::Result<Vec<u8>> {
 }
 
 /// Read the shape of one argument value, never its type: the device file
-/// declares the type, and `codec::coerce` reads the value under it. A boolean
-/// is a whole number, as it is in JavaScript.
+/// declares the type, and `codec::coerce` reads the value under it.
 fn supplied(
     env: &Env,
     owner: &Object<'_>,
@@ -205,8 +192,7 @@ fn supplied(
     }
 }
 
-/// Read the arguments an entry declares, by the names the device file gives
-/// them.
+/// The arguments, by the names the device file gives them.
 pub(crate) fn args(env: &Env, values: Option<Object<'_>>) -> napi::Result<Vec<(String, Supplied)>> {
     let Some(values) = values else {
         return Ok(Vec::new());

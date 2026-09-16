@@ -99,8 +99,7 @@ export declare class DeviceHandle {
   spec(): any
   /**
    * What `devices/<SKU>.yaml` declares, as the record `govee describe`
-   * prints: the modes in one place, the commands under the mode that
-   * carries them, and each argument's type, role and bound.
+   * prints.
    */
   describe(): any
   /** The last status heard, without asking for a new one. */
@@ -119,9 +118,9 @@ export declare class DeviceHandle {
   /**
    * Send a command, named as the device file names it.
    *
-   * The arguments are the ones the entry declares, and each value is read
-   * under the type the entry declares for it. A value outside the declared
-   * range throws with the code the codec gives it, and nothing is sent.
+   * Each value is read under the type the entry declares for it. A value
+   * outside the declared range throws with the code the codec gives it,
+   * and nothing is sent.
    */
   send(command: string, args?: Record<string, boolean | number | string | Uint8Array | Array<number> | Array<[number, number, number]>>): Promise<Served>
   /**
@@ -155,10 +154,9 @@ export declare class DeviceHandle {
   /**
    * Paint the segments once.
    *
-   * One color fills every zone, and an array states them all. A
-   * `Uint8Array` states them all as well, with three bytes for every
-   * zone. A zone list takes one color. `resolution` takes `"app"` when it
-   * is `null`.
+   * One color fills every zone. An array of colors, or a `Uint8Array` of
+   * three bytes per zone, states them all. A zone list takes one color.
+   * `resolution` takes `"app"` when it is `null`.
    */
   segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native', gradient?: boolean | undefined | null): Promise<Served>
   /**
@@ -340,10 +338,8 @@ export declare class SegmentStream {
   /** Put black in every zone. The channel stays armed. */
   clear(): void
   /**
-   * What the next frame carries: three bytes for every zone, in the order
-   * the zones take them. `setAll` takes the same run back.
-   *
-   * The run is a copy. A write to it paints nothing.
+   * What the next frame carries, in the run `setAll` takes back. It is a
+   * copy: a write to it paints nothing.
    */
   buffer(): Uint8Array
   /** Disarm the channel and wait for the last frame to leave. */
