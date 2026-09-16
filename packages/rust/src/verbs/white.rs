@@ -2,7 +2,7 @@
 //! because one frame carries both. The SDK fills what the entry marks, and
 //! nothing else.
 
-use super::Resolved;
+use super::RoleEntry;
 use crate::codec::{ArgRole, Args, Role, white};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
@@ -28,7 +28,7 @@ impl DeviceHandle<'_> {
     /// [`Error::ZoneMaskUnbounded`] where the entry paints by zone mask and
     /// nothing bounds that mask.
     pub async fn color_temp(&self, kelvin: i64) -> Result<Served> {
-        let entry = self.resolve(Role::ColorTemp)?;
+        let entry = self.role_entry(Role::ColorTemp)?;
         let mut args = Args::new().int(entry.arg(ArgRole::ColorTemp)?, kelvin);
 
         let [red, green, blue] = white::rgb(kelvin);
@@ -48,18 +48,18 @@ impl DeviceHandle<'_> {
             args = args.zones(name, every_zone(&entry)?);
         }
 
-        entry.send(self, &args).await
+        entry.send(&args).await
     }
 }
 
 /// Every zone the mask of the entry can name, zero-based. The mask's own
 /// bound, not `capabilities.segments.count`: the count is what the controller
 /// exposes, and the zones past it would hold the color they had.
-fn every_zone(entry: &Resolved<'_>) -> Result<Vec<u16>> {
-    let count = mask_limit(entry.device, entry.mode, &entry.command).ok_or_else(|| {
+fn every_zone(entry: &RoleEntry<'_>) -> Result<Vec<u16>> {
+    let count = mask_limit(entry.device(), entry.mode(), &entry.command).ok_or_else(|| {
         Error::ZoneMaskUnbounded {
-            sku: entry.sku.clone(),
-            mode: entry.mode,
+            sku: entry.sku().to_owned(),
+            mode: entry.mode(),
             command: entry.command.clone(),
         }
     })?;

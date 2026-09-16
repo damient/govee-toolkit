@@ -7,6 +7,15 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `DeviceHandle::resolve()` and `Resolved` — the mode, the SKU and the device
+  file read once, for a caller that builds arguments and then sends. Every
+  other method on the handle resolves them again per call, and two resolutions
+  can answer two modes. `Resolved` carries `args()`, `send()`, `read()`,
+  `status()` and `answers()`, plus the mode, the SKU and the device file entry
+  it was read under.
+
 ## [0.9.0] — 2026-09-15
 
 ### Added

@@ -53,7 +53,7 @@ impl DeviceHandle<'_> {
     /// and its argument marked `role: effect`. A value outside the declared
     /// range is an error, never a clamp.
     pub async fn music(&self, music: &Music) -> Result<Served> {
-        let entry = self.resolve(Role::Music)?;
+        let entry = self.role_entry(Role::Music)?;
         let mut args = Args::new().int(entry.arg(ArgRole::Effect)?, music.effect);
 
         let rgb = music.color.unwrap_or_default();
@@ -71,6 +71,6 @@ impl DeviceHandle<'_> {
             }
         }
 
-        entry.send(self, &args).await
+        entry.send(&args).await
     }
 }

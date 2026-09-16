@@ -6,8 +6,9 @@ use crate::output::{Failure, Writer, option};
 
 pub(super) async fn run(govee: &Govee, writer: &Writer, id: &DeviceId) -> Result<(), Failure> {
     let handle = govee.device(id);
-    let mode = handle.serving_mode()?;
-    let status = handle.status().await?;
+    let call = handle.resolve()?;
+    let mode = call.mode();
+    let status = call.status().await?;
     writer.emit(&as_json(&status, mode), &as_text(&status, mode));
     Ok(())
 }

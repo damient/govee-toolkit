@@ -60,9 +60,8 @@ impl DeviceHandle<'_> {
     }
 
     async fn segment_all(&self, paint: &Paint<'_>) -> Result<Served> {
-        let mode = self.serving_mode()?;
-        let sku = self.govee.sku(self.id())?;
-        let device = self.govee.catalog().device(&sku)?;
+        let call = self.resolve()?;
+        let (mode, sku, device) = (call.mode(), call.sku().to_owned(), call.spec());
 
         let plan = plan(
             device,
@@ -78,14 +77,13 @@ impl DeviceHandle<'_> {
         self.arm(mode, &sku, device).await?;
         if let Some((entry, value)) = &plan.gradient {
             let args = Args::new().int(entry.arg.as_str(), *value);
-            self.send_resolved(mode, &sku, &entry.command, &args)
-                .await?;
+            call.send(&entry.command, &args).await?;
         }
 
         let command = plan.painter.command().to_owned();
         let mut served = None;
         for args in paint::frames(&plan.painter, colors)? {
-            served = Some(self.send_resolved(mode, &sku, &command, &args).await?);
+            served = Some(call.send(&command, &args).await?);
         }
         // The plan refuses a zone count of zero, so one color gives one frame.
         served.ok_or(Error::ZoneCountUnknown { sku })
@@ -98,7 +96,7 @@ impl DeviceHandle<'_> {
             });
         };
         let gradient = paint.gradient;
-        let entry = self.resolve(Role::SegmentColorMasked)?;
+        let entry = self.role_entry(Role::SegmentColorMasked)?;
         let colors = entry.arg(ArgRole::Colors)?.to_owned();
         let mask = entry.arg(ArgRole::Zones)?.to_owned();
 
@@ -106,28 +104,27 @@ impl DeviceHandle<'_> {
         // of its own carries it on others.
         let in_frame = entry.marked(ArgRole::Gradient).map(ToOwned::to_owned);
         let alone = entry
-            .device
-            .command_for(entry.mode, Role::SegmentGradient)
+            .device()
+            .command_for(entry.mode(), Role::SegmentGradient)
             .map(ToOwned::to_owned);
         if gradient && in_frame.is_none() && alone.is_none() {
-            return Err(no_gradient(&entry.sku, entry.mode));
+            return Err(no_gradient(entry.sku(), entry.mode()));
         }
 
-        self.arm(entry.mode, &entry.sku, entry.device).await?;
+        self.arm(entry.mode(), entry.sku(), entry.device()).await?;
         if in_frame.is_none()
             && let Some(command) = alone
         {
             let arg = arg_for(
-                &entry.sku,
-                entry.device,
-                entry.mode,
+                entry.sku(),
+                entry.device(),
+                entry.mode(),
                 &command,
                 ArgRole::Gradient,
             )?
             .to_owned();
             let args = Args::new().int(arg, i64::from(gradient));
-            self.send_resolved(entry.mode, &entry.sku, &command, &args)
-                .await?;
+            entry.call.send(&command, &args).await?;
         }
 
         let mut args = Args::new()
@@ -136,7 +133,7 @@ impl DeviceHandle<'_> {
         if let Some(arg) = in_frame {
             args = args.int(arg, i64::from(gradient));
         }
-        entry.send(self, &args).await
+        entry.send(&args).await
     }
 
     /// Set whether the firmware interpolates between zones, without painting.

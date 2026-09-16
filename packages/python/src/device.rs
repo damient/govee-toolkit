@@ -121,8 +121,10 @@ impl DeviceHandle {
     ) -> PyResult<Bound<'py, PyAny>> {
         let supplied = conv::args(args)?;
         self.served(py, |govee, id| async move {
-            let values = govee.device(&id).args(&command, supplied)?;
-            govee.device(&id).send(&command, &values).await
+            let handle = govee.device(&id);
+            let call = handle.resolve()?;
+            let values = call.args(&command, supplied)?;
+            call.send(&command, &values).await
         })
     }
 
@@ -138,8 +140,10 @@ impl DeviceHandle {
         let supplied = conv::args(args)?;
         let (govee, id) = self.parts();
         future_into_py(py, async move {
-            let values = map(govee.device(&id).args(&command, supplied))?;
-            let reply = map(govee.device(&id).read(&command, &values).await)?;
+            let handle = govee.device(&id);
+            let call = map(handle.resolve())?;
+            let values = map(call.args(&command, supplied))?;
+            let reply = map(call.read(&command, &values).await)?;
             Ok(Reply::from(reply))
         })
     }
