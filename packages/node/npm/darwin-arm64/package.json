@@ -1,0 +1,34 @@
+{
+  "name": "govee-toolkit-darwin-arm64",
+  "version": "0.1.0",
+  "cpu": [
+    "arm64"
+  ],
+  "main": "govee-toolkit.darwin-arm64.node",
+  "files": [
+    "govee-toolkit.darwin-arm64.node"
+  ],
+  "description": "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them.",
+  "keywords": [
+    "govee",
+    "led",
+    "smart-home",
+    "iot",
+    "sdk"
+  ],
+  "author": "damient",
+  "homepage": "https://gvetk.com",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damient/govee-toolkit.git",
+    "directory": "packages/node"
+  },
+  "bugs": "https://github.com/damient/govee-toolkit/issues",
+  "os": [
+    "darwin"
+  ]
+}

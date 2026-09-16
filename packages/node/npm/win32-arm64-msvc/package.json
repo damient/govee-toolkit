@@ -1,0 +1,34 @@
+{
+  "name": "govee-toolkit-win32-arm64-msvc",
+  "version": "0.1.0",
+  "cpu": [
+    "arm64"
+  ],
+  "main": "govee-toolkit.win32-arm64-msvc.node",
+  "files": [
+    "govee-toolkit.win32-arm64-msvc.node"
+  ],
+  "description": "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them.",
+  "keywords": [
+    "govee",
+    "led",
+    "smart-home",
+    "iot",
+    "sdk"
+  ],
+  "author": "damient",
+  "homepage": "https://gvetk.com",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damient/govee-toolkit.git",
+    "directory": "packages/node"
+  },
+  "bugs": "https://github.com/damient/govee-toolkit/issues",
+  "os": [
+    "win32"
+  ]
+}
