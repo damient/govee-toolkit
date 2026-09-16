@@ -43,6 +43,10 @@ placeholder that holds the name.
   `setZone()`, `fill()` and `clear()` paint it. `await using` closes it.
 - `SegmentStream.framesSent` and `SegmentStream.framesSuperseded` count the
   frames.
+- `color()`, `music()`, `segment()`, `setAll()`, `setZone()` and `fill()` take
+  a `Uint8Array` as well: three bytes for every color, read in one crossing.
+- `SegmentStream.buffer()` answers a `Uint8Array` of three bytes for every
+  zone, which `setAll()` takes back.
 - `Config.load()` and `Config.loadFrom()` read the configuration, and
   `config.toJSON()` returns the whole of it. It carries no credential.
 - `Catalog.embedded()` reads the catalog the addon carries, and

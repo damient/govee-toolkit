@@ -4,10 +4,10 @@ use std::sync::{Mutex, MutexGuard};
 
 use govee_toolkit::SegmentStream as CoreStream;
 use napi::Env;
-use napi::bindgen_prelude::{PromiseRaw, Unknown};
+use napi::bindgen_prelude::{PromiseRaw, Uint8Array};
 use napi_derive::napi;
 
-use crate::conv::{colors, rgb};
+use crate::conv::{Channels, colors, rgb};
 use crate::errors::{map, value_error};
 use crate::promise::promise;
 
@@ -94,11 +94,15 @@ impl SegmentStream {
     }
 
     /// State every zone. The count must be the stream's own.
+    ///
+    /// A `Uint8Array` of three bytes for every zone crosses the binding once.
+    /// An array of colors crosses it ten times per zone, which a frame loop
+    /// pays on every frame.
     #[napi]
     pub fn set_all(
         &self,
         env: &Env,
-        #[napi(ts_arg_type = "Array<[number, number, number]>")] colors: Unknown<'_>,
+        #[napi(ts_arg_type = "Array<[number, number, number]> | Uint8Array")] colors: Channels<'_>,
     ) -> napi::Result<()> {
         let values = self::colors(env, &colors)?;
         self.with(env, |stream| stream.set_all(&values))
@@ -110,7 +114,7 @@ impl SegmentStream {
         &self,
         env: &Env,
         index: u32,
-        #[napi(ts_arg_type = "[number, number, number]")] color: Unknown<'_>,
+        #[napi(ts_arg_type = "[number, number, number] | Uint8Array")] color: Channels<'_>,
     ) -> napi::Result<()> {
         let color = rgb(env, &color)?;
         self.with(env, |stream| stream.set_zone(index as usize, color))
@@ -121,7 +125,7 @@ impl SegmentStream {
     pub fn fill(
         &self,
         env: &Env,
-        #[napi(ts_arg_type = "[number, number, number]")] color: Unknown<'_>,
+        #[napi(ts_arg_type = "[number, number, number] | Uint8Array")] color: Channels<'_>,
     ) -> napi::Result<()> {
         let color = rgb(env, &color)?;
         self.with(env, |stream| stream.fill(color))
@@ -133,11 +137,14 @@ impl SegmentStream {
         self.with(env, CoreStream::clear)
     }
 
-    /// What the next frame carries.
-    #[napi(ts_return_type = "Array<[number, number, number]>")]
-    pub fn buffer(&self, env: &Env) -> napi::Result<Vec<Vec<u8>>> {
-        self.with(env, |stream| Ok(stream.buffer()))
-            .map(|colors| colors.into_iter().map(|color| color.to_vec()).collect())
+    /// What the next frame carries: three bytes for every zone, in the order
+    /// the zones take them. `setAll` takes the same run back.
+    ///
+    /// The run is a copy. A write to it paints nothing.
+    #[napi]
+    pub fn buffer(&self, env: &Env) -> napi::Result<Uint8Array> {
+        let zones = self.with(env, |stream| Ok(stream.buffer()))?;
+        Ok(Uint8Array::new(zones.as_flattened().to_vec()))
     }
 
     /// Disarm the channel and wait for the last frame to leave.
