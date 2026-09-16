@@ -138,8 +138,8 @@ export declare class DeviceHandle {
    * that range is an error, never a clamp.
    */
   brightness(level: number): Promise<Served>
-  /** Set one color, as three channels. */
-  color(rgb: [number, number, number]): Promise<Served>
+  /** Set one color, as three channels or as three bytes. */
+  color(rgb: [number, number, number] | Uint8Array): Promise<Served>
   /** Set the white temperature, in kelvin. It ends color mode. */
   colorTemp(kelvin: number): Promise<Served>
   /**
@@ -151,14 +151,16 @@ export declare class DeviceHandle {
    *
    * `null` takes the core's default for `sensitivity` and for `soft`.
    */
-  music(effect: number, sensitivity?: number | undefined | null, soft?: boolean | undefined | null, color?: [number, number, number]): Promise<Served>
+  music(effect: number, sensitivity?: number | undefined | null, soft?: boolean | undefined | null, color?: [number, number, number] | Uint8Array): Promise<Served>
   /**
    * Paint the segments once.
    *
-   * One color fills every zone, and an array states them all. A zone list
-   * takes one color. `resolution` takes `"app"` when it is `null`.
+   * One color fills every zone, and an array states them all. A
+   * `Uint8Array` states them all as well, with three bytes for every
+   * zone. A zone list takes one color. `resolution` takes `"app"` when it
+   * is `null`.
    */
-  segment(colors: [number, number, number] | Array<[number, number, number]>, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native', gradient?: boolean | undefined | null): Promise<Served>
+  segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native', gradient?: boolean | undefined | null): Promise<Served>
   /**
    * Ask the firmware to interpolate between zones, and to wrap from the
    * last zone back to the first.
@@ -323,16 +325,27 @@ export declare class SegmentStream {
    * sending, and the writers keep answering.
    */
   get error(): string | null
-  /** State every zone. The count must be the stream's own. */
-  setAll(colors: Array<[number, number, number]>): void
+  /**
+   * State every zone. The count must be the stream's own.
+   *
+   * A `Uint8Array` of three bytes for every zone crosses the binding once.
+   * An array of colors crosses it ten times per zone, which a frame loop
+   * pays on every frame.
+   */
+  setAll(colors: Array<[number, number, number]> | Uint8Array): void
   /** State one zone, by its zero-based index. */
-  setZone(index: number, color: [number, number, number]): void
+  setZone(index: number, color: [number, number, number] | Uint8Array): void
   /** Put one color in every zone. */
-  fill(color: [number, number, number]): void
+  fill(color: [number, number, number] | Uint8Array): void
   /** Put black in every zone. The channel stays armed. */
   clear(): void
-  /** What the next frame carries. */
-  buffer(): Array<[number, number, number]>
+  /**
+   * What the next frame carries: three bytes for every zone, in the order
+   * the zones take them. `setAll` takes the same run back.
+   *
+   * The run is a copy. A write to it paints nothing.
+   */
+  buffer(): Uint8Array
   /** Disarm the channel and wait for the last frame to leave. */
   close(): Promise<undefined>
   toString(): string

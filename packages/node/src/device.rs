@@ -189,12 +189,12 @@ impl DeviceHandle {
         })
     }
 
-    /// Set one color, as three channels.
+    /// Set one color, as three channels or as three bytes.
     #[napi]
     pub fn color<'env>(
         &self,
         env: &'env Env,
-        #[napi(ts_arg_type = "[number, number, number]")] rgb: Unknown<'_>,
+        #[napi(ts_arg_type = "[number, number, number] | Uint8Array")] rgb: conv::Channels<'_>,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let rgb = conv::rgb(env, &rgb)?;
         self.served(env, |govee, id| async move {
@@ -228,7 +228,9 @@ impl DeviceHandle {
         effect: i64,
         sensitivity: Option<i64>,
         soft: Option<bool>,
-        #[napi(ts_arg_type = "[number, number, number]")] color: Option<Unknown<'_>>,
+        #[napi(ts_arg_type = "[number, number, number] | Uint8Array")] color: Option<
+            conv::Channels<'_>,
+        >,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let color = color.map(|value| conv::rgb(env, &value)).transpose()?;
         let default = Music::default();
@@ -245,13 +247,18 @@ impl DeviceHandle {
 
     /// Paint the segments once.
     ///
-    /// One color fills every zone, and an array states them all. A zone list
-    /// takes one color. `resolution` takes `"app"` when it is `null`.
+    /// One color fills every zone, and an array states them all. A
+    /// `Uint8Array` states them all as well, with three bytes for every
+    /// zone. A zone list takes one color. `resolution` takes `"app"` when it
+    /// is `null`.
     #[napi]
     pub fn segment<'env>(
         &self,
         env: &'env Env,
-        #[napi(ts_arg_type = "[number, number, number] | Array<[number, number, number]>")] colors: Unknown<'_>,
+        #[napi(
+            ts_arg_type = "[number, number, number] | Array<[number, number, number]> | Uint8Array"
+        )]
+        colors: conv::Channels<'_>,
         zones: Option<Vec<u16>>,
         #[napi(ts_arg_type = "number | 'app' | 'native'")] resolution: Option<Unknown<'_>>,
         gradient: Option<bool>,

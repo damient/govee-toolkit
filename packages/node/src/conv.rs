@@ -2,7 +2,7 @@
 
 use govee_toolkit::codec::{Supplied, UnknownMode, coerce};
 use govee_toolkit::{Mode, ParseError, Rate, Resolution};
-use napi::bindgen_prelude::{JsObjectValue, Object, Unknown};
+use napi::bindgen_prelude::{Either, JsObjectValue, Object, Unknown};
 use napi::{Env, JsValue, ValueType};
 use serde::Serialize;
 
@@ -53,11 +53,19 @@ fn triple(env: &Env, channels: &[i64]) -> napi::Result<[u8; 3]> {
     coerce::triple(channels).map_err(|refused| value_error(env, refused.to_string()))
 }
 
-pub(crate) fn rgb(env: &Env, value: &Unknown<'_>) -> napi::Result<[u8; 3]> {
+/// The channels of a color, or of a paint, in the two forms the caller
+/// writes them: the bytes of a `Uint8Array`, or an array of numbers.
+///
+/// The bytes cross the binding once. An array costs one crossing for every
+/// number it holds, which is ten per zone on the stream path.
+pub(crate) type Channels<'a> = Either<&'a [u8], Unknown<'a>>;
+
+/// Read one color as an array of numbers.
+fn rgb_array(env: &Env, value: &Unknown<'_>) -> napi::Result<[u8; 3]> {
     let refused = || {
         value_error(
             env,
-            "a color is three whole numbers from 0 to 255, such as [255, 0, 0]",
+            "a color is three whole numbers from 0 to 255, such as [255, 0, 0], or three bytes",
         )
     };
     if value.get_type()? != ValueType::Object {
@@ -70,11 +78,36 @@ pub(crate) fn rgb(env: &Env, value: &Unknown<'_>) -> napi::Result<[u8; 3]> {
     triple(env, &ints(env, &array)?)
 }
 
-/// Read a color, or an array of them. One color needs no wrapping array.
-///
-/// Three numbers are one color, and anything else is an array of colors.
-pub(crate) fn colors(env: &Env, value: &Unknown<'_>) -> napi::Result<Vec<[u8; 3]>> {
-    let refused = || value_error(env, "a paint is one color, or an array of colors");
+pub(crate) fn rgb(env: &Env, value: &Channels<'_>) -> napi::Result<[u8; 3]> {
+    match value {
+        // Through `triple`, so that both forms report one refusal.
+        Either::A(bytes) => triple(
+            env,
+            &bytes.iter().copied().map(i64::from).collect::<Vec<_>>(),
+        ),
+        Either::B(value) => rgb_array(env, value),
+    }
+}
+
+/// Read a flat byte run as a paint: red, green and blue for every zone, in
+/// the order the zones take them.
+fn packed(env: &Env, bytes: &[u8]) -> napi::Result<Vec<[u8; 3]>> {
+    let (zones, rest) = bytes.as_chunks::<3>();
+    if !rest.is_empty() {
+        return Err(value_error(
+            env,
+            format!(
+                "a paint carries 3 bytes for every zone, and {} bytes is no multiple of 3",
+                bytes.len()
+            ),
+        ));
+    }
+    Ok(zones.to_vec())
+}
+
+/// Read a color, or an array of them, as arrays of numbers.
+fn colors_array(env: &Env, value: &Unknown<'_>) -> napi::Result<Vec<[u8; 3]>> {
+    let refused = || value_error(env, "a paint is one color, an array of colors, or bytes");
     if value.get_type()? != ValueType::Object {
         return Err(refused());
     }
@@ -87,12 +120,40 @@ pub(crate) fn colors(env: &Env, value: &Unknown<'_>) -> napi::Result<Vec<[u8; 3]
         return Ok(vec![triple(env, &ints(env, &array)?)?]);
     }
     (0..length)
-        .map(|index| rgb(env, &array.get_element::<Unknown<'_>>(index)?))
+        .map(|index| rgb_array(env, &array.get_element::<Unknown<'_>>(index)?))
         .collect()
 }
 
-/// Read the bytes of a `Buffer` or a typed array, element by element. A
-/// typed array is no array, so the count comes off `length`.
+/// Read a color, or an array of them. One color needs no wrapping array.
+///
+/// Three numbers are one color, and anything else is an array of colors. A
+/// byte run is three bytes for every zone.
+pub(crate) fn colors(env: &Env, value: &Channels<'_>) -> napi::Result<Vec<[u8; 3]>> {
+    match value {
+        Either::A(bytes) => packed(env, bytes),
+        Either::B(value) => colors_array(env, value),
+    }
+}
+
+/// Read the bytes of a `Buffer` or a `Uint8Array` in one crossing.
+///
+/// `owner` and `name` are where the value came from: a typed read needs the
+/// name, and only the parent object answers by name. A typed array of
+/// another element type carries no byte run, so it falls to `bytes`.
+fn byte_run(
+    env: &Env,
+    owner: &Object<'_>,
+    name: &str,
+    array: &Object<'_>,
+) -> napi::Result<Vec<u8>> {
+    match owner.get::<&[u8]>(name) {
+        Ok(Some(bytes)) => Ok(bytes.to_vec()),
+        _ => bytes(env, array),
+    }
+}
+
+/// Read the bytes of a typed array, element by element. A typed array is no
+/// array, so the count comes off `length`.
 fn bytes(env: &Env, array: &Object<'_>) -> napi::Result<Vec<u8>> {
     let length = array.get::<u32>("length")?.unwrap_or(0);
     (0..length)
@@ -107,7 +168,12 @@ fn bytes(env: &Env, array: &Object<'_>) -> napi::Result<Vec<u8>> {
 /// Read the shape of one argument value, never its type: the device file
 /// declares the type, and `codec::coerce` reads the value under it. A boolean
 /// is a whole number, as it is in JavaScript.
-pub(crate) fn supplied(env: &Env, value: &Unknown<'_>) -> napi::Result<Supplied> {
+fn supplied(
+    env: &Env,
+    owner: &Object<'_>,
+    name: &str,
+    value: &Unknown<'_>,
+) -> napi::Result<Supplied> {
     let refused = || {
         value_error(
             env,
@@ -123,7 +189,7 @@ pub(crate) fn supplied(env: &Env, value: &Unknown<'_>) -> napi::Result<Supplied>
         ValueType::Object => {
             let object = value.coerce_to_object()?;
             if object.is_buffer()? || object.is_typedarray()? {
-                return Ok(Supplied::Bytes(bytes(env, &object)?));
+                return Ok(Supplied::Bytes(byte_run(env, owner, name, &object)?));
             }
             if !object.is_array()? {
                 return Err(refused());
@@ -131,7 +197,7 @@ pub(crate) fn supplied(env: &Env, value: &Unknown<'_>) -> napi::Result<Supplied>
             if object.get_array_length()? > 0
                 && object.get_element::<Unknown<'_>>(0)?.get_type()? == ValueType::Object
             {
-                return Ok(Supplied::Colors(colors(env, value)?));
+                return Ok(Supplied::Colors(colors_array(env, value)?));
             }
             Ok(Supplied::Ints(ints(env, &object)?))
         }
@@ -151,7 +217,8 @@ pub(crate) fn args(env: &Env, values: Option<Object<'_>>) -> napi::Result<Vec<(S
             let Some(value) = values.get::<Unknown<'_>>(&name)? else {
                 return Err(value_error(env, format!("{name} carries no value")));
             };
-            Ok((name, supplied(env, &value)?))
+            let shape = supplied(env, &values, &name, &value)?;
+            Ok((name, shape))
         })
         .collect()
 }

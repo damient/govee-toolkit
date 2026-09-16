@@ -27,6 +27,8 @@ const ACCEPTED = {
   number: 7,
   string: "text",
   bytes: new Uint8Array([1, 2]),
+  buffer: Buffer.from([1, 2]),
+  "a typed array of another element type": new Int16Array([1, 2]),
   colors: [[255, 0, 0], [0, 255, 0]],
   "whole numbers": [0, 1, 2],
 };
@@ -55,6 +57,24 @@ test("a channel outside 0 to 255 is refused", () =>
 
 test("a color reaches the send path", () =>
   onHandle((handle) => refusesUnknown(() => handle.color([255, 0, 0]))));
+
+// The bytes of a `Uint8Array` cross the binding once, where an array of
+// numbers crosses it once per number. Both forms state the same color. A
+// channel outside 0 to 255 has no test here: `Uint8Array` wraps the value
+// before the binding reads it.
+
+test("a color is three bytes", () =>
+  onHandle((handle) => refusesUnknown(() => handle.color(new Uint8Array([255, 0, 0])))));
+
+test("a color of two bytes is refused", () =>
+  onHandle((handle) => refusesValue(() => handle.color(new Uint8Array([255, 0])))));
+
+test("a paint is three bytes for every zone", () =>
+  onHandle((handle) =>
+    refusesUnknown(() => handle.segment(new Uint8Array([255, 0, 0, 0, 255, 0])))));
+
+test("a paint that is no whole number of colors is refused", () =>
+  onHandle((handle) => refusesValue(() => handle.segment(new Uint8Array([255, 0, 0, 0])))));
 
 for (const resolution of ["app", "native", 12]) {
   test(`a resolution is a name or a zone count: ${resolution}`, () =>
