@@ -39,19 +39,19 @@ function index(device) {
 
 // Merges the roles one action covers into a single entry.
 function merge(roles, wanted) {
-  const found = wanted.map((role) => roles.get(role)).filter(Boolean);
-  if (!found.length) return null;
   const entry = { modes: new Set(), ranges: new Map(), has: new Set() };
-  for (const [at, part] of found.entries()) {
-    entry.has.add(wanted[at]);
+  for (const role of wanted) {
+    const part = roles.get(role);
+    if (!part) continue;
+    entry.has.add(role);
     for (const mode of part.modes) entry.modes.add(mode);
-    for (const [role, byMode] of part.ranges) {
-      const into = entry.ranges.get(role) ?? new Map();
+    for (const [arg, byMode] of part.ranges) {
+      const into = entry.ranges.get(arg) ?? new Map();
       for (const [mode, range] of byMode) into.set(mode, range);
-      entry.ranges.set(role, into);
+      entry.ranges.set(arg, into);
     }
   }
-  return entry;
+  return entry.has.size ? entry : null;
 }
 
 /** A value inside the range of every mode, so one example holds wherever the
@@ -68,6 +68,8 @@ function pick(entry, role, fallback) {
   const value = Math.round((low + span / 2) / step) * step;
   return Math.min(high, Math.max(low, value));
 }
+
+const boundsList = (rows) => (rows.length ? `<ul class="bounds">${rows.join("")}</ul>` : "");
 
 // One row per bounded argument. The modes share a row where they agree on the
 // range, and hold one row each where they do not.
@@ -86,7 +88,7 @@ function bounds(entry, args) {
       if (range) rows.push(`<li>${modeMark(mode)}<code>${escapeHtml(label)}</code> ${range[0]}–${range[1]}</li>`);
     }
   }
-  return rows.length ? `<ul class="bounds">${rows.join("")}</ul>` : "";
+  return boundsList(rows);
 }
 
 const zones = (device) => device.capabilities?.segments ?? null;
@@ -154,7 +156,7 @@ const ACTIONS = [
       const items = [];
       if (seg?.count) items.push(`<li><code>zones</code> ${seg.count}</li>`);
       if (seg?.native_pixels) items.push(`<li><code>pixels</code> ${seg.native_pixels}</li>`);
-      return items.length ? `<ul class="bounds">${items.join("")}</ul>` : "";
+      return boundsList(items);
     },
     examples: (entry, device) => {
       const seg = zones(device);
@@ -171,7 +173,7 @@ const ACTIONS = [
           + "    zones: None,\n    colors: &frame,\n"
           + "    resolution: Resolution::default(),\n    gradient: false,\n}).await?;",
         python: "await device.segment(colors=frame)",
-        node: "await device.segment({ colors: frame })",
+        node: "await device.segment(frame)",
       };
     },
   },
@@ -201,7 +203,7 @@ const ACTIONS = [
         rust: `device.music(&Music {\n    effect: ${effect},\n    sensitivity: ${level},\n`
           + "    soft: false,\n    color: None,\n}).await?;",
         python: `await device.music(effect=${effect}, sensitivity=${level})`,
-        node: `await device.music({ effect: ${effect}, sensitivity: ${level} })`,
+        node: `await device.music(${effect}, ${level})`,
       };
     },
   },
@@ -224,7 +226,7 @@ const ACTIONS = [
       cli: `govee provision ${ID} --ssid my-network`,
       rust: "device.provision_wifi(&credentials).await?;",
       python: 'await device.provision_wifi("network name", "password")',
-      node: "await device.provisionWifi(credentials)",
+      node: 'await device.provisionWifi("network name", "password")',
     }),
   },
 ];
