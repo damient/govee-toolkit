@@ -17,9 +17,17 @@ releases apart and keeps
   it was read under.
 - `Display` on `Event` — the line a text surface prints, beside
   `Event::to_json()`. A new variant fails the build until both render it.
+- `DeviceStatus::to_json()` and `Display` on `DeviceStatus` — the record and
+  the line every surface prints a status through. The record carries `id`,
+  `on`, `brightness`, `color` as `#RRGGBB`, `color_temp_kelvin` and `raw`, and
+  a field the device did not report is `null`. The line carries the same
+  fields without the identity, and `?` for a field the device did not report.
 
 ### Changed
 
+- The `status` event carries the color and the white temperature. Its record
+  and its line are the ones `DeviceStatus` renders, so an event and a `status`
+  command report the same fields.
 - The zone ceiling is one rule over what the mode paints, so it covers a
   whole-frame mode too. `Resolution::App` falls to the bound of the paint
   command's color list where the device file states more zones than the list

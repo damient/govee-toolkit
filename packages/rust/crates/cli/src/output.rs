@@ -133,8 +133,3 @@ impl Writer {
         ExitCode::from(failure.code)
     }
 }
-
-/// What a value the device did not report prints as.
-pub(crate) fn option(value: Option<String>) -> String {
-    value.unwrap_or_else(|| "?".to_owned())
-}
