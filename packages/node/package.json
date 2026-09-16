@@ -34,7 +34,7 @@
     "build:debug": "napi build --platform --js binding.cjs --dts binding.d.cts && tsc -p tsconfig.json",
     "build:ts": "tsc -p tsconfig.json",
     "artifacts": "napi artifacts --output-dir ./artifacts",
-    "prepublishOnly": "napi prepublish -t npm",
+    "prepublishOnly": "napi prepublish -t npm --no-gh-release",
     "test": "node --test"
   },
   "devDependencies": {
