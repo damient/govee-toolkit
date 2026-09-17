@@ -9,6 +9,7 @@
 //!   bind: 0.0.0.0
 //!   name: govee-toolkit       # what the desk shows in its node list
 //!   refresh_secs: 10
+//!   signal_loss_secs: 4       # how long a fixture waits for a frame
 //! patch:
 //!   - device: "AA:BB:CC:DD:EE:FF"
 //!     universe: 0             # or: net: 0, subnet: 0, universe: 0
@@ -48,6 +49,9 @@ pub const NODE_NAME: &str = "govee-toolkit";
 /// How long a device goes without a write before it receives the current
 /// values once. Nothing acknowledges a LAN frame.
 pub const REFRESH_SECS: u64 = 10;
+/// How long a fixture waits for a frame before `on_signal_loss` decides what
+/// it shows. Art-Net calls a sender lost after 4 seconds.
+pub const SIGNAL_LOSS_SECS: u64 = 4;
 
 /// A patch file.
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -71,6 +75,9 @@ pub struct Node {
     /// How long a device goes without a write before the bridge sends the
     /// current values once.
     pub refresh_secs: u64,
+    /// How long a fixture waits for a frame before `on_signal_loss` decides
+    /// what it shows.
+    pub signal_loss_secs: u64,
 }
 
 impl Default for Node {
@@ -79,6 +86,7 @@ impl Default for Node {
             bind: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
             name: NODE_NAME.to_owned(),
             refresh_secs: REFRESH_SECS,
+            signal_loss_secs: SIGNAL_LOSS_SECS,
         }
     }
 }

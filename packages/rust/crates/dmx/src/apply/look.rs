@@ -5,7 +5,7 @@
 //! the units the device file declares.
 
 use crate::input::UniverseFrame;
-use crate::patch::Fixture;
+use crate::patch::{Fixture, SignalLoss};
 use crate::profile::{Channel, Component, OFF, Slot};
 
 /// The lowest control slot that forces a full resend. The channel holds 0 to 9
@@ -64,6 +64,27 @@ impl Look {
             look.color = Some(color);
         }
         look
+    }
+
+    /// What the fixture shows once the sender has gone quiet, and `None`
+    /// where the patch holds the last look.
+    ///
+    /// `black` keeps the device on and takes every color to 0. It sends no
+    /// white command: the color it sends is what the device shows, and a
+    /// white command would light the rig at a blackout.
+    #[must_use]
+    pub fn quiet(&self, loss: SignalLoss) -> Option<Self> {
+        match loss {
+            SignalLoss::Hold => None,
+            SignalLoss::Off => Some(Self::default()),
+            SignalLoss::Black => Some(Self {
+                color: self.color.map(|_| [0, 0, 0]),
+                white_temp: None,
+                zones: vec![[0, 0, 0]; self.zones.len()],
+                resend: false,
+                ..self.clone()
+            }),
+        }
     }
 
     fn paint(&mut self, index: u32, component: Component, slot: u8) {

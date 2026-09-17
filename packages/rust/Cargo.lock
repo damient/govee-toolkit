@@ -678,6 +678,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "govee-toolkit",
+ "govee-toolkit-sim",
  "serde",
  "serde_json",
  "serde_norway",

@@ -10,7 +10,7 @@ use govee_toolkit::codec::Catalog;
 
 use super::Look;
 use crate::input::UniverseFrame;
-use crate::patch::{Fixture, Patch, Rig};
+use crate::patch::{Fixture, Patch, Rig, SignalLoss};
 
 /// The rig the patch tests load: two `pixel` fixtures at 1 and 32, and one
 /// `full` fixture at 63.
@@ -132,4 +132,64 @@ fn a_channel_the_packet_stops_short_of_reads_zero() {
     assert_eq!(look.zones.len(), 10);
     assert_eq!(look.zones[0], [10, 20, 0]);
     assert_eq!(look.zones[9], [0, 0, 0]);
+}
+
+/// `hold` is the default, and it asks for no write at all: the device keeps
+/// what it last took.
+#[test]
+fn a_held_fixture_takes_no_look_after_the_signal_goes() {
+    let catalog = catalog();
+    let rig = rig(&catalog);
+    let look = look(
+        &rig.fixtures()[2],
+        &universe(63, &[255, 10, 20, 30, 255, 0]),
+    );
+    assert_eq!(look.quiet(SignalLoss::Hold), None);
+}
+
+/// `black` keeps the device on and takes every color to 0. It sends no white
+/// command: a white command would light the rig at a blackout.
+#[test]
+fn a_blacked_fixture_keeps_its_brightness_and_loses_its_color() {
+    let catalog = catalog();
+    let rig = rig(&catalog);
+    let look = look(
+        &rig.fixtures()[2],
+        &universe(63, &[255, 10, 20, 30, 255, 0]),
+    );
+    let quiet = look
+        .quiet(SignalLoss::Black)
+        .expect("`black` asks for a look");
+    assert!(quiet.on);
+    assert_eq!(quiet.brightness, Some(100));
+    assert_eq!(quiet.color, Some([0, 0, 0]));
+    assert_eq!(quiet.white_temp, None);
+}
+
+/// A pixel fixture keeps its zone count, so the whole strip goes dark rather
+/// than half of it.
+#[test]
+fn a_blacked_pixel_fixture_takes_every_zone_to_zero() {
+    let catalog = catalog();
+    let rig = rig(&catalog);
+    let look = look(&rig.fixtures()[0], &universe(1, &[255, 10, 20, 30]));
+    let quiet = look
+        .quiet(SignalLoss::Black)
+        .expect("`black` asks for a look");
+    assert_eq!(quiet.zones.len(), 10);
+    assert!(quiet.zones.iter().all(|zone| *zone == [0, 0, 0]));
+    assert_eq!(quiet.color, None, "a pixel personality carries no color");
+}
+
+#[test]
+fn an_off_fixture_powers_down_after_the_signal_goes() {
+    let catalog = catalog();
+    let rig = rig(&catalog);
+    let look = look(
+        &rig.fixtures()[2],
+        &universe(63, &[255, 10, 20, 30, 255, 0]),
+    );
+    let quiet = look.quiet(SignalLoss::Off).expect("`off` asks for a look");
+    assert!(!quiet.on);
+    assert_eq!(quiet.brightness, None);
 }
