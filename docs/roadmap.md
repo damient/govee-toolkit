@@ -13,7 +13,7 @@ ask for. Open an issue if something matters to you.
 | 3 | Matter bridge — one integration, every controller | 🔜 Planned |
 | 4 | Home Assistant custom component (LAN power + brightness first) | 🔜 Planned |
 | 5 | Homebridge plugin | 🔜 Planned |
-| 6 | Art-Net / DMX bridge | 🔜 Planned |
+| 6 | Art-Net / DMX bridge — [`dmx.md`](dmx.md) | 🔜 Planned |
 | — | **Node** binding (napi-rs) | ✅ A promise-based API, TypeScript types, and prebuilt addons for Linux and Windows on `x86_64` and `aarch64` and for macOS on `aarch64` |
 
 Undocumented LAN commands are documented and formalized continuously, in
