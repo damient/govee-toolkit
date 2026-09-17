@@ -494,3 +494,8 @@ jobs:
       - name: docs/compatibility.md is in step with devices/
         working-directory: packages/rust
         run: cargo run -p xtask -- compat --check
+      # docs/dmx-profiles.md is the same data through the DMX channel table.
+      # A device file that changed a range or a zone count moves the page.
+      - name: docs/dmx-profiles.md is in step with devices/
+        working-directory: packages/rust
+        run: cargo run -p xtask -- dmx --check
