@@ -30,6 +30,7 @@ function load(kind) {
 const CAPS = load("cap");
 const MODES = load("mode");
 const FAMILIES = load("family");
+const SLOTS = load("slot");
 
 // The two segment capabilities share one icon, and the color tells them apart:
 // they address the same zones.
@@ -57,6 +58,12 @@ export function icon(key) {
 /** The icon of one mode, or an empty string when no file draws it. */
 export function modeIcon(mode) {
   return svg(MODES.get(mode), "mode-icon");
+}
+
+/** The icon of one DMX slot that no capability draws, or an empty string when
+ * no file draws it either. */
+export function slotIcon(name) {
+  return svg(SLOTS.get(name), "cap-icon", ` data-slot="${name}"`);
 }
 
 /** The icon of one device family, or an empty string when no file draws it. */

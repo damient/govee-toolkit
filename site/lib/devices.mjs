@@ -4,6 +4,7 @@
 // device files the day one of them changes.
 
 import { MODES } from "./config.mjs";
+import { dmx } from "./device-dmx.mjs";
 import { usage } from "./device-usage.mjs";
 import { escapeAttr, escapeHtml, fill } from "./html.mjs";
 import { familyIcon, icon, sharesMark } from "./icons.mjs";
@@ -131,6 +132,7 @@ function pageBody(d, reference) {
       ${capabilities(d)}
       ${modeSections(d)}
       ${usage(d, reference)}
+      ${dmx(d)}
       ${aliases(d)}
       <div class="endgrid">
         <section>${verification(d)}</section>
