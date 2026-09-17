@@ -32,6 +32,8 @@ at.
 - `H6022`, `H61A0` and `H6008` record what each unit does with commands sent
   back to back. Two of the three drop the third of a burst; the wait that loses
   none is a millisecond.
+- `H61A0` records the trap that a `turn` sent while the lan raw segment channel
+  is armed ends the channel. `H6022` records that it keeps the channel.
 
 ### 2026-09-15
 

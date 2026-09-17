@@ -300,6 +300,12 @@ verified:
     0xAA read in the table above was sent to the device and its effect or its
     answer observed. Everything but music and the sub-mode read went through
     the Rust transport; those two were sent over raw GATT.
+    Trap: a `turn` sent while the lan raw segment channel is armed ends the
+    channel, and the rope goes back to the color it held before the stream.
+    The paints that follow reach a dead channel and render nothing. A
+    `brightness` sent the same way applies and keeps the channel: the rope
+    dimmed and kept animating. See docs/protocol/lan.md 2.3.
+
     Trap: the rope drops a command that arrives directly behind two others.
     Three commands sent back to back over lan lose the third in 3 attempts of
     4, and the rope holds the value the lost one meant to replace. Two

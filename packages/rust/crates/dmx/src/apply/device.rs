@@ -240,8 +240,13 @@ impl Feeder {
 
     /// Power the device on, and arm the channel where the personality paints
     /// zones. Arming a dark strip paints nothing, so the order is fixed.
+    ///
+    /// An armed channel is proof the device is on, so the power command is
+    /// skipped there whatever the refresh cleared: a power command ends the
+    /// armed channel on some devices, and the device then shows the color it
+    /// held before the stream — see `docs/protocol/lan.md` 2.3.
     async fn power_on(&mut self) -> Result<bool> {
-        if self.sent.on == Some(true) {
+        if self.sent.on == Some(true) || self.stream.is_some() {
             return Ok(false);
         }
         self.govee.device(&self.id).power(true).await?;

@@ -204,7 +204,10 @@ rate falls as the frame grows. Three rules protect the fast path:
 2. **Refresh every 10 seconds.** A device that received no write for 10 seconds
    receives the current values once. Nothing acknowledges a LAN frame, so a lost
    frame would otherwise leave a zone at a stale color until the next change.
-   The interval is configurable.
+   The interval is configurable. The refresh sends no power command to a fixture
+   whose segment channel is armed: a power command ends that channel on some
+   devices — see [`protocol/lan.md`](protocol/lan.md) 2.3. The armed channel is
+   proof the device is on.
 3. **The device sets the rate.** `src/stream/` reads the rate from the device
    file and from the zone count, and holds the latest frame. A later frame
    replaces an unsent earlier one, and `frames_superseded` counts what the desk
