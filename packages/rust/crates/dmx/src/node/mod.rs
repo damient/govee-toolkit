@@ -12,12 +12,11 @@ mod tests;
 
 use std::future::{Future, pending};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::time::Duration;
 
 use govee_toolkit::{DeviceId, Govee};
 use tokio::sync::mpsc;
 
-use crate::apply::{Applier, Counts, Failure, Look};
+use crate::apply::{Applier, Counts, Failure, Look, Timing};
 use crate::input::UniverseFrame;
 use crate::input::artnet::{self, Gate, Identity, Packet, replies};
 use crate::input::socket::{Error, Listener, MAX_DATAGRAM};
@@ -102,11 +101,11 @@ impl Node {
 
     /// A node that writes to the devices `govee` reaches.
     ///
-    /// One task starts per fixture. `refresh` is how long a device goes
-    /// without a write before it receives the current values again.
+    /// One task starts per fixture, and `timing` says how long each one waits
+    /// before a refresh and before the patched answer to a silent sender.
     #[must_use]
-    pub fn live(rig: Rig, govee: &Govee, refresh: Duration) -> Self {
-        let (applier, failures) = Applier::start(govee, &rig, refresh);
+    pub fn live(rig: Rig, govee: &Govee, timing: Timing) -> Self {
+        let (applier, failures) = Applier::start(govee, &rig, timing);
         Self {
             rig,
             gate: Gate::new(),

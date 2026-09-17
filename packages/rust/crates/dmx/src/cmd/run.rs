@@ -11,6 +11,7 @@ use std::time::Duration;
 
 use govee_toolkit::codec::Device;
 use govee_toolkit::{Config, DeviceId, Govee, Mode};
+use govee_toolkit_dmx::apply::Timing;
 use govee_toolkit_dmx::input::artnet::PORT;
 use govee_toolkit_dmx::input::socket::Listener;
 use govee_toolkit_dmx::node::Node;
@@ -54,10 +55,14 @@ async fn run(
 
     let address = SocketAddr::new(patch.node.bind, PORT);
     let listener = Listener::bind(address).map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
+    let timing = Timing {
+        refresh: Duration::from_secs(patch.node.refresh_secs),
+        silence: Duration::from_secs(patch.node.signal_loss_secs),
+    };
     let mut node = if dry_run {
         Node::dry_run(rig)
     } else {
-        Node::live(rig, &govee, Duration::from_secs(patch.node.refresh_secs))
+        Node::live(rig, &govee, timing)
     }
     .named(&patch.node.name);
 

@@ -45,5 +45,10 @@ thiserror = "2"
 # reach the operator.
 tokio = { workspace = true, features = ["signal"] }
 
+[dev-dependencies]
+# A fake device on the loopback, so the send path is tested with no hardware.
+govee-toolkit-sim = { path = "../sim" }
+tokio = { workspace = true, features = ["macros", "rt", "time"] }
+
 [lints]
 workspace = true

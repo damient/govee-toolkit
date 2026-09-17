@@ -6,6 +6,7 @@
 //! not queued: that count is what tells the operator the desk sends faster
 //! than the devices accept — see `docs/dmx.md`.
 
+mod backoff;
 mod device;
 mod look;
 #[cfg(test)]
@@ -25,6 +26,17 @@ use crate::patch::Rig;
 /// How many failures the node holds before it drops one. A report that waits
 /// would put the reader on the send path.
 const FAILURES: usize = 64;
+
+/// The two waits a fixture keeps.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Timing {
+    /// How long a device goes without a write before it receives the current
+    /// values again. Nothing acknowledges a LAN frame.
+    pub refresh: Duration,
+    /// How long a fixture waits for a frame before the patch decides what it
+    /// shows — see [`crate::patch::SignalLoss`].
+    pub silence: Duration,
+}
 
 /// What one device did over a run.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,15 +79,15 @@ struct Feed {
 impl Applier {
     /// Start one task per fixture of `rig`.
     ///
-    /// The tasks write nothing until the first look arrives. `refresh` is how
-    /// long a device goes without a write before it receives the current
-    /// values again.
+    /// The tasks write nothing until the first look arrives, so a rig waits
+    /// dark for the desk rather than going to the signal loss answer at
+    /// start.
     #[must_use]
-    pub fn start(govee: &Govee, rig: &Rig, refresh: Duration) -> (Self, mpsc::Receiver<Failure>) {
+    pub fn start(govee: &Govee, rig: &Rig, timing: Timing) -> (Self, mpsc::Receiver<Failure>) {
         let (sender, failures) = mpsc::channel(FAILURES);
         let mut feeds = BTreeMap::new();
         for fixture in rig.fixtures() {
-            let feeder = device::Feeder::new(govee, fixture, refresh, sender.clone());
+            let feeder = device::Feeder::new(govee, fixture, timing, sender.clone());
             let (looks, receiver) = watch::channel((0, Look::default()));
             feeds.insert(
                 fixture.entry.device.clone(),

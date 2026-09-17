@@ -205,8 +205,9 @@ fixed.
 
 ### Signal loss
 
-The bridge holds the last look. Where the patch sets `on_signal_loss`, it
-applies that instead after the timeout:
+The bridge holds the last look. A fixture that receives no frame for
+`node.signal_loss_secs` applies what `on_signal_loss` asks for instead. The
+default is 4 seconds, which is what Art-Net calls a sender lost:
 
 | Value | Result |
 | --- | --- |
@@ -214,12 +215,25 @@ applies that instead after the timeout:
 | `black` | Every color goes to 0. The device stays on. |
 | `off` | The device powers off. |
 
+The answer is applied once, and the next frame arms the wait again. A fixture
+that has taken no frame yet holds: a rig waits dark for the desk rather than
+powering off at start.
+
+`black` sends no white command. The color it sends is what the device shows,
+and a white command would light the rig at a blackout.
+
 ### A device that fails
 
 A show does not stop because one fixture drops. Where a device becomes
 unreachable, the bridge logs the failure, keeps every other device running, and
-retries the stream with a backoff. It reports the failure rather than hiding
-it.
+retries with a backoff. It reports the failure rather than hiding it.
+
+The wait doubles from 250 ms to 8 seconds, and a write that lands clears it. A
+desk sends up to 44 frames per second, and one retry per frame would put 44
+failures per second on the link and 44 lines in front of the operator. The
+fixture keeps taking looks while it waits, so the attempt that follows carries
+the current one and not a stale one. A stream whose device stopped answering is
+dropped rather than disarmed: a disarming frame has nothing to reach.
 
 ## The patch
 
@@ -232,6 +246,7 @@ node:
   bind: 0.0.0.0
   name: govee-toolkit       # what the desk shows in its node list
   refresh_secs: 10
+  signal_loss_secs: 4       # how long a fixture waits for a frame
 patch:
   - device: "AA:BB:CC:DD:EE:FF"
     universe: 0             # or: net: 0, subnet: 0, universe: 0

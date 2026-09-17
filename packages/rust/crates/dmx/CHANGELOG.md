@@ -75,3 +75,16 @@ Nothing is published yet: the manifest carries `publish = false`.
 - `input::socket::Listener::local_ip_towards` — the address of the interface
   that reaches one peer. A node bound to `0.0.0.0` answers a poll with it,
   because `0.0.0.0` is an address nothing can send to.
+- `node.signal_loss_secs` — how long a fixture waits for a frame before
+  `on_signal_loss` decides what it shows. The default is 4 seconds.
+- `apply::Look::quiet` — what a fixture shows once the sender has gone quiet:
+  `hold` keeps the last look, `black` takes every color to 0 and keeps the
+  device on, and `off` powers it down.
+- A fixture whose device stopped answering is retried on a backoff, which
+  doubles from 250 ms to 8 seconds. A write that lands clears it, and every
+  other fixture keeps running.
+
+### Changed
+
+- `apply::Applier::start` and `node::Node::live` take an `apply::Timing`
+  rather than the refresh interval alone.
