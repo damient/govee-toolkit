@@ -66,6 +66,8 @@ Nothing is published yet: the manifest carries `publish = false`.
   one.
 - Two commands to one device never go out back to back. A device drops a
   command that arrives directly behind two others, and nothing reports it.
+- The refresh sends no power command to a fixture whose segment channel is
+  armed. A power command ends that channel on some devices.
 - `node::Node` — the run loop: receive, drop what the protocol refuses,
   resolve against the patch, and hand each fixture its look. It prints nothing
   and reports through `node::Observer`.

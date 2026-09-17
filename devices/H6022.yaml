@@ -290,6 +290,10 @@ verified:
     nothing about the `gradient` byte to the eye. Every frame above was sent
     with `gradient` 0.
 
+    The lamp keeps the lan raw segment channel through a `turn` and through a
+    `brightness` sent while the channel is armed: it kept animating through
+    both, and the brightness applied. See docs/protocol/lan.md 2.3.
+
     Trap: the lamp drops a command that arrives directly behind two others.
     Three commands sent back to back over lan lose the third in 3 attempts of
     4, and the lamp holds the value the lost one meant to replace. A wait of

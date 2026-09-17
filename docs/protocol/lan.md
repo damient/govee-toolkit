@@ -214,6 +214,14 @@ armed. The `0xB1` frame with `0` ends the channel, and the unit goes back to the
 color that the last write on another command left. Keep the channel armed for as
 long as the colors must stay.
 
+**A power command can end the channel.** On some models a `turn` sent while the
+channel is armed ends it, and the unit goes back to the color it held before the
+stream. The firmware answers nothing, so the following `0xB0` frames reach a
+dead channel and paint nothing. Send no `turn` while the channel is armed: the
+armed channel is proof the unit is on. A `brightness` sent the same way applies
+and keeps the channel, on every model measured so far. Which of the two a model
+does is a per-SKU fact — record it in `devices/<SKU>.yaml`.
+
 **The `gradient` byte.** With `1` the firmware interpolates between zones and
 wraps from the last back to the first, so a single lit zone at one end also
 glows at the other. With `0` the zones are hard-edged. Which default a model
