@@ -3,6 +3,7 @@
 // the HTML before the filter touches it.
 
 import { copy } from "./copy.js";
+import { personalities } from "./dmx.js";
 import { filter, rowLink } from "./devices.js";
 import { docSelect, menu } from "./menu.js";
 import { rope } from "./rope.js";
@@ -21,6 +22,7 @@ const WIRING = [
   ["[data-theme-toggle]", theme],
   ["[data-menu-toggle]", menu],
   ["[data-spy]", spy],
+  ["[data-dmx]", personalities],
 ];
 
 for (const [selector, wire] of WIRING) {

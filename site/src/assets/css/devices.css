@@ -215,3 +215,32 @@
 
 /* The icon alone, where the row beside it already carries a word. */
 .mbadge-mini { padding: 4px; }
+
+/* The DMX channel table. One personality at a time, behind a tab that carries
+   its width: that is the number an operator compares before opening one. The
+   tabs are wider than the language tabs, because the label is two facts. */
+.tabs-dmx { gap: 8px; margin: 1.6em 0 0; }
+/* `reference.css` sets the language tabs after this file, so these carry the
+   page class to win the cascade rather than a repeated selector. */
+/* `reference.css` sets the language tabs after this file, so these carry the
+   page class to win the cascade rather than a repeated selector. */
+.is-device .tabs-dmx button {
+  display: block; text-align: left; font-size: 16px; line-height: 1.5; padding: 11px 17px;
+}
+.is-device .tabs-dmx .dmx-tab-width { display: block; font-size: 13px; color: var(--muted); }
+/* The mark column carries no head: the icon stands for the slot beside it. */
+.is-device .matrix-dmx th:nth-child(2), .is-device .matrix-dmx td:nth-child(2) { width: 42px; }
+.matrix-dmx .dmx-mark { padding-right: 0; line-height: 0; }
+.matrix-dmx .cap-icon { width: 18px; height: 18px; }
+/* A color channel drives that component, so the chip carries the primary
+   itself and not a color of the theme. */
+.dmx-swatch { width: 18px; height: 18px; }
+.dmx-swatch[data-component="red"] { color: #e5484d; }
+.dmx-swatch[data-component="green"] { color: #30a46c; }
+.dmx-swatch[data-component="blue"] { color: #3e63dd; }
+/* Every personality holds the same four columns, so they carry one set of
+   widths and the blocks read as one table cut in pieces. */
+.is-device .matrix-dmx th:first-child, .is-device .matrix-dmx td:first-child { width: 9%; }
+.is-device .matrix-dmx th:nth-child(3), .is-device .matrix-dmx td:nth-child(3) { width: 42%; }
+/* The component order of a zone run sits under the count it belongs to. */
+.dmx-order { display: block; color: var(--muted); font-size: .9em; }
