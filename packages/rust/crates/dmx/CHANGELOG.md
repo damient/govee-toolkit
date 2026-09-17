@@ -64,3 +64,14 @@ Nothing is published yet: the manifest carries `publish = false`.
 - A device the patch names that enables no `lan` mode fails at the start and is
   named. The bridge drives a device over `lan` alone and substitutes no other
   mode.
+- `input::artnet::Poll` — the `ArtPoll` parser. A poll takes 14 bytes, under
+  the 18 an `ArtDmx` header takes, so the parser reads the opcode before it
+  asks for a header.
+- `input::artnet::replies` — one `ArtPollReply` for each group of 4
+  port-addresses the patch holds. The node answers every poll, so a desk lists
+  it with no manual entry of its address.
+- `node::Node::named` — the name a desk lists the node under, which
+  `govee-dmx run` takes from the patch.
+- `input::socket::Listener::local_ip_towards` — the address of the interface
+  that reaches one peer. A node bound to `0.0.0.0` answers a poll with it,
+  because `0.0.0.0` is an address nothing can send to.

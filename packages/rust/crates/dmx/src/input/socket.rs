@@ -3,7 +3,7 @@
 //! One socket, bound once. A broadcast frame and a unicast frame both land
 //! here: a desk sends one or the other, and the node accepts both.
 
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 
 use socket2::{Domain, Protocol, Socket, Type};
 use thiserror::Error;
@@ -111,6 +111,26 @@ impl Listener {
             .map_err(|e| Error::Receive {
                 reason: e.to_string(),
             })
+    }
+
+    /// The address of the interface that reaches `peer`.
+    ///
+    /// It connects a socket of its own, which puts no datagram on the network:
+    /// a connected UDP socket fixes a route and nothing else. `ArtPollReply`
+    /// carries this address, and the node binds `0.0.0.0`, which carries
+    /// nothing a desk can send to.
+    ///
+    /// `None` where the host has no route to `peer`.
+    #[must_use]
+    pub fn local_ip_towards(peer: SocketAddr) -> Option<IpAddr> {
+        let unspecified = if peer.is_ipv4() {
+            "0.0.0.0:0"
+        } else {
+            "[::]:0"
+        };
+        let socket = std::net::UdpSocket::bind(unspecified).ok()?;
+        socket.connect(peer).ok()?;
+        Some(socket.local_addr().ok()?.ip())
     }
 
     /// Send one datagram.

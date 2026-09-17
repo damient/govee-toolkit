@@ -7,6 +7,7 @@
 //! The layout is in `docs/dmx.md`. A refusal drops the packet: the bridge
 //! never truncates a packet to make it fit.
 
+mod poll;
 mod sequence;
 #[cfg(test)]
 mod tests;
@@ -15,6 +16,7 @@ use std::net::SocketAddr;
 
 use thiserror::Error;
 
+pub use self::poll::{Identity, Poll, REPLY, replies};
 pub use self::sequence::{Gate, Sequence};
 use super::UniverseFrame;
 use crate::profile::UNIVERSE;
@@ -26,10 +28,19 @@ pub const PORT: u16 = 6454;
 const ID: &[u8; 8] = b"Art-Net\0";
 /// The opcode of an `ArtDmx` packet, which carries the channel values.
 const OP_DMX: u16 = 0x5000;
+/// The opcode of an `ArtPoll` packet, which asks every node to announce
+/// itself.
+const OP_POLL: u16 = 0x2000;
+/// The opcode of the answer to a poll.
+const OP_POLL_REPLY: u16 = 0x2100;
 /// The oldest protocol version the bridge accepts.
 const MIN_VERSION: u16 = 14;
+/// How many bytes every packet carries before its opcode and its version.
+const PREFIX: usize = 12;
 /// How many bytes an `ArtDmx` packet carries before its data.
 const HEADER: usize = 18;
+/// How many bytes an `ArtPoll` packet carries.
+const POLL: usize = 14;
 /// The smallest data length an `ArtDmx` packet declares.
 const MIN_LENGTH: u16 = 2;
 /// The bits of the port-address. The top bit of the Net byte is reserved and
@@ -49,8 +60,9 @@ const PORT_ADDRESS: u16 = 0x7FFF;
 pub enum Packet {
     /// One universe of channel values.
     Dmx(Dmx),
-    /// A packet the bridge reads and does nothing with. `ArtPoll` lands here
-    /// until the node answers polls.
+    /// A desk that asks every node to announce itself.
+    Poll(Poll),
+    /// A packet the bridge reads and does nothing with.
     Other {
         /// The opcode the packet carries.
         opcode: u16,
@@ -72,11 +84,13 @@ pub struct Dmx {
 /// Why a packet is dropped.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum Error {
-    /// The datagram is shorter than an `ArtDmx` header.
-    #[error("the packet carries {carried} bytes, under the {HEADER} a header takes")]
+    /// The datagram stops before the packet it declares.
+    #[error("the packet carries {carried} bytes, under the {need} it takes")]
     TooShort {
         /// How many bytes the datagram carries.
         carried: usize,
+        /// How many bytes the packet takes.
+        need: usize,
     },
     /// The first 8 bytes are not `Art-Net\0`.
     #[error("the packet does not open with `Art-Net`")]
@@ -116,20 +130,45 @@ pub enum Error {
 /// [`enum@Error`], one per refusal. The caller drops the packet and keeps
 /// listening: one bad datagram never stops a show.
 pub fn parse(bytes: &[u8], source: SocketAddr) -> Result<Packet, Error> {
-    let header = bytes.get(..HEADER).ok_or(Error::TooShort {
+    let prefix = bytes.get(..PREFIX).ok_or(Error::TooShort {
         carried: bytes.len(),
+        need: PREFIX,
     })?;
-    if header.get(..8) != Some(ID.as_slice()) {
+    if prefix.get(..8) != Some(ID.as_slice()) {
         return Err(Error::NotArtNet);
     }
-    let opcode = u16::from_le_bytes([at(header, 8), at(header, 9)]);
-    if opcode != OP_DMX {
+    let opcode = u16::from_le_bytes([at(prefix, 8), at(prefix, 9)]);
+    if opcode != OP_DMX && opcode != OP_POLL {
         return Ok(Packet::Other { opcode });
     }
-    let version = u16::from_be_bytes([at(header, 10), at(header, 11)]);
+    let version = u16::from_be_bytes([at(prefix, 10), at(prefix, 11)]);
     if version < MIN_VERSION {
         return Err(Error::Version { version });
     }
+    if opcode == OP_POLL {
+        return poll(bytes).map(Packet::Poll);
+    }
+    dmx(bytes, source).map(Packet::Dmx)
+}
+
+/// One `ArtPoll` packet, past its version.
+fn poll(bytes: &[u8]) -> Result<Poll, Error> {
+    let packet = bytes.get(..POLL).ok_or(Error::TooShort {
+        carried: bytes.len(),
+        need: POLL,
+    })?;
+    Ok(Poll {
+        talk_to_me: at(packet, 12),
+        priority: at(packet, 13),
+    })
+}
+
+/// One `ArtDmx` packet, past its version.
+fn dmx(bytes: &[u8], source: SocketAddr) -> Result<Dmx, Error> {
+    let header = bytes.get(..HEADER).ok_or(Error::TooShort {
+        carried: bytes.len(),
+        need: HEADER,
+    })?;
     let length = u16::from_be_bytes([at(header, 16), at(header, 17)]);
     if !length.is_multiple_of(2) {
         return Err(Error::OddLength { length });
@@ -144,15 +183,15 @@ pub fn parse(bytes: &[u8], source: SocketAddr) -> Result<Packet, Error> {
             carried: bytes.len().saturating_sub(HEADER),
         })?;
     let universe = u16::from_be_bytes([at(header, 15), at(header, 14)]) & PORT_ADDRESS;
-    Ok(Packet::Dmx(Dmx {
+    Ok(Dmx {
         frame: UniverseFrame::new(universe, source, data),
         sequence: at(header, 12),
         physical: at(header, 13),
-    }))
+    })
 }
 
-/// One byte of the header. Every caller has already checked the length, so a
+/// One byte of a packet. Every caller has already checked the length, so a
 /// missing byte cannot happen and reads 0.
-fn at(header: &[u8], index: usize) -> u8 {
-    header.get(index).copied().unwrap_or(0)
+fn at(packet: &[u8], index: usize) -> u8 {
+    packet.get(index).copied().unwrap_or(0)
 }

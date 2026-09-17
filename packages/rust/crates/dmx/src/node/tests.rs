@@ -14,7 +14,8 @@ use tokio::sync::mpsc;
 use super::{Node, Observer};
 use crate::apply::Look;
 use crate::input::UniverseFrame;
-use crate::input::socket::Listener;
+use crate::input::artnet::REPLY;
+use crate::input::socket::{Listener, MAX_DATAGRAM};
 use crate::patch::{Patch, Rig};
 
 /// The rig the patch tests load: two `pixel` fixtures at 1 and 32, and one
@@ -27,6 +28,7 @@ struct Recorder {
     resolved: Vec<(DeviceId, Look)>,
     refused: Vec<String>,
     ignored: Vec<u16>,
+    polled: Vec<usize>,
     stop: mpsc::Sender<()>,
 }
 
@@ -37,6 +39,7 @@ impl Recorder {
             resolved: Vec::new(),
             refused: Vec::new(),
             ignored: Vec::new(),
+            polled: Vec::new(),
             stop,
         }
     }
@@ -67,6 +70,11 @@ impl Observer for Recorder {
 
     fn ignored(&mut self, _source: SocketAddr, opcode: u16) {
         self.ignored.push(opcode);
+        self.done();
+    }
+
+    fn polled(&mut self, _source: SocketAddr, replies: usize) {
+        self.polled.push(replies);
         self.done();
     }
 }
@@ -160,16 +168,59 @@ async fn a_refused_packet_reaches_no_fixture() {
     assert!(recorder.received.is_empty());
 }
 
-/// `ArtPoll` carries no channel value. It is reported and drives nothing,
-/// until the node answers polls.
+/// An opcode the node drives nothing with is reported and drives nothing.
 #[tokio::test]
 async fn a_packet_that_is_no_artdmx_drives_nothing() {
     let catalog = Catalog::embedded().expect("the embedded catalog parses");
+    let mut reply = b"Art-Net\0".to_vec();
+    reply.extend_from_slice(&0x2100u16.to_le_bytes());
+    reply.extend_from_slice(&[0u8; 8]);
+    let recorder = drive(&reply, rig(&catalog)).await;
+
+    assert_eq!(recorder.ignored, [0x2100]);
+    assert!(recorder.resolved.is_empty());
+}
+
+/// A desk that receives no reply lists the node nowhere, so a poll is
+/// answered on the socket it arrived on. The rig sits on one port-address,
+/// which is one reply.
+#[tokio::test]
+async fn a_poll_is_answered_on_the_socket_it_arrived_on() {
+    let catalog = Catalog::embedded().expect("the embedded catalog parses");
+    let listener = Listener::bind(loopback()).expect("the node socket binds");
+    let bound = listener.local_addr().expect("a bound address");
+    let desk = Listener::bind(loopback()).expect("the desk socket binds");
+
     let mut poll = b"Art-Net\0".to_vec();
     poll.extend_from_slice(&0x2000u16.to_le_bytes());
-    poll.extend_from_slice(&[0u8; 8]);
-    let recorder = drive(&poll, rig(&catalog)).await;
+    poll.extend_from_slice(&14u16.to_be_bytes());
+    poll.extend_from_slice(&[0, 0]);
+    desk.send_to(&poll, bound).await.expect("the send");
 
-    assert_eq!(recorder.ignored, [0x2000]);
-    assert!(recorder.resolved.is_empty());
+    let (stop, mut stopped) = mpsc::channel(1);
+    let mut recorder = Recorder::new(stop);
+    let mut node = Node::dry_run(rig(&catalog)).named("a-desk-lists-this");
+    node.run(
+        &listener,
+        async move {
+            stopped.recv().await;
+        },
+        &mut recorder,
+    )
+    .await
+    .expect("the receive loop");
+
+    assert_eq!(recorder.polled, [1]);
+    let mut buffer = [0u8; MAX_DATAGRAM];
+    let (read, from) = desk.receive(&mut buffer).await.expect("the reply");
+    assert_eq!(from, bound);
+    assert_eq!(read, REPLY);
+    assert_eq!(buffer.get(..8), Some(b"Art-Net\0".as_slice()));
+    assert_eq!(buffer.get(8..10), Some(0x2100u16.to_le_bytes().as_slice()));
+    assert_eq!(
+        buffer.get(10..14),
+        Some([127, 0, 0, 1].as_slice()),
+        "the address the desk must send ArtDmx to"
+    );
+    assert_eq!(buffer.get(26..43), Some(b"a-desk-lists-this".as_slice()));
 }
