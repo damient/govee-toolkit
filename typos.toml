@@ -10,4 +10,5 @@ extend-exclude = [
 # Skipping the SKU token keeps the correction live everywhere else, including
 # in the prose of the same file, and covers the SKUs not listed yet.
 # `PNGs` reads as "PN", and typos asks for "ON".
-extend-ignore-re = ["\\bH[0-9A-Z]{4}\\b", "\\bPNGs\\b"]
+# `sACN` reads as "ACN", and typos asks for "CAN".
+extend-ignore-re = ["\\bH[0-9A-Z]{4}\\b", "\\bPNGs\\b", "\\bsACN\\b"]
