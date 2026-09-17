@@ -83,6 +83,9 @@ Nothing is published yet: the manifest carries `publish = false`.
 - A fixture whose device stopped answering is retried on a backoff, which
   doubles from 250 ms to 8 seconds. A write that lands clears it, and every
   other fixture keeps running.
+- `report::personalities` — the channel tables as the JSON array alone.
+  `dist/catalog.json` carries it beside each device, so the catalog, the site
+  and the node read one table.
 
 ### Changed
 

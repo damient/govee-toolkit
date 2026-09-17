@@ -24,7 +24,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
-use govee_toolkit::codec::{Catalog, SCHEMA_VERSION};
+use govee_toolkit::codec::{Catalog, Device, SCHEMA_VERSION};
 
 mod dmx;
 mod dupes;
@@ -59,7 +59,7 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
 
     let catalog = build_catalog(&devices);
 
-    let entries: Vec<_> = catalog.devices().collect();
+    let entries: Vec<serde_json::Value> = catalog.devices().map(device_json).collect();
     let document = serde_json::json!({
         "schema_version": SCHEMA_VERSION,
         "generator": "packages/rust/crates/xtask",
@@ -73,6 +73,15 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
     text.push('\n');
     fs::write(&out, text).unwrap_or_else(|e| panic!("{}: {e}", out.display()));
     println!("{} devices -> {}", entries.len(), out.display());
+}
+
+/// One device file, plus the `dmx` channel table derived from it.
+fn device_json(device: &Device) -> serde_json::Value {
+    let mut value = serde_json::to_value(device).expect("serialize the device");
+    if let Some(object) = value.as_object_mut() {
+        object.insert("dmx".to_owned(), dmx::catalog_entry(device));
+    }
+    value
 }
 
 /// The catalog the SDK loads, built from `devices/*.yaml`.
