@@ -33,6 +33,7 @@ clap = { version = "4", features = ["derive"] }
 govee-toolkit = { path = "../..", version = "0.10", default-features = false, features = [
   "lan",
 ] }
+serde_json.workspace = true
 thiserror = "2"
 
 [lints]

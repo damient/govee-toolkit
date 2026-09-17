@@ -10,5 +10,7 @@
 //! # Layers
 //!
 //! - [`profile`] — the device file in, the channel table out. No I/O.
+//! - [`report`] — a channel table, as text and as JSON.
 
 pub mod profile;
+pub mod report;

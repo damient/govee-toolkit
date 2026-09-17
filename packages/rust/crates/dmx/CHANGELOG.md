@@ -21,3 +21,10 @@ Nothing is published yet: the manifest carries `publish = false`.
 - `profile::Scale` — a slot scaled into what a device parameter takes, plus
   the step count the pair resolves to. Slot 0 carries no value: the dimmer
   powers the device off there, and the white channel sends no command.
+- `govee-dmx profile <SKU>` — the channel table of one device, with every
+  channel, its offset, and the step count of each scaled channel.
+- `profile --personality <name>` prints one table, and `--json` prints the
+  record a machine reads. A personality the device serves through nothing
+  exits 5, and a name no personality carries exits 2.
+- `report` — one channel table as the text an operator reads, and as the JSON
+  `--json` prints.
