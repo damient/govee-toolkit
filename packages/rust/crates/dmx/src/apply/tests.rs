@@ -12,8 +12,8 @@ use super::Look;
 use crate::input::UniverseFrame;
 use crate::patch::{Fixture, Patch, Rig, SignalLoss};
 
-/// The rig the patch tests load: two `pixel` fixtures at 1 and 32, and one
-/// `full` fixture at 63.
+/// The rig the patch tests load: two `segment` fixtures at 1 and 33, and one
+/// `full` fixture at 65.
 const RIG: &str = include_str!("../../tests/fixtures/patch.yaml");
 
 fn source() -> SocketAddr {
@@ -22,14 +22,14 @@ fn source() -> SocketAddr {
 
 fn rig(catalog: &Catalog) -> Rig {
     let patch = Patch::parse(RIG, "patch.yaml").unwrap_or_else(|e| panic!("{e}"));
-    let pixel = catalog.device("H61A0").expect("the SKU resolves");
+    let segment = catalog.device("H61A0").expect("the SKU resolves");
     let full = catalog.device("H6008").expect("the SKU resolves");
     patch
         .resolve(|id| {
             if id == &DeviceId::new("AA:BB:CC:DD:EE:03") {
                 Some(full)
             } else {
-                Some(pixel)
+                Some(segment)
             }
         })
         .unwrap_or_else(|errors| panic!("{errors:?}"))
@@ -58,20 +58,20 @@ fn the_dimmer_at_zero_powers_the_device_off() {
     let rig = rig(&catalog);
     let look = look(
         &rig.fixtures()[2],
-        &universe(63, &[0, 255, 255, 255, 255, 0]),
+        &universe(65, &[0, 0, 255, 255, 255, 255]),
     );
     assert!(!look.on);
     assert_eq!(look.brightness, None);
 }
 
-/// The dimmer scales into the pair the device file declares, and every other
-/// slot goes out as it is.
+/// The dimmer scales into the pair the device file declares, and so does
+/// every color component.
 #[test]
 fn a_full_fixture_reads_its_six_channels() {
     let catalog = catalog();
     let rig = rig(&catalog);
     let fixture = &rig.fixtures()[2];
-    let look = look(fixture, &universe(63, &[255, 10, 20, 30, 255, 0]));
+    let look = look(fixture, &universe(65, &[255, 0, 10, 20, 30, 255]));
     assert!(look.on);
     assert_eq!(look.brightness, Some(100));
     assert_eq!(look.color, Some([10, 20, 30]));
@@ -86,30 +86,30 @@ fn a_full_fixture_reads_its_six_channels() {
 fn the_white_channel_at_zero_carries_no_value() {
     let catalog = catalog();
     let rig = rig(&catalog);
-    let look = look(&rig.fixtures()[2], &universe(63, &[255, 0, 0, 0, 0, 0]));
+    let look = look(&rig.fixtures()[2], &universe(65, &[255, 0, 0, 0, 0, 0]));
     assert_eq!(look.white_temp, None);
 }
 
 #[test]
-fn the_control_channel_asks_for_a_resend_at_250() {
+fn the_mode_channel_asks_for_a_resend_at_250() {
     let catalog = catalog();
     let rig = rig(&catalog);
     let fixture = &rig.fixtures()[2];
-    assert!(look(fixture, &universe(63, &[255, 0, 0, 0, 0, 250])).resend);
-    assert!(!look(fixture, &universe(63, &[255, 0, 0, 0, 0, 9])).resend);
+    assert!(look(fixture, &universe(65, &[255, 250, 0, 0, 0, 0])).resend);
+    assert!(!look(fixture, &universe(65, &[255, 9, 0, 0, 0, 0])).resend);
 }
 
-/// The second fixture starts at address 32, so its zone 0 is channels 33 to
-/// 35 and it reads nothing of the first fixture's look.
+/// The second fixture starts at address 33, so its zone 0 is channels 35 to
+/// 37 and it reads nothing of the first fixture's look.
 #[test]
-fn a_pixel_fixture_reads_the_zones_at_its_own_address() {
+fn a_segment_fixture_reads_the_zones_at_its_own_address() {
     let catalog = catalog();
     let rig = rig(&catalog);
     let mut slots = universe(1, &[255]);
-    slots[32] = 1;
-    slots[33] = 2;
-    slots[34] = 3;
-    slots[31] = 255;
+    slots[32] = 255;
+    slots[34] = 1;
+    slots[35] = 2;
+    slots[36] = 3;
     let frame = UniverseFrame::new(0, source(), &slots);
 
     let first = Look::read(&rig.fixtures()[0], &frame);
@@ -119,7 +119,7 @@ fn a_pixel_fixture_reads_the_zones_at_its_own_address() {
     let second = Look::read(&rig.fixtures()[1], &frame);
     assert_eq!(second.zones.len(), 10);
     assert_eq!(second.zones[0], [1, 2, 3]);
-    assert_eq!(second.color, None, "a pixel personality carries no color");
+    assert_eq!(second.color, None, "a segment personality carries no color");
 }
 
 /// A desk that sends a short packet leaves the rest of the universe dark.
@@ -127,7 +127,7 @@ fn a_pixel_fixture_reads_the_zones_at_its_own_address() {
 fn a_channel_the_packet_stops_short_of_reads_zero() {
     let catalog = catalog();
     let rig = rig(&catalog);
-    let look = look(&rig.fixtures()[0], &[255, 10, 20]);
+    let look = look(&rig.fixtures()[0], &[255, 0, 10, 20]);
     assert!(look.on);
     assert_eq!(look.zones.len(), 10);
     assert_eq!(look.zones[0], [10, 20, 0]);
@@ -142,7 +142,7 @@ fn a_held_fixture_takes_no_look_after_the_signal_goes() {
     let rig = rig(&catalog);
     let look = look(
         &rig.fixtures()[2],
-        &universe(63, &[255, 10, 20, 30, 255, 0]),
+        &universe(65, &[255, 0, 10, 20, 30, 255]),
     );
     assert_eq!(look.quiet(SignalLoss::Hold), None);
 }
@@ -155,7 +155,7 @@ fn a_blacked_fixture_keeps_its_brightness_and_loses_its_color() {
     let rig = rig(&catalog);
     let look = look(
         &rig.fixtures()[2],
-        &universe(63, &[255, 10, 20, 30, 255, 0]),
+        &universe(65, &[255, 0, 10, 20, 30, 255]),
     );
     let quiet = look
         .quiet(SignalLoss::Black)
@@ -166,19 +166,19 @@ fn a_blacked_fixture_keeps_its_brightness_and_loses_its_color() {
     assert_eq!(quiet.white_temp, None);
 }
 
-/// A pixel fixture keeps its zone count, so the whole strip goes dark rather
-/// than half of it.
+/// A segment fixture keeps its zone count, so the whole strip goes dark
+/// rather than half of it.
 #[test]
-fn a_blacked_pixel_fixture_takes_every_zone_to_zero() {
+fn a_blacked_segment_fixture_takes_every_zone_to_zero() {
     let catalog = catalog();
     let rig = rig(&catalog);
-    let look = look(&rig.fixtures()[0], &universe(1, &[255, 10, 20, 30]));
+    let look = look(&rig.fixtures()[0], &universe(1, &[255, 0, 10, 20, 30]));
     let quiet = look
         .quiet(SignalLoss::Black)
         .expect("`black` asks for a look");
     assert_eq!(quiet.zones.len(), 10);
     assert!(quiet.zones.iter().all(|zone| *zone == [0, 0, 0]));
-    assert_eq!(quiet.color, None, "a pixel personality carries no color");
+    assert_eq!(quiet.color, None, "a segment personality carries no color");
 }
 
 #[test]
@@ -187,7 +187,7 @@ fn an_off_fixture_powers_down_after_the_signal_goes() {
     let rig = rig(&catalog);
     let look = look(
         &rig.fixtures()[2],
-        &universe(63, &[255, 10, 20, 30, 255, 0]),
+        &universe(65, &[255, 0, 10, 20, 30, 255]),
     );
     let quiet = look.quiet(SignalLoss::Off).expect("`off` asks for a look");
     assert!(!quiet.on);

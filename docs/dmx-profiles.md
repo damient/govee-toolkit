@@ -20,16 +20,20 @@ A personality wider than 512 channels is an error when the patch loads, and it
 is never truncated to fit.
 
 <!-- generated: dmx-personalities -->
-| SKU | Name | `basic` | `full` | `pixel` | `pixel-native` |
-| --- | ---- | ------- | ------ | ------- | -------------- |
-| [H6008](../devices/H6008.yaml) | Smart LED Bulb RGBWW | 4 | 6 | — | — |
-| [H6022](../devices/H6022.yaml) | Table Lamp 2 | 4 | 6 | 397 | 397 |
-| [H6114](../devices/H6114.yaml) | RGB Car LED Strip Lights | — | — | — | — |
-| [H61A0](../devices/H61A0.yaml) | 3m RGBIC LED Neon Rope Lights | 4 | 6 | 31 | 127 |
+| SKU | Name | `full` | `segment` | `pixel` |
+| --- | ---- | ------ | --------- | ------- |
+| [H6008](../devices/H6008.yaml) | Smart LED Bulb RGBWW | 6 | — | — |
+| [H6022](../devices/H6022.yaml) | Table Lamp 2 | 6 | — | 398 |
+| [H6114](../devices/H6114.yaml) | RGB Car LED Strip Lights | — | — | — |
+| [H61A0](../devices/H61A0.yaml) | 3m RGBIC LED Neon Rope Lights | 6 | 32 | 128 |
 <!-- /generated -->
 
-The first channel of every personality is the dimmer. Slot 0 powers the device
-off, and every other slot powers it on and sets the brightness.
+Channel 1 and channel 2 are the same on every personality and every model.
+Channel 1 is the dimmer: slot 0 powers the device off, and every other slot
+powers it on and sets the brightness. Channel 2 is the mode channel.
+
+A device whose every zone is one addressable LED serves `pixel` alone, because
+`segment` would lay out the same table.
 
 ## Scaled channels
 
@@ -50,4 +54,6 @@ know it before the show.
 | H61A0 | 1 to 100 | 100 | 2000 to 9000 | 255 |
 <!-- /generated -->
 
-Red, green and blue go out as they are, and the control channel is not scaled.
+Red, green and blue scale into the pair the `lan` color command declares for
+each component. Every device file declares the whole byte today, so each slot
+goes out as it is. The mode channel is not scaled.

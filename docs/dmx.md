@@ -109,38 +109,51 @@ code. Three things in `devices/*.yaml` decide it:
   reaches;
 - the `role:` of each `lan` command — which of them the SDK can send.
 
-A device with no `segments` capability has no pixel personality. A device whose
-`lan` mode does not reach `colortemp` has no CCT channel.
+A device with no `segments` capability has no zone personality. A device whose
+`lan` mode does not reach `colortemp` keeps the white channel and drives
+nothing from it.
 
 ### Personalities
 
 | Name | Channels | Condition |
 | --- | --- | --- |
-| `basic` | 4 | `brightness` and `color` |
-| `full` | 6 | and `colortemp` |
-| `pixel` | 1 + 3 × `segments.count` | and `segments` |
-| `pixel-native` | 1 + 3 × `segments.native_pixels` | and a measured `native_pixels` |
+| `full` | 6 | `brightness` and `color` |
+| `segment` | 2 + 3 × `segments.count` | and `segments` |
+| `pixel` | 2 + 3 × `segments.native_pixels` | and a measured `native_pixels` |
 
-`basic`:
+Channel 1 and channel 2 are the same on every personality:
 
 | Offset | Slot |
 | --- | --- |
 | 1 | Dimmer |
-| 2 | Red |
-| 3 | Green |
-| 4 | Blue |
+| 2 | Mode |
+
+A desk therefore reads one fixture the same way whatever personality it is
+patched on, and a cue file carries between two models of different widths. The
+mode channel goes second rather than last, which is where a fixture with a
+fixed table puts it: a table derived from a measured zone count changes width
+between models and between two lengths of one model, and a trailing channel
+would move with it.
 
 `full` adds:
 
 | Offset | Slot |
 | --- | --- |
-| 5 | White temperature |
-| 6 | Control |
+| 3 | Red |
+| 4 | Green |
+| 5 | Blue |
+| 6 | White temperature |
 
-`pixel` holds the dimmer at offset 1, then one RGB triple for each zone, in
-zone order. `pixel-native` holds one triple for each addressable LED.
+A device `lan` reaches no white temperature on keeps channel 6 and drives
+nothing from it. `full` is 6 channels wide on every device, and
+`govee-dmx profile` names the channel `unreached`.
 
-The control channel carries 0 to 9 for no action and 250 to 255 to force a full
+`segment` holds one RGB triple for each zone, in zone order, from offset 3.
+`pixel` holds one triple for each addressable LED. A device whose every zone is
+one addressable LED serves `pixel` alone: the two would lay out one table, and
+one table carries one name.
+
+The mode channel carries 0 to 9 for no action and 250 to 255 to force a full
 resend. Every other value is reserved.
 
 ### Slot values
@@ -157,7 +170,11 @@ turns the device on and sets the brightness over the capability range:
 value = min + round((slot - 1) × (max - min) / 254)
 ```
 
-**Red, green and blue.** Sent as they are. The wire takes 0 to 255.
+**Red, green and blue.** Each component scales over the pair the `lan` color
+command declares for it, with slot 0 at the bottom of the pair. A component at
+0 is a color the device shows, so the channel carries every slot and has no
+off. Every device file declares the whole byte today, so each slot goes out as
+it is.
 
 **White temperature.** Slot 0 sends no white command, so the color stays. Slot 1
 to 255 scales over `colortemp.range_kelvin` with the formula above. Without
@@ -198,7 +215,7 @@ One task drives one fixture, so a slow device holds up no other one and no
 write holds up the socket. A look the task did not take before the next one
 arrived is counted with the frames the stream superseded.
 
-A pixel personality arms the segment channel once the device powers on, and
+A zone personality arms the segment channel once the device powers on, and
 disarms it when the dimmer returns to 0. The channel holds the colors only
 while it is armed, and arming a dark strip paints nothing, so the order is
 fixed.
@@ -251,7 +268,7 @@ patch:
   - device: "AA:BB:CC:DD:EE:FF"
     universe: 0             # or: net: 0, subnet: 0, universe: 0
     address: 1              # the DMX start address, 1 to 512
-    personality: pixel
+    personality: segment
     max_hz: 20              # optional. Default: the device file measurement
     on_signal_loss: hold
 ```
@@ -260,10 +277,11 @@ patch:
 the fixture answers to, the same number the operator sets on a real fixture.
 The personality decides how many channels follow it.
 
-A patch entry for a 10-zone device with `personality: pixel` and `address: 1`
-therefore takes channels 1 to 31 of universe 0: channel 1 is the dimmer,
-channels 2 to 4 are zone 0, channels 5 to 7 are zone 1, and so on. A second
-device on the same universe starts at address 32.
+A patch entry for a 10-zone device with `personality: segment` and
+`address: 1` therefore takes channels 1 to 32 of universe 0: channel 1 is the
+dimmer, channel 2 is the mode channel, channels 3 to 5 are zone 0, channels 6
+to 8 are zone 1, and so on. A second device on the same universe starts at
+address 33.
 
 The patch loader refuses an overlap, an address past 512 and a personality the
 device cannot serve.
@@ -294,7 +312,7 @@ not a mode. Art-Net captures go to `tests/fixtures/artnet/` instead, and the
 tests read a packet and check the channel table and the arguments it produces.
 
 The profile tests run over the whole catalog: every device whose `lan` mode
-carries `segments` must produce a valid pixel personality.
+carries `segments` must produce a valid zone personality.
 
 `crates/sim` carries an end-to-end test with no hardware.
 
@@ -304,5 +322,5 @@ carries `segments` must produce a valid pixel personality.
   more than one universe. The candidate answer is a spill into the next
   universe, in order. Nothing decides it yet.
 - **Gradient.** A `segment_color` command can carry a `role: gradient`
-  argument. The control channel can hold it, or the patch can.
+  argument. The mode channel can hold it, or the patch can.
 - **HTP merge.** See **Merge** above.

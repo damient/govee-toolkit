@@ -18,8 +18,8 @@ use crate::input::artnet::REPLY;
 use crate::input::socket::{Listener, MAX_DATAGRAM};
 use crate::patch::{Patch, Rig};
 
-/// The rig the patch tests load: two `pixel` fixtures at 1 and 32, and one
-/// `full` fixture at 63.
+/// The rig the patch tests load: two `segment` fixtures at 1 and 33, and one
+/// `full` fixture at 65.
 const RIG: &str = include_str!("../../tests/fixtures/patch.yaml");
 
 /// What the node reported, and a stop once enough of it arrived.
@@ -85,14 +85,14 @@ fn loopback() -> SocketAddr {
 
 fn rig(catalog: &Catalog) -> Rig {
     let patch = Patch::parse(RIG, "patch.yaml").unwrap_or_else(|e| panic!("{e}"));
-    let pixel = catalog.device("H61A0").expect("the SKU resolves");
+    let segment = catalog.device("H61A0").expect("the SKU resolves");
     let full = catalog.device("H6008").expect("the SKU resolves");
     patch
         .resolve(|id| {
             if id == &DeviceId::new("AA:BB:CC:DD:EE:03") {
                 Some(full)
             } else {
-                Some(pixel)
+                Some(segment)
             }
         })
         .unwrap_or_else(|errors| panic!("{errors:?}"))
@@ -142,10 +142,10 @@ async fn drive(datagram: &[u8], rig: Rig) -> Recorder {
 #[tokio::test]
 async fn one_frame_reaches_every_fixture_of_its_universe() {
     let catalog = Catalog::embedded().expect("the embedded catalog parses");
-    let mut slots = vec![0u8; 68];
+    let mut slots = vec![0u8; 70];
     slots[0] = 255;
-    slots[31] = 128;
-    slots[62] = 255;
+    slots[32] = 128;
+    slots[64] = 255;
     let recorder = drive(&packet(0, 1, &slots), rig(&catalog)).await;
 
     assert_eq!(recorder.received, [0]);

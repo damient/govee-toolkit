@@ -21,20 +21,41 @@ fn check_offsets(sku: &str, profile: &Profile) {
     assert_eq!(offsets, expected, "{sku} `{}`", profile.personality());
 }
 
+/// A device whose zones are its addressable LEDs serves `pixel` alone, so it
+/// is the one personality every segmented device has to answer.
 #[test]
-fn every_segmented_device_answers_a_pixel_personality() {
+fn every_segmented_device_answers_a_zone_personality() {
     for device in catalog().devices() {
         if !has(device, SEGMENTS) {
             continue;
         }
-        let profile = Profile::of(device, Personality::Pixel)
-            .unwrap_or_else(|e| panic!("{}: {e}", device.sku));
         let zones = device
             .capabilities
             .segment_count()
             .expect("a device that reaches segments counts them");
-        assert_eq!(profile.width(), u16::try_from(1 + 3 * zones).unwrap_or(0));
+        let personality = if device.capabilities.native_pixels() == Some(zones) {
+            Personality::Pixel
+        } else {
+            Personality::Segment
+        };
+        let profile =
+            Profile::of(device, personality).unwrap_or_else(|e| panic!("{}: {e}", device.sku));
+        assert_eq!(profile.width(), u16::try_from(2 + 3 * zones).unwrap_or(0));
         check_offsets(&device.sku, &profile);
+    }
+}
+
+/// Offset 1 and offset 2 mean the same thing on every personality and every
+/// model, so a cue file carries between them.
+#[test]
+fn the_second_channel_of_every_personality_is_the_mode() {
+    for device in catalog().devices() {
+        for personality in super::served(device) {
+            let profile = Profile::of(device, personality).expect("a served personality");
+            let second = profile.channels().get(1).expect("a second channel");
+            assert_eq!(second.slot, Slot::Mode, "{}", device.sku);
+            assert_eq!(second.offset, 2, "{}", device.sku);
+        }
     }
 }
 
@@ -62,33 +83,33 @@ fn the_first_channel_of_every_personality_is_the_dimmer() {
     }
 }
 
-/// `pixel` lays the zones out in zone order, one triple each, so the operator
-/// reads channel 2 as the red of zone 0.
+/// `segment` lays the zones out in zone order, one triple each, so the
+/// operator reads channel 3 as the red of zone 0.
 #[test]
-fn a_pixel_personality_lays_one_triple_on_each_zone() {
+fn a_segment_personality_lays_one_triple_on_each_zone() {
     let catalog = catalog();
     let device = catalog.device("H61A0").expect("the SKU resolves");
-    let profile = Profile::of(device, Personality::Pixel).expect("a pixel personality");
+    let profile = Profile::of(device, Personality::Segment).expect("a segment personality");
     assert_eq!(
-        profile.channels().get(1..4),
+        profile.channels().get(2..5),
         Some(
             [
                 Channel::plain(
-                    2,
+                    3,
                     Slot::Zone {
                         index: 0,
                         component: Component::Red
                     }
                 ),
                 Channel::plain(
-                    3,
+                    4,
                     Slot::Zone {
                         index: 0,
                         component: Component::Green
                     }
                 ),
                 Channel::plain(
-                    4,
+                    5,
                     Slot::Zone {
                         index: 0,
                         component: Component::Blue
@@ -130,19 +151,34 @@ fn built(capabilities: &str, lan: &str) -> Catalog {
         .expect("the device file parses")
 }
 
+/// The white channel holds its place where `lan` reaches no white
+/// temperature, so `full` takes 6 channels on every device. It drives
+/// nothing there: a scale is what a channel needs to send a value.
 #[test]
-fn a_device_that_reaches_no_white_serves_no_full_personality() {
+fn a_device_that_reaches_no_white_keeps_the_channel_and_drives_nothing() {
     let catalog = built(RGB, "power, brightness, color");
     let device = parse(&catalog);
-    assert_eq!(super::served(device), vec![Personality::Basic]);
-    assert_eq!(
-        Profile::of(device, Personality::Full),
-        Err(Error::Unserved {
-            sku: "HTEST".to_owned(),
-            personality: Personality::Full,
-            missing: Missing::Capability("colortemp"),
-        })
-    );
+    assert_eq!(super::served(device), vec![Personality::Full]);
+    let profile = Profile::of(device, Personality::Full).expect("a full personality");
+    assert_eq!(profile.width(), 6);
+    let white = profile.channels().get(5).expect("the white channel");
+    assert_eq!(white.slot, Slot::WhiteTemp);
+    assert_eq!(white.scale, None);
+}
+
+/// Every color component travels the whole pair its `lan` command declares,
+/// so a device that takes less than a byte still takes the full fader.
+#[test]
+fn a_color_component_scales_into_the_pair_the_command_declares() {
+    let catalog = built(RGB, "power, brightness, color");
+    let device = parse(&catalog);
+    let profile = Profile::of(device, Personality::Full).expect("a full personality");
+    let red = profile.channels().get(2).expect("the red channel");
+    assert_eq!(red.slot, Slot::Color(Component::Red));
+    let scale = red.scale.expect("a scale");
+    assert_eq!(scale.range(), [0, 255]);
+    assert_eq!(scale.byte(0), 0);
+    assert_eq!(scale.byte(255), 255);
 }
 
 /// A capability the hardware has and the mode does not reach drives no
@@ -152,7 +188,7 @@ fn a_capability_out_of_the_mode_s_reach_serves_no_channel() {
     let capabilities = format!("{RGB}  segments:\n    count: 10\n");
     let catalog = built(&capabilities, "power, brightness, color");
     let device = parse(&catalog);
-    assert_eq!(super::served(device), vec![Personality::Basic]);
+    assert_eq!(super::served(device), vec![Personality::Full]);
 }
 
 #[test]
@@ -161,11 +197,11 @@ fn a_zone_count_over_one_universe_is_an_error() {
     let catalog = built(&capabilities, "power, brightness, color, segments");
     let device = parse(&catalog);
     assert_eq!(
-        Profile::of(device, Personality::Pixel),
+        Profile::of(device, Personality::Segment),
         Err(Error::TooWide {
             sku: "HTEST".to_owned(),
-            personality: Personality::Pixel,
-            channels: 601,
+            personality: Personality::Segment,
+            channels: 602,
         })
     );
 }
@@ -178,14 +214,35 @@ fn a_device_with_no_measured_pixels_serves_no_native_personality() {
     let device = parse(&catalog);
     assert_eq!(
         super::served(device),
-        vec![Personality::Basic, Personality::Pixel]
+        vec![Personality::Full, Personality::Segment]
     );
     assert_eq!(
-        Profile::of(device, Personality::PixelNative),
+        Profile::of(device, Personality::Pixel),
         Err(Error::Unserved {
             sku: "HTEST".to_owned(),
-            personality: Personality::PixelNative,
+            personality: Personality::Pixel,
             missing: Missing::NativePixels,
+        })
+    );
+}
+
+/// A device whose every zone is one addressable LED lays out one table, and
+/// one table carries one name. `segment` would repeat `pixel`.
+#[test]
+fn one_pixel_per_zone_serves_the_pixel_personality_alone() {
+    let capabilities = format!("{RGB}  segments:\n    count: 10\n    native_pixels: 10\n");
+    let catalog = built(&capabilities, "power, brightness, color, segments");
+    let device = parse(&catalog);
+    assert_eq!(
+        super::served(device),
+        vec![Personality::Full, Personality::Pixel]
+    );
+    assert_eq!(
+        Profile::of(device, Personality::Segment),
+        Err(Error::Unserved {
+            sku: "HTEST".to_owned(),
+            personality: Personality::Segment,
+            missing: Missing::OnePixelPerZone,
         })
     );
 }

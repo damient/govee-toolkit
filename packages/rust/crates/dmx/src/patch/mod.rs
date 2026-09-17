@@ -14,7 +14,7 @@
 //!   - device: "AA:BB:CC:DD:EE:FF"
 //!     universe: 0             # or: net: 0, subnet: 0, universe: 0
 //!     address: 1              # the DMX start address, 1 to 512
-//!     personality: pixel
+//!     personality: segment
 //!     max_hz: 20              # optional. Default: the device file measurement
 //!     on_signal_loss: hold
 //! ```

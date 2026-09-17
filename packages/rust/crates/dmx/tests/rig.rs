@@ -39,10 +39,10 @@ const REFRESH: Duration = Duration::from_secs(60);
 fn patch(loss: &str) -> String {
     let entry = |device: &str, address: u16| {
         format!(
-            "  - device: \"{device}\"\n    universe: 0\n    address: {address}\n    personality: basic\n    on_signal_loss: {loss}\n"
+            "  - device: \"{device}\"\n    universe: 0\n    address: {address}\n    personality: full\n    on_signal_loss: {loss}\n"
         )
     };
-    format!("patch:\n{}{}", entry(REACHED, 1), entry(GONE, 5))
+    format!("patch:\n{}{}", entry(REACHED, 1), entry(GONE, 7))
 }
 
 fn rig(catalog: &Catalog, loss: &str) -> Rig {
