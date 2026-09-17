@@ -5,7 +5,10 @@ Real frames captured from hardware, used by the SDK tests.
 ```
 lan-captures/<SKU>/<command>.json     # UDP payloads observed on 4001/4002/4003
 ble-captures/<SKU>/<command>.txt      # BLE frames, hex
+artnet/<name>.bin                     # ArtDmx packets observed on 6454
 ```
+
+`artnet/` has a format of its own — see [`artnet/README.md`](artnet/README.md).
 
 An undocumented command's capture should be referenced from
 `docs/protocol/lan.md`. A vector built from a capture says so in its `source`,

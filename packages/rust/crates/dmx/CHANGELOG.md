@@ -34,3 +34,9 @@ Nothing is published yet: the manifest carries `publish = false`.
   `Rig`. It reports every fault at once, so a desk is corrected in one pass.
 - `patch::Error` — an overlap, an address outside a universe, a fixture past
   the end of one, a device patched twice, and a personality served by nothing.
+- `input::UniverseFrame` — one universe of channel values, from whichever
+  protocol carried it. `slot()` reads a channel at the address a desk shows.
+- `input::artnet` — the `ArtDmx` parser, behind the `artnet` feature. It drops
+  an odd length, a length over 512 and a protocol version under 14.
+- `input::artnet::Sequence` — drops a packet older than the last one accepted,
+  in a window of 256. A sender that writes 0 disables the check.
