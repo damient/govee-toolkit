@@ -673,6 +673,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "govee-toolkit-dmx"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "govee-toolkit",
+ "thiserror",
+]
+
+[[package]]
 name = "govee-toolkit-sim"
 version = "0.10.0"
 dependencies = [

@@ -139,7 +139,7 @@ else
 fi
 
 check "file length" "$root/tools/check-file-length.sh" rust
-check "codec layering" "$root/tools/check-no-io.sh"
+check "no-io layering" "$root/tools/check-no-io.sh"
 check "capture redaction" "$root/tools/check-captures.sh"
 
 qa_summary
