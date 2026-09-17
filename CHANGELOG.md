@@ -21,6 +21,15 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-17
+
+#### Added
+
+- `catalog.json` carries a `dmx` block per device: the personalities the device
+  serves over `lan`, and the channels of each. `govee-toolkit-dmx` derives it
+  from the device file, so it holds what `govee-dmx profile --json` holds. The
+  devices page of the site reads it.
+
 ### 2026-09-15
 
 #### Added

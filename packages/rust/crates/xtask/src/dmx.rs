@@ -4,7 +4,22 @@
 //! cannot disagree. Nothing here reads a SKU name.
 
 use govee_toolkit::codec::{Catalog, Device};
-use govee_toolkit_dmx::profile::{Personality, Profile, Scale, Slot};
+use govee_toolkit_dmx::profile::{self, Personality, Profile, Scale, Slot};
+use govee_toolkit_dmx::report;
+use serde_json::{Value, json};
+
+/// The channel tables of one device, for `dist/catalog.json`.
+///
+/// It holds what `govee-dmx profile --json` holds, so the devices page of the
+/// site and the node read one table. A personality the device serves through
+/// nothing is left out, and one wider than a universe carries its error.
+pub(crate) fn catalog_entry(device: &Device) -> Value {
+    let tables: Vec<_> = profile::served(device)
+        .into_iter()
+        .map(|personality| Profile::of(device, personality))
+        .collect();
+    json!({ "personalities": report::personalities(&tables) })
+}
 
 /// How many channels `personality` takes on `device`, as a table cell.
 ///

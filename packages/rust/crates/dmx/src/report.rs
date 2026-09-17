@@ -17,8 +17,17 @@ pub fn json(device: &Device, tables: &[Result<Profile, Error>]) -> Value {
     json!({
         "sku": device.sku,
         "name": device.name,
-        "personalities": tables.iter().map(personality_json).collect::<Vec<_>>(),
+        "personalities": personalities(tables),
     })
+}
+
+/// The same tables, as the JSON array alone.
+///
+/// `dist/catalog.json` carries this beside each device, so the catalog, the
+/// site and the node read one channel table.
+#[must_use]
+pub fn personalities(tables: &[Result<Profile, Error>]) -> Value {
+    Value::Array(tables.iter().map(personality_json).collect())
 }
 
 /// The same tables, as the lines an operator reads.
