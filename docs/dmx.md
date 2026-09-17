@@ -211,6 +211,14 @@ rate falls as the frame grows. Three rules protect the fast path:
    sent above what the device accepts. Report that counter: it is what tells the
    operator the desk sends too fast.
 
+A fourth rule protects the device rather than the fast path: **two commands to
+one device never go out back to back.** A device drops a command that arrives
+directly behind two others, and nothing says so — see
+[`protocol/lan.md`](protocol/lan.md) 1, "Consecutive commands". One look can
+carry a power, a brightness and a color, so the bridge waits a few milliseconds
+between them. A look that changes one slot writes once and waits not at all, so
+a color chase pays nothing.
+
 One task drives one fixture, so a slow device holds up no other one and no
 write holds up the socket. A look the task did not take before the next one
 arrived is counted with the frames the stream superseded.

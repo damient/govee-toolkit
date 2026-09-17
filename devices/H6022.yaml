@@ -244,7 +244,7 @@ measurements:
 verified:
   by: "damient"
   firmware: "1.03.08"
-  date: "2026-09-15"
+  date: "2026-09-17"
   notes: >-
     lan mode exercised over UDP on one unit, through the Rust CLI. The unit
     answers the multicast discovery. Power, brightness, color and the white
@@ -289,6 +289,13 @@ verified:
     Trap: the diffuser blurs the edge between two zones, so this unit reports
     nothing about the `gradient` byte to the eye. Every frame above was sent
     with `gradient` 0.
+
+    Trap: the lamp drops a command that arrives directly behind two others.
+    Three commands sent back to back over lan lose the third in 3 attempts of
+    4, and the lamp holds the value the lost one meant to replace. A wait of
+    1 ms between two commands lost none over 4 attempts, and so did 2, 3, 5,
+    10, 20, 50 and 100 ms. Two commands back to back lost none over 4
+    attempts. See docs/protocol/lan.md 1, "Consecutive commands".
 
     The lamp has a microphone and the phone controller offers a music mode.
     lan carries no music command, so that is a ble session, below.

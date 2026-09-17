@@ -8,6 +8,8 @@
 //! quiet, and the backoff that a device which stopped answering is retried
 //! on.
 
+use std::time::Duration;
+
 use govee_toolkit::stream::{Rate, Resolution, StreamOptions};
 use govee_toolkit::{DeviceId, Error, Govee, Result, SegmentStream};
 use tokio::sync::{mpsc, watch};
@@ -18,6 +20,23 @@ use super::look::Look;
 use super::{Counts, Failure, Timing};
 use crate::patch::{Fixture, SignalLoss};
 use crate::profile::Personality;
+
+/// How long one command waits behind the one before it, inside one pass.
+///
+/// A device drops a datagram that arrives directly behind two others — see
+/// `docs/protocol/lan.md` 1, "Consecutive commands". Nothing acknowledges a
+/// LAN frame, so the drop is silent and the device holds the value the
+/// command meant to replace. The gap is wider than the smallest one measured,
+/// for a unit slower than the one that was measured. A pass that changes one
+/// slot writes once and waits not at all, so a color chase pays nothing.
+const GAP: Duration = Duration::from_millis(5);
+
+/// Wait `GAP` where this pass already put a datagram on the network.
+async fn pace(wrote: bool) {
+    if wrote {
+        tokio::time::sleep(GAP).await;
+    }
+}
 
 /// What one fixture last received. Every field is compared before a write, so
 /// a desk that holds a static look puts no traffic on the device.
@@ -188,17 +207,20 @@ impl Feeder {
         if let Some(level) = look.brightness
             && self.sent.brightness != Some(level)
         {
+            pace(wrote).await;
             self.govee.device(&self.id).brightness(level).await?;
             self.sent.brightness = Some(level);
             self.counts.frames_sent += 1;
             wrote = true;
         }
         if self.options.is_some() {
+            pace(wrote).await;
             return Ok(self.zones(&look.zones)? || wrote);
         }
         if let Some(rgb) = look.color
             && self.sent.color != Some(rgb)
         {
+            pace(wrote).await;
             self.govee.device(&self.id).color(rgb).await?;
             self.sent.color = Some(rgb);
             self.counts.frames_sent += 1;
@@ -207,6 +229,7 @@ impl Feeder {
         if let Some(kelvin) = look.white_temp
             && self.sent.white_temp != Some(kelvin)
         {
+            pace(wrote).await;
             self.govee.device(&self.id).color_temp(kelvin).await?;
             self.sent.white_temp = Some(kelvin);
             self.counts.frames_sent += 1;
@@ -227,6 +250,7 @@ impl Feeder {
         if let Some(options) = self.options.clone()
             && self.stream.is_none()
         {
+            pace(true).await;
             let stream = self.govee.device(&self.id).open_stream(options).await?;
             self.stream = Some(stream);
         }
@@ -239,7 +263,9 @@ impl Feeder {
         if self.sent.on == Some(false) {
             return Ok(false);
         }
+        let disarmed = self.stream.is_some();
         self.close().await;
+        pace(disarmed).await;
         self.govee.device(&self.id).power(false).await?;
         self.sent = Sent {
             on: Some(false),

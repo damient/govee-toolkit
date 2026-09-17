@@ -29,6 +29,9 @@ at.
   serves over `lan`, and the channels of each. `govee-toolkit-dmx` derives it
   from the device file, so it holds what `govee-dmx profile --json` holds. The
   devices page of the site reads it.
+- `H6022`, `H61A0` and `H6008` record what each unit does with commands sent
+  back to back. Two of the three drop the third of a burst; the wait that loses
+  none is a millisecond.
 
 ### 2026-09-15
 
