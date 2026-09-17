@@ -45,6 +45,15 @@ impl Personality {
     /// Every personality, in the order `docs/dmx.md` lists them.
     pub const ALL: [Self; 4] = [Self::Basic, Self::Full, Self::Pixel, Self::PixelNative];
 
+    /// The personality `name` spells, written the way [`Self::as_str`]
+    /// writes it. `None` where no personality carries that name.
+    #[must_use]
+    pub fn parse(name: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|personality| personality.as_str() == name)
+    }
+
     /// The name a patch and an operator use.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
@@ -132,6 +141,16 @@ pub enum Error {
         /// How many channels it takes.
         channels: u64,
     },
+}
+
+impl Error {
+    /// The personality that answered no table.
+    #[must_use]
+    pub fn personality(&self) -> Personality {
+        match self {
+            Self::Unserved { personality, .. } | Self::TooWide { personality, .. } => *personality,
+        }
+    }
 }
 
 /// The channel table of one personality on one device.
