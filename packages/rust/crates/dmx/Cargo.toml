@@ -38,6 +38,7 @@ serde_json.workspace = true
 # The patch file, in the format the device files already use.
 serde_norway = "0.9"
 thiserror = "2"
+tokio = { workspace = true }
 
 [lints]
 workspace = true

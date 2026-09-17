@@ -40,3 +40,10 @@ Nothing is published yet: the manifest carries `publish = false`.
   an odd length, a length over 512 and a protocol version under 14.
 - `input::artnet::Sequence` — drops a packet older than the last one accepted,
   in a window of 256. A sender that writes 0 disables the check.
+- `apply::Look` — what one frame asks of one fixture: the power, the
+  brightness, the color, the white temperature and the zones, in the units the
+  device file declares.
+- `apply::Applier` — the send path, one task per fixture. It writes only what
+  changed, sends the current values again after the refresh interval, and
+  counts the looks a later one replaced. A device that fails stops no other
+  one.

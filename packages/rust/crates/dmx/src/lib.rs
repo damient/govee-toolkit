@@ -13,8 +13,10 @@
 //!   universe of channel values out.
 //! - [`profile`] — the device file in, the channel table out. No I/O.
 //! - [`patch`] — which device answers which channels, on which universe.
+//! - [`apply`] — the channel values in, the device commands out.
 //! - [`report`] — a channel table, as text and as JSON.
 
+pub mod apply;
 pub mod input;
 pub mod patch;
 pub mod profile;

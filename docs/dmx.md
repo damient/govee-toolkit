@@ -185,6 +185,15 @@ rate falls as the frame grows. Three rules protect the fast path:
    sent above what the device accepts. Report that counter: it is what tells the
    operator the desk sends too fast.
 
+One task drives one fixture, so a slow device holds up no other one and no
+write holds up the socket. A look the task did not take before the next one
+arrived is counted with the frames the stream superseded.
+
+A pixel personality arms the segment channel once the device powers on, and
+disarms it when the dimmer returns to 0. The channel holds the colors only
+while it is armed, and arming a dark strip paints nothing, so the order is
+fixed.
+
 ### Signal loss
 
 The bridge holds the last look. Where the patch sets `on_signal_loss`, it
