@@ -58,7 +58,8 @@ async fn run(
         Node::dry_run(rig)
     } else {
         Node::live(rig, &govee, Duration::from_secs(patch.node.refresh_secs))
-    };
+    }
+    .named(&patch.node.name);
 
     let mut printer = Printer::new(as_json, dry_run);
     printer.started(listener.local_addr(), patch, node.rig());

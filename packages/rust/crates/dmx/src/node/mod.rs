@@ -11,7 +11,7 @@
 mod tests;
 
 use std::future::{Future, pending};
-use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Duration;
 
 use govee_toolkit::{DeviceId, Govee};
@@ -19,9 +19,9 @@ use tokio::sync::mpsc;
 
 use crate::apply::{Applier, Counts, Failure, Look};
 use crate::input::UniverseFrame;
-use crate::input::artnet::{self, Gate, Packet};
+use crate::input::artnet::{self, Gate, Identity, Packet, replies};
 use crate::input::socket::{Error, Listener, MAX_DATAGRAM};
-use crate::patch::Rig;
+use crate::patch::{NODE_NAME, Rig};
 
 /// What the node reports as it runs.
 ///
@@ -43,10 +43,14 @@ pub trait Observer {
         let _ = (source, reason);
     }
 
-    /// An Art-Net packet that carries no channel value. `ArtPoll` lands here
-    /// until the node answers polls.
+    /// An Art-Net packet that carries no channel value.
     fn ignored(&mut self, source: SocketAddr, opcode: u16) {
         let _ = (source, opcode);
+    }
+
+    /// A poll the node answered, and how many replies went out.
+    fn polled(&mut self, source: SocketAddr, replies: usize) {
+        let _ = (source, replies);
     }
 
     /// A write that failed. Every other device keeps running.
@@ -73,6 +77,8 @@ pub struct Node {
     rig: Rig,
     gate: Gate,
     output: Output,
+    /// The name a desk lists the node under, which `ArtPollReply` carries.
+    name: String,
 }
 
 /// What ended one pass of the receive loop.
@@ -90,6 +96,7 @@ impl Node {
             rig,
             gate: Gate::new(),
             output: Output::DryRun,
+            name: NODE_NAME.to_owned(),
         }
     }
 
@@ -104,7 +111,16 @@ impl Node {
             rig,
             gate: Gate::new(),
             output: Output::Live { applier, failures },
+            name: NODE_NAME.to_owned(),
         }
+    }
+
+    /// The name a desk lists the node under. The default is
+    /// [`crate::patch::NODE_NAME`].
+    #[must_use]
+    pub fn named(mut self, name: impl Into<String>) -> Self {
+        self.name = name.into();
+        self
     }
 
     /// The rig the node drives.
@@ -142,7 +158,7 @@ impl Node {
                 Wake::Failed(failure) => observer.failed(&failure.id, &failure.reason),
                 Wake::Datagram(read, source) => {
                     let datagram = buffer.get(..read).unwrap_or(&[]);
-                    self.datagram(datagram, source, observer);
+                    self.datagram(datagram, source, listener, observer).await;
                 }
             }
         }
@@ -158,7 +174,13 @@ impl Node {
     }
 
     /// One datagram, from the wire to the fixtures.
-    fn datagram(&mut self, bytes: &[u8], source: SocketAddr, observer: &mut impl Observer) {
+    async fn datagram(
+        &mut self,
+        bytes: &[u8],
+        source: SocketAddr,
+        listener: &Listener,
+        observer: &mut impl Observer,
+    ) {
         match artnet::parse(bytes, source) {
             Ok(Packet::Dmx(dmx)) => {
                 if self.gate.accept(source, dmx.frame.universe, dmx.sequence) {
@@ -167,6 +189,7 @@ impl Node {
                     observer.refused(source, "older than the last packet accepted");
                 }
             }
+            Ok(Packet::Poll(_)) => self.answer(source, listener, observer).await,
             Ok(Packet::Other { opcode }) => observer.ignored(source, opcode),
             Err(error) => observer.refused(source, &error.to_string()),
         }
@@ -185,6 +208,51 @@ impl Node {
                 applier.push(&fixture.entry.device, look);
             }
         }
+    }
+}
+
+impl Node {
+    /// Answer a poll: one `ArtPollReply` for each group of 4 port-addresses
+    /// the patch holds.
+    ///
+    /// The replies go to the desk that polled, rather than to the broadcast
+    /// address: a poll names its sender, and one rig on a shared network then
+    /// reaches no other application.
+    async fn answer(&self, source: SocketAddr, listener: &Listener, observer: &mut impl Observer) {
+        let universes: Vec<u16> = self
+            .rig
+            .universes()
+            .iter()
+            .map(|address| address.get())
+            .collect();
+        let identity = Identity {
+            ip: ip(listener, source),
+            name: &self.name,
+        };
+        let mut sent = 0;
+        for reply in replies(&identity, &universes) {
+            match listener.send_to(&reply, source).await {
+                Ok(()) => sent += 1,
+                Err(error) => observer.refused(source, &error.to_string()),
+            }
+        }
+        observer.polled(source, sent);
+    }
+}
+
+/// The address a desk must send `ArtDmx` to.
+///
+/// A node bound to `0.0.0.0` answers with the interface that reaches the desk,
+/// because `0.0.0.0` is an address nothing can send to.
+fn ip(listener: &Listener, source: SocketAddr) -> Ipv4Addr {
+    let bound = listener.local_addr().map(|address| address.ip());
+    let towards = || Listener::local_ip_towards(source);
+    match bound
+        .filter(|address| !address.is_unspecified())
+        .or_else(towards)
+    {
+        Some(IpAddr::V4(address)) => address,
+        _ => Ipv4Addr::UNSPECIFIED,
     }
 }
 

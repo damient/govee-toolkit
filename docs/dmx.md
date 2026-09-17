@@ -70,10 +70,18 @@ frame.
 4-bit Sub-Net and a 4-bit Universe. The bridge holds one `u16` and accepts both
 spellings in the patch, because a desk shows one or the other.
 
-**ArtPoll and ArtPollReply.** The node must answer a poll. A desk that receives
+**ArtPoll and ArtPollReply.** The node answers every poll. A desk that receives
 no reply does not list the node, and the operator cannot patch it. One reply
-carries 4 ports, so the node sends one reply for each group of 4 universes in
-the patch.
+carries 4 output ports, and the 4 share a Net and a Sub-Net, so the node sends
+one reply for each group of 4 universes in the patch. A rig on no universe
+still answers once.
+
+The reply carries the node name from the patch, and the address a desk must
+send `ArtDmx` to. A node bound to `0.0.0.0` answers with the interface that
+reaches the desk, because `0.0.0.0` is an address nothing can send to. The
+replies go to the desk that polled rather than to the broadcast address: a poll
+names its sender, and one rig then reaches no other application on the
+network.
 
 **Sequence.** The ArtDmx sequence field detects a packet that UDP delivered out
 of order. A value of 0 disables it. Where it is non-zero, the bridge drops a
