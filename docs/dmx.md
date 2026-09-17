@@ -36,6 +36,7 @@ crates/dmx/
   src/profile/   capabilities -> channel table. No I/O.
   src/patch/     the patch file
   src/apply/     channel values -> device commands
+  src/node/      the run loop that joins the four
   src/main.rs
 ```
 
@@ -255,8 +256,13 @@ files. CI fails on drift, the same way it does for
 
 The table also reaches `dist/catalog.json` and the devices page of the site.
 
-`govee-dmx --dry-run` prints every universe it receives and the patch it
-resolved, and writes to no device.
+`govee-dmx run <patch>` receives Art-Net on port 6454 and drives the patched
+devices. `--dry-run` prints every packet it receives and what each fixture
+reads out of it, and writes to no device: that is what debugs a patch before
+any device is at risk.
+
+The node prints nothing itself. It reports each packet, each resolved look and
+each failed write to the binary, which decides what a person reads.
 
 ## Tests
 

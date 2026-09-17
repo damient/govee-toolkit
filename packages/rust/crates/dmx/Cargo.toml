@@ -37,8 +37,13 @@ serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
 # The patch file, in the format the device files already use.
 serde_norway = "0.9"
+# `SO_REUSEADDR`, because port 6454 is fixed by the protocol: without it a
+# second Art-Net application on the host cannot start.
+socket2 = { workspace = true }
 thiserror = "2"
-tokio = { workspace = true }
+# `signal` is what ends a run cleanly: the streams disarm, and the counters
+# reach the operator.
+tokio = { workspace = true, features = ["signal"] }
 
 [lints]
 workspace = true

@@ -40,6 +40,11 @@ Nothing is published yet: the manifest carries `publish = false`.
   an odd length, a length over 512 and a protocol version under 14.
 - `input::artnet::Sequence` — drops a packet older than the last one accepted,
   in a window of 256. A sender that writes 0 disables the check.
+- `input::artnet::Gate` — one `Sequence` per sender and port-address, so the
+  packets of one sender never drop the packets of another.
+- `input::socket::Listener` — the UDP socket the node receives on. It carries
+  `SO_REUSEADDR`, because port 6454 is fixed by the protocol and a second
+  Art-Net application on the host must start too.
 - `apply::Look` — what one frame asks of one fixture: the power, the
   brightness, the color, the white temperature and the zones, in the units the
   device file declares.
@@ -47,3 +52,15 @@ Nothing is published yet: the manifest carries `publish = false`.
   changed, sends the current values again after the refresh interval, and
   counts the looks a later one replaced. A device that fails stops no other
   one.
+- `node::Node` — the run loop: receive, drop what the protocol refuses,
+  resolve against the patch, and hand each fixture its look. It prints nothing
+  and reports through `node::Observer`.
+- `govee-dmx run <patch>` — receive Art-Net on port 6454 and drive the patched
+  devices. `--config` names the configuration file, and `--json` prints the
+  records a machine reads.
+- `govee-dmx run --dry-run` — print every packet and what each fixture reads
+  out of it, and write to no device. It debugs a patch before any device is at
+  risk.
+- A device the patch names that enables no `lan` mode fails at the start and is
+  named. The bridge drives a device over `lan` alone and substitutes no other
+  mode.

@@ -1,10 +1,12 @@
 //! The input layer: one socket, one parser, one frame.
 //!
 //! Every protocol produces one [`UniverseFrame`]. A second protocol therefore
-//! adds a module and no new type — see `docs/dmx.md`.
+//! adds a module and no new type — see `docs/dmx.md`. Every protocol receives
+//! on the one socket in [`socket`].
 
 #[cfg(feature = "artnet")]
 pub mod artnet;
+pub mod socket;
 
 use std::net::SocketAddr;
 
