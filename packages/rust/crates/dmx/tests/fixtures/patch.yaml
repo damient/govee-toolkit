@@ -1,0 +1,27 @@
+# A rig of three fixtures on one universe, for the patch tests.
+#
+# The first two take 31 channels each, which is the dimmer plus 10 zones. The
+# third takes 6, which is the `full` personality. The addresses therefore run
+# 1, 32 and 63, the way an operator sets them on a desk.
+node:
+  bind: 0.0.0.0
+  name: govee-toolkit
+  refresh_secs: 10
+patch:
+  - device: "AA:BB:CC:DD:EE:01"
+    universe: 0
+    address: 1
+    personality: pixel
+    max_hz: 20
+  - device: "AA:BB:CC:DD:EE:02"
+    net: 0
+    subnet: 0
+    universe: 0
+    address: 32
+    personality: pixel
+    on_signal_loss: black
+  - device: "AA:BB:CC:DD:EE:03"
+    universe: 0
+    address: 63
+    personality: full
+    on_signal_loss: off

@@ -28,3 +28,9 @@ Nothing is published yet: the manifest carries `publish = false`.
   exits 5, and a name no personality carries exits 2.
 - `report` — one channel table as the text an operator reads, and as the JSON
   `--json` prints.
+- `patch` — the patch file: the node settings, and one entry per fixture in
+  either spelling of the Art-Net address. An unknown key is refused.
+- `Patch::resolve` — the patch joined to the devices the bridge found, as a
+  `Rig`. It reports every fault at once, so a desk is corrected in one pass.
+- `patch::Error` — an overlap, an address outside a universe, a fixture past
+  the end of one, a device patched twice, and a personality served by nothing.
