@@ -8,7 +8,7 @@ use crate::input::UniverseFrame;
 use crate::patch::{Fixture, SignalLoss};
 use crate::profile::{Channel, Component, OFF, Slot};
 
-/// The lowest control slot that forces a full resend. The channel holds 0 to 9
+/// The lowest mode slot that forces a full resend. The channel holds 0 to 9
 /// for no action, and every value between is reserved — see `docs/dmx.md`.
 const RESEND: u8 = 250;
 
@@ -23,14 +23,15 @@ pub struct Look {
     /// The brightness, in the unit the device file declares. `None` where the
     /// dimmer is at 0.
     pub brightness: Option<i64>,
-    /// One color over the whole device. `None` on a pixel personality.
+    /// One color over the whole device. `None` on a `segment` or a `pixel`
+    /// personality.
     pub color: Option<[u8; 3]>,
     /// The white temperature, in kelvin. `None` at slot 0, which sends no
     /// white command, so the color stays.
     pub white_temp: Option<i64>,
     /// One color per zone, in zone order. Empty on `basic` and on `full`.
     pub zones: Vec<[u8; 3]>,
-    /// Whether the control channel asks for a full resend.
+    /// Whether the mode channel asks for a full resend.
     pub resend: bool,
 }
 
@@ -53,11 +54,13 @@ impl Look {
                 }
                 Slot::Color(component) => {
                     painted = true;
-                    put(&mut color, component, slot);
+                    put(&mut color, component, byte(channel, slot));
                 }
                 Slot::WhiteTemp => look.white_temp = channel.scale.and_then(|s| s.value(slot)),
-                Slot::Control => look.resend = slot >= RESEND,
-                Slot::Zone { index, component } => look.paint(index, component, slot),
+                Slot::Mode => look.resend = slot >= RESEND,
+                Slot::Zone { index, component } => {
+                    look.paint(index, component, byte(channel, slot));
+                }
             }
         }
         if painted {
@@ -87,7 +90,7 @@ impl Look {
         }
     }
 
-    fn paint(&mut self, index: u32, component: Component, slot: u8) {
+    fn paint(&mut self, index: u32, component: Component, value: u8) {
         let Ok(index) = usize::try_from(index) else {
             return;
         };
@@ -95,7 +98,7 @@ impl Look {
             self.zones.resize(index + 1, [0, 0, 0]);
         }
         if let Some(zone) = self.zones.get_mut(index) {
-            put(zone, component, slot);
+            put(zone, component, value);
         }
     }
 }
@@ -110,13 +113,19 @@ fn slot_of(fixture: &Fixture, frame: &UniverseFrame, channel: &Channel) -> u8 {
     frame.slot(address).unwrap_or(OFF)
 }
 
-fn put(color: &mut [u8; 3], component: Component, slot: u8) {
+/// The value one color channel writes. The scale is what carries a device
+/// whose component takes less than a whole byte.
+fn byte(channel: &Channel, slot: u8) -> u8 {
+    channel.scale.map_or(slot, |scale| scale.byte(slot))
+}
+
+fn put(color: &mut [u8; 3], component: Component, value: u8) {
     let index = match component {
         Component::Red => 0,
         Component::Green => 1,
         Component::Blue => 2,
     };
-    if let Some(value) = color.get_mut(index) {
-        *value = slot;
+    if let Some(slot) = color.get_mut(index) {
+        *slot = value;
     }
 }

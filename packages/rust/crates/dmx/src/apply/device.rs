@@ -308,9 +308,9 @@ impl Feeder {
 /// carries no zone.
 fn options(fixture: &Fixture) -> Option<StreamOptions> {
     let resolution = match fixture.profile.personality() {
-        Personality::Basic | Personality::Full => return None,
-        Personality::Pixel => Resolution::App,
-        Personality::PixelNative => Resolution::Native,
+        Personality::Full => return None,
+        Personality::Segment => Resolution::App,
+        Personality::Pixel => Resolution::Native,
     };
     Some(StreamOptions {
         resolution,

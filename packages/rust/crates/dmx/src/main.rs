@@ -33,8 +33,7 @@ enum Command {
     Profile {
         /// The SKU, or a verified alias of one.
         sku: String,
-        /// Print this personality alone: `basic`, `full`, `pixel` or
-        /// `pixel-native`.
+        /// Print this personality alone: `full`, `segment` or `pixel`.
         #[arg(long)]
         personality: Option<String>,
         /// Print the record a machine reads instead of the table.

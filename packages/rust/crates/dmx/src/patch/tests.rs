@@ -10,7 +10,7 @@ use govee_toolkit::codec::{Catalog, Device};
 use super::{Error, Patch, PortAddress, SignalLoss};
 use crate::profile::Personality;
 
-/// Three fixtures on one universe: two pixel devices and one `full` device.
+/// Three fixtures on one universe: two segment devices and one `full` device.
 const RIG: &str = include_str!("../../tests/fixtures/patch.yaml");
 
 fn catalog() -> Catalog {
@@ -65,7 +65,7 @@ fn the_fixture_rig_loads() {
     assert_eq!(patch.node.name, "govee-toolkit");
     assert_eq!(patch.node.refresh_secs, 10);
     assert_eq!(patch.patch.len(), 3);
-    assert_eq!(patch.patch[0].personality, Personality::Pixel);
+    assert_eq!(patch.patch[0].personality, Personality::Segment);
     assert_eq!(patch.patch[0].max_hz, Some(20.0));
     assert_eq!(patch.patch[0].on_signal_loss, SignalLoss::Hold);
     assert_eq!(patch.patch[1].on_signal_loss, SignalLoss::Black);
@@ -73,7 +73,7 @@ fn the_fixture_rig_loads() {
 }
 
 /// The channels the operator patched on the desk are the channels the bridge
-/// resolves: 1 to 31, 32 to 62, then 63 to 68.
+/// resolves: 1 to 32, 33 to 64, then 65 to 70.
 #[test]
 fn the_fixture_rig_resolves_to_the_channels_the_desk_shows() {
     let catalog = catalog();
@@ -81,16 +81,16 @@ fn the_fixture_rig_resolves_to_the_channels_the_desk_shows() {
     let rig = parse(RIG)
         .resolve(|id| devices.get(id).copied())
         .unwrap_or_else(|e| panic!("{e:?}"));
-    assert_eq!(spans(&rig), vec![(0, 1, 31), (0, 32, 62), (0, 63, 68)]);
+    assert_eq!(spans(&rig), vec![(0, 1, 32), (0, 33, 64), (0, 65, 70)]);
     assert_eq!(rig.universes(), vec![PortAddress::new(0).expect("0 fits")]);
 }
 
 /// A desk shows one spelling or the other, and both name one address.
 #[test]
 fn both_spellings_of_one_address_resolve_to_one_port_address() {
-    let whole = parse("patch:\n  - { device: A, universe: 275, address: 1, personality: basic }");
+    let whole = parse("patch:\n  - { device: A, universe: 275, address: 1, personality: full }");
     let parts = parse(
-        "patch:\n  - { device: A, net: 1, subnet: 1, universe: 3, address: 1, personality: basic }",
+        "patch:\n  - { device: A, net: 1, subnet: 1, universe: 3, address: 1, personality: full }",
     );
     let address = whole.patch[0].port_address().expect("275 fits");
     assert_eq!(parts.patch[0].port_address(), Ok(address));
@@ -100,7 +100,7 @@ fn both_spellings_of_one_address_resolve_to_one_port_address() {
 
 #[test]
 fn a_port_address_over_15_bits_is_refused() {
-    let patch = parse("patch:\n  - { device: A, universe: 32768, address: 1, personality: basic }");
+    let patch = parse("patch:\n  - { device: A, universe: 32768, address: 1, personality: full }");
     assert!(matches!(
         patch.patch[0].port_address(),
         Err(Error::Address {
@@ -114,7 +114,7 @@ fn a_port_address_over_15_bits_is_refused() {
 #[test]
 fn a_universe_over_4_bits_beside_a_net_is_refused() {
     let patch = parse(
-        "patch:\n  - { device: A, net: 0, subnet: 0, universe: 16, address: 1, personality: basic }",
+        "patch:\n  - { device: A, net: 0, subnet: 0, universe: 16, address: 1, personality: full }",
     );
     assert!(matches!(
         patch.patch[0].port_address(),
@@ -131,7 +131,7 @@ fn a_universe_over_4_bits_beside_a_net_is_refused() {
 fn an_address_outside_a_universe_is_refused() {
     for address in ["0", "513"] {
         let entry =
-            format!("  - {{ device: A, universe: 0, address: {address}, personality: basic }}\n");
+            format!("  - {{ device: A, universe: 0, address: {address}, personality: full }}\n");
         let errors = one("H6008", &entry).expect_err("the address is outside a universe");
         assert!(
             matches!(errors.as_slice(), [Error::StartAddress { .. }]),
@@ -144,19 +144,19 @@ fn an_address_outside_a_universe_is_refused() {
 /// universe. See the open question in `docs/dmx.md`.
 #[test]
 fn a_fixture_past_the_end_of_its_universe_is_refused() {
-    let entry = "  - { device: A, universe: 0, address: 500, personality: pixel }\n";
-    let errors = one("H61A0", entry).expect_err("31 channels do not fit from 500");
+    let entry = "  - { device: A, universe: 0, address: 500, personality: segment }\n";
+    let errors = one("H61A0", entry).expect_err("32 channels do not fit from 500");
     let [Error::PastUniverse { span, .. }] = errors.as_slice() else {
         panic!("{errors:?}");
     };
-    assert_eq!((span.first, span.last), (500, 530));
+    assert_eq!((span.first, span.last), (500, 531));
 }
 
 #[test]
 fn two_fixtures_on_one_channel_are_refused() {
-    let entry = "  - { device: A, universe: 0, address: 1, personality: pixel }\n  \
-                 - { device: B, universe: 0, address: 31, personality: basic }\n";
-    let errors = one("H61A0", entry).expect_err("channel 31 is taken twice");
+    let entry = "  - { device: A, universe: 0, address: 1, personality: segment }\n  \
+                 - { device: B, universe: 0, address: 32, personality: full }\n";
+    let errors = one("H61A0", entry).expect_err("channel 32 is taken twice");
     let [
         Error::Overlap {
             first_span,
@@ -167,23 +167,23 @@ fn two_fixtures_on_one_channel_are_refused() {
     else {
         panic!("{errors:?}");
     };
-    assert_eq!((first_span.last, second_span.first), (31, 31));
+    assert_eq!((first_span.last, second_span.first), (32, 32));
 }
 
 /// Two fixtures at one address on two universes drive two desks, and neither
 /// touches the other.
 #[test]
 fn one_address_on_two_universes_is_no_overlap() {
-    let entry = "  - { device: A, universe: 0, address: 1, personality: pixel }\n  \
-                 - { device: B, universe: 1, address: 1, personality: pixel }\n";
+    let entry = "  - { device: A, universe: 0, address: 1, personality: segment }\n  \
+                 - { device: B, universe: 1, address: 1, personality: segment }\n";
     let spans = one("H61A0", entry).expect("two universes do not overlap");
-    assert_eq!(spans, vec![(0, 1, 31), (1, 1, 31)]);
+    assert_eq!(spans, vec![(0, 1, 32), (1, 1, 32)]);
 }
 
 #[test]
 fn a_device_patched_twice_is_refused() {
-    let entry = "  - { device: A, universe: 0, address: 1, personality: basic }\n  \
-                 - { device: A, universe: 1, address: 1, personality: basic }\n";
+    let entry = "  - { device: A, universe: 0, address: 1, personality: full }\n  \
+                 - { device: A, universe: 1, address: 1, personality: full }\n";
     let errors = one("H6008", entry).expect_err("one device answers one look");
     assert!(
         matches!(errors.as_slice(), [Error::Twice { .. }]),
@@ -193,7 +193,7 @@ fn a_device_patched_twice_is_refused() {
 
 #[test]
 fn a_personality_the_device_serves_through_nothing_is_refused() {
-    let entry = "  - { device: A, universe: 0, address: 1, personality: pixel }\n";
+    let entry = "  - { device: A, universe: 0, address: 1, personality: segment }\n";
     let errors = one("H6008", entry).expect_err("a bulb paints no zone");
     assert!(
         matches!(errors.as_slice(), [Error::Unserved { .. }]),
@@ -203,7 +203,7 @@ fn a_personality_the_device_serves_through_nothing_is_refused() {
 
 #[test]
 fn a_device_nothing_found_is_refused() {
-    let patch = parse("patch:\n  - { device: A, universe: 0, address: 1, personality: basic }");
+    let patch = parse("patch:\n  - { device: A, universe: 0, address: 1, personality: full }");
     let errors = patch.resolve(|_| None).expect_err("nothing says what A is");
     assert!(
         matches!(errors.as_slice(), [Error::Unknown { .. }]),
@@ -214,16 +214,15 @@ fn a_device_nothing_found_is_refused() {
 /// An operator corrects the whole patch once, not one line per run.
 #[test]
 fn every_fault_is_reported_at_once() {
-    let entry = "  - { device: A, universe: 0, address: 0, personality: basic }\n  \
-                 - { device: B, universe: 0, address: 600, personality: basic }\n";
+    let entry = "  - { device: A, universe: 0, address: 0, personality: full }\n  \
+                 - { device: B, universe: 0, address: 600, personality: full }\n";
     let errors = one("H6008", entry).expect_err("two addresses are outside a universe");
     assert_eq!(errors.len(), 2, "{errors:?}");
 }
 
 #[test]
 fn an_unknown_key_is_refused() {
-    let text =
-        "patch:\n  - { device: A, universe: 0, address: 1, personality: basic, colour: red }";
+    let text = "patch:\n  - { device: A, universe: 0, address: 1, personality: full, colour: red }";
     let error = Patch::parse(text, "patch.yaml").expect_err("`colour` is not a key");
     let Error::Parse { reason, .. } = error else {
         panic!("{error:?}");
@@ -238,7 +237,7 @@ fn an_unknown_personality_names_the_ones_that_exist() {
     let Error::Parse { reason, .. } = error else {
         panic!("{error:?}");
     };
-    assert!(reason.contains("pixel-native"), "{reason}");
+    assert!(reason.contains("segment"), "{reason}");
 }
 
 /// An empty patch is a node that drives nothing, which is what the defaults

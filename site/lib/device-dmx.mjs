@@ -11,14 +11,14 @@ import { icon, slotIcon } from "./icons.mjs";
 const SLOTS = new Map([
   ["dimmer", "Dimmer"],
   ["white_temp", "White temperature"],
-  ["control", "Control"],
+  ["mode", "Mode"],
 ]);
 
 const DASH = '<span class="muted">—</span>';
 
 // A slot that drives a capability carries that capability's mark, so a reader
-// finds the same icon and the same color as in the lists above. `control`
-// drives none and carries a mark of its own.
+// finds the same icon and the same color as in the lists above. `mode` drives
+// none and carries a mark of its own.
 const SLOT_CAPS = new Map([
   ["dimmer", "brightness"],
   ["white_temp", "colortemp"],
@@ -36,10 +36,20 @@ function mark(channel) {
   return cap ? icon(cap) : slotIcon(channel.slot);
 }
 
-/** What one channel drives. A color names its component. */
+/**
+ * What one channel drives. A color names its component, and a channel this
+ * model reaches through nothing says so: it holds its place in the table and
+ * drives nothing.
+ */
 function slotLabel(channel) {
-  if (channel.slot === "color") return capitalize(channel.component ?? "color");
-  return SLOTS.get(channel.slot) ?? channel.slot.replace(/_/g, " ");
+  const name = escapeHtml(
+    channel.slot === "color"
+      ? capitalize(channel.component ?? "color")
+      : (SLOTS.get(channel.slot) ?? channel.slot.replace(/_/g, " ")),
+  );
+  if (!channel.unreached) return name;
+  return `${name}
+            <span class="dmx-order">this model drives nothing here</span>`;
 }
 
 const capitalize = (word) => word.charAt(0).toUpperCase() + word.slice(1);

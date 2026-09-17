@@ -34,11 +34,12 @@ pub enum Slot {
     /// One component of the color over the whole device.
     Color(Component),
     /// The white temperature, in kelvin. Slot 0 sends no white command, so
-    /// the color stays.
+    /// the color stays. The channel carries no scale where `lan` reaches no
+    /// white temperature, and then drives nothing.
     WhiteTemp,
-    /// 250 to 255 forces a full resend, and 0 to 9 asks for no action. Every
-    /// other value is reserved.
-    Control,
+    /// The fixture's own functions. 0 to 9 asks for no action, and 250 to
+    /// 255 forces a full resend. Every other value is reserved.
+    Mode,
     /// One component of one zone's color, in zone order.
     Zone {
         /// The zone, counted from 0.
@@ -54,7 +55,7 @@ impl fmt::Display for Slot {
             Self::Dimmer => f.write_str("dimmer"),
             Self::Color(component) => write!(f, "{component}"),
             Self::WhiteTemp => f.write_str("white temperature"),
-            Self::Control => f.write_str("control"),
+            Self::Mode => f.write_str("mode"),
             Self::Zone { index, component } => write!(f, "zone {index} {component}"),
         }
     }
@@ -69,7 +70,7 @@ pub struct Channel {
     /// What it drives.
     pub slot: Slot,
     /// The pair it scales into. `None` where the slot goes out as it is,
-    /// which is every color component and the control channel.
+    /// which is the mode channel.
     pub scale: Option<Scale>,
 }
 

@@ -26,20 +26,25 @@ you pick a mode on any other fixture.
 
 | Personality | Channels | What you get |
 | ----------- | -------- | ------------ |
-| `basic` | 4 | a dimmer and one color over the whole light |
-| `full` | 6 | the same, plus the white temperature and a control channel |
-| `pixel` | 1 + 3 per zone | one color for each zone the phone controller shows |
-| `pixel-native` | 1 + 3 per LED | one color for each LED the light renders |
+| `full` | 6 | one color over the whole light, plus the white temperature |
+| `segment` | 2 + 3 per zone | one color for each zone the phone controller shows |
+| `pixel` | 2 + 3 per LED | one color for each LED the light renders |
 
-A model serves the personalities its hardware carries. The page of each model
-prints them, with every channel and its number —
-[the H61A0]({{base}}devices/H61A0/#dmx) is one example.
+Every personality starts the same way: channel 1 is the dimmer, channel 2 is
+the mode channel. A cue therefore carries from one model to the next.
+
+A model serves the personalities its hardware carries. A light whose every zone
+is one LED serves `pixel` alone, because `segment` would give you the same
+table. A light that renders no white temperature keeps channel 6 of `full` and
+does nothing with it. The page of each model prints the tables, with every
+channel and its number — [the H61A0]({{base}}devices/H61A0/#dmx) is one
+example.
 
 ## Patch a fixture
 
 Give the fixture a start address, the way you give one to any other fixture.
-The channels follow it in order. Address 1 with `pixel` on a light of 10 zones
-takes channels 1 to 31, and the next fixture starts at 32.
+The channels follow it in order. Address 1 with `segment` on a light of 10
+zones takes channels 1 to 32, and the next fixture starts at 33.
 
 The first channel is always the dimmer. At 0 the light powers off, so a
 blackout on the desk turns the rig off and needs no patch of its own. Above 0

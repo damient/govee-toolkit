@@ -19,7 +19,7 @@ use std::fmt;
 
 pub use channel::{Channel, Component, Slot};
 use govee_toolkit::codec::{ArgRole, Device, Role};
-pub use scale::{OFF, Scale};
+pub use scale::{OFF, Scale, Zero};
 use thiserror::Error;
 
 use self::reach::{BRIGHTNESS, COLOR, COLORTEMP, POWER, SEGMENTS, bounds, reaches};
@@ -30,20 +30,20 @@ pub const UNIVERSE: u16 = 512;
 /// One layout of the channels a device answers to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Personality {
-    /// A dimmer and one color over the whole device.
-    Basic,
-    /// The same, plus the white temperature and the control channel.
+    /// One color over the whole device, plus the white temperature. The
+    /// white channel stays in the table where `lan` reaches no white
+    /// temperature, and drives nothing: one device takes the same 6 channels
+    /// as the next one, so a cue file carries between models.
     Full,
-    /// A dimmer, then one RGB triple for each zone the Govee app exposes.
+    /// One RGB triple for each zone the Govee app exposes.
+    Segment,
+    /// One RGB triple for each addressable LED measured on the unit.
     Pixel,
-    /// A dimmer, then one RGB triple for each addressable LED measured on the
-    /// unit.
-    PixelNative,
 }
 
 impl Personality {
     /// Every personality, in the order `docs/dmx.md` lists them.
-    pub const ALL: [Self; 4] = [Self::Basic, Self::Full, Self::Pixel, Self::PixelNative];
+    pub const ALL: [Self; 3] = [Self::Full, Self::Segment, Self::Pixel];
 
     /// The personality `name` spells, written the way [`Self::as_str`]
     /// writes it. `None` where no personality carries that name.
@@ -58,19 +58,18 @@ impl Personality {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Basic => "basic",
             Self::Full => "full",
+            Self::Segment => "segment",
             Self::Pixel => "pixel",
-            Self::PixelNative => "pixel-native",
         }
     }
 
-    /// How many channels this personality takes over `zones` zones.
+    /// How many channels this personality takes over `zones` zones. The
+    /// dimmer and the mode channel are the two every personality carries.
     fn width(self, zones: u32) -> u64 {
         match self {
-            Self::Basic => 4,
             Self::Full => 6,
-            Self::Pixel | Self::PixelNative => 1 + 3 * u64::from(zones),
+            Self::Segment | Self::Pixel => 2 + 3 * u64::from(zones),
         }
     }
 }
@@ -91,6 +90,9 @@ pub enum Missing {
     Bounds(&'static str),
     /// `capabilities.segments` counts no zone.
     Zones,
+    /// Every zone is one addressable LED, so `segment` would lay out the
+    /// table `pixel` already lays out. One table carries one name.
+    OnePixelPerZone,
     /// Nobody measured `capabilities.segments.native_pixels`. It is never
     /// extrapolated from the zone count.
     NativePixels,
@@ -107,6 +109,9 @@ impl fmt::Display for Missing {
                 )
             }
             Self::Zones => f.write_str("`capabilities.segments` counts no zone"),
+            Self::OnePixelPerZone => {
+                f.write_str("every zone is one addressable LED, so `pixel` lays out the same table")
+            }
             Self::NativePixels => {
                 f.write_str("nobody measured `capabilities.segments.native_pixels`")
             }
@@ -232,18 +237,23 @@ pub fn served(device: &Device) -> Vec<Personality> {
 
 /// How many zones the personality lays out, and `0` where it lays out none.
 fn zone_count(device: &Device, personality: Personality) -> Result<u32, Missing> {
-    if matches!(personality, Personality::Basic | Personality::Full) {
+    if matches!(personality, Personality::Full) {
         return Ok(0);
     }
     if !paints_zones(device) {
         return Err(Missing::Capability(SEGMENTS));
     }
-    let measured = match personality {
-        Personality::PixelNative => device
+    let measured = if matches!(personality, Personality::Pixel) {
+        device
             .capabilities
             .native_pixels()
-            .ok_or(Missing::NativePixels)?,
-        _ => device.capabilities.segment_count().ok_or(Missing::Zones)?,
+            .ok_or(Missing::NativePixels)?
+    } else {
+        let zones = device.capabilities.segment_count().ok_or(Missing::Zones)?;
+        if device.capabilities.native_pixels() == Some(zones) {
+            return Err(Missing::OnePixelPerZone);
+        }
+        zones
     };
     if measured == 0 {
         return Err(Missing::Zones);
@@ -262,15 +272,13 @@ fn channels(
     personality: Personality,
     zones: u32,
 ) -> Result<Vec<Channel>, Missing> {
-    let mut channels = vec![dimmer(device)?];
+    let mut channels = vec![dimmer(device)?, Channel::plain(2, Slot::Mode)];
     match personality {
-        Personality::Basic => color(device, &mut channels)?,
         Personality::Full => {
             color(device, &mut channels)?;
             channels.push(white(device, next(&channels))?);
-            channels.push(Channel::plain(next(&channels), Slot::Control));
         }
-        Personality::Pixel | Personality::PixelNative => {
+        Personality::Segment | Personality::Pixel => {
             for index in 0..zones {
                 for component in [Component::Red, Component::Green, Component::Blue] {
                     let slot = Slot::Zone { index, component };
@@ -296,7 +304,7 @@ fn dimmer(device: &Device) -> Result<Channel, Missing> {
         return Err(Missing::Capability(BRIGHTNESS));
     }
     let scale = bounds(device, Role::Brightness, ArgRole::Brightness)
-        .and_then(Scale::new)
+        .and_then(|range| Scale::new(range, Zero::Off))
         .ok_or(Missing::Bounds(BRIGHTNESS))?;
     Ok(Channel::scaled(1, Slot::Dimmer, scale))
 }
@@ -305,18 +313,33 @@ fn color(device: &Device, channels: &mut Vec<Channel>) -> Result<(), Missing> {
     if !reaches(device, COLOR, Role::Color) {
         return Err(Missing::Capability(COLOR));
     }
-    for component in [Component::Red, Component::Green, Component::Blue] {
-        channels.push(Channel::plain(next(channels), Slot::Color(component)));
+    for (component, arg) in [
+        (Component::Red, ArgRole::Red),
+        (Component::Green, ArgRole::Green),
+        (Component::Blue, ArgRole::Blue),
+    ] {
+        let scale = bounds(device, Role::Color, arg)
+            .and_then(Scale::bytes)
+            .ok_or(Missing::Bounds(COLOR))?;
+        channels.push(Channel::scaled(
+            next(channels),
+            Slot::Color(component),
+            scale,
+        ));
     }
     Ok(())
 }
 
+/// The white channel, scaled where `lan` reaches the white temperature.
+///
+/// A device `lan` reaches no white temperature on keeps the channel and
+/// drives nothing from it, so every `full` fixture takes 6 channels.
 fn white(device: &Device, offset: u16) -> Result<Channel, Missing> {
     if !reaches(device, COLORTEMP, Role::ColorTemp) {
-        return Err(Missing::Capability(COLORTEMP));
+        return Ok(Channel::plain(offset, Slot::WhiteTemp));
     }
     let scale = bounds(device, Role::ColorTemp, ArgRole::ColorTemp)
-        .and_then(Scale::new)
+        .and_then(|range| Scale::new(range, Zero::Off))
         .ok_or(Missing::Bounds(COLORTEMP))?;
     Ok(Channel::scaled(offset, Slot::WhiteTemp, scale))
 }

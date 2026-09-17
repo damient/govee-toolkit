@@ -18,9 +18,21 @@ Nothing is published yet: the manifest carries `publish = false`.
   channels of each: the offset, what the channel drives, and the pair a scaled
   channel writes into. A table wider than one universe is an error, never a
   truncation.
+- `profile::Personality` — `full`, `segment` and `pixel`. Channel 1 is the
+  dimmer and channel 2 the mode channel on all three, so a cue carries between
+  models of different widths.
+- `full` takes 6 channels on every device. Where `lan` reaches no white
+  temperature, channel 6 holds its place and drives nothing, and the table
+  names it `unreached`.
+- A device whose every zone is one addressable LED serves `pixel` alone:
+  `segment` would lay out the same table.
 - `profile::Scale` — a slot scaled into what a device parameter takes, plus
-  the step count the pair resolves to. Slot 0 carries no value: the dimmer
-  powers the device off there, and the white channel sends no command.
+  the step count the pair resolves to. The dimmer and the white channel carry
+  no value at slot 0: the dimmer powers the device off there, and the white
+  channel sends no command.
+- A color component scales over the pair its `lan` command declares, from
+  slot 0. A component at 0 is a color the device shows, so the channel has no
+  off.
 - `govee-dmx profile <SKU>` — the channel table of one device, with every
   channel, its offset, and the step count of each scaled channel.
 - `profile --personality <name>` prints one table, and `--json` prints the

@@ -72,7 +72,7 @@ pub(crate) fn scale_table(catalog: &Catalog) -> String {
          | --- | ------ | ------------ | ----------------- | ----------- |\n",
     );
     for device in catalog.devices() {
-        let dimmer = scale_of(device, Personality::Basic, Slot::Dimmer);
+        let dimmer = scale_of(device, Personality::Full, Slot::Dimmer);
         let white = scale_of(device, Personality::Full, Slot::WhiteTemp);
         out.push_str(&format!(
             "| {} | {} | {} | {} | {} |\n",

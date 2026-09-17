@@ -26,7 +26,7 @@ Add `packages/rust/crates/dmx` to the workspace members. The manifest carries
 The largest step, and the one with no I/O. It reads a device from the catalog
 and answers which personalities the device serves, and what each channel does.
 
-- The four personalities of [`dmx.md`](dmx.md), derived from `capabilities:`,
+- The three personalities of [`dmx.md`](dmx.md), derived from `capabilities:`,
   from `modes.lan.capabilities` and `unreachable`, and from the `role:` each
   `lan` command claims.
 - The slot conversions, each one a function: the dimmer, an RGB component, the
@@ -35,7 +35,7 @@ and answers which personalities the device serves, and what each channel does.
 - A personality above 512 channels is an error, not a truncation.
 
 **Tests** run over the whole catalog: every device whose `lan` mode carries
-`segments` must answer a valid pixel personality, and no personality may
+`segments` must answer a valid zone personality, and no personality may
 overlap its own channels or leave a hole.
 
 **Done when** the module compiles with no `std::net`, no `std::fs` and no
@@ -104,8 +104,9 @@ Join the resolved channels to the device.
 
 - The dimmer at 0 powers the device off. Above 0 it powers it on and sets the
   brightness.
-- A pixel personality opens a `SegmentStream` and writes zones. A `basic` or
-  `full` personality sends the `color`, `brightness` and `color_temp` roles.
+- A `segment` or a `pixel` personality opens a `SegmentStream` and writes
+  zones. A `full` personality sends the `color`, `brightness` and `color_temp`
+  roles.
 - Compare against the last values sent, and send nothing where nothing changed.
 - Send the current values once after 10 seconds of silence, because nothing
   acknowledges a LAN frame.

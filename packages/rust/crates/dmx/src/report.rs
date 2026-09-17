@@ -98,7 +98,16 @@ fn channel_json(channel: &Channel) -> Value {
         object.insert("range".to_owned(), json!([min, max]));
         object.insert("steps".to_owned(), json!(scale.steps()));
     }
+    if let (Some(object), true) = (record.as_object_mut(), unreached(channel)) {
+        object.insert("unreached".to_owned(), json!(true));
+    }
     record
+}
+
+/// Whether the channel holds its place in the table and drives nothing. The
+/// white channel does that where `lan` reaches no white temperature.
+fn unreached(channel: &Channel) -> bool {
+    matches!(channel.slot, Slot::WhiteTemp) && channel.scale.is_none()
 }
 
 /// What the slot drives, as one word a machine matches on. The zone index and
@@ -108,18 +117,27 @@ fn kind(slot: Slot) -> &'static str {
         Slot::Dimmer => "dimmer",
         Slot::Color(_) => "color",
         Slot::WhiteTemp => "white_temp",
-        Slot::Control => "control",
+        Slot::Mode => "mode",
         Slot::Zone { .. } => "zone",
     }
 }
 
 fn channel_text(channel: &Channel) -> String {
-    let scale = channel.scale.map_or_else(String::new, |scale| {
-        let [min, max] = scale.range();
-        format!("{min} to {max}, {} steps", scale.steps())
-    });
+    let detail = channel.scale.map_or_else(
+        || {
+            if unreached(channel) {
+                "unreached, drives nothing".to_owned()
+            } else {
+                String::new()
+            }
+        },
+        |scale| {
+            let [min, max] = scale.range();
+            format!("{min} to {max}, {} steps", scale.steps())
+        },
+    );
     format!(
-        "{:>4}  {:<22}{scale}",
+        "{:>4}  {:<22}{detail}",
         channel.offset,
         channel.slot.to_string()
     )
@@ -159,13 +177,13 @@ mod tests {
     fn a_zone_channel_carries_its_index_and_its_component() {
         let catalog = catalog();
         let device = catalog.device("H61A0").expect("the SKU resolves");
-        let table = Profile::of(device, Personality::Pixel).expect("a pixel personality");
+        let table = Profile::of(device, Personality::Segment).expect("a segment personality");
         let record = json(device, &[Ok(table)]);
-        let green = &record["personalities"][0]["channels"][2];
+        let green = &record["personalities"][0]["channels"][3];
         assert_eq!(green["slot"], "zone");
         assert_eq!(green["zone"], 0);
         assert_eq!(green["component"], "green");
-        assert_eq!(green["offset"], 3);
+        assert_eq!(green["offset"], 4);
     }
 
     /// A personality the device serves and cannot fit answers its error, so
@@ -176,11 +194,11 @@ mod tests {
         let device = catalog.device("H6008").expect("the SKU resolves");
         let error = profile::Error::TooWide {
             sku: device.sku.clone(),
-            personality: Personality::PixelNative,
+            personality: Personality::Pixel,
             channels: 601,
         };
         let record = json(device, &[Err(error.clone())]);
-        assert_eq!(record["personalities"][0]["personality"], "pixel-native");
+        assert_eq!(record["personalities"][0]["personality"], "pixel");
         assert_eq!(record["personalities"][0]["error"], error.to_string());
         assert!(text(device, &[Err(error)]).contains("601"));
     }
@@ -198,7 +216,7 @@ mod tests {
             "green",
             "blue",
             "white temperature",
-            "control",
+            "mode",
         ] {
             assert!(printed.contains(line), "`{line}` is missing");
         }
