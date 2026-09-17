@@ -60,6 +60,7 @@ else
 fi
 check "device catalog" cargo run -q -p xtask
 check "compatibility tables" cargo run -q -p xtask -- compat --check
+check "dmx profile tables" cargo run -q -p xtask -- dmx --check
 check "duplicated command layouts" cargo run -q -p xtask -- dupes
 
 # The MSRV toolchain links every build script with the host's linker. An old
