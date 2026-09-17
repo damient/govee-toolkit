@@ -1,8 +1,8 @@
 //! Art-Net: the bytes a desk sends, and the frame they carry.
 //!
 //! This module holds no socket. It takes the datagram and the address it came
-//! from, and answers what the packet says. The socket is `src/input/` at the
-//! step that binds UDP 6454.
+//! from, and answers what the packet says. [`super::socket::Listener`] is
+//! what binds UDP 6454.
 //!
 //! The layout is in `docs/dmx.md`. A refusal drops the packet: the bridge
 //! never truncates a packet to make it fit.
@@ -15,7 +15,7 @@ use std::net::SocketAddr;
 
 use thiserror::Error;
 
-pub use self::sequence::Sequence;
+pub use self::sequence::{Gate, Sequence};
 use super::UniverseFrame;
 use crate::profile::UNIVERSE;
 

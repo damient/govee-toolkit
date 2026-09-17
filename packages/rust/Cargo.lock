@@ -681,7 +681,9 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_norway",
+ "socket2",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

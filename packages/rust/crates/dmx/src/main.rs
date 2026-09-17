@@ -1,22 +1,19 @@
 //! `govee-dmx` — the Art-Net node over `govee-toolkit`.
+//!
+//! Every subcommand takes `--json`, which is the form a script and a model
+//! read. The text form is for a person and its layout is not stable. The
+//! design is `docs/dmx.md`.
 
 // A binary reports and exits; the no-panic rule that protects a host
 // application from a library does not apply here.
 #![allow(clippy::print_stderr, clippy::print_stdout)]
 
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use govee_toolkit::codec::Catalog;
-use govee_toolkit_dmx::profile::{self, Personality, Profile};
-use govee_toolkit_dmx::report;
-use serde_json::json;
 
-/// The command line is wrong, or it names something no device file carries.
-/// clap reports its own with the same code.
-const USAGE: u8 = 2;
-/// The device serves no such channel table. Nothing was printed.
-const REFUSED: u8 = 5;
+mod cmd;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -44,81 +41,51 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Receive Art-Net on port 6454 and drive the patched devices.
+    Run {
+        /// The patch file, which says which device answers which channels.
+        patch: PathBuf,
+        /// Print every packet and what each fixture reads out of it, and
+        /// write to no device.
+        #[arg(long)]
+        dry_run: bool,
+        /// The configuration file. The default is the one `govee` reads.
+        #[arg(long)]
+        config: Option<PathBuf>,
+        /// Print the records a machine reads instead of the lines a person
+        /// reads.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
-/// What failed, and with which exit code.
-struct Failure {
-    message: String,
-    code: u8,
-}
-
-fn main() -> ExitCode {
-    let Cli { command } = Cli::parse();
-    let Command::Profile {
-        sku,
-        personality,
-        json,
-    } = command;
-    match run(&sku, personality.as_deref(), json) {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(failure) => {
-            if json {
-                eprintln!("{}", json!({ "error": { "message": failure.message } }));
-            } else {
-                eprintln!("error: {}", failure.message);
-            }
-            ExitCode::from(failure.code)
+impl Command {
+    /// Whether this invocation asked for the machine form.
+    const fn as_json(&self) -> bool {
+        match self {
+            Self::Profile { json, .. } | Self::Run { json, .. } => *json,
         }
     }
 }
 
-fn run(sku: &str, personality: Option<&str>, as_json: bool) -> Result<(), Failure> {
-    let catalog = Catalog::embedded().map_err(|error| Failure {
-        message: error.to_string(),
-        code: USAGE,
-    })?;
-    let device = catalog.device(sku).map_err(|error| Failure {
-        message: error.to_string(),
-        code: USAGE,
-    })?;
-    let tables = tables(device, personality)?;
-    if as_json {
-        println!("{}", report::json(device, &tables));
-    } else {
-        println!("{}", report::text(device, &tables));
-    }
-    Ok(())
-}
-
-/// The tables to print: the one asked for, or every personality the device
-/// serves. A personality wider than one universe stays in the list and
-/// carries its error, because the operator has to see that it is the width
-/// that refused it.
-fn tables(
-    device: &govee_toolkit::codec::Device,
-    personality: Option<&str>,
-) -> Result<Vec<Result<Profile, profile::Error>>, Failure> {
-    let Some(name) = personality else {
-        return Ok(profile::served(device)
-            .into_iter()
-            .map(|personality| Profile::of(device, personality))
-            .collect());
+fn main() -> ExitCode {
+    let Cli { command } = Cli::parse();
+    let as_json = command.as_json();
+    let outcome = match command {
+        Command::Profile {
+            sku,
+            personality,
+            json,
+        } => cmd::profile::run(&sku, personality.as_deref(), json),
+        Command::Run {
+            patch,
+            dry_run,
+            config,
+            json,
+        } => cmd::run::start(&patch, dry_run, config.as_deref(), json),
     };
-    let personality = Personality::parse(name).ok_or_else(|| Failure {
-        message: format!("unknown personality `{name}`; expected {}", spellings()),
-        code: USAGE,
-    })?;
-    let table = Profile::of(device, personality).map_err(|error| Failure {
-        message: error.to_string(),
-        code: REFUSED,
-    })?;
-    Ok(vec![Ok(table)])
-}
-
-fn spellings() -> String {
-    Personality::ALL
-        .iter()
-        .map(|personality| format!("`{personality}`"))
-        .collect::<Vec<_>>()
-        .join(", ")
+    match outcome {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(failure) => failure.report(as_json),
+    }
 }

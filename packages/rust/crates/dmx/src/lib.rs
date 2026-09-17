@@ -10,14 +10,17 @@
 //! # Layers
 //!
 //! - [`input`] — the protocols: the bytes a sender puts on the wire in, one
-//!   universe of channel values out.
+//!   universe of channel values out, over one socket.
 //! - [`profile`] — the device file in, the channel table out. No I/O.
 //! - [`patch`] — which device answers which channels, on which universe.
 //! - [`apply`] — the channel values in, the device commands out.
+//! - [`node`] — the run loop that joins the four.
 //! - [`report`] — a channel table, as text and as JSON.
 
 pub mod apply;
 pub mod input;
+#[cfg(feature = "artnet")]
+pub mod node;
 pub mod patch;
 pub mod profile;
 pub mod report;

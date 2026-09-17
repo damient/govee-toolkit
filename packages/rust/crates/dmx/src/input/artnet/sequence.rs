@@ -4,8 +4,11 @@
 //! bridge drops a packet that is older than the last one it accepted. A
 //! sender that writes 0 disables the check — see `docs/dmx.md`.
 //!
-//! The gate holds one sender on one port-address. The caller keeps one per
-//! pair.
+//! The gate holds one sender on one port-address. [`Gate`] is what keeps one
+//! per pair.
+
+use std::collections::HashMap;
+use std::net::SocketAddr;
 
 /// The value a sender writes to disable the check.
 const DISABLED: u8 = 0;
@@ -55,9 +58,67 @@ impl Sequence {
     }
 }
 
+/// One [`Sequence`] per sender and port-address.
+///
+/// Two senders on one port-address count apart, so the packets of one never
+/// drop the packets of the other. Art-Net asks for an HTP merge of two
+/// sources; the node takes the last one instead — see `docs/dmx.md`.
+#[derive(Debug, Clone, Default)]
+pub struct Gate {
+    senders: HashMap<(SocketAddr, u16), Sequence>,
+}
+
+impl Gate {
+    /// A gate that has accepted nothing.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Whether to take the packet `source` sent on `universe` with
+    /// `sequence`.
+    pub fn accept(&mut self, source: SocketAddr, universe: u16, sequence: u8) -> bool {
+        self.senders
+            .entry((source, universe))
+            .or_default()
+            .accept(sequence)
+    }
+
+    /// How many sender and port-address pairs the gate holds.
+    #[must_use]
+    pub fn senders(&self) -> usize {
+        self.senders.len()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::Sequence;
+    use std::net::SocketAddr;
+
+    use super::{Gate, Sequence};
+
+    fn address(host: u8) -> SocketAddr {
+        SocketAddr::from(([192, 0, 2, host], 6454))
+    }
+
+    /// One sender's count never drops another sender's packets.
+    #[test]
+    fn two_senders_count_apart() {
+        let mut gate = Gate::new();
+        assert!(gate.accept(address(2), 0, 100));
+        assert!(gate.accept(address(3), 0, 4));
+        assert!(!gate.accept(address(2), 0, 99));
+        assert_eq!(gate.senders(), 2);
+    }
+
+    /// One sender on two port-addresses counts each one apart.
+    #[test]
+    fn one_sender_counts_each_port_address_apart() {
+        let mut gate = Gate::new();
+        assert!(gate.accept(address(2), 0, 100));
+        assert!(gate.accept(address(2), 1, 4));
+        assert_eq!(gate.senders(), 2);
+    }
 
     #[test]
     fn the_first_packet_is_taken() {
