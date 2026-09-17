@@ -1,0 +1,39 @@
+[package]
+name = "govee-toolkit-dmx"
+description = "An Art-Net node over govee-toolkit: a lighting desk drives Govee devices on the LAN. Unofficial."
+# Versioned apart from the crate it reads, and released under `dmx-vX.Y.Z` —
+# see docs/versioning.md.
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["govee", "dmx", "artnet", "lighting", "led"]
+categories = ["command-line-utilities", "hardware-support"]
+# A name on crates.io is hard to take back, and the node drives no device yet.
+publish = false
+
+[[bin]]
+name = "govee-dmx"
+path = "src/main.rs"
+
+[features]
+# One input protocol is one feature. Art-Net is the one the node carries;
+# sACN adds a parser and the same channel model — see docs/dmx.md.
+default = ["artnet"]
+artnet = []
+sacn = []
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+# The bridge is an input, not a mode: it reaches a device over `lan`, the way
+# any other caller does.
+govee-toolkit = { path = "../..", version = "0.10", default-features = false, features = [
+  "lan",
+] }
+thiserror = "2"
+
+[lints]
+workspace = true
