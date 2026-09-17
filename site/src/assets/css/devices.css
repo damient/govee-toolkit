@@ -104,6 +104,9 @@
 .mbadge-lan { --tint: var(--accent-ember); }
 .mbadge-ble { --tint: var(--accent-cyan); }
 .mbadge-cloud { --tint: var(--accent-violet); }
+/* The DMX badge names an input and not a mode, so it takes the neutral tint
+   that the family badge takes. */
+.mbadge-dmx { --tint: var(--muted); }
 /* The family badge opens the row, and it names the product rather than a
    mode: it takes the neutral tint so that it reads as a label and not as a
    fourth mode. */

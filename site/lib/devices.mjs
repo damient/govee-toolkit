@@ -8,7 +8,7 @@ import { dmx } from "./device-dmx.mjs";
 import { usage } from "./device-usage.mjs";
 import { escapeAttr, escapeHtml, fill } from "./html.mjs";
 import { familyIcon, icon, sharesMark } from "./icons.mjs";
-import { familyBadge, modeBadge } from "./mode-badge.mjs";
+import { dmxBadge, familyBadge, modeBadge } from "./mode-badge.mjs";
 
 // The order a reader looks for, not the order the catalog holds.
 const CAPS = [
@@ -122,7 +122,7 @@ function pageBody(d, reference) {
     <h1>${title}</h1>
     <p class="mode-line">${familyBadge(d.family)}${MODES.filter((m) => REACHES.has(support(d, m)))
       .map((m) => modeBadge(m))
-      .join("")}${badges(d)}</p>
+      .join("")}${d.dmx?.personalities?.length ? dmxBadge() : ""}${badges(d)}</p>
   </div>
 </section>
 
