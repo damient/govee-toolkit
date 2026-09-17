@@ -105,6 +105,26 @@ fn lit() -> Look {
     }
 }
 
+/// Wait until the simulator has taken the whole of [`lit`]: the power, the
+/// brightness and the color. Counting datagrams instead would clear the
+/// recorder while the look is still on its way, because the commands of one
+/// look do not go out back to back.
+async fn wait_for_lit(simulator: &Simulator) {
+    let took = wait_for(|| {
+        let cmds: Vec<String> = simulator
+            .received()
+            .into_iter()
+            .map(|received| received.cmd)
+            .collect();
+        ["turn", "brightness", "colorwc"]
+            .iter()
+            .all(|cmd| cmds.iter().any(|taken| taken == cmd))
+            .then_some(())
+    })
+    .await;
+    assert!(took.is_some(), "the whole look reached the device");
+}
+
 /// Poll `check` until it yields, for at most a second.
 async fn wait_for<T>(mut check: impl FnMut() -> Option<T>) -> Option<T> {
     let deadline = Instant::now() + Duration::from_secs(1);
@@ -173,8 +193,9 @@ async fn a_silent_sender_holds_the_last_look() {
             silence: SILENCE,
         },
     );
+    simulator.clear();
     applier.push(&DeviceId::new(REACHED), lit());
-    wait_for(|| (simulator.received_count() >= 3).then_some(())).await;
+    wait_for_lit(&simulator).await;
 
     simulator.clear();
     tokio::time::sleep(SILENCE * 3).await;
@@ -201,8 +222,9 @@ async fn a_silent_sender_powers_an_off_fixture_down() {
             silence: SILENCE,
         },
     );
+    simulator.clear();
     applier.push(&DeviceId::new(REACHED), lit());
-    wait_for(|| (simulator.received_count() >= 3).then_some(())).await;
+    wait_for_lit(&simulator).await;
 
     simulator.clear();
     assert!(

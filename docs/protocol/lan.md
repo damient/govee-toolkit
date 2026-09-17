@@ -100,6 +100,18 @@ The `devStatus` reply arrives on port `4002`:
 }
 ```
 
+### Consecutive commands
+
+**A device can drop a command that arrives directly behind two others.** Send
+three datagrams to port 4003 with no wait between them and the third can go
+unapplied. Nothing acknowledges a command, so the drop is silent: the device
+holds the value that the dropped command meant to replace, and a caller that
+reads `devStatus` back sees the old value with no error.
+
+Put a wait between two commands to one device. A wait of a few milliseconds is
+enough. This applies to a caller that sets several things at once, such as
+power, brightness and color for one look.
+
 ### Latency notes
 
 - Reuse one UDP socket per device (or a shared one) — never recreate it per

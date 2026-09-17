@@ -64,6 +64,8 @@ Nothing is published yet: the manifest carries `publish = false`.
   changed, sends the current values again after the refresh interval, and
   counts the looks a later one replaced. A device that fails stops no other
   one.
+- Two commands to one device never go out back to back. A device drops a
+  command that arrives directly behind two others, and nothing reports it.
 - `node::Node` — the run loop: receive, drop what the protocol refuses,
   resolve against the patch, and hand each fixture its look. It prints nothing
   and reports through `node::Observer`.
