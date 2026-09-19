@@ -1,7 +1,9 @@
 //! Turns one parsed invocation into one run.
 
+use std::time::Duration;
+
 use govee_toolkit::codec::Mode;
-use govee_toolkit::{Config, DeviceId, Env, Govee, Music};
+use govee_toolkit::{Config, DeviceId, Env, Govee, Identify, Music};
 
 use crate::cli::{self, Cli, Command};
 use crate::output::{Failure, Writer};
@@ -9,6 +11,7 @@ use crate::output::{Failure, Writer};
 mod args;
 mod describe;
 mod devices;
+mod identify;
 #[cfg(feature = "ble")]
 mod provision;
 mod send;
@@ -42,6 +45,28 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
             Ok(())
         }
         Command::Describe { target } => describe::run(govee, writer, target),
+        Command::Identify {
+            devices,
+            color,
+            wait_ms,
+            hold_ms,
+            keep,
+        } => {
+            let walk = identify::Walk {
+                pass: Identify {
+                    color: args::rgb(color)?,
+                    ..Identify::default()
+                },
+                wait: Duration::from_millis(*wait_ms),
+                hold: Duration::from_millis(*hold_ms),
+                keep: *keep,
+                // The rig a walk answers for is the rig on the network.
+                // `--mode` names another one, and never widens the walk to
+                // two.
+                mode: restrict.unwrap_or(Mode::Lan),
+            };
+            identify::run(govee, writer, devices, &walk).await
+        }
         Command::Send {
             device,
             command,
