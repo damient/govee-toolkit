@@ -41,6 +41,21 @@ impl fmt::Display for SignalLoss {
 pub struct Entry {
     /// The identity `govee scan` reports.
     pub device: DeviceId,
+    /// The SKU the entry was written for. It sizes the entry where the device
+    /// did not answer, so a fixture that is off keeps its channels. An entry
+    /// that carries none is sized by the device alone.
+    #[serde(default)]
+    pub sku: Option<String>,
+    /// Whether the bridge drives this fixture. A disabled entry keeps its
+    /// channels reserved and takes no frame: that is how a fixture leaves the
+    /// rig without moving the addresses of the others.
+    #[serde(default = "driven")]
+    pub enabled: bool,
+    /// Whether the scan leaves `enabled` alone. A scan writes the state of
+    /// every other entry, so this is how a fixture stays out of a rig while
+    /// its device is on the network.
+    #[serde(default)]
+    pub hold: bool,
     /// The 7-bit Net. Unset with `subnet` unset makes `universe` the whole
     /// port-address.
     pub net: Option<u16>,
@@ -79,6 +94,11 @@ impl Entry {
         }
         .resolve(&self.device)
     }
+}
+
+/// An entry with no `enabled:` key is driven.
+const fn driven() -> bool {
+    true
 }
 
 /// The personality a name spells, refused at the line that carries it rather

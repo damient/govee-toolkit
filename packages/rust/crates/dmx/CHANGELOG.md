@@ -111,7 +111,36 @@ Nothing is published yet: the manifest carries `publish = false`.
   `dist/catalog.json` carries it beside each device, so the catalog, the site
   and the node read one table.
 
+- `govee-dmx patch [FILE]` — scan the LAN and write the rig. It adds one entry
+  per device that has none, and moves no entry the file carries.
+- The scan patches the devices that answered it. The device cache holds a
+  device that was on the network last week, and a patch names neither.
+- A new entry takes the lowest free channels of the lowest universe from
+  `--universe`. A second scan fills the gap a deleted entry left.
+- `patch --personality` takes `full`, `segment`, `pixel`, or `widest` for the
+  widest table the device serves. The default is `full`, which is 6 channels.
+- `patch --dry-run` prints the entries and writes nothing. `--reset` writes the
+  file from the scan alone, and keeps the one it replaces as `.yaml.bak`.
+- `govee-dmx run --scan` scans and writes the patch before it starts the node,
+  with the `--personality` and `--universe` of the `patch` command.
+- The patch file is optional on both commands. The default is `patch.yaml`
+  beside `config.yaml`.
+- `enabled: false` on a patch entry keeps its channels and drives nothing. The
+  addresses of every other fixture stay where the desk has them.
+- The scan writes `enabled:`, in both directions: `false` for a device that did
+  not answer, and `true` again at the scan that reaches it.
+- `hold: true` on a patch entry keeps `enabled:` as the operator wrote it. The
+  scan reports the state it read and writes none, so a live fixture stays out.
+- `scanned:` — the instant of the last scan, RFC 3339 in UTC, at the top of the
+  patch. It states how old the rig below it is.
+- `sku:` on a patch entry sizes it where the device does not answer, so a
+  fixture that is off the network holds its channels.
+- The patch writer appends. It keeps the comments and the key order of a file
+  an operator edited by hand.
+
 ### Changed
 
 - `apply::Applier::start` and `node::Node::live` take an `apply::Timing`
   rather than the refresh interval alone.
+- `Patch::resolve` takes a second lookup, which answers a device file by SKU.
+  It sizes a disabled entry whose device did not answer.

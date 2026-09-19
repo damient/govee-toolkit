@@ -18,26 +18,34 @@ use govee_toolkit_dmx::node::Node;
 use govee_toolkit_dmx::patch::{Patch, Rig};
 
 use super::observe::Printer;
-use super::{CONFIG, Failure, INTERNAL, UNREACHABLE};
+use super::{CONFIG, Failure, INTERNAL, UNREACHABLE, patch as writer};
 
 pub(crate) fn start(
-    file: &Path,
+    file: Option<&Path>,
+    scan: Option<writer::Options>,
     dry_run: bool,
     config: Option<&Path>,
     as_json: bool,
 ) -> Result<(), Failure> {
-    let patch = Patch::load(file).map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+    let path = writer::file(file);
+    // A file the operator named and misspelled must fail now, not after a
+    // scan. `--scan` is the form that writes the file, so it checks nothing
+    // here.
+    if scan.is_none() {
+        Patch::load(&path).map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+    }
     // One socket and a timer per fixture: the work never saturates a core, and
     // a worker pool costs the spawns at startup.
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
-    runtime.block_on(run(&patch, dry_run, config, as_json))
+    runtime.block_on(run(&path, scan, dry_run, config, as_json))
 }
 
 async fn run(
-    patch: &Patch,
+    file: &Path,
+    scan: Option<writer::Options>,
     dry_run: bool,
     config: Option<&Path>,
     as_json: bool,
@@ -45,12 +53,16 @@ async fn run(
     let govee = Govee::start(configure(config)?)
         .await
         .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
-    // No mode keeps a record across runs, so the patch is joined to what this
-    // run found.
-    govee
+    let found = govee
         .scan()
         .await
         .map_err(|e| Failure::new(e.to_string(), UNREACHABLE))?;
+    if let Some(options) = scan {
+        let written = writer::update(&govee, &found, file, options)?;
+        writer::report(&written, file, as_json);
+    }
+    let patch = Patch::load(file).map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+    let patch = &patch;
     let rig = resolve(&govee, patch)?;
 
     let address = SocketAddr::new(patch.node.bind, PORT);
@@ -94,7 +106,11 @@ fn configure(path: Option<&Path>) -> Result<Config, Failure> {
     config.map_err(|e| Failure::new(e.to_string(), CONFIG))
 }
 
-/// The patch, joined to the devices this run found.
+/// The patch, joined to every device the SDK knows.
+///
+/// A device the cache carries counts here, and a device that misses one scan
+/// therefore starts the run. The backoff of the send path is what reports it
+/// where it stays silent — `docs/dmx.md`.
 fn resolve(govee: &Govee, patch: &Patch) -> Result<Rig, Failure> {
     let found = govee.devices();
     let mut known: BTreeMap<DeviceId, &Device> = BTreeMap::new();
@@ -103,8 +119,9 @@ fn resolve(govee: &Govee, patch: &Patch) -> Result<Rig, Failure> {
             known.insert(device.id.clone(), file);
         }
     }
+    let catalog = govee.catalog();
     let rig = patch
-        .resolve(|id| known.get(id).copied())
+        .resolve(|id| known.get(id).copied(), |sku| catalog.device(sku).ok())
         .map_err(|errors| Failure::new(lines(&errors), CONFIG))?;
     lan_enabled(govee, &rig)?;
     Ok(rig)

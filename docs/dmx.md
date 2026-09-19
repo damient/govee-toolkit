@@ -271,11 +271,13 @@ dropped rather than disarmed: a disarming frame has nothing to reach.
 
 ## The patch
 
-The patch is a separate file, named on the command line. It does not live in
-`config.yaml`: that file says which modes are enabled for a device and refuses
-an unknown key, and a rig of 40 fixtures does not belong in it.
+The patch is a separate file. The command line names it, and the default is
+`patch.yaml` beside `config.yaml`. It does not live in `config.yaml`: that file
+says which modes are enabled for a device and refuses an unknown key, and a rig
+of 40 fixtures does not belong in it.
 
 ```yaml
+scanned: 2026-09-19T20:04:11Z  # when `govee-dmx patch` last scanned
 node:
   bind: 0.0.0.0
   name: govee-toolkit       # what the desk shows in its node list
@@ -283,6 +285,11 @@ node:
   signal_loss_secs: 4       # how long a fixture waits for a frame
 patch:
   - device: "AA:BB:CC:DD:EE:FF"
+    sku: H61A0              # optional. What sizes the entry while the device
+                            # is off the network
+    enabled: true           # the scan writes it. `false` keeps the channels
+                            # and drives nothing
+    hold: true              # optional. The scan leaves `enabled` alone
     universe: 0             # or: net: 0, subnet: 0, universe: 0
     address: 1              # the DMX start address, 1 to 512
     personality: segment
@@ -296,6 +303,21 @@ patch:
 the fixture answers to, the same number the operator sets on a real fixture.
 The personality decides how many channels follow it.
 
+`enabled: false` takes one fixture out of the rig and moves no address. The
+bridge sends that entry nothing, and it gives those channels to no other
+fixture: the addresses the desk carries stay where they are while one device is
+off. An entry that carries `sku:` holds its channels even where the device does
+not answer, because the SKU alone states the width. Delete the entry to hand
+its channels back.
+
+The scan writes `enabled:`, in both directions. A device that did not answer
+takes `false`, and it takes `true` again at the scan that reaches it. The file
+therefore states which fixtures the node reached, and `scanned:` states when.
+`hold: true` on an entry is what stops that: the scan leaves the `enabled` of
+that entry as the operator wrote it, whatever it finds, and reports the state it
+read. That is how a fixture stays out of a rig while its device is on the
+network.
+
 A patch entry for a 10-zone device with `personality: segment` and
 `address: 1` therefore takes channels 1 to 32 of universe 0: channel 1 is the
 dimmer, channel 2 is the mode channel, channels 3 to 5 are zone 0, channels 6
@@ -306,6 +328,29 @@ The patch loader refuses an overlap, an address past 512 and a personality the
 device cannot serve.
 
 ## Output
+
+`govee-dmx patch [FILE]` scans the LAN and writes the rig. It patches the
+devices that answered the scan, and not the devices the cache holds: a fixture
+in the file is one the node reached. It adds one entry for each device that has
+none, on the lowest free channels of the lowest universe from `--universe`, and
+it moves no entry the file already carries: an address is patched on the desk
+too. A device the file already names is left
+alone, enabled or not, so a fixture an operator disabled does not come back at
+the next scan.
+
+- `--personality` takes `full`, `segment`, `pixel`, or `widest` for the widest
+  table the device serves. The default is `full`, which is 6 channels per
+  fixture.
+- `--dry-run` prints what the scan would do, and writes nothing.
+- `--reset` writes the file from the scan alone. Every address in it is set
+  again, and the file it replaces is kept as `.yaml.bak`.
+
+The writer appends. It keeps the comments and the key order of a file an
+operator edited by hand.
+
+`govee-dmx run [FILE] --scan` does the same scan first, and then starts the
+node from the file it wrote. One command therefore takes a rig from nothing to
+a node a desk can patch.
 
 `govee-dmx profile <SKU>` prints the channel table, so the operator can patch
 the desk. It also prints the step count for each scaled channel.

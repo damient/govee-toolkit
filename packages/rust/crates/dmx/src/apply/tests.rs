@@ -25,13 +25,16 @@ fn rig(catalog: &Catalog) -> Rig {
     let segment = catalog.device("H61A0").expect("the SKU resolves");
     let full = catalog.device("H6008").expect("the SKU resolves");
     patch
-        .resolve(|id| {
-            if id == &DeviceId::new("AA:BB:CC:DD:EE:03") {
-                Some(full)
-            } else {
-                Some(segment)
-            }
-        })
+        .resolve(
+            |id| {
+                if id == &DeviceId::new("AA:BB:CC:DD:EE:03") {
+                    Some(full)
+                } else {
+                    Some(segment)
+                }
+            },
+            |sku| catalog.device(sku).ok(),
+        )
         .unwrap_or_else(|errors| panic!("{errors:?}"))
 }
 

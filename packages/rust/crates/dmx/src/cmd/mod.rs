@@ -5,6 +5,7 @@
 //! and its layout can change at any release.
 
 pub(crate) mod observe;
+pub(crate) mod patch;
 pub(crate) mod profile;
 pub(crate) mod run;
 
