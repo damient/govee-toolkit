@@ -7,15 +7,17 @@
 //! A file that marks no entry for a role fails with [`Error::NoRoleCommand`].
 //! Nothing is approximated — see `docs/modes.md`.
 
+mod identify;
 mod music;
 mod segment;
 mod white;
 
+pub use identify::{IDENTIFY_COLOR, IDENTIFY_WAIT, Identify};
 pub use music::Music;
 pub use segment::Paint;
 
 use crate::codec::catalog::{Command, Device};
-use crate::codec::{ArgRole, ArgValue, Args, Mode, Role};
+use crate::codec::{ArgBound, ArgRole, ArgValue, Args, Mode, Role};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::Served;
@@ -133,6 +135,12 @@ impl<'a> RoleEntry<'a> {
             command: self.command.clone(),
             arg_role,
         })
+    }
+
+    /// What the entry bounds `name` with, and `None` where it declares no
+    /// such argument.
+    pub(crate) fn bound(&self, name: &str) -> Option<ArgBound> {
+        Some(self.spec.args.get(name)?.bound())
     }
 
     pub(crate) fn marked(&self, arg_role: ArgRole) -> Option<&str> {
