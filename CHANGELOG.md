@@ -21,6 +21,18 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-20
+
+#### Added
+
+- `H6022` records `measurements.frame_rate` for `lan`: 132 zones, a 398-byte
+  payload, 100 Hz clean and 150 Hz stuttering. A stream over `lan` runs at the
+  measured rate instead of the fallback.
+- `H6022` records the trap that the lamp answers no `devStatus` while the
+  segment channel is armed. It stays silent with no frame sent at all, so the
+  silence follows the arming and not the load, and fire-and-verify reports
+  nothing while a stream runs.
+
 ### 2026-09-17
 
 #### Added

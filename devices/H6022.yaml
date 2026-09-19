@@ -237,6 +237,12 @@ measurements:
   zone_0_end: "base"        # zone 0 at the base, the last zone at the top
   segment_chain: "snake"    # the chain folds back at each ring: zone 12 is the
                             # LED above zone 11, not the one above zone 0
+  frame_rate:
+    # Measured on the razer segment channel, at the full 132 zones. Watched on
+    # the unit: the round trip cannot answer here, because the lamp answers no
+    # `devStatus` while the channel is armed. See `verified:`.
+    lan:
+      - { zones: 132, payload_bytes: 398, clean_hz: 100, breaks_at_hz: 150 }
   ble:
     zone_mask_width: 15     # what AA 0F answers, against the 132 LEDs. One
                             # zone is 8.8 LEDs, so no zone covers a whole ring
@@ -244,7 +250,7 @@ measurements:
 verified:
   by: "damient"
   firmware: "1.03.08"
-  date: "2026-09-17"
+  date: "2026-09-20"
   notes: >-
     lan mode exercised over UDP on one unit, through the Rust CLI. The unit
     answers the multicast discovery. Power, brightness, color and the white
@@ -293,6 +299,17 @@ verified:
     The lamp keeps the lan raw segment channel through a `turn` and through a
     `brightness` sent while the channel is armed: it kept animating through
     both, and the brightness applied. See docs/protocol/lan.md 2.3.
+
+    The segment channel sustains 100 Hz at 132 zones, which is a 398-byte
+    payload. 150 Hz stutters. The rates between the two were not watched, and
+    no other zone count was measured.
+
+    Trap: the lamp answers no `devStatus` while the segment channel is armed.
+    It stays silent from the arming frame to the disarm, and it does so with
+    no frame sent at all, so the silence follows the arming and not the load.
+    It answers again on the first request after the disarm. Fire-and-verify
+    therefore reports nothing while a stream runs, and the throughput
+    measurement of docs/protocol/lan.md 2.7 cannot be taken on this unit.
 
     Trap: the lamp drops a command that arrives directly behind two others.
     Three commands sent back to back over lan lose the third in 3 attempts of
