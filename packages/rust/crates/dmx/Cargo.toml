@@ -44,6 +44,13 @@ thiserror = "2"
 # `signal` is what ends a run cleanly: the streams disarm, and the counters
 # reach the operator.
 tokio = { workspace = true, features = ["signal"] }
+# `--debug` installs a subscriber. Without one the library writes its traces
+# nowhere, and a stream that stops reports nothing.
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+  "ansi",
+  "env-filter",
+  "fmt",
+] }
 
 [dev-dependencies]
 # A fake device on the loopback, so the send path is tested with no hardware.

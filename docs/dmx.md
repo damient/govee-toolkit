@@ -440,6 +440,12 @@ and the count of replies. A desk polls every few seconds, so a live run leaves
 the lines out: an operator who cannot find the node in a desk's node list turns
 the flag on to see whether the node answered.
 
+`--debug` also raises the library traces to `debug`. A live run carries `warn`,
+which is what reports a segment frame the transport refused and a stream that
+stopped: nothing acknowledges a LAN frame, so those two report through the
+traces and nowhere else. `RUST_LOG` wins over the flag, and every trace goes to
+stderr, so `--json` keeps stdout for its records.
+
 The node prints nothing itself. It reports each packet, each resolved look and
 each failed write to the binary, which decides what a person reads.
 
