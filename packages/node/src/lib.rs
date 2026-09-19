@@ -12,12 +12,14 @@ mod catalog;
 mod config;
 mod conv;
 mod device;
+mod driver;
 mod errors;
 mod events;
 mod govee;
 mod promise;
 mod stream;
 mod types;
+mod verbs;
 
 use napi_derive::napi;
 

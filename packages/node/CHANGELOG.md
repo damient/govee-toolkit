@@ -4,6 +4,15 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `Govee.deviceOn()` — a handle that drives one device over one mode alone.
+  Every call on it goes over that mode or throws, for a caller that serves one
+  mode by design.
+- `DeviceHandle.identify()` — powers the device on and paints one color, so a
+  person sees which fixture an identity drives. `color` and `fullBrightness`
+  take the core's defaults when `null`.
+
 ## [0.1.0] — 2026-09-16
 
 The first version that carries code. The version on npm before it is a `0.0.0`

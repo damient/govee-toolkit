@@ -4,6 +4,15 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `Govee.device_on()` — a handle that drives one device over one mode alone.
+  Every call on it goes over that mode or raises, for a caller that serves one
+  mode by design.
+- `DeviceHandle.identify()` — powers the device on and paints one color, so a
+  person sees which fixture an identity drives. `color` and `full_brightness`
+  take the core's defaults when `None`.
+
 ## [0.2.0] — 2026-09-16
 
 ### Changed
