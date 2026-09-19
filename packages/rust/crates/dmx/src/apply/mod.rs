@@ -37,6 +37,9 @@ pub struct Timing {
     /// How long a fixture waits for a frame before the patch decides what it
     /// shows — see [`crate::patch::SignalLoss`].
     pub silence: Duration,
+    /// How long a fixture stays on and black at dimmer 0 before it powers
+    /// off. [`Duration::ZERO`] powers it off on the pass that reads the 0.
+    pub off_delay: Duration,
 }
 
 /// What one device did over a run.

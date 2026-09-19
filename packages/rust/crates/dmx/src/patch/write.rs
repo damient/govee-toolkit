@@ -31,6 +31,7 @@ node:
   name: govee-toolkit
   refresh_secs: 10
   signal_loss_secs: 4
+  off_delay_secs: 5
 patch:
 ";
 

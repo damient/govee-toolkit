@@ -149,6 +149,15 @@ Nothing is published yet: the manifest carries `publish = false`.
   addresses of every other fixture stay where the desk has them. The entry is
   out of the overlap check: it takes no frame, so a driven fixture can cover
   the channels it holds.
+- The dimmer at 0 takes every color to 0 and leaves the device on. The power
+  off follows `node.off_delay_secs` later, and only while the dimmer stays at
+  0. The default is 5 seconds, and `0` powers the device off at once. A dip
+  through 0 then costs one repaint: a power off and a power on that arrive
+  close together are applied in the wrong order by the firmware, and a zone
+  personality pays the arming delay on top. `on_signal_loss: off` waits no off
+  delay.
+- `node.off_delay_secs` — how long a fixture stays on and black before the
+  dimmer at 0 powers it off.
 - Two entries on one port-address, one start address and one personality are a
   clone. They answer to one channel table, the desk drives both from one set of
   values, and the loader allows it. A part of a span shared under two tables
