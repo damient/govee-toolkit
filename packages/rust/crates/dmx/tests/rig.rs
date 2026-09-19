@@ -235,3 +235,116 @@ async fn a_silent_sender_powers_an_off_fixture_down() {
     );
     applier.close().await;
 }
+
+/// A white command replaces the color on the device. The white channel back
+/// at 0 sends no white command, so the color goes out again: without it the
+/// fixture stays white, and the desk has no way to take it out.
+#[tokio::test]
+async fn the_white_channel_back_at_zero_paints_the_color_again() {
+    let simulator = Simulator::start(Options::loopback(REACHED, SKU))
+        .await
+        .expect("the simulator binds");
+    let govee = govee(&simulator).await;
+    let catalog = Catalog::embedded().expect("the embedded catalog parses");
+    let rig = rig(&catalog, "hold");
+
+    let (applier, _failures) = Applier::start(
+        &govee,
+        &rig,
+        Timing {
+            refresh: REFRESH,
+            silence: SILENCE,
+        },
+    );
+    let id = DeviceId::new(REACHED);
+    simulator.clear();
+    applier.push(&id, lit());
+    wait_for_lit(&simulator).await;
+
+    simulator.clear();
+    applier.push(
+        &id,
+        Look {
+            white_temp: Some(4000),
+            ..lit()
+        },
+    );
+    assert!(
+        wait_for(|| (simulator.received_count() >= 1).then_some(()))
+            .await
+            .is_some(),
+        "the white temperature reached the device"
+    );
+
+    simulator.clear();
+    applier.push(&id, lit());
+    assert!(
+        wait_for(|| (simulator.received_count() >= 1).then_some(()))
+            .await
+            .is_some(),
+        "the color goes out again, so the fixture leaves white"
+    );
+    applier.close().await;
+}
+
+/// The white temperature one `colorwc` carries. A color write carries the
+/// same command, with the temperature at 0.
+fn kelvin(received: &govee_toolkit_sim::Received) -> Option<i64> {
+    received.data.get("colorTemInKelvin")?.as_i64()
+}
+
+/// The look the desk holds on the white channel, with every color channel at
+/// 0.
+fn white() -> Look {
+    Look {
+        color: Some([0, 0, 0]),
+        white_temp: Some(4000),
+        ..lit()
+    }
+}
+
+/// A white command replaces the color on the device, so a pass that carries
+/// both writes the white one alone. The color would show for the few
+/// milliseconds before it, which reads as a blink on the way back up from a
+/// dimmer at 0.
+#[tokio::test]
+async fn a_pass_that_carries_a_white_temperature_writes_no_color() {
+    let simulator = Simulator::start(Options::loopback(REACHED, SKU))
+        .await
+        .expect("the simulator binds");
+    let govee = govee(&simulator).await;
+    let catalog = Catalog::embedded().expect("the embedded catalog parses");
+    let rig = rig(&catalog, "hold");
+
+    let (applier, _failures) = Applier::start(
+        &govee,
+        &rig,
+        Timing {
+            refresh: REFRESH,
+            silence: SILENCE,
+        },
+    );
+    let id = DeviceId::new(REACHED);
+    applier.push(&id, white());
+    assert!(
+        wait_for(|| simulator
+            .received()
+            .iter()
+            .any(|received| kelvin(received) == Some(4000))
+            .then_some(()))
+        .await
+        .is_some(),
+        "the white temperature reached the device"
+    );
+    let colored: Vec<String> = simulator
+        .received()
+        .into_iter()
+        .filter(|received| kelvin(received) == Some(0))
+        .map(|received| received.data.to_string())
+        .collect();
+    assert!(
+        colored.is_empty(),
+        "the pass wrote a color too: {colored:?}"
+    );
+    applier.close().await;
+}

@@ -90,6 +90,17 @@ Nothing is published yet: the manifest carries `publish = false`.
 - Every write pins `lan`. A device that enables a second mode keeps it for
   other callers, and a device that stops answering over `lan` is reported
   unreachable.
+- A pass that carries a white temperature writes no color. A white command
+  replaces the color on the device, so the color showed for the few
+  milliseconds before it, which read as a blink on the way back up from a
+  dimmer at 0.
+- Two commands to one device keep a gap of 5 ms, across two passes as well as
+  inside one. A device that reads a power off and a power on back to back can
+  apply them in the other order.
+- The node sends the color again where the white channel comes back to 0, even
+  where the color channels did not move. A white command replaces the color on
+  the device, so the fixture stayed white otherwise and the desk had no way to
+  take it out. The color channels at 0 take the fixture dark.
 - A run stores black on every driven fixture at start, and leaves the fixture
   off. A device shows the color that it held when it next comes on, so a color
   from an earlier run would flash on the first frame that raises the dimmer.
