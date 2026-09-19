@@ -7,6 +7,14 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `DeviceHandle::identify()` — powers one device on and paints one color, so a
+  person sees which fixture an identity drives. It sets the brightness to the
+  top of the range the device file declares.
+- `Identify`, `IDENTIFY_COLOR` and `IDENTIFY_WAIT` — what a pass shows, and the
+  defaults a walk over a rig uses: green, and a second between two steps.
+
 ## [0.10.0] — 2026-09-16
 
 ### Added
