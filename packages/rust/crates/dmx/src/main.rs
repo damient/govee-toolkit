@@ -111,6 +111,11 @@ enum Command {
     },
 
     /// Receive Art-Net on port 6454 and drive the patched devices.
+    ///
+    /// The run stores black on every patched device at start, and leaves the
+    /// device off. A device shows the color that it held when it next comes
+    /// on, so a color from an earlier run would flash on the first frame that
+    /// raises the dimmer.
     Run {
         /// The patch file, which says which device answers which channels.
         /// The default is `patch.yaml` beside `config.yaml`.
@@ -129,6 +134,12 @@ enum Command {
         /// write to no device.
         #[arg(long)]
         dry_run: bool,
+        /// Leave every device as it is at start, and store no black on it.
+        #[arg(long)]
+        no_reset: bool,
+        /// Print a line for each answered poll, which a live run leaves out.
+        #[arg(long)]
+        debug: bool,
         /// The configuration file. The default is the one `govee` reads.
         #[arg(long)]
         config: Option<PathBuf>,
@@ -267,13 +278,19 @@ fn main() -> ExitCode {
             personality,
             universe,
             dry_run,
+            no_reset,
+            debug,
             config,
             json,
         } => match options(&personality, universe, false, false) {
             Ok(options) => cmd::run::start(
                 patch.as_deref(),
                 scan.then_some(options),
-                dry_run,
+                cmd::run::Flags {
+                    dry_run,
+                    no_reset,
+                    debug,
+                },
                 config.as_deref(),
                 json,
             ),

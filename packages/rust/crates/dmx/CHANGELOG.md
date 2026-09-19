@@ -12,8 +12,8 @@ Nothing is published yet: the manifest carries `publish = false`.
 
 - `identify` — names each enabled entry and lights the fixture it drives. Every
   fixture goes off at once first, and the walk then lights one at a time, in
-  patch order. `--color`, `--wait-ms`, `--hold-ms` and `--keep` set what it shows and
-  how long each step lasts.
+  patch order. `--color`, `--wait-ms`, `--hold-ms` and `--keep` set what it
+  shows and how long each step lasts.
 - The crate, the `govee-dmx` binary and the `artnet` and `sacn` cargo
   features. The binary answers `--version` and `--help`, and drives no device
   yet.
@@ -90,8 +90,13 @@ Nothing is published yet: the manifest carries `publish = false`.
 - Every write pins `lan`. A device that enables a second mode keeps it for
   other callers, and a device that stops answering over `lan` is reported
   unreachable.
-- A run prints a line for each answered `ArtPoll`: the desk that polled, and
-  the count of replies.
+- A run stores black on every driven fixture at start, and leaves the fixture
+  off. A device shows the color that it held when it next comes on, so a color
+  from an earlier run would flash on the first frame that raises the dimmer.
+  `--no-reset` leaves the pass out, and a dry run sends it on no device.
+- `run --debug` prints a line for each answered `ArtPoll`: the desk that
+  polled, and the count of replies. A desk polls every few seconds, so a run
+  leaves the lines out without the flag.
 - `input::artnet::Poll` — the `ArtPoll` parser. A poll takes 14 bytes, under
   the 18 an `ArtDmx` header takes, so the parser reads the opcode before it
   asks for a header.
