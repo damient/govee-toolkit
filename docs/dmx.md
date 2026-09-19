@@ -313,11 +313,15 @@ the fixture answers to, the same number the operator sets on a real fixture.
 The personality decides how many channels follow it.
 
 `enabled: false` takes one fixture out of the rig and moves no address. The
-bridge sends that entry nothing, and it gives those channels to no other
-fixture: the addresses the desk carries stay where they are while one device is
-off. An entry that carries `sku:` holds its channels even where the device does
-not answer, because the SKU alone states the width. Delete the entry to hand
-its channels back.
+bridge sends that entry nothing, and `govee-dmx patch` gives those channels to
+no new entry: the addresses the desk carries stay where they are while one
+device is off. An entry that carries `sku:` holds its channels even where the
+device does not answer, because the SKU alone states the width. Delete the
+entry to hand its channels back.
+
+A disabled entry is out of the overlap check. It takes no frame, so a driven
+fixture can cover the channels it holds, and the operator does not have to
+readdress the rig to widen one fixture over a device that is off.
 
 The scan writes `enabled:`, in both directions. A device that did not answer
 takes `false`, and it takes `true` again at the scan that reaches it. The file
@@ -332,6 +336,11 @@ A patch entry for a 10-zone device with `personality: segment` and
 dimmer, channel 2 is the mode channel, channels 3 to 5 are zone 0, channels 6
 to 8 are zone 1, and so on. A second device on the same universe starts at
 address 33.
+
+Two entries on one port-address, one start address and one personality are a
+clone. Both answer to one channel table, so the desk drives both from one set
+of values, and the loader allows it. Two fixtures that share a part of a span
+answer to one channel under two tables, and the loader refuses that.
 
 The patch loader refuses an overlap, an address past 512 and a personality the
 device cannot serve.
