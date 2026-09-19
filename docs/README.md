@@ -9,6 +9,10 @@
   models that expose the LAN switch
 - [`modes.md`](modes.md) — the `lan` / `ble` / `cloud` mode model and per-device
   selection
+- [`dmx.md`](dmx.md) — the Art-Net node: the channel table, the patch and the
+  send policy
+- [`dmx-profiles.md`](dmx-profiles.md) — the DMX channel table of every device
+  file, generated
 - [`protocol/lan.md`](protocol/lan.md) — LAN protocol: documented part plus
   undocumented commands
 - [`protocol/ble.md`](protocol/ble.md) — BLE / GATT notes per SKU family

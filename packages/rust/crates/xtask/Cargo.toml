@@ -15,6 +15,9 @@ publish = false
 # disagree. `default-features = false` leaves the codec alone, with no
 # transport and no async runtime.
 govee-toolkit = { path = "../..", default-features = false }
+# The channel table is derived once, in the crate that ships it. The page this
+# task writes is a view of that table and never a second derivation.
+govee-toolkit-dmx = { path = "../dmx", default-features = false }
 serde_json.workspace = true
 serde_norway = "0.9"
 

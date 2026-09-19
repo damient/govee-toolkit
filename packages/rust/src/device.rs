@@ -20,11 +20,34 @@ use crate::transport::{DeviceId, DeviceStatus, Health, Reply, Verify};
 pub struct DeviceHandle<'a> {
     pub(crate) govee: &'a Govee,
     id: DeviceId,
+    /// The one mode this handle drives over, where a caller named one.
+    pinned: Option<Mode>,
 }
 
 impl<'a> DeviceHandle<'a> {
     pub(crate) fn new(govee: &'a Govee, id: DeviceId) -> Self {
-        Self { govee, id }
+        Self {
+            govee,
+            id,
+            pinned: None,
+        }
+    }
+
+    pub(crate) fn on(govee: &'a Govee, id: DeviceId, mode: Mode) -> Self {
+        Self {
+            govee,
+            id,
+            pinned: Some(mode),
+        }
+    }
+
+    /// The mode a call on this handle goes over: the pinned one, or the first
+    /// enabled mode that answers.
+    fn mode(&self) -> Result<Mode> {
+        match self.pinned {
+            Some(mode) => self.govee.choose_on(&self.id, mode),
+            None => self.govee.choose(&self.id),
+        }
     }
 
     /// The device's identity.
@@ -57,7 +80,7 @@ impl<'a> DeviceHandle<'a> {
     /// As for [`DeviceHandle::send`], when no enabled mode can serve a
     /// command.
     pub fn serving_mode(&self) -> Result<Mode> {
-        self.govee.choose(&self.id)
+        self.mode()
     }
 
     /// What `devices/<SKU>.yaml` declares for this device: the modes, the
@@ -84,7 +107,7 @@ impl<'a> DeviceHandle<'a> {
     ///
     /// As for [`DeviceHandle::serving_mode`] and [`DeviceHandle::spec`].
     pub fn resolve(&self) -> Result<Resolved<'a>> {
-        let mode = self.govee.choose(&self.id)?;
+        let mode = self.mode()?;
         let sku = self.govee.sku(&self.id)?;
         let device = self.govee.catalog().device(&sku)?;
         Ok(Resolved::new(self.clone(), mode, sku, device))
@@ -123,7 +146,7 @@ impl<'a> DeviceHandle<'a> {
     /// [`Error::Codec`] if the command or its arguments are not valid for this
     /// device, [`Error::Transport`] if the write fails.
     pub async fn send(&self, command: &str, args: &Args) -> Result<Served> {
-        let mode = self.govee.choose(&self.id)?;
+        let mode = self.mode()?;
         let sku = self.govee.sku(&self.id)?;
         self.send_resolved(mode, &sku, command, args).await
     }
@@ -186,7 +209,7 @@ impl<'a> DeviceHandle<'a> {
     /// [`Error::Codec`] if the zone count is outside what the command declares,
     /// or [`Error::Transport`] if arming cannot be sent.
     pub async fn open_stream(&self, options: StreamOptions) -> Result<SegmentStream> {
-        SegmentStream::open(self.govee, &self.id, options).await
+        SegmentStream::open(self.govee, &self.id, self.mode()?, options).await
     }
 
     /// Ask the device for its state and wait for the answer.
@@ -222,7 +245,7 @@ impl<'a> DeviceHandle<'a> {
     /// heard nothing.
     #[must_use]
     pub fn last_status(&self) -> Option<DeviceStatus> {
-        let mode = self.govee.choose(&self.id).ok()?;
+        let mode = self.mode().ok()?;
         self.govee
             .transport(&self.id, mode)
             .ok()?
@@ -235,7 +258,7 @@ impl<'a> DeviceHandle<'a> {
     /// the same conditions.
     #[must_use]
     pub fn watch_status(&self) -> Option<tokio::sync::watch::Receiver<Option<DeviceStatus>>> {
-        let mode = self.govee.choose(&self.id).ok()?;
+        let mode = self.mode().ok()?;
         self.govee
             .transport(&self.id, mode)
             .ok()?

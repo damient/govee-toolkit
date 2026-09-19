@@ -126,6 +126,46 @@ async fn a_second_mode_is_reported_rather_than_silently_skipped() {
     assert!(error.to_string().contains("ble"), "{error}");
 }
 
+/// A caller that serves one mode, such as the Art-Net bridge, must read the
+/// device as unreachable rather than as a build that lacks a transport.
+#[tokio::test]
+async fn a_pinned_mode_is_not_left_for_the_next_enabled_one() {
+    let rig =
+        rig("defaults:\n  modes: [lan, ble]\nlan:\n  degrade_after: 1\n  cooldown_seconds: 60\n")
+            .await;
+    rig.simulator.set_silent(true);
+
+    let _ = rig.govee.device(&id()).status().await;
+    let error = rig
+        .govee
+        .device_on(&id(), Mode::Lan)
+        .send("power", &Args::new().int("on", 1))
+        .await
+        .expect_err("lan is degraded, and the handle leaves it for no other mode");
+
+    assert_eq!(error.code(), "no_mode_available");
+    // The list the message carries is the pinned mode alone: `ble` is enabled
+    // and was never a candidate.
+    assert!(error.to_string().ends_with("(lan)"), "{error}");
+}
+
+/// The user enables the modes. A caller narrows that list and never widens it.
+#[tokio::test]
+async fn a_pinned_mode_the_configuration_does_not_enable_is_refused() {
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
+    rig.simulator.clear();
+
+    let error = rig
+        .govee
+        .device_on(&id(), Mode::Cloud)
+        .send("power", &Args::new().int("on", 1))
+        .await
+        .expect_err("the configuration enables lan alone");
+
+    assert_eq!(error.code(), "mode_not_enabled");
+    assert_eq!(rig.simulator.received_count(), 0);
+}
+
 #[tokio::test]
 async fn a_device_that_was_never_discovered_is_not_scanned_for() {
     let rig = rig("defaults:\n  modes: [lan]\n").await;

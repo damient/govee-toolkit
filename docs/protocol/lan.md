@@ -100,6 +100,18 @@ The `devStatus` reply arrives on port `4002`:
 }
 ```
 
+### Consecutive commands
+
+**A device can drop a command that arrives directly behind two others.** Send
+three datagrams to port 4003 with no wait between them and the third can go
+unapplied. Nothing acknowledges a command, so the drop is silent: the device
+holds the value that the dropped command meant to replace, and a caller that
+reads `devStatus` back sees the old value with no error.
+
+Put a wait between two commands to one device. A wait of a few milliseconds is
+enough. This applies to a caller that sets several things at once, such as
+power, brightness and color for one look.
+
 ### Latency notes
 
 - Reuse one UDP socket per device (or a shared one) — never recreate it per
@@ -201,6 +213,14 @@ at the arming frame, and not per frame.
 armed. The `0xB1` frame with `0` ends the channel, and the unit goes back to the
 color that the last write on another command left. Keep the channel armed for as
 long as the colors must stay.
+
+**A power command can end the channel.** On some models a `turn` sent while the
+channel is armed ends it, and the unit goes back to the color it held before the
+stream. The firmware answers nothing, so the following `0xB0` frames reach a
+dead channel and paint nothing. Send no `turn` while the channel is armed: the
+armed channel is proof the unit is on. A `brightness` sent the same way applies
+and keeps the channel, on every model measured so far. Which of the two a model
+does is a per-SKU fact — record it in `devices/<SKU>.yaml`.
 
 **The `gradient` byte.** With `1` the firmware interpolates between zones and
 wraps from the last back to the first, so a single lit zone at one end also

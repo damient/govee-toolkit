@@ -53,7 +53,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | 🔜 | **Web playground** — device list with per-mode state badges, power / brightness / color controls, latency log |
 | 🔜 | **Desktop app (Electron)** — same backend and UI as the playground, auto-discovery on launch, tray icon |
 | ✅ | **Device simulator** (`packages/rust/crates/sim`) — a fake `lan` device on UDP and a fake `ble` peripheral on GATT, both with fault injection, so tests run without hardware or an adapter |
-| 🔜 | **Art-Net / DMX bridge** — maps DMX channels to Govee devices and segments |
+| 🔜 | **Art-Net / DMX bridge** (`packages/rust/crates/dmx`) — an Art-Net node that maps DMX channels to devices and segments over `lan`. See [`dmx.md`](dmx.md) |
 
 ## Integrations
 

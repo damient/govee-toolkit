@@ -21,6 +21,20 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-17
+
+#### Added
+
+- `catalog.json` carries a `dmx` block per device: the personalities the device
+  serves over `lan`, and the channels of each. `govee-toolkit-dmx` derives it
+  from the device file, so it holds what `govee-dmx profile --json` holds. The
+  devices page of the site reads it.
+- `H6022`, `H61A0` and `H6008` record what each unit does with commands sent
+  back to back. Two of the three drop the third of a burst; the wait that loses
+  none is a millisecond.
+- `H61A0` records the trap that a `turn` sent while the lan raw segment channel
+  is armed ends the channel. `H6022` records that it keeps the channel.
+
 ### 2026-09-15
 
 #### Added

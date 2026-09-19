@@ -17,13 +17,13 @@ are in scope too when the branch changed the code they describe.
 
 ## Check
 
-**1. Docs against code.** For every claim in `README.md`, `CLAUDE.md`,
+**1. Docs against code.** For every claim in `README.md`, `AGENTS.md`,
 `docs/**` and `tools/README.md` that the branch's code touches: is it still
 true? Names, paths, feature flags, commands, exit codes, file layout, what is
 implemented and what is not. Verify against the code — never assume the doc is
 right because it reads well.
 
-**2. Code with no doc.** Something the branch added that `CLAUDE.md`'s "Where
+**2. Code with no doc.** Something the branch added that `AGENTS.md`'s "Where
 things go" table places in a doc, and which is not there: a new command, a new
 tool script, a new cargo feature, a device file field, a protocol detail. Note
 it; do not invent the missing content beyond what the code states.
@@ -111,9 +111,9 @@ one clause becomes one line.
 The same applies to prose. In every doc the branch touched, cut the sentence
 that repeats the previous one, the paragraph that re-explains a rule stated in
 its own document, and the adjective that adds no fact. Two documents saying the
-same thing means one of them owns it and the other links to it — `CLAUDE.md`,
+same thing means one of them owns it and the other links to it — `AGENTS.md`,
 `CONTRIBUTING.md` and `docs/` repeating each other is drift waiting to happen.
-The four non-negotiables are the standing exception: `CLAUDE.md` and
+The four non-negotiables are the standing exception: `AGENTS.md` and
 `GOVERNANCE.md` both state them in full, on purpose. Leave both.
 
 **Keep**, against all of the above: blunt phrasing where it is a real technical
@@ -135,7 +135,7 @@ usual case, which is prose two to three times longer than the fact it carries.
 
 Where the cut is hard to find, it is almost always one of these:
 
-- a doc comment whose second paragraph re-argues a rule `CLAUDE.md`,
+- a doc comment whose second paragraph re-argues a rule `AGENTS.md`,
   `docs/modes.md` or the module header already states. Delete the paragraph and
   keep the pointer;
 - a `//!` header that narrates the whole design. It owes the reader the traps
@@ -163,7 +163,7 @@ as it is now. Refactored, renamed or deleted code leaves no trace in them.
   roadmap.md` and release notes are history by design — leave them alone.
 
 **5. ASD-STE100.** Every comment and every line of prose the branch touched
-must follow the Simplified Technical English rules in `CLAUDE.md`, "Writing".
+must follow the Simplified Technical English rules in `AGENTS.md`, "Writing".
 Rewrite what breaks one:
 
 - a passive sentence becomes active;

@@ -1,0 +1,390 @@
+//! One fixture's send path.
+//!
+//! One task per fixture: a failing device therefore stops no other one. The
+//! task holds what it last sent and writes only what changed, and it sends the
+//! current values again after the refresh interval — see `docs/dmx.md`.
+//!
+//! The task keeps two other waits: what the patch shows after the sender goes
+//! quiet, and the backoff that a device which stopped answering is retried
+//! on.
+
+use std::time::Duration;
+
+use govee_toolkit::stream::{Rate, Resolution, StreamOptions};
+use govee_toolkit::{DeviceHandle, DeviceId, Error, Govee, Mode, Result, SegmentStream};
+use tokio::sync::{mpsc, watch};
+use tokio::time::Instant;
+
+use super::backoff::Backoff;
+use super::look::Look;
+use super::rate::Pace;
+use super::{Counts, Failure, Timing};
+use crate::patch::{Fixture, SignalLoss};
+use crate::profile::Personality;
+
+/// How long one command waits behind the one before it, inside one pass.
+///
+/// A device drops a datagram that arrives directly behind two others — see
+/// `docs/protocol/lan.md` 1, "Consecutive commands". Nothing acknowledges a
+/// LAN frame, so the drop is silent and the device holds the value the
+/// command meant to replace. The gap is wider than the smallest one measured,
+/// for a unit slower than the one that was measured. A pass that changes one
+/// slot writes once and waits not at all, so a color chase pays nothing.
+const GAP: Duration = Duration::from_millis(5);
+
+/// Wait `GAP` where this pass already put a datagram on the network.
+async fn gap(wrote: bool) {
+    if wrote {
+        tokio::time::sleep(GAP).await;
+    }
+}
+
+/// What one fixture last received. Every field is compared before a write, so
+/// a desk that holds a static look puts no traffic on the device.
+#[derive(Debug, Default)]
+struct Sent {
+    on: Option<bool>,
+    brightness: Option<i64>,
+    color: Option<[u8; 3]>,
+    white_temp: Option<i64>,
+    zones: Vec<[u8; 3]>,
+}
+
+/// One fixture, and the device it drives.
+#[derive(Debug)]
+pub(super) struct Feeder {
+    govee: Govee,
+    id: DeviceId,
+    /// `None` where the personality carries no zone: those devices take the
+    /// `color` and `color_temp` roles instead.
+    options: Option<StreamOptions>,
+    stream: Option<SegmentStream>,
+    timing: Timing,
+    /// What the fixture shows once the sender goes quiet.
+    loss: SignalLoss,
+    backoff: Backoff,
+    /// The rate the fixture takes writes at.
+    pace: Pace,
+    /// A look the pace held, which the next due write carries.
+    held: bool,
+    sent: Sent,
+    /// The last look received, which the refresh sends again.
+    last: Option<Look>,
+    failures: mpsc::Sender<Failure>,
+    counts: Counts,
+}
+
+impl Feeder {
+    /// The device, over `lan` alone. The bridge substitutes no mode where the
+    /// device stops answering: it reports the device unreachable instead —
+    /// `docs/dmx.md`.
+    fn device(&self) -> DeviceHandle<'_> {
+        self.govee.device_on(&self.id, Mode::Lan)
+    }
+
+    pub(super) fn new(
+        govee: &Govee,
+        fixture: &Fixture,
+        timing: Timing,
+        failures: mpsc::Sender<Failure>,
+    ) -> Self {
+        let id = fixture.entry.device.clone();
+        Self {
+            govee: govee.clone(),
+            id: id.clone(),
+            options: options(fixture),
+            stream: None,
+            timing,
+            loss: fixture.entry.on_signal_loss,
+            backoff: Backoff::default(),
+            pace: Pace::new(fixture.entry.max_hz),
+            held: false,
+            sent: Sent::default(),
+            last: None,
+            failures,
+            counts: Counts {
+                id,
+                frames_sent: 0,
+                frames_superseded: 0,
+            },
+        }
+    }
+}
+
+/// Take looks until the node stops, then disarm and answer the counters.
+///
+/// Three waits end a pass: a look that arrived, the write that a refresh or a
+/// backoff makes due, and the silence that the patch answers.
+pub(super) async fn run(mut feeder: Feeder, mut looks: watch::Receiver<(u64, Look)>) -> Counts {
+    let mut taken = 0u64;
+    let mut due = Instant::now() + feeder.timing.refresh;
+    let mut quiet = Instant::now();
+    // The first look arms it: a rig waits dark for the desk rather than going
+    // to the signal loss answer at start.
+    let mut armed = false;
+    loop {
+        tokio::select! {
+            arrived = looks.changed() => {
+                if arrived.is_err() {
+                    break;
+                }
+                let (generation, look) = looks.borrow_and_update().clone();
+                // Every generation between the last one taken and this one was
+                // replaced before a write carried it.
+                feeder.counts.frames_superseded += generation.saturating_sub(taken + 1);
+                taken = generation;
+                let wrote = feeder.apply(&look).await;
+                due = feeder.due(wrote, due);
+                quiet = Instant::now() + feeder.timing.silence;
+                armed = feeder.loss != SignalLoss::Hold;
+            }
+            () = tokio::time::sleep_until(due) => {
+                let wrote = feeder.resend().await;
+                due = feeder.due(wrote, Instant::now() + feeder.timing.refresh);
+            }
+            () = tokio::time::sleep_until(quiet), if armed => {
+                let wrote = feeder.quiet().await;
+                due = feeder.due(wrote, due);
+                // What the patch asks for is applied once, and the next look
+                // arms the wait again.
+                armed = false;
+            }
+        }
+    }
+    feeder.finish().await
+}
+
+impl Feeder {
+    /// Write what changed. Answers whether anything went out.
+    ///
+    /// A device that failed writes nothing until its backoff is over, and a
+    /// device written to a moment ago writes nothing until its pace is over.
+    /// The look is kept either way, so the attempt that follows carries the
+    /// current one and not a stale one.
+    async fn apply(&mut self, look: &Look) -> bool {
+        if look.resend {
+            self.sent = Sent::default();
+        }
+        self.last = Some(look.clone());
+        let now = Instant::now();
+        if self.backoff.holds(now) {
+            return false;
+        }
+        if self.pace.holds(now) {
+            // The desk sends above what the device takes, which is the count
+            // the operator reads to see it.
+            self.counts.frames_superseded += 1;
+            self.held = true;
+            return false;
+        }
+        self.held = false;
+        match self.write(look).await {
+            Ok(wrote) => {
+                self.backoff.cleared();
+                if wrote {
+                    self.pace.wrote(Instant::now());
+                }
+                wrote
+            }
+            Err(error) => {
+                self.failed(&error);
+                // A failed write leaves the device on an unknown look, so the
+                // next one must not be compared against what this one meant to
+                // send.
+                self.sent = Sent::default();
+                self.discard();
+                self.backoff.failed(Instant::now());
+                true
+            }
+        }
+    }
+
+    /// When the next write is due: the backoff decides it where a device
+    /// failed, the pace where a look waits for it, and `refresh` otherwise.
+    fn due(&self, wrote: bool, refresh: Instant) -> Instant {
+        if let Some(retry) = self.backoff.ready() {
+            return retry;
+        }
+        let next = if wrote {
+            Instant::now() + self.timing.refresh
+        } else {
+            refresh
+        };
+        match self.pace.ready() {
+            Some(ready) if self.held => ready.min(next),
+            _ => next,
+        }
+    }
+
+    /// Send the current values once. Nothing acknowledges a LAN frame, so a
+    /// lost one would otherwise hold a stale look until the desk changes it.
+    async fn resend(&mut self) -> bool {
+        let Some(look) = self.last.clone() else {
+            return false;
+        };
+        // A look the pace held is the current one, and the device holds the
+        // values around it. Writing it again is not a refresh.
+        if !self.held {
+            self.sent = Sent::default();
+        }
+        self.apply(&look).await
+    }
+
+    /// Apply what the patch asks for once the sender has gone quiet.
+    async fn quiet(&mut self) -> bool {
+        let Some(look) = self.last.as_ref().and_then(|last| last.quiet(self.loss)) else {
+            return false;
+        };
+        self.apply(&look).await
+    }
+
+    async fn write(&mut self, look: &Look) -> Result<bool> {
+        if !look.on {
+            return self.power_off().await;
+        }
+        let mut wrote = self.power_on().await?;
+        if let Some(level) = look.brightness
+            && self.sent.brightness != Some(level)
+        {
+            gap(wrote).await;
+            self.device().brightness(level).await?;
+            self.sent.brightness = Some(level);
+            self.counts.frames_sent += 1;
+            wrote = true;
+        }
+        if self.options.is_some() {
+            gap(wrote).await;
+            return Ok(self.zones(&look.zones)? || wrote);
+        }
+        if let Some(rgb) = look.color
+            && self.sent.color != Some(rgb)
+        {
+            gap(wrote).await;
+            self.device().color(rgb).await?;
+            self.sent.color = Some(rgb);
+            self.counts.frames_sent += 1;
+            wrote = true;
+        }
+        if let Some(kelvin) = look.white_temp
+            && self.sent.white_temp != Some(kelvin)
+        {
+            gap(wrote).await;
+            self.device().color_temp(kelvin).await?;
+            self.sent.white_temp = Some(kelvin);
+            self.counts.frames_sent += 1;
+            wrote = true;
+        }
+        Ok(wrote)
+    }
+
+    /// Power the device on, and arm the channel where the personality paints
+    /// zones. Arming a dark strip paints nothing, so the order is fixed.
+    ///
+    /// An armed channel is proof the device is on, so the power command is
+    /// skipped there whatever the refresh cleared: a power command ends the
+    /// armed channel on some devices, and the device then shows the color it
+    /// held before the stream — see `docs/protocol/lan.md` 2.3.
+    async fn power_on(&mut self) -> Result<bool> {
+        if self.sent.on == Some(true) || self.stream.is_some() {
+            return Ok(false);
+        }
+        self.device().power(true).await?;
+        self.sent.on = Some(true);
+        self.counts.frames_sent += 1;
+        if let Some(options) = self.options.clone()
+            && self.stream.is_none()
+        {
+            gap(true).await;
+            let stream = self.device().open_stream(options).await?;
+            self.stream = Some(stream);
+        }
+        Ok(true)
+    }
+
+    /// The dimmer at 0. The channel is disarmed first: it holds the colors
+    /// only while it is armed, and a device that comes back on arms it again.
+    async fn power_off(&mut self) -> Result<bool> {
+        if self.sent.on == Some(false) {
+            return Ok(false);
+        }
+        let disarmed = self.stream.is_some();
+        self.close().await;
+        gap(disarmed).await;
+        self.device().power(false).await?;
+        self.sent = Sent {
+            on: Some(false),
+            ..Sent::default()
+        };
+        self.counts.frames_sent += 1;
+        Ok(true)
+    }
+
+    /// Hand the zones to the stream, which paces them and drops what a later
+    /// frame replaced.
+    fn zones(&mut self, zones: &[[u8; 3]]) -> Result<bool> {
+        let Some(stream) = &self.stream else {
+            return Ok(false);
+        };
+        if self.sent.zones == zones {
+            return Ok(false);
+        }
+        stream.set_all(zones)?;
+        self.sent.zones = zones.to_vec();
+        Ok(true)
+    }
+
+    /// Forget a stream whose device stopped answering. Its counters are kept
+    /// and the next write opens a new one: a disarming frame has nothing to
+    /// reach.
+    fn discard(&mut self) {
+        let Some(stream) = self.stream.take() else {
+            return;
+        };
+        self.counts.frames_sent += stream.frames_sent();
+        self.counts.frames_superseded += stream.frames_superseded();
+    }
+
+    /// Disarm the channel, and carry what it sent into the counters.
+    async fn close(&mut self) {
+        let Some(stream) = self.stream.take() else {
+            return;
+        };
+        self.counts.frames_sent += stream.frames_sent();
+        self.counts.frames_superseded += stream.frames_superseded();
+        if let Err(error) = stream.close().await {
+            self.failed(&error);
+        }
+    }
+
+    async fn finish(mut self) -> Counts {
+        self.close().await;
+        self.counts
+    }
+
+    /// Report a failure, and keep the fixture running: a show does not stop
+    /// because one device dropped.
+    fn failed(&self, error: &Error) {
+        let failure = Failure {
+            id: self.id.clone(),
+            reason: error.to_string(),
+        };
+        // A full channel means the reader is behind. Dropping the report keeps
+        // the send path free, which is what the report is about.
+        drop(self.failures.try_send(failure));
+    }
+}
+
+/// How the stream opens for this fixture, and `None` where the personality
+/// carries no zone.
+fn options(fixture: &Fixture) -> Option<StreamOptions> {
+    let resolution = match fixture.profile.personality() {
+        Personality::Full => return None,
+        Personality::Segment => Resolution::App,
+        Personality::Pixel => Resolution::Native,
+    };
+    Some(StreamOptions {
+        resolution,
+        rate: fixture.entry.max_hz.map_or(Rate::Measured, Rate::Fixed),
+        gradient: false,
+    })
+}

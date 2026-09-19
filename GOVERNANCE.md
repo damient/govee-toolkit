@@ -63,7 +63,7 @@ commit access by the maintainer. Areas are handed over whole where that makes
 sense: a language binding, an integration, the device catalog.
 
 The expectation that comes with it is the four points above, and the writing
-conventions in [`CLAUDE.md`](CLAUDE.md).
+conventions in [`AGENTS.md`](AGENTS.md).
 
 ## If the project is abandoned
 

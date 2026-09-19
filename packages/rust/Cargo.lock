@@ -673,6 +673,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "govee-toolkit-dmx"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "govee-toolkit",
+ "govee-toolkit-sim",
+ "serde",
+ "serde_json",
+ "serde_norway",
+ "socket2",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "govee-toolkit-sim"
 version = "0.10.0"
 dependencies = [
@@ -2482,6 +2497,7 @@ name = "xtask"
 version = "0.10.0"
 dependencies = [
  "govee-toolkit",
+ "govee-toolkit-dmx",
  "serde_json",
  "serde_norway",
 ]

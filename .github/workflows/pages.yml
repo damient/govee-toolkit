@@ -11,7 +11,10 @@ on:
       - "site/**"
       - "devices/**"
       - ".github/workflows/pages.yml"
+  # A draft pull request does not build the site: the build job is gated on
+  # draft == false, and ready_for_review is what starts it.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "site/**"
       - "devices/**"
@@ -28,6 +31,7 @@ concurrency:
 jobs:
   build:
     name: Build
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

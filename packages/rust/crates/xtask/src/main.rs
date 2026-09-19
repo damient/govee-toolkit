@@ -2,6 +2,7 @@
 //!
 //! - `xtask catalog [path]` — the distributable catalog.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
+//! - `xtask dmx [--check]` — the tables in `docs/dmx-profiles.md`.
 //! - `xtask dupes` — command layouts two device files declare, and no shared
 //!   table carries.
 //!
@@ -23,22 +24,25 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
-use govee_toolkit::codec::{Catalog, SCHEMA_VERSION};
+use govee_toolkit::codec::{Catalog, Device, SCHEMA_VERSION};
 
+mod dmx;
 mod dupes;
 
 fn main() {
     let root = repository_root();
     let args: Vec<String> = env::args().skip(1).collect();
+    let check = args.iter().any(|a| a == "--check");
     match args.first().map(String::as_str) {
-        Some("compat") => compat(&root, args.iter().any(|a| a == "--check")),
+        Some("compat") => compat(&root, check),
+        Some("dmx") => dmx(&root, check),
         Some("dupes") => {
             let devices = root.join("devices");
             dupes::dupes(&load(&devices), &load_families(&devices));
         }
         Some("catalog") | None => catalog(&root, args.get(1).map(PathBuf::from)),
         Some(other) => {
-            eprintln!("unknown task `{other}`; expected `catalog`, `compat` or `dupes`");
+            eprintln!("unknown task `{other}`; expected `catalog`, `compat`, `dmx` or `dupes`");
             process::exit(2);
         }
     }
@@ -53,12 +57,9 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
     let devices = root.join("devices");
     let out = out.unwrap_or_else(|| root.join("dist/catalog.json"));
 
-    let sources = read_all(&yaml_files(&devices));
-    let families = read_all(&yaml_files(&devices.join("families")));
-    let catalog = Catalog::from_sources_with(borrow(&sources), borrow(&families))
-        .unwrap_or_else(|e| panic!("{e}"));
+    let catalog = build_catalog(&devices);
 
-    let entries: Vec<_> = catalog.devices().collect();
+    let entries: Vec<serde_json::Value> = catalog.devices().map(device_json).collect();
     let document = serde_json::json!({
         "schema_version": SCHEMA_VERSION,
         "generator": "packages/rust/crates/xtask",
@@ -74,27 +75,55 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
     println!("{} devices -> {}", entries.len(), out.display());
 }
 
-/// The two tables in `docs/compatibility.md`, between their generated markers.
-///
-/// The prose around them is written by hand; only what the device files already
-/// state is generated, and it is generated as they state it. A blank
-/// `verified.date` renders `?`, because that is what the file says.
-fn compat(root: &Path, check: bool) {
-    let page = root.join("docs/compatibility.md");
-    let text =
-        fs::read_to_string(&page).unwrap_or_else(|e| panic!("cannot read {}: {e}", page.display()));
+/// One device file, plus the `dmx` channel table derived from it.
+fn device_json(device: &Device) -> serde_json::Value {
+    let mut value = serde_json::to_value(device).expect("serialize the device");
+    if let Some(object) = value.as_object_mut() {
+        object.insert("dmx".to_owned(), dmx::catalog_entry(device));
+    }
+    value
+}
 
-    let devices: Vec<serde_json::Value> = load(&root.join("devices"))
-        .into_iter()
-        .map(|(_, value)| value)
-        .collect();
-    let updated = replace_block(&text, "support-by-sku", &support_table(&devices));
-    let updated = replace_block(&updated, "capabilities-by-sku", &capability_table(&devices));
+/// The catalog the SDK loads, built from `devices/*.yaml`.
+fn build_catalog(devices: &Path) -> Catalog {
+    let sources = read_all(&yaml_files(devices));
+    let families = read_all(&yaml_files(&devices.join("families")));
+    Catalog::from_sources_with(borrow(&sources), borrow(&families))
+        .unwrap_or_else(|e| panic!("{e}"))
+}
+
+/// The two tables in `docs/dmx-profiles.md`, between their generated markers.
+///
+/// The channel table itself is derived by `govee-toolkit-dmx`, so the page and
+/// the node read one implementation.
+fn dmx(root: &Path, check: bool) {
+    let catalog = build_catalog(&root.join("devices"));
+    generate(
+        &root.join("docs/dmx-profiles.md"),
+        "dmx",
+        &[
+            ("dmx-personalities", dmx::personality_table(&catalog)),
+            ("dmx-scaled-channels", dmx::scale_table(&catalog)),
+        ],
+        check,
+    );
+}
+
+/// Replace each named block of `page`, then write it or check it.
+///
+/// `--check` exits 1 on a difference and names the task that repairs it. The
+/// prose around a block is written by hand and is never touched.
+fn generate(page: &Path, task: &str, blocks: &[(&str, String)], check: bool) {
+    let text =
+        fs::read_to_string(page).unwrap_or_else(|e| panic!("cannot read {}: {e}", page.display()));
+    let updated = blocks.iter().fold(text.clone(), |text, (name, body)| {
+        replace_block(&text, name, body)
+    });
 
     if check {
         if updated != text {
             eprintln!(
-                "{} is out of date with devices/*.yaml. Run `cargo run -p xtask -- compat`.",
+                "{} is out of date with devices/*.yaml. Run `cargo run -p xtask -- {task}`.",
                 page.display()
             );
             process::exit(1);
@@ -102,11 +131,28 @@ fn compat(root: &Path, check: bool) {
         println!("{} is up to date", page.display());
         return;
     }
-    fs::write(&page, updated).unwrap_or_else(|e| panic!("{}: {e}", page.display()));
-    println!(
-        "{} regenerated from {} devices",
-        page.display(),
-        devices.len()
+    fs::write(page, updated).unwrap_or_else(|e| panic!("{}: {e}", page.display()));
+    println!("{} regenerated", page.display());
+}
+
+/// The two tables in `docs/compatibility.md`, between their generated markers.
+///
+/// The prose around them is written by hand; only what the device files already
+/// state is generated, and it is generated as they state it. A blank
+/// `verified.date` renders `?`, because that is what the file says.
+fn compat(root: &Path, check: bool) {
+    let devices: Vec<serde_json::Value> = load(&root.join("devices"))
+        .into_iter()
+        .map(|(_, value)| value)
+        .collect();
+    generate(
+        &root.join("docs/compatibility.md"),
+        "compat",
+        &[
+            ("support-by-sku", support_table(&devices)),
+            ("capabilities-by-sku", capability_table(&devices)),
+        ],
+        check,
     );
 }
 

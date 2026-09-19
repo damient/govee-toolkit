@@ -4,7 +4,7 @@
 
 import { MODES } from "./config.mjs";
 import { escapeHtml } from "./html.mjs";
-import { familyIcon, modeIcon } from "./icons.mjs";
+import { badgeIcon, familyIcon, modeIcon } from "./icons.mjs";
 
 const badge = (kind, iconHtml, text) =>
   `<span class="mbadge mbadge-${kind}">${iconHtml}${text}</span>`;
@@ -19,6 +19,12 @@ export function modeBadge(mode) {
 export function modeMark(mode) {
   return `<span class="mbadge mbadge-${mode} mbadge-mini" title="${mode}">${modeIcon(mode)}`
     + `<span class="visually-hidden">${mode}</span></span>`;
+}
+
+/** One badge, saying the model answers a DMX channel table. It names an
+ * input and not a mode, so it takes the neutral tint. */
+export function dmxBadge() {
+  return badge("dmx", badgeIcon("dmx"), "DMX 512");
 }
 
 /** One badge, naming the device family. Empty where the catalog names none.

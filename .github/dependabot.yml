@@ -39,18 +39,6 @@ updates:
         update-types: [minor, patch]
 
   - package-ecosystem: npm
-    directory: /packages/artnet-dmx-bridge
-    commit-message:
-      prefix: "build"
-      include: scope
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      artnet-dmx-bridge-minor:
-        update-types: [minor, patch]
-
-  - package-ecosystem: npm
     directory: /apps/desktop
     commit-message:
       prefix: "build"
