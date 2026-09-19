@@ -11,6 +11,8 @@
 //!   name: govee-toolkit       # what the desk shows in its node list
 //!   refresh_secs: 10
 //!   signal_loss_secs: 4       # how long a fixture waits for a frame
+//!   off_delay_secs: 5         # how long the dimmer stays at 0 before the
+//!                             # fixture powers off
 //! patch:
 //!   - device: "AA:BB:CC:DD:EE:FF"
 //!     sku: H6199              # what sizes the entry while the device is off
@@ -69,6 +71,10 @@ pub const REFRESH_SECS: u64 = 10;
 /// How long a fixture waits for a frame before `on_signal_loss` decides what
 /// it shows. Art-Net calls a sender lost after 4 seconds.
 pub const SIGNAL_LOSS_SECS: u64 = 4;
+/// How long a fixture stays on and black before the dimmer at 0 powers it
+/// off. Long enough that a cue that dips through 0 costs no power command,
+/// short enough that a blackout leaves no device powered.
+pub const OFF_DELAY_SECS: u64 = 5;
 
 /// A patch file.
 ///
@@ -101,6 +107,9 @@ pub struct Node {
     /// How long a fixture waits for a frame before `on_signal_loss` decides
     /// what it shows.
     pub signal_loss_secs: u64,
+    /// How long a fixture stays on and black before the dimmer at 0 powers it
+    /// off. `0` powers it off at once.
+    pub off_delay_secs: u64,
 }
 
 impl Default for Node {
@@ -110,6 +119,7 @@ impl Default for Node {
             name: NODE_NAME.to_owned(),
             refresh_secs: REFRESH_SECS,
             signal_loss_secs: SIGNAL_LOSS_SECS,
+            off_delay_secs: OFF_DELAY_SECS,
         }
     }
 }

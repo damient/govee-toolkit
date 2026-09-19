@@ -25,6 +25,38 @@ use crate::apply::look::Look;
 /// chase pays nothing.
 const GAP: Duration = Duration::from_millis(5);
 
+/// What a fixture at dimmer 0 is doing.
+///
+/// A device that is powered off answers nothing until it is powered on again,
+/// and the firmware needs time between the two. A dimmer that dips through 0
+/// therefore takes the device dark and leaves it on, and the power off waits
+/// for the dimmer to stay at 0 — see `docs/dmx.md`.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Dark {
+    /// The dimmer carries a value.
+    #[default]
+    No,
+    /// On and black since this instant. The power off is due one off delay
+    /// after it.
+    Since(Instant),
+    /// The power off is due on the next pass, whatever the off delay. The
+    /// signal loss answer takes this: a sender that went away is not a dimmer
+    /// that dipped, and the rig must go off at once.
+    Due,
+    /// Powered off.
+    Off,
+}
+
+/// What the pass does with a look at dimmer 0.
+enum Step {
+    /// The fixture is already dark, and the power off is not due.
+    Nothing,
+    /// Take every color to 0 and leave the device on.
+    Black(Look),
+    /// Power the device off.
+    Off,
+}
+
 /// What one fixture last received. Every field is compared before a write, so
 /// a desk that holds a static look puts no traffic on the device.
 #[derive(Debug, Default)]
@@ -53,9 +85,20 @@ impl Feeder {
     }
 
     pub(super) async fn write(&mut self, look: &Look) -> Result<bool> {
-        if !look.on {
-            return self.power_off().await;
-        }
+        let dark;
+        let look = if look.on {
+            self.dark = Dark::No;
+            look
+        } else {
+            match self.darken(look) {
+                Step::Nothing => return Ok(false),
+                Step::Off => return self.power_off().await,
+                Step::Black(black) => {
+                    dark = black;
+                    &dark
+                }
+            }
+        };
         let mut wrote = self.power_on().await?;
         if let Some(level) = look.brightness
             && self.sent.brightness != Some(level)
@@ -137,6 +180,39 @@ impl Feeder {
             self.stream = Some(stream);
         }
         Ok(true)
+    }
+
+    /// What a look at dimmer 0 asks of the device.
+    ///
+    /// The first pass takes the fixture dark and leaves it on. The power off
+    /// follows one off delay later, and an off delay of zero powers the
+    /// device off at once.
+    fn darken(&mut self, look: &Look) -> Step {
+        match self.dark {
+            Dark::Off => Step::Nothing,
+            Dark::Since(since) if since.elapsed() < self.timing.off_delay => Step::Nothing,
+            Dark::Since(_) | Dark::Due => {
+                self.dark = Dark::Off;
+                Step::Off
+            }
+            Dark::No if self.timing.off_delay.is_zero() => {
+                self.dark = Dark::Off;
+                Step::Off
+            }
+            Dark::No => {
+                self.dark = Dark::Since(Instant::now());
+                Step::Black(look.black())
+            }
+        }
+    }
+
+    /// When the power off of a dark fixture is due, and `None` where the
+    /// fixture is not waiting for one.
+    pub(super) fn off_due(&self) -> Option<Instant> {
+        match self.dark {
+            Dark::Since(since) => Some(since + self.timing.off_delay),
+            Dark::No | Dark::Due | Dark::Off => None,
+        }
     }
 
     /// The dimmer at 0. The channel is disarmed first: it holds the colors

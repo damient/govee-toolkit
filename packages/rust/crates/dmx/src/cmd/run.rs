@@ -88,6 +88,7 @@ async fn run(
     let timing = Timing {
         refresh: Duration::from_secs(patch.node.refresh_secs),
         silence: Duration::from_secs(patch.node.signal_loss_secs),
+        off_delay: Duration::from_secs(patch.node.off_delay_secs),
     };
     let mut node = if flags.dry_run {
         Node::dry_run(rig)

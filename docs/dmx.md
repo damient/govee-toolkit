@@ -242,9 +242,30 @@ write holds up the socket. A look the task did not take before the next one
 arrived is counted with the frames the stream superseded.
 
 A zone personality arms the segment channel once the device powers on, and
-disarms it when the dimmer returns to 0. The channel holds the colors only
+disarms it when the fixture powers off. The channel holds the colors only
 while it is armed, and arming a dark strip paints nothing, so the order is
 fixed.
+
+### The dimmer at 0
+
+A dimmer that reaches 0 takes every color to 0 and **leaves the device on**.
+The power off follows `node.off_delay_secs` later, and only while the dimmer
+stays at 0. The default is 5 seconds. `0` powers the device off on the pass
+that reads the 0.
+
+The wait is what makes a dip through 0 work. A power off and a power on that
+arrive close together are applied in the wrong order by the firmware, and the
+fixture then stays dark with no error — see
+[`protocol/lan.md`](protocol/lan.md) 1. A zone personality pays more: the
+power off disarms the segment channel, and the channel needs time to arm
+again. A dimmer that comes back up before the delay is over costs one repaint
+and no power command.
+
+A device that is off draws no power and shows nothing. A device that is on and
+black still glows on some units, which is why the power off happens at all.
+
+`on_signal_loss: off` waits no off delay: a sender that went away is not a
+dimmer that dipped, so the rig goes off at `node.signal_loss_secs`.
 
 ### Signal loss
 
@@ -292,6 +313,8 @@ node:
   name: govee-toolkit       # what the desk shows in its node list
   refresh_secs: 10
   signal_loss_secs: 4       # how long a fixture waits for a frame
+  off_delay_secs: 5         # how long the dimmer stays at 0 before the
+                            # fixture powers off
 patch:
   - device: "AA:BB:CC:DD:EE:FF"
     sku: H61A0              # optional. What sizes the entry while the device

@@ -81,13 +81,26 @@ impl Look {
         match loss {
             SignalLoss::Hold => None,
             SignalLoss::Off => Some(Self::default()),
-            SignalLoss::Black => Some(Self {
-                color: self.color.map(|_| [0, 0, 0]),
-                white_temp: None,
-                zones: vec![[0, 0, 0]; self.zones.len()],
-                resend: false,
-                ..self.clone()
-            }),
+            SignalLoss::Black => Some(self.black()),
+        }
+    }
+
+    /// The same look, dark: every color at 0, the device on, and the
+    /// brightness untouched.
+    ///
+    /// It sends no white command, because a white command would light the
+    /// fixture. The send path writes this where a dimmer reaches 0, so the
+    /// device stays on and a dimmer that comes back up costs one repaint
+    /// instead of a power cycle.
+    #[must_use]
+    pub fn black(&self) -> Self {
+        Self {
+            on: true,
+            color: self.color.map(|_| [0, 0, 0]),
+            white_temp: None,
+            zones: vec![[0, 0, 0]; self.zones.len()],
+            resend: false,
+            ..self.clone()
         }
     }
 

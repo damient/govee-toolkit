@@ -15,7 +15,7 @@ use govee_toolkit::{DeviceHandle, DeviceId, Error, Govee, Mode, SegmentStream};
 use tokio::sync::{mpsc, watch};
 use tokio::time::Instant;
 
-use self::send::Sent;
+use self::send::{Dark, Sent};
 use super::backoff::Backoff;
 use super::look::Look;
 use super::rate::Pace;
@@ -40,6 +40,8 @@ pub(super) struct Feeder {
     pace: Pace,
     /// A look the pace held, which the next due write carries.
     held: bool,
+    /// What the fixture does at dimmer 0.
+    dark: Dark,
     sent: Sent,
     /// When the last datagram went out to this device. The next one waits
     /// behind it.
@@ -75,6 +77,7 @@ impl Feeder {
             backoff: Backoff::default(),
             pace: Pace::new(fixture.entry.max_hz),
             held: false,
+            dark: Dark::default(),
             sent: Sent::default(),
             last_sent: None,
             last: None,
@@ -187,9 +190,15 @@ impl Feeder {
         } else {
             refresh
         };
-        match self.pace.ready() {
+        let next = match self.pace.ready() {
             Some(ready) if self.held => ready.min(next),
             _ => next,
+        };
+        // A fixture that waits to power off writes nothing until it does, so
+        // no other wait would carry the pass that ends the wait.
+        match self.off_due() {
+            Some(off) => off.min(next),
+            None => next,
         }
     }
 
@@ -208,10 +217,16 @@ impl Feeder {
     }
 
     /// Apply what the patch asks for once the sender has gone quiet.
+    ///
+    /// `off` powers the fixture off on this pass and waits no off delay: a
+    /// sender that went away is not a dimmer that dipped.
     async fn quiet(&mut self) -> bool {
         let Some(look) = self.last.as_ref().and_then(|last| last.quiet(self.loss)) else {
             return false;
         };
+        if self.loss == SignalLoss::Off {
+            self.dark = Dark::Due;
+        }
         self.apply(&look).await
     }
 
