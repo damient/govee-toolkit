@@ -158,6 +158,10 @@ Nothing is published yet: the manifest carries `publish = false`.
   delay.
 - `node.off_delay_secs` — how long a fixture stays on and black before the
   dimmer at 0 powers it off.
+- `govee-dmx run --debug` installs a `tracing` subscriber. A live run carries
+  `warn`, which reports a segment frame the transport refused and a stream that
+  stopped; `--debug` raises the library to `debug`. `RUST_LOG` wins over both,
+  and the traces go to stderr.
 - Two entries on one port-address, one start address and one personality are a
   clone. They answer to one channel table, the desk drives both from one set of
   values, and the loader allows it. A part of a span shared under two tables

@@ -14,6 +14,7 @@ pub(crate) mod run;
 use std::process::ExitCode;
 
 use serde_json::json;
+use tracing_subscriber::EnvFilter;
 
 /// Something failed that no other code names.
 pub(crate) const INTERNAL: u8 = 1;
@@ -51,4 +52,28 @@ impl Failure {
         }
         ExitCode::from(self.code)
     }
+}
+
+/// Send the library traces to stderr, so a stream that stops says so.
+///
+/// Nothing acknowledges a LAN frame: a segment frame the transport refused and
+/// a stream that ended are reported through `tracing` and nowhere else. `warn`
+/// is what a live run carries, `debug` is what `--debug` asks for, and
+/// `RUST_LOG` wins over both. The traces go to stderr, so `--json` keeps
+/// stdout for its records.
+pub(crate) fn trace(debug: bool) {
+    let default = if debug {
+        "warn,govee_toolkit=debug,govee_toolkit_dmx=debug"
+    } else {
+        "warn"
+    };
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(default));
+    // A second install is the caller's error and not the operator's, and a run
+    // without traces is better than a run that stops here.
+    drop(
+        tracing_subscriber::fmt()
+            .with_env_filter(filter)
+            .with_writer(std::io::stderr)
+            .try_init(),
+    );
 }

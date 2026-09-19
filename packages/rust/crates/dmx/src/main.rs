@@ -137,7 +137,8 @@ enum Command {
         /// Leave every device as it is at start, and store no black on it.
         #[arg(long)]
         no_reset: bool,
-        /// Print a line for each answered poll, which a live run leaves out.
+        /// Print a line for each answered poll, and the library traces at
+        /// `debug`. `RUST_LOG` wins over it. Both go to stderr.
         #[arg(long)]
         debug: bool,
         /// The configuration file. The default is the one `govee` reads.
@@ -283,17 +284,20 @@ fn main() -> ExitCode {
             config,
             json,
         } => match options(&personality, universe, false, false) {
-            Ok(options) => cmd::run::start(
-                patch.as_deref(),
-                scan.then_some(options),
-                cmd::run::Flags {
-                    dry_run,
-                    no_reset,
-                    debug,
-                },
-                config.as_deref(),
-                json,
-            ),
+            Ok(options) => {
+                cmd::trace(debug);
+                cmd::run::start(
+                    patch.as_deref(),
+                    scan.then_some(options),
+                    cmd::run::Flags {
+                        dry_run,
+                        no_reset,
+                        debug,
+                    },
+                    config.as_deref(),
+                    json,
+                )
+            }
             Err(failure) => Err(failure),
         },
     };
