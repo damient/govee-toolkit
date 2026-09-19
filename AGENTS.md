@@ -1,7 +1,7 @@
-# CLAUDE.md
+# AGENTS.md
 
-Working notes for Claude Code on this repository. Conventions here are decisions
-already made — follow them rather than re-deriving them.
+Working notes for a coding agent on this repository. Conventions here are
+decisions already made — follow them rather than re-deriving them.
 
 ## What this project is
 

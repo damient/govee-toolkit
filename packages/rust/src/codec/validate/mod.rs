@@ -1,6 +1,6 @@
 //! Structural checks on a device file.
 //!
-//! The conventions in `devices/README.md` and `CLAUDE.md`, made
+//! The conventions in `devices/README.md` and `AGENTS.md`, made
 //! machine-checkable and run in CI. They check the *shape* of a file, never
 //! whether a device behaves that way.
 

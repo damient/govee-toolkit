@@ -79,7 +79,7 @@ Signed-off-by: <author>
 - The summary is imperative and under 72 characters, with no trailing period.
 - The body is where the reasoning goes, wrapped at 72: what the change does,
   and why it is shaped that way. What the diff already says needs no
-  paragraph. Plain and concise, English, no selling — `CLAUDE.md`, "Writing".
+  paragraph. Plain and concise, English, no selling — `AGENTS.md`, "Writing".
 - A commit message is history by design, so it may say what a change replaces
   and why the old shape did not hold. That licence stops at the message: the
   docs and comments it ships still describe the code as it is.
