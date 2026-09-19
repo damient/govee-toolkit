@@ -4,9 +4,11 @@
 //! object on stderr, and the exit codes below. The text form is for a person
 //! and its layout can change at any release.
 
+pub(crate) mod identify;
 pub(crate) mod observe;
 pub(crate) mod patch;
 pub(crate) mod profile;
+pub(crate) mod rig;
 pub(crate) mod run;
 
 use std::process::ExitCode;

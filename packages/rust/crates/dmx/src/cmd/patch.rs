@@ -7,10 +7,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use govee_toolkit::{Config, Device, DeviceId, Govee, Mode};
+use govee_toolkit::{Device, DeviceId, Govee, Mode};
 use govee_toolkit_dmx::patch::{self, Candidate, Layout, Patch, Plan, PortAddress, Skip, stamp};
 use serde_json::{Value, json};
 
+use super::rig::{configure, lines};
 use super::{CONFIG, Failure, INTERNAL, UNREACHABLE};
 
 /// What the command line asks of one scan.
@@ -329,20 +330,4 @@ fn records(skips: &[Skip]) -> Vec<Value> {
             })
         })
         .collect()
-}
-
-fn configure(path: Option<&Path>) -> Result<Config, Failure> {
-    let config = match path {
-        Some(path) => Config::load_from(path),
-        None => Config::load(),
-    };
-    config.map_err(|e| Failure::new(e.to_string(), CONFIG))
-}
-
-fn lines<E: ToString>(errors: &[E]) -> String {
-    errors
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join("\n")
 }

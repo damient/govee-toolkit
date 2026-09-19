@@ -352,6 +352,25 @@ operator edited by hand.
 node from the file it wrote. One command therefore takes a rig from nothing to
 a node a desk can patch.
 
+`govee-dmx identify [FILE]` names each enabled entry and lights the fixture it
+drives, so an operator maps a line of the patch to a fixture in the room. Every
+fixture goes off at once first, and the walk then lights one fixture at a time,
+in the order the patch lists them. The terminal prints the entry before its
+fixture lights.
+
+- `--color` is the color each fixture shows. The default is `#00ff00`.
+- `--wait-ms` is the interval between two steps: after the rig goes off, and
+  after each fixture lights. The default is 1000.
+- `--hold-ms` is how long the last fixture holds the color before every fixture
+  goes off. The default is 5000.
+- `--keep` leaves every fixture lit, and sends no power command at the end.
+
+The walk drives the devices over `lan`, the way a run does. A fixture that
+refuses the first blackout leaves the walk there. A fixture that fails later
+stops no other one: the walk prints the failure, carries on, and exits
+non-zero. The look each fixture held is lost — the walk reads no state back
+first.
+
 `govee-dmx profile <SKU>` prints the channel table, so the operator can patch
 the desk. It also prints the step count for each scaled channel.
 

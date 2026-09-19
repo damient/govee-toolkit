@@ -4,20 +4,19 @@
 //! fixture reads out of it, and it writes to no device: that is what debugs a
 //! patch before any device is at risk.
 
-use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::time::Duration;
 
-use govee_toolkit::codec::Device;
-use govee_toolkit::{Config, DeviceId, Govee, Mode};
+use govee_toolkit::Govee;
 use govee_toolkit_dmx::apply::Timing;
 use govee_toolkit_dmx::input::artnet::PORT;
 use govee_toolkit_dmx::input::socket::Listener;
 use govee_toolkit_dmx::node::Node;
-use govee_toolkit_dmx::patch::{Patch, Rig};
+use govee_toolkit_dmx::patch::Patch;
 
 use super::observe::Printer;
+use super::rig::{configure, resolve};
 use super::{CONFIG, Failure, INTERNAL, UNREACHABLE, patch as writer};
 
 pub(crate) fn start(
@@ -96,66 +95,4 @@ async fn shutdown() {
     if tokio::signal::ctrl_c().await.is_err() {
         std::future::pending::<()>().await;
     }
-}
-
-fn configure(path: Option<&Path>) -> Result<Config, Failure> {
-    let config = match path {
-        Some(path) => Config::load_from(path),
-        None => Config::load(),
-    };
-    config.map_err(|e| Failure::new(e.to_string(), CONFIG))
-}
-
-/// The patch, joined to every device the SDK knows.
-///
-/// A device the cache carries counts here, and a device that misses one scan
-/// therefore starts the run. The backoff of the send path is what reports it
-/// where it stays silent — `docs/dmx.md`.
-fn resolve(govee: &Govee, patch: &Patch) -> Result<Rig, Failure> {
-    let found = govee.devices();
-    let mut known: BTreeMap<DeviceId, &Device> = BTreeMap::new();
-    for device in &found {
-        if let Ok(file) = govee.catalog().device(&device.sku) {
-            known.insert(device.id.clone(), file);
-        }
-    }
-    let catalog = govee.catalog();
-    let rig = patch
-        .resolve(|id| known.get(id).copied(), |sku| catalog.device(sku).ok())
-        .map_err(|errors| Failure::new(lines(&errors), CONFIG))?;
-    lan_enabled(govee, &rig)?;
-    Ok(rig)
-}
-
-/// Every patched device must have `lan` enabled. The bridge reaches a device
-/// over `lan` and substitutes no other mode, so this fails at the start rather
-/// than at the first frame.
-fn lan_enabled(govee: &Govee, rig: &Rig) -> Result<(), Failure> {
-    let without: Vec<String> = rig
-        .fixtures()
-        .iter()
-        .map(|fixture| &fixture.entry.device)
-        .filter(|id| !govee.device(id).modes().contains(&Mode::Lan))
-        .map(ToString::to_string)
-        .collect();
-    if without.is_empty() {
-        return Ok(());
-    }
-    Err(Failure::new(
-        format!(
-            "these devices enable no `lan` mode: {}; the bridge drives a device over `lan` alone",
-            without.join(", ")
-        ),
-        UNREACHABLE,
-    ))
-}
-
-/// Every fault of a patch, one per line: an operator corrects the whole patch
-/// once.
-fn lines<E: ToString>(errors: &[E]) -> String {
-    errors
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join("\n")
 }
