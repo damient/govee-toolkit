@@ -37,13 +37,21 @@ pub struct Fixture {
 #[derive(Debug, Clone)]
 pub struct Rig {
     fixtures: Vec<Fixture>,
+    reserved: Vec<Fixture>,
 }
 
 impl Rig {
-    /// Every fixture, in the order the patch lists them.
+    /// Every driven fixture, in the order the patch lists them.
     #[must_use]
     pub fn fixtures(&self) -> &[Fixture] {
         &self.fixtures
+    }
+
+    /// Every disabled entry that still holds its channels. The bridge sends
+    /// it nothing, and no driven fixture takes those channels.
+    #[must_use]
+    pub fn reserved(&self) -> &[Fixture] {
+        &self.reserved
     }
 
     /// The port-addresses the rig answers on, each one once and in order.
@@ -62,7 +70,10 @@ impl Rig {
 }
 
 impl Patch {
-    /// The patch, joined to the devices `device_of` answers with.
+    /// The patch, joined to the devices `found` answers with.
+    ///
+    /// `known` answers the device file of a SKU, and sizes a disabled entry
+    /// whose device did not answer: those channels stay reserved.
     ///
     /// Every entry is checked, and every fault is reported: an operator at a
     /// desk corrects the whole patch once, not one line per run.
@@ -71,55 +82,84 @@ impl Patch {
     ///
     /// Every [`Error`] the entries carry: an address outside a universe, a
     /// fixture past the end of one, two fixtures on one channel, one device
-    /// patched twice, a device `device_of` does not answer, and a
+    /// patched twice, an enabled entry `found` does not answer, and a
     /// personality the device serves through nothing.
     pub fn resolve<'a>(
         &self,
-        device_of: impl Fn(&DeviceId) -> Option<&'a Device>,
+        found: impl Fn(&DeviceId) -> Option<&'a Device>,
+        known: impl Fn(&str) -> Option<&'a Device>,
     ) -> Result<Rig, Vec<Error>> {
-        let mut fixtures = Vec::with_capacity(self.patch.len());
+        let mut placed = Vec::with_capacity(self.patch.len());
         let mut errors = Vec::new();
         let mut seen: BTreeSet<&DeviceId> = BTreeSet::new();
         for entry in &self.patch {
-            if !seen.insert(&entry.device) {
+            if entry.enabled && !seen.insert(&entry.device) {
                 errors.push(Error::Twice {
                     device: entry.device.clone(),
                 });
                 continue;
             }
-            match fixture(entry, &device_of) {
-                Ok(fixture) => fixtures.push(fixture),
+            match fixture(entry, &found, &known) {
+                Ok(Some(fixture)) => placed.push(fixture),
+                // A disabled entry that nothing sizes holds no channel. The
+                // patch command is what refuses it, because it is the one that
+                // hands the channels to another fixture.
+                Ok(None) => {}
                 Err(error) => errors.push(error),
             }
         }
-        errors.extend(overlaps(&fixtures));
-        if errors.is_empty() {
-            Ok(Rig { fixtures })
-        } else {
-            Err(errors)
+        errors.extend(overlaps(&placed));
+        if !errors.is_empty() {
+            return Err(errors);
         }
+        let (fixtures, reserved) = placed.into_iter().partition(|f| f.entry.enabled);
+        Ok(Rig { fixtures, reserved })
     }
 }
 
 /// One entry, joined to its device.
+///
+/// A disabled entry takes the device file its `sku:` names where the device
+/// itself did not answer, and answers `None` where neither states a width.
 fn fixture<'a>(
     entry: &Entry,
-    device_of: &impl Fn(&DeviceId) -> Option<&'a Device>,
-) -> Result<Fixture, Error> {
+    found: &impl Fn(&DeviceId) -> Option<&'a Device>,
+    known: &impl Fn(&str) -> Option<&'a Device>,
+) -> Result<Option<Fixture>, Error> {
     let universe = entry.port_address()?;
-    let device = device_of(&entry.device).ok_or_else(|| Error::Unknown {
-        device: entry.device.clone(),
-    })?;
+    let Some(device) = sized(entry, found, known)? else {
+        return Ok(None);
+    };
     let profile = Profile::of(device, entry.personality).map_err(|source| Error::Unserved {
         device: entry.device.clone(),
         source,
     })?;
     let span = span(entry, universe, profile.width())?;
-    Ok(Fixture {
+    Ok(Some(Fixture {
         entry: entry.clone(),
         universe,
         profile,
         span,
+    }))
+}
+
+/// The device file that states what the entry answers to.
+///
+/// An enabled entry needs the device this run found: the bridge drives what
+/// answered, and a fixture nothing reached is a fault the operator must see.
+fn sized<'a>(
+    entry: &Entry,
+    found: &impl Fn(&DeviceId) -> Option<&'a Device>,
+    known: &impl Fn(&str) -> Option<&'a Device>,
+) -> Result<Option<&'a Device>, Error> {
+    if let Some(device) = found(&entry.device) {
+        return Ok(Some(device));
+    }
+    if !entry.enabled {
+        return Ok(entry.sku.as_deref().and_then(known));
+    }
+    Err(Error::Unknown {
+        device: entry.device.clone(),
     })
 }
 

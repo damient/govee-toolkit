@@ -109,6 +109,15 @@ pub enum Error {
         /// The entry it is about.
         device: DeviceId,
     },
+    /// Nothing states how many channels the entry holds, so the next scan
+    /// could hand them to a second fixture.
+    #[error(
+        "{device}: the device did not answer and the entry carries no `sku:`, so nothing states the channels it holds"
+    )]
+    Unsized {
+        /// The entry it is about.
+        device: DeviceId,
+    },
     /// Nothing says what the device is, so nothing says what it serves.
     #[error("{device}: no device of that identity answered; the bridge drives what it found")]
     Unknown {

@@ -49,6 +49,11 @@ impl Printer {
                 "node": patch.node.name,
                 "dry_run": self.dry_run,
                 "fixtures": fixtures,
+                "reserved": rig
+                    .reserved()
+                    .iter()
+                    .map(|fixture| fixture.entry.device.to_string())
+                    .collect::<Vec<_>>(),
             }),
             &self.start_text(&address, patch, rig),
         );
@@ -66,6 +71,12 @@ impl Printer {
                 fixture.entry.device,
                 fixture.span,
                 fixture.profile.personality()
+            )
+        }));
+        lines.extend(rig.reserved().iter().map(|fixture| {
+            format!(
+                "{}  {}  reserved, not driven",
+                fixture.entry.device, fixture.span
             )
         }));
         lines.join("\n")

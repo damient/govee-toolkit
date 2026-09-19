@@ -12,8 +12,14 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
+use govee_toolkit_dmx::patch::{Layout, MAX_PORT_ADDRESS, PortAddress};
+use govee_toolkit_dmx::profile::Personality;
 
 mod cmd;
+
+/// The personality `--personality widest` names: the widest one the device
+/// serves, which a long strip can take a whole universe for.
+const WIDEST: &str = "widest";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -40,10 +46,52 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Scan the LAN, and write the patch the node runs from.
+    ///
+    /// The command appends: it adds an entry for each device that has none,
+    /// on the lowest free channels, and it moves no entry the file already
+    /// carries. Set `enabled: false` on an entry to take a fixture out of the
+    /// rig and keep its channels.
+    Patch {
+        /// The patch file. The default is `patch.yaml` beside `config.yaml`.
+        patch: Option<PathBuf>,
+        /// The layout a new entry takes: `full`, `segment`, `pixel`, or
+        /// `widest` for the widest the device serves.
+        #[arg(long, default_value = "full")]
+        personality: String,
+        /// The lowest universe a new entry lands on.
+        #[arg(long, default_value_t = 0)]
+        universe: u16,
+        /// Write the file from the scan alone, and keep the current one as
+        /// `.yaml.bak`. Every address in it is set again.
+        #[arg(long)]
+        reset: bool,
+        /// Print what the scan would add, and write nothing.
+        #[arg(long)]
+        dry_run: bool,
+        /// The configuration file. The default is the one `govee` reads.
+        #[arg(long)]
+        config: Option<PathBuf>,
+        /// Print the records a machine reads instead of the lines a person
+        /// reads.
+        #[arg(long)]
+        json: bool,
+    },
     /// Receive Art-Net on port 6454 and drive the patched devices.
     Run {
         /// The patch file, which says which device answers which channels.
-        patch: PathBuf,
+        /// The default is `patch.yaml` beside `config.yaml`.
+        patch: Option<PathBuf>,
+        /// Scan the LAN first, and add an entry for each device that has
+        /// none. See the `patch` command.
+        #[arg(long)]
+        scan: bool,
+        /// The layout `--scan` gives a new entry. See the `patch` command.
+        #[arg(long, default_value = "full", requires = "scan")]
+        personality: String,
+        /// The lowest universe `--scan` lands a new entry on.
+        #[arg(long, default_value_t = 0, requires = "scan")]
+        universe: u16,
         /// Print every packet and what each fixture reads out of it, and
         /// write to no device.
         #[arg(long)]
@@ -62,9 +110,54 @@ impl Command {
     /// Whether this invocation asked for the machine form.
     const fn as_json(&self) -> bool {
         match self {
-            Self::Profile { json, .. } | Self::Run { json, .. } => *json,
+            Self::Profile { json, .. } | Self::Patch { json, .. } | Self::Run { json, .. } => *json,
         }
     }
+}
+
+/// What a scan asks of the patch file.
+fn options(
+    personality: &str,
+    universe: u16,
+    reset: bool,
+    dry_run: bool,
+) -> Result<cmd::patch::Options, cmd::Failure> {
+    let layout = if personality == WIDEST {
+        Layout::Widest
+    } else {
+        Personality::parse(personality)
+            .map(Layout::Fixed)
+            .ok_or_else(|| {
+                cmd::Failure::new(
+                    format!(
+                        "unknown personality `{personality}`; expected {}",
+                        spellings()
+                    ),
+                    cmd::USAGE,
+                )
+            })?
+    };
+    let first = PortAddress::new(universe).ok_or_else(|| {
+        cmd::Failure::new(
+            format!("universe {universe} is over the {MAX_PORT_ADDRESS} Art-Net holds"),
+            cmd::USAGE,
+        )
+    })?;
+    Ok(cmd::patch::Options {
+        layout,
+        first,
+        reset,
+        dry_run,
+    })
+}
+
+fn spellings() -> String {
+    Personality::ALL
+        .iter()
+        .map(|personality| format!("`{personality}`"))
+        .chain(std::iter::once(format!("`{WIDEST}`")))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn main() -> ExitCode {
@@ -76,12 +169,36 @@ fn main() -> ExitCode {
             personality,
             json,
         } => cmd::profile::run(&sku, personality.as_deref(), json),
-        Command::Run {
+        Command::Patch {
             patch,
+            personality,
+            universe,
+            reset,
             dry_run,
             config,
             json,
-        } => cmd::run::start(&patch, dry_run, config.as_deref(), json),
+        } => match options(&personality, universe, reset, dry_run) {
+            Ok(options) => cmd::patch::start(patch.as_deref(), options, config.as_deref(), json),
+            Err(failure) => Err(failure),
+        },
+        Command::Run {
+            patch,
+            scan,
+            personality,
+            universe,
+            dry_run,
+            config,
+            json,
+        } => match options(&personality, universe, false, false) {
+            Ok(options) => cmd::run::start(
+                patch.as_deref(),
+                scan.then_some(options),
+                dry_run,
+                config.as_deref(),
+                json,
+            ),
+            Err(failure) => Err(failure),
+        },
     };
     match outcome {
         Ok(()) => ExitCode::SUCCESS,

@@ -43,7 +43,9 @@ fn one(sku: &str, entry: &str) -> Result<Vec<(u16, u16, u16)>, Vec<Error>> {
     let catalog = catalog();
     let device = catalog.device(sku).expect("the SKU resolves");
     let patch = parse(&format!("patch:\n{entry}"));
-    patch.resolve(|_| Some(device)).map(|rig| spans(&rig))
+    patch
+        .resolve(|_| Some(device), |_| Some(device))
+        .map(|rig| spans(&rig))
 }
 
 fn spans(rig: &super::Rig) -> Vec<(u16, u16, u16)> {
@@ -79,7 +81,10 @@ fn the_fixture_rig_resolves_to_the_channels_the_desk_shows() {
     let catalog = catalog();
     let devices = rig_devices(&catalog);
     let rig = parse(RIG)
-        .resolve(|id| devices.get(id).copied())
+        .resolve(
+            |id| devices.get(id).copied(),
+            |sku| catalog.device(sku).ok(),
+        )
         .unwrap_or_else(|e| panic!("{e:?}"));
     assert_eq!(spans(&rig), vec![(0, 1, 32), (0, 33, 64), (0, 65, 70)]);
     assert_eq!(rig.universes(), vec![PortAddress::new(0).expect("0 fits")]);
@@ -204,7 +209,9 @@ fn a_personality_the_device_serves_through_nothing_is_refused() {
 #[test]
 fn a_device_nothing_found_is_refused() {
     let patch = parse("patch:\n  - { device: A, universe: 0, address: 1, personality: full }");
-    let errors = patch.resolve(|_| None).expect_err("nothing says what A is");
+    let errors = patch
+        .resolve(|_| None, |_| None)
+        .expect_err("nothing says what A is");
     assert!(
         matches!(errors.as_slice(), [Error::Unknown { .. }]),
         "{errors:?}",
@@ -249,4 +256,66 @@ fn an_empty_patch_takes_every_default() {
     assert_eq!(patch.node.refresh_secs, 10);
     assert!(patch.node.bind.is_unspecified());
     assert!(patch.patch.is_empty());
+}
+
+/// A disabled fixture takes no frame, and the channels it holds stay its
+/// own: the addresses the desk carries do not move because one fixture left
+/// the rig.
+#[test]
+fn a_disabled_entry_is_reserved_and_never_driven() {
+    let catalog = catalog();
+    let device = catalog.device("H6008").expect("the SKU resolves");
+    let text = "patch:\n  \
+        - { device: A, enabled: false, universe: 0, address: 1, personality: full }\n  \
+        - { device: B, universe: 0, address: 7, personality: full }\n";
+    let rig = parse(text)
+        .resolve(|_| Some(device), |_| Some(device))
+        .unwrap_or_else(|e| panic!("{e:?}"));
+    assert_eq!(rig.fixtures().len(), 1);
+    assert_eq!(rig.fixtures()[0].entry.device, DeviceId::new("B"));
+    assert_eq!(rig.reserved().len(), 1);
+    assert_eq!(rig.reserved()[0].span.first, 1);
+}
+
+/// The channels of a disabled fixture are refused to a second fixture, which
+/// is what holds the addressing while a device is off.
+#[test]
+fn a_fixture_over_a_disabled_one_is_refused() {
+    let catalog = catalog();
+    let device = catalog.device("H6008").expect("the SKU resolves");
+    let text = "patch:\n  \
+        - { device: A, enabled: false, universe: 0, address: 1, personality: full }\n  \
+        - { device: B, universe: 0, address: 3, personality: full }\n";
+    let errors = parse(text)
+        .resolve(|_| Some(device), |_| Some(device))
+        .expect_err("B sits on the channels A holds");
+    assert!(
+        matches!(errors.as_slice(), [Error::Overlap { .. }]),
+        "{errors:?}"
+    );
+}
+
+/// A disabled entry carries the SKU that sizes it, so its channels are held
+/// while the device is off the network.
+#[test]
+fn a_disabled_entry_is_sized_by_its_sku() {
+    let catalog = catalog();
+    let text = "patch:\n  \
+        - { device: A, sku: H6008, enabled: false, universe: 0, address: 1, personality: full }\n";
+    let rig = parse(text)
+        .resolve(|_| None, |sku| catalog.device(sku).ok())
+        .unwrap_or_else(|e| panic!("{e:?}"));
+    assert!(rig.fixtures().is_empty());
+    assert_eq!(rig.reserved()[0].span.last, 6);
+}
+
+/// `hold:` is what keeps a fixture out of a rig while its device answers: the
+/// key is on the entry, and the scan reads it before it writes a state.
+#[test]
+fn an_entry_can_hold_its_own_state() {
+    let text = "patch:\n  \
+        - { device: A, hold: true, enabled: false, universe: 0, address: 1, personality: full }\n";
+    let patch = parse(text);
+    assert!(patch.patch[0].hold);
+    assert!(!patch.patch[0].enabled);
 }

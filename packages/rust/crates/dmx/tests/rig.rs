@@ -49,7 +49,7 @@ fn rig(catalog: &Catalog, loss: &str) -> Rig {
     let patch = Patch::parse(&patch(loss), "patch.yaml").unwrap_or_else(|e| panic!("{e}"));
     let device = catalog.device(SKU).expect("the SKU resolves");
     patch
-        .resolve(|_| Some(device))
+        .resolve(|_| Some(device), |_| Some(device))
         .unwrap_or_else(|errors| panic!("{errors:?}"))
 }
 

@@ -5,6 +5,7 @@
 //! rig of 40 fixtures does not belong in it.
 //!
 //! ```yaml
+//! scanned: 2026-09-19T20:04:11Z   # when `govee-dmx patch` last scanned
 //! node:
 //!   bind: 0.0.0.0
 //!   name: govee-toolkit       # what the desk shows in its node list
@@ -12,6 +13,8 @@
 //!   signal_loss_secs: 4       # how long a fixture waits for a frame
 //! patch:
 //!   - device: "AA:BB:CC:DD:EE:FF"
+//!     sku: H6199              # what sizes the entry while the device is off
+//!     enabled: true           # `false` keeps the channels and drives nothing
 //!     universe: 0             # or: net: 0, subnet: 0, universe: 0
 //!     address: 1              # the DMX start address, 1 to 512
 //!     personality: segment
@@ -32,19 +35,31 @@
 mod address;
 mod entry;
 mod error;
+mod plan;
 mod resolve;
+pub mod stamp;
 #[cfg(test)]
 mod tests;
+mod write;
 
 use std::net::{IpAddr, Ipv4Addr};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
 pub use self::address::{MAX as MAX_PORT_ADDRESS, PortAddress};
 pub use self::entry::{Entry, SignalLoss};
 pub use self::error::{Error, Span};
+pub use self::plan::{Candidate, Layout, Placement, Plan, Skip};
 pub use self::resolve::{Fixture, Rig};
+pub use self::write::update;
+
+/// The file `govee-dmx` reads where the command line names none:
+/// `$XDG_CONFIG_HOME/govee-toolkit/patch.yaml`, beside `config.yaml`.
+#[must_use]
+pub fn default_path() -> PathBuf {
+    govee_toolkit::paths::config_dir().join("patch.yaml")
+}
 
 /// The name a desk lists the node under, where the patch names none.
 pub const NODE_NAME: &str = "govee-toolkit";
@@ -56,9 +71,15 @@ pub const REFRESH_SECS: u64 = 10;
 pub const SIGNAL_LOSS_SECS: u64 = 4;
 
 /// A patch file.
+///
+/// [`Patch::plan`] answers what a scan adds to it, and [`update`] writes those
+/// entries back without moving a line of what is already there.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Patch {
+    /// The instant the last scan ran, as RFC 3339 in UTC. `govee-dmx patch`
+    /// writes it, and nothing reads it: it states how old the rig below is.
+    pub scanned: Option<String>,
     /// What the node itself does.
     pub node: Node,
     /// One entry per fixture.
