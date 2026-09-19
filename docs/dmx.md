@@ -385,9 +385,19 @@ devices. `--dry-run` prints every packet it receives and what each fixture
 reads out of it, and writes to no device: that is what debugs a patch before
 any device is at risk.
 
-A live run prints a line for each answered `ArtPoll`, with the desk that polled
-and the count of replies. An operator who cannot find the node in a desk's node
-list needs that line to see whether the node answered.
+The run stores black on every driven fixture at start, and leaves the fixture
+off. A device shows the color that it held when it next comes on: the first
+frame that raises the dimmer powers the device on before the color of the
+frame reaches it, so a color from an earlier run flashes there. The pass takes
+3 commands per fixture, it runs once, and `--no-reset` leaves it out. A dry run
+writes to no device, so it sends the pass on no device either. A fixture that
+refuses the pass stops no other one, and the node reports it again on the
+first frame.
+
+`--debug` prints a line for each answered `ArtPoll`, with the desk that polled
+and the count of replies. A desk polls every few seconds, so a live run leaves
+the lines out: an operator who cannot find the node in a desk's node list turns
+the flag on to see whether the node answered.
 
 The node prints nothing itself. It reports each packet, each resolved look and
 each failed write to the binary, which decides what a person reads.

@@ -8,21 +8,40 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::time::Duration;
 
-use govee_toolkit::Govee;
+use govee_toolkit::{DeviceHandle, Govee, Mode};
 use govee_toolkit_dmx::apply::Timing;
 use govee_toolkit_dmx::input::artnet::PORT;
 use govee_toolkit_dmx::input::socket::Listener;
-use govee_toolkit_dmx::node::Node;
-use govee_toolkit_dmx::patch::Patch;
+use govee_toolkit_dmx::node::{Node, Observer};
+use govee_toolkit_dmx::patch::{Patch, Rig};
 
 use super::observe::Printer;
 use super::rig::{configure, resolve};
 use super::{CONFIG, Failure, INTERNAL, UNREACHABLE, patch as writer};
 
+/// The color the start pass stores on every fixture.
+const BLACK: [u8; 3] = [0, 0, 0];
+
+/// The wait between two commands of the start pass. A device can drop a
+/// command that arrives directly behind another — see `docs/protocol/lan.md`
+/// 1, "Consecutive commands".
+const GAP: Duration = Duration::from_millis(20);
+
+/// What the command line asks of one run.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Flags {
+    /// Write to no device, and print every packet instead.
+    pub(crate) dry_run: bool,
+    /// Store no black on the devices at start.
+    pub(crate) no_reset: bool,
+    /// Print a line for each answered poll.
+    pub(crate) debug: bool,
+}
+
 pub(crate) fn start(
     file: Option<&Path>,
     scan: Option<writer::Options>,
-    dry_run: bool,
+    flags: Flags,
     config: Option<&Path>,
     as_json: bool,
 ) -> Result<(), Failure> {
@@ -39,13 +58,13 @@ pub(crate) fn start(
         .enable_all()
         .build()
         .map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
-    runtime.block_on(run(&path, scan, dry_run, config, as_json))
+    runtime.block_on(run(&path, scan, flags, config, as_json))
 }
 
 async fn run(
     file: &Path,
     scan: Option<writer::Options>,
-    dry_run: bool,
+    flags: Flags,
     config: Option<&Path>,
     as_json: bool,
 ) -> Result<(), Failure> {
@@ -70,15 +89,18 @@ async fn run(
         refresh: Duration::from_secs(patch.node.refresh_secs),
         silence: Duration::from_secs(patch.node.signal_loss_secs),
     };
-    let mut node = if dry_run {
+    let mut node = if flags.dry_run {
         Node::dry_run(rig)
     } else {
         Node::live(rig, &govee, timing)
     }
     .named(&patch.node.name);
 
-    let mut printer = Printer::new(as_json, dry_run);
+    let mut printer = Printer::new(as_json, flags.dry_run, flags.debug);
     printer.started(listener.local_addr(), patch, node.rig());
+    if !flags.dry_run && !flags.no_reset {
+        reset(&govee, node.rig(), &mut printer).await;
+    }
     let outcome = node.run(&listener, shutdown(), &mut printer).await;
     printer.ended(&node.close().await);
     let released = govee
@@ -87,6 +109,42 @@ async fn run(
         .map_err(|e| Failure::new(e.to_string(), INTERNAL));
     outcome.map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
     released
+}
+
+/// Store black on every driven fixture, and leave the fixture off.
+///
+/// A device shows the color that it held when it next comes on. A frame that
+/// raises the dimmer powers the device on before the color of the frame
+/// reaches it, so a device that holds a color from an earlier run shows that
+/// color for a few milliseconds. Black shows nothing.
+///
+/// One task per fixture. A fixture that refuses the pass stops no other one:
+/// the node reports it again on the first frame.
+async fn reset(govee: &Govee, rig: &Rig, printer: &mut Printer) {
+    let mut passes = Vec::with_capacity(rig.fixtures().len());
+    for fixture in rig.fixtures() {
+        let (govee, id) = (govee.clone(), fixture.entry.device.clone());
+        passes.push(tokio::spawn(async move {
+            let outcome = blackout(&govee.device_on(&id, Mode::Lan)).await;
+            (id, outcome)
+        }));
+    }
+    for pass in passes {
+        if let Ok((id, Err(error))) = pass.await {
+            printer.failed(&id, &error.to_string());
+        }
+    }
+}
+
+/// Power the device on, paint black, and power the device off. The device
+/// takes a color while it is on, and it holds the last one it took.
+async fn blackout(device: &DeviceHandle<'_>) -> govee_toolkit::Result<()> {
+    device.power(true).await?;
+    tokio::time::sleep(GAP).await;
+    device.color(BLACK).await?;
+    tokio::time::sleep(GAP).await;
+    device.power(false).await?;
+    Ok(())
 }
 
 /// Wait for the operator to stop the node. A host with no signal handler

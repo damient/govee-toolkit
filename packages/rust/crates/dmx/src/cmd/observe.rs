@@ -19,11 +19,18 @@ pub(crate) struct Printer {
     as_json: bool,
     /// A dry run writes to no device, and prints every packet instead.
     dry_run: bool,
+    /// Whether the run prints the answered polls. A desk polls every few
+    /// seconds, and the lines bury the counters of a long run.
+    debug: bool,
 }
 
 impl Printer {
-    pub(crate) fn new(as_json: bool, dry_run: bool) -> Self {
-        Self { as_json, dry_run }
+    pub(crate) fn new(as_json: bool, dry_run: bool, debug: bool) -> Self {
+        Self {
+            as_json,
+            dry_run,
+            debug,
+        }
     }
 
     /// The socket, the node name and the rig, before the first frame.
@@ -162,10 +169,13 @@ impl Observer for Printer {
         );
     }
 
-    /// Always reported: a desk polls every few seconds, and an operator who
-    /// cannot find the node in a desk's node list has no other way to see
-    /// that the node answered.
+    /// Reported under `--debug` and in a dry run alone. An operator who
+    /// cannot find the node in a desk's node list turns the flag on to see
+    /// whether the node answered.
     fn polled(&mut self, source: SocketAddr, replies: usize) {
+        if !self.dry_run && !self.debug {
+            return;
+        }
         self.emit(
             &json!({ "event": "polled", "source": source.to_string(), "replies": replies }),
             &format!("polled  {source}  {replies} replies"),
