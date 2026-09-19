@@ -86,6 +86,8 @@ Nothing is published yet: the manifest carries `publish = false`.
 - Every write pins `lan`. A device that enables a second mode keeps it for
   other callers, and a device that stops answering over `lan` is reported
   unreachable.
+- A run prints a line for each answered `ArtPoll`: the desk that polled, and
+  the count of replies.
 - `input::artnet::Poll` — the `ArtPoll` parser. A poll takes 14 bytes, under
   the 18 an `ArtDmx` header takes, so the parser reads the opcode before it
   asks for a header.
