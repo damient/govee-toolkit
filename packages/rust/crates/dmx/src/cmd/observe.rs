@@ -151,6 +151,16 @@ impl Observer for Printer {
         );
     }
 
+    /// Always reported: a desk polls every few seconds, and an operator who
+    /// cannot find the node in a desk's node list has no other way to see
+    /// that the node answered.
+    fn polled(&mut self, source: SocketAddr, replies: usize) {
+        self.emit(
+            &json!({ "event": "polled", "source": source.to_string(), "replies": replies }),
+            &format!("polled  {source}  {replies} replies"),
+        );
+    }
+
     /// Always reported, and on stderr: a run that drives 39 devices and drops
     /// one must say so.
     fn failed(&mut self, id: &DeviceId, reason: &str) {
