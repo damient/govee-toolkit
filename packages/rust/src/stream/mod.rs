@@ -63,6 +63,7 @@ use self::rate::rate_hz;
 pub use self::reach::{Reach, reach};
 use self::resolve::plan;
 use self::sender::{Shared, send_enable};
+use crate::codec::Mode;
 use crate::error::{Error, Result};
 use crate::govee::Govee;
 use crate::transport::DeviceId;
@@ -86,10 +87,15 @@ impl SegmentStream {
     /// Arm the channel and start emitting. See
     /// [`DeviceHandle::open_stream`](crate::DeviceHandle::open_stream) for what
     /// this can fail with.
-    pub(crate) async fn open(govee: &Govee, id: &DeviceId, options: StreamOptions) -> Result<Self> {
-        // Chosen once, then carried: a mode is picked from recorded state, and
-        // re-picking it per frame would put that decision on the fast path.
-        let mode = govee.choose(id)?;
+    /// The caller resolves the mode, so a handle pinned to one mode streams
+    /// over that mode alone. Carried from here on: re-picking it per frame
+    /// would put that decision on the fast path.
+    pub(crate) async fn open(
+        govee: &Govee,
+        id: &DeviceId,
+        mode: Mode,
+        options: StreamOptions,
+    ) -> Result<Self> {
         // Resolved here so that a mode with no transport in this build fails
         // before anything is armed, rather than on the first frame, and so
         // that no frame pays for the lookup.

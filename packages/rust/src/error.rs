@@ -46,6 +46,16 @@ pub enum Error {
         modes: Vec<Mode>,
     },
 
+    /// A caller asked for one mode, and the configuration does not enable it
+    /// for this device. The caller never overrides what the user enabled.
+    #[error("{id}: mode `{mode}` is not enabled for this device")]
+    ModeNotEnabled {
+        /// The device.
+        id: DeviceId,
+        /// The mode the caller asked for.
+        mode: Mode,
+    },
+
     /// A mode the configuration enables has no transport in this build.
     #[error("{id}: mode `{mode}` {NO_TRANSPORT_IN_BUILD}")]
     ModeNotImplemented {
@@ -309,6 +319,7 @@ impl Error {
             Self::Config { .. } => "config",
             Self::Configuration(_) => "configuration",
             Self::NoModeAvailable { .. } => "no_mode_available",
+            Self::ModeNotEnabled { .. } => "mode_not_enabled",
             Self::ModeNotImplemented { .. } => "mode_not_implemented",
             Self::MissingCredential { .. } => "missing_credential",
             Self::NoRoleCommand { role, .. } => match role {
@@ -364,6 +375,7 @@ impl Error {
             }
             Self::Config { .. }
             | Self::Configuration(_)
+            | Self::ModeNotEnabled { .. }
             | Self::ModeNotImplemented { .. }
             | Self::MissingCredential { .. }
             | Self::Env { .. }
