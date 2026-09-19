@@ -146,7 +146,13 @@ Nothing is published yet: the manifest carries `publish = false`.
 - The patch file is optional on both commands. The default is `patch.yaml`
   beside `config.yaml`.
 - `enabled: false` on a patch entry keeps its channels and drives nothing. The
-  addresses of every other fixture stay where the desk has them.
+  addresses of every other fixture stay where the desk has them. The entry is
+  out of the overlap check: it takes no frame, so a driven fixture can cover
+  the channels it holds.
+- Two entries on one port-address, one start address and one personality are a
+  clone. They answer to one channel table, the desk drives both from one set of
+  values, and the loader allows it. A part of a span shared under two tables
+  stays a fault.
 - The scan writes `enabled:`, in both directions: `false` for a device that did
   not answer, and `true` again at the scan that reaches it.
 - `hold: true` on a patch entry keeps `enabled:` as the operator wrote it. The

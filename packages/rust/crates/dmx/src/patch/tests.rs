@@ -277,18 +277,40 @@ fn a_disabled_entry_is_reserved_and_never_driven() {
     assert_eq!(rig.reserved()[0].span.first, 1);
 }
 
-/// The channels of a disabled fixture are refused to a second fixture, which
-/// is what holds the addressing while a device is off.
+/// A disabled fixture takes no frame, so a driven fixture can cover the
+/// channels it holds. The patch command is what keeps a new entry off them.
 #[test]
-fn a_fixture_over_a_disabled_one_is_refused() {
+fn a_fixture_over_a_disabled_one_is_allowed() {
     let catalog = catalog();
     let device = catalog.device("H6008").expect("the SKU resolves");
     let text = "patch:\n  \
         - { device: A, enabled: false, universe: 0, address: 1, personality: full }\n  \
         - { device: B, universe: 0, address: 3, personality: full }\n";
-    let errors = parse(text)
+    let rig = parse(text)
         .resolve(|_| Some(device), |_| Some(device))
-        .expect_err("B sits on the channels A holds");
+        .unwrap_or_else(|e| panic!("{e:?}"));
+    assert_eq!(rig.fixtures().len(), 1);
+    assert_eq!(rig.reserved().len(), 1);
+}
+
+/// Two fixtures on one span under one personality answer to one channel
+/// table. An operator patches a pair that way to drive it from one set of
+/// channels.
+#[test]
+fn a_clone_on_one_address_is_allowed() {
+    let entry = "  - { device: A, universe: 0, address: 1, personality: full }\n  \
+                 - { device: B, universe: 0, address: 1, personality: full }\n";
+    let spans = one("H6008", entry).expect("one table on one span drives both");
+    assert_eq!(spans, vec![(0, 1, 6), (0, 1, 6)]);
+}
+
+/// A clone shares the whole span. Two fixtures that share a part of one
+/// answer to one channel under two tables, and that stays a fault.
+#[test]
+fn a_part_of_a_span_is_no_clone() {
+    let entry = "  - { device: A, universe: 0, address: 1, personality: full }\n  \
+                 - { device: B, universe: 0, address: 4, personality: full }\n";
+    let errors = one("H6008", entry).expect_err("channels 4 to 6 mean two things");
     assert!(
         matches!(errors.as_slice(), [Error::Overlap { .. }]),
         "{errors:?}"

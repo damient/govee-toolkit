@@ -89,8 +89,10 @@ pub enum Error {
         /// The channels it would take.
         span: Span,
     },
-    /// Two entries answer to one channel. A desk drives both, and neither
-    /// operator can tell which won.
+    /// Two driven entries answer to one channel under different channel
+    /// tables. One value then means two things, and neither operator can tell
+    /// which fixture took it. Two entries on one span under one personality
+    /// are a clone, and no fault.
     #[error("{first} and {second} overlap: {first_span} and {second_span}")]
     Overlap {
         /// The entry that sits lower.

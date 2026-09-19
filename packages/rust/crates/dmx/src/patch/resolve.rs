@@ -32,8 +32,8 @@ pub struct Fixture {
 
 /// Every fixture of a patch, checked.
 ///
-/// No two fixtures share a channel, every fixture fits its universe, and
-/// every device serves the personality the patch asks of it.
+/// No two driven fixtures contend for a channel, every fixture fits its
+/// universe, and every device serves the personality the patch asks of it.
 #[derive(Debug, Clone)]
 pub struct Rig {
     fixtures: Vec<Fixture>,
@@ -48,7 +48,8 @@ impl Rig {
     }
 
     /// Every disabled entry that still holds its channels. The bridge sends
-    /// it nothing, and no driven fixture takes those channels.
+    /// it nothing, and the patch command hands those channels to no new
+    /// fixture. A driven fixture the operator patches over them is allowed.
     #[must_use]
     pub fn reserved(&self) -> &[Fixture] {
         &self.reserved
@@ -81,9 +82,9 @@ impl Patch {
     /// # Errors
     ///
     /// Every [`Error`] the entries carry: an address outside a universe, a
-    /// fixture past the end of one, two fixtures on one channel, one device
-    /// patched twice, an enabled entry `found` does not answer, and a
-    /// personality the device serves through nothing.
+    /// fixture past the end of one, two driven fixtures on one channel under
+    /// different tables, one device patched twice, an enabled entry `found`
+    /// does not answer, and a personality the device serves through nothing.
     pub fn resolve<'a>(
         &self,
         found: impl Fn(&DeviceId) -> Option<&'a Device>,
@@ -187,14 +188,21 @@ fn span(entry: &Entry, universe: PortAddress, width: u16) -> Result<Span, Error>
     Ok(span)
 }
 
-/// Every pair of fixtures that answers to one channel.
+/// Every pair of driven fixtures that answers to one channel.
+///
+/// A disabled entry is out of the pass. It takes no frame, so nothing
+/// contends for the channels it holds, and a driven fixture can cover them.
+///
+/// A clone is out of the pass too: two fixtures on one span under one
+/// personality answer to one channel table, and the desk drives both from one
+/// set of values.
 ///
 /// The fixtures are sorted per port-address, and the pass carries the fixture
 /// that reaches furthest. A wide fixture therefore reports the narrow ones it
 /// covers, and not the first alone.
 fn overlaps(fixtures: &[Fixture]) -> Vec<Error> {
     let mut per_universe: BTreeMap<PortAddress, Vec<&Fixture>> = BTreeMap::new();
-    for fixture in fixtures {
+    for fixture in fixtures.iter().filter(|fixture| fixture.entry.enabled) {
         per_universe
             .entry(fixture.universe)
             .or_default()
@@ -207,6 +215,7 @@ fn overlaps(fixtures: &[Fixture]) -> Vec<Error> {
         for second in sharing {
             if let Some(first) = open
                 && second.span.first <= first.span.last
+                && !clones(first, second)
             {
                 errors.push(Error::Overlap {
                     first: first.entry.device.clone(),
@@ -221,4 +230,13 @@ fn overlaps(fixtures: &[Fixture]) -> Vec<Error> {
         }
     }
     errors
+}
+
+/// Whether the two fixtures answer to one channel table on one span.
+///
+/// The personality and the width decide the table, so one span under one
+/// personality is one table on both. An operator patches a pair that way to
+/// drive it from one set of channels.
+fn clones(first: &Fixture, second: &Fixture) -> bool {
+    first.span == second.span && first.entry.personality == second.entry.personality
 }
