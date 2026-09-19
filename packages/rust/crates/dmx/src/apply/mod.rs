@@ -9,6 +9,7 @@
 mod backoff;
 mod device;
 mod look;
+mod rate;
 #[cfg(test)]
 mod tests;
 

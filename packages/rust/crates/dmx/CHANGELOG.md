@@ -80,6 +80,12 @@ Nothing is published yet: the manifest carries `publish = false`.
 - A device the patch names that enables no `lan` mode fails at the start and is
   named. The bridge drives a device over `lan` alone and substitutes no other
   mode.
+- A command path writes at 30 frames per second, and `max_hz` in the patch
+  raises it. The bridge holds the latest look and counts what it replaced in
+  `frames_superseded`, the way the zone stream does.
+- Every write pins `lan`. A device that enables a second mode keeps it for
+  other callers, and a device that stops answering over `lan` is reported
+  unreachable.
 - `input::artnet::Poll` — the `ArtPoll` parser. A poll takes 14 bytes, under
   the 18 an `ArtDmx` header takes, so the parser reads the opcode before it
   asks for a header.

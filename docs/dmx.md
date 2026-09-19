@@ -14,8 +14,12 @@ writes the result to the device over the LAN segment channel.
 The bridge is an **input**, not a mode. It does not add a fourth transport, it
 does not add a match arm, and it reaches a device the same way any other caller
 does. A device that the bridge drives must have `lan` enabled. Where the device
-has no `lan` mode, the bridge fails at start and names the device. It never
-substitutes another mode — see [`modes.md`](modes.md).
+has no `lan` mode, the bridge fails at start and names the device.
+
+The bridge pins `lan` on every write. A device can enable more than one mode,
+and the bridge uses none of the others: where the device stops answering over
+`lan`, the bridge reports the device unreachable. It never substitutes another
+mode — see [`modes.md`](modes.md).
 
 ## Package
 
@@ -208,11 +212,13 @@ rate falls as the frame grows. Three rules protect the fast path:
    whose segment channel is armed: a power command ends that channel on some
    devices — see [`protocol/lan.md`](protocol/lan.md) 2.3. The armed channel is
    proof the device is on.
-3. **The device sets the rate.** `src/stream/` reads the rate from the device
-   file and from the zone count, and holds the latest frame. A later frame
-   replaces an unsent earlier one, and `frames_superseded` counts what the desk
-   sent above what the device accepts. Report that counter: it is what tells the
-   operator the desk sends too fast.
+3. **The device sets the rate.** A zone personality streams, and `src/stream/`
+   reads the rate from the device file and from the zone count. A command
+   carries no such measurement, so the bridge writes commands at 30 frames per
+   second, and `max_hz` in the patch raises that. Both paths hold the latest
+   look: a later look replaces an unwritten earlier one, and
+   `frames_superseded` counts what the desk sent above what the device takes.
+   Report that counter: it is what tells the operator the desk sends too fast.
 
 A fourth rule protects the device rather than the fast path: **two commands to
 one device never go out back to back.** A device drops a command that arrives
@@ -280,7 +286,9 @@ patch:
     universe: 0             # or: net: 0, subnet: 0, universe: 0
     address: 1              # the DMX start address, 1 to 512
     personality: segment
-    max_hz: 20              # optional. Default: the device file measurement
+    max_hz: 20              # optional. The rate the fixture takes writes at:
+                            # the device file measurement for a zone
+                            # personality, and 30 for a command
     on_signal_loss: hold
 ```
 

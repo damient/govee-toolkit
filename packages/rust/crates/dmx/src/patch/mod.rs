@@ -15,7 +15,9 @@
 //!     universe: 0             # or: net: 0, subnet: 0, universe: 0
 //!     address: 1              # the DMX start address, 1 to 512
 //!     personality: segment
-//!     max_hz: 20              # optional. Default: the device file measurement
+//!     max_hz: 20              # optional. The rate the fixture takes writes
+//!                             # at. Default: the device file measurement for a
+//!                             # zone personality, and 30 for a command
 //!     on_signal_loss: hold
 //! ```
 //!

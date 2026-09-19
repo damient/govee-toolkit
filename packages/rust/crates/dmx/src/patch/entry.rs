@@ -57,7 +57,8 @@ pub struct Entry {
     /// address.
     #[serde(deserialize_with = "personality")]
     pub personality: Personality,
-    /// The rate to send at. Unset takes the measurement in the device file.
+    /// The rate to send at. Unset takes the device file measurement for a
+    /// zone personality, and a conservative default for a command.
     pub max_hz: Option<f64>,
     /// What to apply after the sender goes quiet.
     #[serde(default)]
