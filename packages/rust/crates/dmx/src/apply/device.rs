@@ -11,12 +11,13 @@
 use std::time::Duration;
 
 use govee_toolkit::stream::{Rate, Resolution, StreamOptions};
-use govee_toolkit::{DeviceId, Error, Govee, Result, SegmentStream};
+use govee_toolkit::{DeviceHandle, DeviceId, Error, Govee, Mode, Result, SegmentStream};
 use tokio::sync::{mpsc, watch};
 use tokio::time::Instant;
 
 use super::backoff::Backoff;
 use super::look::Look;
+use super::rate::Pace;
 use super::{Counts, Failure, Timing};
 use crate::patch::{Fixture, SignalLoss};
 use crate::profile::Personality;
@@ -32,7 +33,7 @@ use crate::profile::Personality;
 const GAP: Duration = Duration::from_millis(5);
 
 /// Wait `GAP` where this pass already put a datagram on the network.
-async fn pace(wrote: bool) {
+async fn gap(wrote: bool) {
     if wrote {
         tokio::time::sleep(GAP).await;
     }
@@ -62,6 +63,10 @@ pub(super) struct Feeder {
     /// What the fixture shows once the sender goes quiet.
     loss: SignalLoss,
     backoff: Backoff,
+    /// The rate the fixture takes writes at.
+    pace: Pace,
+    /// A look the pace held, which the next due write carries.
+    held: bool,
     sent: Sent,
     /// The last look received, which the refresh sends again.
     last: Option<Look>,
@@ -70,6 +75,13 @@ pub(super) struct Feeder {
 }
 
 impl Feeder {
+    /// The device, over `lan` alone. The bridge substitutes no mode where the
+    /// device stops answering: it reports the device unreachable instead —
+    /// `docs/dmx.md`.
+    fn device(&self) -> DeviceHandle<'_> {
+        self.govee.device_on(&self.id, Mode::Lan)
+    }
+
     pub(super) fn new(
         govee: &Govee,
         fixture: &Fixture,
@@ -85,6 +97,8 @@ impl Feeder {
             timing,
             loss: fixture.entry.on_signal_loss,
             backoff: Backoff::default(),
+            pace: Pace::new(fixture.entry.max_hz),
+            held: false,
             sent: Sent::default(),
             last: None,
             failures,
@@ -143,19 +157,33 @@ pub(super) async fn run(mut feeder: Feeder, mut looks: watch::Receiver<(u64, Loo
 impl Feeder {
     /// Write what changed. Answers whether anything went out.
     ///
-    /// A device that failed writes nothing until its backoff is over. The
-    /// look is kept, so the attempt that follows carries the current one.
+    /// A device that failed writes nothing until its backoff is over, and a
+    /// device written to a moment ago writes nothing until its pace is over.
+    /// The look is kept either way, so the attempt that follows carries the
+    /// current one and not a stale one.
     async fn apply(&mut self, look: &Look) -> bool {
         if look.resend {
             self.sent = Sent::default();
         }
         self.last = Some(look.clone());
-        if self.backoff.holds(Instant::now()) {
+        let now = Instant::now();
+        if self.backoff.holds(now) {
             return false;
         }
+        if self.pace.holds(now) {
+            // The desk sends above what the device takes, which is the count
+            // the operator reads to see it.
+            self.counts.frames_superseded += 1;
+            self.held = true;
+            return false;
+        }
+        self.held = false;
         match self.write(look).await {
             Ok(wrote) => {
                 self.backoff.cleared();
+                if wrote {
+                    self.pace.wrote(Instant::now());
+                }
                 wrote
             }
             Err(error) => {
@@ -172,12 +200,19 @@ impl Feeder {
     }
 
     /// When the next write is due: the backoff decides it where a device
-    /// failed, and `refresh` carries it otherwise.
+    /// failed, the pace where a look waits for it, and `refresh` otherwise.
     fn due(&self, wrote: bool, refresh: Instant) -> Instant {
-        match self.backoff.ready() {
-            Some(retry) => retry,
-            None if wrote => Instant::now() + self.timing.refresh,
-            None => refresh,
+        if let Some(retry) = self.backoff.ready() {
+            return retry;
+        }
+        let next = if wrote {
+            Instant::now() + self.timing.refresh
+        } else {
+            refresh
+        };
+        match self.pace.ready() {
+            Some(ready) if self.held => ready.min(next),
+            _ => next,
         }
     }
 
@@ -187,7 +222,11 @@ impl Feeder {
         let Some(look) = self.last.clone() else {
             return false;
         };
-        self.sent = Sent::default();
+        // A look the pace held is the current one, and the device holds the
+        // values around it. Writing it again is not a refresh.
+        if !self.held {
+            self.sent = Sent::default();
+        }
         self.apply(&look).await
     }
 
@@ -207,21 +246,21 @@ impl Feeder {
         if let Some(level) = look.brightness
             && self.sent.brightness != Some(level)
         {
-            pace(wrote).await;
-            self.govee.device(&self.id).brightness(level).await?;
+            gap(wrote).await;
+            self.device().brightness(level).await?;
             self.sent.brightness = Some(level);
             self.counts.frames_sent += 1;
             wrote = true;
         }
         if self.options.is_some() {
-            pace(wrote).await;
+            gap(wrote).await;
             return Ok(self.zones(&look.zones)? || wrote);
         }
         if let Some(rgb) = look.color
             && self.sent.color != Some(rgb)
         {
-            pace(wrote).await;
-            self.govee.device(&self.id).color(rgb).await?;
+            gap(wrote).await;
+            self.device().color(rgb).await?;
             self.sent.color = Some(rgb);
             self.counts.frames_sent += 1;
             wrote = true;
@@ -229,8 +268,8 @@ impl Feeder {
         if let Some(kelvin) = look.white_temp
             && self.sent.white_temp != Some(kelvin)
         {
-            pace(wrote).await;
-            self.govee.device(&self.id).color_temp(kelvin).await?;
+            gap(wrote).await;
+            self.device().color_temp(kelvin).await?;
             self.sent.white_temp = Some(kelvin);
             self.counts.frames_sent += 1;
             wrote = true;
@@ -249,14 +288,14 @@ impl Feeder {
         if self.sent.on == Some(true) || self.stream.is_some() {
             return Ok(false);
         }
-        self.govee.device(&self.id).power(true).await?;
+        self.device().power(true).await?;
         self.sent.on = Some(true);
         self.counts.frames_sent += 1;
         if let Some(options) = self.options.clone()
             && self.stream.is_none()
         {
-            pace(true).await;
-            let stream = self.govee.device(&self.id).open_stream(options).await?;
+            gap(true).await;
+            let stream = self.device().open_stream(options).await?;
             self.stream = Some(stream);
         }
         Ok(true)
@@ -270,8 +309,8 @@ impl Feeder {
         }
         let disarmed = self.stream.is_some();
         self.close().await;
-        pace(disarmed).await;
-        self.govee.device(&self.id).power(false).await?;
+        gap(disarmed).await;
+        self.device().power(false).await?;
         self.sent = Sent {
             on: Some(false),
             ..Sent::default()
