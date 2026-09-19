@@ -6,14 +6,15 @@
 use std::future::Future;
 
 use govee_toolkit::{
-    DeviceId, Error, Govee as CoreGovee, Music, Paint, Served as CoreServed, StreamOptions,
-    WifiCredentials, describe,
+    DeviceId, Error, Identify, Music, Paint, Served as CoreServed, StreamOptions, WifiCredentials,
+    describe,
 };
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3_async_runtimes::tokio::future_into_py;
 
 use crate::conv::{self, to_py};
+use crate::driver::Driver;
 use crate::errors::map;
 use crate::events::StatusStream;
 use crate::stream::SegmentStream;
@@ -29,7 +30,7 @@ use crate::types::{DeviceStatus, Health, Reply, Served};
 )]
 #[derive(Debug, Clone)]
 pub(crate) struct DeviceHandle {
-    pub(crate) govee: CoreGovee,
+    pub(crate) govee: Driver,
     pub(crate) id: DeviceId,
 }
 
@@ -182,6 +183,33 @@ impl DeviceHandle {
         )
     }
 
+    /// Power the device on and paint one color, so a person sees which
+    /// fixture this identity drives.
+    ///
+    /// The look the device held is lost. To walk a rig, power every device
+    /// off, wait a second, and then call this on one device at a time.
+    ///
+    /// `None` takes the core's defaults: green, and the top of the
+    /// brightness range the device file declares.
+    #[pyo3(signature = (color=None, full_brightness=None))]
+    fn identify<'py>(
+        &self,
+        py: Python<'py>,
+        color: Option<&Bound<'py, PyAny>>,
+        full_brightness: Option<bool>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let default = Identify::default();
+        let options = Identify {
+            color: color.map(conv::rgb).transpose()?.unwrap_or(default.color),
+            full_brightness: full_brightness.unwrap_or(default.full_brightness),
+        };
+        let (govee, id) = self.parts();
+        future_into_py(py, async move {
+            map(govee.device(&id).identify(&options).await)?;
+            Ok(())
+        })
+    }
+
     /// Set the white temperature, in kelvin. It ends color mode.
     fn color_temp<'py>(&self, py: Python<'py>, kelvin: i64) -> PyResult<Bound<'py, PyAny>> {
         self.served(py, |govee, id| async move {
@@ -316,14 +344,14 @@ impl DeviceHandle {
 }
 
 impl DeviceHandle {
-    fn parts(&self) -> (CoreGovee, DeviceId) {
+    fn parts(&self) -> (Driver, DeviceId) {
         (self.govee.clone(), self.id.clone())
     }
 
     fn served<'py, Fut>(
         &self,
         py: Python<'py>,
-        verb: impl FnOnce(CoreGovee, DeviceId) -> Fut,
+        verb: impl FnOnce(Driver, DeviceId) -> Fut,
     ) -> PyResult<Bound<'py, PyAny>>
     where
         Fut: Future<Output = Result<CoreServed, Error>> + Send + 'static,

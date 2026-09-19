@@ -327,6 +327,19 @@ class DeviceHandle:
 
     async def color(self, rgb: Color) -> Served:
         """Set one color, as three channels."""
+    async def identify(
+        self, color: Color | None = None, full_brightness: bool | None = None
+    ) -> None:
+        """Power the device on and paint one color, so a person sees which fixture this
+        identity drives.
+
+        The look the device held is lost. To walk a rig, power every device off, wait a
+        second, and then call this on one device at a time.
+
+        `None` takes the core's defaults: green, and the top of the brightness range the
+        device file declares.
+        """
+
     async def color_temp(self, kelvin: int) -> Served:
         """Set the white temperature, in kelvin. It ends color mode."""
 
@@ -440,6 +453,13 @@ class Govee:
         """The device catalog in force."""
     def device(self, id: str) -> DeviceHandle:
         """A handle for one device, by the MAC it reports."""
+    def device_on(self, id: str, mode: str) -> DeviceHandle:
+        """A handle that drives the device over one mode alone.
+
+        Every call on it goes over `mode` or raises. Use it where the caller serves one
+        mode by design, such as a bridge that reaches a device over `lan`: a handle from
+        `device()` would move to the next enabled mode when that one stops answering.
+        """
     def events(self) -> EventStream:
         """Subscribe to what the SDK reports. Iterate it with `async for`."""
     async def close(self) -> None:

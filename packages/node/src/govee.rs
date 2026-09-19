@@ -9,6 +9,7 @@ use crate::catalog::Catalog;
 use crate::config::Config;
 use crate::conv;
 use crate::device::DeviceHandle;
+use crate::driver::Driver;
 use crate::errors::map;
 use crate::events::EventStream;
 use crate::promise::promise;
@@ -124,9 +125,23 @@ impl Govee {
     #[napi]
     pub fn device(&self, id: String) -> DeviceHandle {
         DeviceHandle {
-            govee: self.inner.clone(),
+            govee: Driver::new(self.inner.clone(), None),
             id: DeviceId::new(&id),
         }
+    }
+
+    /// A handle that drives the device over one mode alone.
+    ///
+    /// Every call on it goes over `mode` or throws. Use it where the caller
+    /// serves one mode by design, such as a bridge that reaches a device over
+    /// `lan`: a handle from `device()` would move to the next enabled mode
+    /// when that one stops answering.
+    #[napi]
+    pub fn device_on(&self, env: &Env, id: String, mode: String) -> napi::Result<DeviceHandle> {
+        Ok(DeviceHandle {
+            govee: Driver::new(self.inner.clone(), Some(conv::mode(env, &mode)?)),
+            id: DeviceId::new(&id),
+        })
     }
 
     /// Subscribe to what the SDK reports. Iterate it with `for await`.

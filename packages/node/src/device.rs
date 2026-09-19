@@ -3,14 +3,14 @@
 use std::future::Future;
 
 use govee_toolkit::{
-    DeviceId, Error, Govee as CoreGovee, Music, Paint, Served as CoreServed, StreamOptions,
-    WifiCredentials, describe,
+    DeviceId, Error, Served as CoreServed, StreamOptions, WifiCredentials, describe,
 };
 use napi::Env;
 use napi::bindgen_prelude::{Object, PromiseRaw, Unknown};
 use napi_derive::napi;
 
 use crate::conv::{self, to_js};
+use crate::driver::Driver;
 use crate::errors::map;
 use crate::events::StatusStream;
 use crate::promise::promise;
@@ -21,7 +21,7 @@ use crate::types::{DeviceStatus, Health, Reply, Served};
 /// from the SDK it was made by.
 #[napi]
 pub struct DeviceHandle {
-    pub(crate) govee: CoreGovee,
+    pub(crate) govee: Driver,
     pub(crate) id: DeviceId,
 }
 
@@ -163,128 +163,6 @@ impl DeviceHandle {
         })
     }
 
-    /// Turn the device on or off.
-    #[napi]
-    pub fn power<'env>(&self, env: &'env Env, on: bool) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(
-            env,
-            |govee, id| async move { govee.device(&id).power(on).await },
-        )
-    }
-
-    /// Set the level, in the unit the device file declares. A level outside
-    /// that range is an error, never a clamp.
-    #[napi]
-    pub fn brightness<'env>(
-        &self,
-        env: &'env Env,
-        level: i64,
-    ) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(env, |govee, id| async move {
-            govee.device(&id).brightness(level).await
-        })
-    }
-
-    /// Set one color, as three channels or as three bytes.
-    #[napi]
-    pub fn color<'env>(
-        &self,
-        env: &'env Env,
-        #[napi(ts_arg_type = "[number, number, number] | Uint8Array")] rgb: conv::Channels<'_>,
-    ) -> napi::Result<PromiseRaw<'env, Served>> {
-        let rgb = conv::rgb(env, &rgb)?;
-        self.served(env, |govee, id| async move {
-            govee.device(&id).color(rgb).await
-        })
-    }
-
-    /// Set the white temperature, in kelvin. It ends color mode.
-    #[napi]
-    pub fn color_temp<'env>(
-        &self,
-        env: &'env Env,
-        kelvin: i64,
-    ) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(env, |govee, id| async move {
-            govee.device(&id).color_temp(kelvin).await
-        })
-    }
-
-    /// Play an effect the device renders from its own microphone.
-    ///
-    /// The identifiers are the mode's own: one the entry accepts is not one
-    /// the device renders. `color` imposes a color, and `null` leaves the
-    /// colors to the firmware.
-    ///
-    /// `null` takes the core's default for `sensitivity` and for `soft`.
-    #[napi]
-    pub fn music<'env>(
-        &self,
-        env: &'env Env,
-        effect: i64,
-        sensitivity: Option<i64>,
-        soft: Option<bool>,
-        #[napi(ts_arg_type = "[number, number, number] | Uint8Array")] color: Option<
-            conv::Channels<'_>,
-        >,
-    ) -> napi::Result<PromiseRaw<'env, Served>> {
-        let color = color.map(|value| conv::rgb(env, &value)).transpose()?;
-        let default = Music::default();
-        let music = Music {
-            effect,
-            sensitivity: sensitivity.unwrap_or(default.sensitivity),
-            soft: soft.unwrap_or(default.soft),
-            color,
-        };
-        self.served(env, |govee, id| async move {
-            govee.device(&id).music(&music).await
-        })
-    }
-
-    /// Paint the segments once.
-    ///
-    /// One color fills every zone. An array of colors, or a `Uint8Array` of
-    /// three bytes per zone, states them all. A zone list takes one color.
-    /// `resolution` takes `"app"` when it is `null`.
-    #[napi]
-    pub fn segment<'env>(
-        &self,
-        env: &'env Env,
-        #[napi(
-            ts_arg_type = "[number, number, number] | Array<[number, number, number]> | Uint8Array"
-        )]
-        colors: conv::Channels<'_>,
-        zones: Option<Vec<u16>>,
-        #[napi(ts_arg_type = "number | 'app' | 'native'")] resolution: Option<Unknown<'_>>,
-        gradient: Option<bool>,
-    ) -> napi::Result<PromiseRaw<'env, Served>> {
-        let colors = conv::colors(env, &colors)?;
-        let resolution = conv::resolution_or_default(env, resolution.as_ref())?;
-        let gradient = gradient.unwrap_or(false);
-        self.served(env, |govee, id| async move {
-            let paint = Paint {
-                zones: zones.as_deref(),
-                colors: &colors,
-                resolution,
-                gradient,
-            };
-            govee.device(&id).segment(&paint).await
-        })
-    }
-
-    /// Ask the firmware to interpolate between zones, and to wrap from the
-    /// last zone back to the first.
-    #[napi]
-    pub fn gradient<'env>(
-        &self,
-        env: &'env Env,
-        on: bool,
-    ) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(env, |govee, id| async move {
-            govee.device(&id).gradient(on).await
-        })
-    }
-
     /// Put the device on a Wi-Fi network over `ble`.
     ///
     /// The device must be in Bluetooth range and closed in the phone
@@ -351,14 +229,14 @@ impl DeviceHandle {
 }
 
 impl DeviceHandle {
-    fn parts(&self) -> (CoreGovee, DeviceId) {
+    pub(crate) fn parts(&self) -> (Driver, DeviceId) {
         (self.govee.clone(), self.id.clone())
     }
 
-    fn served<'env, Fut>(
+    pub(crate) fn served<'env, Fut>(
         &self,
         env: &'env Env,
-        verb: impl FnOnce(CoreGovee, DeviceId) -> Fut,
+        verb: impl FnOnce(Driver, DeviceId) -> Fut,
     ) -> napi::Result<PromiseRaw<'env, Served>>
     where
         Fut: Future<Output = Result<CoreServed, Error>> + Send + 'static,

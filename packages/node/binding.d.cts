@@ -130,6 +130,29 @@ export declare class DeviceHandle {
   read(command: string, args?: Record<string, boolean | number | string | Uint8Array | Array<number> | Array<[number, number, number]>>): Promise<Reply>
   /** Ask the device for its state and wait for the answer. */
   status(): Promise<DeviceStatus>
+  /**
+   * Put the device on a Wi-Fi network over `ble`.
+   *
+   * The device must be in Bluetooth range and closed in the phone
+   * controller. The password travels in plaintext: anything in Bluetooth
+   * range during the transfer reads it. The network must be 2.4 GHz.
+   *
+   * Answers `"accepted"` where the device acknowledged the transfer, and
+   * `"sent"` where its device file declares no acknowledgement.
+   */
+  provisionWifi(network: string, password: string, utcOffsetHours?: number | undefined | null, utcOffsetMinutes?: number | undefined | null): Promise<string>
+  /**
+   * Open the raw segment channel and paint it frame by frame.
+   *
+   * Power the device on first: arming a dark strip paints nothing. The
+   * channel holds the colors only while it is armed, and the device goes
+   * back to the color it showed before once the stream closes.
+   *
+   * `resolution` takes `"app"` when it is `null`, and `rate` takes
+   * `"measured"`.
+   */
+  openStream(resolution?: number | 'app' | 'native', rate?: number | 'measured', gradient?: boolean | undefined | null): Promise<SegmentStream>
+  toString(): string
   /** Turn the device on or off. */
   power(on: boolean): Promise<Served>
   /**
@@ -139,6 +162,17 @@ export declare class DeviceHandle {
   brightness(level: number): Promise<Served>
   /** Set one color, as three channels or as three bytes. */
   color(rgb: [number, number, number] | Uint8Array): Promise<Served>
+  /**
+   * Power the device on and paint one color, so a person sees which
+   * fixture this identity drives.
+   *
+   * The look the device held is lost. To walk a rig, power every device
+   * off, wait a second, and then call this on one device at a time.
+   *
+   * `null` takes the core's defaults: green, and the top of the
+   * brightness range the device file declares.
+   */
+  identify(color?: [number, number, number] | Uint8Array, fullBrightness?: boolean | undefined | null): Promise<undefined>
   /** Set the white temperature, in kelvin. It ends color mode. */
   colorTemp(kelvin: number): Promise<Served>
   /**
@@ -164,29 +198,6 @@ export declare class DeviceHandle {
    * last zone back to the first.
    */
   gradient(on: boolean): Promise<Served>
-  /**
-   * Put the device on a Wi-Fi network over `ble`.
-   *
-   * The device must be in Bluetooth range and closed in the phone
-   * controller. The password travels in plaintext: anything in Bluetooth
-   * range during the transfer reads it. The network must be 2.4 GHz.
-   *
-   * Answers `"accepted"` where the device acknowledged the transfer, and
-   * `"sent"` where its device file declares no acknowledgement.
-   */
-  provisionWifi(network: string, password: string, utcOffsetHours?: number | undefined | null, utcOffsetMinutes?: number | undefined | null): Promise<string>
-  /**
-   * Open the raw segment channel and paint it frame by frame.
-   *
-   * Power the device on first: arming a dark strip paints nothing. The
-   * channel holds the colors only while it is armed, and the device goes
-   * back to the color it showed before once the stream closes.
-   *
-   * `resolution` takes `"app"` when it is `null`, and `rate` takes
-   * `"measured"`.
-   */
-  openStream(resolution?: number | 'app' | 'native', rate?: number | 'measured', gradient?: boolean | undefined | null): Promise<SegmentStream>
-  toString(): string
 }
 
 /** What a device reported about itself. No firmware fills every field. */
@@ -266,6 +277,15 @@ export declare class Govee {
   get catalog(): Catalog
   /** A handle for one device, by the MAC it reports. */
   device(id: string): DeviceHandle
+  /**
+   * A handle that drives the device over one mode alone.
+   *
+   * Every call on it goes over `mode` or throws. Use it where the caller
+   * serves one mode by design, such as a bridge that reaches a device over
+   * `lan`: a handle from `device()` would move to the next enabled mode
+   * when that one stops answering.
+   */
+  deviceOn(id: string, mode: string): DeviceHandle
   /** Subscribe to what the SDK reports. Iterate it with `for await`. */
   events(): EventStream
   /**
