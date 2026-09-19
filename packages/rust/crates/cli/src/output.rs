@@ -46,6 +46,14 @@ impl Failure {
         }
     }
 
+    pub(crate) fn unreachable(message: impl Into<String>) -> Self {
+        Self {
+            kind: "unreachable",
+            message: message.into(),
+            code: UNREACHABLE,
+        }
+    }
+
     pub(crate) fn unsupported(message: impl Into<String>) -> Self {
         Self {
             kind: "unsupported",

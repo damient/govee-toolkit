@@ -26,6 +26,8 @@ wire.
 - Address every segment of a strip on its own, not only the preset effects.
 - Drive a strip frame by frame in real time: music reactive, screen ambilight,
   or your own source.
+- Light one device at a time, so you see which identity drives which fixture
+  in the room.
 - Put a device out of the box on your Wi-Fi over Bluetooth, which is what makes
   it reachable over `lan`.
 

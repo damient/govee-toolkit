@@ -93,6 +93,35 @@ pub(crate) enum Command {
     #[command(flatten)]
     Verb(Verb),
 
+    /// Light each device in turn, so a person sees which identity drives
+    /// which fixture.
+    ///
+    /// Every device goes off at once first. One device at a time then comes
+    /// back on in one color. Every device goes off again at the end.
+    ///
+    /// The walk drives `lan`, and the mode `--mode` names where it names one.
+    /// It substitutes no other mode.
+    Identify {
+        /// The devices, in the order to light them. Every device a scan finds
+        /// when absent.
+        #[arg(value_name = "DEVICE")]
+        devices: Vec<String>,
+        /// The color each device shows, as `#RRGGBB`.
+        #[arg(long, default_value = "#00ff00", value_name = "COLOR")]
+        color: String,
+        /// How long the walk waits between two steps: after the rig goes
+        /// off, and after each device lights.
+        #[arg(long, default_value_t = 1000, value_name = "MS")]
+        wait_ms: u64,
+        /// How long the last device holds the color before every device goes
+        /// off.
+        #[arg(long, default_value_t = 5000, value_name = "MS")]
+        hold_ms: u64,
+        /// Leave every device on and lit at the end.
+        #[arg(long, conflicts_with = "hold_ms")]
+        keep: bool,
+    },
+
     /// Report everything wrong with the configuration. Reads no hardware.
     Doctor,
 
@@ -167,6 +196,7 @@ impl Command {
             Self::Provision { device, .. } => Some(device),
             Self::Verb(verb) => Some(verb.device()),
             Self::Scan { .. }
+            | Self::Identify { .. }
             | Self::Devices
             | Self::Doctor
             | Self::Describe { .. }
