@@ -220,7 +220,24 @@ commit.
 
 `tools/qa.sh` runs the CI checks locally — use it before pushing rather than
 reading the result off a pull request. `tools/qa-site.sh` does the same for the
-site, and `qa.sh` runs it as one of its checks. `ci.yml` runs on push to `main`
+site, and `qa.sh` runs it as one of its checks.
+
+Run the narrowest form that covers the change, and the full run before you
+push:
+
+| What the change touched | Command |
+| ----------------------- | ------- |
+| `src/` of one crate | `tools/qa.sh -p rust`, `-p cli`, `-p dmx`, `-p sim` or `-p xtask` |
+| `devices/*.yaml`, `docs/compatibility.md` | `tools/qa.sh` |
+| `site/` | `tools/qa-site.sh` |
+| `packages/python/` | `tools/qa-python.sh` |
+| `packages/node/` | `tools/qa-node.sh` |
+| `tools/*.sh` | `tools/qa.sh "shell"` |
+
+`-p <crate>` narrows the cargo checks to one crate and skips the generated
+tables, the other packages and the capture check, which read the whole
+repository. A bare name is a substring filter on the check names, so
+`tools/qa.sh clippy` runs that check alone. `ci.yml` runs on push to `main`
 and on pull request, skipping every job while the pull request is a draft, and
 tests on Linux, macOS and Windows because the multicast socket differs on each.
 Every third-party action is pinned to a commit SHA; keep it that way. The

@@ -297,6 +297,8 @@ Run the whole thing before pushing:
 ```bash
 tools/qa.sh              # every check ci.yml runs, in the same order
 tools/qa.sh clippy       # or one of them, by name
+tools/qa.sh -p dmx       # or the cargo checks of one crate: rust, cli, dmx,
+                         # sim, xtask
 ```
 
 On Linux, `--all-features` builds the `ble` transport against BlueZ over D-Bus,
