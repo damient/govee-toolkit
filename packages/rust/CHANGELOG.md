@@ -14,6 +14,12 @@ releases apart and keeps
 - The `transport` cargo feature — the facade, which every mode turns on. It
   carries the configuration, the error, the event and the `Transport` trait,
   none of which belong to one mode. Name a mode, not this feature.
+- `Govee::device_on()` — a handle that drives one device over one mode alone.
+  Every call on it goes over that mode or fails, for a caller that serves one
+  mode by design, such as the Art-Net bridge.
+- `Error::ModeNotEnabled`, code `mode_not_enabled` — `device_on()` was given a
+  mode the configuration does not enable. A caller narrows the enabled modes
+  and never widens them.
 - `DeviceHandle::resolve()` and `Resolved` — the mode, the SKU and the device
   file read once, for a caller that builds arguments and then sends. Every
   other method on the handle resolves them again per call, and two resolutions

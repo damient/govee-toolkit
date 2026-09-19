@@ -15,6 +15,7 @@ use crate::event::{Device, Event};
 use crate::govee::events::Forwarder;
 use crate::transport::{DeviceId, Health, Transport};
 
+mod choose;
 mod events;
 mod resolve;
 mod start;
@@ -162,6 +163,17 @@ impl Govee {
         DeviceHandle::new(self, id.clone())
     }
 
+    /// A handle that drives the device over one mode alone.
+    ///
+    /// Every call on it goes over `mode` or fails. Use it where the caller
+    /// serves one mode by design, such as a bridge that reaches a device over
+    /// `lan`: a handle from [`Govee::device`] would move to the next enabled
+    /// mode when that one stops answering.
+    #[must_use]
+    pub fn device_on(&self, id: &DeviceId, mode: Mode) -> DeviceHandle<'_> {
+        DeviceHandle::on(self, id.clone(), mode)
+    }
+
     /// Everything wrong with the configuration, including what could only be
     /// checked once devices were known.
     #[must_use]
@@ -211,30 +223,6 @@ impl Govee {
                 })
             })
             .collect()
-    }
-
-    /// The transport serving a mode, if this build carries one.
-    pub(crate) fn transport(&self, id: &DeviceId, mode: Mode) -> Result<&Arc<dyn Transport>> {
-        self.inner
-            .transports
-            .get(&mode)
-            .ok_or_else(|| self.no_transport(id, mode))
-    }
-
-    /// Why a mode has no transport: a missing credential, or a mode this
-    /// build does not implement.
-    fn no_transport(&self, id: &DeviceId, mode: Mode) -> Error {
-        match self.inner.config.missing_credential(mode) {
-            Some(remedy) => Error::MissingCredential {
-                id: id.clone(),
-                mode,
-                remedy,
-            },
-            None => Error::ModeNotImplemented {
-                id: id.clone(),
-                mode,
-            },
-        }
     }
 
     /// Check every known device's enabled modes against what its device file
@@ -290,36 +278,6 @@ impl Govee {
 
     pub(crate) fn sku_of(&self, id: &DeviceId, reported: &str) -> String {
         self.inner.config.sku_for(id).unwrap_or(reported).to_owned()
-    }
-
-    /// The first enabled mode the device can be reached over right now, from
-    /// recorded state alone. Nothing here touches an adapter.
-    pub(crate) fn choose(&self, id: &DeviceId) -> Result<Mode> {
-        let modes = self.inner.config.modes_for(id);
-        let mut unknown_to_every_transport = true;
-        for &mode in modes {
-            // An enabled mode this build has no transport for fails here. To
-            // move on to the next one would substitute a mode in silence.
-            let Some(transport) = self.inner.transports.get(&mode) else {
-                return Err(self.no_transport(id, mode));
-            };
-            match transport.health(id) {
-                Some(health) if health.available => return Ok(mode),
-                Some(_) => unknown_to_every_transport = false,
-                // This transport has never seen it. A scan on the send path is
-                // what must not happen, so this mode is not a candidate.
-                None => {}
-            }
-        }
-        if unknown_to_every_transport {
-            return Err(Error::Transport(crate::transport::Error::UnknownDevice {
-                id: id.clone(),
-            }));
-        }
-        Err(Error::NoModeAvailable {
-            id: id.clone(),
-            modes: modes.to_vec(),
-        })
     }
 
     /// The SKU a device is encoded against: what the user configured, else what
