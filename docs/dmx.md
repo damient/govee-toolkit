@@ -180,9 +180,18 @@ command declares for it, with slot 0 at the bottom of the pair. A component at
 off. Every device file declares the whole byte today, so each slot goes out as
 it is.
 
-**White temperature.** Slot 0 sends no white command, so the color stays. Slot 1
-to 255 scales over `colortemp.range_kelvin` with the formula above. Without
-this, a channel at zero would turn a rig white at every blackout.
+**White temperature.** Slot 0 sends no white command. Without this, a channel
+at zero would turn a rig white at every blackout. Slot 1 to 255 scales over
+`colortemp.range_kelvin` with the formula above.
+
+A white command replaces the color on the device. Two rules follow from that:
+
+- A pass that carries a white temperature writes no color. The color would
+  show for the few milliseconds before the white command, which reads as a
+  blink on the way back up from a dimmer at 0.
+- The node sends the color again where the white channel comes back to 0, even
+  where the color channels did not move. That is what takes the device out of
+  white, and the color channels at 0 take it dark.
 
 **Quantization.** A brightness range of `[1, 100]` maps 255 slots onto 100
 steps, so about 2.5 slots share one step. A slow fade on the desk looks

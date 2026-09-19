@@ -27,7 +27,8 @@ pub struct Look {
     /// personality.
     pub color: Option<[u8; 3]>,
     /// The white temperature, in kelvin. `None` at slot 0, which sends no
-    /// white command, so the color stays.
+    /// white command. The send path paints the color again where the white
+    /// channel comes back to 0, which is what takes the device out of white.
     pub white_temp: Option<i64>,
     /// One color per zone, in zone order. Empty on `basic` and on `full`.
     pub zones: Vec<[u8; 3]>,

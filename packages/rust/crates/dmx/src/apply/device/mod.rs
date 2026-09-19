@@ -6,49 +6,22 @@
 //!
 //! The task keeps two other waits: what the patch shows after the sender goes
 //! quiet, and the backoff that a device which stopped answering is retried
-//! on.
+//! on. [`send`] holds what one pass puts on the wire.
 
-use std::time::Duration;
+mod send;
 
 use govee_toolkit::stream::{Rate, Resolution, StreamOptions};
-use govee_toolkit::{DeviceHandle, DeviceId, Error, Govee, Mode, Result, SegmentStream};
+use govee_toolkit::{DeviceHandle, DeviceId, Error, Govee, Mode, SegmentStream};
 use tokio::sync::{mpsc, watch};
 use tokio::time::Instant;
 
+use self::send::Sent;
 use super::backoff::Backoff;
 use super::look::Look;
 use super::rate::Pace;
 use super::{Counts, Failure, Timing};
 use crate::patch::{Fixture, SignalLoss};
 use crate::profile::Personality;
-
-/// How long one command waits behind the one before it, inside one pass.
-///
-/// A device drops a datagram that arrives directly behind two others — see
-/// `docs/protocol/lan.md` 1, "Consecutive commands". Nothing acknowledges a
-/// LAN frame, so the drop is silent and the device holds the value the
-/// command meant to replace. The gap is wider than the smallest one measured,
-/// for a unit slower than the one that was measured. A pass that changes one
-/// slot writes once and waits not at all, so a color chase pays nothing.
-const GAP: Duration = Duration::from_millis(5);
-
-/// Wait `GAP` where this pass already put a datagram on the network.
-async fn gap(wrote: bool) {
-    if wrote {
-        tokio::time::sleep(GAP).await;
-    }
-}
-
-/// What one fixture last received. Every field is compared before a write, so
-/// a desk that holds a static look puts no traffic on the device.
-#[derive(Debug, Default)]
-struct Sent {
-    on: Option<bool>,
-    brightness: Option<i64>,
-    color: Option<[u8; 3]>,
-    white_temp: Option<i64>,
-    zones: Vec<[u8; 3]>,
-}
 
 /// One fixture, and the device it drives.
 #[derive(Debug)]
@@ -68,6 +41,9 @@ pub(super) struct Feeder {
     /// A look the pace held, which the next due write carries.
     held: bool,
     sent: Sent,
+    /// When the last datagram went out to this device. The next one waits
+    /// behind it.
+    last_sent: Option<Instant>,
     /// The last look received, which the refresh sends again.
     last: Option<Look>,
     failures: mpsc::Sender<Failure>,
@@ -100,6 +76,7 @@ impl Feeder {
             pace: Pace::new(fixture.entry.max_hz),
             held: false,
             sent: Sent::default(),
+            last_sent: None,
             last: None,
             failures,
             counts: Counts {
@@ -238,101 +215,6 @@ impl Feeder {
         self.apply(&look).await
     }
 
-    async fn write(&mut self, look: &Look) -> Result<bool> {
-        if !look.on {
-            return self.power_off().await;
-        }
-        let mut wrote = self.power_on().await?;
-        if let Some(level) = look.brightness
-            && self.sent.brightness != Some(level)
-        {
-            gap(wrote).await;
-            self.device().brightness(level).await?;
-            self.sent.brightness = Some(level);
-            self.counts.frames_sent += 1;
-            wrote = true;
-        }
-        if self.options.is_some() {
-            gap(wrote).await;
-            return Ok(self.zones(&look.zones)? || wrote);
-        }
-        if let Some(rgb) = look.color
-            && self.sent.color != Some(rgb)
-        {
-            gap(wrote).await;
-            self.device().color(rgb).await?;
-            self.sent.color = Some(rgb);
-            self.counts.frames_sent += 1;
-            wrote = true;
-        }
-        if let Some(kelvin) = look.white_temp
-            && self.sent.white_temp != Some(kelvin)
-        {
-            gap(wrote).await;
-            self.device().color_temp(kelvin).await?;
-            self.sent.white_temp = Some(kelvin);
-            self.counts.frames_sent += 1;
-            wrote = true;
-        }
-        Ok(wrote)
-    }
-
-    /// Power the device on, and arm the channel where the personality paints
-    /// zones. Arming a dark strip paints nothing, so the order is fixed.
-    ///
-    /// An armed channel is proof the device is on, so the power command is
-    /// skipped there whatever the refresh cleared: a power command ends the
-    /// armed channel on some devices, and the device then shows the color it
-    /// held before the stream — see `docs/protocol/lan.md` 2.3.
-    async fn power_on(&mut self) -> Result<bool> {
-        if self.sent.on == Some(true) || self.stream.is_some() {
-            return Ok(false);
-        }
-        self.device().power(true).await?;
-        self.sent.on = Some(true);
-        self.counts.frames_sent += 1;
-        if let Some(options) = self.options.clone()
-            && self.stream.is_none()
-        {
-            gap(true).await;
-            let stream = self.device().open_stream(options).await?;
-            self.stream = Some(stream);
-        }
-        Ok(true)
-    }
-
-    /// The dimmer at 0. The channel is disarmed first: it holds the colors
-    /// only while it is armed, and a device that comes back on arms it again.
-    async fn power_off(&mut self) -> Result<bool> {
-        if self.sent.on == Some(false) {
-            return Ok(false);
-        }
-        let disarmed = self.stream.is_some();
-        self.close().await;
-        gap(disarmed).await;
-        self.device().power(false).await?;
-        self.sent = Sent {
-            on: Some(false),
-            ..Sent::default()
-        };
-        self.counts.frames_sent += 1;
-        Ok(true)
-    }
-
-    /// Hand the zones to the stream, which paces them and drops what a later
-    /// frame replaced.
-    fn zones(&mut self, zones: &[[u8; 3]]) -> Result<bool> {
-        let Some(stream) = &self.stream else {
-            return Ok(false);
-        };
-        if self.sent.zones == zones {
-            return Ok(false);
-        }
-        stream.set_all(zones)?;
-        self.sent.zones = zones.to_vec();
-        Ok(true)
-    }
-
     /// Forget a stream whose device stopped answering. Its counters are kept
     /// and the next write opens a new one: a disarming frame has nothing to
     /// reach.
@@ -354,6 +236,7 @@ impl Feeder {
         if let Err(error) = stream.close().await {
             self.failed(&error);
         }
+        self.mark();
     }
 
     async fn finish(mut self) -> Counts {
