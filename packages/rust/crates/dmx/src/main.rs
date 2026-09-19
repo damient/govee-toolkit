@@ -10,8 +10,10 @@
 
 use std::path::PathBuf;
 use std::process::ExitCode;
+use std::time::Duration;
 
 use clap::{Parser, Subcommand};
+use govee_toolkit::Identify;
 use govee_toolkit_dmx::patch::{Layout, MAX_PORT_ADDRESS, PortAddress};
 use govee_toolkit_dmx::profile::Personality;
 
@@ -77,6 +79,37 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Light each patched fixture in turn, so a person sees which entry
+    /// drives which fixture.
+    ///
+    /// Every fixture goes off at once first. One fixture at a time then
+    /// comes back on in one color. Every fixture goes off again at the end.
+    Identify {
+        /// The patch file. The default is `patch.yaml` beside `config.yaml`.
+        patch: Option<PathBuf>,
+        /// The color each fixture shows, as `#RRGGBB`.
+        #[arg(long, default_value = "#00ff00", value_name = "COLOR")]
+        color: String,
+        /// How long the walk waits between two steps: after the rig goes
+        /// off, and after each fixture lights.
+        #[arg(long, default_value_t = 1000, value_name = "MS")]
+        wait_ms: u64,
+        /// How long the last fixture holds the color before every fixture
+        /// goes off.
+        #[arg(long, default_value_t = 5000, value_name = "MS")]
+        hold_ms: u64,
+        /// Leave every fixture on and lit at the end.
+        #[arg(long, conflicts_with = "hold_ms")]
+        keep: bool,
+        /// The configuration file. The default is the one `govee` reads.
+        #[arg(long)]
+        config: Option<PathBuf>,
+        /// Print the records a machine reads instead of the lines a person
+        /// reads.
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Receive Art-Net on port 6454 and drive the patched devices.
     Run {
         /// The patch file, which says which device answers which channels.
@@ -110,7 +143,10 @@ impl Command {
     /// Whether this invocation asked for the machine form.
     const fn as_json(&self) -> bool {
         match self {
-            Self::Profile { json, .. } | Self::Patch { json, .. } | Self::Run { json, .. } => *json,
+            Self::Profile { json, .. }
+            | Self::Patch { json, .. }
+            | Self::Identify { json, .. }
+            | Self::Run { json, .. } => *json,
         }
     }
 }
@@ -151,6 +187,38 @@ fn options(
     })
 }
 
+/// What the command line asks of one identify walk.
+fn walk(
+    color: &str,
+    wait_ms: u64,
+    hold_ms: u64,
+    keep: bool,
+) -> Result<cmd::identify::Walk, cmd::Failure> {
+    Ok(cmd::identify::Walk {
+        pass: Identify {
+            color: rgb(color)?,
+            ..Identify::default()
+        },
+        wait: Duration::from_millis(wait_ms),
+        hold: Duration::from_millis(hold_ms),
+        keep,
+    })
+}
+
+/// One `#RRGGBB`, as a person types it on a desk.
+fn rgb(text: &str) -> Result<[u8; 3], cmd::Failure> {
+    let digits = text.strip_prefix('#').unwrap_or(text);
+    let bytes = (digits.len() == 6)
+        .then(|| u32::from_str_radix(digits, 16).ok())
+        .flatten()
+        .ok_or_else(|| cmd::Failure::new(format!("`{text}` is no `#RRGGBB` color"), cmd::USAGE))?;
+    Ok([
+        u8::try_from((bytes >> 16) & 0xff).unwrap_or(0),
+        u8::try_from((bytes >> 8) & 0xff).unwrap_or(0),
+        u8::try_from(bytes & 0xff).unwrap_or(0),
+    ])
+}
+
 fn spellings() -> String {
     Personality::ALL
         .iter()
@@ -179,6 +247,18 @@ fn main() -> ExitCode {
             json,
         } => match options(&personality, universe, reset, dry_run) {
             Ok(options) => cmd::patch::start(patch.as_deref(), options, config.as_deref(), json),
+            Err(failure) => Err(failure),
+        },
+        Command::Identify {
+            patch,
+            color,
+            wait_ms,
+            hold_ms,
+            keep,
+            config,
+            json,
+        } => match walk(&color, wait_ms, hold_ms, keep) {
+            Ok(walk) => cmd::identify::start(patch.as_deref(), walk, config.as_deref(), json),
             Err(failure) => Err(failure),
         },
         Command::Run {

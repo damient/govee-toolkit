@@ -10,6 +10,10 @@ Nothing is published yet: the manifest carries `publish = false`.
 
 ### Added
 
+- `identify` — names each enabled entry and lights the fixture it drives. Every
+  fixture goes off at once first, and the walk then lights one at a time, in
+  patch order. `--color`, `--wait-ms`, `--hold-ms` and `--keep` set what it shows and
+  how long each step lasts.
 - The crate, the `govee-dmx` binary and the `artnet` and `sacn` cargo
   features. The binary answers `--version` and `--help`, and drives no device
   yet.
