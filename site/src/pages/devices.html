@@ -20,7 +20,7 @@
 
     <div class="tablewrap">
       <table class="matrix matrix-list">
-        <caption class="visually-hidden">Support of each model, per mode</caption>
+        <caption class="visually-hidden">Support of each model, per mode, and the DMX channel table</caption>
         <thead>
           <tr>
             <th scope="col">SKU</th>
@@ -29,6 +29,7 @@
             <th scope="col">{{badge_lan}}</th>
             <th scope="col">{{badge_ble}}</th>
             <th scope="col">{{badge_cloud}}</th>
+            <th scope="col">{{badge_dmx}}</th>
           </tr>
         </thead>
         <tbody data-rows>
@@ -40,6 +41,7 @@
     <ul class="caps legend-caps">
         {{caps_legend}}
         <li><span class="pill pill-unknown">?</span>Not probed yet</li>
+        <li><span class="dmx-yes">{{check_mark}}</span>Answers a DMX channel table</li>
         <li><span class="muted">—</span>Not available</li>
     </ul>
   </div>

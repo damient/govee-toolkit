@@ -14,7 +14,7 @@ import { crumbs } from "./lib/crumbs.mjs";
 import { devicePage, renderIndex, sorted } from "./lib/devices.mjs";
 import { navItem } from "./lib/docs.mjs";
 import { fill } from "./lib/html.mjs";
-import { modeBadges } from "./lib/mode-badge.mjs";
+import { dmxBadge, modeBadges } from "./lib/mode-badge.mjs";
 import { REFERENCE, referencePage } from "./lib/reference.mjs";
 import { breadcrumb, deviceData, faqData, homeData, jsonLd, robots, sitemapXml } from "./lib/seo.mjs";
 import { serve } from "./lib/serve.mjs";
@@ -33,7 +33,7 @@ const pages = [
     title: "Devices",
     render: renderIndex,
     trail: [["Devices", "devices/"]],
-    description: "Which Govee models the toolkit reaches, over Wi-Fi, over Bluetooth and over the cloud. Built from the device files, so it cannot disagree with them.",
+    description: "Which Govee models the toolkit reaches, over Wi-Fi, over Bluetooth, over the cloud and from a DMX desk. Built from the device files, so it cannot disagree with them.",
   },
   {
     src: "add-device.html",
@@ -82,7 +82,7 @@ async function main() {
     .filter((item) => !FOOT_SKIP.has(item.url))
     .map((item) => navItem(base, item, null))
     .join("\n          ");
-  const ctx = { css, docsHome, docNav, vars: { base, repo: repoUrl, ...modeBadges() } };
+  const ctx = { css, docsHome, docNav, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
 
   const devices = sorted(catalog);
   const sources = await Promise.all(

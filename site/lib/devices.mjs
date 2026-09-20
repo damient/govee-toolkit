@@ -36,6 +36,10 @@ export function sorted(catalog) {
 const support = (device, mode) => device.modes?.[mode]?.support ?? "unknown";
 
 const REACHES = new Set(["full", "capped", "partial"]);
+
+const CHECK = '<svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+  + ' stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<path d="M4.5 12.6 9.4 17.5 19.5 7"/></svg>';
 const pill = (value) =>
   `<span class="pill pill-${value}">${value === "unknown" ? "?" : value}</span>`;
 
@@ -48,6 +52,7 @@ export function renderIndex(template, devices) {
   return fill(template, {
     devices_rows: devices.map(row).join("\n"),
     caps_legend: capsLegend(devices),
+    check_mark: CHECK,
   });
 }
 
@@ -84,8 +89,16 @@ function capsLegend(devices) {
     .join("\n        ");
 }
 
+// The DMX column answers yes or nothing: the bridge derives a channel table
+// from the device file, so a model that carries no table answers no desk.
+function dmxCell(d) {
+  if (!d.dmx?.personalities?.length) return '<span class="muted">—</span>';
+  return `<span class="dmx-yes">${CHECK}<span class="visually-hidden">DMX</span></span>`;
+}
+
 function row(d) {
-  const cells = MODES.map((m) => `<td>${modeCell(d, m)}</td>`).join("");
+  const cells = MODES.map((m) => `<td>${modeCell(d, m)}</td>`).join("")
+    + `<td>${dmxCell(d)}</td>`;
   const names = [d.sku, d.name, ...(d.aliases ?? [])].join(" ").toLowerCase();
   return `          <tr data-search="${escapeAttr(names)}">
             <th scope="row"><a href="{{base}}devices/${escapeAttr(d.sku)}/">${escapeHtml(d.sku)}</a></th>
@@ -149,9 +162,8 @@ function pageBody(d, reference, trail) {
 }
 
 function badges(d) {
-  const check = `<svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.6 9.4 17.5 19.5 7"/></svg>`;
   return d.verified?.date
-    ? `<span class="badge badge-ok">${check}verified</span>`
+    ? `<span class="badge badge-ok">${CHECK}verified</span>`
     : `<span class="badge badge-unknown">not verified</span>`;
 }
 
