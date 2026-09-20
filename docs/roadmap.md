@@ -23,8 +23,9 @@ against `crates/sim` with no hardware. What is left is the release itself:
 
 - `publish = true`, `.github/workflows/dmx-release.yml` on the `dmx-vX.Y.Z`
   tag, and the row in the root `CHANGELOG.md` table. Follow `cli-release.yml`,
-  which releases the other binary.
-- A `README.md` for the crate, and the package in the root `README.md`.
+  which releases the other binary. The name is taken on crates.io by a `0.0.0`
+  placeholder, and the trusted publisher is configured against that workflow
+  file.
 - `dist/catalog.json` carries the channel table, and the devices page shows it.
 
 Undocumented LAN commands are documented and formalized continuously, in
