@@ -52,10 +52,6 @@ hardware: discovery, on/off, brightness, color, per-segment color, and live
 animation over the two local modes. It is usable today from Rust, from Python
 and from Node.js.
 
-An Art-Net node drives the same devices from a lighting desk: `govee-toolkit-dmx`
-receives DMX on the network and writes each frame over `lan`. See
-[`docs/dmx.md`](https://github.com/damient/govee-toolkit/blob/main/docs/dmx.md).
-
 Next come a desktop app, then Home Assistant, Homebridge and Matter.
 [`docs/roadmap.md`](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md) tracks the order.
 
