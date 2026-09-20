@@ -1,7 +1,7 @@
 //! The receive loop, over a socket on the loopback address.
 //!
 //! A dry run resolves and writes nothing, so these tests need no device. The
-//! send path is exercised against `crates/sim` — see `docs/dmx-plan.md`.
+//! send path is exercised against `crates/sim` — see `docs/roadmap.md`.
 
 #![allow(clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
