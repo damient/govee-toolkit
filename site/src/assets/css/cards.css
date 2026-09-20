@@ -54,14 +54,16 @@
 
 /* --- Modes -------------------------------------------------------------- */
 
-.mode-cards { display: grid; gap: 14px; margin: 2.2em 0 1.6em; }
+.mode-cards { display: grid; gap: 14px; margin: 2.2em 0 0; }
 
-@media (min-width: 760px) { .mode-cards { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 680px) { .mode-cards { grid-template-columns: repeat(2, 1fr); } }
 .mode-card {
   position: relative;
+  display: block; text-decoration: none;
   padding: 22px 20px 22px 23px; border-radius: 0;
   background: var(--panel); border: 1px solid var(--line); border-left: 0;
 }
+.mode-card:hover { background: var(--panel-2); }
 .mode-card h3 { margin-bottom: .75em; }
 /* The badge is the heading of its card, so it is drawn larger than the one a
    table row carries. */
@@ -75,13 +77,14 @@
 .mode-card.lan { --accent: var(--accent-ember); }
 .mode-card.ble { --accent: var(--accent-cyan); }
 .mode-card.cloud { --accent: var(--accent-violet); }
-.mode-card.ble::before { animation-delay: -1.5s; }
-.mode-card.cloud::before { animation-delay: -3s; }
+.mode-card.dmx { --accent: var(--muted); }
+.mode-card.ble::before { animation-delay: -1.2s; }
+.mode-card.cloud::before { animation-delay: -2.4s; }
+.mode-card.dmx::before { animation-delay: -3.6s; }
 /* The link that closes a section stands under its cards, on their center. */
-#languages .btn, .slab.modes .btn {
-  display: block; width: fit-content; margin-inline: auto;
+#languages .btn {
+  display: block; width: fit-content; margin-top: 2.2em; margin-inline: auto;
 }
-#languages .btn { margin-top: 2.2em; }
 
 
 /* --- Page head ---------------------------------------------------------- */
