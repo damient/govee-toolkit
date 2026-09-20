@@ -202,7 +202,13 @@ impl Node {
                 if self.gate.accept(source, dmx.frame.universe, dmx.sequence) {
                     self.frame(&dmx.frame, observer);
                 } else {
-                    observer.refused(source, "older than the last packet accepted");
+                    observer.refused(
+                        source,
+                        &format!(
+                            "sequence {} is older than the last packet accepted",
+                            dmx.sequence
+                        ),
+                    );
                 }
             }
             Ok(Packet::Poll(_)) => self.answer(source, listener, observer).await,

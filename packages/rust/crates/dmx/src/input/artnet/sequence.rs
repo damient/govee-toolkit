@@ -15,38 +15,51 @@ const DISABLED: u8 = 0;
 /// Half of the 256 values. A packet this far ahead of the last one is a
 /// packet that far behind it, and the split has to fall somewhere.
 const HALF: u8 = 128;
+/// How many packets in a row the gate refuses before it takes the count as
+/// restarted. A sender that jumps half the range forward, because it started
+/// again or because the socket lost a burst, reads as older for every packet
+/// that follows. Without this the gate refuses that sender for good.
+const RESYNC: u8 = 4;
 
 /// What orders the packets of one sender on one port-address.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Sequence {
     last: Option<u8>,
+    /// How many packets the gate refused since the last one it took.
+    refused: u8,
 }
 
 impl Sequence {
     /// A gate that has accepted nothing.
     #[must_use]
     pub const fn new() -> Self {
-        Self { last: None }
+        Self {
+            last: None,
+            refused: 0,
+        }
     }
 
     /// Whether to take the packet that carries `sequence`.
     ///
     /// The first packet is always taken. A sequence of 0 is always taken
     /// and forgets the count, so that a sender which stops counting keeps
-    /// driving.
+    /// driving. After 4 refusals in a row the gate takes the packet
+    /// and counts from it: a sender that restarted must reach the rig again.
     pub fn accept(&mut self, sequence: u8) -> bool {
         if sequence == DISABLED {
             self.last = None;
+            self.refused = 0;
             return true;
         }
-        let Some(last) = self.last else {
-            self.last = Some(sequence);
-            return true;
-        };
-        if sequence.wrapping_sub(last) >= HALF {
+        if let Some(last) = self.last
+            && sequence.wrapping_sub(last) >= HALF
+            && self.refused < RESYNC
+        {
+            self.refused += 1;
             return false;
         }
         self.last = Some(sequence);
+        self.refused = 0;
         true
     }
 
@@ -140,6 +153,33 @@ mod tests {
         assert!(!gate.accept(99));
         assert!(!gate.accept(1));
         assert_eq!(gate.last(), Some(100));
+    }
+
+    /// A sender that starts again counts from where it wants. The gate must
+    /// take it back: a rig that refuses every packet of the one desk on the
+    /// network goes dark.
+    #[test]
+    fn a_sender_that_counts_from_somewhere_else_is_taken_back() {
+        let mut gate = Sequence::new();
+        assert!(gate.accept(10));
+        for sequence in 200..204u8 {
+            assert!(!gate.accept(sequence), "{sequence}");
+        }
+        assert!(gate.accept(204));
+        assert_eq!(gate.last(), Some(204));
+    }
+
+    /// The refusals that resync have to be in a row. A late packet between
+    /// two packets that count on leaves the gate where it was.
+    #[test]
+    fn one_late_packet_does_not_count_towards_a_resync() {
+        let mut gate = Sequence::new();
+        assert!(gate.accept(100));
+        for sequence in 101..=120u8 {
+            assert!(!gate.accept(1), "{sequence}");
+            assert!(gate.accept(sequence), "{sequence}");
+            assert_eq!(gate.last(), Some(sequence));
+        }
     }
 
     /// The count wraps at 255, so 2 is newer than 250 and 250 is older.
