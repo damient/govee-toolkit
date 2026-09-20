@@ -106,6 +106,8 @@ mod provision;
 #[cfg(feature = "transport")]
 mod resolved;
 #[cfg(feature = "transport")]
+pub mod select;
+#[cfg(feature = "transport")]
 mod verbs;
 
 pub use codec::{Args, Catalog, Mode};
@@ -127,6 +129,8 @@ pub use govee::Govee;
 pub use provision::{Provisioned, WifiCredentials};
 #[cfg(feature = "transport")]
 pub use resolved::Resolved;
+#[cfg(feature = "transport")]
+pub use select::Selector;
 #[cfg(feature = "transport")]
 pub use stream::{ParseError, Rate, Reach, Resolution, SegmentStream, StreamOptions};
 #[cfg(feature = "transport")]

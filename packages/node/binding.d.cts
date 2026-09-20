@@ -265,6 +265,15 @@ export declare class Govee {
    */
   devices(): Array<Device>
   /**
+   * The devices the targets name, in the order they were written.
+   *
+   * A target is an identity (`1C:8B:…`), a SKU (`H6159`), or a name the
+   * configuration gives a device (`name:kitchen`). `id:`, `sku:` and
+   * `name:` state the kind where the target alone does not. A SKU and a
+   * name select among the devices the SDK knows, so scan first.
+   */
+  select(targets: Array<string>): Array<string>
+  /**
    * The modes this build carries a transport for. Not a preference order:
    * that is each device's own configuration.
    */
