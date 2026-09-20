@@ -10,23 +10,11 @@ description: Wi-Fi, Bluetooth or the cloud — what each path carries, and why t
 A command travels to your light over one of three paths. You choose which paths
 to allow, for each device.
 
-| Mode | Speed | It reaches the device from | What it carries |
-| ---- | ----- | -------------------------- | --------------- |
-| {{badge_lan}} | fastest | the same Wi-Fi | everything, segments included |
-| {{badge_ble}} | fast | Bluetooth range, no Wi-Fi needed | it depends on the model |
-| {{badge_cloud}} | slowest | anywhere with internet | on/off, brightness, color, segments. Throttled, and no animation |
-
-## One enabled mode means one mode
-
-Allow several modes and the toolkit switches between them. Allow one and it
-stays on that one: if the device is out of reach, the command fails and says
-so.
-
-This matters more than it sounds. A toolkit that fell back to the cloud after a
-Wi-Fi timeout would turn a 5 millisecond command into a 2 second one, and you
-would never know why. A toolkit that answered a segment animation with a plain
-color change would report success for something your light never showed.
-Neither happens here.
+| Mode | Speed | It reaches the device from |
+| ---- | ----- | -------------------------- |
+| {{badge_lan}} | fastest | the same Wi-Fi |
+| {{badge_ble}} | fast | Bluetooth range, no Wi-Fi needed |
+| {{badge_cloud}} | slowest | anywhere with internet |
 
 ## What each mode needs
 
@@ -40,14 +28,7 @@ while another app holds the link finds nothing.
 
 {{badge_cloud}} — a Govee API key, and the device registered to that account.
 
-## Health
-
-Each device carries a health state per mode: `OK`, `DEGRADED` or `DOWN`. The
-toolkit decides from the state it already holds, so a command does not wait for
-a fresh timeout to learn that a mode is down.
-
 ## Where the truth lives
 
-What a mode reaches on a given model is declared in that model's file in
-`devices/`. [The devices page]({{base}}devices/) is the readable view of those
-files.
+What a mode reaches depends on the model. [The devices page]({{base}}devices/)
+says what each one answers.
