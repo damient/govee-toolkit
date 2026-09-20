@@ -1,0 +1,14 @@
+{
+  "sender": "QLC+ 5.2.2 on macOS, the Simple Desk of universe 1, over the Art-Net output plugin. The sequence increments.",
+  "universe": 0,
+  "sequence": 148,
+  "physical": 0,
+  "length": 512,
+  "channels": {
+    "1": 179,
+    "2": 0,
+    "3": 113,
+    "4": 148,
+    "5": 55
+  }
+}

@@ -10,6 +10,7 @@
 | Pass/fail reporter the four share | [`lib/qa.sh`](lib/qa.sh) |
 | Build artifact sweep | [`clean-target.sh`](clean-target.sh) |
 | Redaction check | [`check-captures.sh`](check-captures.sh) |
+| Art-Net capture recorder | [`record-artnet.py`](record-artnet.py) |
 | File length, per language | [`check-file-length.sh`](check-file-length.sh) |
 | Codec layering | [`check-no-io.sh`](check-no-io.sh) |
 | Release notes from the changelog | [`release-notes.sh`](release-notes.sh) |
@@ -26,6 +27,22 @@ drifted apart. Run it after editing a doc comment of the binding:
 tools/sync-stubs.py           # rewrite the stubs
 tools/sync-stubs.py --check   # what CI runs
 ```
+
+`record-artnet.py` records the captures that
+[`../tests/fixtures/artnet/README.md`](../tests/fixtures/artnet/README.md)
+asks for. It binds UDP 6454, writes the payload of one `ArtDmx` packet and one
+`ArtPoll` packet, and writes a template JSON beside each one. It puts no
+address in a file: it prints the source of a packet and stops there. Stop
+`govee-dmx run` first, because the two compete for the port.
+
+```bash
+tools/record-artnet.py --name <sender>          # both packets
+tools/record-artnet.py --name <sender> --dmx-only
+```
+
+The template leaves `sender` and `channels` as `TODO`. Fill `channels` with
+the values the desk showed: they are what makes a capture evidence, and the
+test refuses a capture that lists none.
 
 The simulator is a Rust crate rather than a tool of its own: the transport tests
 drive it in-process on ephemeral loopback ports, and a second implementation of
