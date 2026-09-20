@@ -110,6 +110,7 @@ impl Govee {
             transports: by_mode,
             events: events.clone(),
             status_requests: Mutex::new(HashMap::new()),
+            streams: crate::govee::ArmedStreams::default(),
         });
 
         let forwarder = Forwarder(

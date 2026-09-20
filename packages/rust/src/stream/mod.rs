@@ -15,6 +15,12 @@
 //! refused there, since the firmware drops the high bits of such a mask in
 //! silence.
 //!
+//! A unit can answer no status while the channel is armed
+//! (`docs/protocol/lan.md` 2.3). The SDK therefore verifies no command it
+//! sends to that device over that mode until the disarm: a request there could
+//! only expire, and it would record against the breaker a failure the device
+//! did not earn. The command itself goes out as usual.
+//!
 //! On `ble` the transport paces, not the stream. Every write goes through the
 //! same budget.
 //!
@@ -65,7 +71,7 @@ use self::resolve::plan;
 use self::sender::{Shared, send_enable};
 use crate::codec::Mode;
 use crate::error::{Error, Result};
-use crate::govee::Govee;
+use crate::govee::{ArmedGuard, Govee};
 use crate::transport::DeviceId;
 
 /// The rate a stream falls back to when the device file measured none for its
@@ -136,6 +142,9 @@ impl SegmentStream {
             superseded: AtomicU64::new(0),
             failure: Mutex::new(None),
             stop: Notify::new(),
+            // Marked before the arming frame, so a command sent while the
+            // channel arms verifies nothing either.
+            _armed: ArmedGuard::new(govee, id, mode),
         });
 
         // Before arming, so the first frame is painted under the setting the

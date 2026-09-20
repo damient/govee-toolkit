@@ -164,7 +164,14 @@ impl<'a> DeviceHandle<'a> {
 
         // Fire-and-verify needs a request to verify with. Without a status
         // command in the device file, the command still goes out, unverified.
-        let verification = self.govee.status_request(sku, mode).ok();
+        // A device with an armed segment channel can answer no status until
+        // the disarm (`docs/protocol/lan.md` 2.3), so a request sent there
+        // would cost a datagram and record a failure the device did not earn.
+        let verification = if self.govee.stream_armed(&self.id, mode) {
+            None
+        } else {
+            self.govee.status_request(sku, mode).ok()
+        };
         let verify = verification.map_or(Verify::None, Verify::With);
 
         let sent = self

@@ -13,7 +13,7 @@ use tokio::time::MissedTickBehavior;
 
 use crate::codec::{Args, Encoded, Mode};
 use crate::error::{Error, Result};
-use crate::govee::Govee;
+use crate::govee::{ArmedGuard, Govee};
 use crate::stream::paint;
 use crate::stream::resolve::{Enable, Painter};
 use crate::transport::{DeviceId, Transport, Verify};
@@ -55,6 +55,9 @@ pub(crate) struct Shared {
     /// Raised by the handle to end the stream. A signal rather than an abort,
     /// so the task can send the disarming frame itself.
     pub(crate) stop: Notify,
+    /// Marks the channel armed for the facade's send path. Dropped with the
+    /// last handle, which is the emitting task's, after the disarming frame.
+    pub(crate) _armed: ArmedGuard,
 }
 
 impl Shared {
