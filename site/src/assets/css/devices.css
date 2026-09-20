@@ -18,14 +18,15 @@
 .matrix tbody tr:last-child th, .matrix tbody tr:last-child td { border-bottom: 0; }
 .matrix th[scope="row"] { font-family: var(--mono); font-weight: 500; }
 
-/* The model index: every row leads to a page, and the six columns need more
+/* The model index: every row leads to a page, and the seven columns need more
    width than a phone has. */
-.matrix-list { min-width: 640px; }
+.matrix-list { min-width: 720px; }
 .matrix-list tbody tr { cursor: pointer; }
 .matrix-list tbody tr:hover { background: var(--panel); }
 .matrix-list tbody tr:hover th[scope="row"] a { color: var(--ember); }
-/* The three mode columns answer one question each: centered, they read as a
-   row of answers rather than as three ragged columns. */
+/* The three mode columns and the DMX column answer one question each:
+   centered, they read as a row of answers rather than as four ragged
+   columns. */
 .matrix-list th:nth-child(n + 4), .matrix-list td:nth-child(n + 4) { text-align: center; }
 .matrix-list td:nth-child(n + 4) .caps-row { justify-content: center; }
 .matrix-list thead th:nth-child(n + 4) .mbadge { display: inline-flex; }
@@ -65,6 +66,10 @@
 .pill-capped { color: var(--azure); border-color: color-mix(in oklab, var(--azure) 45%, transparent); }
 .pill-partial { color: var(--amber); border-color: color-mix(in oklab, var(--amber) 45%, transparent); }
 .pill-unknown { color: var(--muted); border-style: dashed; }
+/* The DMX answer. It takes the green of a full mode: the column says the
+   bridge reaches the model, the same way a pill says a mode does. */
+.dmx-yes { display: inline-flex; color: var(--green); }
+.dmx-yes .badge-icon { width: 17px; height: 17px; margin-right: 0; }
 
 
 /* --- One model, one page ------------------------------------------------ */
