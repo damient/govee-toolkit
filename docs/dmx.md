@@ -89,7 +89,11 @@ nothing: the node receives its own reply instead.
 
 **Sequence.** The ArtDmx sequence field detects a packet that UDP delivered out
 of order. A value of 0 disables it. Where it is non-zero, the bridge drops a
-packet that is older than the last one it accepted, in a window of 256.
+packet that is older than the last one it accepted, in a window of 256. After
+4 refusals in a row the bridge takes the packet and counts from it. A sender
+that starts again, or a burst the socket lost, moves the count half the range
+forward, and every packet that follows reads as older: without the resync the
+bridge refuses that sender for good and the rig goes dark.
 
 **Merge.** Art-Net asks for an HTP merge of at most 2 sources on one universe.
 The first version takes the last source instead, and logs a warning that names

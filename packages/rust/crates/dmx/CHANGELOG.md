@@ -183,6 +183,11 @@ Nothing is published yet: the manifest carries `publish = false`.
 
 ### Changed
 
+- The sequence gate takes a packet after 4 refusals in a row, and counts from
+  it. A sender that starts again moves the count half the range forward, every
+  packet that follows read as older, and the gate refused that sender for
+  good.
+- A refused packet names its sequence in the report.
 - The node broadcasts its `ArtPollReply`, which Art-Net asks for. A unicast
   reply to port 6454 reaches one socket alone, so a desk that shares the host
   with the node listed nothing: the node received its own reply. QLC+ 5.2.2 on
