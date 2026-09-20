@@ -9,7 +9,7 @@
   models that expose the LAN switch
 - [`modes.md`](modes.md) — the `lan` / `ble` / `cloud` mode model and per-device
   selection
-- [`dmx.md`](dmx.md) — the Art-Net node: the channel table, the patch and the
+- [`dmx.md`](dmx.md) — the DMX bridge: the channel table, the patch and the
   send policy
 - [`dmx-profiles.md`](dmx-profiles.md) — the DMX channel table of every device
   file, generated

@@ -44,7 +44,7 @@ chooses a transport.
 | Human-readable "does my device work" | `docs/compatibility.md` |
 | Govee's own list of LAN-capable models | `docs/lan-supported-devices.md` |
 | Full feature list | `docs/features.md` |
-| The Art-Net node: channels, patch, send policy | `docs/dmx.md` |
+| The DMX bridge: channels, patch, send policy | `docs/dmx.md` |
 | Ordering of the work | `docs/roadmap.md` |
 | Why the code is shaped this way | `docs/architecture.md` |
 | Arguments in, exact bytes out | `tests/fixtures/golden/<mode>/<SKU>.json` |

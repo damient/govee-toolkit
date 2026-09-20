@@ -1,6 +1,6 @@
 [package]
 name = "govee-toolkit-dmx"
-description = "An Art-Net node over govee-toolkit: a lighting desk drives Govee devices on the LAN. Unofficial."
+description = "A DMX bridge over govee-toolkit: a lighting desk drives Govee devices on the LAN over Art-Net. Unofficial."
 # Versioned apart from the crate it reads, and released under `dmx-vX.Y.Z` —
 # see docs/versioning.md.
 version = "0.1.0"

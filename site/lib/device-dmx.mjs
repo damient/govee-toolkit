@@ -1,6 +1,6 @@
 // The "DMX" section of a model page: the channel table an operator patches a
 // desk with. `dist/catalog.json` carries the table, derived by
-// `govee-toolkit-dmx` from the device file, so this page and the Art-Net node
+// `govee-toolkit-dmx` from the device file, so this page and the DMX bridge
 // cannot disagree. Nothing below derives a channel of its own.
 
 import { escapeAttr, escapeHtml } from "./html.mjs";

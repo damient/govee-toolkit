@@ -70,7 +70,7 @@ enum Output {
     },
 }
 
-/// The Art-Net node.
+/// The DMX bridge.
 #[derive(Debug)]
 pub struct Node {
     rig: Rig,

@@ -1,4 +1,5 @@
-//! An Art-Net node that drives Govee devices over `lan`.
+//! A DMX bridge that drives Govee devices over `lan`. Art-Net carries the
+//! DMX in.
 //!
 //! Unofficial, and not affiliated with Govee. The design reference is
 //! `docs/dmx.md`.

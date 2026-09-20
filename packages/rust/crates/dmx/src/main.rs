@@ -1,4 +1,4 @@
-//! `govee-dmx` — the Art-Net node over `govee-toolkit`.
+//! `govee-dmx` — the DMX bridge over `govee-toolkit`.
 //!
 //! Every subcommand takes `--json`, which is the form a script and a model
 //! read. The text form is for a person and its layout is not stable. The
@@ -27,7 +27,7 @@ const WIDEST: &str = "widest";
 #[command(
     name = "govee-dmx",
     version,
-    about = "Drive Govee devices from a lighting desk, over Art-Net. Unofficial.",
+    about = "Drive Govee devices from a lighting desk, over DMX.",
     arg_required_else_help = true
 )]
 struct Cli {
