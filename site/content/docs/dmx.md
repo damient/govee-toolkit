@@ -2,7 +2,7 @@
 title: DMX
 slug: dmx
 order: 6
-description: Drive your lights from a lighting desk over Art-Net, the way a show drives every other fixture.
+description: Drive your lights from a lighting desk over DMX, the way a show drives every other fixture.
 ---
 
 # DMX

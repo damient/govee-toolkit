@@ -135,7 +135,7 @@ Full text: <https://developercertificate.org/>.
 | `devices/` | Source of truth: per-SKU YAML definitions |
 | `docs/` | Mode model (`modes.md`), architecture and per-protocol documentation |
 | `packages/rust/` | The protocol core, and the reference implementation |
-| `packages/` | SDKs (python, node) plus the Art-Net bridge |
+| `packages/` | SDKs (python, node) plus the DMX bridge |
 | `apps/` | Web playground and Electron app (not published) |
 | `integrations/` | Matter bridge, Home Assistant, Homebridge |
 | `tools/` | Local CI mirror and pointers to the development tools |

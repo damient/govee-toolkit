@@ -21,8 +21,8 @@ the light.
 
 ## What it does
 
-- Receive Art-Net, and announce the node, so a desk lists it and needs no
-  address typed in by hand. One protocol is one cargo feature.
+- Receive DMX over Art-Net, and announce the node, so a desk lists it and
+  needs no address typed in by hand. One input protocol is one cargo feature.
 - Patch a fixture on 6 channels, on one color per zone, or on one color per
   addressable LED. The channel table comes from the device file, so no model
   carries a table of its own.
@@ -59,15 +59,13 @@ the repository:
 
 ```sh
 cargo run -p govee-toolkit-dmx -- patch    # scan the network and write the rig
-cargo run -p govee-toolkit-dmx -- run      # receive Art-Net and drive it
+cargo run -p govee-toolkit-dmx -- run      # receive DMX and drive it
 ```
 
-Art-Net is the one protocol the node carries. sACN is the second one people ask
-for, and it takes the same channel model.
+Art-Net is the one input protocol the node carries. sACN is the second one
+people ask for, and it takes the same channel model.
 [`docs/dmx.md`](https://github.com/damient/govee-toolkit/blob/main/docs/dmx.md)
 is the design reference: the channels, the patch file and the send policy.
-[`docs/roadmap.md`](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md)
-tracks what the release needs.
 
 ## Contributing
 
