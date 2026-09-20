@@ -107,12 +107,25 @@
   .doc-grid .prose:not(.reference) > table:not(.matrix) { display: table; }
 }
 .prose h1 { font-size: clamp(1.9rem, 1.4rem + 1.8vw, 2.6rem); margin-bottom: .5em; }
-.prose h2 { margin-top: 2em; }
+/* A heading names one thing and can close with a chip, which sits beside the
+   name rather than at the end of the line. */
+.prose h2 { margin-top: 2em; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 /* A heading that opens an article carries no space over it either. */
 .prose h2#what-the-hardware-does { margin-top: 0; }
 .badge-count { display: inline-flex; gap: 8px; margin-left: 8px; color: var(--muted); }
 .badge-count [aria-hidden] { opacity: .45; }
 .prose h2 .anchor, .prose .anchor { text-decoration: none; }
+.version {
+  flex: none; color: var(--muted);
+  font: 500 12px/1 var(--mono); letter-spacing: .04em;
+  border: 1px solid var(--line-strong); border-radius: 999px; padding: 5px 10px;
+}
+/* The chip that opens the registry page of the package, in a tab of its own:
+   the mark at its head says so. */
+.version-link { display: inline-flex; align-items: center; gap: 7px; }
+.version-link, .version-link:hover { text-decoration: none; }
+.version-link .mode-icon { width: 12px; height: 12px; flex: none; }
+.version-link:hover { color: var(--ember); border-color: color-mix(in oklab, var(--ember) 45%, transparent); }
 .prose h3 { margin-top: 1.8em; }
 .prose p, .prose li { color: var(--prose); }
 .prose ul, .prose ol { padding-left: 1.2em; }

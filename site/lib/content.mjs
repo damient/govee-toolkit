@@ -8,6 +8,7 @@ import { base, repoUrl, root } from "./config.mjs";
 import { docShell } from "./docs.mjs";
 import { escapeAttr, fill, slugify } from "./html.mjs";
 import { modeBadges } from "./mode-badge.mjs";
+import { versionChips } from "./versions.mjs";
 
 /** Every documentation page, in menu order. */
 export async function readDocs() {
@@ -42,16 +43,21 @@ function renderDoc(file, raw) {
         return codeBlock(highlight(text, name), text);
       },
       heading({ depth, tokens }) {
-        const inner = this.parser.parseInline(tokens);
-        if (depth !== 2) return `<h${depth}>${inner}</h${depth}>\n`;
+        if (depth !== 2) return `<h${depth}>${this.parser.parseInline(tokens)}</h${depth}>\n`;
+        // A heading that ends with inline HTML, a version chip for one, keeps
+        // that part outside the anchor: the link is the name alone.
+        const at = tokens.findIndex((t) => t.type === "html");
+        const named = at === -1 ? tokens : tokens.slice(0, at);
+        const trailing = at === -1 ? "" : this.parser.parseInline(tokens.slice(at));
         const label = headingLabel(tokens);
         const id = slugify(label);
         headings.push({ id, text: label });
-        return `<h2 id="${escapeAttr(id)}"><a class="anchor" href="#${escapeAttr(id)}">${inner}</a></h2>\n`;
+        return `<h2 id="${escapeAttr(id)}"><a class="anchor" href="#${escapeAttr(id)}">`
+          + `${this.parser.parseInline(named)}</a>${trailing}</h2>\n`;
       },
     },
   });
-  const html = md.parse(fill(body, { base, repo: repoUrl, ...modeBadges() }));
+  const html = md.parse(fill(body, { base, repo: repoUrl, ...modeBadges(), ...versionChips() }));
   return {
     slug: meta.slug ?? file.replace(/\.md$/, ""),
     title: meta.title ?? file,
