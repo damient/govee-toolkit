@@ -70,6 +70,10 @@ impl From<Error> for Failure {
         let kind = error.code();
         let code = match kind {
             "config" | "configuration" | "local_devices" | "env" => CONFIG,
+            // A target the command line names badly is a usage fault; one
+            // that matches nothing is the rig answering.
+            "target_not_understood" | "ambiguous_target" => USAGE,
+            "no_such_target" => UNREACHABLE,
             "no_mode_available" | "mode_unavailable" | "unreachable" | "unknown_device" => {
                 UNREACHABLE
             }
@@ -100,6 +104,12 @@ impl From<Error> for Failure {
             message: error.to_string(),
             code,
         }
+    }
+}
+
+impl From<govee_toolkit::select::Error> for Failure {
+    fn from(error: govee_toolkit::select::Error) -> Self {
+        Self::from(Error::Select(error))
     }
 }
 

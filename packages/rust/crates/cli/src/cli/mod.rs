@@ -64,7 +64,12 @@ pub(crate) enum Command {
     },
 
     /// List the devices already known, without touching the network.
-    Devices,
+    Devices {
+        /// The devices to list: an identity, a SKU, or `name:<name>`. Every
+        /// known device when absent. See `identify` for the whole grammar.
+        #[arg(value_name = "TARGET")]
+        targets: Vec<String>,
+    },
 
     /// Report what a device file declares: modes, capabilities, commands and
     /// arguments. Reads no hardware.
@@ -101,11 +106,15 @@ pub(crate) enum Command {
     ///
     /// The walk drives `lan`, and the mode `--mode` names where it names one.
     /// It substitutes no other mode.
+    ///
+    /// A target names an identity (`1C:8B:…`), a SKU (`H6159`), or a name the
+    /// configuration gives a device (`name:kitchen`). `id:`, `sku:` and
+    /// `name:` state the kind where the target alone does not.
     Identify {
         /// The devices, in the order to light them. Every device a scan finds
         /// when absent.
-        #[arg(value_name = "DEVICE")]
-        devices: Vec<String>,
+        #[arg(value_name = "TARGET")]
+        targets: Vec<String>,
         /// The color each device shows, as `#RRGGBB`.
         #[arg(long, default_value = "#00ff00", value_name = "COLOR")]
         color: String,
@@ -197,7 +206,7 @@ impl Command {
             Self::Verb(verb) => Some(verb.device()),
             Self::Scan { .. }
             | Self::Identify { .. }
-            | Self::Devices
+            | Self::Devices { .. }
             | Self::Doctor
             | Self::Describe { .. }
             | Self::Watch { .. } => None,

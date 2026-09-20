@@ -36,17 +36,14 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
 
     match &cli.command {
         Command::Scan { .. } => devices::scan(govee, writer, restrict).await,
-        Command::Devices => {
-            devices::list(govee, writer, restrict);
-            Ok(())
-        }
+        Command::Devices { targets } => devices::list(govee, writer, targets, restrict),
         Command::Doctor => {
             devices::doctor(govee, writer);
             Ok(())
         }
         Command::Describe { target } => describe::run(govee, writer, target),
         Command::Identify {
-            devices,
+            targets,
             color,
             wait_ms,
             hold_ms,
@@ -65,7 +62,7 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
                 // two.
                 mode: restrict.unwrap_or(Mode::Lan),
             };
-            identify::run(govee, writer, devices, &walk).await
+            identify::run(govee, writer, targets, &walk).await
         }
         Command::Send {
             device,
