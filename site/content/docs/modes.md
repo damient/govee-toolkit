@@ -2,7 +2,7 @@
 title: Modes
 slug: modes
 order: 5
-description: Wi-Fi, Bluetooth or the cloud — what each path carries, and why the toolkit never changes path on its own.
+description: Wi-Fi, Bluetooth or the cloud — where each path reaches your light from, and what each one needs.
 ---
 
 # Modes
@@ -27,6 +27,7 @@ One connection at a time: a connected device stops advertising, so a scan run
 while another app holds the link finds nothing.
 
 {{badge_cloud}} — a Govee API key, and the device registered to that account.
+The API is throttled, and it carries no animation.
 
 ## Where the truth lives
 
