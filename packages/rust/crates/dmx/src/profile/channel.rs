@@ -4,6 +4,14 @@ use std::fmt;
 
 use super::scale::Scale;
 
+/// The highest mode slot that asks for no action. The channel holds 0 to this
+/// value for no action — see `docs/dmx.md`.
+pub const MODE_IDLE_TOP: u8 = 9;
+
+/// The lowest mode slot that forces a full resend. Every value between it and
+/// [`MODE_IDLE_TOP`] is reserved.
+pub const MODE_RESEND: u8 = 250;
+
 /// One component of an RGB triple.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Component {

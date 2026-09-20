@@ -6,7 +6,7 @@
 use govee_toolkit::codec::Device;
 use serde_json::{Value, json};
 
-use crate::profile::{Channel, Error, Personality, Profile, Slot};
+use crate::profile::{Channel, Error, MODE_IDLE_TOP, MODE_RESEND, OFF, Personality, Profile, Slot};
 
 /// The tables of one device, as one JSON object.
 ///
@@ -101,7 +101,58 @@ fn channel_json(channel: &Channel) -> Value {
     if let (Some(object), true) = (record.as_object_mut(), unreached(channel)) {
         object.insert("unreached".to_owned(), json!(true));
     }
+    if let (Some(object), values) = (record.as_object_mut(), values(channel))
+        && !values.is_empty()
+    {
+        object.insert("values".to_owned(), json!(values));
+    }
     record
+}
+
+/// What the slots of one channel mean, as the bands an operator reads at a
+/// desk. A band is inclusive on both ends, and the bands cover 0 to 255 in
+/// order. A channel that drives nothing carries none.
+///
+/// A band that scales states the travel in percent, because the pair a
+/// parameter takes is the device's own unit and travels in `range`. The white
+/// channel states kelvin, which is the unit the operator sets.
+fn values(channel: &Channel) -> Vec<Value> {
+    match channel.slot {
+        Slot::Mode => vec![
+            band(0, MODE_IDLE_TOP, "no action"),
+            band(MODE_IDLE_TOP + 1, MODE_RESEND - 1, "reserved"),
+            band(MODE_RESEND, u8::MAX, "full resend"),
+        ],
+        Slot::Dimmer => channel.scale.map_or_else(Vec::new, |_| {
+            vec![
+                band(OFF, OFF, "off"),
+                band(OFF + 1, u8::MAX, "brightness 0 to 100%"),
+            ]
+        }),
+        Slot::WhiteTemp => channel.scale.map_or_else(Vec::new, |scale| {
+            let [min, max] = scale.range();
+            vec![
+                band(OFF, OFF, "no white"),
+                band(OFF + 1, u8::MAX, &format!("{min} K to {max} K")),
+            ]
+        }),
+        Slot::Color(component) | Slot::Zone { component, .. } => {
+            channel.scale.map_or_else(Vec::new, |scale| {
+                let travel = format!("{component} 0 to 100%");
+                if scale.range()[0] > 0 {
+                    return vec![band(0, u8::MAX, &travel)];
+                }
+                vec![
+                    band(OFF, OFF, &format!("no {component}")),
+                    band(OFF + 1, u8::MAX, &travel),
+                ]
+            })
+        }
+    }
+}
+
+fn band(low: u8, high: u8, label: &str) -> Value {
+    json!({ "slots": [low, high], "label": label })
 }
 
 /// Whether the channel holds its place in the table and drives nothing. The
@@ -169,6 +220,31 @@ mod tests {
         assert_eq!(dimmer["offset"], 1);
         assert_eq!(dimmer["steps"], 100);
         assert_eq!(dimmer["range"], serde_json::json!([1, 100]));
+    }
+
+    /// The site and the node read one description of the slots, so every
+    /// band travels in the JSON.
+    #[test]
+    fn a_channel_carries_what_its_slots_mean() {
+        let catalog = catalog();
+        let device = catalog.device("H6008").expect("the SKU resolves");
+        let table = Profile::of(device, Personality::Full).expect("a full personality");
+        let record = json(device, &[Ok(table)]);
+        let channels = &record["personalities"][0]["channels"];
+        assert_eq!(channels[0]["values"][0]["label"], "off");
+        assert_eq!(
+            channels[0]["values"][1]["slots"],
+            serde_json::json!([1, 255])
+        );
+        assert_eq!(channels[0]["values"][1]["label"], "brightness 0 to 100%");
+        assert_eq!(channels[1]["values"][0]["label"], "no action");
+        assert_eq!(
+            channels[1]["values"][2]["slots"],
+            serde_json::json!([250, 255])
+        );
+        assert_eq!(channels[1]["values"][2]["label"], "full resend");
+        assert_eq!(channels[2]["values"][0]["label"], "no red");
+        assert_eq!(channels[2]["values"][1]["label"], "red 0 to 100%");
     }
 
     /// A zone channel says which zone and which component, so a reader never

@@ -6,11 +6,7 @@
 
 use crate::input::UniverseFrame;
 use crate::patch::{Fixture, SignalLoss};
-use crate::profile::{Channel, Component, OFF, Slot};
-
-/// The lowest mode slot that forces a full resend. The channel holds 0 to 9
-/// for no action, and every value between is reserved — see `docs/dmx.md`.
-const RESEND: u8 = 250;
+use crate::profile::{Channel, Component, MODE_RESEND, OFF, Slot};
 
 /// What one fixture reads out of one frame.
 ///
@@ -58,7 +54,7 @@ impl Look {
                     put(&mut color, component, byte(channel, slot));
                 }
                 Slot::WhiteTemp => look.white_temp = channel.scale.and_then(|s| s.value(slot)),
-                Slot::Mode => look.resend = slot >= RESEND,
+                Slot::Mode => look.resend = slot >= MODE_RESEND,
                 Slot::Zone { index, component } => {
                     look.paint(index, component, byte(channel, slot));
                 }

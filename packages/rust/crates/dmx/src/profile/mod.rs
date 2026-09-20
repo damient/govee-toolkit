@@ -17,7 +17,7 @@ mod tests;
 
 use std::fmt;
 
-pub use channel::{Channel, Component, Slot};
+pub use channel::{Channel, Component, MODE_IDLE_TOP, MODE_RESEND, Slot};
 use govee_toolkit::codec::{ArgRole, Device, Role};
 pub use scale::{OFF, Scale, Zero};
 use thiserror::Error;
