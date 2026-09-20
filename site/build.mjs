@@ -10,6 +10,7 @@ import { dirname, join, relative } from "node:path";
 import { assets } from "./lib/assets.mjs";
 import { CATALOG_SCHEMA, DESCRIPTION, SITE_URL, base, catalogPath, dist, repo, repoUrl, root } from "./lib/config.mjs";
 import { docPage, readDocs } from "./lib/content.mjs";
+import { crumbs } from "./lib/crumbs.mjs";
 import { devicePage, renderIndex, sorted } from "./lib/devices.mjs";
 import { navItem } from "./lib/docs.mjs";
 import { fill } from "./lib/html.mjs";
@@ -31,6 +32,7 @@ const pages = [
     nav: "devices",
     title: "Devices",
     render: renderIndex,
+    trail: [["Devices", "devices/"]],
     description: "Which Govee models the toolkit reaches, over Wi-Fi, over Bluetooth and over the cloud. Built from the device files, so it cannot disagree with them.",
   },
 ];
@@ -81,8 +83,10 @@ async function main() {
   const all = [
     ...pages.map((page, at) => ({
       ...page,
-      jsonld: page.url === "" ? homeData() : [],
-      body: page.render ? page.render(sources[at], devices) : sources[at],
+      jsonld: page.url === "" ? homeData() : page.trail ? [breadcrumb(page.trail)] : [],
+      body: fill(page.render ? page.render(sources[at], devices) : sources[at], {
+        crumbs: page.trail ? crumbs(page.trail) : "",
+      }),
     })),
     ...devices.map((device) => {
       const page = devicePage(device, reference);
