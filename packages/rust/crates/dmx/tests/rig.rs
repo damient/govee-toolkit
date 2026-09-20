@@ -5,7 +5,7 @@
 //! a fixture that dropped off the network does.
 //!
 //! The end-to-end test that reads the bytes back lands with the release — see
-//! `docs/dmx-plan.md`.
+//! `docs/roadmap.md`.
 
 #![allow(clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 

@@ -2,8 +2,8 @@
 
 An Art-Net node that drives devices over `lan`. This page is the design
 reference for `packages/rust/crates/dmx`. Nothing here ships yet — see
-[`dmx-plan.md`](dmx-plan.md) for the order of the work, and
-[`roadmap.md`](roadmap.md) for where it sits among the milestones.
+[`roadmap.md`](roadmap.md) for what the release needs, and for where the
+bridge sits among the milestones.
 
 ## What it is
 
