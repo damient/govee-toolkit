@@ -4,6 +4,7 @@
 // device files the day one of them changes.
 
 import { MODES } from "./config.mjs";
+import { crumbs } from "./crumbs.mjs";
 import { dmx } from "./device-dmx.mjs";
 import { usage } from "./device-usage.mjs";
 import { escapeAttr, escapeHtml, fill } from "./html.mjs";
@@ -102,23 +103,22 @@ export function devicePage(d, reference) {
   const verified = d.verified?.date
     ? `Verified on ${d.verified.date}.`
     : "Nobody has verified this model yet.";
+  const trail = [["Devices", "devices/"], [d.sku, `devices/${d.sku}/`]];
   return {
     url: `devices/${d.sku}/`,
     title: `${d.sku} — ${d.name}`,
     description: `What govee-toolkit reaches on the ${d.sku} (${d.name}): ${modes}. ${verified}`,
-    body: pageBody(d, reference),
-    breadcrumb: [["Devices", "devices/"], [d.sku, `devices/${d.sku}/`]],
+    body: pageBody(d, reference, trail),
+    breadcrumb: trail,
   };
 }
 
-function pageBody(d, reference) {
+function pageBody(d, reference, trail) {
   const title = d.name ? `${d.sku} — ${escapeHtml(d.name)}` : d.sku;
 
   return `<section class="pagehead">
   <div class="shell">
-    <nav class="crumbs" aria-label="Breadcrumb">
-      <a href="{{base}}devices/">Devices</a> <span aria-hidden="true">/</span> <span>${d.sku}</span>
-    </nav>
+    ${crumbs(trail)}
     <h1>${title}</h1>
     <p class="mode-line">${familyBadge(d.family)}${MODES.filter((m) => REACHES.has(support(d, m)))
       .map((m) => modeBadge(m))
