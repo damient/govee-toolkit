@@ -45,7 +45,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | ✅ | **Rust** (`packages/rust`) — the reference implementation and the only place protocol logic lives |
 | ✅ | **Python** (`packages/python`) — PyO3 binding, an `asyncio` API, `abi3` wheels for Linux, macOS and Windows on `x86_64` and `aarch64`, and Linux wheels for `armv7` and for musl |
 | ✅ | **Node.js / TypeScript** (`packages/node`) — napi-rs binding, a promise-based API and TypeScript types; prebuilt addons for Linux and Windows on `x86_64` and `aarch64` and for macOS on `aarch64` |
-| ✅ | Each package versioned and released independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) |
+| ✅ | Each package versioned and released independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `dmx-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) |
 
 ## Tools & apps
 
@@ -54,7 +54,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | 🔜 | **Web playground** — device list with per-mode state badges, power / brightness / color controls, latency log |
 | 🔜 | **Desktop app (Electron)** — same backend and UI as the playground, auto-discovery on launch, tray icon |
 | ✅ | **Device simulator** (`packages/rust/crates/sim`) — a fake `lan` device on UDP and a fake `ble` peripheral on GATT, both with fault injection, so tests run without hardware or an adapter |
-| 🔜 | **Art-Net / DMX bridge** (`packages/rust/crates/dmx`) — an Art-Net node that maps DMX channels to devices and segments over `lan`. See [`dmx.md`](dmx.md) |
+| ✅ | **DMX bridge** (`packages/rust/crates/dmx`) — the `govee-dmx` node receives DMX on the network and drives devices and segments over `lan`. Art-Net carries the DMX in. See [`dmx.md`](dmx.md) |
 
 ## Integrations
 
