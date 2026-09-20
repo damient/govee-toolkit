@@ -1,6 +1,7 @@
-// The mode badge, used wherever a mode is named. The label stays `lan`, `ble`
-// and `cloud`: that is the word the reader types on the command line and
-// writes in a configuration file.
+// The mode badge, used wherever a mode is named. The label is the mode in
+// capitals: it reads as a label beside the DMX badge, and the word itself is
+// the one the reader types on the command line and writes in a configuration
+// file.
 
 import { MODES } from "./config.mjs";
 import { escapeHtml } from "./html.mjs";
@@ -11,7 +12,7 @@ const badge = (kind, iconHtml, text) =>
 
 /** One badge, naming the mode. */
 export function modeBadge(mode) {
-  return badge(mode, modeIcon(mode), mode);
+  return badge(mode, modeIcon(mode), mode.toUpperCase());
 }
 
 /** The same badge with the icon alone, for a row that already carries a word.
@@ -24,7 +25,7 @@ export function modeMark(mode) {
 /** One badge, saying the model answers a DMX channel table. It names an
  * input and not a mode, so it takes the neutral tint. */
 export function dmxBadge() {
-  return badge("dmx", badgeIcon("dmx"), "DMX 512");
+  return badge("dmx", badgeIcon("dmx"), "DMX");
 }
 
 /** One badge, naming the device family. Empty where the catalog names none.
