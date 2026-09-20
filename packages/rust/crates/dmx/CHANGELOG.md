@@ -56,6 +56,9 @@ Nothing is published yet: the manifest carries `publish = false`.
   exits 5, and a name no personality carries exits 2.
 - `report` — one channel table as the text an operator reads, and as the JSON
   `--json` prints.
+- Each channel of the JSON carries the bands of its slots: the pair of slots,
+  and what the device does over it. The mode channel names the band that
+  forces a full resend, and the reserved band between.
 - `patch` — the patch file: the node settings, and one entry per fixture in
   either spelling of the Art-Net address. An unknown key is refused.
 - `Patch::resolve` — the patch joined to the devices the bridge found, as a
