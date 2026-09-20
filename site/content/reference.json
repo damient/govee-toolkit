@@ -30,6 +30,30 @@
           }
         },
         {
+          "id": "select",
+          "title": "select",
+          "summary": "Name devices by identity, by SKU or by name.",
+          "detail": "A target is an identity (`1C:8B:\u2026`), a SKU (`H6159`), or `name:kitchen` for the name the configuration gives a device. `id:`, `sku:` and `name:` state the kind where the target alone does not. A SKU matches that model and no alias of it, and a name matches the whole name. A SKU and a name read the devices already known, so scan first.",
+          "examples": {
+            "cli": "govee devices H6159\ngovee devices name:kitchen",
+            "rust": "let chosen = govee.select([\"H6159\", \"name:kitchen\"])?;",
+            "python": "chosen = govee.select([\"H6159\", \"name:kitchen\"])",
+            "node": "const chosen = govee.select(['H6159', 'name:kitchen'])"
+          }
+        },
+        {
+          "id": "identify",
+          "title": "identify",
+          "summary": "Light each device in turn, so a person maps an identity to a fixture in the room.",
+          "detail": "The device powers on, goes to the top of the brightness range its device file declares, and paints one color. `govee identify` walks a rig: every device goes off at once, one device at a time comes back on, and every device goes off again at the end. It walks the devices the targets name, or every device a scan finds. The walk drives `lan`, and the mode `--mode` names where it names one.",
+          "examples": {
+            "cli": "govee identify\ngovee identify H6159\ngovee identify 1C:8B:C4:A2:C0:46:64:6E name:kitchen",
+            "rust": "device.identify(&Identify::default()).await?;",
+            "python": "await device.identify()",
+            "node": "await device.identify()"
+          }
+        },
+        {
           "id": "describe",
           "title": "describe",
           "summary": "Report what the device file declares for a model.",
@@ -268,6 +292,49 @@
             "rust": "println!(\"{} frames\", stream.frames_sent());\nstream.close().await?;",
             "python": "print(stream.frames_sent)\nawait stream.close()",
             "node": "console.log(stream.framesSent)\nawait stream.close()"
+          }
+        }
+      ]
+    },
+    {
+      "id": "dmx",
+      "title": "Drive a rig over DMX",
+      "modes": ["lan"],
+      "entries": [
+        {
+          "id": "dmx-profile",
+          "title": "govee-dmx profile",
+          "summary": "Print the channel table of one model, to patch a desk with.",
+          "detail": "Each personality is one table: `full` takes 6 channels, and `segment` and `pixel` take the zones the unit renders. It reads no hardware.",
+          "examples": {
+            "cli": "govee-dmx profile H6159\ngovee-dmx profile H6159 --personality segment"
+          }
+        },
+        {
+          "id": "dmx-patch",
+          "title": "govee-dmx patch",
+          "summary": "Scan the LAN and write the patch the node runs from.",
+          "detail": "The command appends: it gives the lowest free channels to each device that has no entry, and it moves no entry the file already carries, because an address is patched on the desk too. `--patch` names a file other than `patch.yaml`, and `--dry-run` writes nothing.",
+          "examples": {
+            "cli": "govee-dmx patch\ngovee-dmx patch --personality segment --universe 1\ngovee-dmx patch --dry-run"
+          }
+        },
+        {
+          "id": "dmx-identify",
+          "title": "govee-dmx identify",
+          "summary": "Light each patched fixture in turn, so a person reads the rig.",
+          "detail": "The walk lights the fixtures in patch order, over `lan`. A target names the device of a fixture, in the grammar `select` reads. `--universe` and `--address` name fixtures by the channels they answer to: `--address` lights the fixture that answers to that channel, and not only the one that starts there.",
+          "examples": {
+            "cli": "govee-dmx identify\ngovee-dmx identify --address 33\ngovee-dmx identify --universe 1\ngovee-dmx identify H6159 name:kitchen"
+          }
+        },
+        {
+          "id": "dmx-run",
+          "title": "govee-dmx run",
+          "summary": "Receive Art-Net on port 6454 and drive the patched devices.",
+          "detail": "The node answers every poll, so a desk lists it and patches it. `--scan` writes the missing entries first. `--dry-run` prints every packet and what each fixture reads out of it, and writes to no device.",
+          "examples": {
+            "cli": "govee-dmx run\ngovee-dmx run --scan\ngovee-dmx run --dry-run --debug"
           }
         }
       ]
