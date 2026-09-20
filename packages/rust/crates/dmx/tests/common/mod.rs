@@ -165,3 +165,30 @@ pub(crate) fn cmds(simulator: &Simulator) -> Vec<String> {
         .map(|received| received.cmd)
         .collect()
 }
+
+/// An `ArtDmx` packet, in the layout `docs/dmx.md` documents. The data length
+/// is what `slots` carries, so a short packet leaves the rest of the universe
+/// at 0.
+pub(crate) fn artdmx(universe: u16, sequence: u8, slots: &[u8]) -> Vec<u8> {
+    let mut bytes = b"Art-Net\0".to_vec();
+    bytes.extend_from_slice(&0x5000u16.to_le_bytes());
+    bytes.extend_from_slice(&14u16.to_be_bytes());
+    bytes.push(sequence);
+    bytes.push(0);
+    let [net, sub_uni] = universe.to_be_bytes();
+    bytes.push(sub_uni);
+    bytes.push(net);
+    let length = u16::try_from(slots.len()).unwrap_or(0);
+    bytes.extend_from_slice(&length.to_be_bytes());
+    bytes.extend_from_slice(slots);
+    bytes
+}
+
+/// The data of the first datagram the simulator took under `cmd`.
+pub(crate) fn payload(simulator: &Simulator, cmd: &str) -> Option<serde_json::Value> {
+    simulator
+        .received()
+        .into_iter()
+        .find(|received| received.cmd == cmd)
+        .map(|received| received.data)
+}

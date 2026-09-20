@@ -10,6 +10,11 @@ Nothing is published yet: the manifest carries `publish = false`.
 
 ### Added
 
+- `tests/wire.rs` drives the whole chain against `crates/sim`, with no
+  hardware: a desk sends an `ArtDmx` packet to the node socket, and the test
+  reads the datagrams the device took. It checks the bytes of each command
+  against the device file, and that a desk that holds a look writes the device
+  once.
 - The Art-Net parser reads recorded packets under `tests/fixtures/artnet/`: an
   `ArtDmx` and an `ArtPoll` from QLC+, and an `ArtDmx` from TouchDesigner. A
   capture that lists no channel value fails the test, because it proves
