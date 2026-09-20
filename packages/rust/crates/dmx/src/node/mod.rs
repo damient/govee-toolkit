@@ -78,7 +78,13 @@ pub struct Node {
     output: Output,
     /// The name a desk lists the node under, which `ArtPollReply` carries.
     name: String,
+    /// Where an `ArtPollReply` goes.
+    reply_to: SocketAddr,
 }
+
+/// Where an `ArtPollReply` goes: every Art-Net application on the network,
+/// which includes one that shares the host with the node.
+const BROADCAST: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::BROADCAST), artnet::PORT);
 
 /// What ended one pass of the receive loop.
 enum Wake {
@@ -96,6 +102,7 @@ impl Node {
             gate: Gate::new(),
             output: Output::DryRun,
             name: NODE_NAME.to_owned(),
+            reply_to: BROADCAST,
         }
     }
 
@@ -111,6 +118,7 @@ impl Node {
             gate: Gate::new(),
             output: Output::Live { applier, failures },
             name: NODE_NAME.to_owned(),
+            reply_to: BROADCAST,
         }
     }
 
@@ -119,6 +127,15 @@ impl Node {
     #[must_use]
     pub fn named(mut self, name: impl Into<String>) -> Self {
         self.name = name.into();
+        self
+    }
+
+    /// Where an `ArtPollReply` goes. The default is the broadcast address,
+    /// which is what Art-Net asks for. A test names an address of its own, so
+    /// that it puts no packet on the network.
+    #[must_use]
+    pub fn replies_to(mut self, address: SocketAddr) -> Self {
+        self.reply_to = address;
         self
     }
 
@@ -214,9 +231,9 @@ impl Node {
     /// Answer a poll: one `ArtPollReply` for each group of 4 port-addresses
     /// the patch holds.
     ///
-    /// The replies go to the desk that polled, rather than to the broadcast
-    /// address: a poll names its sender, and one rig on a shared network then
-    /// reaches no other application.
+    /// The replies are broadcast, which Art-Net asks for. A unicast reply to
+    /// port 6454 reaches one socket alone, so a desk that shares the host with
+    /// the node lists nothing: the node receives its own reply instead.
     async fn answer(&self, source: SocketAddr, listener: &Listener, observer: &mut impl Observer) {
         let universes: Vec<u16> = self
             .rig
@@ -230,7 +247,7 @@ impl Node {
         };
         let mut sent = 0;
         for reply in replies(&identity, &universes) {
-            match listener.send_to(&reply, source).await {
+            match listener.send_to(&reply, self.reply_to).await {
                 Ok(()) => sent += 1,
                 Err(error) => observer.refused(source, &error.to_string()),
             }

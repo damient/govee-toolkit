@@ -83,9 +83,9 @@ still answers once.
 The reply carries the node name from the patch, and the address a desk must
 send `ArtDmx` to. A node bound to `0.0.0.0` answers with the interface that
 reaches the desk, because `0.0.0.0` is an address nothing can send to. The
-replies go to the desk that polled rather than to the broadcast address: a poll
-names its sender, and one rig then reaches no other application on the
-network.
+replies are broadcast, which Art-Net asks for. A unicast reply to port 6454
+reaches one socket alone, so a desk that shares the host with the node lists
+nothing: the node receives its own reply instead.
 
 **Sequence.** The ArtDmx sequence field detects a packet that UDP delivered out
 of order. A value of 0 disables it. Where it is non-zero, the bridge drops a

@@ -183,6 +183,12 @@ Nothing is published yet: the manifest carries `publish = false`.
 
 ### Changed
 
+- The node broadcasts its `ArtPollReply`, which Art-Net asks for. A unicast
+  reply to port 6454 reaches one socket alone, so a desk that shares the host
+  with the node listed nothing: the node received its own reply. QLC+ 5.2.2 on
+  one Mac is that case.
+- `node::Node::replies_to` names the address an `ArtPollReply` goes to. The
+  default is the broadcast address.
 - `apply::Applier::start` and `node::Node::live` take an `apply::Timing`
   rather than the refresh interval alone.
 - `Patch::resolve` takes a second lookup, which answers a device file by SKU.
