@@ -15,7 +15,7 @@ use std::time::Duration;
 use clap::{Parser, Subcommand};
 use govee_toolkit::Identify;
 use govee_toolkit_dmx::patch::{Layout, MAX_PORT_ADDRESS, PortAddress};
-use govee_toolkit_dmx::profile::Personality;
+use govee_toolkit_dmx::profile::{Personality, UNIVERSE};
 
 mod cmd;
 
@@ -56,6 +56,7 @@ enum Command {
     /// rig and keep its channels.
     Patch {
         /// The patch file. The default is `patch.yaml` beside `config.yaml`.
+        #[arg(long, value_name = "FILE")]
         patch: Option<PathBuf>,
         /// The layout a new entry takes: `full`, `segment`, `pixel`, or
         /// `widest` for the widest the device serves.
@@ -84,8 +85,26 @@ enum Command {
     ///
     /// Every fixture goes off at once first. One fixture at a time then
     /// comes back on in one color. Every fixture goes off again at the end.
+    ///
+    /// A target names a fixture by its device: an identity (`1C:8B:…`), a SKU
+    /// (`H6159`), or a name the configuration gives a device
+    /// (`name:kitchen`). `--universe` and `--address` name fixtures by the
+    /// channels they answer to. Every fixture the patch enables when the
+    /// command line names none.
     Identify {
+        /// The devices to light. Every enabled fixture when absent.
+        #[arg(value_name = "TARGET")]
+        targets: Vec<String>,
+        /// The port-address to light. With `--address`, the universe that
+        /// channel sits on; the default is 0.
+        #[arg(long, value_name = "UNIVERSE")]
+        universe: Option<u16>,
+        /// The DMX channel to light, 1 to 512. It lights the fixture that
+        /// answers to that channel, and not only the one that starts there.
+        #[arg(long, value_name = "CHANNEL")]
+        address: Option<u16>,
         /// The patch file. The default is `patch.yaml` beside `config.yaml`.
+        #[arg(long, value_name = "FILE")]
         patch: Option<PathBuf>,
         /// The color each fixture shows, as `#RRGGBB`.
         #[arg(long, default_value = "#00ff00", value_name = "COLOR")]
@@ -119,6 +138,7 @@ enum Command {
     Run {
         /// The patch file, which says which device answers which channels.
         /// The default is `patch.yaml` beside `config.yaml`.
+        #[arg(long, value_name = "FILE")]
         patch: Option<PathBuf>,
         /// Scan the LAN first, and add an entry for each device that has
         /// none. See the `patch` command.
@@ -217,6 +237,42 @@ fn walk(
     })
 }
 
+/// What the command line asks one walk to light.
+///
+/// `--address` without `--universe` reads universe 0, which is where a desk
+/// with one universe patches everything.
+fn chosen(
+    targets: Vec<String>,
+    universe: Option<u16>,
+    address: Option<u16>,
+) -> Result<cmd::identify::Chosen, cmd::Failure> {
+    let port = match (universe, address) {
+        (None, None) => None,
+        (universe, _) => Some(PortAddress::new(universe.unwrap_or(0)).ok_or_else(|| {
+            cmd::Failure::new(
+                format!(
+                    "universe {} is over the {MAX_PORT_ADDRESS} Art-Net holds",
+                    universe.unwrap_or(0)
+                ),
+                cmd::USAGE,
+            )
+        })?),
+    };
+    if let Some(channel) = address
+        && (channel == 0 || channel > UNIVERSE)
+    {
+        return Err(cmd::Failure::new(
+            format!("channel {channel} is outside the 1 to {UNIVERSE} a universe carries"),
+            cmd::USAGE,
+        ));
+    }
+    Ok(cmd::identify::Chosen {
+        targets,
+        universe: port,
+        address,
+    })
+}
+
 /// One `#RRGGBB`, as a person types it on a desk.
 fn rgb(text: &str) -> Result<[u8; 3], cmd::Failure> {
     let digits = text.strip_prefix('#').unwrap_or(text);
@@ -262,6 +318,9 @@ fn main() -> ExitCode {
             Err(failure) => Err(failure),
         },
         Command::Identify {
+            targets,
+            universe,
+            address,
             patch,
             color,
             wait_ms,
@@ -269,8 +328,12 @@ fn main() -> ExitCode {
             keep,
             config,
             json,
-        } => match walk(&color, wait_ms, hold_ms, keep) {
-            Ok(walk) => cmd::identify::start(patch.as_deref(), walk, config.as_deref(), json),
+        } => match walk(&color, wait_ms, hold_ms, keep)
+            .and_then(|walk| Ok((walk, chosen(targets, universe, address)?)))
+        {
+            Ok((walk, chosen)) => {
+                cmd::identify::start(patch.as_deref(), &chosen, walk, config.as_deref(), json)
+            }
             Err(failure) => Err(failure),
         },
         Command::Run {

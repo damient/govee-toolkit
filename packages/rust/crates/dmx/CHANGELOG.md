@@ -28,6 +28,11 @@ in its verification build until the core is out.
   fixture goes off at once first, and the walk then lights one at a time, in
   patch order. `--color`, `--wait-ms`, `--hold-ms` and `--keep` set what it
   shows and how long each step lasts.
+- `identify [TARGET]...`, `--universe` and `--address` — walk a part of the
+  rig: the fixtures of the devices a target names, the fixtures of one
+  universe, or the fixture that answers to one channel of it.
+- **Breaking:** every command takes the patch file as `--patch FILE`, and no
+  longer as the first argument. `identify` takes the targets there instead.
 - The crate, the `govee-dmx` binary and the `artnet` and `sacn` cargo
   features. The binary answers `--version` and `--help`, and drives no device
   yet.

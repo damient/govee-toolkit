@@ -5,12 +5,16 @@
 //! and the walk then lights the enabled entries one at a time, in the order
 //! the patch lists them, over `lan` alone. A fixture that fails stops no
 //! other one.
+//!
+//! [`Chosen`] narrows the walk to a part of the rig, by device or by the
+//! channels a fixture answers to. The blackout covers the whole rig either
+//! way: one lit fixture in a dark room is what the operator reads.
 
 use std::path::Path;
 use std::time::Duration;
 
 use govee_toolkit::{DeviceId, Govee, Identify, Mode};
-use govee_toolkit_dmx::patch::{Fixture, Patch, Rig};
+use govee_toolkit_dmx::patch::{Fixture, Patch, PortAddress, Rig};
 use serde_json::json;
 
 use super::rig::{configure, resolve};
@@ -31,8 +35,30 @@ pub(crate) struct Walk {
     pub(crate) keep: bool,
 }
 
+/// Which fixtures one walk lights. Every enabled fixture where it names
+/// none.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct Chosen {
+    /// The devices the command line named, in the grammar
+    /// [`govee_toolkit::Selector`] reads.
+    pub(crate) targets: Vec<String>,
+    /// The port-address to light.
+    pub(crate) universe: Option<PortAddress>,
+    /// The channel inside that port-address. The whole universe where it
+    /// names none.
+    pub(crate) address: Option<u16>,
+}
+
+impl Chosen {
+    /// Whether the command line narrowed the walk at all.
+    fn is_empty(&self) -> bool {
+        self.targets.is_empty() && self.universe.is_none()
+    }
+}
+
 pub(crate) fn start(
     named: Option<&Path>,
+    chosen: &Chosen,
     walk: Walk,
     config: Option<&Path>,
     as_json: bool,
@@ -52,7 +78,10 @@ pub(crate) fn start(
             .await
             .map_err(|e| Failure::new(e.to_string(), UNREACHABLE))?;
         let outcome = match resolve(&govee, &patch) {
-            Ok(rig) => run(&govee, &rig, walk, as_json).await,
+            Ok(rig) => match lit(&govee, &rig, chosen) {
+                Ok(fixtures) => run(&govee, &rig, &fixtures, walk, as_json).await,
+                Err(failure) => Err(failure),
+            },
             Err(failure) => Err(failure),
         };
         govee
@@ -63,21 +92,21 @@ pub(crate) fn start(
     })
 }
 
-/// Light every driven fixture, then take the rig off.
-async fn run(govee: &Govee, rig: &Rig, walk: Walk, as_json: bool) -> Result<(), Failure> {
-    let fixtures = rig.fixtures();
-    if fixtures.is_empty() {
-        return Err(Failure::new(
-            "the patch enables no fixture, so there is nothing to light",
-            CONFIG,
-        ));
-    }
+/// Light the chosen fixtures, then take the rig off.
+async fn run(
+    govee: &Govee,
+    rig: &Rig,
+    chosen: &[&Fixture],
+    walk: Walk,
+    as_json: bool,
+) -> Result<(), Failure> {
     // The whole rig goes dark first. One lit fixture in a dark room is the
     // answer the operator reads. A fixture that refuses the blackout leaves
     // the walk here, and is reported once.
-    let mut failed = off(govee, fixtures, as_json).await;
-    let lit: Vec<&Fixture> = fixtures
+    let mut failed = off(govee, rig.fixtures(), as_json).await;
+    let lit: Vec<&Fixture> = chosen
         .iter()
+        .copied()
         .filter(|fixture| !failed.contains(&fixture.entry.device))
         .collect();
     tokio::time::sleep(walk.wait).await;
@@ -92,7 +121,7 @@ async fn run(govee: &Govee, rig: &Rig, walk: Walk, as_json: bool) -> Result<(), 
     }
     if !walk.keep {
         tokio::time::sleep(walk.hold).await;
-        drop(off(govee, fixtures, as_json).await);
+        drop(off(govee, rig.fixtures(), as_json).await);
     }
     if failed.is_empty() {
         return Ok(());
@@ -102,6 +131,70 @@ async fn run(govee: &Govee, rig: &Rig, walk: Walk, as_json: bool) -> Result<(), 
         format!("these fixtures did not take the pass: {}", unlit.join(", ")),
         UNREACHABLE,
     ))
+}
+
+/// The fixtures the command line chose, in the order the patch lists them.
+///
+/// A target and an address name fixtures separately, and the walk lights
+/// every fixture either one names. A target or an address that names no
+/// driven fixture is a fault: an operator who typed one means to see it
+/// light.
+fn lit<'a>(govee: &Govee, rig: &'a Rig, chosen: &Chosen) -> Result<Vec<&'a Fixture>, Failure> {
+    let fixtures = rig.fixtures();
+    if fixtures.is_empty() {
+        return Err(Failure::new(
+            "the patch enables no fixture, so there is nothing to light",
+            CONFIG,
+        ));
+    }
+    if chosen.is_empty() {
+        return Ok(fixtures.iter().collect());
+    }
+    let mut named: Vec<&Fixture> = Vec::new();
+    if !chosen.targets.is_empty() {
+        let ids = govee
+            .select(&chosen.targets)
+            .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+        for id in &ids {
+            let Some(fixture) = fixtures.iter().find(|f| &f.entry.device == id) else {
+                return Err(Failure::new(
+                    format!("the patch drives no fixture for `{id}`"),
+                    CONFIG,
+                ));
+            };
+            named.push(fixture);
+        }
+    }
+    if let Some(universe) = chosen.universe {
+        let at = rig.at(universe, chosen.address);
+        if at.is_empty() {
+            return Err(Failure::new(at_nothing(universe, chosen.address), CONFIG));
+        }
+        named.extend(at);
+    }
+    Ok(in_patch_order(fixtures, &named))
+}
+
+/// What to say where a port-address holds no driven fixture.
+fn at_nothing(universe: PortAddress, address: Option<u16>) -> String {
+    match address {
+        Some(channel) => {
+            format!("no driven fixture answers to channel {channel} of universe {universe}")
+        }
+        None => format!("no driven fixture sits on universe {universe}"),
+    }
+}
+
+/// The chosen fixtures, each one once and in the order the patch lists them.
+fn in_patch_order<'a>(fixtures: &'a [Fixture], named: &[&'a Fixture]) -> Vec<&'a Fixture> {
+    fixtures
+        .iter()
+        .filter(|fixture| {
+            named
+                .iter()
+                .any(|chosen| chosen.entry.device == fixture.entry.device)
+        })
+        .collect()
 }
 
 /// Take every fixture off at once, and answer the ones that refused.

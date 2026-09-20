@@ -55,6 +55,24 @@ impl Rig {
         &self.reserved
     }
 
+    /// Every driven fixture on one port-address, in patch order.
+    ///
+    /// `address` keeps the fixtures that answer to that channel, which is the
+    /// channel a desk shows and not only a start address. Without it, the
+    /// whole universe answers.
+    #[must_use]
+    pub fn at(&self, universe: PortAddress, address: Option<u16>) -> Vec<&Fixture> {
+        self.fixtures
+            .iter()
+            .filter(|fixture| fixture.universe == universe)
+            .filter(|fixture| {
+                address.is_none_or(|channel| {
+                    fixture.span.first <= channel && channel <= fixture.span.last
+                })
+            })
+            .collect()
+    }
+
     /// The port-addresses the rig answers on, each one once and in order.
     /// `ArtPollReply` carries 4 of them per reply.
     #[must_use]

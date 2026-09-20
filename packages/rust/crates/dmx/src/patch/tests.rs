@@ -90,6 +90,30 @@ fn the_fixture_rig_resolves_to_the_channels_the_desk_shows() {
     assert_eq!(rig.universes(), vec![PortAddress::new(0).expect("0 fits")]);
 }
 
+/// A channel a desk shows names the fixture that answers to it, and not only
+/// the one that starts there.
+#[test]
+fn a_channel_names_the_fixture_that_answers_to_it() {
+    let catalog = catalog();
+    let devices = rig_devices(&catalog);
+    let rig = parse(RIG)
+        .resolve(
+            |id| devices.get(id).copied(),
+            |sku| catalog.device(sku).ok(),
+        )
+        .unwrap_or_else(|e| panic!("{e:?}"));
+    let universe = PortAddress::new(0).expect("0 fits");
+    let inside = rig.at(universe, Some(40));
+    assert_eq!(inside.len(), 1);
+    assert_eq!(inside[0].span.first, 33);
+    assert_eq!(rig.at(universe, None).len(), 3);
+    assert!(rig.at(universe, Some(71)).is_empty());
+    assert!(
+        rig.at(PortAddress::new(1).expect("1 fits"), None)
+            .is_empty()
+    );
+}
+
 /// A desk shows one spelling or the other, and both name one address.
 #[test]
 fn both_spellings_of_one_address_resolve_to_one_port_address() {
