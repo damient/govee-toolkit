@@ -51,3 +51,21 @@ label the fixtures on the desk.
 
 The first channel is always the dimmer. At 0 it powers the light off, so a
 blackout on the desk takes the rig down.
+
+## Run the rig
+
+```sh
+govee-dmx run        # receive Art-Net and drive the lights
+```
+
+`run` listens for Art-Net and writes each frame to the lights the patch file
+names. Your desk lists the node as soon as it answers a poll, and you patch it
+there the way you patch any other node. Add `--scan` to look for the lights
+first, so one command takes a rig from nothing to a node the desk sees.
+
+`--dry-run` prints every packet and what each fixture reads out of it, and
+writes to no light. That is how you check a patch before the rig moves.
+
+The run takes every light off at the start, so the rig comes up dark. A light
+that drops off the network stops no other one: the run reports it and carries
+on.
