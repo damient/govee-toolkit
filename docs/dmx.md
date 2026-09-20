@@ -300,7 +300,10 @@ dropped rather than disarmed: a disarming frame has nothing to reach.
 
 ## 4. The commands
 
-### 4.1 `govee-dmx patch [FILE]`
+Every command reads `patch.yaml` beside `config.yaml`, and `--patch FILE`
+names another file.
+
+### 4.1 `govee-dmx patch`
 
 The command scans the LAN and writes the rig. It patches the devices that
 answered the scan, and not the devices the cache holds: a fixture in the file
@@ -319,7 +322,7 @@ fixture an operator disabled does not come back at the next scan.
 The writer appends. It keeps the comments and the key order of a file an
 operator edited by hand.
 
-### 4.2 `govee-dmx run [FILE]`
+### 4.2 `govee-dmx run`
 
 The command receives DMX on the Art-Net port and drives the patched devices.
 `--scan` does the scan of `patch` first, and then starts the node from the file
@@ -352,19 +355,41 @@ stderr, so `--json` keeps stdout for its records.
 The node prints nothing itself. It reports each packet, each resolved look and
 each failed write to the binary, which decides what a person reads.
 
-### 4.3 `govee-dmx identify [FILE]`
+### 4.3 `govee-dmx identify [TARGET...]`
 
 The command names each enabled entry and lights the fixture it drives, so an
 operator maps a line of the patch to a fixture in the room. Every fixture goes
 off at once first, and the walk then lights one fixture at a time, in the order
 the patch lists them. The terminal prints the entry before its fixture lights.
 
+A command line that names nothing walks the whole rig. A `TARGET` names the
+device of a fixture, in the grammar `govee identify` reads: an identity, a
+SKU, or `name:<name>`. `--universe` and `--address` name fixtures
+by the channels they answer to instead:
+
+```sh
+govee-dmx identify --address 33        # the fixture on channel 33 of universe 0
+govee-dmx identify --universe 1        # every fixture of universe 1
+govee-dmx identify H6008 name:kitchen  # by model, and by the name in config.yaml
+```
+
+- `--universe` is the port-address to light. With `--address`, the universe
+  that channel sits on. The default is 0.
+- `--address` is a DMX channel, 1 to 512. It lights the fixture that answers to
+  that channel, and not only the one that starts there.
 - `--color` is the color each fixture shows. The default is `#00ff00`.
 - `--wait-ms` is the interval between two steps: after the rig goes off, and
   after each fixture lights. The default is 1000.
 - `--hold-ms` is how long the last fixture holds the color before every fixture
   goes off. The default is 5000.
 - `--keep` leaves every fixture lit, and sends no power command at the end.
+
+The blackout covers the whole rig, whatever the walk lights afterwards: one
+lit fixture in a dark room is what the operator reads. A target and an address
+name fixtures separately, and the walk lights every fixture either one names,
+in patch order. A target that the patch drives no fixture for, and an address
+that no driven fixture answers to, fail the command: an operator who types one
+means to see it light.
 
 The walk drives the devices over `lan`, the way a run does. A fixture that
 refuses the first blackout leaves the walk there. A fixture that fails later
