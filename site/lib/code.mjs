@@ -9,7 +9,7 @@ import python from "highlight.js/lib/languages/python";
 import rust from "highlight.js/lib/languages/rust";
 import yaml from "highlight.js/lib/languages/yaml";
 
-import { escapeHtml } from "./html.mjs";
+import { escapeAttr, escapeHtml } from "./html.mjs";
 
 for (const [name, grammar] of Object.entries({ bash, javascript, json, python, rust, yaml })) {
   hljs.registerLanguage(name, grammar);
@@ -25,6 +25,16 @@ const ALIAS = {
   py: "python",
   yml: "yaml",
 };
+
+/**
+ * One block of code in the frame every block on the site takes, with the
+ * button `copy()` fills. `html` is the coloured block and `source` is what
+ * the button writes to the clipboard.
+ */
+export function codeBlock(html, source) {
+  return `<div class="terminal">\n<pre><code>${html}</code></pre>\n`
+    + `<button class="copy" type="button" data-copy="${escapeAttr(source)}">Copy</button>\n</div>\n`;
+}
 
 /**
  * Colours one block of code. A language the build carries no grammar for

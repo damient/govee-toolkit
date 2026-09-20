@@ -3,7 +3,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { Marked } from "marked";
-import { highlight } from "./code.mjs";
+import { codeBlock, highlight } from "./code.mjs";
 import { base, repoUrl, root } from "./config.mjs";
 import { docShell } from "./docs.mjs";
 import { escapeAttr, fill, slugify } from "./html.mjs";
@@ -39,7 +39,7 @@ function renderDoc(file, raw) {
     renderer: {
       code({ text, lang }) {
         const name = (lang ?? "").trim().split(/\s+/)[0];
-        return `<pre><code>${highlight(text, name)}</code></pre>\n`;
+        return codeBlock(highlight(text, name), text);
       },
       heading({ depth, tokens }) {
         const inner = this.parser.parseInline(tokens);
