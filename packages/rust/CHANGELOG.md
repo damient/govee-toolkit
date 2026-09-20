@@ -9,6 +9,11 @@ releases apart and keeps
 
 ### Added
 
+- `Govee::device_on` — a handle that drives one device over one mode alone.
+  Every call on it goes over that mode or fails, where a handle from
+  `Govee::device` moves to the next enabled mode. A caller that serves one mode
+  by design takes it, such as the Art-Net node, which reaches a device over
+  `lan`.
 - `DeviceHandle::identify()` — powers one device on and paints one color, so a
   person sees which fixture an identity drives. It sets the brightness to the
   top of the range the device file declares.
