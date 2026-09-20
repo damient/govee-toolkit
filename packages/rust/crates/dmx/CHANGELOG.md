@@ -10,6 +10,9 @@ Nothing is published yet: the manifest carries `publish = false`.
 
 ### Added
 
+- A `README.md` for the crate, which is the description the registry
+  shows. The root `README.md` and the other package files name the node
+  and carry its badge.
 - `tests/wire.rs` drives the whole chain against `crates/sim`, with no
   hardware: a desk sends an `ArtDmx` packet to the node socket, and the test
   reads the datagrams the device took. It checks the bytes of each command

@@ -14,6 +14,7 @@ wire.
 
 [![govee-toolkit on crates.io](https://img.shields.io/crates/v/govee-toolkit?logo=rust&logoColor=white&label=govee-toolkit)](https://crates.io/crates/govee-toolkit)
 [![govee-toolkit-cli on crates.io](https://img.shields.io/crates/v/govee-toolkit-cli?logo=rust&logoColor=white&label=govee-toolkit-cli)](https://crates.io/crates/govee-toolkit-cli)
+[![govee-toolkit-dmx on crates.io](https://img.shields.io/crates/v/govee-toolkit-dmx?logo=rust&logoColor=white&label=govee-toolkit-dmx)](https://crates.io/crates/govee-toolkit-dmx)
 [![govee-toolkit on PyPI](https://img.shields.io/pypi/v/govee-toolkit?logo=python&logoColor=white&label=govee-toolkit)](https://pypi.org/project/govee-toolkit/)
 [![govee-toolkit on npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=govee-toolkit)](https://www.npmjs.com/package/govee-toolkit)
 
@@ -50,6 +51,10 @@ The engine works over `lan`, over `ble` and over `cloud`, verified on real
 hardware: discovery, on/off, brightness, color, per-segment color, and live
 animation over the two local modes. It is usable today from Rust, from Python
 and from Node.js.
+
+An Art-Net node drives the same devices from a lighting desk: `govee-toolkit-dmx`
+receives DMX on the network and writes each frame over `lan`. See
+[`docs/dmx.md`](https://github.com/damient/govee-toolkit/blob/main/docs/dmx.md).
 
 Next come a desktop app, then Home Assistant, Homebridge and Matter.
 [`docs/roadmap.md`](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md) tracks the order.

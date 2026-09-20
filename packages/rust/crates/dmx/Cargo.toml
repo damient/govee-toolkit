@@ -12,7 +12,9 @@ repository.workspace = true
 authors.workspace = true
 keywords = ["govee", "dmx", "artnet", "lighting", "led"]
 categories = ["command-line-utilities", "hardware-support"]
-# A name on crates.io is hard to take back, and the node drives no device yet.
+# The name is taken on crates.io by a 0.0.0 placeholder, and the trusted
+# publisher is configured against `dmx-release.yml`. This turns true with that
+# workflow — see docs/roadmap.md.
 publish = false
 
 [[bin]]
