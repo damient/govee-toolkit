@@ -35,6 +35,15 @@ const pages = [
     trail: [["Devices", "devices/"]],
     description: "Which Govee models the toolkit reaches, over Wi-Fi, over Bluetooth and over the cloud. Built from the device files, so it cannot disagree with them.",
   },
+  {
+    src: "add-device.html",
+    url: "devices/add/",
+    nav: "devices",
+    title: "Add a device",
+    klass: "is-add",
+    trail: [["Devices", "devices/"], ["Add a device", "devices/add/"]],
+    description: "Two ways to put your Govee light on this list: send it to us and we add it for free, or follow the guide and add it yourself.",
+  },
 ];
 
 const FOOT_SKIP = new Set(["docs/configure/", "docs/troubleshooting/"]);

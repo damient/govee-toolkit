@@ -1,0 +1,70 @@
+/* The two lanes on the "add a device" page, and the short question list under
+   them. The card carries the same left light bar as `.card`, so the page reads
+   as part of the site. */
+
+.paths { display: grid; gap: 34px; }
+
+@media (min-width: 900px) { .paths { grid-template-columns: repeat(2, 1fr); } }
+.path {
+  --accent: var(--accent-ember);
+  --tint: var(--ember);
+  position: relative;
+  padding: 30px 28px 32px 31px;
+  background: var(--panel); border: 1px solid var(--line); border-left: 0;
+}
+.path::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--accent) 45%, transparent) 0%,
+    var(--accent) 24%,
+    color-mix(in oklab, var(--accent) 68%, #fff) 50%,
+    var(--accent) 76%,
+    color-mix(in oklab, var(--accent) 45%, transparent) 100%);
+  background-size: 100% 300%;
+  box-shadow: 0 0 18px 1px color-mix(in oklab, var(--accent) 60%, transparent);
+  animation: flow 5s linear infinite;
+}
+.path:nth-child(2) { --accent: var(--accent-cyan); --tint: var(--cyan); }
+.path:nth-child(2)::before { animation-delay: -2.5s; }
+
+@media (prefers-reduced-motion: reduce) { .path::before { animation: none; } }
+.path h2 { font-size: clamp(1.3rem, 1.1rem + .7vw, 1.65rem); margin: 0; }
+.path > p { color: var(--prose); }
+.path .tag {
+  font: 500 12px/1 var(--mono); letter-spacing: .06em;
+  color: var(--muted); margin-bottom: 1em;
+}
+
+/* The mark takes the tint of the card it stands in, in the readable form of
+   the accent: `--accent-*` is drawn for a bar or a glow and stays vivid on a
+   light ground. */
+.path-top { display: flex; align-items: stretch; gap: 24px; margin-bottom: 1.1em; }
+/* The mark stretches to the height of the two lines beside it, so its top and
+   its foot land on theirs. */
+.path-mark { flex: none; align-self: stretch; width: 52px; height: auto; color: var(--tint); }
+
+.path-steps { list-style: none; margin: 1.6em 0; padding: 0; }
+.path-steps li {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 9px 0; border-top: 1px solid var(--line);
+  color: var(--prose); font-size: .97rem;
+}
+.path-steps li:last-child { border-bottom: 1px solid var(--line); }
+.step-n {
+  flex: none; width: 22px; height: 22px; align-self: center;
+  display: grid; place-items: center; border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  font: 500 11px/1 var(--mono); color: var(--muted);
+}
+.path-note { color: var(--muted); font-size: .92rem; margin-bottom: 1.6em; }
+
+/* --- The questions ------------------------------------------------------ */
+
+.qa { margin: 2em 0 0; }
+.qa dt { font-weight: 600; margin-top: 1.6em; }
+.qa dd { margin: .5em 0 0; color: var(--prose); }
+
+/* The lede and the two lanes read as one block, so the page head drops most of
+   the gap under it. */
+.is-add .pagehead { padding-bottom: clamp(4px, 1vw, 12px); }
