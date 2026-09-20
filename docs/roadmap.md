@@ -18,9 +18,9 @@ ask for. Open an issue if something matters to you.
 
 ### What the Art-Net bridge needs before a release
 
-The bridge receives, resolves and drives. What is left is the release itself:
+The bridge receives, resolves and drives, and a test drives the whole chain
+against `crates/sim` with no hardware. What is left is the release itself:
 
-- An end-to-end test against `crates/sim`, with no hardware.
 - `publish = true`, `.github/workflows/dmx-release.yml` on the `dmx-vX.Y.Z`
   tag, and the row in the root `CHANGELOG.md` table. Follow `cli-release.yml`,
   which releases the other binary.

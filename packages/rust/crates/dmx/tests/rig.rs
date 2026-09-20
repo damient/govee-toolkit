@@ -4,8 +4,7 @@
 //! device that never answered. The second one fails every write, which is what
 //! a fixture that dropped off the network does.
 //!
-//! The end-to-end test that reads the bytes back lands with the release — see
-//! `docs/roadmap.md`.
+//! `wire.rs` drives the same rig from the socket and reads the bytes back.
 
 #![allow(clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
