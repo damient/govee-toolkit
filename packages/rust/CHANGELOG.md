@@ -20,6 +20,12 @@ releases apart and keeps
 - `Identify`, `IDENTIFY_COLOR` and `IDENTIFY_WAIT` — what a pass shows, and the
   defaults a walk over a rig uses: green, and a second between two steps.
 
+### Fixed
+
+- A command sent while a segment channel is armed asks the device for no
+  status: such a unit can answer none until the disarm — `docs/protocol/lan.md`
+  2.3.
+
 ## [0.10.0] — 2026-09-16
 
 ### Added

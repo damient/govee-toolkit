@@ -19,6 +19,9 @@ mod choose;
 mod events;
 mod resolve;
 mod start;
+mod streams;
+
+pub(crate) use self::streams::{ArmedGuard, ArmedStreams};
 
 pub(crate) struct Inner {
     pub(crate) catalog: Catalog,
@@ -30,6 +33,8 @@ pub(crate) struct Inner {
     /// Encoded status requests, by mode then SKU. See
     /// [`Govee::status_request`].
     status_requests: Mutex<HashMap<Mode, HashMap<String, Arc<crate::codec::Encoded>>>>,
+    /// The segment channels armed right now. See [`Govee::stream_armed`].
+    streams: ArmedStreams,
 }
 
 /// The SDK. Cheap to clone; every clone shares one catalog, one configuration
