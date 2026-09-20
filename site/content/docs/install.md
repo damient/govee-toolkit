@@ -11,7 +11,7 @@ The Rust crate is the reference implementation. The command line needs no
 code. Python and Node.js bind to that same core. The DMX bridge is a separate
 binary.
 
-## Rust
+## Rust {{version_rust}} {{registry_rust}}
 
 Async, on Tokio. The `lan` feature is on by default. `ble` and `cloud` are
 opt-in.
@@ -35,10 +35,7 @@ On Linux the `ble` feature reaches the radio through BlueZ over D-Bus, so the
 build needs the dbus headers (`apt install libdbus-1-dev`). macOS and Windows
 need nothing.
 
-[Crate documentation]({{repo}}/tree/main/packages/rust) ·
-[crates.io](https://crates.io/crates/govee-toolkit)
-
-## Command line
+## Command line {{version_cli}} {{registry_cli}}
 
 The binary is `govee`. It holds no protocol logic: it reads the device files
 through the crate.
@@ -53,7 +50,7 @@ through the crate.
 
 [Every command, with an example in each language]({{base}}reference/)
 
-## Python
+## Python {{version_python}} {{registry_python}}
 
 A PyO3 binding over the Rust core. The API is `asyncio` only, and the wheel
 carries the device catalog, so an install needs no data file and no Rust
@@ -78,10 +75,7 @@ The wheels are `abi3` for Python 3.11 and up: Linux, macOS and Windows on
 `armv7`. On a platform with no wheel, pip builds from the repository, which
 needs a Rust toolchain.
 
-[Package documentation]({{repo}}/tree/main/packages/python) ·
-[PyPI](https://pypi.org/project/govee-toolkit/)
-
-## Node.js
+## Node.js {{version_node}} {{registry_node}}
 
 A napi-rs binding over the same core, with TypeScript types. The package
 carries the device catalog, so an install needs no data file and no Rust
@@ -108,10 +102,7 @@ build: the device catalog is compiled into the addon from `devices/*.yaml`,
 which the package does not carry, so a platform with no addon needs the
 repository.
 
-[Package documentation]({{repo}}/tree/main/packages/node) ·
-[npm](https://www.npmjs.com/package/govee-toolkit)
-
-## DMX bridge
+## DMX bridge {{version_dmx}} {{registry_dmx}}
 
 The binary is `govee-dmx`. It receives Art-Net on the network and writes each
 frame to a light over `lan`.
@@ -126,5 +117,4 @@ frame to a light over `lan`.
 Art-Net is the one input protocol the bridge carries. A light it drives must
 have `lan` enabled.
 
-[The DMX guide]({{base}}docs/dmx/) ·
-[crates.io](https://crates.io/crates/govee-toolkit-dmx)
+[The DMX guide]({{base}}docs/dmx/)
