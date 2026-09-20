@@ -2,13 +2,14 @@
 title: Install
 slug: install
 order: 2
-description: The Rust crate, the command line, the Python package, and the Node.js package.
+description: The Rust crate, the command line, the Python package, the Node.js package, and the DMX bridge.
 ---
 
 # Install
 
 The Rust crate is the reference implementation. The command line needs no
-code. Python and Node.js bind to that same core.
+code. Python and Node.js bind to that same core. The DMX bridge is a separate
+binary.
 
 ## Rust
 
@@ -109,3 +110,21 @@ repository.
 
 [Package documentation]({{repo}}/tree/main/packages/node) ·
 [npm](https://www.npmjs.com/package/govee-toolkit)
+
+## DMX bridge
+
+The binary is `govee-dmx`. It receives Art-Net on the network and writes each
+frame to a light over `lan`.
+
+<div class="terminal">
+<pre><code><span class="prompt">$</span> cargo install govee-toolkit-dmx
+<span class="prompt">$</span> govee-dmx patch
+<span class="prompt">$</span> govee-dmx run</code></pre>
+<button class="copy" type="button" data-copy="cargo install govee-toolkit-dmx">Copy</button>
+</div>
+
+Art-Net is the one input protocol the bridge carries. A light it drives must
+have `lan` enabled.
+
+[The DMX guide]({{base}}docs/dmx/) ·
+[crates.io](https://crates.io/crates/govee-toolkit-dmx)
