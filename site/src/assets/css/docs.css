@@ -43,6 +43,21 @@
 .doc-nav a[aria-current] { color: var(--ember); font-weight: 600; }
 .doc-toc { font-size: .9rem; }
 
+/* A folded group of the "On this page" menu. The title is the control: a
+   reader opens the group and goes to one of its entries. */
+.sub-group > details > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  cursor: pointer; list-style: none; color: var(--muted);
+}
+.sub-group > details > summary::-webkit-details-marker { display: none; }
+.sub-group > details > summary:hover { color: var(--text); }
+.sub-group > details > summary[aria-current] { color: var(--ember); font-weight: 600; }
+.sub-group > details > summary svg {
+  width: 14px; height: 14px; flex: none; transition: transform .15s ease;
+}
+.sub-group > details[open] > summary svg { transform: rotate(180deg); }
+.sub-group > details > ul { margin-top: 8px; }
+
 @media (min-width: 900px) {
   .doc-nav, .doc-toc {
     position: sticky; top: 90px; align-self: start;

@@ -24,6 +24,7 @@ export function referencePage(reference, nav) {
     nav,
     current: REFERENCE.url,
     toc,
+    collapse: true,
     klass: "reference",
     body: `<h1>Reference</h1>
         <p class="lede">${escapeHtml(reference.intro)}</p>
