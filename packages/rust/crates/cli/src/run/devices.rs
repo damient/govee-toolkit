@@ -47,8 +47,27 @@ fn heard_text(device: &Device, scanned: &[Mode], restrict: Option<Mode>, enabled
     )
 }
 
-pub(super) fn list(govee: &Govee, writer: &Writer, restrict: Option<Mode>) {
-    report(&govee.devices(), writer, restrict);
+/// List what the targets name, or every known device where they name
+/// nothing. It touches no network, so a target matches what the cache and the
+/// scans of this run hold.
+pub(super) fn list(
+    govee: &Govee,
+    writer: &Writer,
+    targets: &[String],
+    restrict: Option<Mode>,
+) -> Result<(), Failure> {
+    let devices = govee.devices();
+    if targets.is_empty() {
+        report(&devices, writer, restrict);
+        return Ok(());
+    }
+    let chosen = govee.select(targets)?;
+    let named: Vec<Device> = devices
+        .into_iter()
+        .filter(|device| chosen.contains(&device.id))
+        .collect();
+    report(&named, writer, restrict);
+    Ok(())
 }
 
 /// The devices a command can go to, so one that does not enable the mode is

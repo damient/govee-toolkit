@@ -11,7 +11,7 @@
 use std::time::Duration;
 
 use govee_toolkit::codec::Mode;
-use govee_toolkit::{DeviceId, Govee, Identify};
+use govee_toolkit::{DeviceId, Govee, Identify, Selector};
 use serde_json::json;
 
 use crate::output::{Failure, Writer};
@@ -105,8 +105,12 @@ async fn off(govee: &Govee, writer: &Writer, targets: &[DeviceId], mode: Mode) -
     refused
 }
 
-/// The devices to walk: the ones named, or every device a scan over `mode`
-/// finds and the configuration enables that mode for.
+/// The devices to walk: the ones the targets name, or every device a scan
+/// over `mode` finds and the configuration enables that mode for.
+///
+/// A target that names a model or a name is answered from what the SDK knows,
+/// so the scan runs before the selection. A target that names an identity
+/// needs no scan: it addresses one device, which `ensure_known` then finds.
 async fn targets(govee: &Govee, named: &[String], mode: Mode) -> Result<Vec<DeviceId>, Failure> {
     if named.is_empty() {
         let found = govee.scan_on(&[mode]).await?;
@@ -116,13 +120,20 @@ async fn targets(govee: &Govee, named: &[String], mode: Mode) -> Result<Vec<Devi
             .filter(|id| govee.device(id).modes().contains(&mode))
             .collect());
     }
-    let mut ids = Vec::with_capacity(named.len());
-    for name in named {
-        let id = DeviceId::new(name);
-        govee.ensure_known(&id).await?;
-        ids.push(id);
+    if named.iter().any(|target| !names_one_identity(target)) {
+        govee.scan_on(&[mode]).await?;
+    }
+    let ids = govee.select(named)?;
+    for id in &ids {
+        govee.ensure_known(id).await?;
     }
     Ok(ids)
+}
+
+/// Whether the target addresses one device on its own. A target that reads as
+/// nothing lands here as `false`, and the selection reports why.
+fn names_one_identity(target: &str) -> bool {
+    matches!(Selector::parse(target), Ok(Selector::Id(_)))
 }
 
 fn report(writer: &Writer, id: &DeviceId, reason: &str) {

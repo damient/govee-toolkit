@@ -7,10 +7,13 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 ### Added
 
-- `identify [DEVICE]...` — takes every device off at once, then lights them one
+- `identify [TARGET]...` — takes every device off at once, then lights them one
   at a time in one color, so a person maps an identity to a fixture in the
   room. It walks the devices `lan` reaches, or the mode `--mode` names, and
   every device that scan finds when the command line names none.
+- A target names an identity (`1C:8B:…`), a SKU (`H6159`) or a name the
+  configuration gives a device (`name:kitchen`). `devices [TARGET]...` lists
+  what a target reaches and touches no network.
 - `identify --color`, `--wait-ms`, `--hold-ms` and `--keep` — the color each
   device shows, the interval between two steps, how long the last device holds
   it, and leaving the rig lit at the end.
