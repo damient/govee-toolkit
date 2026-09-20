@@ -187,12 +187,17 @@ async fn a_packet_that_is_no_artdmx_drives_nothing() {
 /// A desk that receives no reply lists the node nowhere, so a poll is
 /// answered on the socket it arrived on. The rig sits on one port-address,
 /// which is one reply.
+///
+/// The node answers the address [`Node::replies_to`] names, and not the desk
+/// that polled: the real one is the broadcast address, which no test puts a
+/// packet on.
 #[tokio::test]
 async fn a_poll_is_answered_on_the_socket_it_arrived_on() {
     let catalog = Catalog::embedded().expect("the embedded catalog parses");
     let listener = Listener::bind(loopback()).expect("the node socket binds");
     let bound = listener.local_addr().expect("a bound address");
     let desk = Listener::bind(loopback()).expect("the desk socket binds");
+    let listens = desk.local_addr().expect("a bound address");
 
     let mut poll = b"Art-Net\0".to_vec();
     poll.extend_from_slice(&0x2000u16.to_le_bytes());
@@ -202,7 +207,9 @@ async fn a_poll_is_answered_on_the_socket_it_arrived_on() {
 
     let (stop, mut stopped) = mpsc::channel(1);
     let mut recorder = Recorder::new(stop);
-    let mut node = Node::dry_run(rig(&catalog)).named("a-desk-lists-this");
+    let mut node = Node::dry_run(rig(&catalog))
+        .named("a-desk-lists-this")
+        .replies_to(listens);
     node.run(
         &listener,
         async move {
