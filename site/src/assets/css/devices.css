@@ -232,7 +232,7 @@
 }
 .is-device .tabs-dmx .dmx-tab-width { display: block; font-size: 13px; color: var(--muted); }
 /* The mark column carries no head: the icon stands for the slot beside it. */
-.is-device .matrix-dmx th:nth-child(2), .is-device .matrix-dmx td:nth-child(2) { width: 42px; }
+.is-device .matrix-dmx th:nth-child(2), .is-device .matrix-dmx td:nth-child(2) { width: 64px; }
 .matrix-dmx .dmx-mark { padding-right: 0; line-height: 0; }
 .matrix-dmx .cap-icon { width: 18px; height: 18px; }
 /* A color channel drives that component, so the chip carries the primary
@@ -241,9 +241,31 @@
 .dmx-swatch[data-component="red"] { color: #e5484d; }
 .dmx-swatch[data-component="green"] { color: #30a46c; }
 .dmx-swatch[data-component="blue"] { color: #3e63dd; }
-/* Every personality holds the same four columns, so they carry one set of
-   widths and the blocks read as one table cut in pieces. */
-.is-device .matrix-dmx th:first-child, .is-device .matrix-dmx td:first-child { width: 9%; }
-.is-device .matrix-dmx th:nth-child(3), .is-device .matrix-dmx td:nth-child(3) { width: 42%; }
-/* The component order of a zone run sits under the count it belongs to. */
+/* Each column takes the width its content needs, and `.tablewrap` scrolls
+   where the screen is narrower than the four together. A phone reads the same
+   table as a desktop, one column at a time. */
+.is-device .matrix-dmx { table-layout: auto; }
+.is-device .matrix-dmx th, .is-device .matrix-dmx td { overflow-wrap: normal; }
+/* Every personality holds the same four columns, so the first three carry one
+   set of widths and the blocks read as one table cut in pieces. */
+.is-device .matrix-dmx th:first-child, .is-device .matrix-dmx td:first-child {
+  width: 1%; white-space: nowrap;
+}
+.is-device .matrix-dmx th:nth-child(3), .is-device .matrix-dmx td:nth-child(3) { width: 14em; }
+/* One band of slots per line, with a rule between two bands: a channel holds
+   up to three, and each one is a separate answer. The slots take a badge,
+   because a pair of numbers is what the operator matches against a fader. */
+.dmx-values { margin: 0; padding: 0; list-style: none; }
+.dmx-values li {
+  display: flex; align-items: center; gap: 12px; padding: 7px 0; white-space: nowrap;
+}
+.dmx-values li:first-child { padding-top: 0; }
+.dmx-values li:last-child { padding-bottom: 0; }
+.dmx-values li + li { border-top: 1px solid var(--line); }
+.dmx-slots {
+  flex: none; min-width: 6em; text-align: center; padding: 5px 9px;
+  border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted);
+  font: 500 11px/1 var(--mono); letter-spacing: .04em;
+}
+/* A channel the model drives nothing from says so under its slot name. */
 .dmx-order { display: block; color: var(--muted); font-size: .9em; }

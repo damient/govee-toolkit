@@ -54,14 +54,29 @@ function slotLabel(channel) {
 
 const capitalize = (word) => word.charAt(0).toUpperCase() + word.slice(1);
 
-const range = (channel) =>
-  channel.range ? `${channel.range[0]} – ${channel.range[1]}` : DASH;
+// A band of slots, as a desk numbers them. `catalog.json` carries the bands,
+// so the page never works out what a slot means.
+const slots = ([low, high]) => (low === high ? String(low) : `${low} – ${high}`);
 
-const steps = (channel) => (channel.steps ? String(channel.steps) : DASH);
+const valueList = (lines) => `<ul class="dmx-values">
+              ${lines.join("\n              ")}
+            </ul>`;
 
-function row(head, channel, slot, scaled) {
+function values(channel) {
+  const bands = channel.values ?? [];
+  if (!bands.length) return DASH;
+  return valueList(
+    bands.map(
+      (band) =>
+        `<li><span class="dmx-slots">${escapeHtml(slots(band.slots))}</span>
+              ${escapeHtml(band.label)}</li>`,
+    ),
+  );
+}
+
+function row(head, channel, slot, cell) {
   return `<tr><th scope="row">${head}</th><td class="dmx-mark">${mark(channel)}</td><td>${slot}</td>
-            <td>${range(scaled ?? {})}</td><td>${steps(scaled ?? {})}</td></tr>`;
+            <td>${cell}</td></tr>`;
 }
 
 // A zone triple repeats once per zone, and a 132-zone strip holds 396 of them.
@@ -73,9 +88,11 @@ function zoneRow(run) {
   const zones = new Set(run.map((c) => c.zone)).size;
   const components = [...new Set(run.map((c) => c.component))].join(", ");
   const head = `${first.offset} – ${last.offset}`;
-  const body = `${zones} zones, three channels each
-            <span class="dmx-order">${escapeHtml(components)}, in zone order</span>`;
-  return row(head, first, body, null);
+  const cell = valueList([
+    "<li>three channels each</li>",
+    `<li>${escapeHtml(components)}, in zone order</li>`,
+  ]);
+  return row(head, first, `${zones} zones`, cell);
 }
 
 /** Every channel as a row, with the zone channels folded into one. */
@@ -84,7 +101,7 @@ function rows(channels) {
   for (let at = 0; at < channels.length; at += 1) {
     const channel = channels[at];
     if (channel.slot !== "zone") {
-      out.push(row(String(channel.offset), channel, slotLabel(channel), channel));
+      out.push(row(String(channel.offset), channel, slotLabel(channel), values(channel)));
       continue;
     }
     const start = at;
@@ -123,7 +140,7 @@ function pane(entry, at) {
               <thead><tr><th scope="col">Channel</th>
                 <th scope="col"><span class="visually-hidden">Mark</span></th>
                 <th scope="col">Slot</th>
-                <th scope="col">Range</th><th scope="col">Steps</th></tr></thead>
+                <th scope="col">Values</th></tr></thead>
               <tbody>
             ${rows(entry.channels).join("\n            ")}
               </tbody>
