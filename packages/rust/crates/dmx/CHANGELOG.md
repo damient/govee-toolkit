@@ -6,7 +6,9 @@ releases under `dmx-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md). The design
 is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 
-Nothing is published yet: the manifest carries `publish = false`.
+The first release waits for `govee-toolkit` 0.11 on crates.io: the node calls
+`Govee::device_on`, which no published core carries, so `cargo publish` fails
+in its verification build until the core is out.
 
 ### Added
 
