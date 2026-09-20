@@ -34,23 +34,24 @@ have survived `ble` and `cloud` landing — not on a date.
 | --- | ------- | -------- |
 | `rust-vX.Y.Z` | `govee-toolkit` | crates.io |
 | `cli-vX.Y.Z` | `govee-toolkit-cli` | crates.io |
+| `dmx-vX.Y.Z` | `govee-toolkit-dmx` | crates.io |
 | `python-vX.Y.Z` | `govee-toolkit` | PyPI |
 | `node-vX.Y.Z` | `govee-toolkit` | npm |
 
-Versions are **not** kept in lockstep. Four packages that move at different
-speeds and share a version number would mean publishing two no-op releases every
-time one of them changed.
+Versions are **not** kept in lockstep. Five packages that move at different
+speeds and share a version number would mean publishing four no-op releases
+every time one of them changed.
 
 ## One crate, and what a feature means
 
 The protocol lives in a single published crate, `govee-toolkit`. The codec, the
-transport and the facade are modules of it. `crates/cli` is published beside it
-as `govee-toolkit-cli` and holds no protocol logic; `crates/sim` and
-`crates/xtask` are never published.
+transport and the facade are modules of it. `crates/cli` and `crates/dmx` are
+published beside it as `govee-toolkit-cli` and `govee-toolkit-dmx`, and hold no
+protocol logic; `crates/sim` and `crates/xtask` are never published.
 
-`govee-toolkit-cli` depends on `govee-toolkit` by version, so the core it needs
-is on crates.io before the CLI that wraps it. Release `rust-vX.Y.Z` first when
-one pull request changes both.
+`govee-toolkit-cli` and `govee-toolkit-dmx` depend on `govee-toolkit` by
+version, so the core they need is on crates.io before the crate that wraps it.
+Release `rust-vX.Y.Z` first when one pull request changes both.
 
 The CLI's public surface is its command line, not a Rust API: the subcommands,
 the exit codes and the JSON output. A change to any of the three is breaking,
@@ -130,6 +131,14 @@ short-lived token. It is configured once per package, on the registry, against
 this repository and the workflow file name — crates.io under the crate's
 settings, PyPI and npm under the project's. A publish from a workflow the
 registry does not know about is refused.
+
+A **new package is published by hand once**, before any of that. crates.io
+configures trusted publishing under the crate's settings, and npm under the
+project's, so the name has to exist before a workflow can claim it. Publish a
+`0.0.0` placeholder that carries the name, the description and the license and
+no code, configure the trusted publisher against the release workflow file, and
+let the first real version go out under its tag. The alternative is a registry
+token in the repository, which the paragraph above rules out.
 
 A version already on the registry is skipped rather than failing the run: a tag
 moved to a new commit reruns the whole job, and a registry never takes the same

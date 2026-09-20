@@ -19,14 +19,11 @@ ask for. Open an issue if something matters to you.
 ### What the Art-Net bridge needs before a release
 
 The bridge receives, resolves and drives, and a test drives the whole chain
-against `crates/sim` with no hardware. What is left is the release itself:
+against `crates/sim` with no hardware. One step is left before the release:
 
-- `publish = true`, `.github/workflows/dmx-release.yml` on the `dmx-vX.Y.Z`
-  tag, and the row in the root `CHANGELOG.md` table. Follow `cli-release.yml`,
-  which releases the other binary. The name is taken on crates.io by a `0.0.0`
-  placeholder, and the trusted publisher is configured against that workflow
-  file.
-- `dist/catalog.json` carries the channel table, and the devices page shows it.
+- `rust-v0.11.0` first, then `govee-toolkit = "0.11"` in the node's manifest.
+  The node calls `Govee::device_on`, which no published core carries, so
+  `cargo publish` fails in its verification build until the core is out.
 
 Undocumented LAN commands are documented and formalized continuously, in
 [`protocol/lan.md`](protocol/lan.md) and `devices/*.yaml`, as they are

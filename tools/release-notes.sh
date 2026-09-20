@@ -4,6 +4,7 @@
 #
 #   tools/release-notes.sh rust rust-v0.3.0
 #   tools/release-notes.sh cli cli-v0.1.0
+#   tools/release-notes.sh dmx dmx-v0.1.0
 #
 # The tag, the version in the manifest and the changelog heading carry the same
 # number. A tag pushed past a manifest nobody bumped would otherwise publish a
@@ -13,7 +14,7 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: ${0##*/} <rust|cli|python|node> <tag>" >&2
+  echo "usage: ${0##*/} <rust|cli|dmx|python|node> <tag>" >&2
   exit 2
 }
 
@@ -21,12 +22,13 @@ usage() {
 pkg=$1 tag=$2
 root=$(cd "$(dirname "$0")/.." && pwd)
 
-# `cli` is the one package that does not sit at packages/<pkg>: it is a crate
-# of the Rust workspace, and it releases apart from the crate it wraps.
+# `cli` and `dmx` do not sit at packages/<pkg>: they are crates of the Rust
+# workspace, and each releases apart from the crate it reads.
 pattern='^version *= *"\([^"]*\)".*'
 case $pkg in
 rust) subdir=packages/rust file=Cargo.toml ;;
 cli) subdir=packages/rust/crates/cli file=Cargo.toml ;;
+dmx) subdir=packages/rust/crates/dmx file=Cargo.toml ;;
 python) subdir=packages/python file=pyproject.toml ;;
 node) subdir=packages/node file=package.json pattern='.*"version" *: *"\([^"]*\)".*' ;;
 *) usage ;;
