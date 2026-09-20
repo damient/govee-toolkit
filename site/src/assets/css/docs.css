@@ -80,6 +80,17 @@
 }
 
 .prose { max-width: 78ch; }
+/* The measure belongs to each block, not to the article: the running text
+   keeps its line length, and a table fills the column. */
+.doc-grid .prose:not(.reference) { max-width: none; }
+.doc-grid .prose:not(.reference) > * { max-width: 78ch; }
+.doc-grid .prose:not(.reference) > table { max-width: none; }
+/* `display: block` gives a narrow screen a table that scrolls sideways, but it
+   also makes the table box shrink to its content. A column wide enough for the
+   whole table takes the table display back, so the table fills it. */
+@media (min-width: 720px) {
+  .doc-grid .prose:not(.reference) > table:not(.matrix) { display: table; }
+}
 .prose h1 { font-size: clamp(1.9rem, 1.4rem + 1.8vw, 2.6rem); margin-bottom: .5em; }
 .prose h2 { margin-top: 2em; }
 /* A heading that opens an article carries no space over it either. */
