@@ -1,0 +1,13 @@
+{
+  "sender": "TouchDesigner 2025.33230 on macOS, a Constant CHOP into a DMX Out CHOP, Art-Net at 60 frames per second. The count wraps from 255 to 0, which Art-Net reads as the check turned off.",
+  "universe": 0,
+  "sequence": 8,
+  "physical": 0,
+  "length": 512,
+  "channels": {
+    "1": 222,
+    "2": 64,
+    "3": 9,
+    "4": 180
+  }
+}

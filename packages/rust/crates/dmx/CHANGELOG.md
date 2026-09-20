@@ -10,6 +10,10 @@ Nothing is published yet: the manifest carries `publish = false`.
 
 ### Added
 
+- The Art-Net parser reads recorded packets under `tests/fixtures/artnet/`: an
+  `ArtDmx` and an `ArtPoll` from QLC+, and an `ArtDmx` from TouchDesigner. A
+  capture that lists no channel value fails the test, because it proves
+  nothing.
 - `identify` — names each enabled entry and lights the fixture it drives. Every
   fixture goes off at once first, and the walk then lights one at a time, in
   patch order. `--color`, `--wait-ms`, `--hold-ms` and `--keep` set what it

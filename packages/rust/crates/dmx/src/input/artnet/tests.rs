@@ -1,16 +1,12 @@
-//! The parser, checked against the captures and against every refusal.
+//! The parser, checked against every refusal.
 //!
 //! A packet built here is built from the layout `docs/dmx.md` documents, and
-//! is not evidence of what a sender puts on the wire. The captures under
-//! `tests/fixtures/artnet/` are, and
-//! [`every_capture_produces_the_channels_the_sender_showed`] is what reads
-//! them.
+//! is not evidence of what a sender puts on the wire. [`super::captures`]
+//! reads the recorded packets.
 
 #![allow(clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
-use std::collections::BTreeMap;
 use std::net::{Ipv4Addr, SocketAddr};
-use std::path::{Path, PathBuf};
 
 use super::{Dmx, Error, Identity, Packet, REPLY, Sequence, parse, replies};
 
@@ -291,60 +287,4 @@ fn a_packet_delivered_late_is_dropped() {
     let late = dmx(&packet(0, 9, &[1, 0]));
     assert!(gate.accept(new.sequence));
     assert!(!gate.accept(late.sequence));
-}
-
-/// What one capture says the sender showed.
-#[derive(serde::Deserialize)]
-struct Expected {
-    sender: String,
-    universe: u16,
-    sequence: u8,
-    physical: u8,
-    length: u16,
-    channels: BTreeMap<u16, u8>,
-}
-
-fn capture_dir() -> PathBuf {
-    // crates/dmx -> crates -> rust -> packages -> the repository root.
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(4)
-        .expect("repository root")
-        .join("tests/fixtures/artnet")
-}
-
-/// Every capture under `tests/fixtures/artnet/` parses to the channels the
-/// sender showed. The directory carries no capture yet, and the test is what
-/// the first one lands against.
-#[test]
-fn every_capture_produces_the_channels_the_sender_showed() {
-    let dir = capture_dir();
-    let entries = std::fs::read_dir(&dir).expect("the capture directory");
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.extension().is_none_or(|ext| ext != "bin") {
-            continue;
-        }
-        let bytes = std::fs::read(&path).expect("the capture");
-        let text = std::fs::read_to_string(path.with_extension("json"))
-            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-        let expected: Expected =
-            serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-        let name = format!("{} ({})", path.display(), expected.sender);
-        let dmx = match parse(&bytes, source()) {
-            Ok(Packet::Dmx(dmx)) => dmx,
-            other => panic!("{name}: {other:?}"),
-        };
-        assert_eq!(dmx.frame.universe, expected.universe, "{name}");
-        assert_eq!(dmx.sequence, expected.sequence, "{name}");
-        assert_eq!(dmx.physical, expected.physical, "{name}");
-        assert_eq!(dmx.frame.len(), expected.length, "{name}");
-        for (address, value) in expected.channels {
-            assert_eq!(
-                dmx.frame.slot(address),
-                Some(value),
-                "{name} channel {address}"
-            );
-        }
-    }
 }

@@ -7,6 +7,8 @@
 //! The layout is in `docs/dmx.md`. A refusal drops the packet: the bridge
 //! never truncates a packet to make it fit.
 
+#[cfg(test)]
+mod captures;
 mod poll;
 mod sequence;
 #[cfg(test)]
