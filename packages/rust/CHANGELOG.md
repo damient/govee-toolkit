@@ -14,6 +14,12 @@ releases apart and keeps
   `Govee::device` moves to the next enabled mode. A caller that serves one mode
   by design takes it, such as the Art-Net node, which reaches a device over
   `lan`.
+- `Govee::select()` and `Selector` — name devices by identity, by SKU, or by
+  the name the configuration gives one. `id:`, `sku:` and `name:` state the
+  kind where a bare target does not.
+- `Error::Select`, with the codes `target_not_understood`, `ambiguous_target`
+  and `no_such_target` — a target that reads as two kinds, or that matches no
+  known device, fails rather than selecting a device nobody named.
 - `DeviceHandle::identify()` — powers one device on and paints one color, so a
   person sees which fixture an identity drives. It sets the brightness to the
   top of the range the device file declares.

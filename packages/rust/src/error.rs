@@ -22,6 +22,11 @@ pub enum Error {
     #[error(transparent)]
     Transport(#[from] crate::transport::Error),
 
+    /// A target names no device: it reads as two kinds, or it matches
+    /// nothing the SDK knows.
+    #[error(transparent)]
+    Select(#[from] crate::select::Error),
+
     /// The configuration file could not be read or parsed.
     #[error("configuration `{path}`: {reason}")]
     Config {
@@ -316,6 +321,7 @@ impl Error {
         match self {
             Self::Codec(e) => e.code(),
             Self::Transport(e) => e.code(),
+            Self::Select(e) => e.code(),
             Self::Config { .. } => "config",
             Self::Configuration(_) => "configuration",
             Self::NoModeAvailable { .. } => "no_mode_available",
@@ -374,6 +380,7 @@ impl Error {
                 Category::Transport
             }
             Self::Config { .. }
+            | Self::Select(_)
             | Self::Configuration(_)
             | Self::ModeNotEnabled { .. }
             | Self::ModeNotImplemented { .. }

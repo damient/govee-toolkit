@@ -9,6 +9,9 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 - `Govee.device_on()` — a handle that drives one device over one mode alone.
   Every call on it goes over that mode or raises, for a caller that serves one
   mode by design.
+- `Govee.select()` — the device identities the targets name: an identity, a
+  SKU, or `name:<name>` for the name the configuration gives a device. A
+  target that matches no known device raises `no_such_target`.
 - `DeviceHandle.identify()` — powers the device on and paints one color, so a
   person sees which fixture an identity drives. `color` and `full_brightness`
   take the core's defaults when `None`.

@@ -19,6 +19,15 @@ test("no device is known before a scan", async () => {
   });
 });
 
+test("an identity selects itself, and a model nothing found selects nothing", async () => {
+  await withGovee(sdk, (govee) => {
+    assert.deepEqual(govee.select(["aa:bb:cc:dd:ee:ff:00:11"]), [
+      "AA:BB:CC:DD:EE:FF:00:11",
+    ]);
+    assert.throws(() => govee.select(["H6008"]), { code: "no_such_target" });
+  });
+});
+
 test("the modes are the transports this build carries", async () => {
   await withGovee(sdk, (govee) => {
     for (const mode of govee.modes()) {
