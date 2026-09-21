@@ -14,6 +14,7 @@ use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 use govee_toolkit::Identify;
+use govee_toolkit::codec::coerce;
 use govee_toolkit_dmx::patch::{Layout, MAX_PORT_ADDRESS, PortAddress};
 use govee_toolkit_dmx::profile::{Personality, UNIVERSE};
 
@@ -275,16 +276,12 @@ fn chosen(
 
 /// One `#RRGGBB`, as a person types it on a desk.
 fn rgb(text: &str) -> Result<[u8; 3], cmd::Failure> {
-    let digits = text.strip_prefix('#').unwrap_or(text);
-    let bytes = (digits.len() == 6)
-        .then(|| u32::from_str_radix(digits, 16).ok())
-        .flatten()
-        .ok_or_else(|| cmd::Failure::new(format!("`{text}` is no `#RRGGBB` color"), cmd::USAGE))?;
-    Ok([
-        u8::try_from((bytes >> 16) & 0xff).unwrap_or(0),
-        u8::try_from((bytes >> 8) & 0xff).unwrap_or(0),
-        u8::try_from(bytes & 0xff).unwrap_or(0),
-    ])
+    coerce::rgb(text).ok_or_else(|| {
+        cmd::Failure::new(
+            format!("`{text}` is not a color; write `#RRGGBB`"),
+            cmd::USAGE,
+        )
+    })
 }
 
 fn spellings() -> String {
