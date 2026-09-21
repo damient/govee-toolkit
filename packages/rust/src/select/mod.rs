@@ -1,7 +1,7 @@
 //! Naming devices on a command line: by identity, by SKU or by name.
 //!
 //! One target names one kind of thing. A prefix states the kind, and a bare
-//! target takes the kind its shape gives it:
+//! target takes the kind it reads as:
 //!
 //! | Target | Kind |
 //! | ------ | ---- |
@@ -9,9 +9,11 @@
 //! | `H6159`, `sku:H6159` | every known device of that model |
 //! | `name:kitchen` | the device the configuration names |
 //!
-//! A bare target that its shape reads as an identity or a SKU, and that a
-//! known device also carries as a name, is refused: the answer names the two
-//! prefixed forms to write instead. Nothing is guessed.
+//! A bare target reads as a SKU where a device file is encoded under it, and
+//! never from the shape of the text alone. A bare target that reads as an
+//! identity or a SKU, and that a known device also carries as a name, is
+//! refused: the answer names the two prefixed forms to write instead. Nothing
+//! is guessed.
 //!
 //! A SKU matches the SKU a device is encoded under, and no alias of it. Two
 //! SKUs that a device file declares identical are still two models in a room,
@@ -22,6 +24,7 @@ mod tests;
 
 use std::fmt;
 
+use crate::codec::Catalog;
 use crate::event::Device;
 use crate::govee::Govee;
 use crate::transport::DeviceId;
@@ -45,11 +48,11 @@ pub enum Selector {
 }
 
 impl Selector {
-    /// Read one target.
+    /// Read one target, against the catalog that says which SKUs exist.
     ///
     /// The prefixes `id:`, `sku:` and `name:` state the kind. A bare target
-    /// takes the kind of its shape, and the module documentation gives the
-    /// shapes.
+    /// reads as a SKU where a device file in `catalog` is encoded under it,
+    /// and the module documentation gives the other kinds.
     ///
     /// The ambiguity between a SKU and a device named like one needs the
     /// devices to see, so [`Govee::select`] reports it and this does not.
@@ -58,8 +61,8 @@ impl Selector {
     ///
     /// [`Error::Empty`] for a target with nothing in it, and
     /// [`Error::EmptyValue`] for a prefix with nothing after it.
-    pub fn parse(target: &str) -> Result<Self, Error> {
-        read(target).map(|(selector, _)| selector)
+    pub fn parse(target: &str, catalog: &Catalog) -> Result<Self, Error> {
+        read(target, catalog).map(|(selector, _)| selector)
     }
 }
 
@@ -75,7 +78,7 @@ impl fmt::Display for Selector {
 
 /// One target, and whether a prefix stated its kind. A prefixed target is
 /// never ambiguous: the person already said which kind it is.
-fn read(target: &str) -> Result<(Selector, bool), Error> {
+fn read(target: &str, catalog: &Catalog) -> Result<(Selector, bool), Error> {
     let target = target.trim();
     if target.is_empty() {
         return Err(Error::Empty);
@@ -91,7 +94,7 @@ fn read(target: &str) -> Result<(Selector, bool), Error> {
         }
         return Ok((kind.read(value), true));
     }
-    Ok((bare(target), false))
+    Ok((bare(target, catalog), false))
 }
 
 /// What a prefix states a target is.
@@ -132,12 +135,12 @@ fn kind(prefix: &str) -> Option<Kind> {
     }
 }
 
-/// The kind a bare target's shape gives it.
-fn bare(target: &str) -> Selector {
+/// The kind a bare target takes.
+fn bare(target: &str, catalog: &Catalog) -> Selector {
     if is_identity(target) {
         return Selector::Id(DeviceId::new(target));
     }
-    if is_sku(target) {
+    if is_sku(target, catalog) {
         return Selector::Sku(target.to_uppercase());
     }
     Selector::Name(target.to_owned())
@@ -158,14 +161,16 @@ fn is_identity(target: &str) -> bool {
     groups.len() >= 5 && digits >= 12 && hexadecimal
 }
 
-/// Whether the text is shaped like a SKU: `H` and four more characters that
-/// are letters or digits, which is how every Govee model is written.
-fn is_sku(target: &str) -> bool {
-    let mut rest = target.chars();
-    rest.next()
-        .is_some_and(|first| first.eq_ignore_ascii_case(&'H'))
-        && target.len() == 5
-        && rest.all(|c| c.is_ascii_alphanumeric())
+/// Whether a device file is encoded under this SKU.
+///
+/// The catalog answers, not the shape of the text: a model written another way
+/// is still a model, and a device named like one is still a name. An alias
+/// answers `false`, because [`matches`] selects the SKU a device is encoded
+/// under and an alias would select nothing.
+fn is_sku(target: &str, catalog: &Catalog) -> bool {
+    catalog
+        .devices()
+        .any(|device| device.sku.eq_ignore_ascii_case(target))
 }
 
 /// Why a target names no device.
@@ -191,7 +196,7 @@ pub enum Error {
     Ambiguous {
         /// What was written.
         target: String,
-        /// The kind its shape gives it.
+        /// The kind it reads as.
         kind: String,
     },
 
@@ -239,7 +244,7 @@ impl Govee {
         let mut chosen: Vec<DeviceId> = Vec::new();
         for target in targets {
             let target = target.as_ref();
-            let (selector, prefixed) = read(target)?;
+            let (selector, prefixed) = read(target, self.catalog())?;
             if !prefixed {
                 check_ambiguity(target, &selector, &known)?;
             }

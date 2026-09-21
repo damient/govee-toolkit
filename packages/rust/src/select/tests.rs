@@ -1,3 +1,5 @@
+#![allow(clippy::expect_used)]
+
 use std::collections::BTreeMap;
 
 use super::*;
@@ -21,6 +23,14 @@ fn rig() -> Vec<Device> {
     ]
 }
 
+fn catalog() -> Catalog {
+    Catalog::embedded().expect("the embedded catalog parses")
+}
+
+fn parse(target: &str) -> Result<Selector, Error> {
+    Selector::parse(target, &catalog())
+}
+
 fn chosen(selector: &Selector) -> Vec<String> {
     matches(selector, &rig())
         .unwrap_or_default()
@@ -30,17 +40,17 @@ fn chosen(selector: &Selector) -> Vec<String> {
 }
 
 #[test]
-fn a_bare_target_takes_the_kind_of_its_shape() {
+fn a_bare_target_takes_the_kind_it_reads_as() {
     assert_eq!(
-        Selector::parse("1c:8b:c4:a2:c0:46:64:6e").ok(),
+        parse("1c:8b:c4:a2:c0:46:64:6e").ok(),
         Some(Selector::Id(DeviceId::new("1C:8B:C4:A2:C0:46:64:6E")))
     );
     assert_eq!(
-        Selector::parse("h6008").ok(),
+        parse("h6008").ok(),
         Some(Selector::Sku("H6008".to_owned()))
     );
     assert_eq!(
-        Selector::parse("kitchen").ok(),
+        parse("kitchen").ok(),
         Some(Selector::Name("kitchen".to_owned()))
     );
 }
@@ -50,30 +60,27 @@ fn a_bare_target_takes_the_kind_of_its_shape() {
 #[test]
 fn a_peripheral_handle_reads_as_an_identity() {
     let handle = "5A3F1B2C-4D6E-7F80-9A1B-2C3D4E5F6071";
-    assert!(matches!(Selector::parse(handle), Ok(Selector::Id(_))));
-    assert!(matches!(
-        Selector::parse("living-room"),
-        Ok(Selector::Name(_))
-    ));
+    assert!(matches!(parse(handle), Ok(Selector::Id(_))));
+    assert!(matches!(parse("living-room"), Ok(Selector::Name(_))));
 }
 
 #[test]
 fn a_prefix_states_the_kind_the_shape_would_not_give() {
     assert_eq!(
-        Selector::parse("name:H6008").ok(),
+        parse("name:H6008").ok(),
         Some(Selector::Name("H6008".to_owned()))
     );
     assert_eq!(
-        Selector::parse("sku:h61a0").ok(),
+        parse("sku:h61a0").ok(),
         Some(Selector::Sku("H61A0".to_owned()))
     );
 }
 
 #[test]
 fn a_target_with_nothing_in_it_is_refused() {
-    assert_eq!(Selector::parse("   ").err(), Some(Error::Empty));
+    assert_eq!(parse("   ").err(), Some(Error::Empty));
     assert_eq!(
-        Selector::parse("sku:").err(),
+        parse("sku:").err(),
         Some(Error::EmptyValue {
             prefix: "sku".to_owned()
         })
@@ -115,6 +122,30 @@ fn a_sku_or_a_name_that_matches_nothing_is_a_failure() {
     );
 }
 
+// The catalog says what a SKU is. A name that a model is not named after
+// stays a name, whatever its shape.
+#[test]
+fn a_bare_sku_is_one_the_catalog_is_encoded_under() {
+    assert!(matches!(parse("H0000"), Ok(Selector::Name(_))));
+    assert!(matches!(parse("h6008"), Ok(Selector::Sku(_))));
+}
+
+// An alias is a second name for one model, and `matches` selects the SKU a
+// device is encoded under. A bare alias is therefore a name.
+#[test]
+fn a_bare_alias_is_no_sku() {
+    let aliases: Vec<String> = catalog()
+        .devices()
+        .flat_map(|device| device.aliases.clone())
+        .collect();
+    for alias in aliases {
+        assert!(
+            matches!(parse(&alias), Ok(Selector::Name(_))),
+            "`{alias}` reads as a SKU"
+        );
+    }
+}
+
 #[test]
 fn a_bare_sku_that_a_device_carries_as_a_name_is_refused() {
     let known = vec![device("1C:8B:C4:A2:C0:46:64:6E", "H61A0", Some("H6008"))];
@@ -128,7 +159,7 @@ fn a_bare_sku_that_a_device_carries_as_a_name_is_refused() {
     );
     // The prefixed form says which kind is meant, so it is never ambiguous.
     assert_eq!(
-        Selector::parse("sku:H6008").ok(),
+        parse("sku:H6008").ok(),
         Some(Selector::Sku("H6008".to_owned()))
     );
 }
