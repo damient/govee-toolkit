@@ -27,7 +27,9 @@ in its verification build until the core is out.
 - `identify` — names each enabled entry and lights the fixture it drives. Every
   fixture goes off at once first, and the walk then lights one at a time, in
   patch order. `--color`, `--wait-ms`, `--hold-ms` and `--keep` set what it
-  shows and how long each step lasts.
+  shows and how long each step lasts. It drives a device that `config.yaml`
+  enables `lan` for, and a fixture that refused the first blackout is neither
+  lit nor asked to go off again.
 - `identify [TARGET]...`, `--universe` and `--address` — walk a part of the
   rig: the fixtures of the devices a target names, the fixtures of one
   universe, or the fixture that answers to one channel of it.

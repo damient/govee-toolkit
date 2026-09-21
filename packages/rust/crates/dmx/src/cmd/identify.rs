@@ -8,32 +8,21 @@
 //!
 //! [`Chosen`] narrows the walk to a part of the rig, by device or by the
 //! channels a fixture answers to. The blackout covers the whole rig either
-//! way: one lit fixture in a dark room is what the operator reads.
+//! way: the patch declares the room, so one lit fixture in a dark room is
+//! what the operator reads.
+//!
+//! [`Govee::identify_walk`] runs the walk itself. It drives a device the
+//! configuration enables `lan` for, and [`resolve`] reports the patched
+//! devices that enable no `lan` mode before the walk starts.
 
 use std::path::Path;
-use std::time::Duration;
 
-use govee_toolkit::{DeviceId, Govee, Identify, Mode};
+use govee_toolkit::{DeviceId, Govee, Walk, WalkObserver};
 use govee_toolkit_dmx::patch::{Fixture, Patch, PortAddress, Rig};
 use serde_json::json;
 
 use super::rig::{configure, resolve, scan};
 use super::{CONFIG, Failure, INTERNAL, UNREACHABLE, patch as writer};
-
-/// What one walk does.
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct Walk {
-    /// What each fixture shows.
-    pub(crate) pass: Identify,
-    /// How long the walk waits between two steps: after the rig goes off,
-    /// and after each fixture lights.
-    pub(crate) wait: Duration,
-    /// How long the last fixture holds the color before every fixture goes
-    /// off.
-    pub(crate) hold: Duration,
-    /// Leave every fixture lit, and send no power command at the end.
-    pub(crate) keep: bool,
-}
 
 /// Which fixtures one walk lights. Every enabled fixture where it names
 /// none.
@@ -96,63 +85,59 @@ async fn run(
     walk: Walk,
     as_json: bool,
 ) -> Result<(), Failure> {
-    // The whole rig goes dark first. One lit fixture in a dark room is the
-    // answer the operator reads. A fixture that refuses the blackout leaves
-    // the walk here, and is reported once.
-    let mut failed = off(govee, rig.fixtures(), as_json).await;
-    let lit: Vec<&Fixture> = chosen
+    let blackout: Vec<DeviceId> = rig
+        .fixtures()
         .iter()
-        .copied()
-        .filter(|fixture| !failed.contains(&fixture.entry.device))
+        .map(|fixture| fixture.entry.device.clone())
         .collect();
-    tokio::time::sleep(walk.wait).await;
-    for fixture in &lit {
-        announce(fixture, as_json);
-        let id = &fixture.entry.device;
-        if let Err(error) = govee.device_on(id, Mode::Lan).identify(&walk.pass).await {
-            report(id, &error.to_string(), as_json);
-            failed.push(id.clone());
+    let spans = Spans { chosen, as_json };
+    let lit: Vec<DeviceId> = chosen
+        .iter()
+        .map(|fixture| fixture.entry.device.clone())
+        .collect();
+    let report = govee
+        .identify_walk(&blackout, &lit, &walk, &spans)
+        .await
+        .map_err(|e| Failure::new(e.to_string(), UNREACHABLE))?;
+    match report.summary("fixture") {
+        Some(summary) => Err(Failure::new(summary, UNREACHABLE)),
+        None => Ok(()),
+    }
+}
+
+/// What the walk prints: the entry the operator reads, beside the fixture
+/// that answers it.
+struct Spans<'a> {
+    chosen: &'a [&'a Fixture],
+    as_json: bool,
+}
+
+impl WalkObserver for Spans<'_> {
+    fn lighting(&self, id: &DeviceId) {
+        let Some(fixture) = self.chosen.iter().find(|f| &f.entry.device == id) else {
+            return;
+        };
+        if self.as_json {
+            let mut record = fixture.json();
+            if let Some(object) = record.as_object_mut() {
+                object.insert("event".to_owned(), json!("identify"));
+            }
+            println!("{record}");
+            return;
         }
-        tokio::time::sleep(walk.wait).await;
+        println!("identify {id}  {}", fixture.span);
     }
-    let mut stayed = Vec::new();
-    if !walk.keep {
-        tokio::time::sleep(walk.hold).await;
-        stayed = off(govee, rig.fixtures(), as_json).await;
-    }
-    if failed.is_empty() && stayed.is_empty() {
-        return Ok(());
-    }
-    Err(Failure::new(summary(&failed, &stayed), UNREACHABLE))
-}
 
-/// What the walk failed at, as one line.
-///
-/// The closing blackout counts: a fixture that holds the color is a fixture
-/// the operator must take off by hand. One that refused the pass and the
-/// blackout is named in both lists, which are two faults the room shows.
-fn summary(failed: &[DeviceId], stayed: &[DeviceId]) -> String {
-    let mut parts = Vec::new();
-    if !failed.is_empty() {
-        parts.push(format!(
-            "these fixtures did not take the pass: {}",
-            names(failed)
-        ));
+    fn refused(&self, id: &DeviceId, reason: &str) {
+        if self.as_json {
+            println!(
+                "{}",
+                json!({ "event": "failed", "device": id.to_string(), "reason": reason })
+            );
+            return;
+        }
+        println!("failed {id}  {reason}");
     }
-    if !stayed.is_empty() {
-        parts.push(format!(
-            "these fixtures did not go off at the end: {}",
-            names(stayed)
-        ));
-    }
-    parts.join("; ")
-}
-
-fn names(ids: &[DeviceId]) -> String {
-    ids.iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(", ")
 }
 
 /// The fixtures the command line chose, in the order the patch lists them.
@@ -217,56 +202,4 @@ fn in_patch_order<'a>(fixtures: &'a [Fixture], named: &[&'a Fixture]) -> Vec<&'a
                 .any(|chosen| chosen.entry.device == fixture.entry.device)
         })
         .collect()
-}
-
-/// Take every fixture off at once, and answer the ones that refused.
-///
-/// One task per fixture: a rig goes dark together, and a fixture that answers
-/// slowly holds up no other one.
-async fn off(govee: &Govee, fixtures: &[Fixture], as_json: bool) -> Vec<DeviceId> {
-    let mut passes = Vec::with_capacity(fixtures.len());
-    for fixture in fixtures {
-        let (govee, id) = (govee.clone(), fixture.entry.device.clone());
-        passes.push(tokio::spawn(async move {
-            let outcome = govee.device_on(&id, Mode::Lan).power(false).await;
-            (id, outcome)
-        }));
-    }
-    let mut refused = Vec::new();
-    for pass in passes {
-        let Ok((id, outcome)) = pass.await else {
-            continue;
-        };
-        if let Err(error) = outcome {
-            report(&id, &error.to_string(), as_json);
-            refused.push(id);
-        }
-    }
-    refused
-}
-
-/// Name the fixture before it lights, so the operator reads the line and the
-/// room at the same time.
-fn announce(fixture: &Fixture, as_json: bool) {
-    let id = &fixture.entry.device;
-    if as_json {
-        let mut record = fixture.json();
-        if let Some(object) = record.as_object_mut() {
-            object.insert("event".to_owned(), json!("identify"));
-        }
-        println!("{record}");
-        return;
-    }
-    println!("identify {id}  {}", fixture.span);
-}
-
-fn report(id: &DeviceId, reason: &str, as_json: bool) {
-    if as_json {
-        println!(
-            "{}",
-            json!({ "event": "failed", "device": id.to_string(), "reason": reason })
-        );
-        return;
-    }
-    println!("failed {id}  {reason}");
 }

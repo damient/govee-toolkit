@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use govee_toolkit::codec::Mode;
-use govee_toolkit::{Config, DeviceId, Env, Govee, Identify, Music};
+use govee_toolkit::{Config, DeviceId, Env, Govee, Identify, Music, Walk};
 
 use crate::cli::{self, Cli, Command};
 use crate::output::{Failure, Writer};
@@ -49,7 +49,7 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
             hold_ms,
             keep,
         } => {
-            let walk = identify::Walk {
+            let walk = Walk {
                 pass: Identify {
                     color: args::rgb(color)?,
                     ..Identify::default()

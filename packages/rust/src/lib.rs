@@ -124,7 +124,7 @@ pub use error::{Category, Error, Result};
 #[cfg(feature = "transport")]
 pub use event::{Device, Event, Served};
 #[cfg(feature = "transport")]
-pub use govee::Govee;
+pub use govee::{Govee, Walk, WalkObserver, WalkReport};
 #[cfg(feature = "ble")]
 pub use provision::{Provisioned, WifiCredentials};
 #[cfg(feature = "transport")]
