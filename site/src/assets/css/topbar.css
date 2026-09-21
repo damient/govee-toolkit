@@ -1,6 +1,8 @@
 .topbar {
+  --bar-h: 62px;
+  --bar-bg: color-mix(in oklab, var(--ink) 82%, transparent);
   position: sticky; top: 0; z-index: 10;
-  background: color-mix(in oklab, var(--ink) 82%, transparent);
+  background: var(--bar-bg);
   backdrop-filter: blur(14px);
 }
 
@@ -45,14 +47,14 @@
 }
 .is-home .topbar:not([data-past-top]) .topline { opacity: 0; }
 .is-home .topbar[data-past-top] {
-  background: color-mix(in oklab, var(--ink) 82%, transparent);
+  background: var(--bar-bg);
   backdrop-filter: blur(14px);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .topline, .is-home .topbar { transition: none; }
 }
-.topbar .shell { display: flex; align-items: center; gap: 24px; height: 62px; }
+.topbar .shell { display: flex; align-items: center; gap: 24px; height: var(--bar-h); }
 .wordmark {
   display: flex; align-items: center;
   font: 600 15px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
@@ -105,25 +107,34 @@
   /* The links are out of the flow here, so the auto margin moves to the
      controls to keep the burger against the right edge. */
   .controls { margin-left: auto; }
-  /* The panel hangs from the button that opens it, on the right. */
+  /* The panel takes the page under the bar, which stays on top of it. A
+     panel taller than that space scrolls on its own. */
   .topbar[data-menu] .links {
-    position: absolute; top: calc(100% + 10px); left: auto;
-    right: var(--gutter); width: min(300px, calc(100vw - 2 * var(--gutter)));
+    /* `backdrop-filter` on the bar makes it the containing block of a fixed
+       child, so the panel is absolute and takes its height from the view. */
+    position: absolute; top: 100%; left: 0; right: 0; width: auto;
+    height: calc(100dvh - var(--bar-h));
     flex-direction: column; align-items: stretch; gap: 2px;
-    margin: 0; padding: 8px 18px 16px;
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: 0 18px 50px rgb(0 0 0 / 35%);
+    margin: 0; padding: 12px var(--gutter) 28px;
+    overflow-y: auto; overscroll-behavior: contain;
+    background: var(--ink);
+    border: 0; border-top: 1px solid var(--line);
+  }
+  /* The panel hides the page, so the bar over it carries the same ground at
+     full strength. The two read as one surface. */
+  .topbar[data-menu="open"], .is-home .topbar[data-menu="open"] {
+    background: var(--ink);
+    backdrop-filter: none;
   }
   .topbar[data-menu="closed"] .links { display: none; }
-  .topbar[data-menu] .links a { padding: 12px 0; font-size: 16px; }
+  .topbar[data-menu] .links a { padding: 12px 0; font-size: 16px; text-align: center; }
   .topbar[data-menu] .links a[aria-current] { box-shadow: none; color: var(--ember); }
-  .topbar[data-menu] .links .ghost { margin-top: 14px; text-align: center; padding: 12px; }
+  .topbar[data-menu] .links .ghost { margin-top: 14px; padding: 12px; }
   /* One theme control at a time: inside the folded menu, the top bar keeps
      only the burger. */
   .controls .theme { display: none; }
   .topbar[data-menu] .theme.in-menu {
-    display: flex; align-items: center; justify-content: flex-start; gap: 12px;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
     width: auto; height: auto; padding: 18px 0 6px; margin-top: 18px;
     border: 0; border-top: 1px solid var(--line); border-radius: 0;
   }
