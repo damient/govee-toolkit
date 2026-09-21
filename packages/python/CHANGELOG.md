@@ -4,6 +4,8 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.3.0] — 2026-09-21
+
 ### Added
 
 - `Govee.device_on()` — a handle that drives one device over one mode alone.

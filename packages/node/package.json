@@ -1,6 +1,6 @@
 {
   "name": "govee-toolkit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them.",
   "license": "MIT",
   "author": "damient",

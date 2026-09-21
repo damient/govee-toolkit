@@ -650,7 +650,7 @@ dependencies = [
 
 [[package]]
 name = "govee-toolkit"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "aes",
  "async-trait",
@@ -673,7 +673,7 @@ dependencies = [
 
 [[package]]
 name = "govee-toolkit-cli"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "clap",
  "govee-toolkit",
@@ -699,7 +699,7 @@ dependencies = [
 
 [[package]]
 name = "govee-toolkit-sim"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "aes",
  "base64 0.23.1",
@@ -2573,7 +2573,7 @@ checksum = "2f45bb2c13fec6a6cb4c0f76a7e94839e110a14ec803ec2940777a94c347bc52"
 
 [[package]]
 name = "xtask"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "govee-toolkit",
  "serde_json",
