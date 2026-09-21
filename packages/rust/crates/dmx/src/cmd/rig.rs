@@ -10,6 +10,23 @@ use govee_toolkit_dmx::patch::{Patch, Rig};
 
 use super::{CONFIG, Failure, UNREACHABLE};
 
+/// Discover the rig, over `lan` alone.
+///
+/// The bridge drives a device over `lan` and substitutes no other mode, so a
+/// wider scan would answer with handles it can drive nothing through: `ble`
+/// reports one device under a handle of its own, and a target that names a
+/// SKU would then select a handle the patch has no entry for.
+///
+/// # Errors
+///
+/// [`UNREACHABLE`] where the scan cannot be sent.
+pub(crate) async fn scan(govee: &Govee) -> Result<Vec<govee_toolkit::Device>, Failure> {
+    govee
+        .scan_on(&[Mode::Lan])
+        .await
+        .map_err(|e| Failure::new(e.to_string(), UNREACHABLE))
+}
+
 /// The patch, joined to every device the SDK knows.
 ///
 /// A device the cache carries counts here, and a device that misses one scan

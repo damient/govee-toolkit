@@ -31,6 +31,9 @@ in its verification build until the core is out.
 - `identify [TARGET]...`, `--universe` and `--address` — walk a part of the
   rig: the fixtures of the devices a target names, the fixtures of one
   universe, or the fixture that answers to one channel of it.
+- Every command discovers over `lan` alone, which is the mode the bridge
+  drives. A target that names a SKU therefore selects no handle of another
+  mode, which the patch holds no entry for.
 - **Breaking:** every command takes the patch file as `--patch FILE`, and no
   longer as the first argument. `identify` takes the targets there instead.
 - The crate, the `govee-dmx` binary and the `artnet` and `sacn` cargo

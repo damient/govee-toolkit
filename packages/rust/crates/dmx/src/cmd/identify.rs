@@ -17,7 +17,7 @@ use govee_toolkit::{DeviceId, Govee, Identify, Mode};
 use govee_toolkit_dmx::patch::{Fixture, Patch, PortAddress, Rig};
 use serde_json::json;
 
-use super::rig::{configure, resolve};
+use super::rig::{configure, resolve, scan};
 use super::{CONFIG, Failure, INTERNAL, UNREACHABLE, patch as writer};
 
 /// What one walk does.
@@ -73,10 +73,7 @@ pub(crate) fn start(
         let govee = Govee::start(configure(config)?)
             .await
             .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
-        govee
-            .scan()
-            .await
-            .map_err(|e| Failure::new(e.to_string(), UNREACHABLE))?;
+        scan(&govee).await?;
         let outcome = match resolve(&govee, &patch) {
             Ok(rig) => match lit(&govee, &rig, chosen) {
                 Ok(fixtures) => run(&govee, &rig, &fixtures, walk, as_json).await,
