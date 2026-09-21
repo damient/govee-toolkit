@@ -72,9 +72,7 @@ impl Look {
     /// What the fixture shows once the sender has gone quiet, and `None`
     /// where the patch holds the last look.
     ///
-    /// `black` keeps the device on and takes every color to 0. It sends no
-    /// white command: the color it sends is what the device shows, and a
-    /// white command would light the rig at a blackout.
+    /// `black` is [`Self::black`].
     #[must_use]
     pub fn quiet(&self, loss: SignalLoss) -> Option<Self> {
         match loss {
@@ -85,12 +83,11 @@ impl Look {
     }
 
     /// The same look, dark: every color at 0, the device on, and the
-    /// brightness untouched.
+    /// brightness untouched. It sends no white command, which would light the
+    /// fixture.
     ///
-    /// It sends no white command, because a white command would light the
-    /// fixture. The send path writes this where a dimmer reaches 0, so the
-    /// device stays on and a dimmer that comes back up costs one repaint
-    /// instead of a power cycle.
+    /// The send path writes this where a dimmer reaches 0, so a dimmer that
+    /// comes back up costs one repaint instead of a power cycle.
     #[must_use]
     pub fn black(&self) -> Self {
         Self {

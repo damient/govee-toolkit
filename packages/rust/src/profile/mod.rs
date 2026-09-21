@@ -65,8 +65,7 @@ impl Personality {
         }
     }
 
-    /// How many channels this personality takes over `zones` zones. The
-    /// dimmer and the mode channel are the two every personality carries.
+    /// The dimmer and the mode channel are the 2 every personality carries.
     fn width(self, zones: u32) -> u64 {
         match self {
             Self::Full => 6,
@@ -92,7 +91,7 @@ pub enum Missing {
     /// `capabilities.segments` counts no zone.
     Zones,
     /// Every zone is one addressable LED, so `segment` would lay out the
-    /// table `pixel` already lays out. One table carries one name.
+    /// table `pixel` already lays out.
     OnePixelPerZone,
     /// Nobody measured `capabilities.segments.native_pixels`. It is never
     /// extrapolated from the zone count.
@@ -248,7 +247,6 @@ pub fn served(device: &Device) -> Vec<Result<Profile, Error>> {
         .collect()
 }
 
-/// How many zones the personality lays out, and `0` where it lays out none.
 fn zone_count(device: &Device, personality: Personality) -> Result<u32, Missing> {
     if matches!(personality, Personality::Full) {
         return Ok(0);
@@ -274,7 +272,6 @@ fn zone_count(device: &Device, personality: Personality) -> Result<u32, Missing>
     Ok(measured)
 }
 
-/// Whether `lan` paints zones, in one frame or through a mask.
 fn paints_zones(device: &Device) -> bool {
     reaches(device, SEGMENTS, Role::SegmentColor)
         || reaches(device, SEGMENTS, Role::SegmentColorMasked)
@@ -303,8 +300,7 @@ fn channels(
     Ok(channels)
 }
 
-/// The offset the next channel takes. Offsets count from 1, the way a desk
-/// counts.
+/// Offsets count from 1, the way a desk counts.
 fn next(channels: &[Channel]) -> u16 {
     u16::try_from(channels.len() + 1).unwrap_or(UNIVERSE)
 }
@@ -343,10 +339,6 @@ fn color(device: &Device, channels: &mut Vec<Channel>) -> Result<(), Missing> {
     Ok(())
 }
 
-/// The white channel, scaled where `lan` reaches the white temperature.
-///
-/// A device `lan` reaches no white temperature on keeps the channel and
-/// drives nothing from it, so every `full` fixture takes 6 channels.
 fn white(device: &Device, offset: u16) -> Result<Channel, Missing> {
     if !reaches(device, COLORTEMP, Role::ColorTemp) {
         return Ok(Channel::plain(offset, Slot::WhiteTemp));

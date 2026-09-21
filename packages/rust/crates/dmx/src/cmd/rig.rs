@@ -11,10 +11,9 @@ use govee_toolkit_dmx::patch::{Patch, Rig};
 
 /// Discover the rig, over `lan` alone.
 ///
-/// The bridge drives a device over `lan` and substitutes no other mode, so a
-/// wider scan would answer with handles it can drive nothing through: `ble`
-/// reports one device under a handle of its own, and a target that names a
-/// SKU would then select a handle the patch has no entry for.
+/// A wider scan would answer with handles the bridge can drive nothing
+/// through: `ble` reports one device under a handle of its own, and a target
+/// that names a SKU would then select a handle the patch has no entry for.
 ///
 /// # Errors
 ///
@@ -52,9 +51,8 @@ pub(crate) fn resolve(govee: &Govee, patch: &Patch) -> Result<Rig, Failure> {
     Ok(rig)
 }
 
-/// Every patched device must have `lan` enabled. The bridge reaches a device
-/// over `lan` and substitutes no other mode, so this fails at the start rather
-/// than at the first frame.
+/// Every patched device must have `lan` enabled. This fails at the start
+/// rather than at the first frame.
 fn lan_enabled(govee: &Govee, rig: &Rig) -> Result<(), Failure> {
     let without: Vec<String> = rig
         .fixtures()
@@ -85,8 +83,7 @@ pub(crate) fn configure(path: Option<&Path>) -> Result<Config, Failure> {
     config.map_err(|e| Failure::config(e.to_string()))
 }
 
-/// Every fault of a patch, one per line: an operator corrects the whole patch
-/// once.
+/// Every fault of a patch, one per line.
 pub(crate) fn lines<E: ToString>(errors: &[E]) -> String {
     errors
         .iter()

@@ -1,8 +1,6 @@
 //! The Art-Net port-address, in both spellings a desk shows.
 //!
-//! One address is 15 bits: a 7-bit Net, a 4-bit Sub-Net and a 4-bit Universe.
-//! A patch writes the whole number, or the three parts. The bridge holds one
-//! `u16` either way — see `docs/dmx.md`.
+//! The bridge holds one `u16` either way — see `docs/dmx.md` 5.1.
 
 use std::fmt;
 

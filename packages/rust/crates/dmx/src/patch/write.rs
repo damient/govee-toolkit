@@ -1,9 +1,7 @@
 //! The patch file, as text.
 //!
-//! The writer edits the lines a scan owns and rewrites nothing else. It keeps
-//! the comments, the key order and the addresses of a file an operator edited
-//! by hand: those addresses are patched on a desk too, and a round trip
-//! through the parser would drop every comment.
+//! The writer edits the lines a scan owns and rewrites nothing else: a round
+//! trip through the parser would drop every comment.
 //!
 //! A scan owns three things: the entries it appends, the `enabled:` of each
 //! entry, and the `scanned:` stamp. An entry written in the flow form —
@@ -37,11 +35,8 @@ patch:
 
 /// The key the entries hang under, at the start of a line.
 const KEY: &str = "patch:";
-/// The key that carries the instant of the last scan.
 const STAMP: &str = "scanned:";
-/// The key the writer sets under the `device:` of each entry.
 const ENABLED: &str = "enabled:";
-/// The key that opens one entry.
 const DEVICE: &str = "- device:";
 
 /// `text`, as the scan leaves it.
@@ -153,7 +148,6 @@ fn enabled(text: &str, states: &BTreeMap<DeviceId, bool>) -> String {
     out
 }
 
-/// The identity a `- device:` line names.
 fn identity(line: &str) -> Option<DeviceId> {
     let value = line.strip_prefix(DEVICE)?.trim();
     let value = value.trim_matches(['"', '\''].as_slice()).trim();
@@ -192,7 +186,6 @@ fn insertion(text: &str) -> usize {
     end
 }
 
-/// One entry, as the lines a person reads next to a desk.
 fn entry(placement: &Placement) -> String {
     let mut text = format!(
         "  # {}  {}  {} channels\n",

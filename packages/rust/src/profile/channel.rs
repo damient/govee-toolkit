@@ -45,8 +45,8 @@ pub enum Slot {
     /// the color stays. The channel carries no scale where `lan` reaches no
     /// white temperature, and then drives nothing.
     WhiteTemp,
-    /// The fixture's own functions. 0 to 9 asks for no action, and 250 to
-    /// 255 forces a full resend. Every other value is reserved.
+    /// The fixture's own functions. See [`MODE_IDLE_TOP`] and
+    /// [`MODE_RESEND`].
     Mode,
     /// One component of one zone's color, in zone order.
     Zone {

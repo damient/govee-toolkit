@@ -67,8 +67,6 @@ fn the_dimmer_at_zero_powers_the_device_off() {
     assert_eq!(look.brightness, None);
 }
 
-/// The dimmer scales into the pair the device file declares, and so does
-/// every color component.
 #[test]
 fn a_full_fixture_reads_its_six_channels() {
     let catalog = catalog();
@@ -83,8 +81,7 @@ fn a_full_fixture_reads_its_six_channels() {
     assert!(look.zones.is_empty());
 }
 
-/// Slot 0 on the white channel sends no command, so a blackout does not turn
-/// the rig white.
+/// A blackout does not turn the rig white.
 #[test]
 fn the_white_channel_at_zero_carries_no_value() {
     let catalog = catalog();
@@ -102,8 +99,6 @@ fn the_mode_channel_asks_for_a_resend_at_250() {
     assert!(!look(fixture, &universe(65, &[255, 9, 0, 0, 0, 0])).resend);
 }
 
-/// The second fixture starts at address 33, so its zone 0 is channels 35 to
-/// 37 and it reads nothing of the first fixture's look.
 #[test]
 fn a_segment_fixture_reads_the_zones_at_its_own_address() {
     let catalog = catalog();
@@ -137,8 +132,6 @@ fn a_channel_the_packet_stops_short_of_reads_zero() {
     assert_eq!(look.zones[9], [0, 0, 0]);
 }
 
-/// `hold` is the default, and it asks for no write at all: the device keeps
-/// what it last took.
 #[test]
 fn a_held_fixture_takes_no_look_after_the_signal_goes() {
     let catalog = catalog();
@@ -150,8 +143,6 @@ fn a_held_fixture_takes_no_look_after_the_signal_goes() {
     assert_eq!(look.quiet(SignalLoss::Hold), None);
 }
 
-/// `black` keeps the device on and takes every color to 0. It sends no white
-/// command: a white command would light the rig at a blackout.
 #[test]
 fn a_blacked_fixture_keeps_its_brightness_and_loses_its_color() {
     let catalog = catalog();
@@ -169,8 +160,6 @@ fn a_blacked_fixture_keeps_its_brightness_and_loses_its_color() {
     assert_eq!(quiet.white_temp, None);
 }
 
-/// A segment fixture keeps its zone count, so the whole strip goes dark
-/// rather than half of it.
 #[test]
 fn a_blacked_segment_fixture_takes_every_zone_to_zero() {
     let catalog = catalog();

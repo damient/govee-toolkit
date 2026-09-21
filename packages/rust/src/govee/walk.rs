@@ -1,9 +1,8 @@
 //! The identify walk: take a rig off, then light one device at a time.
 //!
-//! A person reads the answer in the room, so the walk is one lit device in a
-//! dark room. The caller names two sets: the devices that go off, and the
-//! devices that light. They differ where the caller narrows the walk to a
-//! part of a rig it still wants dark.
+//! The caller names two sets: the devices that go off, and the devices that
+//! light. They differ where the caller narrows the walk to a part of a rig it
+//! still wants dark.
 //!
 //! The walk drives one mode and substitutes no other. A device that fails
 //! stops no other one: the walk reports it and carries on.
@@ -65,9 +64,8 @@ impl WalkReport {
     /// nothing. `noun` names one device the way the caller does, such as
     /// `"fixture"`; the line adds the plural `s`.
     ///
-    /// The closing blackout counts: a device that holds the color is a device
-    /// the operator must take off by hand. One that refused the pass and the
-    /// blackout is named in both lists, which are two faults the room shows.
+    /// A device that refused the pass and the closing blackout is named in
+    /// both lists.
     #[must_use]
     pub fn summary(&self, noun: &str) -> Option<String> {
         let mut parts = Vec::new();

@@ -1,9 +1,8 @@
 //! The patch, joined to what each device is.
 //!
-//! The file names a device by identity, and the identity alone says nothing
-//! about the channels the device answers to. The caller hands the devices it
-//! found, and this is where the channel table, the width and the overlaps
-//! come out.
+//! An identity says nothing about the channels a device answers to. The
+//! caller hands the devices it found, and the channel table, the width and
+//! the overlaps come out here.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -109,8 +108,7 @@ impl Patch {
     /// `known` answers the device file of a SKU, and sizes a disabled entry
     /// whose device did not answer: those channels stay reserved.
     ///
-    /// Every entry is checked, and every fault is reported: an operator at a
-    /// desk corrects the whole patch once, not one line per run.
+    /// Every entry is checked, and every fault is reported at once.
     ///
     /// # Errors
     ///
@@ -136,8 +134,7 @@ impl Patch {
             match fixture(entry, &found, &known) {
                 Ok(Some(fixture)) => placed.push(fixture),
                 // A disabled entry that nothing sizes holds no channel. The
-                // patch command is what refuses it, because it is the one that
-                // hands the channels to another fixture.
+                // patch command refuses it, since it hands out the channels.
                 Ok(None) => {}
                 Err(error) => errors.push(error),
             }
@@ -151,8 +148,6 @@ impl Patch {
     }
 }
 
-/// One entry, joined to its device.
-///
 /// A disabled entry takes the device file its `sku:` names where the device
 /// itself did not answer, and answers `None` where neither states a width.
 fn fixture<'a>(
@@ -177,8 +172,6 @@ fn fixture<'a>(
     }))
 }
 
-/// The device file that states what the entry answers to.
-///
 /// An enabled entry needs the device this run found: the bridge drives what
 /// answered, and a fixture nothing reached is a fault the operator must see.
 fn sized<'a>(
@@ -197,7 +190,6 @@ fn sized<'a>(
     })
 }
 
-/// The channels the fixture takes, from its start address.
 fn span(entry: &Entry, universe: PortAddress, width: u16) -> Result<Span, Error> {
     if entry.address == 0 || entry.address > UNIVERSE {
         return Err(Error::StartAddress {
@@ -223,16 +215,11 @@ fn span(entry: &Entry, universe: PortAddress, width: u16) -> Result<Span, Error>
 
 /// Every pair of driven fixtures that answers to one channel.
 ///
-/// A disabled entry is out of the pass. It takes no frame, so nothing
-/// contends for the channels it holds, and a driven fixture can cover them.
-///
-/// A clone is out of the pass too: two fixtures on one span under one
-/// personality answer to one channel table, and the desk drives both from one
-/// set of values.
-///
-/// The fixtures are sorted per port-address, and the pass carries the fixture
-/// that reaches furthest. A wide fixture therefore reports the narrow ones it
-/// covers, and not the first alone.
+/// - A disabled entry is out of the pass: it takes no frame, so a driven
+///   fixture can cover the channels it holds.
+/// - A clone is out of the pass, as [`clones`] states.
+/// - The pass carries the fixture that reaches furthest, so a wide fixture
+///   reports every narrow one it covers and not the first alone.
 fn overlaps(fixtures: &[Fixture]) -> Vec<Error> {
     let mut per_universe: BTreeMap<PortAddress, Vec<&Fixture>> = BTreeMap::new();
     for fixture in fixtures.iter().filter(|fixture| fixture.entry.enabled) {
@@ -265,11 +252,8 @@ fn overlaps(fixtures: &[Fixture]) -> Vec<Error> {
     errors
 }
 
-/// Whether the two fixtures answer to one channel table on one span.
-///
-/// The personality and the width decide the table, so one span under one
-/// personality is one table on both. An operator patches a pair that way to
-/// drive it from one set of channels.
+/// One span under one personality is one channel table on both fixtures. An
+/// operator patches a pair that way to drive it from one set of channels.
 fn clones(first: &Fixture, second: &Fixture) -> bool {
     first.span == second.span && first.entry.personality == second.entry.personality
 }

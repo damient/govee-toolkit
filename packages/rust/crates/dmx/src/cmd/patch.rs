@@ -1,8 +1,5 @@
-//! `patch`: scan the LAN, and write the rig the node drives.
-//!
-//! The command appends. It never moves an address that is already in the
-//! file, because that address is patched on a desk too. `--reset` is the one
-//! form that starts over, and it keeps the file it replaces under `.bak`.
+//! `patch`: scan the LAN, and write the rig the node drives — see
+//! `docs/dmx.md` 4.1.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -213,12 +210,10 @@ fn write(path: &Path, text: &str, reset: bool) -> Result<(), Failure> {
         .map_err(|e| Failure::config(format!("cannot write the patch `{}`: {e}", path.display())))
 }
 
-/// What the scan did, for a person and for a machine.
 pub(crate) fn report(written: &Written, path: &Path, writer: Writer) {
     writer.emit(&record(written, path), &text(written, path));
 }
 
-/// What the scan did, as one record.
 fn record(written: &Written, path: &Path) -> Value {
     let plan = &written.plan;
     let added: Vec<Value> = plan
@@ -253,7 +248,6 @@ fn record(written: &Written, path: &Path) -> Value {
     })
 }
 
-/// What the scan did, as the lines an operator reads.
 fn text(written: &Written, path: &Path) -> String {
     let plan = &written.plan;
     let mut lines = vec![
@@ -302,12 +296,10 @@ fn text(written: &Written, path: &Path) -> String {
     lines.join("\n")
 }
 
-/// How the scan read a device.
 const fn answer(answered: bool) -> &'static str {
     if answered { "on the network" } else { "absent" }
 }
 
-/// The devices the scan flipped one way.
 fn states(flipped: &[(DeviceId, bool)], wanted: bool) -> Vec<Value> {
     flipped
         .iter()

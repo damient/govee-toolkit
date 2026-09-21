@@ -111,11 +111,11 @@ fn channel_json(channel: &Channel) -> Value {
 
 /// What the slots of one channel mean, as the bands an operator reads at a
 /// desk. A band is inclusive on both ends, and the bands cover 0 to 255 in
-/// order. A channel that drives nothing carries none.
+/// order.
 ///
-/// A band that scales states the travel in percent, because the pair a
-/// parameter takes is the device's own unit and travels in `range`. The white
-/// channel states kelvin, which is the unit the operator sets.
+/// A band that scales states the travel in percent: the pair a parameter
+/// takes is the device's own unit and travels in `range`. The white channel
+/// states kelvin, which is the unit the operator sets.
 fn values(channel: &Channel) -> Vec<Value> {
     match channel.slot {
         Slot::Mode => vec![
@@ -162,7 +162,7 @@ fn unreached(channel: &Channel) -> bool {
 }
 
 /// What the slot drives, as one word a machine matches on. The zone index and
-/// the component travel beside it, so a reader never parses this name.
+/// the component travel beside it.
 fn kind(slot: Slot) -> &'static str {
     match slot {
         Slot::Dimmer => "dimmer",
@@ -221,8 +221,6 @@ mod tests {
         assert_eq!(dimmer["range"], serde_json::json!([1, 100]));
     }
 
-    /// The site and the node read one description of the slots, so every
-    /// band travels in the JSON.
     #[test]
     fn a_channel_carries_what_its_slots_mean() {
         let catalog = catalog();
@@ -246,8 +244,6 @@ mod tests {
         assert_eq!(channels[2]["values"][1]["label"], "red 0 to 100%");
     }
 
-    /// A zone channel says which zone and which component, so a reader never
-    /// parses the text form.
     #[test]
     fn a_zone_channel_carries_its_index_and_its_component() {
         let catalog = catalog();
@@ -261,8 +257,6 @@ mod tests {
         assert_eq!(green["offset"], 4);
     }
 
-    /// A personality the device serves and cannot fit answers its error, so
-    /// the width is what the operator sees refused it.
     #[test]
     fn a_table_over_one_universe_reports_its_width() {
         let catalog = catalog();

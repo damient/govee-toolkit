@@ -9,8 +9,8 @@
 //! This is the one module of the crate that writes to the process streams.
 //! The library writes through `tracing` — see `docs/architecture.md`.
 
-// The module a binary reports through. The `print` lints protect a host
-// application from a library, and nothing here runs inside one.
+// The `print` lints protect a host application from a library, and nothing
+// here runs inside one.
 #![allow(clippy::print_stderr, clippy::print_stdout)]
 
 use std::process::ExitCode;

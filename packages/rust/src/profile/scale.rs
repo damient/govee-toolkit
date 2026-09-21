@@ -90,9 +90,7 @@ impl Scale {
     /// How many distinct values the carrying slots reach.
     ///
     /// A pair narrower than the slots quantizes: `[1, 100]` puts about 2.5
-    /// slots on one step, so a slow fade on the desk lands stepped on the
-    /// device. That is the hardware's resolution, and the operator has to
-    /// know it.
+    /// slots on one step, so a slow fade lands stepped on the device.
     #[must_use]
     pub fn steps(self) -> u32 {
         let values = self.max - self.min + 1;
@@ -129,9 +127,6 @@ mod tests {
         assert_eq!(Scale::bytes([100, 1]), None);
     }
 
-    /// A color component carries a byte to the wire. A pair a byte cannot
-    /// hold is refused here, so the channel reports it rather than sending a
-    /// value the frame cannot carry.
     #[test]
     fn a_pair_outside_a_byte_is_no_byte_scale() {
         assert_eq!(Scale::bytes([0, 1000]), None);
@@ -147,8 +142,6 @@ mod tests {
         assert_eq!(dimmer.value(255), Some(100));
     }
 
-    /// Slot 0 is a color the device shows, so a component travels the whole
-    /// pair and answers at every slot.
     #[test]
     fn a_byte_scale_carries_slot_zero() {
         let red = bytes([0, 255]);
@@ -158,8 +151,6 @@ mod tests {
         assert_eq!(red.byte(255), 255);
     }
 
-    /// The whole point of the byte scale: a narrower pair still takes the
-    /// full travel of the fader.
     #[test]
     fn a_narrow_byte_pair_still_takes_the_whole_fader() {
         let red = bytes([0, 100]);
@@ -176,8 +167,6 @@ mod tests {
         assert_eq!(scale([2000, 9000]).value(128), Some(5500));
     }
 
-    /// The count the operator patches against has to be the count the scale
-    /// produces, on a pair narrower than the slots and on one wider.
     #[test]
     fn the_step_count_is_what_the_slots_reach() {
         for range in [[1, 100], [0, 255], [2000, 9000], [50, 50]] {

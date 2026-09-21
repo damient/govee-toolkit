@@ -1,11 +1,8 @@
 //! The node: one socket in, one rig out.
 //!
-//! It receives the datagrams, drops what the protocol refuses, resolves each
-//! frame against the patch, and hands every fixture what the frame asks of it.
-//! A dry run stops before the last step and writes to no device.
-//!
-//! The node prints nothing. It reports through an [`Observer`], so the binary
-//! decides what a person reads — see `docs/dmx.md`.
+//! A dry run resolves every frame and writes to no device. The node prints
+//! nothing: it reports through an [`Observer`], so the binary decides what a
+//! person reads.
 
 #[cfg(test)]
 mod tests;
@@ -58,12 +55,9 @@ pub trait Observer {
     }
 }
 
-/// What the node does with a resolved look.
 #[derive(Debug)]
 enum Output {
-    /// Resolve and write nothing.
     DryRun,
-    /// Write to the devices.
     Live {
         applier: Applier,
         failures: mpsc::Receiver<Failure>,
@@ -76,14 +70,12 @@ pub struct Node {
     rig: Rig,
     gate: Gate,
     output: Output,
-    /// The name a desk lists the node under, which `ArtPollReply` carries.
+    /// What `ArtPollReply` carries as the node name.
     name: String,
-    /// Where an `ArtPollReply` goes.
     reply_to: SocketAddr,
 }
 
-/// Where an `ArtPollReply` goes: every Art-Net application on the network,
-/// which includes one that shares the host with the node.
+/// Every Art-Net application on the network, the node's own host included.
 const BROADCAST: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::BROADCAST), artnet::PORT);
 
 /// What ended one pass of the receive loop.
@@ -189,7 +181,6 @@ impl Node {
         }
     }
 
-    /// One datagram, from the wire to the fixtures.
     async fn datagram(
         &mut self,
         bytes: &[u8],
@@ -217,7 +208,6 @@ impl Node {
         }
     }
 
-    /// One frame, resolved against the patch.
     fn frame(&self, frame: &UniverseFrame, observer: &mut impl Observer) {
         observer.received(frame);
         for fixture in self.rig.fixtures() {
@@ -262,10 +252,8 @@ impl Node {
     }
 }
 
-/// The address a desk must send `ArtDmx` to.
-///
-/// A node bound to `0.0.0.0` answers with the interface that reaches the desk,
-/// because `0.0.0.0` is an address nothing can send to.
+/// The address a desk must send `ArtDmx` to. A node bound to `0.0.0.0`
+/// answers with the interface that reaches the desk.
 fn ip(listener: &Listener, source: SocketAddr) -> Ipv4Addr {
     let bound = listener.local_addr().map(|address| address.ip());
     let towards = || Listener::local_ip_towards(source);

@@ -2,8 +2,7 @@
 //! person maps an identity to a fixture in the room.
 //!
 //! The walk drives one mode, and `lan` where the command line names none: the
-//! rig it answers for is the rig on the network. It substitutes no other
-//! mode, the way every other command does not.
+//! rig it answers for is the rig on the network.
 //!
 //! The blackout covers the walked devices and no other one. A target list is
 //! the scope the person typed, so a device outside it keeps the look it
@@ -64,9 +63,8 @@ impl WalkObserver for Lines {
 /// so the scan runs before the selection. A target that names an identity
 /// needs no scan: it addresses one device, which `ensure_known` then finds.
 ///
-/// [`Govee::select`] takes the mode, so a model and a name answer the devices
-/// that enable it. A named identity stays in the list, and the walk reports
-/// it: the person asked for that device by its identity.
+/// A named identity stays in the list, and the walk reports it: the person
+/// asked for that device by its identity.
 async fn targets(govee: &Govee, named: &[String], mode: Mode) -> Result<Vec<DeviceId>, Failure> {
     if named.is_empty() {
         let found = govee.scan_on(&[mode]).await?;

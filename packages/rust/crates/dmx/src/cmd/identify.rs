@@ -1,19 +1,10 @@
-//! `identify`: light each patched fixture in turn.
+//! `identify`: light each patched fixture in turn — see `docs/dmx.md` 4.3.
 //!
-//! The walk is what an operator reads the rig with: the terminal names the
-//! entry, and one fixture in the room answers. Every fixture goes off first,
-//! and the walk then lights the enabled entries one at a time, in the order
-//! the patch lists them, over `lan` alone. A fixture that fails stops no
-//! other one.
+//! [`Chosen`] narrows the walk to a part of the rig. The blackout covers the
+//! whole rig either way.
 //!
-//! [`Chosen`] narrows the walk to a part of the rig, by device or by the
-//! channels a fixture answers to. The blackout covers the whole rig either
-//! way: the patch declares the room, so one lit fixture in a dark room is
-//! what the operator reads.
-//!
-//! [`Govee::identify_walk`] runs the walk itself. It drives a device the
-//! configuration enables `lan` for, and [`resolve`] reports the patched
-//! devices that enable no `lan` mode before the walk starts.
+//! [`Govee::identify_walk`] runs the walk itself, and [`resolve`] reports the
+//! patched devices that enable no `lan` mode before it starts.
 
 use std::path::Path;
 

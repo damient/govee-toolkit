@@ -52,8 +52,6 @@ fn a_packet_carries_its_channels_and_its_address() {
     assert_eq!(dmx.frame.priority, None, "Art-Net carries no priority");
 }
 
-/// An operator reads the dimmer at channel 1, so the parser must put slot 1
-/// at address 1.
 #[test]
 fn a_channel_reads_at_the_address_a_desk_shows() {
     let dmx = dmx(&packet(0, 1, &[10, 20, 30, 40]));
@@ -64,8 +62,6 @@ fn a_channel_reads_at_the_address_a_desk_shows() {
     assert_eq!(dmx.frame.slot(513), None);
 }
 
-/// Net and `SubUni` are two bytes of one 15-bit port-address, and the patch
-/// spells that address either way.
 #[test]
 fn net_and_sub_uni_number_one_port_address() {
     let dmx = dmx(&packet(0x0113, 1, &[0, 0]));
@@ -104,7 +100,6 @@ fn an_odd_length_is_dropped() {
     assert_eq!(refusal(&bytes), Error::OddLength { length: 3 });
 }
 
-/// The packet is never truncated to make it fit.
 #[test]
 fn a_length_over_one_universe_is_dropped() {
     let mut bytes = packet(0, 1, &[0; 512]);
@@ -125,7 +120,6 @@ fn a_packet_shorter_than_the_length_it_declares_is_dropped() {
     );
 }
 
-/// A whole universe is what a desk sends, and it must arrive whole.
 #[test]
 fn a_full_universe_arrives_whole() {
     let data: Vec<u8> = (0..512)
@@ -148,8 +142,7 @@ fn another_opcode_is_no_refusal() {
     );
 }
 
-/// An `ArtPoll` packet, in the documented layout. It takes 14 bytes, under
-/// the 18 an `ArtDmx` header takes.
+/// An `ArtPoll` packet, in the documented layout.
 fn poll(talk_to_me: u8, priority: u8) -> Vec<u8> {
     let mut bytes = b"Art-Net\0".to_vec();
     bytes.extend_from_slice(&0x2000u16.to_le_bytes());
@@ -159,8 +152,7 @@ fn poll(talk_to_me: u8, priority: u8) -> Vec<u8> {
     bytes
 }
 
-/// A poll is 4 bytes shorter than an `ArtDmx` header, and it must still
-/// parse: a desk that is answered nothing lists the node nowhere.
+/// A desk that is answered nothing lists the node nowhere.
 #[test]
 fn a_poll_carries_what_the_desk_asks_for() {
     let bytes = poll(0x02, 0x10);
@@ -200,8 +192,6 @@ fn reply_of(universes: &[u16], index: usize) -> [u8; REPLY] {
     built.get(index).copied().unwrap_or([0u8; REPLY])
 }
 
-/// A desk matches the identifier, the opcode and the address it must send
-/// `ArtDmx` to.
 #[test]
 fn a_reply_names_the_node_and_the_address_to_send_to() {
     let reply = reply_of(&[0], 0);
@@ -217,8 +207,6 @@ fn a_reply_names_the_node_and_the_address_to_send_to() {
     assert_eq!(reply[211], 1, "the first reply binds at 1");
 }
 
-/// One port-address is one output port, and the desk reads the Net, the
-/// Sub-Net and the Universe apart.
 #[test]
 fn one_port_address_is_one_output_port() {
     let reply = reply_of(&[0x0113], 0);
@@ -230,10 +218,9 @@ fn one_port_address_is_one_output_port() {
     assert_eq!(reply[190], 0x03, "the Universe");
 }
 
-/// One reply carries 4 ports, so 6 port-addresses take 2 replies and the
-/// second one binds at 2.
+/// One reply carries 4 ports, and the second reply binds at 2.
 #[test]
-fn five_port_addresses_take_two_replies() {
+fn six_port_addresses_take_two_replies() {
     let built = replies(&identity(), &[0, 1, 2, 3, 4, 5]);
     assert_eq!(built.len(), 2);
     assert_eq!(built[0][172..174], [0, 4]);
@@ -244,8 +231,8 @@ fn five_port_addresses_take_two_replies() {
     assert_eq!(built[1][211], 2);
 }
 
-/// The 4 ports of one reply share a Net and a Sub-Net, so two Sub-Nets take
-/// two replies however few ports each one holds.
+/// The 4 ports of one reply share a Net and a Sub-Net, however few ports
+/// each reply holds.
 #[test]
 fn two_sub_nets_take_two_replies() {
     let built = replies(&identity(), &[0x0000, 0x0010]);
@@ -262,8 +249,7 @@ fn a_rig_on_no_port_address_answers_once() {
     assert_eq!(built[0][172..174], [0, 0]);
 }
 
-/// A name over the 18 bytes the short field holds is cut, and the field stays
-/// null-terminated.
+/// The field stays null-terminated.
 #[test]
 fn a_long_name_is_cut_to_fit() {
     let long = "a-node-name-that-runs-well-past-eighteen-bytes";
@@ -278,8 +264,6 @@ fn a_long_name_is_cut_to_fit() {
     assert_eq!(built[0][43], 0);
 }
 
-/// UDP delivers out of order, and the older packet must not overwrite the
-/// newer one.
 #[test]
 fn a_packet_delivered_late_is_dropped() {
     let mut gate = Sequence::new();

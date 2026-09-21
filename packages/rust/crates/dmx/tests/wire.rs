@@ -3,8 +3,7 @@
 //!
 //! Every other test here pushes a look into the send path. This one starts at
 //! the wire: the node binds the loopback, `crates/sim` answers on it, and the
-//! assertions read the datagrams the device took. What sits between is the
-//! Art-Net parser, the patch, the channel table and the send path.
+//! assertions read the datagrams the device took.
 //!
 //! One fixture is the simulated device and the other never answered, so the
 //! run also carries a fixture that fails every write.
@@ -101,8 +100,7 @@ fn desk() -> Listener {
 }
 
 /// A packet from a desk lights the device, and the bytes that arrive are the
-/// ones the device file declares. The dimmer at 255 is the top of the
-/// brightness pair, and the color slots go to the wire as they are.
+/// ones the device file declares.
 #[tokio::test]
 async fn a_packet_from_a_desk_reaches_the_device() {
     let simulator = simulator().await;
@@ -135,9 +133,8 @@ async fn a_packet_from_a_desk_reaches_the_device() {
     node.close().await;
 }
 
-/// A desk sends the same universe again and again. The values did not change,
-/// so the second packet puts nothing on the device: the rig is quiet while
-/// the look holds.
+/// The values did not change, so the second packet puts nothing on the
+/// device.
 #[tokio::test]
 async fn a_desk_that_holds_a_look_writes_the_device_once() {
     let simulator = simulator().await;
