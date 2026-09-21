@@ -76,7 +76,7 @@ async fn targets(govee: &Govee, named: &[String], mode: Mode) -> Result<Vec<Devi
             .filter(|id| govee.device(id).modes().contains(&mode))
             .collect());
     }
-    if named.iter().any(|target| !names_one_identity(target)) {
+    if named.iter().any(|target| !names_one_identity(govee, target)) {
         govee.scan_on(&[mode]).await?;
     }
     let ids = govee.select(named)?;
@@ -88,6 +88,9 @@ async fn targets(govee: &Govee, named: &[String], mode: Mode) -> Result<Vec<Devi
 
 /// Whether the target addresses one device on its own. A target that reads as
 /// nothing lands here as `false`, and the selection reports why.
-fn names_one_identity(target: &str) -> bool {
-    matches!(Selector::parse(target), Ok(Selector::Id(_)))
+fn names_one_identity(govee: &Govee, target: &str) -> bool {
+    matches!(
+        Selector::parse(target, govee.catalog()),
+        Ok(Selector::Id(_))
+    )
 }
