@@ -39,7 +39,10 @@ impl Look {
     /// a short packet leaves the rest of the universe dark.
     #[must_use]
     pub fn read(fixture: &Fixture, frame: &UniverseFrame) -> Self {
-        let mut look = Self::default();
+        let mut look = Self {
+            zones: vec![[0, 0, 0]; fixture.profile.zones()],
+            ..Self::default()
+        };
         let mut color = [0u8; 3];
         let mut painted = false;
         for channel in fixture.profile.channels() {
@@ -96,7 +99,7 @@ impl Look {
             white_temp: None,
             zones: vec![[0, 0, 0]; self.zones.len()],
             resend: false,
-            ..self.clone()
+            brightness: self.brightness,
         }
     }
 

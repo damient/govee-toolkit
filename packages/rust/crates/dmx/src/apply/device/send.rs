@@ -119,8 +119,7 @@ impl Feeder {
             self.sent.zones.clear();
         }
         if self.options.is_some() {
-            self.space().await;
-            return Ok(self.zones(&look.zones)? || wrote);
+            return Ok(self.zones(&look.zones).await? || wrote);
         }
         let white = look
             .white_temp
@@ -235,15 +234,19 @@ impl Feeder {
 
     /// Hand the zones to the stream, which paces them and drops what a later
     /// frame replaced.
-    fn zones(&mut self, zones: &[[u8; 3]]) -> Result<bool> {
-        let Some(stream) = &self.stream else {
-            return Ok(false);
-        };
-        if self.sent.zones == zones {
+    ///
+    /// The wait comes before the paint, not before the pass: a look that
+    /// repeats the zones writes nothing, so a static look waits not at all.
+    async fn zones(&mut self, zones: &[[u8; 3]]) -> Result<bool> {
+        if self.stream.is_none() || self.sent.zones == zones {
             return Ok(false);
         }
-        stream.set_all(zones)?;
-        self.sent.zones = zones.to_vec();
+        self.space().await;
+        if let Some(stream) = &self.stream {
+            stream.set_all(zones)?;
+        }
+        self.sent.zones.clear();
+        self.sent.zones.extend_from_slice(zones);
         Ok(true)
     }
 }

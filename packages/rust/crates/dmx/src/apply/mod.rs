@@ -14,7 +14,6 @@ mod rate;
 mod tests;
 
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use govee_toolkit::{DeviceId, Govee};
@@ -73,10 +72,9 @@ pub struct Applier {
 
 #[derive(Debug)]
 struct Feed {
+    /// The generation counts the looks pushed. The task reads the gap to know
+    /// what it missed.
     looks: watch::Sender<(u64, Look)>,
-    /// Counts the looks pushed. The task reads the gap to know what it
-    /// missed.
-    pushed: AtomicU64,
     task: JoinHandle<Counts>,
 }
 
@@ -97,7 +95,6 @@ impl Applier {
                 fixture.entry.device.clone(),
                 Feed {
                     looks,
-                    pushed: AtomicU64::new(0),
                     task: tokio::spawn(device::run(feeder, receiver)),
                 },
             );
@@ -113,8 +110,10 @@ impl Applier {
         let Some(feed) = self.feeds.get(id) else {
             return;
         };
-        let generation = feed.pushed.fetch_add(1, Ordering::Relaxed) + 1;
-        feed.looks.send_replace((generation, look));
+        feed.looks.send_modify(|(generation, held)| {
+            *generation += 1;
+            *held = look;
+        });
     }
 
     /// Stop every task, disarm every stream, and answer what each device did.
