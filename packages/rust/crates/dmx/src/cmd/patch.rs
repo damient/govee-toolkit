@@ -11,8 +11,8 @@ use govee_toolkit::{Device, DeviceId, Govee, Mode};
 use govee_toolkit_dmx::patch::{self, Candidate, Layout, Patch, Plan, PortAddress, Skip, stamp};
 use serde_json::{Value, json};
 
-use super::rig::{configure, lines};
-use super::{CONFIG, Failure, INTERNAL, UNREACHABLE};
+use super::rig::{configure, lines, scan};
+use super::{CONFIG, Failure, INTERNAL};
 
 /// What the command line asks of one scan.
 #[derive(Debug, Clone, Copy)]
@@ -64,10 +64,7 @@ pub(crate) fn start(
         let govee = Govee::start(configure(config)?)
             .await
             .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
-        let found = govee
-            .scan()
-            .await
-            .map_err(|e| Failure::new(e.to_string(), UNREACHABLE))?;
+        let found = scan(&govee).await?;
         let outcome = update(&govee, &found, &path, options);
         govee
             .shutdown()

@@ -17,7 +17,7 @@ use govee_toolkit_dmx::patch::{Patch, Rig};
 
 use super::observe::Printer;
 use super::rig::{configure, resolve};
-use super::{CONFIG, Failure, INTERNAL, UNREACHABLE, patch as writer};
+use super::{CONFIG, Failure, INTERNAL, patch as writer};
 
 /// The color the start pass stores on every fixture.
 const BLACK: [u8; 3] = [0, 0, 0];
@@ -71,10 +71,7 @@ async fn run(
     let govee = Govee::start(configure(config)?)
         .await
         .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
-    let found = govee
-        .scan()
-        .await
-        .map_err(|e| Failure::new(e.to_string(), UNREACHABLE))?;
+    let found = super::rig::scan(&govee).await?;
     if let Some(options) = scan {
         let written = writer::update(&govee, &found, file, options)?;
         writer::report(&written, file, as_json);
