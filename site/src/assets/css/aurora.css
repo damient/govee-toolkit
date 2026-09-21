@@ -1,0 +1,141 @@
+/* The hero backdrop: one beam of light, spread into the colors it carries.
+
+   Each layer is a long rectangle, filled across its short axis, faded at both
+   ends and turned. The warm beam holds a white core, the cool beam runs under
+   it, and a lobe closes the figure on the right. A dark layer over the top
+   left keeps the headline on the page color.
+
+   Nothing here animates and nothing loads: the hero paints from the inlined
+   stylesheet alone. */
+.aurora {
+  position: absolute;
+  /* The beam runs behind the top bar, which is 62px tall and sits over the
+     hero, and past the lower edge of the hero. It is cut by neither. */
+  inset: -62px 0 0;
+  z-index: 0;
+  pointer-events: none;
+  /* Layout and style only: `paint` would clip the beam at the lower edge
+     of the hero, which is the edge it has to cross. */
+  contain: layout style;
+
+  /* Where the beam falls away. On the dark theme it sinks into a deep red,
+     the way a light does against black. On paper it must warm toward the
+     page instead: a dark edge there reads as a smudge, not as light. */
+  /* How strong each layer is. `light-dark()` carries a color and not a
+     number, so the light theme sets these five at the end of the file. */
+  --band-a: .78;
+  --edge-a: .7;
+  --lobe-a: .7;
+  --floor-a: 1;
+
+  --beam-edge: light-dark(#ff6a2a, #4a0d2c);
+  --beam-foot: light-dark(#ff4d8d, #59102f);
+}
+
+.aurora i {
+  position: absolute;
+  display: block;
+  left: -25%;
+  right: -25%;
+  transform-origin: 50% 50%;
+}
+
+/* The beam. The white core is the hot part of the light, and the warm colors
+   fall away from it on both sides. */
+.aurora .band {
+  top: 38%;
+  height: 52%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--beam-edge) 12%,
+    var(--accent-ember) 30%,
+    var(--accent-amber) 44%,
+    var(--beam-core) 54%,
+    var(--accent-amber) 64%,
+    var(--accent-ember) 76%,
+    var(--beam-foot) 88%,
+    transparent 100%
+  );
+  mask: linear-gradient(90deg, transparent 10%, #000 52%, #000 82%, transparent 100%);
+  filter: blur(38px);
+  opacity: var(--band-a);
+  transform: rotate(-11deg);
+}
+
+/* The cool beam. It runs under the warm one and holds the lower edge. */
+.aurora .edge {
+  top: 68%;
+  height: 28%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--accent-violet) 26%,
+    var(--accent-blue) 46%,
+    var(--accent-cyan) 62%,
+    transparent 92%
+  );
+  mask: linear-gradient(90deg, transparent 14%, #000 54%, #000 84%, transparent 100%);
+  filter: blur(30px);
+  opacity: var(--edge-a);
+  transform: rotate(-8deg);
+}
+
+/* The lobe: the turn of the beam, off the right edge. */
+.aurora .lobe {
+  inset: 2% -20% -6% 58%;
+  background:
+    radial-gradient(46% 54% at 72% 62%, var(--magenta) 0%, transparent 70%),
+    radial-gradient(54% 62% at 88% 36%, var(--accent-violet) 0%, transparent 72%),
+    radial-gradient(40% 44% at 60% 88%, var(--accent-ember) 0%, transparent 74%);
+  filter: blur(46px);
+  opacity: var(--lobe-a);
+  transform: none;
+}
+
+/* The ground. The headline and the lede sit on the left, so the page color
+   comes back over that side and the beam stays behind the text. It does not
+   reach the top edge: the beam runs behind the top bar, which is what makes
+   the bar read as glass over the hero. */
+.aurora .floor {
+  inset: 0;
+  background: radial-gradient(58% 76% at 2% 46%, var(--ink) 44%, transparent 84%);
+  opacity: var(--floor-a);
+}
+
+/* The beam runs past the lower edge of the hero, and this is where it stops:
+   the page color comes back under it over a long distance. A short fade
+   reads as a cut, which is what the edge of the box gave. */
+.aurora::after {
+  content: "";
+  position: absolute;
+  inset: 54% 0 -200px;
+  /* The page color is full well before the layers end, so nothing under the
+     hero shows through: a layer that reaches past this is a blot on the
+     section below. */
+  background: linear-gradient(180deg, transparent 0%, var(--ink) 74%);
+}
+
+/* The light theme paints on paper, where a saturated beam is loud and the
+   text over it stops being readable. The same drawing, held back. */
+:root[data-theme="light"] .aurora {
+  opacity: .92;
+  --band-a: 1;
+  --edge-a: .95;
+  --lobe-a: .9;
+  /* The page color over the headline is what held the beam back. Dark text
+     reads over these colors, so the ground steps aside. */
+  --floor-a: .45;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .aurora {
+    opacity: .92;
+    --band-a: 1;
+    --edge-a: .95;
+    --lobe-a: .9;
+    /* The page color over the headline is what held the beam back. Dark text
+       reads over these colors, so the ground steps aside. */
+    --floor-a: .45;
+  }
+}

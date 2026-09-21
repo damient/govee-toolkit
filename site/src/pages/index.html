@@ -1,13 +1,12 @@
 <section class="hero">
+  <div class="aurora" aria-hidden="true"><i class="band"></i><i class="edge"></i><i class="lobe"></i><i class="floor"></i></div>
   <div class="shell">
     <div class="hero-text">
       <h1>Control your Govee lights from your own machine.</h1>
       <p class="lede">
-        Your lights live on your network, and your commands stay there with
-        them. Wi-Fi or a Bluetooth link is all the toolkit needs, straight from
-        your own machine. The cloud waits as a third mode for the days you are
-        away. And the toolkit sends commands you have never seen
-        before: the undocumented ones, read off the wire.
+        Your lights stay on your network, and your commands stay there with
+        them: over Wi-Fi, over Bluetooth, from a lighting desk in DMX, or
+        through the cloud on the days you are away.
       </p>
       <div class="cta-links">
         <a class="btn" href="{{base}}docs/start/">Take control of my lights</a>
@@ -15,17 +14,7 @@
       </div>
     </div>
 
-    <div class="terminal hero-terminal">
-      <div class="bar"><span></span><span></span><span></span></div>
-      <pre><code><span class="prompt">$</span> cargo install govee-toolkit-cli
-<span class="prompt">$</span> govee scan
-<span class="dim">rope        H61A0   lan   ok</span>
-<span class="dim">bulb        H6008   ble   ok</span>
-<span class="prompt">$</span> govee on bulb
-<span class="prompt">$</span> govee color bulb "#ff3d00"
-<span class="prompt">$</span> govee segment rope --zones 1,2,3 "#45e3d0"</code></pre>
-      <button class="copy" type="button" data-copy="cargo install govee-toolkit-cli">Copy</button>
-    </div>
+    <div class="rig" data-rig></div>
   </div>
 </section>
 
