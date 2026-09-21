@@ -14,16 +14,16 @@
    the page you are on in the closed state, every page and the headings of the
    current one in the open state. */
 .doc-select { display: none; }
-.doc-select summary {
+.doc-select > summary {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
   padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 10px;
   background: var(--panel); cursor: pointer; list-style: none;
 }
-.doc-select summary::-webkit-details-marker { display: none; }
+.doc-select > summary::-webkit-details-marker { display: none; }
 .doc-select-here { font: 500 15px/1 var(--sans); color: var(--text); }
-.doc-select summary svg { width: 18px; height: 18px; color: var(--muted); transition: transform .15s ease; }
-.doc-select[open] summary { border-radius: 10px 10px 0 0; border-bottom-color: transparent; }
-.doc-select[open] summary svg { transform: rotate(180deg); }
+.doc-select > summary svg { width: 18px; height: 18px; color: var(--muted); transition: transform .15s ease; }
+.doc-select[open] > summary { border-radius: 10px 10px 0 0; border-bottom-color: transparent; }
+.doc-select[open] > summary svg { transform: rotate(180deg); }
 .doc-select > ul {
   list-style: none; margin: 0; padding: 10px 14px 14px; display: grid; gap: 10px;
   border: 1px solid var(--line-strong); border-top: 0; border-radius: 0 0 10px 10px;
