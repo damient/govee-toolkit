@@ -391,11 +391,12 @@ in patch order. A target that the patch drives no fixture for, and an address
 that no driven fixture answers to, fail the command: an operator who types one
 means to see it light.
 
-The walk drives the devices over `lan`, the way a run does. A fixture that
-refuses the first blackout leaves the walk there. A fixture that fails later
-stops no other one: the walk prints the failure, carries on, and exits
-non-zero. The look each fixture held is lost — the walk reads no state back
-first.
+The walk drives the devices over `lan`, the way a run does, and it drives a
+device that `config.yaml` enables `lan` for. A fixture that refuses the first
+blackout leaves the walk there. The walk does not light it, and does not ask
+it to go off at the end. A fixture that fails later stops no other one: the
+walk prints the failure, carries on, and exits non-zero. The look each
+fixture held is lost — the walk reads no state back first.
 
 ### 4.4 `govee-dmx profile <SKU>`
 

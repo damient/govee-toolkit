@@ -13,8 +13,8 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use clap::{Parser, Subcommand};
-use govee_toolkit::Identify;
-use govee_toolkit::codec::coerce;
+use govee_toolkit::codec::{Mode, coerce};
+use govee_toolkit::{Identify, Walk};
 use govee_toolkit_dmx::patch::Layout;
 use govee_toolkit_dmx::profile::{Personality, UNIVERSE};
 
@@ -215,13 +215,8 @@ fn options(
 }
 
 /// What the command line asks of one identify walk.
-fn walk(
-    color: &str,
-    wait_ms: u64,
-    hold_ms: u64,
-    keep: bool,
-) -> Result<cmd::identify::Walk, cmd::Failure> {
-    Ok(cmd::identify::Walk {
+fn walk(color: &str, wait_ms: u64, hold_ms: u64, keep: bool) -> Result<Walk, cmd::Failure> {
+    Ok(Walk {
         pass: Identify {
             color: rgb(color)?,
             ..Identify::default()
@@ -229,6 +224,9 @@ fn walk(
         wait: Duration::from_millis(wait_ms),
         hold: Duration::from_millis(hold_ms),
         keep,
+        // The bridge drives a device over `lan` and substitutes no other
+        // mode, so the walk answers for the rig on the network.
+        mode: Mode::Lan,
     })
 }
 

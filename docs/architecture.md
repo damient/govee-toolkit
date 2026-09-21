@@ -92,6 +92,11 @@ device and returns at its answer. The facade builds one precondition on the
 second — `Govee::ensure_known` — so the CLI and every binding get it from the
 crate rather than write it again.
 
+A sequence over several devices is the facade's work too, and not a binary's.
+`Govee::identify_walk` takes the rig off, lights one device at a time and
+reports what failed; the caller passes an observer for the lines it prints.
+The CLI and the bridge both call it, and neither one carries the walk.
+
 `ble` adds a second seam under that trait, `ble::wire`: an adapter and a
 peripheral. Above it everything is protocol; below it is one platform's radio.
 `Transport::with_adapter` takes another, which is how `crates/sim` runs the

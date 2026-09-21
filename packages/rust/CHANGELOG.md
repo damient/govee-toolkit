@@ -25,6 +25,12 @@ releases apart and keeps
   top of the range the device file declares.
 - `Identify`, `IDENTIFY_COLOR` and `IDENTIFY_WAIT` — what a pass shows, and the
   defaults a walk over a rig uses: green, and a second between two steps.
+- `Govee::identify_walk()`, with `Walk`, `WalkObserver` and `WalkReport` — the
+  whole walk over a rig: it takes one set of devices off, lights another set
+  one at a time, and takes the first set off again. The caller passes an
+  observer for the lines it prints, and reads what failed off the report. It
+  fails with `ModeNotEnabled` before it sends anything where the
+  configuration does not enable the mode for a device of either set.
 
 ### Fixed
 

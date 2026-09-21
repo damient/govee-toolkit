@@ -20,8 +20,10 @@ mod events;
 mod resolve;
 mod start;
 mod streams;
+mod walk;
 
 pub(crate) use self::streams::{ArmedGuard, ArmedStreams};
+pub use self::walk::{Walk, WalkObserver, WalkReport};
 
 pub(crate) struct Inner {
     pub(crate) catalog: Catalog,
