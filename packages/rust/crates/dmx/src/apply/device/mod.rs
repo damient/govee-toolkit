@@ -97,6 +97,9 @@ impl Feeder {
 /// backoff makes due, and the silence that the patch answers.
 pub(super) async fn run(mut feeder: Feeder, mut looks: watch::Receiver<(u64, Look)>) -> Counts {
     let mut taken = 0u64;
+    // One buffer for the whole run: a look copied into it keeps the zone
+    // allocation the frame before it made.
+    let mut look = Look::default();
     let mut due = Instant::now() + feeder.timing.refresh;
     let mut quiet = Instant::now();
     // The first look arms it: a rig waits dark for the desk rather than going
@@ -108,7 +111,11 @@ pub(super) async fn run(mut feeder: Feeder, mut looks: watch::Receiver<(u64, Loo
                 if arrived.is_err() {
                     break;
                 }
-                let (generation, look) = looks.borrow_and_update().clone();
+                let generation = {
+                    let held = looks.borrow_and_update();
+                    look.clone_from(&held.1);
+                    held.0
+                };
                 // Every generation between the last one taken and this one was
                 // replaced before a write carried it.
                 feeder.counts.frames_superseded += generation.saturating_sub(taken + 1);
@@ -145,7 +152,10 @@ impl Feeder {
         if look.resend {
             self.sent = Sent::default();
         }
-        self.last = Some(look.clone());
+        match &mut self.last {
+            Some(last) => last.clone_from(look),
+            None => self.last = Some(look.clone()),
+        }
         let now = Instant::now();
         if self.backoff.holds(now) {
             return false;
@@ -234,20 +244,22 @@ impl Feeder {
     /// and the next write opens a new one: a disarming frame has nothing to
     /// reach.
     fn discard(&mut self) {
-        let Some(stream) = self.stream.take() else {
-            return;
-        };
+        drop(self.take_stream());
+    }
+
+    /// Take the stream out and carry what it sent into the counters.
+    fn take_stream(&mut self) -> Option<SegmentStream> {
+        let stream = self.stream.take()?;
         self.counts.frames_sent += stream.frames_sent();
         self.counts.frames_superseded += stream.frames_superseded();
+        Some(stream)
     }
 
     /// Disarm the channel, and carry what it sent into the counters.
     async fn close(&mut self) {
-        let Some(stream) = self.stream.take() else {
+        let Some(stream) = self.take_stream() else {
             return;
         };
-        self.counts.frames_sent += stream.frames_sent();
-        self.counts.frames_superseded += stream.frames_superseded();
         if let Err(error) = stream.close().await {
             self.failed(&error);
         }
