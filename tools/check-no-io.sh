@@ -6,9 +6,9 @@
 # is one crate, so this script is what enforces that — see
 # docs/architecture.md.
 #
-# `packages/rust/crates/dmx/src/profile/` turns a device file into a DMX
-# channel table under the same rule, so it can move into that crate where the
-# site and the bindings want the same table — see docs/dmx.md.
+# `packages/rust/src/profile/` turns a device file into a DMX channel table
+# under the same rule, so the bridge, the catalog task and the site read one
+# table — see docs/dmx.md.
 #
 # The list is narrow on purpose. It catches the imports that would make the
 # codec-only build (`cargo check --no-default-features`) stop being a codec-only
@@ -19,7 +19,7 @@ set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 pure=(
   packages/rust/src/codec
-  packages/rust/crates/dmx/src/profile
+  packages/rust/src/profile
 )
 
 # std::net       — addresses and sockets

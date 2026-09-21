@@ -3,10 +3,9 @@
 
 #![allow(clippy::expect_used, clippy::panic)]
 
-use govee_toolkit::codec::{Catalog, Device};
-
 use super::reach::{SEGMENTS, has};
 use super::{Channel, Component, Error, Missing, Personality, Profile, Slot, UNIVERSE};
+use crate::codec::{Catalog, Device};
 
 fn catalog() -> Catalog {
     Catalog::embedded().expect("the embedded catalog parses")

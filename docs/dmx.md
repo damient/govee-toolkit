@@ -464,15 +464,15 @@ feature.
 ```
 crates/dmx/
   src/input/     the protocols: one socket, one parser, one universe frame
-  src/profile/   capabilities -> channel table. No I/O.
   src/patch/     the patch file
   src/apply/     channel values -> device commands
   src/node/      the run loop that joins the four
   src/main.rs
 ```
 
-`src/profile/` does no I/O on purpose. The site and the catalog need the same
-table, so that module can move into `packages/rust` unchanged.
+The channel table itself is `govee_toolkit::profile`, in the core crate, and
+this crate re-exports it. It does no I/O, so the bridge, `xtask`, the site and
+the bindings read one table. `tools/check-no-io.sh` re-checks that.
 
 Every input protocol produces one type:
 

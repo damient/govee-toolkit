@@ -3,10 +3,10 @@
 //! The JSON form is the contract of `govee-dmx profile --json`. The text form
 //! is for an operator at a desk, and its layout can change at any release.
 
-use govee_toolkit::codec::Device;
 use serde_json::{Value, json};
 
-use crate::profile::{Channel, Error, MODE_IDLE_TOP, MODE_RESEND, OFF, Personality, Profile, Slot};
+use super::{Channel, Error, MODE_IDLE_TOP, MODE_RESEND, OFF, Personality, Profile, Slot};
+use crate::codec::Device;
 
 /// The tables of one device, as one JSON object.
 ///
@@ -200,9 +200,8 @@ fn channel_text(channel: &Channel) -> String {
 mod tests {
     #![allow(clippy::expect_used, clippy::indexing_slicing)]
 
-    use govee_toolkit::codec::Catalog;
-
     use super::{json, text};
+    use crate::codec::Catalog;
     use crate::profile::{self, Personality, Profile};
 
     fn catalog() -> Catalog {

@@ -27,6 +27,8 @@ releases apart and keeps
   `lan::COMMAND_GAP` — how long a command to one device waits behind the one
   before it, answered by the mode. `lan` answers 5 ms; a mode that paces its
   own writes answers none.
+- `profile` — the DMX channel table a device file derives, with `report` for
+  its JSON and text forms. No I/O: it builds with `--no-default-features`.
 - `Identify`, `IDENTIFY_COLOR` and `IDENTIFY_WAIT` — what a pass shows, and the
   defaults a walk over a rig uses: green, and a second between two steps.
 - `Govee::identify_walk()`, with `Walk`, `WalkObserver` and `WalkReport` — the
