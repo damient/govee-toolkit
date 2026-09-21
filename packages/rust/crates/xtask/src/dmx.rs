@@ -14,10 +14,7 @@ use serde_json::{Value, json};
 /// site and the node read one table. A personality the device serves through
 /// nothing is left out, and one wider than a universe carries its error.
 pub(crate) fn catalog_entry(device: &Device) -> Value {
-    let tables: Vec<_> = profile::served(device)
-        .into_iter()
-        .map(|personality| Profile::of(device, personality))
-        .collect();
+    let tables = profile::served(device);
     json!({ "personalities": report::personalities(&tables) })
 }
 
