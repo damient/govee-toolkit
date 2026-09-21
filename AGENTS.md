@@ -78,6 +78,15 @@ SKU.
     prohibition.
   - No idiom, no metaphor, no rhetorical question, no word play.
   - Use a list when a sentence carries more than one condition.
+- **The site is an exception to ASD-STE100.** Copy under `site/` speaks to a
+  reader who wants a light to work, so a heading can carry a contrast or a
+  rhythm, and a sentence can run past the word count. The other rules hold:
+  plain, concise, English, no company name, no invented verification.
+- **Site copy states what a thing does.** Write the positive form: name what a
+  mode reaches, not what it misses. The limit of a mode belongs on the
+  documentation page that owns it, so the landing pages carry none. Keep a
+  negation that the reader must act on: a legal line, a switch the user must
+  find, a value the firmware clamps in silence.
 - **A comment earns its place or it goes.** It survives by carrying what the
   code cannot state: a constraint the compiler does not enforce, a measured
   value and what it was measured on, a trap, or a pointer that saves a search.
