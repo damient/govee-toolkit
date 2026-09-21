@@ -6,15 +6,15 @@
 //! printed under the names the device file gives the fields.
 
 use govee_toolkit::codec::{self, Supplied};
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{DeviceId, Error, Govee};
 use serde_json::json;
 
-use crate::output::{Failure, Writer};
 use crate::run::verbs::report;
 
 pub(super) async fn run(
     govee: &Govee,
-    writer: &Writer,
+    writer: Writer,
     id: &DeviceId,
     command: &str,
     pairs: &[String],

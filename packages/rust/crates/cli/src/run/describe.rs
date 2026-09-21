@@ -4,12 +4,11 @@
 //! form is this file's, and its layout can change at any release.
 
 use govee_toolkit::codec::{ArgBound, ArgSpec, Command, Device, Mode};
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::stream::reach;
 use govee_toolkit::{DeviceId, Govee, describe};
 
-use crate::output::{Failure, Writer};
-
-pub(super) fn run(govee: &Govee, writer: &Writer, target: &str) -> Result<(), Failure> {
+pub(super) fn run(govee: &Govee, writer: Writer, target: &str) -> Result<(), Failure> {
     let device = resolve(govee, target)?;
     writer.emit(&describe(device), &as_text(device));
     Ok(())

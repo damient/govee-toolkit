@@ -27,6 +27,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   that finds another device leaves it out of the walk, and a target that names
   one fails with `mode_not_enabled` before anything is sent.
 
+### Changed
+
+- The failure record and the exit codes come from `govee_toolkit::exit`, which
+  `govee-dmx` reports through as well. The codes and the JSON are unchanged.
+
 ## [0.5.0] — 2026-09-16
 
 ### Changed

@@ -12,14 +12,13 @@
 //! [`Govee::identify_walk`] runs the walk itself.
 
 use govee_toolkit::codec::Mode;
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{DeviceId, Govee, Selector, Walk, WalkObserver};
 use serde_json::json;
 
-use crate::output::{Failure, Writer};
-
 pub(super) async fn run(
     govee: &Govee,
-    writer: &Writer,
+    writer: Writer,
     named: &[String],
     walk: &Walk,
 ) -> Result<(), Failure> {
@@ -40,9 +39,9 @@ pub(super) async fn run(
 }
 
 /// What the walk prints, as one line or one JSON record per step.
-struct Lines<'a>(&'a Writer);
+struct Lines(Writer);
 
-impl WalkObserver for Lines<'_> {
+impl WalkObserver for Lines {
     fn lighting(&self, id: &DeviceId) {
         self.0.emit(
             &json!({ "event": "identify", "device": id.to_string() }),

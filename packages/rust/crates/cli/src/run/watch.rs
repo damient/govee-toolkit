@@ -4,14 +4,13 @@
 use std::time::Duration;
 
 use govee_toolkit::codec::Mode;
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{Event, Govee};
 use tokio::sync::broadcast::error::RecvError;
 
-use crate::output::{Failure, Writer};
-
 pub(super) async fn run(
     govee: &Govee,
-    writer: &Writer,
+    writer: Writer,
     rescan_ms: u64,
     restrict: Option<Mode>,
 ) -> Result<(), Failure> {

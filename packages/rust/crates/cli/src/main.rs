@@ -11,11 +11,11 @@
 use clap::Parser;
 
 mod cli;
-mod output;
 mod run;
 
+use govee_toolkit::exit::{Failure, Writer};
+
 use crate::cli::Cli;
-use crate::output::{Failure, Writer};
 
 fn main() -> std::process::ExitCode {
     let cli = Cli::parse();
@@ -31,7 +31,7 @@ fn main() -> std::process::ExitCode {
         Err(e) => return writer.failure(&Failure::internal(e.to_string())),
     };
 
-    match runtime.block_on(run::dispatch(&cli, &writer)) {
+    match runtime.block_on(run::dispatch(&cli, writer)) {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(failure) => writer.failure(&failure),
     }
