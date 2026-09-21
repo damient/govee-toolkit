@@ -8,10 +8,6 @@
   position: relative; z-index: 1;
   display: grid; gap: clamp(36px, 5vw, 72px); align-items: center;
 }
-
-@media (min-width: 1000px) {
-  .hero .shell { grid-template-columns: minmax(0, 1fr) minmax(380px, 0.8fr); }
-}
 .hero-text { min-width: 0; }
 .hero h1 { margin-bottom: .5em; max-width: 15ch; }
 /* The lede crosses the beam, where the page color no longer separates the
@@ -49,62 +45,3 @@
 .btn.ghost:hover { border-color: var(--text); background: transparent; box-shadow: none; }
 
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
-
-/* The rig: one of the two kinds of light the toolkit drives, and the buttons
-   that pick it. Both are drawn by rig.js, so an empty box here is the
-   no-script state. */
-.rig {
-  min-width: 0;
-  display: grid;
-  gap: 26px;
-  justify-items: center;
-}
-/* The two devices are different heights, and the buttons must not move when
-   the reader picks the other one. */
-.light-box { display: grid; place-items: center; min-height: 300px; }
-/* `display` on the rule above wins over the default of the attribute, so the
-   device that is not picked needs this line to go. */
-.light-box[hidden] { display: none; }
-.light { display: block; width: 100%; height: auto; }
-/* `strip` and `bulb` name the drawing here; the section under the hero has a
-   strip of its own, so these stay on `.light`. */
-.light.strip { max-width: 360px; }
-.light.bulb { max-width: 168px; }
-.light .track {
-  fill: none;
-  stroke: var(--line-strong);
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-.light .cap { fill: var(--line-strong); }
-
-.devices { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-/* The buttons pick what the hero draws; the call to action beside them is
-   what the page asks for. They stay quiet: the one that is picked carries
-   its state in the text and a faint ground, not in a filled pill. */
-.devices button {
-  padding: 9px 16px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: transparent;
-  color: var(--muted);
-  font: 500 14px/1 var(--sans);
-  cursor: pointer;
-  transition: color .18s ease, border-color .18s ease, background .18s ease;
-}
-.devices button:hover { color: var(--text); border-color: var(--line-strong); }
-.devices button[aria-pressed="true"] {
-  color: var(--text);
-  background: color-mix(in oklab, var(--text) 9%, transparent);
-  border-color: var(--line-strong);
-}
-
-@media (prefers-reduced-motion: reduce) { .devices button { transition: none; } }
-
-/* The light a shape throws. It is the same group again, blurred and added to
-   what is under it, so one fill per shape paints the light and its glow. */
-.light .halo {
-  filter: blur(11px);
-  mix-blend-mode: screen;
-}
-
