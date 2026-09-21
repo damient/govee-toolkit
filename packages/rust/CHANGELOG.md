@@ -23,6 +23,10 @@ releases apart and keeps
 - `DeviceHandle::identify()` — powers one device on and paints one color, so a
   person sees which fixture an identity drives. It sets the brightness to the
   top of the range the device file declares.
+- `Transport::command_gap()`, `DeviceHandle::command_gap()` and
+  `lan::COMMAND_GAP` — how long a command to one device waits behind the one
+  before it, answered by the mode. `lan` answers 5 ms; a mode that paces its
+  own writes answers none.
 - `Identify`, `IDENTIFY_COLOR` and `IDENTIFY_WAIT` — what a pass shows, and the
   defaults a walk over a rig uses: green, and a second between two steps.
 - `Govee::identify_walk()`, with `Walk`, `WalkObserver` and `WalkReport` — the

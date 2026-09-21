@@ -43,7 +43,7 @@ mod socket;
 
 pub use cache::{Cache, CachedDevice};
 pub use discovery::{DiscoveredDevice, Endpoints};
-pub use transport::{Options, Transport};
+pub use transport::{COMMAND_GAP, Options, Transport};
 
 pub use crate::transport::{
     Breaker, Change, DeviceId, DeviceStatus, Discovered, Error, Event, Health, KnownDevice, Policy,

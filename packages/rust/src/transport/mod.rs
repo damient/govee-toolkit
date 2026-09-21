@@ -82,6 +82,16 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// absent.
     fn scan_window(&self) -> Duration;
 
+    /// How long a command to one device waits behind the one before it. A
+    /// property of the wire, which the caller that sends several commands in
+    /// a row applies.
+    ///
+    /// The default is none, which is right for a mode that paces its own
+    /// writes or whose wire acknowledges each command.
+    fn command_gap(&self) -> Duration {
+        Duration::ZERO
+    }
+
     /// Look for devices for `window`, and return what answered.
     ///
     /// Nothing on the send path calls this. [`Transport::scan_window`] is the

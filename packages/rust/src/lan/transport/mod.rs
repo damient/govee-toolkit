@@ -35,6 +35,16 @@ use crate::transport::registry::{Devices, publish_sent};
 use crate::transport::status::DeviceStatus;
 use crate::transport::{DeviceId, Event, Health, KnownDevice, Sent, Verify};
 
+/// How long one command waits behind the one before it, to one device.
+///
+/// A device drops a datagram that arrives directly behind two others — see
+/// `docs/protocol/lan.md` 1, "Consecutive commands". Nothing acknowledges a
+/// frame, so the drop is silent, and a device that reads a power off and a
+/// power on back to back can apply them in the other order. The wait is wider
+/// than the smallest one measured, for a unit slower than the one that was
+/// measured.
+pub const COMMAND_GAP: Duration = Duration::from_millis(5);
+
 /// Background tasks, stopped when the last [`Transport`] handle goes away.
 struct Tasks(Vec<JoinHandle<()>>);
 
@@ -137,6 +147,12 @@ impl Transport {
     #[must_use]
     pub fn scan_window(&self) -> Duration {
         self.shared.scan_window
+    }
+
+    /// [`COMMAND_GAP`]: how long a command waits behind the one before it.
+    #[must_use]
+    pub fn command_gap(&self) -> Duration {
+        COMMAND_GAP
     }
 
     /// Send a discovery request and collect replies for `window`.

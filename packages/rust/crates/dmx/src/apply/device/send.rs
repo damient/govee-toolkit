@@ -4,26 +4,11 @@
 //! holds a static look puts no traffic on the device. It writes the power
 //! first, then the brightness, then the colors.
 
-use std::time::Duration;
-
 use govee_toolkit::Result;
 use tokio::time::Instant;
 
 use super::Feeder;
 use crate::apply::look::Look;
-
-/// How long one command waits behind the one before it.
-///
-/// A device drops a datagram that arrives directly behind two others — see
-/// `docs/protocol/lan.md` 1, "Consecutive commands". Nothing acknowledges a
-/// LAN frame, so the drop is silent, and a device that reads a power off and
-/// a power on back to back can apply them in the other order. The wait
-/// therefore spans two passes: a dimmer taken to 0 and straight back up
-/// writes the two from two passes. The gap is wider than the smallest one
-/// measured, for a unit slower than the one that was measured. A pass that
-/// changes one slot, behind a quiet device, waits not at all, so a color
-/// chase pays nothing.
-const GAP: Duration = Duration::from_millis(5);
 
 /// What a fixture at dimmer 0 is doing.
 ///
@@ -69,14 +54,26 @@ pub(super) struct Sent {
 }
 
 impl Feeder {
-    /// Wait until `GAP` has passed since the last datagram to this device.
-    pub(super) async fn space(&self) {
+    /// Wait out the mode's command gap since the last datagram to this
+    /// device.
+    ///
+    /// The wait spans two passes: a dimmer taken to 0 and straight back up
+    /// writes the power off and the power on from two passes, and a device
+    /// that reads them back to back can apply them in the other order. A pass
+    /// that changes one slot, behind a quiet device, waits not at all, so a
+    /// color chase pays nothing.
+    ///
+    /// # Errors
+    ///
+    /// As for [`govee_toolkit::DeviceHandle::command_gap`].
+    pub(super) async fn space(&self) -> Result<()> {
         let Some(last) = self.last_sent else {
-            return;
+            return Ok(());
         };
-        if let Some(left) = GAP.checked_sub(last.elapsed()) {
+        if let Some(left) = self.device().command_gap()?.checked_sub(last.elapsed()) {
             tokio::time::sleep(left).await;
         }
+        Ok(())
     }
 
     /// Note the datagram that just went out, which the next one waits behind.
@@ -103,7 +100,7 @@ impl Feeder {
         if let Some(level) = look.brightness
             && self.sent.brightness != Some(level)
         {
-            self.space().await;
+            self.space().await?;
             self.device().brightness(level).await?;
             self.mark();
             self.sent.brightness = Some(level);
@@ -135,7 +132,7 @@ impl Feeder {
                 // that takes the white channel back to 0 sends the color.
                 self.sent.color = Some(rgb);
             } else {
-                self.space().await;
+                self.space().await?;
                 self.device().color(rgb).await?;
                 self.mark();
                 self.sent.color = Some(rgb);
@@ -144,7 +141,7 @@ impl Feeder {
             }
         }
         if let Some(kelvin) = white {
-            self.space().await;
+            self.space().await?;
             self.device().color_temp(kelvin).await?;
             self.mark();
             self.sent.white_temp = Some(kelvin);
@@ -165,7 +162,7 @@ impl Feeder {
         if self.sent.on == Some(true) || self.stream.is_some() {
             return Ok(false);
         }
-        self.space().await;
+        self.space().await?;
         self.device().power(true).await?;
         self.mark();
         self.sent.on = Some(true);
@@ -173,7 +170,7 @@ impl Feeder {
         if let Some(options) = self.options.clone()
             && self.stream.is_none()
         {
-            self.space().await;
+            self.space().await?;
             let stream = self.device().open_stream(options).await?;
             self.mark();
             self.stream = Some(stream);
@@ -221,7 +218,7 @@ impl Feeder {
             return Ok(false);
         }
         self.close().await;
-        self.space().await;
+        self.space().await?;
         self.device().power(false).await?;
         self.mark();
         self.sent = Sent {
@@ -241,7 +238,7 @@ impl Feeder {
         if self.stream.is_none() || self.sent.zones == zones {
             return Ok(false);
         }
-        self.space().await;
+        self.space().await?;
         if let Some(stream) = &self.stream {
             stream.set_all(zones)?;
         }
