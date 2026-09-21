@@ -213,10 +213,7 @@ fn place(
 ) -> Result<Placement, String> {
     let (personality, profile) = table(candidate.device, layout)?;
     let width = profile.width();
-    for number in first.get()..=MAX_PORT_ADDRESS {
-        let Some(universe) = PortAddress::new(number) else {
-            break;
-        };
+    for universe in (first.get()..=MAX_PORT_ADDRESS).filter_map(PortAddress::new) {
         let Some(address) = taken.free(universe, width) else {
             continue;
         };
@@ -244,11 +241,8 @@ fn table(device: &Device, layout: Layout) -> Result<(Personality, Profile), Stri
             .map_err(|error| error.to_string()),
         Layout::Widest => profile::served(device)
             .into_iter()
-            .filter_map(|personality| {
-                Profile::of(device, personality)
-                    .ok()
-                    .map(|profile| (personality, profile))
-            })
+            .flatten()
+            .map(|profile| (profile.personality(), profile))
             .max_by_key(|(_, profile)| profile.width())
             .ok_or_else(|| format!("{} serves no channel table over `lan`", device.sku)),
     }

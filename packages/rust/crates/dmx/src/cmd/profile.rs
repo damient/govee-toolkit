@@ -4,7 +4,7 @@ use govee_toolkit::codec::{Catalog, Device};
 use govee_toolkit_dmx::profile::{self, Personality, Profile};
 use govee_toolkit_dmx::report;
 
-use super::{Failure, REFUSED, USAGE};
+use super::{Failure, REFUSED, USAGE, spellings};
 
 pub(crate) fn run(sku: &str, personality: Option<&str>, as_json: bool) -> Result<(), Failure> {
     let catalog = Catalog::embedded().map_err(|error| Failure::new(error.to_string(), USAGE))?;
@@ -29,10 +29,7 @@ fn tables(
     personality: Option<&str>,
 ) -> Result<Vec<Result<Profile, profile::Error>>, Failure> {
     let Some(name) = personality else {
-        return Ok(profile::served(device)
-            .into_iter()
-            .map(|personality| Profile::of(device, personality))
-            .collect());
+        return Ok(profile::served(device));
     };
     let personality = Personality::parse(name).ok_or_else(|| {
         Failure::new(
@@ -43,12 +40,4 @@ fn tables(
     let table =
         Profile::of(device, personality).map_err(|e| Failure::new(e.to_string(), REFUSED))?;
     Ok(vec![Ok(table)])
-}
-
-fn spellings() -> String {
-    Personality::ALL
-        .iter()
-        .map(|personality| format!("`{personality}`"))
-        .collect::<Vec<_>>()
-        .join(", ")
 }

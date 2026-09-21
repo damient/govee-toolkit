@@ -12,6 +12,14 @@ fn catalog() -> Catalog {
     Catalog::embedded().expect("the embedded catalog parses")
 }
 
+/// The names of the tables `device` serves.
+fn personalities(device: &Device) -> Vec<Personality> {
+    super::served(device)
+        .iter()
+        .filter_map(|table| table.as_ref().ok().map(Profile::personality))
+        .collect()
+}
+
 /// Offsets run 1, 2, 3 and so on to the width, with no hole and no channel
 /// twice. An operator patches a desk off this, so a hole is a fixture that
 /// answers nothing.
@@ -50,8 +58,8 @@ fn every_segmented_device_answers_a_zone_personality() {
 #[test]
 fn the_second_channel_of_every_personality_is_the_mode() {
     for device in catalog().devices() {
-        for personality in super::served(device) {
-            let profile = Profile::of(device, personality).expect("a served personality");
+        for table in super::served(device) {
+            let profile = table.expect("a served personality");
             let second = profile.channels().get(1).expect("a second channel");
             assert_eq!(second.slot, Slot::Mode, "{}", device.sku);
             assert_eq!(second.offset, 2, "{}", device.sku);
@@ -62,9 +70,8 @@ fn the_second_channel_of_every_personality_is_the_mode() {
 #[test]
 fn no_personality_leaves_a_hole_or_takes_a_channel_twice() {
     for device in catalog().devices() {
-        for personality in super::served(device) {
-            let profile =
-                Profile::of(device, personality).unwrap_or_else(|e| panic!("{}: {e}", device.sku));
+        for table in super::served(device) {
+            let profile = table.unwrap_or_else(|e| panic!("{}: {e}", device.sku));
             check_offsets(&device.sku, &profile);
             assert!(profile.width() <= UNIVERSE);
         }
@@ -74,8 +81,8 @@ fn no_personality_leaves_a_hole_or_takes_a_channel_twice() {
 #[test]
 fn the_first_channel_of_every_personality_is_the_dimmer() {
     for device in catalog().devices() {
-        for personality in super::served(device) {
-            let profile = Profile::of(device, personality).expect("a served personality");
+        for table in super::served(device) {
+            let profile = table.expect("a served personality");
             let first = profile.channels().first().expect("a channel");
             assert_eq!(first.slot, Slot::Dimmer, "{}", device.sku);
             assert!(first.scale.is_some(), "{}", device.sku);
@@ -158,7 +165,7 @@ fn built(capabilities: &str, lan: &str) -> Catalog {
 fn a_device_that_reaches_no_white_keeps_the_channel_and_drives_nothing() {
     let catalog = built(RGB, "power, brightness, color");
     let device = parse(&catalog);
-    assert_eq!(super::served(device), vec![Personality::Full]);
+    assert_eq!(personalities(device), vec![Personality::Full]);
     let profile = Profile::of(device, Personality::Full).expect("a full personality");
     assert_eq!(profile.width(), 6);
     let white = profile.channels().get(5).expect("the white channel");
@@ -188,7 +195,7 @@ fn a_capability_out_of_the_mode_s_reach_serves_no_channel() {
     let capabilities = format!("{RGB}  segments:\n    count: 10\n");
     let catalog = built(&capabilities, "power, brightness, color");
     let device = parse(&catalog);
-    assert_eq!(super::served(device), vec![Personality::Full]);
+    assert_eq!(personalities(device), vec![Personality::Full]);
 }
 
 #[test]
@@ -213,7 +220,7 @@ fn a_device_with_no_measured_pixels_serves_no_native_personality() {
     let catalog = built(&capabilities, "power, brightness, color, segments");
     let device = parse(&catalog);
     assert_eq!(
-        super::served(device),
+        personalities(device),
         vec![Personality::Full, Personality::Segment]
     );
     assert_eq!(
@@ -234,7 +241,7 @@ fn one_pixel_per_zone_serves_the_pixel_personality_alone() {
     let catalog = built(&capabilities, "power, brightness, color, segments");
     let device = parse(&catalog);
     assert_eq!(
-        super::served(device),
+        personalities(device),
         vec![Personality::Full, Personality::Pixel]
     );
     assert_eq!(

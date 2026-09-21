@@ -163,6 +163,7 @@ impl Error {
 pub struct Profile {
     personality: Personality,
     channels: Vec<Channel>,
+    zones: usize,
 }
 
 impl Profile {
@@ -192,9 +193,18 @@ impl Profile {
             personality,
             missing,
         })?;
+        let zones = channels
+            .iter()
+            .filter_map(|channel| match channel.slot {
+                Slot::Zone { index, .. } => usize::try_from(index).ok().map(|index| index + 1),
+                _ => None,
+            })
+            .max()
+            .unwrap_or(0);
         Ok(Self {
             personality,
             channels,
+            zones,
         })
     }
 
@@ -210,6 +220,12 @@ impl Profile {
         &self.channels
     }
 
+    /// How many zones the table lays out, and 0 where it lays out none.
+    #[must_use]
+    pub fn zones(&self) -> usize {
+        self.zones
+    }
+
     /// How many channels the fixture takes from its start address.
     #[must_use]
     pub fn width(&self) -> u16 {
@@ -217,21 +233,17 @@ impl Profile {
     }
 }
 
-/// The personalities `device` serves over `lan`, in the order
+/// The channel tables `device` serves over `lan`, in the order
 /// [`Personality::ALL`] lists them.
 ///
-/// A personality here can still be wider than one universe. [`Profile::of`]
-/// is what reports that.
+/// A table here can still be wider than one universe, which is the error it
+/// carries.
 #[must_use]
-pub fn served(device: &Device) -> Vec<Personality> {
+pub fn served(device: &Device) -> Vec<Result<Profile, Error>> {
     Personality::ALL
         .into_iter()
-        .filter(|personality| {
-            !matches!(
-                Profile::of(device, *personality),
-                Err(Error::Unserved { .. })
-            )
-        })
+        .map(|personality| Profile::of(device, personality))
+        .filter(|table| !matches!(table, Err(Error::Unserved { .. })))
         .collect()
 }
 
