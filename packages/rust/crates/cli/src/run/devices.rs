@@ -61,7 +61,7 @@ pub(super) fn list(
         report(&devices, writer, restrict);
         return Ok(());
     }
-    let chosen = govee.select(targets)?;
+    let chosen = govee.select(targets, restrict)?;
     let named: Vec<Device> = devices
         .into_iter()
         .filter(|device| chosen.contains(&device.id))

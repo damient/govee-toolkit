@@ -6,11 +6,15 @@ use super::*;
 use crate::codec::Mode;
 
 fn device(id: &str, sku: &str, name: Option<&str>) -> Device {
+    on(id, sku, name, vec![Mode::Lan])
+}
+
+fn on(id: &str, sku: &str, name: Option<&str>, modes: Vec<Mode>) -> Device {
     Device {
         id: DeviceId::new(id),
         sku: sku.to_owned(),
         name: name.map(ToOwned::to_owned),
-        modes: vec![Mode::Lan],
+        modes,
         health: BTreeMap::new(),
     }
 }
@@ -32,7 +36,7 @@ fn parse(target: &str) -> Result<Selector, Error> {
 }
 
 fn chosen(selector: &Selector) -> Vec<String> {
-    matches(selector, &rig())
+    matches(selector, &rig(), None)
         .unwrap_or_default()
         .iter()
         .map(ToString::to_string)
@@ -45,10 +49,7 @@ fn a_bare_target_takes_the_kind_it_reads_as() {
         parse("1c:8b:c4:a2:c0:46:64:6e").ok(),
         Some(Selector::Id(DeviceId::new("1C:8B:C4:A2:C0:46:64:6E")))
     );
-    assert_eq!(
-        parse("h6008").ok(),
-        Some(Selector::Sku("H6008".to_owned()))
-    );
+    assert_eq!(parse("h6008").ok(), Some(Selector::Sku("H6008".to_owned())));
     assert_eq!(
         parse("kitchen").ok(),
         Some(Selector::Name("kitchen".to_owned()))
@@ -115,7 +116,7 @@ fn an_identity_selects_itself_whether_a_scan_found_it_or_not() {
 fn a_sku_or_a_name_that_matches_nothing_is_a_failure() {
     let sku = Selector::Sku("H9999".to_owned());
     assert_eq!(
-        matches(&sku, &rig()).err(),
+        matches(&sku, &rig(), None).err(),
         Some(Error::NoMatch {
             target: "sku:H9999".to_owned()
         })
@@ -144,6 +145,59 @@ fn a_bare_alias_is_no_sku() {
             "`{alias}` reads as a SKU"
         );
     }
+}
+
+// A SKU and a name answer the devices the mode drives. An identity answers
+// itself, and the command that follows reports the mode.
+#[test]
+fn a_mode_narrows_a_sku_and_a_name_and_leaves_an_identity_alone() {
+    let known = vec![
+        on(
+            "1C:8B:C4:A2:C0:46:64:6E",
+            "H6008",
+            Some("kitchen"),
+            vec![Mode::Lan],
+        ),
+        on(
+            "AA:BB:CC:DD:EE:FF:00:11",
+            "H6008",
+            Some("hall"),
+            vec![Mode::Ble],
+        ),
+    ];
+    let sku = Selector::Sku("H6008".to_owned());
+    let over_lan = matches(&sku, &known, Some(Mode::Lan)).expect("the model answers over `lan`");
+    assert_eq!(
+        over_lan.iter().map(ToString::to_string).collect::<Vec<_>>(),
+        ["1C:8B:C4:A2:C0:46:64:6E"]
+    );
+
+    let hall = Selector::Name("hall".to_owned());
+    assert_eq!(
+        matches(&hall, &known, Some(Mode::Lan)).err(),
+        Some(Error::NotOnMode {
+            target: "name:hall".to_owned(),
+            mode: Mode::Lan,
+        })
+    );
+
+    let id = Selector::Id(DeviceId::new("AA:BB:CC:DD:EE:FF:00:11"));
+    assert_eq!(
+        matches(&id, &known, Some(Mode::Lan)).expect("an identity answers itself"),
+        [DeviceId::new("AA:BB:CC:DD:EE:FF:00:11")]
+    );
+}
+
+// A target that matches nothing at all is no mode fault.
+#[test]
+fn a_mode_never_turns_an_empty_match_into_a_mode_fault() {
+    let sku = Selector::Sku("H9999".to_owned());
+    assert_eq!(
+        matches(&sku, &rig(), Some(Mode::Ble)).err(),
+        Some(Error::NoMatch {
+            target: "sku:H9999".to_owned()
+        })
+    );
 }
 
 #[test]

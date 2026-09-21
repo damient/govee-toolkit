@@ -271,8 +271,12 @@ export declare class Govee {
    * configuration gives a device (`name:kitchen`). `id:`, `sku:` and
    * `name:` state the kind where the target alone does not. A SKU and a
    * name select among the devices the SDK knows, so scan first.
+   *
+   * `mode` is the one mode the caller will drive. A SKU and a name then
+   * match among the devices that enable it. An identity selects itself
+   * either way.
    */
-  select(targets: Array<string>): Array<string>
+  select(targets: Array<string>, mode?: string | undefined | null): Array<string>
   /**
    * The modes this build carries a transport for. Not a preference order:
    * that is each device's own configuration.

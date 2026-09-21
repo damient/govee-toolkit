@@ -65,8 +65,9 @@ impl WalkObserver for Lines<'_> {
 /// so the scan runs before the selection. A target that names an identity
 /// needs no scan: it addresses one device, which `ensure_known` then finds.
 ///
-/// A named target that enables no `mode` stays in the list, and the walk
-/// reports it: the person asked for that device by name.
+/// [`Govee::select`] takes the mode, so a model and a name answer the devices
+/// that enable it. A named identity stays in the list, and the walk reports
+/// it: the person asked for that device by its identity.
 async fn targets(govee: &Govee, named: &[String], mode: Mode) -> Result<Vec<DeviceId>, Failure> {
     if named.is_empty() {
         let found = govee.scan_on(&[mode]).await?;
@@ -76,10 +77,13 @@ async fn targets(govee: &Govee, named: &[String], mode: Mode) -> Result<Vec<Devi
             .filter(|id| govee.device(id).modes().contains(&mode))
             .collect());
     }
-    if named.iter().any(|target| !names_one_identity(govee, target)) {
+    if named
+        .iter()
+        .any(|target| !names_one_identity(govee, target))
+    {
         govee.scan_on(&[mode]).await?;
     }
-    let ids = govee.select(named)?;
+    let ids = govee.select(named, Some(mode))?;
     for id in &ids {
         govee.ensure_known(id).await?;
     }

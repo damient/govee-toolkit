@@ -84,10 +84,16 @@ impl Govee {
     /// configuration gives a device (`name:kitchen`). `id:`, `sku:` and
     /// `name:` state the kind where the target alone does not. A SKU and a
     /// name select among the devices the SDK knows, so scan first.
-    fn select(&self, targets: Vec<String>) -> PyResult<Vec<String>> {
+    ///
+    /// `mode` is the one mode the caller will drive. A SKU and a name then
+    /// match among the devices that enable it. An identity selects itself
+    /// either way.
+    #[pyo3(signature = (targets, mode = None))]
+    fn select(&self, targets: Vec<String>, mode: Option<String>) -> PyResult<Vec<String>> {
+        let only = mode.map(|name| conv::mode(&name)).transpose()?;
         let chosen = map(self
             .inner
-            .select(targets)
+            .select(targets, only)
             .map_err(govee_toolkit::Error::from))?;
         Ok(chosen.iter().map(ToString::to_string).collect())
     }

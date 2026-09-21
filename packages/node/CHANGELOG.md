@@ -12,6 +12,8 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 - `Govee.select()` — the device identities the targets name: an identity, a
   SKU, or `name:<name>` for the name the configuration gives a device. A
   target that matches no known device throws `no_such_target`.
+- `Govee.select()` takes `mode`: a SKU and a name match among the devices that
+  enable it, and an identity selects itself either way.
 - `DeviceHandle.identify()` — powers the device on and paints one color, so a
   person sees which fixture an identity drives. `color` and `fullBrightness`
   take the core's defaults when `null`.

@@ -17,11 +17,13 @@ releases apart and keeps
 - `Govee::select()` and `Selector` — name devices by identity, by SKU, or by
   the name the configuration gives one. `id:`, `sku:` and `name:` state the
   kind where a bare target does not.
+- `Govee::select()` takes the mode the caller will drive. A SKU and a name
+  match among the devices that enable it; an identity selects itself.
 - `Selector::parse()` takes the catalog: a bare target reads as a SKU where a
   device file is encoded under it, so a device named like a model is a name.
 - `Error::Select`, with the codes `target_not_understood`, `ambiguous_target`
   and `no_such_target` — a target that reads as two kinds, or that matches no
-  known device, fails rather than selecting a device nobody named.
+  known device the mode reaches, fails rather than selecting another device.
 - `DeviceHandle::identify()` — powers one device on and paints one color, so a
   person sees which fixture an identity drives. It sets the brightness to the
   top of the range the device file declares.

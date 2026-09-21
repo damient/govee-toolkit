@@ -90,9 +90,19 @@ impl Govee {
     /// configuration gives a device (`name:kitchen`). `id:`, `sku:` and
     /// `name:` state the kind where the target alone does not. A SKU and a
     /// name select among the devices the SDK knows, so scan first.
+    ///
+    /// `mode` is the one mode the caller will drive. A SKU and a name then
+    /// match among the devices that enable it. An identity selects itself
+    /// either way.
     #[napi]
-    pub fn select(&self, env: &Env, targets: Vec<String>) -> napi::Result<Vec<String>> {
-        let chosen = map(env, self.inner.select(targets).map_err(Into::into))?;
+    pub fn select(
+        &self,
+        env: &Env,
+        targets: Vec<String>,
+        mode: Option<String>,
+    ) -> napi::Result<Vec<String>> {
+        let only = mode.map(|name| conv::mode(env, &name)).transpose()?;
+        let chosen = map(env, self.inner.select(targets, only).map_err(Into::into))?;
         Ok(chosen.iter().map(ToString::to_string).collect())
     }
 

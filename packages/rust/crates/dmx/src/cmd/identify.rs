@@ -17,6 +17,7 @@
 
 use std::path::Path;
 
+use govee_toolkit::codec::Mode;
 use govee_toolkit::{DeviceId, Govee, Walk, WalkObserver};
 use govee_toolkit_dmx::patch::{Fixture, Patch, PortAddress, Rig};
 use serde_json::json;
@@ -160,7 +161,7 @@ fn lit<'a>(govee: &Govee, rig: &'a Rig, chosen: &Chosen) -> Result<Vec<&'a Fixtu
     let mut named: Vec<&Fixture> = Vec::new();
     if !chosen.targets.is_empty() {
         let ids = govee
-            .select(&chosen.targets)
+            .select(&chosen.targets, Some(Mode::Lan))
             .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
         for id in &ids {
             let Some(fixture) = fixtures.iter().find(|f| &f.entry.device == id) else {
