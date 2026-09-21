@@ -12,17 +12,10 @@
 //! A bare target reads as a SKU where a device file is encoded under it, and
 //! never from the shape of the text alone. A bare target that reads as an
 //! identity or a SKU, and that a known device also carries as a name, is
-//! refused: the answer names the two prefixed forms to write instead. Nothing
-//! is guessed.
+//! refused. Nothing is guessed.
 //!
-//! A SKU matches the SKU a device is encoded under, and no alias of it. Two
-//! SKUs that a device file declares identical are still two models in a room,
-//! and an operator who types one does not mean the other.
-//!
-//! [`Govee::select`] takes the mode the caller will drive. A SKU and a name
-//! then match among the devices that enable that mode, and match nothing
-//! where none of them does. An identity selects itself either way: it
-//! addresses one device, and the command that follows reports the mode.
+//! A SKU matches the SKU a device is encoded under, and no alias of it: an
+//! operator who types one model does not mean the other.
 
 #[cfg(test)]
 mod tests;
@@ -41,26 +34,20 @@ const NAME: &str = "name";
 /// One target, read from what a person typed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Selector {
-    /// One identity. It selects that device whether a scan found it or not:
-    /// an identity addresses a device on its own.
+    /// One identity. It selects that device whether a scan found it or not.
     Id(DeviceId),
     /// Every known device encoded under this SKU.
     Sku(String),
     /// Every known device the configuration gives this name. The comparison
-    /// ignores case and is exact: a name that matched a part of another one
-    /// would widen a rig in silence.
+    /// ignores case and is exact.
     Name(String),
 }
 
 impl Selector {
     /// Read one target, against the catalog that says which SKUs exist.
     ///
-    /// The prefixes `id:`, `sku:` and `name:` state the kind. A bare target
-    /// reads as a SKU where a device file in `catalog` is encoded under it,
-    /// and the module documentation gives the other kinds.
-    ///
-    /// The ambiguity between a SKU and a device named like one needs the
-    /// devices to see, so [`Govee::select`] reports it and this does not.
+    /// It does not report the ambiguity between a SKU and a device named like
+    /// one: that needs the devices to see, so [`Govee::select`] reports it.
     ///
     /// # Errors
     ///
@@ -82,7 +69,7 @@ impl fmt::Display for Selector {
 }
 
 /// One target, and whether a prefix stated its kind. A prefixed target is
-/// never ambiguous: the person already said which kind it is.
+/// never ambiguous.
 fn read(target: &str, catalog: &Catalog) -> Result<(Selector, bool), Error> {
     let target = target.trim();
     if target.is_empty() {
@@ -102,7 +89,6 @@ fn read(target: &str, catalog: &Catalog) -> Result<(Selector, bool), Error> {
     Ok((bare(target, catalog), false))
 }
 
-/// What a prefix states a target is.
 #[derive(Debug, Clone, Copy)]
 enum Kind {
     Id,
@@ -119,7 +105,6 @@ impl Kind {
         }
     }
 
-    /// The selector this kind reads `value` as.
     fn read(self, value: &str) -> Selector {
         match self {
             Self::Id => Selector::Id(DeviceId::new(value)),
@@ -129,8 +114,7 @@ impl Kind {
     }
 }
 
-/// The kind a prefix names, where it names one. `AA:BB:…` reaches this with
-/// `AA` and takes the shape path instead.
+/// `AA:BB:…` reaches this with `AA` and takes the shape path instead.
 fn kind(prefix: &str) -> Option<Kind> {
     match prefix.trim().to_ascii_lowercase().as_str() {
         ID => Some(Kind::Id),
@@ -140,7 +124,6 @@ fn kind(prefix: &str) -> Option<Kind> {
     }
 }
 
-/// The kind a bare target takes.
 fn bare(target: &str, catalog: &Catalog) -> Selector {
     if is_identity(target) {
         return Selector::Id(DeviceId::new(target));
@@ -151,12 +134,9 @@ fn bare(target: &str, catalog: &Catalog) -> Selector {
     Selector::Name(target.to_owned())
 }
 
-/// Whether the text is shaped like an identity: hexadecimal groups that a
-/// colon joins, which is what `lan` reports, or the handle a platform gives a
-/// Bluetooth peripheral, which is a UUID and carries dashes.
-///
-/// The 12 digits are what keeps a hyphenated name out: a device called
-/// `bed-a-b-c-d` has the groups and not the digits.
+/// Hexadecimal groups a colon joins, which `lan` reports, or the dashed UUID
+/// a platform gives a Bluetooth peripheral. The 12 digits keep a hyphenated
+/// name such as `bed-a-b-c-d` out.
 fn is_identity(target: &str) -> bool {
     let groups: Vec<&str> = target.split([':', '-']).collect();
     let hexadecimal = groups
@@ -166,12 +146,8 @@ fn is_identity(target: &str) -> bool {
     groups.len() >= 5 && digits >= 12 && hexadecimal
 }
 
-/// Whether a device file is encoded under this SKU.
-///
-/// The catalog answers, not the shape of the text: a model written another way
-/// is still a model, and a device named like one is still a name. An alias
-/// answers `false`, because [`matches`] selects the SKU a device is encoded
-/// under and an alias would select nothing.
+/// An alias answers `false`: [`matches`] selects the SKU a device is encoded
+/// under, so an alias would select nothing.
 fn is_sku(target: &str, catalog: &Catalog) -> bool {
     catalog
         .devices()
@@ -242,9 +218,7 @@ impl Govee {
     ///
     /// `mode` is the one mode the caller will drive, and `None` where it
     /// drives none and lists instead. A SKU and a name then match among the
-    /// devices that enable `mode`, so a caller never has to filter the answer
-    /// again. An identity selects itself, found or not: it addresses one
-    /// device, and the command that follows reports the mode.
+    /// devices that enable `mode`. An identity selects itself, found or not.
     ///
     /// A device two targets name appears once, at the first place it was
     /// named. A SKU and a name select among the devices the SDK knows, so
@@ -279,7 +253,6 @@ impl Govee {
     }
 }
 
-/// Refuse a bare identity or SKU that a known device carries as its name.
 fn check_ambiguity(written: &str, selector: &Selector, known: &[Device]) -> Result<(), Error> {
     let kind = match selector {
         Selector::Id(_) => ID,
@@ -295,12 +268,9 @@ fn check_ambiguity(written: &str, selector: &Selector, known: &[Device]) -> Resu
     })
 }
 
-/// The devices one selector matches, among the ones `mode` reaches.
-///
-/// The mode narrows the match, and never turns an empty match into a mode
-/// fault: a target that matches nothing at all reports [`Error::NoMatch`],
-/// and one whose matches all enable another mode reports
-/// [`Error::NotOnMode`].
+/// The mode narrows the match and never turns an empty match into a mode
+/// fault: nothing matched is [`Error::NoMatch`], matched but on another mode
+/// is [`Error::NotOnMode`].
 fn matches(
     selector: &Selector,
     known: &[Device],
@@ -333,7 +303,6 @@ fn matches(
     }
 }
 
-/// Every known device the configuration gives this name.
 fn named<'a>(known: &'a [Device], name: &'a str) -> impl Iterator<Item = &'a Device> + 'a {
     known.iter().filter(move |device| {
         device

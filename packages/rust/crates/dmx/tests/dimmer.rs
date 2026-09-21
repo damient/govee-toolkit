@@ -23,10 +23,8 @@ fn dimmed_out() -> Look {
     }
 }
 
-/// A dimmer that dips through 0 and comes back must cost no power command.
-/// The device stays on and goes black, so the fixture lights again on one
-/// repaint: a power off and a power on that close together are what the
-/// firmware applies in the wrong order.
+/// A dimmer that dips through 0 and comes back must cost no power command:
+/// the device stays on and goes black, so it lights again on one repaint.
 #[tokio::test]
 async fn a_dimmer_that_dips_through_zero_powers_nothing_off() {
     let simulator = simulator().await;
@@ -68,8 +66,7 @@ async fn a_dimmer_that_dips_through_zero_powers_nothing_off() {
     applier.close().await;
 }
 
-/// A dimmer that stays at 0 does power the fixture off, once the off delay is
-/// over. Black alone leaves a device drawing power and glowing on some units.
+/// Black alone leaves a device drawing power, and glowing on some units.
 #[tokio::test]
 async fn a_dimmer_held_at_zero_powers_the_fixture_off() {
     let simulator = simulator().await;

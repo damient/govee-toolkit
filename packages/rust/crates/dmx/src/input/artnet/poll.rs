@@ -1,11 +1,5 @@
-//! `ArtPoll` and `ArtPollReply`: how a desk finds the node.
-//!
-//! A desk broadcasts an `ArtPoll` every few seconds. A node that answers
-//! nothing is listed nowhere, and the operator has to type an address by hand.
-//! The node therefore answers every poll — see `docs/dmx.md`.
-//!
-//! One reply carries 4 output ports, and the 4 share a Net and a Sub-Net. The
-//! node sends one reply for each group of 4 port-addresses the patch holds.
+//! `ArtPoll` and `ArtPollReply`: how a desk finds the node — see
+//! `docs/dmx.md` 5.1.
 //!
 //! This module builds bytes and holds no socket. Every offset below counts
 //! from the first byte of the packet, and the layout is Art-Net 4.
@@ -50,7 +44,6 @@ mod at {
     pub(super) const SUB_SWITCH: usize = 19;
     /// The manufacturer code, high byte first.
     pub(super) const OEM: usize = 20;
-    /// What the node reports about itself.
     pub(super) const STATUS1: usize = 23;
     /// 18 bytes, null-terminated.
     pub(super) const SHORT_NAME: usize = 26;
@@ -72,15 +65,11 @@ mod at {
     pub(super) const BIND_IP: usize = 207;
     /// Which reply this is, counting from 1.
     pub(super) const BIND_INDEX: usize = 211;
-    /// What the node reads of the protocol.
     pub(super) const STATUS2: usize = 212;
 }
 
-/// What a desk asks for when it polls.
-///
-/// The node answers every poll the same way. The two fields are reported and
-/// drive nothing: the node sends no unsolicited reply, so `talk_to_me` has
-/// nothing to turn on.
+/// What a desk asks for when it polls. Both fields are reported and drive
+/// nothing: the node sends no unsolicited reply.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Poll {
     /// What the desk asks the node to send on its own.
@@ -121,7 +110,6 @@ pub fn replies(identity: &Identity<'_>, universes: &[u16]) -> Vec<[u8; REPLY]> {
         .collect()
 }
 
-/// The port-addresses, grouped the way a reply carries them.
 fn groups(universes: &[u16]) -> Vec<Group> {
     let mut addresses: Vec<u16> = universes
         .iter()
@@ -185,7 +173,6 @@ fn reply(identity: &Identity<'_>, group: &Group, index: usize) -> [u8; REPLY] {
     bytes.0
 }
 
-/// The node's own version, which a desk shows beside the name.
 fn version() -> [u8; 2] {
     let part = |text: &str| text.parse::<u8>().unwrap_or(0);
     [
@@ -194,10 +181,8 @@ fn version() -> [u8; 2] {
     ]
 }
 
-/// One packet, under construction.
-///
-/// Every offset is a constant inside a fixed buffer, so a write past the end
-/// cannot happen and is dropped rather than checked by the caller.
+/// One packet, under construction. Every offset is a constant inside a fixed
+/// buffer, so a write past the end is dropped rather than checked.
 struct Bytes([u8; REPLY]);
 
 impl Bytes {

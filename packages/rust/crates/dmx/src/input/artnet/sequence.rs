@@ -1,8 +1,5 @@
-//! The `ArtDmx` sequence field: what tells a late packet from a new one.
-//!
-//! UDP delivers out of order. The sender counts 1 to 255 and wraps, and the
-//! bridge drops a packet that is older than the last one it accepted. A
-//! sender that writes 0 disables the check — see `docs/dmx.md`.
+//! The `ArtDmx` sequence field: what tells a late packet from a new one — see
+//! `docs/dmx.md` 5.1.
 //!
 //! The gate holds one sender on one port-address. [`Gate`] is what keeps one
 //! per pair.
@@ -16,9 +13,8 @@ const DISABLED: u8 = 0;
 /// packet that far behind it, and the split has to fall somewhere.
 const HALF: u8 = 128;
 /// How many packets in a row the gate refuses before it takes the count as
-/// restarted. A sender that jumps half the range forward, because it started
-/// again or because the socket lost a burst, reads as older for every packet
-/// that follows. Without this the gate refuses that sender for good.
+/// restarted. A sender that jumps half the range forward reads as older for
+/// every packet that follows, and the gate would refuse it for good.
 const RESYNC: u8 = 4;
 
 /// What orders the packets of one sender on one port-address.
@@ -41,10 +37,10 @@ impl Sequence {
 
     /// Whether to take the packet that carries `sequence`.
     ///
-    /// The first packet is always taken. A sequence of 0 is always taken
-    /// and forgets the count, so that a sender which stops counting keeps
-    /// driving. After 4 refusals in a row the gate takes the packet
-    /// and counts from it: a sender that restarted must reach the rig again.
+    /// The first packet is always taken. A sequence of 0 is always taken and
+    /// forgets the count, so a sender which stops counting keeps driving.
+    /// After 4 refusals in a row the gate takes the packet and counts from
+    /// it: a sender that restarted must reach the rig again.
     pub fn accept(&mut self, sequence: u8) -> bool {
         if sequence == DISABLED {
             self.last = None;
@@ -114,7 +110,6 @@ mod tests {
         SocketAddr::from(([192, 0, 2, host], 6454))
     }
 
-    /// One sender's count never drops another sender's packets.
     #[test]
     fn two_senders_count_apart() {
         let mut gate = Gate::new();
@@ -124,7 +119,6 @@ mod tests {
         assert_eq!(gate.senders(), 2);
     }
 
-    /// One sender on two port-addresses counts each one apart.
     #[test]
     fn one_sender_counts_each_port_address_apart() {
         let mut gate = Gate::new();
@@ -155,9 +149,8 @@ mod tests {
         assert_eq!(gate.last(), Some(100));
     }
 
-    /// A sender that starts again counts from where it wants. The gate must
-    /// take it back: a rig that refuses every packet of the one desk on the
-    /// network goes dark.
+    /// A rig that refuses every packet of the one desk on the network goes
+    /// dark.
     #[test]
     fn a_sender_that_counts_from_somewhere_else_is_taken_back() {
         let mut gate = Sequence::new();
@@ -169,8 +162,7 @@ mod tests {
         assert_eq!(gate.last(), Some(204));
     }
 
-    /// The refusals that resync have to be in a row. A late packet between
-    /// two packets that count on leaves the gate where it was.
+    /// The refusals that resync have to be in a row.
     #[test]
     fn one_late_packet_does_not_count_towards_a_resync() {
         let mut gate = Sequence::new();
@@ -182,7 +174,6 @@ mod tests {
         }
     }
 
-    /// The count wraps at 255, so 2 is newer than 250 and 250 is older.
     #[test]
     fn the_count_wraps() {
         let mut gate = Sequence::new();
@@ -191,7 +182,6 @@ mod tests {
         assert!(!gate.accept(250));
     }
 
-    /// A sender that stops counting keeps driving the rig.
     #[test]
     fn a_zero_disables_the_check() {
         let mut gate = Sequence::new();
@@ -201,8 +191,7 @@ mod tests {
         assert!(gate.accept(1));
     }
 
-    /// A desk that repeats one look repeats one sequence, and the look must
-    /// still arrive.
+    /// A desk that repeats one look repeats one sequence.
     #[test]
     fn a_repeated_sequence_is_taken() {
         let mut gate = Sequence::new();

@@ -1,10 +1,8 @@
 //! The send path: the channels a frame carries, joined to the device.
 //!
 //! One task per fixture. The node hands each task the latest look and never
-//! waits for a write, so a slow device holds up no other one and no frame
-//! holds up the socket. A look replaced before its task took it is counted,
-//! not queued: that count is what tells the operator the desk sends faster
-//! than the devices accept — see `docs/dmx.md`.
+//! waits for a write. A look replaced before its task took it is counted, not
+//! queued — see `docs/dmx.md` 3.
 
 mod backoff;
 mod device;
@@ -49,13 +47,13 @@ pub struct Counts {
     /// Writes that reached the transport, which is one per command and one
     /// per stream frame.
     pub frames_sent: u64,
-    /// Looks and frames a later one replaced before they went out. Expected:
-    /// it is what a desk faster than the device costs.
+    /// Looks and frames a later one replaced before they went out. It is what
+    /// a desk faster than the device costs.
     pub frames_superseded: u64,
 }
 
 /// A write that failed. The device keeps its patch entry and the run carries
-/// on — a show does not stop because one fixture dropped.
+/// on.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Failure {
     /// The device that did not take the write.

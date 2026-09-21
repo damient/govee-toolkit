@@ -1,38 +1,12 @@
 //! The patch: which device answers which channels, on which universe.
 //!
-//! The patch is a file of its own, named on the command line. It is not
-//! `config.yaml`: that file says which modes are enabled for a device, and a
-//! rig of 40 fixtures does not belong in it.
-//!
-//! ```yaml
-//! scanned: 2026-09-19T20:04:11Z   # when `govee-dmx patch` last scanned
-//! node:
-//!   bind: 0.0.0.0
-//!   name: govee-toolkit       # what the desk shows in its node list
-//!   refresh_secs: 10
-//!   signal_loss_secs: 4       # how long a fixture waits for a frame
-//!   off_delay_secs: 5         # how long the dimmer stays at 0 before the
-//!                             # fixture powers off
-//! patch:
-//!   - device: "AA:BB:CC:DD:EE:FF"
-//!     sku: H6199              # what sizes the entry while the device is off
-//!     enabled: true           # `false` keeps the channels and drives nothing
-//!     universe: 0             # or: net: 0, subnet: 0, universe: 0
-//!     address: 1              # the DMX start address, 1 to 512
-//!     personality: segment
-//!     max_hz: 20              # optional. The rate the fixture takes writes
-//!                             # at. Default: the device file measurement for a
-//!                             # zone personality, and 30 for a command
-//!     on_signal_loss: hold
-//! ```
-//!
-//! An unknown key is refused: a misspelled option that was ignored would read
-//! as a setting that did not work.
+//! The patch is a file of its own, named on the command line. The format is
+//! `docs/dmx.md` 2. An unknown key is refused: a misspelled option that was
+//! ignored would read as a setting that did not work.
 //!
 //! [`Patch::load`] reads the file and checks what the file alone states.
 //! [`Patch::resolve`] joins it to the devices the bridge found, and that is
-//! where the width, the overlaps and the personalities are checked. See
-//! `docs/dmx.md`.
+//! where the width, the overlaps and the personalities are checked.
 
 mod address;
 mod entry;
@@ -101,14 +75,12 @@ pub struct Node {
     pub bind: IpAddr,
     /// What the desk shows in its node list.
     pub name: String,
-    /// How long a device goes without a write before the bridge sends the
-    /// current values once.
+    /// Seconds. The default is [`REFRESH_SECS`].
     pub refresh_secs: u64,
-    /// How long a fixture waits for a frame before `on_signal_loss` decides
-    /// what it shows.
+    /// Seconds. The default is [`SIGNAL_LOSS_SECS`].
     pub signal_loss_secs: u64,
-    /// How long a fixture stays on and black before the dimmer at 0 powers it
-    /// off. `0` powers it off at once.
+    /// Seconds, and `0` powers a fixture off at once. The default is
+    /// [`OFF_DELAY_SECS`].
     pub off_delay_secs: u64,
 }
 

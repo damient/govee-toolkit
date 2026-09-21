@@ -21,8 +21,7 @@ use govee_toolkit_dmx::profile::{Personality, UNIVERSE};
 
 mod cmd;
 
-/// The personality `--personality widest` names: the widest one the device
-/// serves, which a long strip can take a whole universe for.
+/// The spelling for the widest layout the device serves.
 const WIDEST: &str = "widest";
 
 #[derive(Debug, Parser)]
@@ -184,7 +183,6 @@ impl Command {
     }
 }
 
-/// What a scan asks of the patch file.
 fn options(
     personality: &str,
     universe: u16,
@@ -212,7 +210,6 @@ fn options(
     })
 }
 
-/// What the command line asks of one identify walk.
 fn walk(color: &str, wait_ms: u64, hold_ms: u64, keep: bool) -> Result<Walk, Failure> {
     Ok(Walk {
         pass: Identify {
@@ -222,16 +219,12 @@ fn walk(color: &str, wait_ms: u64, hold_ms: u64, keep: bool) -> Result<Walk, Fai
         wait: Duration::from_millis(wait_ms),
         hold: Duration::from_millis(hold_ms),
         keep,
-        // The bridge drives a device over `lan` and substitutes no other
-        // mode, so the walk answers for the rig on the network.
+        // The bridge drives a device over `lan` alone.
         mode: Mode::Lan,
     })
 }
 
-/// What the command line asks one walk to light.
-///
-/// `--address` without `--universe` reads universe 0, which is where a desk
-/// with one universe patches everything.
+/// `--address` without `--universe` reads universe 0.
 fn chosen(
     targets: Vec<String>,
     universe: Option<u16>,
@@ -255,13 +248,12 @@ fn chosen(
     })
 }
 
-/// One `#RRGGBB`, as a person types it on a desk.
 fn rgb(text: &str) -> Result<[u8; 3], Failure> {
     coerce::rgb(text)
         .ok_or_else(|| Failure::usage(format!("`{text}` is not a color; write `#RRGGBB`")))
 }
 
-/// How every personality is spelled here, `widest` included.
+/// Every personality spelling, `widest` included.
 fn spellings() -> String {
     format!("{}, `{WIDEST}`", cmd::spellings())
 }
@@ -275,7 +267,6 @@ fn main() -> ExitCode {
     }
 }
 
-/// Run what the command line asks for.
 fn dispatch(command: Command, writer: Writer) -> Result<(), Failure> {
     match command {
         Command::Profile {

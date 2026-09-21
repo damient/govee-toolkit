@@ -63,8 +63,6 @@ fn captures<T: serde::de::DeserializeOwned>(dir: &Path) -> Vec<(String, Vec<u8>,
     captures
 }
 
-/// Every capture under `tests/fixtures/artnet/` parses to the channels the
-/// sender showed.
 #[test]
 fn every_capture_produces_the_channels_the_sender_showed() {
     for (path, bytes, expected) in captures::<Expected>(&capture_dir()) {
@@ -88,7 +86,6 @@ fn every_capture_produces_the_channels_the_sender_showed() {
     }
 }
 
-/// Every capture under `tests/fixtures/artnet/poll/` reads as the poll it is.
 #[test]
 fn every_poll_capture_reads_as_a_poll() {
     for (path, bytes, expected) in captures::<Polled>(&capture_dir().join("poll")) {

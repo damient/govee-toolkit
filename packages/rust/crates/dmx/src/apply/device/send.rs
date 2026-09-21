@@ -36,9 +36,7 @@ pub(super) enum Dark {
 enum Step {
     /// The fixture is already dark, and the power off is not due.
     Nothing,
-    /// Take every color to 0 and leave the device on.
     Black(Look),
-    /// Power the device off.
     Off,
 }
 
@@ -57,11 +55,9 @@ impl Feeder {
     /// Wait out the mode's command gap since the last datagram to this
     /// device.
     ///
-    /// The wait spans two passes: a dimmer taken to 0 and straight back up
-    /// writes the power off and the power on from two passes, and a device
-    /// that reads them back to back can apply them in the other order. A pass
-    /// that changes one slot, behind a quiet device, waits not at all, so a
-    /// color chase pays nothing.
+    /// The wait spans two passes: a device that reads a power off and the
+    /// power on that follows back to back can apply them in the other order.
+    /// A pass behind a quiet device waits not at all.
     ///
     /// # Errors
     ///
@@ -76,7 +72,7 @@ impl Feeder {
         Ok(())
     }
 
-    /// Note the datagram that just went out, which the next one waits behind.
+    /// The next datagram waits behind this one.
     pub(super) fn mark(&mut self) {
         self.last_sent = Some(Instant::now());
     }
@@ -178,11 +174,8 @@ impl Feeder {
         Ok(true)
     }
 
-    /// What a look at dimmer 0 asks of the device.
-    ///
     /// The first pass takes the fixture dark and leaves it on. The power off
-    /// follows one off delay later, and an off delay of zero powers the
-    /// device off at once.
+    /// follows one off delay later.
     fn darken(&mut self, look: &Look) -> Step {
         match self.dark {
             Dark::Off => Step::Nothing,

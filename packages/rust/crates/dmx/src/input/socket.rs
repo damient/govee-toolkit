@@ -76,7 +76,6 @@ impl Listener {
             .map_err(open("SO_REUSEADDR"))?;
         #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
         socket.set_reuse_port(true).map_err(open("SO_REUSEPORT"))?;
-        // What `ArtPollReply` goes out as.
         socket.set_broadcast(true).map_err(open("SO_BROADCAST"))?;
         socket.bind(&address.into()).map_err(|e| Error::Bind {
             address,
@@ -115,10 +114,8 @@ impl Listener {
 
     /// The address of the interface that reaches `peer`.
     ///
-    /// It connects a socket of its own, which puts no datagram on the network:
-    /// a connected UDP socket fixes a route and nothing else. `ArtPollReply`
-    /// carries this address, and the node binds `0.0.0.0`, which carries
-    /// nothing a desk can send to.
+    /// It connects a socket of its own, which puts no datagram on the
+    /// network: a connected UDP socket fixes a route and nothing else.
     ///
     /// `None` where the host has no route to `peer`.
     #[must_use]
@@ -176,8 +173,6 @@ mod tests {
         assert_eq!(source, from);
     }
 
-    /// Port 6454 is fixed by the protocol, so two nodes on one host must both
-    /// start.
     #[tokio::test]
     async fn two_listeners_take_one_port() {
         let first = Listener::bind(loopback()).expect("the socket binds");

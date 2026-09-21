@@ -30,8 +30,7 @@ pub const PORT: u16 = 6454;
 const ID: &[u8; 8] = b"Art-Net\0";
 /// The opcode of an `ArtDmx` packet, which carries the channel values.
 const OP_DMX: u16 = 0x5000;
-/// The opcode of an `ArtPoll` packet, which asks every node to announce
-/// itself.
+/// The opcode of an `ArtPoll` packet, which asks a node to announce itself.
 const OP_POLL: u16 = 0x2000;
 /// The opcode of the answer to a poll.
 const OP_POLL_REPLY: u16 = 0x2100;
@@ -50,10 +49,6 @@ const MIN_LENGTH: u16 = 2;
 const PORT_ADDRESS: u16 = 0x7FFF;
 
 /// What a datagram on port 6454 turns out to be.
-///
-/// One variant carries a universe and the other carries an opcode. A box
-/// around the wide one would allocate once per received packet, which the
-/// receive path does not pay.
 #[expect(
     clippy::large_enum_variant,
     reason = "the receive path allocates nothing"

@@ -18,8 +18,8 @@ use self::common::{
     GONE, REACHED, SILENCE, govee, lit, rig, simulator, timing, wait_for, wait_for_lit,
 };
 
-/// A show does not stop because one fixture dropped: the device that never
-/// answered reports its failure, and the one that did takes the whole look.
+/// The device that never answered reports its failure, and the one that did
+/// takes the whole look.
 #[tokio::test]
 async fn a_device_that_fails_stops_no_other_fixture() {
     let simulator = simulator().await;
@@ -90,9 +90,9 @@ async fn a_silent_sender_powers_an_off_fixture_down() {
     applier.close().await;
 }
 
-/// A white command replaces the color on the device. The white channel back
-/// at 0 sends no white command, so the color goes out again: without it the
-/// fixture stays white, and the desk has no way to take it out.
+/// A white command replaces the color on the device, so the white channel
+/// back at 0 sends the color again. Nothing else takes the device out of
+/// white.
 #[tokio::test]
 async fn the_white_channel_back_at_zero_paints_the_color_again() {
     let simulator = simulator().await;
@@ -148,10 +148,8 @@ fn white() -> Look {
     }
 }
 
-/// A white command replaces the color on the device, so a pass that carries
-/// both writes the white one alone. The color would show for the few
-/// milliseconds before it, which reads as a blink on the way back up from a
-/// dimmer at 0.
+/// A pass that carries both writes the white one alone: the color would show
+/// for the few milliseconds before it, which reads as a blink.
 #[tokio::test]
 async fn a_pass_that_carries_a_white_temperature_writes_no_color() {
     let simulator = simulator().await;

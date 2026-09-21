@@ -99,7 +99,6 @@ pub(crate) async fn govee(simulator: &Simulator) -> Govee {
     }
 }
 
-/// A look that powers the fixture on and paints it.
 pub(crate) fn lit() -> Look {
     Look {
         on: true,
@@ -141,7 +140,6 @@ pub(crate) async fn wait_for<T>(mut check: impl FnMut() -> Option<T>) -> Option<
     check()
 }
 
-/// The simulated device, on the loopback.
 pub(crate) async fn simulator() -> Simulator {
     Simulator::start(Options::loopback(REACHED, SKU))
         .await
@@ -157,7 +155,6 @@ pub(crate) fn timing() -> Timing {
     }
 }
 
-/// The commands the simulator took, in order.
 pub(crate) fn cmds(simulator: &Simulator) -> Vec<String> {
     simulator
         .received()
@@ -184,7 +181,6 @@ pub(crate) fn artdmx(universe: u16, sequence: u8, slots: &[u8]) -> Vec<u8> {
     bytes
 }
 
-/// The data of the first datagram the simulator took under `cmd`.
 pub(crate) fn payload(simulator: &Simulator, cmd: &str) -> Option<serde_json::Value> {
     simulator
         .received()

@@ -1,10 +1,7 @@
 //! When a fixture that failed is written to again.
 //!
-//! A device that dropped off the network fails every write, and a desk sends
-//! up to 44 frames per second. A retry per frame would put 44 failures per
-//! second on the link and 44 lines in front of the operator. The wait
-//! therefore doubles from [`FIRST`] to [`LONGEST`], and a write that lands
-//! clears it — see `docs/dmx.md`.
+//! The wait doubles from [`FIRST`] to [`LONGEST`], and a write that lands
+//! clears it — see `docs/dmx.md` 3.3.
 
 use std::time::Duration;
 
@@ -62,8 +59,6 @@ mod tests {
 
     use super::{Backoff, FIRST, LONGEST};
 
-    /// The wait doubles to the cap, so a device that is gone for a show costs
-    /// one attempt every 8 seconds.
     #[tokio::test]
     async fn the_wait_doubles_to_the_cap() {
         let mut backoff = Backoff::default();
@@ -88,7 +83,6 @@ mod tests {
         assert_eq!(backoff.ready(), Some(now + FIRST));
     }
 
-    /// The wait is over once it passed, and the fixture then tries once.
     #[tokio::test]
     async fn the_wait_ends() {
         let mut backoff = Backoff::default();

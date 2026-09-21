@@ -59,9 +59,6 @@ pub(crate) fn personality_table(catalog: &Catalog) -> String {
 }
 
 /// The scale of the dimmer and of the white channel, per device.
-///
-/// A step count under 255 is what the operator needs: the desk sends 255
-/// values and the device applies fewer, so a slow fade lands stepped.
 pub(crate) fn scale_table(catalog: &Catalog) -> String {
     let mut out = String::from(
         "| SKU | Dimmer | Dimmer steps | White temperature | White steps |\n\

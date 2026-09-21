@@ -1,8 +1,5 @@
-//! `run`: receive Art-Net, and drive the patched devices.
-//!
-//! `--dry-run` stops before the send path. It prints every frame and what each
-//! fixture reads out of it, and it writes to no device: that is what debugs a
-//! patch before any device is at risk.
+//! `run`: receive Art-Net, and drive the patched devices — see
+//! `docs/dmx.md` 4.2.
 
 use std::net::SocketAddr;
 use std::path::Path;
@@ -107,10 +104,9 @@ async fn run(
 
 /// Store black on every driven fixture, and leave the fixture off.
 ///
-/// A device shows the color that it held when it next comes on. A frame that
-/// raises the dimmer powers the device on before the color of the frame
-/// reaches it, so a device that holds a color from an earlier run shows that
-/// color for a few milliseconds. Black shows nothing.
+/// A frame that raises the dimmer powers the device on before the color of
+/// that frame reaches it, so a device holding a color from an earlier run
+/// shows it for a few milliseconds. Black shows nothing.
 ///
 /// One task per fixture. A fixture that refuses the pass stops no other one:
 /// the node reports it again on the first frame.

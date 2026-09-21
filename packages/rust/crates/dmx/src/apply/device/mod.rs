@@ -1,12 +1,8 @@
 //! One fixture's send path.
 //!
 //! One task per fixture: a failing device therefore stops no other one. The
-//! task holds what it last sent and writes only what changed, and it sends the
-//! current values again after the refresh interval — see `docs/dmx.md`.
-//!
-//! The task keeps two other waits: what the patch shows after the sender goes
-//! quiet, and the backoff that a device which stopped answering is retried
-//! on. [`send`] holds what one pass puts on the wire.
+//! task holds what it last sent and writes only what changed — see
+//! `docs/dmx.md` 3. [`send`] holds what one pass puts on the wire.
 
 mod send;
 
@@ -33,14 +29,11 @@ pub(super) struct Feeder {
     options: Option<StreamOptions>,
     stream: Option<SegmentStream>,
     timing: Timing,
-    /// What the fixture shows once the sender goes quiet.
     loss: SignalLoss,
     backoff: Backoff,
-    /// The rate the fixture takes writes at.
     pace: Pace,
     /// A look the pace held, which the next due write carries.
     held: bool,
-    /// What the fixture does at dimmer 0.
     dark: Dark,
     sent: Sent,
     /// When the last datagram went out to this device. The next one waits
@@ -53,9 +46,8 @@ pub(super) struct Feeder {
 }
 
 impl Feeder {
-    /// The device, over `lan` alone. The bridge substitutes no mode where the
-    /// device stops answering: it reports the device unreachable instead —
-    /// `docs/dmx.md`.
+    /// The device, over `lan` alone. A device that stops answering is
+    /// reported unreachable, and no other mode is substituted.
     fn device(&self) -> DeviceHandle<'_> {
         self.govee.device_on(&self.id, Mode::Lan)
     }
@@ -92,9 +84,6 @@ impl Feeder {
 }
 
 /// Take looks until the node stops, then disarm and answer the counters.
-///
-/// Three waits end a pass: a look that arrived, the write that a refresh or a
-/// backoff makes due, and the silence that the patch answers.
 pub(super) async fn run(mut feeder: Feeder, mut looks: watch::Receiver<(u64, Look)>) -> Counts {
     let mut taken = 0u64;
     // One buffer for the whole run: a look copied into it keeps the zone
@@ -102,8 +91,7 @@ pub(super) async fn run(mut feeder: Feeder, mut looks: watch::Receiver<(u64, Loo
     let mut look = Look::default();
     let mut due = Instant::now() + feeder.timing.refresh;
     let mut quiet = Instant::now();
-    // The first look arms it: a rig waits dark for the desk rather than going
-    // to the signal loss answer at start.
+    // The first look arms it.
     let mut armed = false;
     loop {
         tokio::select! {
@@ -161,8 +149,7 @@ impl Feeder {
             return false;
         }
         if self.pace.holds(now) {
-            // The desk sends above what the device takes, which is the count
-            // the operator reads to see it.
+            // The desk sends above what the device takes.
             self.counts.frames_superseded += 1;
             self.held = true;
             return false;
@@ -240,14 +227,12 @@ impl Feeder {
         self.apply(&look).await
     }
 
-    /// Forget a stream whose device stopped answering. Its counters are kept
-    /// and the next write opens a new one: a disarming frame has nothing to
-    /// reach.
+    /// Forget a stream whose device stopped answering: a disarming frame has
+    /// nothing to reach. The next write opens a new one.
     fn discard(&mut self) {
         drop(self.take_stream());
     }
 
-    /// Take the stream out and carry what it sent into the counters.
     fn take_stream(&mut self) -> Option<SegmentStream> {
         let stream = self.stream.take()?;
         self.counts.frames_sent += stream.frames_sent();
@@ -255,7 +240,6 @@ impl Feeder {
         Some(stream)
     }
 
-    /// Disarm the channel, and carry what it sent into the counters.
     async fn close(&mut self) {
         let Some(stream) = self.take_stream() else {
             return;
@@ -271,8 +255,7 @@ impl Feeder {
         self.counts
     }
 
-    /// Report a failure, and keep the fixture running: a show does not stop
-    /// because one device dropped.
+    /// Report a failure, and keep the fixture running.
     fn failed(&self, error: &Error) {
         let failure = Failure {
             id: self.id.clone(),

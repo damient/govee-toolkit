@@ -1,9 +1,8 @@
 //! Where a device the scan found goes in the patch.
 //!
-//! The plan adds entries and moves none: an address an operator already set on
-//! a desk is the one thing the bridge must not change. A device the file
-//! already carries is left alone, enabled or not, so a fixture that was taken
-//! out of the rig does not come back at the next scan.
+//! The plan adds entries and moves none: an address an operator already set
+//! on a desk is the one thing the bridge must not change — see
+//! `docs/dmx.md` 4.1.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -130,7 +129,6 @@ impl Patch {
         Ok(plan)
     }
 
-    /// The channels every entry of the file already holds.
     fn taken<'a>(
         &self,
         found: &BTreeMap<&DeviceId, &Device>,
@@ -204,7 +202,6 @@ impl Taken {
     }
 }
 
-/// One candidate, placed on the lowest free channels from `first`.
 fn place(
     candidate: &Candidate<'_>,
     layout: Layout,
@@ -233,7 +230,6 @@ fn place(
     ))
 }
 
-/// The channel table a new entry takes.
 fn table(device: &Device, layout: Layout) -> Result<(Personality, Profile), String> {
     match layout {
         Layout::Fixed(personality) => Profile::of(device, personality)

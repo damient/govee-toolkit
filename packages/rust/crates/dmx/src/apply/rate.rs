@@ -1,11 +1,8 @@
 //! How often one fixture accepts a write.
 //!
-//! A desk sends up to 44 frames per second, and a fader that moves changes a
-//! value on every one of them. The device accepts far less: it answers no
-//! verification under that rate, and the mode goes unavailable. The stream
-//! reads its rate from the device file, and a command carries no such
-//! measurement, so the bridge holds the latest look and writes it at
-//! [`FALLBACK_HZ`] — see `docs/dmx.md`.
+//! A zone personality streams, and the stream reads its rate from the device
+//! file. A command carries no such measurement, so the bridge holds the
+//! latest look and writes it at [`FALLBACK_HZ`] — see `docs/dmx.md` 3.
 
 use std::time::Duration;
 
@@ -81,8 +78,7 @@ mod tests {
         assert_eq!(pace.ready(), Some(now + interval));
     }
 
-    /// A rate of 0 divides by zero. The patch refuses it, and this is the
-    /// second door.
+    /// A rate of 0 divides by zero.
     #[tokio::test]
     async fn a_rate_of_zero_takes_the_fallback() {
         let mut pace = Pace::new(Some(0.0));
