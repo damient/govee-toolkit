@@ -86,26 +86,48 @@ fn read(target: &str) -> Result<(Selector, bool), Error> {
         let value = value.trim();
         if value.is_empty() {
             return Err(Error::EmptyValue {
-                prefix: kind.to_owned(),
+                prefix: kind.as_str().to_owned(),
             });
         }
-        let selector = match kind {
-            ID => Selector::Id(DeviceId::new(value)),
-            SKU => Selector::Sku(value.to_uppercase()),
-            _ => Selector::Name(value.to_owned()),
-        };
-        return Ok((selector, true));
+        return Ok((kind.read(value), true));
     }
     Ok((bare(target), false))
 }
 
+/// What a prefix states a target is.
+#[derive(Debug, Clone, Copy)]
+enum Kind {
+    Id,
+    Sku,
+    Name,
+}
+
+impl Kind {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Id => ID,
+            Self::Sku => SKU,
+            Self::Name => NAME,
+        }
+    }
+
+    /// The selector this kind reads `value` as.
+    fn read(self, value: &str) -> Selector {
+        match self {
+            Self::Id => Selector::Id(DeviceId::new(value)),
+            Self::Sku => Selector::Sku(value.to_uppercase()),
+            Self::Name => Selector::Name(value.to_owned()),
+        }
+    }
+}
+
 /// The kind a prefix names, where it names one. `AA:BB:…` reaches this with
 /// `AA` and takes the shape path instead.
-fn kind(prefix: &str) -> Option<&'static str> {
+fn kind(prefix: &str) -> Option<Kind> {
     match prefix.trim().to_ascii_lowercase().as_str() {
-        ID => Some(ID),
-        SKU => Some(SKU),
-        NAME => Some(NAME),
+        ID => Some(Kind::Id),
+        SKU => Some(Kind::Sku),
+        NAME => Some(Kind::Name),
         _ => None,
     }
 }
