@@ -33,3 +33,6 @@ export function inline(text) {
 export function slugify(text) {
   return text.toLowerCase().replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
 }
+
+/** What a cell shows where the catalog carries no answer. */
+export const DASH = '<span class="muted">—</span>';

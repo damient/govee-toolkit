@@ -3,7 +3,7 @@
 // `govee-toolkit-dmx` from the device file, so this page and the DMX bridge
 // cannot disagree. Nothing below derives a channel of its own.
 
-import { escapeAttr, escapeHtml } from "./html.mjs";
+import { DASH, escapeAttr, escapeHtml } from "./html.mjs";
 import { icon, slotIcon } from "./icons.mjs";
 
 // A slot kind as a reader reads it. An unknown kind falls back to its own
@@ -14,7 +14,6 @@ const SLOTS = new Map([
   ["mode", "Mode"],
 ]);
 
-const DASH = '<span class="muted">—</span>';
 
 // A slot that drives a capability carries that capability's mark, so a reader
 // finds the same icon and the same color as in the lists above. `mode` drives
