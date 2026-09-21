@@ -74,13 +74,12 @@ pub(crate) fn start(
             .await
             .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
         scan(&govee).await?;
-        let outcome = match resolve(&govee, &patch) {
-            Ok(rig) => match lit(&govee, &rig, chosen) {
-                Ok(fixtures) => run(&govee, &rig, &fixtures, walk, as_json).await,
-                Err(failure) => Err(failure),
-            },
-            Err(failure) => Err(failure),
-        };
+        let outcome = async {
+            let rig = resolve(&govee, &patch)?;
+            let fixtures = lit(&govee, &rig, chosen)?;
+            run(&govee, &rig, &fixtures, walk, as_json).await
+        }
+        .await;
         govee
             .shutdown()
             .await
@@ -251,17 +250,11 @@ async fn off(govee: &Govee, fixtures: &[Fixture], as_json: bool) -> Vec<DeviceId
 fn announce(fixture: &Fixture, as_json: bool) {
     let id = &fixture.entry.device;
     if as_json {
-        println!(
-            "{}",
-            json!({
-                "event": "identify",
-                "device": id.to_string(),
-                "universe": fixture.universe.get(),
-                "first": fixture.span.first,
-                "last": fixture.span.last,
-                "personality": fixture.profile.personality().as_str(),
-            })
-        );
+        let mut record = fixture.json();
+        if let Some(object) = record.as_object_mut() {
+            object.insert("event".to_owned(), json!("identify"));
+        }
+        println!("{record}");
         return;
     }
     println!("identify {id}  {}", fixture.span);

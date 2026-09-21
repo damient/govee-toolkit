@@ -15,7 +15,7 @@ use std::time::Duration;
 use clap::{Parser, Subcommand};
 use govee_toolkit::Identify;
 use govee_toolkit::codec::coerce;
-use govee_toolkit_dmx::patch::{Layout, MAX_PORT_ADDRESS, PortAddress};
+use govee_toolkit_dmx::patch::Layout;
 use govee_toolkit_dmx::profile::{Personality, UNIVERSE};
 
 mod cmd;
@@ -173,7 +173,6 @@ enum Command {
 }
 
 impl Command {
-    /// Whether this invocation asked for the machine form.
     const fn as_json(&self) -> bool {
         match self {
             Self::Profile { json, .. }
@@ -206,12 +205,7 @@ fn options(
                 )
             })?
     };
-    let first = PortAddress::new(universe).ok_or_else(|| {
-        cmd::Failure::new(
-            format!("universe {universe} is over the {MAX_PORT_ADDRESS} Art-Net holds"),
-            cmd::USAGE,
-        )
-    })?;
+    let first = cmd::port_address(universe)?;
     Ok(cmd::patch::Options {
         layout,
         first,
@@ -249,15 +243,7 @@ fn chosen(
 ) -> Result<cmd::identify::Chosen, cmd::Failure> {
     let port = match (universe, address) {
         (None, None) => None,
-        (universe, _) => Some(PortAddress::new(universe.unwrap_or(0)).ok_or_else(|| {
-            cmd::Failure::new(
-                format!(
-                    "universe {} is over the {MAX_PORT_ADDRESS} Art-Net holds",
-                    universe.unwrap_or(0)
-                ),
-                cmd::USAGE,
-            )
-        })?),
+        (universe, _) => Some(cmd::port_address(universe.unwrap_or(0))?),
     };
     if let Some(channel) = address
         && (channel == 0 || channel > UNIVERSE)
@@ -284,19 +270,23 @@ fn rgb(text: &str) -> Result<[u8; 3], cmd::Failure> {
     })
 }
 
+/// How every personality is spelled here, `widest` included.
 fn spellings() -> String {
-    Personality::ALL
-        .iter()
-        .map(|personality| format!("`{personality}`"))
-        .chain(std::iter::once(format!("`{WIDEST}`")))
-        .collect::<Vec<_>>()
-        .join(", ")
+    format!("{}, `{WIDEST}`", cmd::spellings())
 }
 
 fn main() -> ExitCode {
     let Cli { command } = Cli::parse();
     let as_json = command.as_json();
-    let outcome = match command {
+    match dispatch(command) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(failure) => failure.report(as_json),
+    }
+}
+
+/// Run what the command line asks for.
+fn dispatch(command: Command) -> Result<(), cmd::Failure> {
+    match command {
         Command::Profile {
             sku,
             personality,
@@ -310,10 +300,10 @@ fn main() -> ExitCode {
             dry_run,
             config,
             json,
-        } => match options(&personality, universe, reset, dry_run) {
-            Ok(options) => cmd::patch::start(patch.as_deref(), options, config.as_deref(), json),
-            Err(failure) => Err(failure),
-        },
+        } => {
+            let options = options(&personality, universe, reset, dry_run)?;
+            cmd::patch::start(patch.as_deref(), options, config.as_deref(), json)
+        }
         Command::Identify {
             targets,
             universe,
@@ -325,14 +315,11 @@ fn main() -> ExitCode {
             keep,
             config,
             json,
-        } => match walk(&color, wait_ms, hold_ms, keep)
-            .and_then(|walk| Ok((walk, chosen(targets, universe, address)?)))
-        {
-            Ok((walk, chosen)) => {
-                cmd::identify::start(patch.as_deref(), &chosen, walk, config.as_deref(), json)
-            }
-            Err(failure) => Err(failure),
-        },
+        } => {
+            let walk = walk(&color, wait_ms, hold_ms, keep)?;
+            let chosen = chosen(targets, universe, address)?;
+            cmd::identify::start(patch.as_deref(), &chosen, walk, config.as_deref(), json)
+        }
         Command::Run {
             patch,
             scan,
@@ -343,26 +330,20 @@ fn main() -> ExitCode {
             debug,
             config,
             json,
-        } => match options(&personality, universe, false, false) {
-            Ok(options) => {
-                cmd::trace(debug);
-                cmd::run::start(
-                    patch.as_deref(),
-                    scan.then_some(options),
-                    cmd::run::Flags {
-                        dry_run,
-                        no_reset,
-                        debug,
-                    },
-                    config.as_deref(),
-                    json,
-                )
-            }
-            Err(failure) => Err(failure),
-        },
-    };
-    match outcome {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(failure) => failure.report(as_json),
+        } => {
+            let options = options(&personality, universe, false, false)?;
+            cmd::trace(debug);
+            cmd::run::start(
+                patch.as_deref(),
+                scan.then_some(options),
+                cmd::run::Flags {
+                    dry_run,
+                    no_reset,
+                    debug,
+                },
+                config.as_deref(),
+                json,
+            )
+        }
     }
 }

@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use govee_toolkit::DeviceId;
 use govee_toolkit::codec::Device;
+use serde_json::{Value, json};
 
 use super::Patch;
 use super::address::PortAddress;
@@ -28,6 +29,20 @@ pub struct Fixture {
     pub profile: Profile,
     /// The channels it takes, inside `universe`.
     pub span: Span,
+}
+
+impl Fixture {
+    /// The fixture, as every `--json` form of the node names it.
+    #[must_use]
+    pub fn json(&self) -> Value {
+        json!({
+            "device": self.entry.device.to_string(),
+            "universe": self.universe.get(),
+            "first": self.span.first,
+            "last": self.span.last,
+            "personality": self.profile.personality().as_str(),
+        })
+    }
 }
 
 /// Every fixture of a patch, checked.
