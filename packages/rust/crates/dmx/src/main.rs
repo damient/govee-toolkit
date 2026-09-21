@@ -14,6 +14,7 @@ use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 use govee_toolkit::codec::{Mode, coerce};
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{Identify, Walk};
 use govee_toolkit_dmx::patch::Layout;
 use govee_toolkit_dmx::profile::{Personality, UNIVERSE};
@@ -189,20 +190,17 @@ fn options(
     universe: u16,
     reset: bool,
     dry_run: bool,
-) -> Result<cmd::patch::Options, cmd::Failure> {
+) -> Result<cmd::patch::Options, Failure> {
     let layout = if personality == WIDEST {
         Layout::Widest
     } else {
         Personality::parse(personality)
             .map(Layout::Fixed)
             .ok_or_else(|| {
-                cmd::Failure::new(
-                    format!(
-                        "unknown personality `{personality}`; expected {}",
-                        spellings()
-                    ),
-                    cmd::USAGE,
-                )
+                Failure::usage(format!(
+                    "unknown personality `{personality}`; expected {}",
+                    spellings()
+                ))
             })?
     };
     let first = cmd::port_address(universe)?;
@@ -215,7 +213,7 @@ fn options(
 }
 
 /// What the command line asks of one identify walk.
-fn walk(color: &str, wait_ms: u64, hold_ms: u64, keep: bool) -> Result<Walk, cmd::Failure> {
+fn walk(color: &str, wait_ms: u64, hold_ms: u64, keep: bool) -> Result<Walk, Failure> {
     Ok(Walk {
         pass: Identify {
             color: rgb(color)?,
@@ -238,7 +236,7 @@ fn chosen(
     targets: Vec<String>,
     universe: Option<u16>,
     address: Option<u16>,
-) -> Result<cmd::identify::Chosen, cmd::Failure> {
+) -> Result<cmd::identify::Chosen, Failure> {
     let port = match (universe, address) {
         (None, None) => None,
         (universe, _) => Some(cmd::port_address(universe.unwrap_or(0))?),
@@ -246,10 +244,9 @@ fn chosen(
     if let Some(channel) = address
         && (channel == 0 || channel > UNIVERSE)
     {
-        return Err(cmd::Failure::new(
-            format!("channel {channel} is outside the 1 to {UNIVERSE} a universe carries"),
-            cmd::USAGE,
-        ));
+        return Err(Failure::usage(format!(
+            "channel {channel} is outside the 1 to {UNIVERSE} a universe carries"
+        )));
     }
     Ok(cmd::identify::Chosen {
         targets,
@@ -259,13 +256,9 @@ fn chosen(
 }
 
 /// One `#RRGGBB`, as a person types it on a desk.
-fn rgb(text: &str) -> Result<[u8; 3], cmd::Failure> {
-    coerce::rgb(text).ok_or_else(|| {
-        cmd::Failure::new(
-            format!("`{text}` is not a color; write `#RRGGBB`"),
-            cmd::USAGE,
-        )
-    })
+fn rgb(text: &str) -> Result<[u8; 3], Failure> {
+    coerce::rgb(text)
+        .ok_or_else(|| Failure::usage(format!("`{text}` is not a color; write `#RRGGBB`")))
 }
 
 /// How every personality is spelled here, `widest` included.
@@ -275,21 +268,21 @@ fn spellings() -> String {
 
 fn main() -> ExitCode {
     let Cli { command } = Cli::parse();
-    let as_json = command.as_json();
-    match dispatch(command) {
+    let writer = Writer::new(command.as_json());
+    match dispatch(command, writer) {
         Ok(()) => ExitCode::SUCCESS,
-        Err(failure) => failure.report(as_json),
+        Err(failure) => writer.failure(&failure),
     }
 }
 
 /// Run what the command line asks for.
-fn dispatch(command: Command) -> Result<(), cmd::Failure> {
+fn dispatch(command: Command, writer: Writer) -> Result<(), Failure> {
     match command {
         Command::Profile {
             sku,
             personality,
-            json,
-        } => cmd::profile::run(&sku, personality.as_deref(), json),
+            json: _,
+        } => cmd::profile::run(&sku, personality.as_deref(), writer),
         Command::Patch {
             patch,
             personality,
@@ -297,10 +290,10 @@ fn dispatch(command: Command) -> Result<(), cmd::Failure> {
             reset,
             dry_run,
             config,
-            json,
+            json: _,
         } => {
             let options = options(&personality, universe, reset, dry_run)?;
-            cmd::patch::start(patch.as_deref(), options, config.as_deref(), json)
+            cmd::patch::start(patch.as_deref(), options, config.as_deref(), writer)
         }
         Command::Identify {
             targets,
@@ -312,11 +305,11 @@ fn dispatch(command: Command) -> Result<(), cmd::Failure> {
             hold_ms,
             keep,
             config,
-            json,
+            json: _,
         } => {
             let walk = walk(&color, wait_ms, hold_ms, keep)?;
             let chosen = chosen(targets, universe, address)?;
-            cmd::identify::start(patch.as_deref(), &chosen, walk, config.as_deref(), json)
+            cmd::identify::start(patch.as_deref(), &chosen, walk, config.as_deref(), writer)
         }
         Command::Run {
             patch,
@@ -327,7 +320,7 @@ fn dispatch(command: Command) -> Result<(), cmd::Failure> {
             no_reset,
             debug,
             config,
-            json,
+            json: _,
         } => {
             let options = options(&personality, universe, false, false)?;
             cmd::trace(debug);
@@ -340,7 +333,7 @@ fn dispatch(command: Command) -> Result<(), cmd::Failure> {
                     debug,
                 },
                 config.as_deref(),
-                json,
+                writer,
             )
         }
     }

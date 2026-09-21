@@ -7,12 +7,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{Device, DeviceId, Govee, Mode};
 use govee_toolkit_dmx::patch::{self, Candidate, Layout, Patch, Plan, PortAddress, Skip, stamp};
 use serde_json::{Value, json};
 
 use super::rig::{configure, lines, scan};
-use super::{CONFIG, Failure, INTERNAL};
 
 /// What the command line asks of one scan.
 #[derive(Debug, Clone, Copy)]
@@ -53,24 +53,24 @@ pub(crate) fn start(
     named: Option<&Path>,
     options: Options,
     config: Option<&Path>,
-    as_json: bool,
+    writer: Writer,
 ) -> Result<(), Failure> {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
+        .map_err(|e| Failure::internal(e.to_string()))?;
     let path = file(named);
     runtime.block_on(async {
         let govee = Govee::start(configure(config)?)
             .await
-            .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+            .map_err(|e| Failure::config(e.to_string()))?;
         let found = scan(&govee).await?;
         let outcome = update(&govee, &found, &path, options);
         govee
             .shutdown()
             .await
-            .map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
-        report(&outcome?, &path, as_json);
+            .map_err(|e| Failure::internal(e.to_string()))?;
+        report(&outcome?, &path, writer);
         Ok(())
     })
 }
@@ -83,8 +83,8 @@ pub(crate) fn start(
 ///
 /// # Errors
 ///
-/// [`CONFIG`] where the file cannot be read or written, does not parse, or
-/// states no width for an entry whose device did not answer.
+/// [`Failure::config`] where the file cannot be read or written, does not
+/// parse, or states no width for an entry whose device did not answer.
 pub(crate) fn update(
     govee: &Govee,
     found: &[Device],
@@ -93,7 +93,7 @@ pub(crate) fn update(
 ) -> Result<Written, Failure> {
     let text = read(path, options.reset)?;
     let current = Patch::parse(&text, &path.display().to_string())
-        .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+        .map_err(|e| Failure::config(e.to_string()))?;
     let mut ignored = Vec::new();
     let mut candidates = Vec::new();
     for device in found {
@@ -114,7 +114,7 @@ pub(crate) fn update(
         .plan(&candidates, options.layout, options.first, |sku| {
             catalog.device(sku).ok()
         })
-        .map_err(|errors| Failure::new(lines(&errors), CONFIG))?;
+        .map_err(|errors| Failure::config(lines(&errors)))?;
     let answered: BTreeSet<DeviceId> = found.iter().map(|device| device.id.clone()).collect();
     let states: BTreeMap<DeviceId, bool> = current
         .patch
@@ -188,12 +188,8 @@ fn read(path: &Path, reset: bool) -> Result<String, Failure> {
     if reset || !path.exists() {
         return Ok(String::new());
     }
-    std::fs::read_to_string(path).map_err(|e| {
-        Failure::new(
-            format!("cannot read the patch `{}`: {e}", path.display()),
-            CONFIG,
-        )
-    })
+    std::fs::read_to_string(path)
+        .map_err(|e| Failure::config(format!("cannot read the patch `{}`: {e}", path.display())))
 }
 
 /// Write the file, and keep the one a reset replaces.
@@ -201,84 +197,87 @@ fn write(path: &Path, text: &str, reset: bool) -> Result<(), Failure> {
     if let Some(parent) = path.parent()
         && !parent.as_os_str().is_empty()
     {
-        std::fs::create_dir_all(parent).map_err(|e| {
-            Failure::new(format!("cannot create `{}`: {e}", parent.display()), CONFIG)
-        })?;
+        std::fs::create_dir_all(parent)
+            .map_err(|e| Failure::config(format!("cannot create `{}`: {e}", parent.display())))?;
     }
     if reset && path.exists() {
         let backup = path.with_extension("yaml.bak");
         std::fs::rename(path, &backup).map_err(|e| {
-            Failure::new(
-                format!("cannot keep the patch as `{}`: {e}", backup.display()),
-                CONFIG,
-            )
+            Failure::config(format!(
+                "cannot keep the patch as `{}`: {e}",
+                backup.display()
+            ))
         })?;
     }
-    std::fs::write(path, text).map_err(|e| {
-        Failure::new(
-            format!("cannot write the patch `{}`: {e}", path.display()),
-            CONFIG,
-        )
-    })
+    std::fs::write(path, text)
+        .map_err(|e| Failure::config(format!("cannot write the patch `{}`: {e}", path.display())))
 }
 
 /// What the scan did, for a person and for a machine.
-pub(crate) fn report(written: &Written, path: &Path, as_json: bool) {
+pub(crate) fn report(written: &Written, path: &Path, writer: Writer) {
+    writer.emit(&record(written, path), &text(written, path));
+}
+
+/// What the scan did, as one record.
+fn record(written: &Written, path: &Path) -> Value {
     let plan = &written.plan;
-    if as_json {
-        let added: Vec<Value> = plan
-            .added
-            .iter()
-            .map(|placement| {
-                json!({
-                    "device": placement.device.to_string(),
-                    "sku": placement.sku,
-                    "personality": placement.personality.as_str(),
-                    "universe": placement.universe.get(),
-                    "address": placement.address,
-                    "width": placement.width,
-                })
-            })
-            .collect();
-        println!(
-            "{}",
+    let added: Vec<Value> = plan
+        .added
+        .iter()
+        .map(|placement| {
             json!({
-                "event": "patched",
-                "file": path.display().to_string(),
-                "written": written.wrote,
-                "scanned": written.scanned,
-                "kept": plan.kept,
-                "added": added,
-                "enabled": states(&written.flipped, true),
-                "disabled": states(&written.flipped, false),
-                "held": states(&written.held, true)
-                    .into_iter()
-                    .chain(states(&written.held, false))
-                    .collect::<Vec<_>>(),
-                "skipped": records(&plan.skipped),
-                "ignored": records(&written.ignored),
+                "device": placement.device.to_string(),
+                "sku": placement.sku,
+                "personality": placement.personality.as_str(),
+                "universe": placement.universe.get(),
+                "address": placement.address,
+                "width": placement.width,
             })
-        );
-        return;
-    }
-    println!("patch {}", path.display());
-    println!("scanned {}", written.scanned);
-    println!("kept {} entries", plan.kept);
+        })
+        .collect();
+    json!({
+        "event": "patched",
+        "file": path.display().to_string(),
+        "written": written.wrote,
+        "scanned": written.scanned,
+        "kept": plan.kept,
+        "added": added,
+        "enabled": states(&written.flipped, true),
+        "disabled": states(&written.flipped, false),
+        "held": states(&written.held, true)
+            .into_iter()
+            .chain(states(&written.held, false))
+            .collect::<Vec<_>>(),
+        "skipped": records(&plan.skipped),
+        "ignored": records(&written.ignored),
+    })
+}
+
+/// What the scan did, as the lines an operator reads.
+fn text(written: &Written, path: &Path) -> String {
+    let plan = &written.plan;
+    let mut lines = vec![
+        format!("patch {}", path.display()),
+        format!("scanned {}", written.scanned),
+        format!("kept {} entries", plan.kept),
+    ];
     for (device, state) in &written.held {
-        println!(
+        lines.push(format!(
             "held {device}  `hold:` keeps it, and the scan reads it {}",
             answer(*state)
-        );
+        ));
     }
     for (device, state) in &written.flipped {
         if *state {
-            println!("enabled {device}  it answers again");
+            lines.push(format!("enabled {device}  it answers again"));
         } else {
-            println!("disabled {device}  it did not answer, and keeps its channels");
+            lines.push(format!(
+                "disabled {device}  it did not answer, and keeps its channels"
+            ));
         }
     }
     for placement in &plan.added {
-        println!(
+        lines.push(format!(
             "added {}  {}  {}  universe {}  channels {} to {}",
             placement.device,
             placement.sku,
@@ -286,20 +285,21 @@ pub(crate) fn report(written: &Written, path: &Path, as_json: bool) {
             placement.universe,
             placement.address,
             placement.address + placement.width - 1
-        );
+        ));
     }
     for skipped in plan.skipped.iter().chain(&written.ignored) {
-        println!(
+        lines.push(format!(
             "skipped {}  {}: {}",
             skipped.device, skipped.sku, skipped.reason
-        );
+        ));
     }
     if plan.added.is_empty() && written.flipped.is_empty() && written.held.is_empty() {
-        println!("nothing to change");
+        lines.push("nothing to change".to_owned());
     }
     if !written.wrote {
-        println!("dry run: the file is unchanged");
+        lines.push("dry run: the file is unchanged".to_owned());
     }
+    lines.join("\n")
 }
 
 /// How the scan read a device.

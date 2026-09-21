@@ -5,10 +5,9 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use govee_toolkit::codec::Device;
+use govee_toolkit::exit::Failure;
 use govee_toolkit::{Config, DeviceId, Govee, Mode};
 use govee_toolkit_dmx::patch::{Patch, Rig};
-
-use super::{CONFIG, Failure, UNREACHABLE};
 
 /// Discover the rig, over `lan` alone.
 ///
@@ -19,12 +18,12 @@ use super::{CONFIG, Failure, UNREACHABLE};
 ///
 /// # Errors
 ///
-/// [`UNREACHABLE`] where the scan cannot be sent.
+/// [`Failure::unreachable`] where the scan cannot be sent.
 pub(crate) async fn scan(govee: &Govee) -> Result<Vec<govee_toolkit::Device>, Failure> {
     govee
         .scan_on(&[Mode::Lan])
         .await
-        .map_err(|e| Failure::new(e.to_string(), UNREACHABLE))
+        .map_err(|e| Failure::unreachable(e.to_string()))
 }
 
 /// The patch, joined to every device the SDK knows.
@@ -35,8 +34,8 @@ pub(crate) async fn scan(govee: &Govee) -> Result<Vec<govee_toolkit::Device>, Fa
 ///
 /// # Errors
 ///
-/// [`CONFIG`] for every fault of the patch, and [`UNREACHABLE`] where a
-/// patched device enables no `lan` mode.
+/// [`Failure::config`] for every fault of the patch, and
+/// [`Failure::unreachable`] where a patched device enables no `lan` mode.
 pub(crate) fn resolve(govee: &Govee, patch: &Patch) -> Result<Rig, Failure> {
     let found = govee.devices();
     let mut known: BTreeMap<DeviceId, &Device> = BTreeMap::new();
@@ -48,7 +47,7 @@ pub(crate) fn resolve(govee: &Govee, patch: &Patch) -> Result<Rig, Failure> {
     let catalog = govee.catalog();
     let rig = patch
         .resolve(|id| known.get(id).copied(), |sku| catalog.device(sku).ok())
-        .map_err(|errors| Failure::new(lines(&errors), CONFIG))?;
+        .map_err(|errors| Failure::config(lines(&errors)))?;
     lan_enabled(govee, &rig)?;
     Ok(rig)
 }
@@ -67,26 +66,23 @@ fn lan_enabled(govee: &Govee, rig: &Rig) -> Result<(), Failure> {
     if without.is_empty() {
         return Ok(());
     }
-    Err(Failure::new(
-        format!(
-            "these devices enable no `lan` mode: {}; the bridge drives a device over `lan` alone",
-            without.join(", ")
-        ),
-        UNREACHABLE,
-    ))
+    Err(Failure::unreachable(format!(
+        "these devices enable no `lan` mode: {}; the bridge drives a device over `lan` alone",
+        without.join(", ")
+    )))
 }
 
 /// The configuration the command line names, or the one `govee` reads.
 ///
 /// # Errors
 ///
-/// [`CONFIG`] where the file cannot be read or cannot be applied.
+/// [`Failure::config`] where the file cannot be read or cannot be applied.
 pub(crate) fn configure(path: Option<&Path>) -> Result<Config, Failure> {
     let config = match path {
         Some(path) => Config::load_from(path),
         None => Config::load(),
     };
-    config.map_err(|e| Failure::new(e.to_string(), CONFIG))
+    config.map_err(|e| Failure::config(e.to_string()))
 }
 
 /// Every fault of a patch, one per line: an operator corrects the whole patch

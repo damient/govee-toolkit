@@ -7,6 +7,7 @@
 use std::net::SocketAddr;
 
 use govee_toolkit::DeviceId;
+use govee_toolkit::exit::Writer;
 use govee_toolkit_dmx::apply::{Counts, Look};
 use govee_toolkit_dmx::input::UniverseFrame;
 use govee_toolkit_dmx::node::Observer;
@@ -16,7 +17,7 @@ use serde_json::{Value, json};
 /// The lines, or the records, one run writes.
 #[derive(Debug)]
 pub(crate) struct Printer {
-    as_json: bool,
+    writer: Writer,
     /// A dry run writes to no device, and prints every packet instead.
     dry_run: bool,
     /// Whether the run prints the answered polls. A desk polls every few
@@ -25,9 +26,9 @@ pub(crate) struct Printer {
 }
 
 impl Printer {
-    pub(crate) fn new(as_json: bool, dry_run: bool, debug: bool) -> Self {
+    pub(crate) const fn new(writer: Writer, dry_run: bool, debug: bool) -> Self {
         Self {
-            as_json,
+            writer,
             dry_run,
             debug,
         }
@@ -37,7 +38,7 @@ impl Printer {
     pub(crate) fn started(&self, bound: Option<SocketAddr>, patch: &Patch, rig: &Rig) {
         let address = bound.map_or_else(|| patch.node.bind.to_string(), |a| a.to_string());
         let fixtures: Vec<Value> = rig.fixtures().iter().map(Fixture::json).collect();
-        self.emit(
+        self.writer.emit(
             &json!({
                 "event": "listening",
                 "address": address,
@@ -80,7 +81,7 @@ impl Printer {
     /// What each device did, once the node has stopped.
     pub(crate) fn ended(&self, counts: &[Counts]) {
         for count in counts {
-            self.emit(
+            self.writer.emit(
                 &json!({
                     "event": "counts",
                     "device": count.id.to_string(),
@@ -94,14 +95,6 @@ impl Printer {
             );
         }
     }
-
-    fn emit(&self, record: &Value, text: &str) {
-        if self.as_json {
-            println!("{record}");
-        } else {
-            println!("{text}");
-        }
-    }
 }
 
 impl Observer for Printer {
@@ -109,7 +102,7 @@ impl Observer for Printer {
         if !self.dry_run {
             return;
         }
-        self.emit(
+        self.writer.emit(
             &json!({
                 "event": "received",
                 "universe": frame.universe,
@@ -134,14 +127,15 @@ impl Observer for Printer {
             fields.insert("event".to_owned(), json!("resolved"));
             fields.insert("device".to_owned(), json!(id.to_string()));
         }
-        self.emit(&record, &format!("  {id}  {}", look_text(look)));
+        self.writer
+            .emit(&record, &format!("  {id}  {}", look_text(look)));
     }
 
     fn refused(&mut self, source: SocketAddr, reason: &str) {
         if !self.dry_run {
             return;
         }
-        self.emit(
+        self.writer.emit(
             &json!({ "event": "refused", "source": source.to_string(), "reason": reason }),
             &format!("refused  {source}  {reason}"),
         );
@@ -151,7 +145,7 @@ impl Observer for Printer {
         if !self.dry_run {
             return;
         }
-        self.emit(
+        self.writer.emit(
             &json!({ "event": "ignored", "source": source.to_string(), "opcode": opcode }),
             &format!("ignored  {source}  opcode 0x{opcode:04x}"),
         );
@@ -164,7 +158,7 @@ impl Observer for Printer {
         if !self.dry_run && !self.debug {
             return;
         }
-        self.emit(
+        self.writer.emit(
             &json!({ "event": "polled", "source": source.to_string(), "replies": replies }),
             &format!("polled  {source}  {replies} replies"),
         );
@@ -173,14 +167,10 @@ impl Observer for Printer {
     /// Always reported, and on stderr: a run that drives 39 devices and drops
     /// one must say so.
     fn failed(&mut self, id: &DeviceId, reason: &str) {
-        if self.as_json {
-            eprintln!(
-                "{}",
-                json!({ "event": "failed", "device": id.to_string(), "reason": reason })
-            );
-        } else {
-            eprintln!("failed  {id}  {reason}");
-        }
+        self.writer.warn(
+            &json!({ "event": "failed", "device": id.to_string(), "reason": reason }),
+            &format!("failed  {id}  {reason}"),
+        );
     }
 }
 
