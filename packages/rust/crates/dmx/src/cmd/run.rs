@@ -22,11 +22,6 @@ use super::{CONFIG, Failure, INTERNAL, patch as writer};
 /// The color the start pass stores on every fixture.
 const BLACK: [u8; 3] = [0, 0, 0];
 
-/// The wait between two commands of the start pass. A device can drop a
-/// command that arrives directly behind another — see `docs/protocol/lan.md`
-/// 1, "Consecutive commands".
-const GAP: Duration = Duration::from_millis(20);
-
 /// What the command line asks of one run.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Flags {
@@ -137,10 +132,11 @@ async fn reset(govee: &Govee, rig: &Rig, printer: &mut Printer) {
 /// Power the device on, paint black, and power the device off. The device
 /// takes a color while it is on, and it holds the last one it took.
 async fn blackout(device: &DeviceHandle<'_>) -> govee_toolkit::Result<()> {
+    let gap = device.command_gap()?;
     device.power(true).await?;
-    tokio::time::sleep(GAP).await;
+    tokio::time::sleep(gap).await;
     device.color(BLACK).await?;
-    tokio::time::sleep(GAP).await;
+    tokio::time::sleep(gap).await;
     device.power(false).await?;
     Ok(())
 }

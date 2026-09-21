@@ -3,6 +3,8 @@
 //! Every method here goes through the mode the user enabled. Nothing falls back
 //! to another one — see `docs/modes.md`.
 
+use std::time::Duration;
+
 use crate::codec::coerce::Supplied;
 use crate::codec::{Args, Device, Mode};
 // Used by the doc comments only.
@@ -81,6 +83,18 @@ impl<'a> DeviceHandle<'a> {
     /// command.
     pub fn serving_mode(&self) -> Result<Mode> {
         self.mode()
+    }
+
+    /// How long a command to this device waits behind the one before it, on
+    /// the mode a send goes over now. A caller that sends several commands in
+    /// a row waits this long between two of them.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::serving_mode`].
+    pub fn command_gap(&self) -> Result<Duration> {
+        let mode = self.mode()?;
+        Ok(self.govee.transport(&self.id, mode)?.command_gap())
     }
 
     /// What `devices/<SKU>.yaml` declares for this device: the modes, the

@@ -22,15 +22,6 @@ pub const IDENTIFY_COLOR: [u8; 3] = [0, 255, 0];
 /// between two fixtures.
 pub const IDENTIFY_WAIT: Duration = Duration::from_secs(1);
 
-/// The wait between two commands to one device.
-///
-/// A device can drop a command that arrives directly behind two others, and
-/// nothing acknowledges a command — see `docs/protocol/lan.md` 1,
-/// "Consecutive commands". The wait is wider than the few milliseconds that
-/// document asks for, because a pass sends 3 commands and a person waits a
-/// second anyway.
-const GAP: Duration = Duration::from_millis(20);
-
 /// What one identify pass shows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Identify {
@@ -55,8 +46,9 @@ impl DeviceHandle<'_> {
     /// Power the device on and paint one color.
     ///
     /// The pass sends the `power` role, the `brightness` role and the `color`
-    /// role, over the mode a send goes over now. It waits a few milliseconds
-    /// between two of them, which one device needs to apply all three.
+    /// role, over the mode a send goes over now. It waits
+    /// [`DeviceHandle::command_gap`] between two of them, which one device
+    /// needs to apply all three.
     ///
     /// # Errors
     ///
@@ -64,13 +56,14 @@ impl DeviceHandle<'_> {
     /// file that marks no `role: brightness` costs nothing: the pass leaves
     /// the brightness alone.
     pub async fn identify(&self, options: &Identify) -> Result<()> {
+        let gap = self.command_gap()?;
         self.power(true).await?;
-        tokio::time::sleep(GAP).await;
+        tokio::time::sleep(gap).await;
         if options.full_brightness
             && let Some(level) = self.brightest()
         {
             self.brightness(level).await?;
-            tokio::time::sleep(GAP).await;
+            tokio::time::sleep(gap).await;
         }
         self.color(options.color).await?;
         Ok(())
