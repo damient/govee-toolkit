@@ -10,7 +10,7 @@ use govee_toolkit::DeviceId;
 use govee_toolkit_dmx::apply::{Counts, Look};
 use govee_toolkit_dmx::input::UniverseFrame;
 use govee_toolkit_dmx::node::Observer;
-use govee_toolkit_dmx::patch::{Patch, Rig};
+use govee_toolkit_dmx::patch::{Fixture, Patch, Rig};
 use serde_json::{Value, json};
 
 /// The lines, or the records, one run writes.
@@ -36,19 +36,7 @@ impl Printer {
     /// The socket, the node name and the rig, before the first frame.
     pub(crate) fn started(&self, bound: Option<SocketAddr>, patch: &Patch, rig: &Rig) {
         let address = bound.map_or_else(|| patch.node.bind.to_string(), |a| a.to_string());
-        let fixtures: Vec<Value> = rig
-            .fixtures()
-            .iter()
-            .map(|fixture| {
-                json!({
-                    "device": fixture.entry.device.to_string(),
-                    "universe": fixture.universe.get(),
-                    "first": fixture.span.first,
-                    "last": fixture.span.last,
-                    "personality": fixture.profile.personality().as_str(),
-                })
-            })
-            .collect();
+        let fixtures: Vec<Value> = rig.fixtures().iter().map(Fixture::json).collect();
         self.emit(
             &json!({
                 "event": "listening",

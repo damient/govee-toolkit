@@ -13,6 +13,8 @@ pub(crate) mod run;
 
 use std::process::ExitCode;
 
+use govee_toolkit_dmx::patch::{MAX_PORT_ADDRESS, PortAddress};
+use govee_toolkit_dmx::profile::Personality;
 use serde_json::json;
 use tracing_subscriber::EnvFilter;
 
@@ -76,4 +78,23 @@ pub(crate) fn trace(debug: bool) {
             .with_writer(std::io::stderr)
             .try_init(),
     );
+}
+
+/// How every personality is spelled, for the line that reports an unknown one.
+pub(crate) fn spellings() -> String {
+    Personality::ALL
+        .iter()
+        .map(|personality| format!("`{personality}`"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// The port-address `universe` spells.
+pub(crate) fn port_address(universe: u16) -> Result<PortAddress, Failure> {
+    PortAddress::new(universe).ok_or_else(|| {
+        Failure::new(
+            format!("universe {universe} is over the {MAX_PORT_ADDRESS} Art-Net holds"),
+            USAGE,
+        )
+    })
 }

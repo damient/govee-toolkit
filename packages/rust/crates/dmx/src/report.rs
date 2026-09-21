@@ -85,25 +85,25 @@ fn personality_json(table: &Result<Profile, Error>) -> Value {
 
 fn channel_json(channel: &Channel) -> Value {
     let mut record = json!({ "offset": channel.offset, "slot": kind(channel.slot) });
-    if let (Some(object), Slot::Color(component) | Slot::Zone { component, .. }) =
-        (record.as_object_mut(), channel.slot)
-    {
+    let Some(object) = record.as_object_mut() else {
+        return record;
+    };
+    if let Slot::Color(component) | Slot::Zone { component, .. } = channel.slot {
         object.insert("component".to_owned(), json!(component.to_string()));
     }
-    if let (Some(object), Slot::Zone { index, .. }) = (record.as_object_mut(), channel.slot) {
+    if let Slot::Zone { index, .. } = channel.slot {
         object.insert("zone".to_owned(), json!(index));
     }
-    if let (Some(object), Some(scale)) = (record.as_object_mut(), channel.scale) {
+    if let Some(scale) = channel.scale {
         let [min, max] = scale.range();
         object.insert("range".to_owned(), json!([min, max]));
         object.insert("steps".to_owned(), json!(scale.steps()));
     }
-    if let (Some(object), true) = (record.as_object_mut(), unreached(channel)) {
+    if unreached(channel) {
         object.insert("unreached".to_owned(), json!(true));
     }
-    if let (Some(object), values) = (record.as_object_mut(), values(channel))
-        && !values.is_empty()
-    {
+    let values = values(channel);
+    if !values.is_empty() {
         object.insert("values".to_owned(), json!(values));
     }
     record
