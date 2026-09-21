@@ -14,6 +14,8 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 - A target names an identity (`1C:8B:…`), a SKU (`H6159`) or a name the
   configuration gives a device (`name:kitchen`). `devices [TARGET]...` lists
   what a target reaches and touches no network.
+- A SKU and a name in `identify` reach the devices that enable the mode the
+  walk drives, and `devices --mode` narrows a target the same way.
 - `identify --color`, `--wait-ms`, `--hold-ms` and `--keep` — the color each
   device shows, the interval between two steps, how long the last device holds
   it, and leaving the rig lit at the end.

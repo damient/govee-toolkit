@@ -439,13 +439,16 @@ class Govee:
         """Every device known, across every mode. One reachable over two modes appears
         once.
         """
-    def select(self, targets: Sequence[str]) -> list[str]:
+    def select(self, targets: Sequence[str], mode: str | None = None) -> list[str]:
         """The devices the targets name, in the order they were written.
 
         A target is an identity (`1C:8B:…`), a SKU (`H6159`), or a name the
         configuration gives a device (`name:kitchen`). `id:`, `sku:` and `name:` state
         the kind where the target alone does not. A SKU and a name select among the
         devices the SDK knows, so scan first.
+
+        `mode` is the one mode the caller will drive. A SKU and a name then match among
+        the devices that enable it. An identity selects itself either way.
         """
     def modes(self) -> list[str]:
         """The modes this build carries a transport for. Not a preference order: that is

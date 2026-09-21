@@ -18,13 +18,18 @@
 //! A SKU matches the SKU a device is encoded under, and no alias of it. Two
 //! SKUs that a device file declares identical are still two models in a room,
 //! and an operator who types one does not mean the other.
+//!
+//! [`Govee::select`] takes the mode the caller will drive. A SKU and a name
+//! then match among the devices that enable that mode, and match nothing
+//! where none of them does. An identity selects itself either way: it
+//! addresses one device, and the command that follows reports the mode.
 
 #[cfg(test)]
 mod tests;
 
 use std::fmt;
 
-use crate::codec::Catalog;
+use crate::codec::{Catalog, Mode};
 use crate::event::Device;
 use crate::govee::Govee;
 use crate::transport::DeviceId;
@@ -207,6 +212,16 @@ pub enum Error {
         /// The target, in its prefixed form.
         target: String,
     },
+
+    /// A SKU or a name matches known devices, and the configuration enables
+    /// the mode the caller will drive for none of them.
+    #[error("`{target}` matches no known device that enables `{mode}`")]
+    NotOnMode {
+        /// The target, in its prefixed form.
+        target: String,
+        /// The mode the caller will drive.
+        mode: Mode,
+    },
 }
 
 impl Error {
@@ -217,7 +232,7 @@ impl Error {
         match self {
             Self::Empty | Self::EmptyValue { .. } => "target_not_understood",
             Self::Ambiguous { .. } => "ambiguous_target",
-            Self::NoMatch { .. } => "no_such_target",
+            Self::NoMatch { .. } | Self::NotOnMode { .. } => "no_such_target",
         }
     }
 }
@@ -225,17 +240,23 @@ impl Error {
 impl Govee {
     /// The devices the targets name, in the order they were written.
     ///
+    /// `mode` is the one mode the caller will drive, and `None` where it
+    /// drives none and lists instead. A SKU and a name then match among the
+    /// devices that enable `mode`, so a caller never has to filter the answer
+    /// again. An identity selects itself, found or not: it addresses one
+    /// device, and the command that follows reports the mode.
+    ///
     /// A device two targets name appears once, at the first place it was
-    /// named. An identity selects itself, found or not. A SKU and a name
-    /// select among the devices the SDK knows, so scan first where nothing
-    /// has been discovered yet.
+    /// named. A SKU and a name select among the devices the SDK knows, so
+    /// scan first where nothing has been discovered yet.
     ///
     /// # Errors
     ///
-    /// [`Error::Ambiguous`] where a bare target reads as two kinds, and
-    /// [`Error::NoMatch`] where a SKU or a name matches no known device.
+    /// [`Error::Ambiguous`] where a bare target reads as two kinds,
+    /// [`Error::NoMatch`] where a SKU or a name matches no known device, and
+    /// [`Error::NotOnMode`] where the devices it matches enable no `mode`.
     /// Every [`Error`] [`Selector::parse`] reports travels out of here too.
-    pub fn select<I, T>(&self, targets: I) -> Result<Vec<DeviceId>, Error>
+    pub fn select<I, T>(&self, targets: I, mode: Option<Mode>) -> Result<Vec<DeviceId>, Error>
     where
         I: IntoIterator<Item = T>,
         T: AsRef<str>,
@@ -248,7 +269,7 @@ impl Govee {
             if !prefixed {
                 check_ambiguity(target, &selector, &known)?;
             }
-            for id in matches(&selector, &known)? {
+            for id in matches(&selector, &known, mode)? {
                 if !chosen.contains(&id) {
                     chosen.push(id);
                 }
@@ -274,14 +295,22 @@ fn check_ambiguity(written: &str, selector: &Selector, known: &[Device]) -> Resu
     })
 }
 
-/// The devices one selector matches.
-fn matches(selector: &Selector, known: &[Device]) -> Result<Vec<DeviceId>, Error> {
-    let found: Vec<DeviceId> = match selector {
+/// The devices one selector matches, among the ones `mode` reaches.
+///
+/// The mode narrows the match, and never turns an empty match into a mode
+/// fault: a target that matches nothing at all reports [`Error::NoMatch`],
+/// and one whose matches all enable another mode reports
+/// [`Error::NotOnMode`].
+fn matches(
+    selector: &Selector,
+    known: &[Device],
+    mode: Option<Mode>,
+) -> Result<Vec<DeviceId>, Error> {
+    let found: Vec<&Device> = match selector {
         Selector::Id(id) => return Ok(vec![id.clone()]),
         Selector::Sku(sku) => known
             .iter()
             .filter(|device| device.sku.eq_ignore_ascii_case(sku))
-            .map(|device| device.id.clone())
             .collect(),
         Selector::Name(name) => named(known, name).collect(),
     };
@@ -290,18 +319,26 @@ fn matches(selector: &Selector, known: &[Device]) -> Result<Vec<DeviceId>, Error
             target: selector.to_string(),
         });
     }
-    Ok(found)
+    let driven: Vec<DeviceId> = found
+        .iter()
+        .filter(|device| mode.is_none_or(|mode| device.modes.contains(&mode)))
+        .map(|device| device.id.clone())
+        .collect();
+    match (driven.is_empty(), mode) {
+        (true, Some(mode)) => Err(Error::NotOnMode {
+            target: selector.to_string(),
+            mode,
+        }),
+        _ => Ok(driven),
+    }
 }
 
 /// Every known device the configuration gives this name.
-fn named<'a>(known: &'a [Device], name: &'a str) -> impl Iterator<Item = DeviceId> + 'a {
-    known
-        .iter()
-        .filter(move |device| {
-            device
-                .name
-                .as_deref()
-                .is_some_and(|given| given.eq_ignore_ascii_case(name))
-        })
-        .map(|device| device.id.clone())
+fn named<'a>(known: &'a [Device], name: &'a str) -> impl Iterator<Item = &'a Device> + 'a {
+    known.iter().filter(move |device| {
+        device
+            .name
+            .as_deref()
+            .is_some_and(|given| given.eq_ignore_ascii_case(name))
+    })
 }
