@@ -7,8 +7,8 @@
 .foot-nav { display: grid; gap: 32px; }
 
 @media (min-width: 560px) { .foot-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.sitefoot .eyebrow { margin-bottom: 1em; }
-.sitefoot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sitefoot .eyebrow { margin-bottom: 1.6em; }
+.sitefoot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .sitefoot a { color: var(--muted); text-decoration: none; font-size: .95rem; }
 .sitefoot a:hover { color: var(--text); }
 .sitefoot .foot-pkgs {
