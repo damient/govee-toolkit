@@ -52,9 +52,14 @@ function read(path) {
   return version;
 }
 
+let chips = null;
+
 /** One `{{version_<package>}}` and one `{{registry_<package>}}` per package,
- * as the chips a heading closes with. For `fill()`. */
+ * as the chips a heading closes with. For `fill()`.
+ *
+ * Read once: every page of one build carries the same versions. */
 export function versionChips() {
+  if (chips) return chips;
   const vars = {};
   for (const [name, pkg] of Object.entries(PACKAGES)) {
     vars[`version_${name}`] = `<span class="version">v${escapeHtml(read(pkg.manifest))}</span>`;
@@ -62,5 +67,6 @@ export function versionChips() {
       + ` target="_blank" rel="noreferrer">${badgeIcon("link")}`
       + `${escapeHtml(pkg.registry)}</a>`;
   }
+  chips = vars;
   return vars;
 }

@@ -7,7 +7,7 @@ import { MODES } from "./config.mjs";
 import { crumbs } from "./crumbs.mjs";
 import { dmx } from "./device-dmx.mjs";
 import { usage } from "./device-usage.mjs";
-import { escapeAttr, escapeHtml, fill } from "./html.mjs";
+import { DASH, escapeAttr, escapeHtml, fill } from "./html.mjs";
 import { familyIcon, icon, sharesMark } from "./icons.mjs";
 import { dmxBadge, familyBadge, modeBadge } from "./mode-badge.mjs";
 
@@ -66,7 +66,7 @@ function modeCell(d, mode) {
     .filter((c) => !sharesMark(c))
     .sort((a, b) => order(a) - order(b));
   if (!caps.length) {
-    if (state === "none") return '<span class="muted">—</span>';
+    if (state === "none") return DASH;
     return pill(state);
   }
   const items = caps
@@ -92,7 +92,7 @@ function capsLegend(devices) {
 // The DMX column answers yes or nothing: the bridge derives a channel table
 // from the device file, so a model that carries no table answers no desk.
 function dmxCell(d) {
-  if (!d.dmx?.personalities?.length) return '<span class="muted">—</span>';
+  if (!d.dmx?.personalities?.length) return DASH;
   return `<span class="dmx-yes">${CHECK}<span class="visually-hidden">DMX</span></span>`;
 }
 
