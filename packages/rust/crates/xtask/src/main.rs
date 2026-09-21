@@ -94,8 +94,8 @@ fn build_catalog(devices: &Path) -> Catalog {
 
 /// The two tables in `docs/dmx-profiles.md`, between their generated markers.
 ///
-/// The channel table itself is derived by `govee-toolkit-dmx`, so the page and
-/// the node read one implementation.
+/// The channel table itself is derived by `govee_toolkit::profile`, so the
+/// page and the node read one implementation.
 fn dmx(root: &Path, check: bool) {
     let catalog = build_catalog(&root.join("devices"));
     generate(

@@ -5,12 +5,13 @@
 //! `role:` each `lan` command claims, and those three decide every channel.
 //! See `docs/dmx.md`.
 //!
-//! The module does no I/O, so it can move into `govee-toolkit` where the site
-//! and the bindings want the same table. Keep it that way —
-//! `tools/check-no-io.sh` re-checks it.
+//! The module does no I/O, so the bridge, the catalog task, the site and the
+//! bindings read one table. Keep it that way — `tools/check-no-io.sh`
+//! re-checks it.
 
 mod channel;
 mod reach;
+pub mod report;
 mod scale;
 #[cfg(test)]
 mod tests;
@@ -18,11 +19,11 @@ mod tests;
 use std::fmt;
 
 pub use channel::{Channel, Component, MODE_IDLE_TOP, MODE_RESEND, Slot};
-use govee_toolkit::codec::{ArgRole, Device, Role};
 pub use scale::{OFF, Scale, Zero};
 use thiserror::Error;
 
 use self::reach::{BRIGHTNESS, COLOR, COLORTEMP, POWER, SEGMENTS, bounds, reaches};
+use crate::codec::{ArgRole, Device, Role};
 
 /// How many channels one universe holds.
 pub const UNIVERSE: u16 = 512;

@@ -2576,7 +2576,6 @@ name = "xtask"
 version = "0.10.0"
 dependencies = [
  "govee-toolkit",
- "govee-toolkit-dmx",
  "serde_json",
  "serde_norway",
 ]

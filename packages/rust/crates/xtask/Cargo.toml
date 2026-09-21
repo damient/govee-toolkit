@@ -14,10 +14,9 @@ publish = false
 # The catalog is serialized from the types the SDK loads, so the two cannot
 # disagree. `default-features = false` leaves the codec alone, with no
 # transport and no async runtime.
+# The channel table comes from the same build: the page this task writes is a
+# view of `govee_toolkit::profile` and never a second derivation.
 govee-toolkit = { path = "../..", default-features = false }
-# The channel table is derived once, in the crate that ships it. The page this
-# task writes is a view of that table and never a second derivation.
-govee-toolkit-dmx = { path = "../dmx", default-features = false }
 serde_json.workspace = true
 serde_norway = "0.9"
 

@@ -1,11 +1,10 @@
 //! `docs/dmx-profiles.md`: the DMX channel table of every device file.
 //!
-//! The table is derived by `govee-toolkit-dmx`, so this page and the node
+//! The table is derived by `govee_toolkit::profile`, so this page and the node
 //! cannot disagree. Nothing here reads a SKU name.
 
 use govee_toolkit::codec::{Catalog, Device};
-use govee_toolkit_dmx::profile::{self, Personality, Profile, Scale, Slot};
-use govee_toolkit_dmx::report;
+use govee_toolkit::profile::{self, Personality, Profile, Scale, Slot, report};
 use serde_json::{Value, json};
 
 /// The channel tables of one device, for `dist/catalog.json`.
@@ -25,7 +24,7 @@ pub(crate) fn catalog_entry(device: &Device) -> Value {
 fn width(device: &Device, personality: Personality) -> String {
     match Profile::of(device, personality) {
         Ok(profile) => profile.width().to_string(),
-        Err(govee_toolkit_dmx::profile::Error::TooWide { channels, .. }) => {
+        Err(profile::Error::TooWide { channels, .. }) => {
             format!("{channels}, over one universe")
         }
         Err(_) => "—".to_owned(),

@@ -36,6 +36,8 @@ in its verification build until the core is out.
 - Every command discovers over `lan` alone, which is the mode the bridge
   drives. A target that names a SKU therefore selects no handle of another
   mode, which the patch holds no entry for.
+- `profile` and `report` re-export `govee_toolkit::profile`, so the node, the
+  catalog and the site read one channel table.
 - `identify` exits non-zero and names every fixture that refused the pass, and
   every fixture that refused the blackout at the end.
 - **Breaking:** every command takes the patch file as `--patch FILE`, and no

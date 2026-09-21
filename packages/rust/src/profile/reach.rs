@@ -4,8 +4,8 @@
 //! agree: the hardware declares the capability, `modes.lan` reaches it, and a
 //! `lan` command claims the `role:` that drives it.
 
-pub(super) use govee_toolkit::codec::capabilities::SEGMENTS;
-use govee_toolkit::codec::{ArgBound, ArgRole, Device, Mode, Role};
+pub(super) use crate::codec::capabilities::SEGMENTS;
+use crate::codec::{ArgBound, ArgRole, Device, Mode, Role};
 
 /// The capability names the channel table reads.
 ///

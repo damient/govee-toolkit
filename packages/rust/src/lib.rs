@@ -8,6 +8,7 @@
 //!
 //! - [`codec`] — `devices/*.yaml` in, exact bytes out. No I/O, no SKU name, no
 //!   command name.
+//! - [`profile`] — the DMX channel table a device file derives. No I/O.
 //! - [`transport`] — what every mode shares: the `Transport` trait, the device
 //!   identity, the breaker and the errors.
 //! - [`lan`] — UDP: discovery, a device cache, one shared socket.
@@ -59,6 +60,7 @@
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub mod codec;
+pub mod profile;
 
 #[cfg(feature = "ble")]
 #[cfg_attr(docsrs, doc(cfg(feature = "ble")))]

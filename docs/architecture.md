@@ -21,6 +21,8 @@ stream, no data races on a socket per device, and a single static binary.
 devices/*.yaml             data — what a SKU does, and the bytes for it
        │
 src/codec/                 codec — no I/O, no SKU names, no command names
+       │                   src/profile/ derives the DMX channel table from the
+       │                   same data, and does no I/O either
        │
 src/transport/             shared by every mode — the Transport trait, device
        │                   identity, errors, the breaker
@@ -58,9 +60,9 @@ Splitting the layers into crates would buy one thing: a compiler-enforced
 guarantee that the codec does no I/O. Two checks buy the same guarantee more
 explicitly:
 
-- `tools/check-no-io.sh` fails the build if anything under `src/codec/` imports
-  `std::net`, `std::fs`, `std::thread`, `tokio` or `socket2`, or writes an
-  `async fn` or an `.await`.
+- `tools/check-no-io.sh` fails the build if anything under `src/codec/` or
+  `src/profile/` imports `std::net`, `std::fs`, `std::thread`, `tokio` or
+  `socket2`, or writes an `async fn` or an `.await`.
 - `cargo check --no-default-features` is a CI job. With the transport feature
   off, the codec has to keep compiling on its own — no socket, no async runtime.
 
