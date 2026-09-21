@@ -8,6 +8,7 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::time::Duration;
 
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{DeviceHandle, Govee, Mode};
 use govee_toolkit_dmx::apply::Timing;
 use govee_toolkit_dmx::input::artnet::PORT;
@@ -16,8 +17,8 @@ use govee_toolkit_dmx::node::{Node, Observer};
 use govee_toolkit_dmx::patch::{Patch, Rig};
 
 use super::observe::Printer;
+use super::patch as patcher;
 use super::rig::{configure, resolve};
-use super::{CONFIG, Failure, INTERNAL, patch as writer};
 
 /// The color the start pass stores on every fixture.
 const BLACK: [u8; 3] = [0, 0, 0];
@@ -35,48 +36,48 @@ pub(crate) struct Flags {
 
 pub(crate) fn start(
     file: Option<&Path>,
-    scan: Option<writer::Options>,
+    scan: Option<patcher::Options>,
     flags: Flags,
     config: Option<&Path>,
-    as_json: bool,
+    writer: Writer,
 ) -> Result<(), Failure> {
-    let path = writer::file(file);
+    let path = patcher::file(file);
     // A file the operator named and misspelled must fail now, not after a
     // scan. `--scan` is the form that writes the file, so it checks nothing
     // here.
     if scan.is_none() {
-        Patch::load(&path).map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+        Patch::load(&path).map_err(|e| Failure::config(e.to_string()))?;
     }
     // One socket and a timer per fixture: the work never saturates a core, and
     // a worker pool costs the spawns at startup.
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
-    runtime.block_on(run(&path, scan, flags, config, as_json))
+        .map_err(|e| Failure::internal(e.to_string()))?;
+    runtime.block_on(run(&path, scan, flags, config, writer))
 }
 
 async fn run(
     file: &Path,
-    scan: Option<writer::Options>,
+    scan: Option<patcher::Options>,
     flags: Flags,
     config: Option<&Path>,
-    as_json: bool,
+    writer: Writer,
 ) -> Result<(), Failure> {
     let govee = Govee::start(configure(config)?)
         .await
-        .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+        .map_err(|e| Failure::config(e.to_string()))?;
     let found = super::rig::scan(&govee).await?;
     if let Some(options) = scan {
-        let written = writer::update(&govee, &found, file, options)?;
-        writer::report(&written, file, as_json);
+        let written = patcher::update(&govee, &found, file, options)?;
+        patcher::report(&written, file, writer);
     }
-    let patch = Patch::load(file).map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+    let patch = Patch::load(file).map_err(|e| Failure::config(e.to_string()))?;
     let patch = &patch;
     let rig = resolve(&govee, patch)?;
 
     let address = SocketAddr::new(patch.node.bind, PORT);
-    let listener = Listener::bind(address).map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
+    let listener = Listener::bind(address).map_err(|e| Failure::internal(e.to_string()))?;
     let timing = Timing {
         refresh: Duration::from_secs(patch.node.refresh_secs),
         silence: Duration::from_secs(patch.node.signal_loss_secs),
@@ -89,7 +90,7 @@ async fn run(
     }
     .named(&patch.node.name);
 
-    let mut printer = Printer::new(as_json, flags.dry_run, flags.debug);
+    let mut printer = Printer::new(writer, flags.dry_run, flags.debug);
     printer.started(listener.local_addr(), patch, node.rig());
     if !flags.dry_run && !flags.no_reset {
         reset(&govee, node.rig(), &mut printer).await;
@@ -99,8 +100,8 @@ async fn run(
     let released = govee
         .shutdown()
         .await
-        .map_err(|e| Failure::new(e.to_string(), INTERNAL));
-    outcome.map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
+        .map_err(|e| Failure::internal(e.to_string()));
+    outcome.map_err(|e| Failure::internal(e.to_string()))?;
     released
 }
 

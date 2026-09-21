@@ -18,12 +18,13 @@
 use std::path::Path;
 
 use govee_toolkit::codec::Mode;
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{DeviceId, Govee, Walk, WalkObserver};
 use govee_toolkit_dmx::patch::{Fixture, Patch, PortAddress, Rig};
 use serde_json::json;
 
+use super::patch as patcher;
 use super::rig::{configure, resolve, scan};
-use super::{CONFIG, Failure, INTERNAL, UNREACHABLE, patch as writer};
 
 /// Which fixtures one walk lights. Every enabled fixture where it names
 /// none.
@@ -51,29 +52,29 @@ pub(crate) fn start(
     chosen: &Chosen,
     walk: Walk,
     config: Option<&Path>,
-    as_json: bool,
+    writer: Writer,
 ) -> Result<(), Failure> {
-    let file = writer::file(named);
-    let patch = Patch::load(&file).map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+    let file = patcher::file(named);
+    let patch = Patch::load(&file).map_err(|e| Failure::config(e.to_string()))?;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
+        .map_err(|e| Failure::internal(e.to_string()))?;
     runtime.block_on(async {
         let govee = Govee::start(configure(config)?)
             .await
-            .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+            .map_err(|e| Failure::config(e.to_string()))?;
         scan(&govee).await?;
         let outcome = async {
             let rig = resolve(&govee, &patch)?;
             let fixtures = lit(&govee, &rig, chosen)?;
-            run(&govee, &rig, &fixtures, walk, as_json).await
+            run(&govee, &rig, &fixtures, walk, writer).await
         }
         .await;
         govee
             .shutdown()
             .await
-            .map_err(|e| Failure::new(e.to_string(), INTERNAL))?;
+            .map_err(|e| Failure::internal(e.to_string()))?;
         outcome
     })
 }
@@ -84,14 +85,14 @@ async fn run(
     rig: &Rig,
     chosen: &[&Fixture],
     walk: Walk,
-    as_json: bool,
+    writer: Writer,
 ) -> Result<(), Failure> {
     let blackout: Vec<DeviceId> = rig
         .fixtures()
         .iter()
         .map(|fixture| fixture.entry.device.clone())
         .collect();
-    let spans = Spans { chosen, as_json };
+    let spans = Spans { chosen, writer };
     let lit: Vec<DeviceId> = chosen
         .iter()
         .map(|fixture| fixture.entry.device.clone())
@@ -99,9 +100,9 @@ async fn run(
     let report = govee
         .identify_walk(&blackout, &lit, &walk, &spans)
         .await
-        .map_err(|e| Failure::new(e.to_string(), UNREACHABLE))?;
+        .map_err(|e| Failure::unreachable(e.to_string()))?;
     match report.summary("fixture") {
-        Some(summary) => Err(Failure::new(summary, UNREACHABLE)),
+        Some(summary) => Err(Failure::unreachable(summary)),
         None => Ok(()),
     }
 }
@@ -110,7 +111,7 @@ async fn run(
 /// that answers it.
 struct Spans<'a> {
     chosen: &'a [&'a Fixture],
-    as_json: bool,
+    writer: Writer,
 }
 
 impl WalkObserver for Spans<'_> {
@@ -118,26 +119,19 @@ impl WalkObserver for Spans<'_> {
         let Some(fixture) = self.chosen.iter().find(|f| &f.entry.device == id) else {
             return;
         };
-        if self.as_json {
-            let mut record = fixture.json();
-            if let Some(object) = record.as_object_mut() {
-                object.insert("event".to_owned(), json!("identify"));
-            }
-            println!("{record}");
-            return;
+        let mut record = fixture.json();
+        if let Some(object) = record.as_object_mut() {
+            object.insert("event".to_owned(), json!("identify"));
         }
-        println!("identify {id}  {}", fixture.span);
+        self.writer
+            .emit(&record, &format!("identify {id}  {}", fixture.span));
     }
 
     fn refused(&self, id: &DeviceId, reason: &str) {
-        if self.as_json {
-            println!(
-                "{}",
-                json!({ "event": "failed", "device": id.to_string(), "reason": reason })
-            );
-            return;
-        }
-        println!("failed {id}  {reason}");
+        self.writer.emit(
+            &json!({ "event": "failed", "device": id.to_string(), "reason": reason }),
+            &format!("failed {id}  {reason}"),
+        );
     }
 }
 
@@ -150,9 +144,8 @@ impl WalkObserver for Spans<'_> {
 fn lit<'a>(govee: &Govee, rig: &'a Rig, chosen: &Chosen) -> Result<Vec<&'a Fixture>, Failure> {
     let fixtures = rig.fixtures();
     if fixtures.is_empty() {
-        return Err(Failure::new(
+        return Err(Failure::config(
             "the patch enables no fixture, so there is nothing to light",
-            CONFIG,
         ));
     }
     if chosen.is_empty() {
@@ -162,13 +155,12 @@ fn lit<'a>(govee: &Govee, rig: &'a Rig, chosen: &Chosen) -> Result<Vec<&'a Fixtu
     if !chosen.targets.is_empty() {
         let ids = govee
             .select(&chosen.targets, Some(Mode::Lan))
-            .map_err(|e| Failure::new(e.to_string(), CONFIG))?;
+            .map_err(|e| Failure::config(e.to_string()))?;
         for id in &ids {
             let Some(fixture) = fixtures.iter().find(|f| &f.entry.device == id) else {
-                return Err(Failure::new(
-                    format!("the patch drives no fixture for `{id}`"),
-                    CONFIG,
-                ));
+                return Err(Failure::config(format!(
+                    "the patch drives no fixture for `{id}`"
+                )));
             };
             named.push(fixture);
         }
@@ -176,7 +168,7 @@ fn lit<'a>(govee: &Govee, rig: &'a Rig, chosen: &Chosen) -> Result<Vec<&'a Fixtu
     if let Some(universe) = chosen.universe {
         let at = rig.at(universe, chosen.address);
         if at.is_empty() {
-            return Err(Failure::new(at_nothing(universe, chosen.address), CONFIG));
+            return Err(Failure::config(at_nothing(universe, chosen.address)));
         }
         named.extend(at);
     }
