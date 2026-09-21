@@ -236,5 +236,7 @@ file stays under 300 lines, which `tools/check-file-length.sh` enforces.
   the device files, and a fact the YAML does not carry does not reach the site.
 - A mode that nobody probed shows `?`, never `none`.
 - The site states what works today. Planned work is marked as planned.
+- The copy writes for a reader, in the positive form. A limit of a mode
+  stays on the documentation page that owns it. See `AGENTS.md`.
 - No measured number is invented. A latency or a zone count reaches the site
   from a device file or it does not reach it.
