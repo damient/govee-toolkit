@@ -496,7 +496,7 @@ dependencies = [
 
 [[package]]
 name = "govee-toolkit"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "aes",
  "async-trait",
@@ -517,7 +517,7 @@ dependencies = [
 
 [[package]]
 name = "govee-toolkit-python"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "govee-toolkit",
  "libdbus-sys",

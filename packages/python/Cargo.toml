@@ -1,7 +1,7 @@
 [package]
 name = "govee-toolkit-python"
 description = "PyO3 binding over govee-toolkit. Not published to crates.io: it ships as the `govee-toolkit` wheel on PyPI."
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT"

@@ -28,7 +28,7 @@ sacn = []
 clap = { version = "4", features = ["derive"] }
 # The bridge is an input, not a mode: it reaches a device over `lan`, the way
 # any other caller does.
-govee-toolkit = { path = "../..", version = "0.10", default-features = false, features = [
+govee-toolkit = { path = "../..", version = "0.11", default-features = false, features = [
   "lan",
 ] }
 serde = { version = "1", features = ["derive"] }

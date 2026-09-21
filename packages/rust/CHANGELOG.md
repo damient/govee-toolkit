@@ -7,13 +7,13 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.11.0] — 2026-09-21
+
 ### Added
 
 - `Govee::device_on` — a handle that drives one device over one mode alone.
   Every call on it goes over that mode or fails, where a handle from
-  `Govee::device` moves to the next enabled mode. A caller that serves one mode
-  by design takes it, such as the Art-Net node, which reaches a device over
-  `lan`.
+  `Govee::device` moves to the next enabled mode.
 - `Govee::device_maybe_on` — the same handle with the mode as an `Option`;
   `None` gives what `Govee::device` gives. A binding that stores it takes it.
 - `Govee::select()` and `Selector` — name devices by identity, by SKU, or by
@@ -35,20 +35,38 @@ releases apart and keeps
   own writes answers none.
 - `profile` — the DMX channel table a device file derives, with `report` for
   its JSON and text forms. No I/O: it builds with `--no-default-features`.
+- `profile::Personality` — `full`, `segment` and `pixel`. Channel 1 is the
+  dimmer and channel 2 the mode channel on all three, so a cue carries between
+  models of different widths.
+- `full` takes 6 channels on every device. Where `lan` reaches no white
+  temperature, channel 6 holds its place and drives nothing, and the table
+  names it `unreached`.
+- A device whose every zone is one addressable LED serves `pixel` alone:
+  `segment` would lay out the same table.
+- A table wider than one universe is an error, never a truncation.
+- `profile::Scale` — a slot scaled into what a device parameter takes, plus the
+  step count the pair resolves to. The dimmer and the white channel carry no
+  value at slot 0: the dimmer powers the device off there, and the white
+  channel sends no command.
+- A color component scales over the pair its `lan` command declares, from
+  slot 0. A component at 0 is a color the device shows, so the channel has no
+  off.
+- Each channel of the `report` JSON carries the bands of its slots: the pair of
+  slots, and what the device does over it. The mode channel names the band that
+  forces a full resend, and the reserved band between.
 - `Identify`, `IDENTIFY_COLOR` and `IDENTIFY_WAIT` — what a pass shows, and the
   defaults a walk over a rig uses: green, and a second between two steps.
 - `Govee::identify_walk()`, with `Walk`, `WalkObserver` and `WalkReport` — the
   whole walk over a rig: it takes one set of devices off, lights another set
-  one at a time, and takes the first set off again. The caller passes an
-  observer for the lines it prints, and reads what failed off the report. It
-  fails with `ModeNotEnabled` before it sends anything where the
+  one at a time, and takes the first set off again.
+- A walk reports its lines through the observer and what failed through the
+  report. It fails with `ModeNotEnabled` before it sends anything where the
   configuration does not enable the mode for a device of either set.
-- `exit` — what a binary writes to the process streams, and the code it exits
-  with. `Failure` carries the name a script reads, the line a person reads and
-  the exit code; `Writer` chooses between the record and the line. `govee` and
-  `govee-dmx` report through it, so one exit code and one error record mean the
-  same thing in both. It is the one module of the crate that writes to the
-  process streams.
+- `exit` — the one module that writes to the process streams. `Failure` carries
+  the name a script reads, the line a person reads and the exit code, and
+  `Writer` chooses between the record and the line.
+- `govee` and `govee-dmx` report through `exit`, so one exit code and one error
+  record mean the same thing in both.
 
 ### Fixed
 
