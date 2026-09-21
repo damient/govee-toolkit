@@ -96,11 +96,15 @@ A personality wider than 512 channels is an error when the patch loads. See
 
 A DMX slot holds 0 to 255. A device parameter holds what the device file says.
 The bridge scales between the two, so the operator sees a full 0 to 255 travel
-on every device:
+on every device. A channel whose slot 0 carries no value scales the 254 slots
+above it:
 
 ```
 value = min + round((slot - 1) × (max - min) / 254)
 ```
+
+A channel whose slot 0 is a value, which is every color component, travels the
+whole pair instead: `value = min + round(slot × (max - min) / 255)`.
 
 **Dimmer.** Slot 0 turns the device off, which is what an operator expects and
 what makes a blackout work with no patch of its own. Slot 1 to 255 turns the
@@ -445,8 +449,9 @@ forward, and every packet that follows reads as older: without the resync the
 bridge refuses that sender for good and the rig goes dark.
 
 **Merge.** Art-Net asks for an HTP merge of at most 2 sources on one universe.
-The first version takes the last source instead, and logs a warning that names
-both addresses. HTP comes when somebody has the case.
+The node takes the last packet that arrived instead. Each sender counts its own
+sequence, so neither one drops the packets of the other. HTP comes when
+somebody has the case — see [8. Open questions](#8-open-questions).
 
 **Refusals.** The bridge drops a packet with an odd length, a length above 512
 or a protocol version below 14. It never truncates a packet to make it fit.
@@ -467,7 +472,8 @@ crates/dmx/
   src/patch/     the patch file
   src/apply/     channel values -> device commands
   src/node/      the run loop that joins the four
-  src/main.rs
+  src/cmd/       one module per subcommand, and what each one reports
+  src/main.rs    the command line
 ```
 
 The channel table itself is `govee_toolkit::profile`, in the core crate, and

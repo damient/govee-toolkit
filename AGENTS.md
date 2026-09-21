@@ -189,24 +189,26 @@ SKU.
 
 `packages/rust` is the reference implementation and the only place protocol
 logic exists. It is **one crate**, `govee-toolkit`, with the layers as modules:
-`src/codec/` (no I/O), `src/transport/` (what every mode shares), `src/lan/`,
-`src/ble/`, `src/cloud/`, `src/stream/`, `src/exit.rs` and the facade at the
-crate root. `src/exit.rs` is the one module that writes to the process
+`src/codec/` (no I/O), `src/profile/` (the DMX channel table, no I/O),
+`src/transport/` (what every mode shares), `src/lan/`, `src/ble/`,
+`src/cloud/`, `src/stream/`, `src/exit.rs` and the facade at the crate root. `src/exit.rs` is the one module that writes to the process
 streams: both binaries report a fault through it, so the exit codes and the
 error record are declared once.
-`crates/cli` publishes the `govee` binary as `govee-toolkit-cli` and holds no
-protocol logic; `crates/sim` and `crates/xtask` carry `publish = false`. A
+`crates/cli` publishes the `govee` binary as `govee-toolkit-cli`, and
+`crates/dmx` publishes the `govee-dmx` binary as `govee-toolkit-dmx`. Neither
+holds protocol logic. `crates/sim` and `crates/xtask` carry `publish = false`. A
 transport is a cargo feature: the library defaults to `lan` alone, and the CLI
 to all three.
 
 The codec keeps building on its own (`cargo check --no-default-features`), and
-`tools/check-no-io.sh` fails the build if anything under `src/codec/` imports
-`std::net`, `std::fs`, `std::thread`, `tokio` or `socket2`, or goes async. That
-check is what keeps the codec I/O-free in a single crate; do not weaken it.
+`tools/check-no-io.sh` fails the build if anything under `src/codec/` or
+`src/profile/` imports `std::net`, `std::fs`, `std::thread`, `tokio` or
+`socket2`, or goes async. That check is what keeps the two modules I/O-free in
+a single crate; do not weaken it.
 
 Node and Python wrap the crate (napi-rs, PyO3). Each package versions and
-releases independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `python-vX.Y.Z`,
-`node-vX.Y.Z`) through the workflows in `.github/workflows/`. The policy is
+releases independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `dmx-vX.Y.Z`,
+`python-vX.Y.Z`, `node-vX.Y.Z`) through the workflows in `.github/workflows/`. The policy is
 `docs/versioning.md`.
 
 `govee-toolkit` is published on crates.io — the version is the one in

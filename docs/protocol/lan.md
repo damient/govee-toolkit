@@ -225,8 +225,8 @@ does is a per-SKU fact — record it in `devices/<SKU>.yaml`.
 **A unit can answer no status while the channel is armed.** The status request
 goes unanswered from the arming frame to the disarm, whether or not frames
 flow. Two consequences: a caller that verifies a command reads nothing while a
-stream runs, and the throughput measurement of [2.7](#27-throughput) cannot be
-taken that way on such a unit. Measure the rate by watching the unit instead.
+stream runs, and the throughput measurement of §2.7 cannot be taken that way
+on such a unit. Measure the rate by watching the unit instead.
 Which a model does is a per-SKU fact — record it in `devices/<SKU>.yaml`.
 
 **The `gradient` byte.** With `1` the firmware interpolates between zones and
@@ -290,9 +290,9 @@ _TODO — nothing probed yet on a SKU that reports sensors._
 Write commands never answer, so a device's headroom cannot be measured directly.
 Measure it indirectly: time `devStatus` round-trips at rest, then again **during**
 a stream of segment frames. A rising RTT or dropped replies mark saturation.
-This needs a unit that answers while the channel is armed, and some do not
-(2.3). Where it answers nothing, watch the unit and raise the rate until the
-render stutters or freezes.
+This needs a unit that answers while the channel is armed, and some do not —
+see §2.3. Where it answers nothing, watch the unit and raise the rate until
+the render stutters or freezes.
 
 The ceiling drops as frames get larger, since payload size grows with the zone
 count. Two consequences for an implementation:
