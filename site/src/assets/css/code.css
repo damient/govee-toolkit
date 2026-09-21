@@ -43,6 +43,12 @@
 }
 .strip b[data-lit] { box-shadow: 0 0 18px 1px var(--zone), 0 10px 40px 0 var(--zone); }
 
+/* A phone has no pointer, and 40 zones across that width read as a line. The
+   strip goes, and the sentence that points at it goes with it. */
+@media (max-width: 560px) {
+  .strip-demo .strip, .strip-hint { display: none; }
+}
+
 .strip-points { list-style: none; margin: 2.6em 0 0; padding: 0; display: grid; gap: 28px; }
 
 @media (min-width: 760px) { .strip-points { grid-template-columns: repeat(3, 1fr); gap: 36px; } }
