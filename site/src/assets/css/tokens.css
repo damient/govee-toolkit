@@ -57,6 +57,12 @@
   --muted: light-dark(#5f5d68, #9694a0);
   --prose: light-dark(#35333c, #c9c7cf);
   --glow: light-dark(rgb(255 61 0 / 7%), rgb(255 61 0 / 10%));
+  /* The hot part of the beam, in the hero and in the line under the top bar.
+     On paper it is a deep amber: a near-white core reads as a hole there. */
+  --beam-core: light-dark(#ffb14a, #ffd9a8);
+
+  /* The page color behind a word, for text that sits on the hero beam. */
+  --halo: light-dark(rgb(251 250 249 / 88%), rgb(10 13 20 / 88%));
 
   --ember: light-dark(#d93100, #ff3d00);
   --amber: light-dark(#8a5a05, #ffb35c);

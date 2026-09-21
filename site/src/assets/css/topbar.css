@@ -2,7 +2,55 @@
   position: sticky; top: 0; z-index: 10;
   background: color-mix(in oklab, var(--ink) 82%, transparent);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--line);
+}
+
+/* The line under the top bar: the hero beam, drawn as an edge. It carries the
+   same colors in the same order, so a reader who scrolls past the hero keeps
+   the beam under the bar. The home page hides it while the hero is on screen,
+   because the beam is already there. */
+.topline {
+  position: absolute; left: 0; right: 0; bottom: -2px; height: 2px;
+  pointer-events: none;
+  /* Each stop is pulled toward the page color. At full strength the line
+     reads as a toy rainbow beside the beam it answers. */
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklab, var(--accent-ember) 72%, var(--ink)) 14%,
+    color-mix(in oklab, var(--accent-amber) 72%, var(--ink)) 28%,
+    color-mix(in oklab, var(--beam-core) 72%, var(--ink)) 38%,
+    color-mix(in oklab, var(--magenta) 70%, var(--ink)) 54%,
+    color-mix(in oklab, var(--accent-violet) 70%, var(--ink)) 68%,
+    color-mix(in oklab, var(--accent-blue) 70%, var(--ink)) 82%,
+    color-mix(in oklab, var(--accent-cyan) 70%, var(--ink)) 94%,
+    transparent 100%
+  );
+  transition: opacity .45s ease;
+}
+
+/* The light the line throws on the page under it. */
+.topline::after {
+  content: ""; position: absolute; inset: -3px 0 -7px;
+  background: inherit;
+  filter: blur(6px);
+  opacity: .28;
+}
+
+/* On the home page the bar sits over the hero beam, so it starts bare. The
+   ground and the line arrive together, with `data-past-top`. */
+.is-home .topbar {
+  background: transparent;
+  backdrop-filter: none;
+  transition: background .35s ease;
+}
+.is-home .topbar:not([data-past-top]) .topline { opacity: 0; }
+.is-home .topbar[data-past-top] {
+  background: color-mix(in oklab, var(--ink) 82%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topline, .is-home .topbar { transition: none; }
 }
 .topbar .shell { display: flex; align-items: center; gap: 24px; height: 62px; }
 .wordmark {

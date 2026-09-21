@@ -32,7 +32,9 @@ img, svg { max-width: 100%; }
 
 .shell { width: 100%; max-width: var(--shell); margin-inline: auto; padding-inline: var(--gutter); }
 .shell.narrow { max-width: 760px; }
-.slab { padding-block: clamp(40px, 5.5vw, 72px); }
+/* The hero beam runs under the first sections, and a positioned layer paints
+   over the content of a static one. They stand above it. */
+.slab { position: relative; z-index: 1; padding-block: clamp(40px, 5.5vw, 72px); }
 .slab.tight { padding-top: clamp(16px, 2.2vw, 28px); }
 .eyebrow {
   font: 500 12px/1 var(--mono);
