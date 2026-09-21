@@ -28,19 +28,15 @@ pub struct DeviceHandle<'a> {
 
 impl<'a> DeviceHandle<'a> {
     pub(crate) fn new(govee: &'a Govee, id: DeviceId) -> Self {
-        Self {
-            govee,
-            id,
-            pinned: None,
-        }
+        Self::maybe_on(govee, id, None)
     }
 
     pub(crate) fn on(govee: &'a Govee, id: DeviceId, mode: Mode) -> Self {
-        Self {
-            govee,
-            id,
-            pinned: Some(mode),
-        }
+        Self::maybe_on(govee, id, Some(mode))
+    }
+
+    pub(crate) fn maybe_on(govee: &'a Govee, id: DeviceId, pinned: Option<Mode>) -> Self {
+        Self { govee, id, pinned }
     }
 
     /// The mode a call on this handle goes over: the pinned one, or the first

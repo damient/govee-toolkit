@@ -113,6 +113,8 @@ export declare class DeviceHandle {
   /**
    * Scan for the device if no mode knows it yet, then answer the mode a
    * command would go over.
+   *
+   * The scan covers every enabled mode, whatever this handle is pinned to.
    */
   ensureKnown(): Promise<string>
   /**

@@ -12,7 +12,6 @@ mod catalog;
 mod config;
 mod conv;
 mod device;
-mod driver;
 mod errors;
 mod events;
 mod govee;

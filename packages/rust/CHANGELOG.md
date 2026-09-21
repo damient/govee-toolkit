@@ -14,6 +14,8 @@ releases apart and keeps
   `Govee::device` moves to the next enabled mode. A caller that serves one mode
   by design takes it, such as the Art-Net node, which reaches a device over
   `lan`.
+- `Govee::device_maybe_on` — the same handle with the mode as an `Option`;
+  `None` gives what `Govee::device` gives. A binding that stores it takes it.
 - `Govee::select()` and `Selector` — name devices by identity, by SKU, or by
   the name the configuration gives one. `id:`, `sku:` and `name:` state the
   kind where a bare target does not.
