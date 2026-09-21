@@ -17,6 +17,9 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 - `identify --color`, `--wait-ms`, `--hold-ms` and `--keep` — the color each
   device shows, the interval between two steps, how long the last device holds
   it, and leaving the rig lit at the end.
+- `identify` exits non-zero and names every device that refused the pass, and
+  every device that refused the blackout at the end. A device that fails stops
+  no other one.
 
 ## [0.5.0] — 2026-09-16
 

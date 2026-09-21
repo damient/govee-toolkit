@@ -116,18 +116,44 @@ async fn run(
         }
         tokio::time::sleep(walk.wait).await;
     }
+    let mut stayed = Vec::new();
     if !walk.keep {
         tokio::time::sleep(walk.hold).await;
-        drop(off(govee, rig.fixtures(), as_json).await);
+        stayed = off(govee, rig.fixtures(), as_json).await;
     }
-    if failed.is_empty() {
+    if failed.is_empty() && stayed.is_empty() {
         return Ok(());
     }
-    let unlit: Vec<String> = failed.iter().map(ToString::to_string).collect();
-    Err(Failure::new(
-        format!("these fixtures did not take the pass: {}", unlit.join(", ")),
-        UNREACHABLE,
-    ))
+    Err(Failure::new(summary(&failed, &stayed), UNREACHABLE))
+}
+
+/// What the walk failed at, as one line.
+///
+/// The closing blackout counts: a fixture that holds the color is a fixture
+/// the operator must take off by hand. One that refused the pass and the
+/// blackout is named in both lists, which are two faults the room shows.
+fn summary(failed: &[DeviceId], stayed: &[DeviceId]) -> String {
+    let mut parts = Vec::new();
+    if !failed.is_empty() {
+        parts.push(format!(
+            "these fixtures did not take the pass: {}",
+            names(failed)
+        ));
+    }
+    if !stayed.is_empty() {
+        parts.push(format!(
+            "these fixtures did not go off at the end: {}",
+            names(stayed)
+        ));
+    }
+    parts.join("; ")
+}
+
+fn names(ids: &[DeviceId]) -> String {
+    ids.iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// The fixtures the command line chose, in the order the patch lists them.

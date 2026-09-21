@@ -65,18 +65,44 @@ pub(super) async fn run(
         }
         tokio::time::sleep(walk.wait).await;
     }
+    let mut stayed = Vec::new();
     if !walk.keep {
         tokio::time::sleep(walk.hold).await;
-        drop(off(govee, writer, &targets, walk.mode).await);
+        stayed = off(govee, writer, &targets, walk.mode).await;
     }
-    if failed.is_empty() {
+    if failed.is_empty() && stayed.is_empty() {
         return Ok(());
     }
-    let unlit: Vec<String> = failed.iter().map(ToString::to_string).collect();
-    Err(Failure::unreachable(format!(
-        "these devices did not take the pass: {}",
-        unlit.join(", ")
-    )))
+    Err(Failure::unreachable(summary(&failed, &stayed)))
+}
+
+/// What the walk failed at, as one line.
+///
+/// The closing blackout counts: a device that holds the color is a device the
+/// operator must take off by hand. One that refused the pass and the blackout
+/// is named in both lists, which are two faults the room shows.
+fn summary(failed: &[DeviceId], stayed: &[DeviceId]) -> String {
+    let mut parts = Vec::new();
+    if !failed.is_empty() {
+        parts.push(format!(
+            "these devices did not take the pass: {}",
+            names(failed)
+        ));
+    }
+    if !stayed.is_empty() {
+        parts.push(format!(
+            "these devices did not go off at the end: {}",
+            names(stayed)
+        ));
+    }
+    parts.join("; ")
+}
+
+fn names(ids: &[DeviceId]) -> String {
+    ids.iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Take every device off at once, and answer the ones that refused.
