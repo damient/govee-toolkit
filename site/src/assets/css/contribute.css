@@ -6,8 +6,8 @@
 
 @media (min-width: 900px) { .paths { grid-template-columns: repeat(2, 1fr); } }
 .path {
-  --accent: var(--accent-ember);
-  --tint: var(--ember);
+  --accent: var(--accent-cyan);
+  --tint: var(--cyan);
   position: relative;
   padding: 30px 28px 32px 31px;
   background: var(--panel); border: 1px solid var(--line); border-left: 0;
@@ -25,7 +25,7 @@
   box-shadow: 0 0 18px 1px color-mix(in oklab, var(--accent) 60%, transparent);
   animation: flow 5s linear infinite;
 }
-.path:nth-child(2) { --accent: var(--accent-cyan); --tint: var(--cyan); }
+.path:nth-child(2) { --accent: var(--accent-ember); --tint: var(--ember); }
 .path:nth-child(2)::before { animation-delay: -2.5s; }
 
 @media (prefers-reduced-motion: reduce) { .path::before { animation: none; } }
