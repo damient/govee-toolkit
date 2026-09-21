@@ -8,7 +8,6 @@ use crate::catalog::Catalog;
 use crate::config::Config;
 use crate::conv;
 use crate::device::DeviceHandle;
-use crate::driver::Driver;
 use crate::errors::map;
 use crate::events::EventStream;
 use crate::types::Device;
@@ -136,7 +135,8 @@ impl Govee {
     /// A handle for one device, by the MAC it reports.
     fn device(&self, id: &str) -> DeviceHandle {
         DeviceHandle {
-            govee: Driver::new(self.inner.clone(), None),
+            govee: self.inner.clone(),
+            pinned: None,
             id: DeviceId::new(id),
         }
     }
@@ -149,7 +149,8 @@ impl Govee {
     /// when that one stops answering.
     fn device_on(&self, id: &str, mode: &str) -> PyResult<DeviceHandle> {
         Ok(DeviceHandle {
-            govee: Driver::new(self.inner.clone(), Some(conv::mode(mode)?)),
+            govee: self.inner.clone(),
+            pinned: Some(conv::mode(mode)?),
             id: DeviceId::new(id),
         })
     }

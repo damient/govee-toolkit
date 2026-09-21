@@ -181,6 +181,16 @@ impl Govee {
         DeviceHandle::on(self, id.clone(), mode)
     }
 
+    /// A handle for one device, pinned to `mode` where the caller names one.
+    ///
+    /// `None` gives what [`Govee::device`] gives, and `Some(mode)` what
+    /// [`Govee::device_on`] gives. Use it where the caller holds the mode as a
+    /// value, such as a binding that stores what the user asked for.
+    #[must_use]
+    pub fn device_maybe_on(&self, id: &DeviceId, mode: Option<Mode>) -> DeviceHandle<'_> {
+        DeviceHandle::maybe_on(self, id.clone(), mode)
+    }
+
     /// Everything wrong with the configuration, including what could only be
     /// checked once devices were known.
     #[must_use]

@@ -2,15 +2,16 @@
 
 use std::future::Future;
 
+use govee_toolkit::codec::Mode;
 use govee_toolkit::{
-    DeviceId, Error, Served as CoreServed, StreamOptions, WifiCredentials, describe,
+    DeviceHandle as CoreHandle, DeviceId, Error, Govee, Served as CoreServed, StreamOptions,
+    WifiCredentials, describe,
 };
 use napi::Env;
 use napi::bindgen_prelude::{Object, PromiseRaw, Unknown};
 use napi_derive::napi;
 
 use crate::conv::{self, to_js};
-use crate::driver::Driver;
 use crate::errors::map;
 use crate::events::StatusStream;
 use crate::promise::promise;
@@ -21,7 +22,10 @@ use crate::types::{DeviceStatus, Health, Reply, Served};
 /// from the SDK it was made by.
 #[napi]
 pub struct DeviceHandle {
-    pub(crate) govee: Driver,
+    pub(crate) govee: Govee,
+    /// The one mode every call on this handle goes over, where the caller
+    /// named one.
+    pub(crate) pinned: Option<Mode>,
     pub(crate) id: DeviceId,
 }
 
@@ -36,8 +40,7 @@ impl DeviceHandle {
     /// The modes enabled for it, in preference order.
     #[napi(getter)]
     pub fn modes(&self) -> Vec<String> {
-        self.govee
-            .device(&self.id)
+        self.core()
             .modes()
             .iter()
             .map(ToString::to_string)
@@ -59,32 +62,26 @@ impl DeviceHandle {
     /// so the answer can change before the next call.
     #[napi]
     pub fn serving_mode(&self, env: &Env) -> napi::Result<String> {
-        Ok(map(env, self.govee.device(&self.id).serving_mode())?.to_string())
+        Ok(map(env, self.core().serving_mode())?.to_string())
     }
 
     /// What `devices/<SKU>.yaml` declares for it. Reads no hardware.
     #[napi]
     pub fn spec(&self, env: &Env) -> napi::Result<serde_json::Value> {
-        to_js(env, map(env, self.govee.device(&self.id).spec())?)
+        to_js(env, map(env, self.core().spec())?)
     }
 
     /// What `devices/<SKU>.yaml` declares, as the record `govee describe`
     /// prints.
     #[napi]
     pub fn describe(&self, env: &Env) -> napi::Result<serde_json::Value> {
-        to_js(
-            env,
-            &describe(map(env, self.govee.device(&self.id).spec())?),
-        )
+        to_js(env, &describe(map(env, self.core().spec())?))
     }
 
     /// The last status heard, without asking for a new one.
     #[napi]
     pub fn last_status(&self) -> Option<DeviceStatus> {
-        self.govee
-            .device(&self.id)
-            .last_status()
-            .map(DeviceStatus::from)
+        self.core().last_status().map(DeviceStatus::from)
     }
 
     /// Watch its status as answers arrive, over the mode that would serve a
@@ -92,17 +89,16 @@ impl DeviceHandle {
     /// has heard nothing.
     #[napi]
     pub fn watch_status(&self) -> Option<StatusStream> {
-        self.govee
-            .device(&self.id)
-            .watch_status()
-            .map(StatusStream::new)
+        self.core().watch_status().map(StatusStream::new)
     }
 
     /// Scan for the device if no mode knows it yet, then answer the mode a
     /// command would go over.
+    ///
+    /// The scan covers every enabled mode, whatever this handle is pinned to.
     #[napi]
     pub fn ensure_known<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, String>> {
-        let (govee, id) = self.parts();
+        let (govee, _, id) = self.parts();
         promise(env, async move {
             Ok(govee.ensure_known(&id).await?.to_string())
         })
@@ -124,8 +120,8 @@ impl DeviceHandle {
         args: Option<Object<'_>>,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let supplied = conv::args(env, args)?;
-        self.served(env, |govee, id| async move {
-            let handle = govee.device(&id);
+        self.served(env, |govee, pinned, id| async move {
+            let handle = govee.device_maybe_on(&id, pinned);
             let call = handle.resolve()?;
             let values = call.args(&command, supplied)?;
             call.send(&command, &values).await
@@ -145,9 +141,9 @@ impl DeviceHandle {
         args: Option<Object<'_>>,
     ) -> napi::Result<PromiseRaw<'env, Reply>> {
         let supplied = conv::args(env, args)?;
-        let (govee, id) = self.parts();
+        let (govee, pinned, id) = self.parts();
         promise(env, async move {
-            let handle = govee.device(&id);
+            let handle = govee.device_maybe_on(&id, pinned);
             let call = handle.resolve()?;
             let values = call.args(&command, supplied)?;
             Ok(Reply::from(call.read(&command, &values).await?))
@@ -157,9 +153,11 @@ impl DeviceHandle {
     /// Ask the device for its state and wait for the answer.
     #[napi]
     pub fn status<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, DeviceStatus>> {
-        let (govee, id) = self.parts();
+        let (govee, pinned, id) = self.parts();
         promise(env, async move {
-            Ok(DeviceStatus::from(govee.device(&id).status().await?))
+            Ok(DeviceStatus::from(
+                govee.device_maybe_on(&id, pinned).status().await?,
+            ))
         })
     }
 
@@ -186,9 +184,12 @@ impl DeviceHandle {
             utc_offset_hours: utc_offset_hours.unwrap_or(0),
             utc_offset_minutes: utc_offset_minutes.unwrap_or(0),
         };
-        let (govee, id) = self.parts();
+        let (govee, pinned, id) = self.parts();
         promise(env, async move {
-            let done = govee.device(&id).provision_wifi(&credentials).await?;
+            let done = govee
+                .device_maybe_on(&id, pinned)
+                .provision_wifi(&credentials)
+                .await?;
             Ok(done.as_str().to_owned())
         })
     }
@@ -214,10 +215,13 @@ impl DeviceHandle {
             rate: conv::rate_or_default(env, rate.as_ref())?,
             gradient: gradient.unwrap_or(false),
         };
-        let (govee, id) = self.parts();
+        let (govee, pinned, id) = self.parts();
         promise(env, async move {
             Ok(SegmentStream::new(
-                govee.device(&id).open_stream(options).await?,
+                govee
+                    .device_maybe_on(&id, pinned)
+                    .open_stream(options)
+                    .await?,
             ))
         })
     }
@@ -229,20 +233,24 @@ impl DeviceHandle {
 }
 
 impl DeviceHandle {
-    pub(crate) fn parts(&self) -> (Driver, DeviceId) {
-        (self.govee.clone(), self.id.clone())
+    pub(crate) fn core(&self) -> CoreHandle<'_> {
+        self.govee.device_maybe_on(&self.id, self.pinned)
+    }
+
+    pub(crate) fn parts(&self) -> (Govee, Option<Mode>, DeviceId) {
+        (self.govee.clone(), self.pinned, self.id.clone())
     }
 
     pub(crate) fn served<'env, Fut>(
         &self,
         env: &'env Env,
-        verb: impl FnOnce(Driver, DeviceId) -> Fut,
+        verb: impl FnOnce(Govee, Option<Mode>, DeviceId) -> Fut,
     ) -> napi::Result<PromiseRaw<'env, Served>>
     where
         Fut: Future<Output = Result<CoreServed, Error>> + Send + 'static,
     {
-        let (govee, id) = self.parts();
-        let call = verb(govee, id);
+        let (govee, pinned, id) = self.parts();
+        let call = verb(govee, pinned, id);
         promise(env, async move { Ok(Served::from(call.await?)) })
     }
 }

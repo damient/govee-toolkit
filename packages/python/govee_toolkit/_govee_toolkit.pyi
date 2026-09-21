@@ -301,6 +301,8 @@ class DeviceHandle:
     async def ensure_known(self) -> str:
         """Scan for the device if no mode knows it yet, then answer the mode a command
         would go over.
+
+        The scan covers every enabled mode, whatever this handle is pinned to.
         """
 
     async def send(self, command: str, **args: Arg) -> Served:

@@ -18,10 +18,9 @@ impl DeviceHandle {
     /// Turn the device on or off.
     #[napi]
     pub fn power<'env>(&self, env: &'env Env, on: bool) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(
-            env,
-            |govee, id| async move { govee.device(&id).power(on).await },
-        )
+        self.served(env, |govee, pinned, id| async move {
+            govee.device_maybe_on(&id, pinned).power(on).await
+        })
     }
 
     /// Set the level, in the unit the device file declares. A level outside
@@ -32,8 +31,8 @@ impl DeviceHandle {
         env: &'env Env,
         level: i64,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(env, |govee, id| async move {
-            govee.device(&id).brightness(level).await
+        self.served(env, |govee, pinned, id| async move {
+            govee.device_maybe_on(&id, pinned).brightness(level).await
         })
     }
 
@@ -45,8 +44,8 @@ impl DeviceHandle {
         #[napi(ts_arg_type = "[number, number, number] | Uint8Array")] rgb: conv::Channels<'_>,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let rgb = conv::rgb(env, &rgb)?;
-        self.served(env, |govee, id| async move {
-            govee.device(&id).color(rgb).await
+        self.served(env, |govee, pinned, id| async move {
+            govee.device_maybe_on(&id, pinned).color(rgb).await
         })
     }
 
@@ -75,9 +74,12 @@ impl DeviceHandle {
             },
             full_brightness: full_brightness.unwrap_or(default.full_brightness),
         };
-        let (govee, id) = self.parts();
+        let (govee, pinned, id) = self.parts();
         promise(env, async move {
-            govee.device(&id).identify(&options).await?;
+            govee
+                .device_maybe_on(&id, pinned)
+                .identify(&options)
+                .await?;
             Ok(())
         })
     }
@@ -89,8 +91,8 @@ impl DeviceHandle {
         env: &'env Env,
         kelvin: i64,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(env, |govee, id| async move {
-            govee.device(&id).color_temp(kelvin).await
+        self.served(env, |govee, pinned, id| async move {
+            govee.device_maybe_on(&id, pinned).color_temp(kelvin).await
         })
     }
 
@@ -120,8 +122,8 @@ impl DeviceHandle {
             soft: soft.unwrap_or(default.soft),
             color,
         };
-        self.served(env, |govee, id| async move {
-            govee.device(&id).music(&music).await
+        self.served(env, |govee, pinned, id| async move {
+            govee.device_maybe_on(&id, pinned).music(&music).await
         })
     }
 
@@ -145,14 +147,14 @@ impl DeviceHandle {
         let colors = conv::colors(env, &colors)?;
         let resolution = conv::resolution_or_default(env, resolution.as_ref())?;
         let gradient = gradient.unwrap_or(false);
-        self.served(env, |govee, id| async move {
+        self.served(env, |govee, pinned, id| async move {
             let paint = Paint {
                 zones: zones.as_deref(),
                 colors: &colors,
                 resolution,
                 gradient,
             };
-            govee.device(&id).segment(&paint).await
+            govee.device_maybe_on(&id, pinned).segment(&paint).await
         })
     }
 
@@ -164,8 +166,8 @@ impl DeviceHandle {
         env: &'env Env,
         on: bool,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(env, |govee, id| async move {
-            govee.device(&id).gradient(on).await
+        self.served(env, |govee, pinned, id| async move {
+            govee.device_maybe_on(&id, pinned).gradient(on).await
         })
     }
 }

@@ -9,7 +9,6 @@ use crate::catalog::Catalog;
 use crate::config::Config;
 use crate::conv;
 use crate::device::DeviceHandle;
-use crate::driver::Driver;
 use crate::errors::map;
 use crate::events::EventStream;
 use crate::promise::promise;
@@ -147,7 +146,8 @@ impl Govee {
     #[napi]
     pub fn device(&self, id: String) -> DeviceHandle {
         DeviceHandle {
-            govee: Driver::new(self.inner.clone(), None),
+            govee: self.inner.clone(),
+            pinned: None,
             id: DeviceId::new(&id),
         }
     }
@@ -161,7 +161,8 @@ impl Govee {
     #[napi]
     pub fn device_on(&self, env: &Env, id: String, mode: String) -> napi::Result<DeviceHandle> {
         Ok(DeviceHandle {
-            govee: Driver::new(self.inner.clone(), Some(conv::mode(env, &mode)?)),
+            govee: self.inner.clone(),
+            pinned: Some(conv::mode(env, &mode)?),
             id: DeviceId::new(&id),
         })
     }
