@@ -151,6 +151,7 @@ The Rust side is one published crate, `govee-toolkit`, rooted at
 | `src/lan/` | Transport: UDP, discovery, device cache. Behind the `lan` feature |
 | `src/ble/` | Transport: GATT, scan, one link per device, paced writes. Behind the `ble` feature |
 | `src/stream/` | Segment channel: armed once, fed frames on a clock |
+| `src/exit.rs` | What `govee` and `govee-dmx` write to the process streams, and the code they exit with |
 | `src/` | Facade: modes, configuration, events |
 | `crates/sim/` | Device simulator. Never published |
 | `crates/xtask/` | Generates `dist/catalog.json`. Never published |

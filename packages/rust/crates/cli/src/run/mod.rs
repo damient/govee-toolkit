@@ -3,10 +3,10 @@
 use std::time::Duration;
 
 use govee_toolkit::codec::Mode;
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{Config, DeviceId, Env, Govee, Identify, Music, Walk};
 
 use crate::cli::{self, Cli, Command};
-use crate::output::{Failure, Writer};
 
 mod args;
 mod describe;
@@ -20,7 +20,7 @@ mod stream;
 mod verbs;
 mod watch;
 
-pub(crate) async fn dispatch(cli: &Cli, writer: &Writer) -> Result<(), Failure> {
+pub(crate) async fn dispatch(cli: &Cli, writer: Writer) -> Result<(), Failure> {
     let govee = Govee::start(configure(cli)?).await?;
     let outcome = route(&govee, cli, writer).await;
     // `ble` loses the last frame it wrote when nothing releases the adapter.
@@ -28,7 +28,7 @@ pub(crate) async fn dispatch(cli: &Cli, writer: &Writer) -> Result<(), Failure> 
     outcome.and(released)
 }
 
-async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure> {
+async fn route(govee: &Govee, cli: &Cli, writer: Writer) -> Result<(), Failure> {
     let restrict = cli.global.mode;
     if let Some(device) = cli.command.device() {
         discover(govee, &DeviceId::new(device)).await?;
@@ -114,7 +114,7 @@ async fn route(govee: &Govee, cli: &Cli, writer: &Writer) -> Result<(), Failure>
     }
 }
 
-async fn one_verb(govee: &Govee, writer: &Writer, verb: &cli::Verb) -> Result<(), Failure> {
+async fn one_verb(govee: &Govee, writer: Writer, verb: &cli::Verb) -> Result<(), Failure> {
     let (device, played) = match verb {
         cli::Verb::On { device } => (device, verbs::Verb::Power(true)),
         cli::Verb::Off { device } => (device, verbs::Verb::Power(false)),

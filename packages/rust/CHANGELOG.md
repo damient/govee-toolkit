@@ -43,6 +43,12 @@ releases apart and keeps
   observer for the lines it prints, and reads what failed off the report. It
   fails with `ModeNotEnabled` before it sends anything where the
   configuration does not enable the mode for a device of either set.
+- `exit` — what a binary writes to the process streams, and the code it exits
+  with. `Failure` carries the name a script reads, the line a person reads and
+  the exit code; `Writer` chooses between the record and the line. `govee` and
+  `govee-dmx` report through it, so one exit code and one error record mean the
+  same thing in both. It is the one module of the crate that writes to the
+  process streams.
 
 ### Fixed
 

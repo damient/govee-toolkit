@@ -1,11 +1,10 @@
 //! Each verb calls the matching method of the crate, which reads the entry the
 //! device file marks with that `role:`. No command name reaches this file.
 
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::stream::Resolution;
 use govee_toolkit::{DeviceId, Govee, Music, Paint, Served};
 use serde_json::json;
-
-use crate::output::{Failure, Writer};
 
 pub(super) enum Verb {
     Power(bool),
@@ -24,7 +23,7 @@ pub(super) enum Verb {
 
 pub(super) async fn run(
     govee: &Govee,
-    writer: &Writer,
+    writer: Writer,
     id: &DeviceId,
     verb: Verb,
 ) -> Result<(), Failure> {
@@ -56,7 +55,7 @@ pub(super) async fn run(
     Ok(())
 }
 
-pub(super) fn report(writer: &Writer, served: &Served) {
+pub(super) fn report(writer: Writer, served: &Served) {
     writer.emit(
         &json!({
             "id": served.id.to_string(),

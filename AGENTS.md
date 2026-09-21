@@ -190,7 +190,10 @@ SKU.
 `packages/rust` is the reference implementation and the only place protocol
 logic exists. It is **one crate**, `govee-toolkit`, with the layers as modules:
 `src/codec/` (no I/O), `src/transport/` (what every mode shares), `src/lan/`,
-`src/ble/`, `src/cloud/`, `src/stream/` and the facade at the crate root.
+`src/ble/`, `src/cloud/`, `src/stream/`, `src/exit.rs` and the facade at the
+crate root. `src/exit.rs` is the one module that writes to the process
+streams: both binaries report a fault through it, so the exit codes and the
+error record are declared once.
 `crates/cli` publishes the `govee` binary as `govee-toolkit-cli` and holds no
 protocol logic; `crates/sim` and `crates/xtask` carry `publish = false`. A
 transport is a cargo feature: the library defaults to `lan` alone, and the CLI

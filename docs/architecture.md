@@ -34,6 +34,9 @@ src/cloud/                 transport — HTTPS, the account's device list,
        │
 src/stream/                segment channel — armed once, fed frames on a clock
        │
+src/exit.rs                what a binary writes to the process streams, and
+       │                   the code it exits with
+       │
 src/ (crate root)          facade — modes, configuration, events
        │
   ┌────┴────┐
@@ -98,6 +101,13 @@ A sequence over several devices is the facade's work too, and not a binary's.
 `Govee::identify_walk` takes the rig off, lights one device at a time and
 reports what failed; the caller passes an observer for the lines it prints.
 The CLI and the bridge both call it, and neither one carries the walk.
+
+What a binary reports is the crate's work too. `exit::Failure` carries the name
+a script reads, the line a person reads and the exit code, and `exit::Writer`
+chooses between the record and the line. `govee` and `govee-dmx` both report
+through it, so one exit code and one error record mean the same thing in both.
+`src/exit.rs` is the one module of the crate that writes to the process
+streams; everything else writes through `tracing`.
 
 `ble` adds a second seam under that trait, `ble::wire`: an adapter and a
 peripheral. Above it everything is protocol; below it is one platform's radio.

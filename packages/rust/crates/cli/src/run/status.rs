@@ -1,10 +1,9 @@
 use govee_toolkit::codec::Mode;
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{DeviceId, DeviceStatus, Govee};
 use serde_json::{Value, json};
 
-use crate::output::{Failure, Writer};
-
-pub(super) async fn run(govee: &Govee, writer: &Writer, id: &DeviceId) -> Result<(), Failure> {
+pub(super) async fn run(govee: &Govee, writer: Writer, id: &DeviceId) -> Result<(), Failure> {
     let handle = govee.device(id);
     let call = handle.resolve()?;
     let mode = call.mode();

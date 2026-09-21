@@ -1,12 +1,11 @@
 use govee_toolkit::codec::Mode;
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{Device, Govee};
 use serde_json::{Value, json};
 
-use crate::output::{Failure, Writer};
-
 pub(super) async fn scan(
     govee: &Govee,
-    writer: &Writer,
+    writer: Writer,
     restrict: Option<Mode>,
 ) -> Result<(), Failure> {
     let modes = super::modes(govee, restrict);
@@ -52,7 +51,7 @@ fn heard_text(device: &Device, scanned: &[Mode], restrict: Option<Mode>, enabled
 /// scans of this run hold.
 pub(super) fn list(
     govee: &Govee,
-    writer: &Writer,
+    writer: Writer,
     targets: &[String],
     restrict: Option<Mode>,
 ) -> Result<(), Failure> {
@@ -72,7 +71,7 @@ pub(super) fn list(
 
 /// The devices a command can go to, so one that does not enable the mode is
 /// left out. A scan reports what answered instead.
-fn report(devices: &[Device], writer: &Writer, restrict: Option<Mode>) {
+fn report(devices: &[Device], writer: Writer, restrict: Option<Mode>) {
     for device in devices {
         if restrict.is_some_and(|only| !device.modes.contains(&only)) {
             continue;
@@ -127,7 +126,7 @@ fn modes(device: &Device, restrict: Option<Mode>) -> impl Iterator<Item = Mode> 
         .filter(move |mode| restrict.is_none_or(|only| only == *mode))
 }
 
-pub(super) fn doctor(govee: &Govee, writer: &Writer) {
+pub(super) fn doctor(govee: &Govee, writer: Writer) {
     let problems = govee.problems();
     // The first question when a credential the user believes they set is
     // reported as missing.

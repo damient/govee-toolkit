@@ -4,10 +4,9 @@
 //! [`govee_toolkit::DeviceHandle::args`].
 
 use govee_toolkit::codec::coerce;
+use govee_toolkit::exit::Failure;
 use govee_toolkit::stream::{ParseError, Resolution};
 use tokio::io::{AsyncBufReadExt, BufReader};
-
-use crate::output::Failure;
 
 pub(super) fn zones(text: &str) -> Result<Vec<u16>, Failure> {
     coerce::zones(text)

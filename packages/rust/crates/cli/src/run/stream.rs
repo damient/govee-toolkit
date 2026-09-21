@@ -4,12 +4,12 @@
 
 use std::time::Duration;
 
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::stream::{Rate, StreamOptions};
 use govee_toolkit::{DeviceId, Govee};
 use serde_json::json;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
-use crate::output::{Failure, Writer};
 use crate::run::args;
 
 /// What is waited past one frame interval, so that a tick due at the end of it
@@ -18,7 +18,7 @@ const MARGIN: Duration = Duration::from_millis(20);
 
 pub(super) async fn run(
     govee: &Govee,
-    writer: &Writer,
+    writer: Writer,
     id: &DeviceId,
     resolution: &str,
     rate: Option<f64>,

@@ -4,10 +4,9 @@
 //! read. Even then the report says the device took the credentials, never that
 //! it joined the network.
 
+use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{DeviceId, Env, Govee, Provisioned, WifiCredentials};
 use serde_json::json;
-
-use crate::output::{Failure, Writer};
 
 const PASSWORD_VAR: &str = "GOVEE_WIFI_PASSWORD";
 
@@ -20,7 +19,7 @@ pub(super) struct Secret<'a> {
 
 pub(super) async fn run(
     govee: &Govee,
-    writer: &Writer,
+    writer: Writer,
     id: &DeviceId,
     ssid: Option<&str>,
     secret: &Secret<'_>,

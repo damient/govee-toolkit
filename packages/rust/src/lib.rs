@@ -16,6 +16,8 @@
 //! - [`cloud`] — the documented HTTPS API: any device the account owns,
 //!   throttled.
 //! - [`stream`] — the raw segment channel, armed once and fed frames.
+//! - [`exit`] — what a binary writes to the process streams, and the code it
+//!   exits with.
 //! - The facade, at the crate root — configuration, mode selection and events.
 //!
 //! # Features
@@ -60,6 +62,7 @@
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub mod codec;
+pub mod exit;
 pub mod profile;
 
 #[cfg(feature = "ble")]
