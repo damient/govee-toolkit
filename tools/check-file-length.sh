@@ -42,8 +42,8 @@ if [ "$group" != site ]; then
 fi
 
 if [ "$group" != rust ]; then
-  over "$SITE_LIMIT" site/build.mjs site/lib site/src \
-    \( -name '*.mjs' -o -name '*.js' -o -name '*.css' -o -name '*.html' \) \
+  over "$SITE_LIMIT" site/build.ts site/lib site/src \
+    \( -name '*.ts' -o -name '*.mjs' -o -name '*.js' -o -name '*.css' -o -name '*.html' \) \
     -not -path '*/node_modules/*'
 fi
 

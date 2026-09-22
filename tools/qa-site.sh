@@ -38,11 +38,12 @@ fi
 
 if have npm && [ -d "$site/node_modules" ]; then
   check "site build" npm run --silent build
+  check "lint types" npm run --silent lint:types
   check "lint javascript" npm run --silent lint:js
   check "lint css" npm run --silent lint:css
   check "lint html" npm run --silent lint:html
 else
-  for name in "site build" "lint javascript" "lint css" "lint html"; do
+  for name in "site build" "lint types" "lint javascript" "lint css" "lint html"; do
     skip "$name" "cd site && npm install"
   done
 fi

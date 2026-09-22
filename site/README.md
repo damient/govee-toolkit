@@ -2,7 +2,7 @@
 
 The site published at <https://gvetk.com>.
 
-Plain HTML, CSS and JavaScript. No framework. A build script assembles the
+Plain HTML, CSS and TypeScript. No framework. A build script assembles the
 pages so that the header, the footer and the device tables exist once.
 
 ## Layout
@@ -13,12 +13,12 @@ pages so that the header, the footer and the device tables exist once.
 | `src/pages/*.html` | The hand-written pages: home and devices. |
 | `content/reference.json` | One entry per command, with an example in each language. It feeds the reference page and the "What you can send" section of every model page. |
 | `src/assets/css/*.css` | The stylesheet. `site.css` imports the rest. |
-| `src/assets/js/*.js` | The browser script. `site.js` wires the rest to the page. |
+| `src/assets/ts/*.ts` | The browser script. `site.ts` wires the rest to the page. |
 | `src/assets/` | The fonts and the images. |
-| `lib/*.mjs` | The renderers the build calls, and `config.mjs`, which holds the address of the site. |
+| `lib/*.ts` | The renderers the build calls. `config.ts` holds the address of the site, and `types.ts` the shape of the catalog and of the reference. |
 | `content/docs/*.md` | The documentation pages. One file, one page. |
 | `public/` | Anything that must land at the root of the site, such as `CNAME`. |
-| `build.mjs` | The build. |
+| `build.ts` | The build. |
 | `tools/og.py` | Draws the social preview image and the touch icon. It writes `tools/og.svg` and both PNGs. |
 | `tools/banner.py` | Draws the README banner. It writes `tools/banner.svg` and `docs/assets/banner.png`. |
 | `dist/` | The output. It is not committed. |
@@ -158,9 +158,9 @@ JavaScript blocked the links stay on the page.
 
 ## What a machine reads
 
-`build.mjs` writes `robots.txt` and `sitemap.xml`, and every page carries a
+`build.ts` writes `robots.txt` and `sitemap.xml`, and every page carries a
 canonical address, an Open Graph block and a JSON-LD block. The absolute form
-comes from `SITE_URL` in `lib/config.mjs`, and the domain is also in
+comes from `SITE_URL` in `lib/config.ts`, and the domain is also in
 `public/CNAME`. Change both together.
 
 The 404 page carries `noindex` and stays out of the sitemap.
@@ -192,7 +192,7 @@ python3 tools/banner.py
 
 Both are written as several files and bundled into one.
 `src/assets/css/site.css` imports the parts, in cascade order, and
-`src/assets/js/site.js` imports the modules it wires to the page. `npm run
+`src/assets/ts/site.ts` imports the modules it wires to the page. `npm run
 build` resolves each entry with esbuild and minifies the result.
 
 The stylesheet is then inlined into every page: the whole site is one small
@@ -203,7 +203,7 @@ cache. Neither source directory is copied into `dist/`.
 ## Linters
 
 ```bash
-npm run qa         # the catalog, the build, the three linters, the file length
+npm run qa         # the catalog, the build, the four linters, the file length
 ```
 
 `npm run qa` is `tools/qa-site.sh`, which mirrors
@@ -212,12 +212,13 @@ linters alone:
 
 ```bash
 npm run build      # the HTML linter reads dist/
-npm run lint       # all three
+npm run lint       # all four
 ```
 
 | Command | Tool | What it reads |
 | ------- | ---- | ------------- |
-| `npm run lint:js` | oxlint | `build.mjs`, `lib/` and `src/assets/js/` |
+| `npm run lint:types` | tsc | `build.ts` and `lib/`, then `src/assets/ts/` |
+| `npm run lint:js` | oxlint | `build.ts`, `lib/` and `src/assets/ts/` |
 | `npm run lint:css` | stylelint | `src/assets/css/` |
 | `npm run lint:html` | html-validate | `dist/`, after a build |
 
@@ -227,7 +228,24 @@ generated pages too, which is where a broken table or a missing label shows
 up first.
 
 Each configuration file carries the rules the repository turns off:
-`.oxlintrc.json`, `.stylelintrc.json` and `.htmlvalidate.json`. A site source
+`.oxlintrc.json`, `.stylelintrc.json` and `.htmlvalidate.json`.
+
+## TypeScript
+
+Node runs `build.ts` and `lib/` as they are: it removes the types and checks
+nothing. esbuild does the same for `src/assets/ts/`. `npm run lint:types` is
+the one step that checks the types, and CI runs it through `npm run lint`.
+
+Two `tsconfig.json` files hold the two targets. The one at the root reads the
+Node types, and the one under `src/assets/ts/` reads the DOM. A browser module
+cannot import `node:fs`, and the build cannot touch `document`.
+
+Because Node removes the types without a compiler, a source file must follow
+two rules. `erasableSyntaxOnly` enforces both:
+
+- An import names the file with its `.ts` extension.
+- Use no syntax that emits code: no `enum`, no `namespace`, and no parameter
+  property in a constructor. A site source
 file stays under 300 lines, which `tools/check-file-length.sh` enforces.
 
 ## Rules the site follows
