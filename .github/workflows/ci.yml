@@ -499,3 +499,8 @@ jobs:
       - name: docs/dmx-profiles.md is in step with devices/
         working-directory: packages/rust
         run: cargo run -p xtask -- dmx --check
+      # The table in docs/lan-supported-devices.md is generated from the JSON
+      # file beside it, which the site reads too.
+      - name: docs/lan-supported-devices.md is in step with its JSON file
+        working-directory: packages/rust
+        run: cargo run -p xtask -- lan --check
