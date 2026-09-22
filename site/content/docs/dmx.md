@@ -23,12 +23,13 @@ Each light answers one of three layouts. A desk calls this a personality.
 
 | Layout | Channels | What you get |
 | ------ | -------- | ------------ |
-| `full` | 6 | one color for the whole light, plus white temperature |
-| `segment` | 2 + 3 per zone | one color per zone |
-| `pixel` | 2 + 3 per LED | one color per LED |
+| `full` | 6 | one color for the whole light |
+| `segment` | 3 + 3 per zone | one color per zone |
+| `pixel` | 3 + 3 per LED | one color per LED |
 
-Channel 1 is always the dimmer and channel 2 the mode, so a cue carries from
-one model to the next. A model serves only the layouts its hardware carries.
+Channel 1 is always the dimmer, channel 2 the mode and channel 3 the white
+temperature, so a cue carries from one model to the next. The white covers the
+whole light, whatever the layout. A model serves only the layouts its hardware carries.
 Each model page prints its tables, channel by channel —
 [the H61A0]({{base}}devices/H61A0/#dmx) is one example.
 
