@@ -50,7 +50,19 @@ pub(crate) fn patch(loss: &str) -> String {
 }
 
 pub(crate) fn rig(catalog: &Catalog, loss: &str) -> Rig {
-    let patch = Patch::parse(&patch(loss), "patch.yaml").unwrap_or_else(|e| panic!("{e}"));
+    resolve(catalog, &patch(loss))
+}
+
+/// The simulated device alone, on the `segment` personality.
+pub(crate) fn segment_rig(catalog: &Catalog) -> Rig {
+    let entry = format!(
+        "patch:\n  - device: \"{REACHED}\"\n    universe: 0\n    address: 1\n    personality: segment\n"
+    );
+    resolve(catalog, &entry)
+}
+
+fn resolve(catalog: &Catalog, text: &str) -> Rig {
+    let patch = Patch::parse(text, "patch.yaml").unwrap_or_else(|e| panic!("{e}"));
     let device = catalog.device(SKU).expect("the SKU resolves");
     patch
         .resolve(|_| Some(device), |_| Some(device))

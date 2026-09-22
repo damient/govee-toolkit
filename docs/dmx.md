@@ -58,8 +58,8 @@ A personality is one channel layout, the way it is on any other fixture.
 | Name | Channels | Condition |
 | --- | --- | --- |
 | `full` | 6 | `brightness` and `color` |
-| `segment` | 2 + 3 × `segments.groups`, else `segments.count` | and `segments` |
-| `pixel` | 2 + 3 × `segments.native_pixels` | and a measured `native_pixels` |
+| `segment` | 3 + 3 × `segments.groups`, else `segments.count` | and `segments` |
+| `pixel` | 3 + 3 × `segments.native_pixels` | and a measured `native_pixels` |
 
 `full` is 6 channels wide on every device:
 
@@ -67,17 +67,17 @@ A personality is one channel layout, the way it is on any other fixture.
 | --- | --- |
 | 1 | Dimmer |
 | 2 | Mode |
-| 3 | Red |
-| 4 | Green |
-| 5 | Blue |
-| 6 | White temperature |
+| 3 | White temperature |
+| 4 | Red |
+| 5 | Green |
+| 6 | Blue |
 
-`segment` holds one RGB triple for each zone, in zone order, from offset 3.
-`pixel` holds one triple for each addressable LED. A device whose every zone is
-one addressable LED serves `pixel` alone: the two would lay out one table, and
-one table carries one name. A device `lan` reaches no white temperature on
-keeps channel 6 of `full` and drives nothing from it, and `govee-dmx profile`
-names that channel `unreached`.
+`segment` and `pixel` carry the same first 3 channels. `segment` then holds one
+RGB triple for each zone, in zone order, from offset 4. `pixel` holds one triple
+for each addressable LED. A device whose every zone is one addressable LED
+serves `pixel` alone: the two would lay out one table, and one table carries one
+name. A device `lan` reaches no white temperature on keeps channel 3 and drives
+nothing from it, and `govee-dmx profile` names that channel `unreached`.
 
 **Groups.** A device file can declare `capabilities.segments.groups`: a zone
 count under the LED count. `segment` then lays out that many zones, and the
@@ -96,12 +96,13 @@ follow:
 A model that declares no `groups` lays out `segments.count` zones, and the
 frame carries that many: the firmware groups the LEDs behind them.
 
-Channel 1 and channel 2 are the same on all three personalities, so a desk
-reads one fixture the same way whatever it is patched on, and a cue file
-carries between two models of different widths. The mode channel goes second
-rather than last, which is where a fixture with a fixed table puts it: a table
-derived from a measured zone count changes width between models and between two
-lengths of one model, and a trailing channel would move with it.
+Channels 1 to 3 are the same on all three personalities, so a desk reads one
+fixture the same way whatever it is patched on, and a cue file carries between
+two models of different widths. The mode and the white channel come before the
+colors rather than after them, which is where a fixture with a fixed table puts
+them: a table derived from a measured zone count changes width between models
+and between two lengths of one model, and a trailing channel would move with
+it.
 
 The mode channel carries 0 to 9 for no action, and 250 to 255 to force a full
 resend. Every other value is reserved.
@@ -137,7 +138,8 @@ it is.
 at zero would turn a rig white at every blackout. Slot 1 to 255 scales over
 `colortemp.range_kelvin`.
 
-A white command replaces the color on the device. Two rules follow from that:
+The white covers the whole device on every personality. A white command
+replaces the color on the device. Two rules follow from that:
 
 - A pass that carries a white temperature writes no color. The color would show
   for the few milliseconds before the white command, which reads as a blink on
@@ -145,6 +147,19 @@ A white command replaces the color on the device. Two rules follow from that:
 - The node sends the color again where the white channel comes back to 0, even
   where the color channels did not move. That is what takes the device out of
   white, and the color channels at 0 take it dark.
+
+On `segment` and `pixel`, a white command also ends the armed segment channel —
+see [`protocol/lan.md`](protocol/lan.md) 2.3. The node therefore does this:
+
+- It sends the white while the channel is armed, then disarms the channel. A
+  disarm first would show the color the device held before the stream.
+- It paints no zone while the white channel carries a value.
+- Where the white channel comes back to 0, it arms the channel again and paints
+  every zone. The arm costs `arm_settle_ms` before the first paint, and some
+  units go dark for that time.
+
+A switch between white and zones is therefore a look change and not a chase
+step.
 
 **Quantization.** A brightness range of `[1, 100]` maps 255 slots onto 100
 steps, so about 2.5 slots share one step. A slow fade on the desk looks stepped
@@ -193,9 +208,10 @@ the fixture answers to, the same number an operator sets on a real fixture, and
 the personality decides how many channels follow it.
 
 A 10-zone device on `personality: segment` and `address: 1` therefore takes
-channels 1 to 32 of universe 0: channel 1 is the dimmer, channel 2 is the mode
-channel, channels 3 to 5 are zone 0, channels 6 to 8 are zone 1, and so on. A
-second device on the same universe starts at address 33.
+channels 1 to 33 of universe 0: channel 1 is the dimmer, channel 2 is the mode
+channel, channel 3 is the white temperature, channels 4 to 6 are zone 0,
+channels 7 to 9 are zone 1, and so on. A second device on the same universe
+starts at address 34.
 
 **Which fixtures the scan writes.** The scan writes `enabled:`, in both
 directions: a device that did not answer takes `false`, and it takes `true`

@@ -6,6 +6,25 @@ releases under `dmx-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md). The design
 is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 
+### Added
+
+- The white channel drives `segment` and `pixel`: a white over the whole
+  device. See [`docs/dmx.md`](../../../../docs/dmx.md) 1.3.
+- A white on a zone personality goes out over the armed segment channel, which
+  it ends. The white channel back at 0 arms the channel and paints every zone.
+- A switch between white and zones pays `arm_settle_ms` before the first paint,
+  and some units show dark for that time.
+- A fixture on `segment`, on a device that declares
+  `capabilities.segments.groups`, streams one colour per LED and paints each
+  group over its own run. See [`docs/dmx.md`](../../../../docs/dmx.md) 1.2.
+
+### Changed
+
+- **Breaking:** channels 1 to 3 are the dimmer, the mode and the white on every
+  personality. Colors and zones start at 4: repatch and rewrite the cues.
+- **Breaking:** `segment` and `pixel` take 3 + 3 × zones channels. A patch that
+  packs two zone fixtures edge to edge overlaps: move the second one up.
+
 ## [0.1.0] — 2026-09-21
 
 ### Added
@@ -50,10 +69,6 @@ is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
   reports the state it read and writes none, so a live fixture stays out.
 - A new entry takes the lowest free channels of the lowest universe from
   `--universe`. A second scan fills the gap a deleted entry left.
-- A fixture on `segment`, on a device whose file declares
-  `capabilities.segments.groups`, streams one colour per LED: the bridge paints
-  each group over its own run. The rendering does not depend on how the
-  firmware groups the LEDs. See [`docs/dmx.md`](../../../../docs/dmx.md) 1.2.
 - `patch --personality` takes `full`, `segment`, `pixel`, or `widest` for the
   widest table the device serves. The default is `full`, which is 6 channels.
 - `patch --dry-run` prints the entries and writes nothing. `--reset` writes the

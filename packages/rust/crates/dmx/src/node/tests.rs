@@ -145,10 +145,10 @@ async fn drive(datagram: &[u8], rig: Rig) -> Recorder {
 #[tokio::test]
 async fn one_frame_reaches_every_fixture_of_its_universe() {
     let catalog = Catalog::embedded().expect("the embedded catalog parses");
-    let mut slots = vec![0u8; 100];
+    let mut slots = vec![0u8; 102];
     slots[0] = 255;
-    slots[47] = 128;
-    slots[94] = 255;
+    slots[48] = 128;
+    slots[96] = 255;
     let recorder = drive(&packet(0, 1, &slots), rig(&catalog)).await;
 
     assert_eq!(recorder.received, [0]);

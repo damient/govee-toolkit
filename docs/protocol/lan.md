@@ -227,6 +227,14 @@ armed channel is proof the unit is on. A `brightness` sent the same way applies
 and keeps the channel, on every model measured so far. Which of the two a model
 does is a per-SKU fact — record it in `devices/<SKU>.yaml`.
 
+**A white command ends the channel.** A `colorwc` with a non-zero
+`colorTemInKelvin` sent while the channel is armed applies the white over the
+whole unit and ends the channel. The following `0xB0` frames paint nothing, and
+the firmware answers nothing. A disarm after the white keeps the white. Arm the
+channel again to paint zones. The arm that follows a white can show the unit
+dark until the first frame, on some models. Record which models do in
+`devices/<SKU>.yaml`.
+
 **A unit can answer no status while the channel is armed.** The status request
 goes unanswered from the arming frame to the disarm, whether or not frames
 flow. Two consequences: a caller that verifies a command reads nothing while a

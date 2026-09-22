@@ -40,9 +40,9 @@ impl Observer for Quiet {}
 fn slots() -> Vec<u8> {
     let mut slots = vec![0u8; 12];
     slots[0] = 255;
-    slots[2] = 10;
-    slots[3] = 20;
-    slots[4] = 30;
+    slots[3] = 10;
+    slots[4] = 20;
+    slots[5] = 30;
     slots
 }
 
