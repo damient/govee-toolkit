@@ -1,0 +1,31 @@
+/* The filter over a table: a search field, an optional category select and a
+   count. The device list and the LAN Control list use it. */
+.toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 1.6em; }
+.toolbar .note { margin: 0; }
+
+.search { flex: 1 1 380px; max-width: 460px; }
+
+/* The two controls share one height: an input and a select size themselves
+   differently at the same padding. */
+.search input, .category select {
+  height: 44px; padding: 11px 14px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  font: 400 15px/1 var(--sans);
+}
+.search input { width: 100%; }
+.search input::placeholder { color: var(--muted); }
+
+/* No `display` on the select: it ships `hidden` until the script wires it. The
+   chevron sits on the label, so its color is a token. */
+.category { position: relative; }
+.category select { padding-right: 38px; appearance: none; cursor: pointer; }
+.category:has(select:not([hidden]))::after {
+  content: ""; position: absolute; right: 14px; top: 50%; width: 12px; height: 8px;
+  margin-top: -4px; background: var(--muted); pointer-events: none;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+@media (max-width: 640px) {
+  .category { flex: 1 1 100%; }
+  .category select { width: 100%; }
+}
