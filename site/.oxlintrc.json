@@ -10,7 +10,7 @@
   },
   "overrides": [
     {
-      "files": ["build.mjs", "lib/**"],
+      "files": ["build.ts", "lib/**"],
       "env": { "browser": false, "node": true }
     }
   ]
