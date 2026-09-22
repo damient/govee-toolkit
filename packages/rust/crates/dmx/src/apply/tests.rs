@@ -12,8 +12,8 @@ use super::Look;
 use crate::input::UniverseFrame;
 use crate::patch::{Fixture, Patch, Rig, SignalLoss};
 
-/// The rig the patch tests load: two `segment` fixtures at 1 and 33, and one
-/// `full` fixture at 65.
+/// The rig the patch tests load: two `segment` fixtures at 1 and 48, and one
+/// `full` fixture at 95.
 const RIG: &str = include_str!("../../tests/fixtures/patch.yaml");
 
 fn source() -> SocketAddr {
@@ -61,7 +61,7 @@ fn the_dimmer_at_zero_powers_the_device_off() {
     let rig = rig(&catalog);
     let look = look(
         &rig.fixtures()[2],
-        &universe(65, &[0, 0, 255, 255, 255, 255]),
+        &universe(95, &[0, 0, 255, 255, 255, 255]),
     );
     assert!(!look.on);
     assert_eq!(look.brightness, None);
@@ -72,7 +72,7 @@ fn a_full_fixture_reads_its_six_channels() {
     let catalog = catalog();
     let rig = rig(&catalog);
     let fixture = &rig.fixtures()[2];
-    let look = look(fixture, &universe(65, &[255, 0, 10, 20, 30, 255]));
+    let look = look(fixture, &universe(95, &[255, 0, 10, 20, 30, 255]));
     assert!(look.on);
     assert_eq!(look.brightness, Some(100));
     assert_eq!(look.color, Some([10, 20, 30]));
@@ -86,7 +86,7 @@ fn a_full_fixture_reads_its_six_channels() {
 fn the_white_channel_at_zero_carries_no_value() {
     let catalog = catalog();
     let rig = rig(&catalog);
-    let look = look(&rig.fixtures()[2], &universe(65, &[255, 0, 0, 0, 0, 0]));
+    let look = look(&rig.fixtures()[2], &universe(95, &[255, 0, 0, 0, 0, 0]));
     assert_eq!(look.white_temp, None);
 }
 
@@ -95,8 +95,8 @@ fn the_mode_channel_asks_for_a_resend_at_250() {
     let catalog = catalog();
     let rig = rig(&catalog);
     let fixture = &rig.fixtures()[2];
-    assert!(look(fixture, &universe(65, &[255, 250, 0, 0, 0, 0])).resend);
-    assert!(!look(fixture, &universe(65, &[255, 9, 0, 0, 0, 0])).resend);
+    assert!(look(fixture, &universe(95, &[255, 250, 0, 0, 0, 0])).resend);
+    assert!(!look(fixture, &universe(95, &[255, 9, 0, 0, 0, 0])).resend);
 }
 
 #[test]
@@ -104,18 +104,18 @@ fn a_segment_fixture_reads_the_zones_at_its_own_address() {
     let catalog = catalog();
     let rig = rig(&catalog);
     let mut slots = universe(1, &[255]);
-    slots[32] = 255;
-    slots[34] = 1;
-    slots[35] = 2;
-    slots[36] = 3;
+    slots[47] = 255;
+    slots[49] = 1;
+    slots[50] = 2;
+    slots[51] = 3;
     let frame = UniverseFrame::new(0, source(), &slots);
 
     let first = Look::read(&rig.fixtures()[0], &frame);
-    assert_eq!(first.zones.len(), 10);
+    assert_eq!(first.zones.len(), 15);
     assert_eq!(first.zones[0], [0, 0, 0]);
 
     let second = Look::read(&rig.fixtures()[1], &frame);
-    assert_eq!(second.zones.len(), 10);
+    assert_eq!(second.zones.len(), 15);
     assert_eq!(second.zones[0], [1, 2, 3]);
     assert_eq!(second.color, None, "a segment personality carries no color");
 }
@@ -127,9 +127,9 @@ fn a_channel_the_packet_stops_short_of_reads_zero() {
     let rig = rig(&catalog);
     let look = look(&rig.fixtures()[0], &[255, 0, 10, 20]);
     assert!(look.on);
-    assert_eq!(look.zones.len(), 10);
+    assert_eq!(look.zones.len(), 15);
     assert_eq!(look.zones[0], [10, 20, 0]);
-    assert_eq!(look.zones[9], [0, 0, 0]);
+    assert_eq!(look.zones[14], [0, 0, 0]);
 }
 
 #[test]
@@ -138,7 +138,7 @@ fn a_held_fixture_takes_no_look_after_the_signal_goes() {
     let rig = rig(&catalog);
     let look = look(
         &rig.fixtures()[2],
-        &universe(65, &[255, 0, 10, 20, 30, 255]),
+        &universe(95, &[255, 0, 10, 20, 30, 255]),
     );
     assert_eq!(look.quiet(SignalLoss::Hold), None);
 }
@@ -149,7 +149,7 @@ fn a_blacked_fixture_keeps_its_brightness_and_loses_its_color() {
     let rig = rig(&catalog);
     let look = look(
         &rig.fixtures()[2],
-        &universe(65, &[255, 0, 10, 20, 30, 255]),
+        &universe(95, &[255, 0, 10, 20, 30, 255]),
     );
     let quiet = look
         .quiet(SignalLoss::Black)
@@ -168,7 +168,7 @@ fn a_blacked_segment_fixture_takes_every_zone_to_zero() {
     let quiet = look
         .quiet(SignalLoss::Black)
         .expect("`black` asks for a look");
-    assert_eq!(quiet.zones.len(), 10);
+    assert_eq!(quiet.zones.len(), 15);
     assert!(quiet.zones.iter().all(|zone| *zone == [0, 0, 0]));
     assert_eq!(quiet.color, None, "a segment personality carries no color");
 }
@@ -179,7 +179,7 @@ fn an_off_fixture_powers_down_after_the_signal_goes() {
     let rig = rig(&catalog);
     let look = look(
         &rig.fixtures()[2],
-        &universe(65, &[255, 0, 10, 20, 30, 255]),
+        &universe(95, &[255, 0, 10, 20, 30, 255]),
     );
     let quiet = look.quiet(SignalLoss::Off).expect("`off` asks for a look");
     assert!(!quiet.on);

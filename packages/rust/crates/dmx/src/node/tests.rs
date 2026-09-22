@@ -145,17 +145,17 @@ async fn drive(datagram: &[u8], rig: Rig) -> Recorder {
 #[tokio::test]
 async fn one_frame_reaches_every_fixture_of_its_universe() {
     let catalog = Catalog::embedded().expect("the embedded catalog parses");
-    let mut slots = vec![0u8; 70];
+    let mut slots = vec![0u8; 100];
     slots[0] = 255;
-    slots[32] = 128;
-    slots[64] = 255;
+    slots[47] = 128;
+    slots[94] = 255;
     let recorder = drive(&packet(0, 1, &slots), rig(&catalog)).await;
 
     assert_eq!(recorder.received, [0]);
     assert_eq!(recorder.resolved.len(), 3);
     assert!(recorder.resolved.iter().all(|(_, look)| look.on));
     assert_eq!(recorder.resolved[0].0, DeviceId::new("AA:BB:CC:DD:EE:01"));
-    assert_eq!(recorder.resolved[0].1.zones.len(), 10);
+    assert_eq!(recorder.resolved[0].1.zones.len(), 15);
     assert_eq!(recorder.resolved[2].1.brightness, Some(100));
     assert!(recorder.refused.is_empty());
 }
