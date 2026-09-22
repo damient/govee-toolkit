@@ -5,11 +5,12 @@
 // catalog`. The site never restates a device fact that the YAML carries.
 
 import { cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { existsSync, watch } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { assets } from "./lib/assets.ts";
 import { CATALOG_SCHEMA, DESCRIPTION, SITE_URL, base, catalogPath, dist, repo, repoUrl, root } from "./lib/config.ts";
 import { docPage, readDocs } from "./lib/content.ts";
+import { sweepStaging, watchSources } from "./lib/dev.ts";
 import { crumbs } from "./lib/crumbs.ts";
 import { devicePage, renderIndex, sorted } from "./lib/devices.ts";
 import { navItem } from "./lib/docs.ts";
@@ -17,7 +18,7 @@ import { fill } from "./lib/html.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
 import { REFERENCE, referencePage } from "./lib/reference.ts";
 import { breadcrumb, deviceData, faqData, homeData, jsonLd, robots, sitemapXml } from "./lib/seo.ts";
-import { serve } from "./lib/serve.ts";
+import { type Change, notify, serve } from "./lib/serve.ts";
 import type { Catalog, Crumb, Device, NavEntry, Reference } from "./lib/types.ts";
 
 /** A hand-written page under `src/pages/`. */
@@ -261,17 +262,22 @@ async function readCatalog(): Promise<Catalog> {
   return catalog;
 }
 
-await main();
+// `--dev` is what `npm run dev` passes: a failed build leaves the server and
+// the watch up, so the next save can fix it.
+const dev = process.argv.includes("--dev");
 
-if (process.argv.includes("--serve")) serve();
+if (dev) {
+  await sweepStaging();
+  await main().catch(console.error);
+} else {
+  await main();
+}
 
-if (process.argv.includes("--watch")) {
-  let queued: NodeJS.Timeout | undefined;
-  for (const dir of ["src", "content", "lib"]) {
-    watch(join(root, dir), { recursive: true }, () => {
-      clearTimeout(queued);
-      queued = setTimeout(() => main().catch(console.error), 80);
-    });
-  }
-  console.log("watching src/, content/ and lib/ …");
+if (dev || process.argv.includes("--serve")) serve({ live: dev });
+
+if (dev) {
+  watchSources(async (change: Change) => {
+    await main();
+    notify(change);
+  });
 }

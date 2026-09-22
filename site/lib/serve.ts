@@ -1,4 +1,5 @@
 import { createReadStream, existsSync, statSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { type ServerResponse, createServer } from "node:http";
 import { extname, join } from "node:path";
 import { dist } from "./config.ts";
@@ -15,11 +16,46 @@ const TYPES: Record<string, string> = {
   ".txt": "text/plain; charset=utf-8",
 };
 
-/** Serves `dist/` on `PORT`, 8787 by default. */
-export function serve(): void {
+const LIVE_PATH = "/__reload";
+
+/** What changed: `css` swaps the inlined stylesheet, `page` reloads. */
+export type Change = "css" | "page";
+
+// The server adds this to every page it sends, so `dist/` stays the site that
+// ships. An `open` after an `error` is a restarted server: `node --watch`
+// restarts it when `lib/` changes, and the site is rebuilt by then. The
+// stylesheet is inlined in the page, so a CSS change reads the new page and
+// takes its `<style>`.
+const CLIENT = `<script type="module">
+const events = new EventSource("${LIVE_PATH}");
+let lost = false;
+events.addEventListener("error", () => { lost = true; });
+events.addEventListener("open", () => { if (lost) location.reload(); });
+events.addEventListener("message", async ({ data }) => {
+  const style = document.querySelector("style");
+  if (data !== "css" || !style) return location.reload();
+  const page = await fetch(location.href, { cache: "no-store" }).then((r) => r.text());
+  const next = new DOMParser().parseFromString(page, "text/html").querySelector("style");
+  if (next) style.textContent = next.textContent;
+});
+</script>`;
+
+const clients = new Set<ServerResponse>();
+
+/** Tells every open page that the site changed. */
+export function notify(change: Change): void {
+  for (const client of clients) client.write(`data: ${change}\n\n`);
+}
+
+/**
+ * Serves `dist/` on `PORT`, 8787 by default. `live` adds the reload channel
+ * and the script that listens to it.
+ */
+export function serve({ live = false } = {}): void {
   const port = Number(process.env.PORT ?? 8787);
   createServer((request, response) => {
     const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
+    if (live && path === LIVE_PATH) return listen(response);
     let file = join(dist, path);
     if (!file.startsWith(dist)) return send(response, 403, "Forbidden");
     if (existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
@@ -34,6 +70,12 @@ export function serve(): void {
     }
     response.setHeader("Content-Type", TYPES[ext] ?? "application/octet-stream");
     response.setHeader("Cache-Control", "no-store");
+    if (live && ext === ".html") {
+      readFile(file, "utf8")
+        .then((html) => response.end(html.replace("</body>", `${CLIENT}\n</body>`)))
+        .catch(() => send(response, 500, "Read failed"));
+      return;
+    }
     createReadStream(file).pipe(response);
   })
     // Without this, a port already taken raises an unhandled error event, and
@@ -46,6 +88,19 @@ export function serve(): void {
       process.exit(1);
     })
     .listen(port, () => console.log(`http://localhost:${port}`));
+}
+
+// `retry` shortens the wait of the browser after a restart, which is 3 s by
+// default.
+function listen(response: ServerResponse): void {
+  response.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-store",
+    Connection: "keep-alive",
+  });
+  response.write("retry: 250\n\n");
+  clients.add(response);
+  response.on("close", () => clients.delete(response));
 }
 
 function send(response: ServerResponse, code: number, body: string): void {

@@ -11,7 +11,7 @@
   "scripts": {
     "catalog": "cargo run --manifest-path ../packages/rust/Cargo.toml -p xtask -- catalog",
     "build": "node build.ts",
-    "dev": "node build.ts --watch --serve",
+    "dev": "node --watch --watch-preserve-output build.ts --dev",
     "serve": "node build.ts --serve",
     "qa": "../tools/qa-site.sh",
     "lint": "npm run lint:types && npm run lint:js && npm run lint:css && npm run lint:html",
