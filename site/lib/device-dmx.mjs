@@ -10,7 +10,7 @@ import { icon, slotIcon } from "./icons.mjs";
 // name, so a new slot reaches the page without a change here.
 const SLOTS = new Map([
   ["dimmer", "Dimmer"],
-  ["white_temp", "White temperature"],
+  ["white_temp", "White"],
   ["mode", "Mode"],
 ]);
 
@@ -73,15 +73,21 @@ function values(channel) {
   );
 }
 
-function row(head, channel, slot, cell) {
-  return `<tr><th scope="row">${head}</th><td class="dmx-mark">${mark(channel)}</td><td>${slot}</td>
-            <td>${cell}</td></tr>`;
+// One channel as a column of a desk: the number on top, then the slot, then
+// the bands. Every column takes one width, as the faders of a desk do.
+function column(head, channel, slot, cell) {
+  const unreached = channel.unreached ? " data-unreached" : "";
+  return `<li class="dmx-column"${unreached}>
+              <span class="dmx-channel">${head}${mark(channel)}</span>
+              <span class="dmx-slot">${slot}</span>
+              <div class="dmx-bands">${cell}</div>
+            </li>`;
 }
 
 // A zone triple repeats once per zone, and a 132-zone strip holds 396 of them.
-// The run reads as one row: the operator needs where it starts, how wide it is
-// and the order inside it.
-function zoneRow(run) {
+// The run reads as one column: the operator needs where it starts, how wide it
+// is and the order inside it.
+function zoneColumn(run) {
   const first = run[0];
   const last = run[run.length - 1];
   const zones = new Set(run.map((c) => c.zone)).size;
@@ -91,21 +97,21 @@ function zoneRow(run) {
     "<li>three channels each</li>",
     `<li>${escapeHtml(components)}, in zone order</li>`,
   ]);
-  return row(head, first, `${zones} zones`, cell);
+  return column(head, first, `${zones} zones`, cell);
 }
 
-/** Every channel as a row, with the zone channels folded into one. */
-function rows(channels) {
+/** Every channel as a column, with the zone channels folded into one. */
+function columns(channels) {
   const out = [];
   for (let at = 0; at < channels.length; at += 1) {
     const channel = channels[at];
     if (channel.slot !== "zone") {
-      out.push(row(String(channel.offset), channel, slotLabel(channel), values(channel)));
+      out.push(column(String(channel.offset), channel, slotLabel(channel), values(channel)));
       continue;
     }
     const start = at;
     while (at + 1 < channels.length && channels[at + 1].slot === "zone") at += 1;
-    out.push(zoneRow(channels.slice(start, at + 1)));
+    out.push(zoneColumn(channels.slice(start, at + 1)));
   }
   return out;
 }
@@ -134,16 +140,10 @@ function pane(entry, at) {
         </div>`;
   }
   return `<div ${frame}>
-          <div class="tablewrap">
-            <table class="matrix matrix-dmx">
-              <thead><tr><th scope="col">Channel</th>
-                <th scope="col"><span class="visually-hidden">Mark</span></th>
-                <th scope="col">Slot</th>
-                <th scope="col">Values</th></tr></thead>
-              <tbody>
-            ${rows(entry.channels).join("\n            ")}
-              </tbody>
-            </table>
+          <div class="dmx-frame">
+            <ol class="dmx-desk" aria-label="Channels">
+            ${columns(entry.channels).join("\n            ")}
+            </ol>
           </div>
         </div>`;
 }
