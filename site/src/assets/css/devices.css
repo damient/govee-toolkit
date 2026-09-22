@@ -266,6 +266,9 @@
 .dmx-swatch[data-component="red"] { color: #e5484d; }
 .dmx-swatch[data-component="green"] { color: #30a46c; }
 .dmx-swatch[data-component="blue"] { color: #3e63dd; }
+/* The outline keeps the white chip visible on a light panel. */
+.dmx-swatch[data-component="white"] { color: #fff; }
+.dmx-swatch[data-component="white"] rect { stroke: var(--line-strong); stroke-width: 1.5; }
 /* One band of slots per entry, with a rule between two bands: a channel holds
    up to three, and each one is a separate answer. The slots take a badge,
    because a pair of numbers is what the operator matches against a fader. */
