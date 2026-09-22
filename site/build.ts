@@ -14,6 +14,7 @@ import { sweepStaging, watchSources } from "./lib/dev.ts";
 import { crumbs } from "./lib/crumbs.ts";
 import { devicePage, renderIndex, sorted } from "./lib/devices.ts";
 import { navItem } from "./lib/docs.ts";
+import { faqPage } from "./lib/faq.ts";
 import { fill } from "./lib/html.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
 import { REFERENCE, referencePage } from "./lib/reference.ts";
@@ -98,12 +99,13 @@ async function main(): Promise<void> {
     await cp(join(root, "public"), out, { recursive: true, filter: (path: string) => !path.endsWith(".DS_Store") });
   }
 
-  const [, css, layout, docs, reference] = await Promise.all([
+  const [, css, layout, docs, reference, faq] = await Promise.all([
     writeFile(join(out, ".nojekyll"), ""),
     assets(out),
     readFile(join(root, "src/layout.html"), "utf8"),
     readDocs(),
     readFile(join(root, "content/reference.json"), "utf8").then((text): Reference => JSON.parse(text)),
+    faqPage(),
   ]);
   const nav: NavEntry[] = [
     ...docs.map((d) => ({ url: `docs/${d.slug}/`, title: d.title, order: d.order })),
@@ -160,6 +162,7 @@ async function main(): Promise<void> {
       title: REFERENCE.title,
       description: reference.intro,
       klass: "is-doc",
+    faq,
       jsonld: [breadcrumb([["Docs", docsHome], ["Reference", "reference/"]])],
       body: referencePage(reference, nav),
     },
@@ -229,6 +232,7 @@ async function emit(layout: string, page: Page, ctx: Context): Promise<string | 
 // reader is on it.
 function topNav(current: string, docsHome: string): string {
   const items = [
+    { url: "faq/", key: "faq", label: "FAQ" },
     { url: "", key: "home", label: "Home" },
     { url: docsHome, key: "docs", label: "Docs" },
     { url: "devices/", key: "devices", label: "Devices" },
