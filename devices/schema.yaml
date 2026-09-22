@@ -41,7 +41,7 @@ capabilities:
   #   brightness:         { range: [1, 100] }
   #   colortemp:          { range_kelvin: [2000, 9000] }
   #   color:
-  #   segments:           { count: 10, native_pixels: 42 }
+  #   segments:           { count: 10, native_pixels: 42, groups: 15 }
   #   segment_brightness:
   #   sensors:
   #
@@ -49,6 +49,12 @@ capabilities:
   # `segments.native_pixels` is the addressable LEDs. It depends on the LENGTH
   # of the unit, not only on the SKU: record a measured value, or leave it out.
   # Never extrapolate one.
+  # `segments.groups` is a coarser zone count a host paints over those LEDs.
+  # Declare it where the model reaches a view coarser than one zone per LED,
+  # and say in a comment which mode reaches that count. The host paints each
+  # group over its own run of LEDs, so the boundaries are the host's: they need
+  # not fall where another mode renders them. The DMX bridge lays out this many
+  # zones — see ../docs/dmx.md 1.2.
 
 modes:
   # Which modes the hardware SUPPORTS. The user enables supported modes per
