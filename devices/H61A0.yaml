@@ -292,7 +292,7 @@ measurements:
 verified:
   by: "damient"
   firmware: "2.06.02"
-  date: "2026-09-17"
+  date: "2026-09-22"
   notes: >-
     lan mode fully exercised, including the undocumented razer segment channel
     at native resolution. ble mode exercised over GATT on the same unit, against
@@ -426,6 +426,11 @@ verified:
     15 bits this file declares paint the whole rope. Painting every zone one
     color over ble was exercised the same way, at red, blue and green: all 15
     zones take the color.
+
+    The `status` reply reports the armed state: the `0xB2` payload of
+    docs/protocol/lan.md 2.3 is `01` while the channel is armed and `00` while
+    it is not.
+
     `arm_settle_ms` was measured on this unit over lan, through the CLI. Each
     trial disarmed the channel, wrote a color over `colorwc`, waited 3 s, sent
     the arming frame, waited n ms, then painted five zones red and five blue.
