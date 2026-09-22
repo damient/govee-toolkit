@@ -1,0 +1,65 @@
+<section class="pagehead">
+  <div class="shell">
+    {{crumbs}}
+    <h1>The models with LAN Control.</h1>
+    <p class="lede">
+      {{lan_count}} Govee models carry the LAN Control switch, which lets your
+      own network reach the light over Wi-Fi. Find yours, then
+      <a href="{{base}}docs/start/#turn-on-lan-control">turn the switch on</a>.
+    </p>
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell">
+    <div class="toolbar">
+      <label class="search">
+        <span class="visually-hidden">Search a model</span>
+        <input type="search" placeholder="Search a model, for example H6008 or bulb" data-filter autocomplete="off">
+      </label>
+      <label class="category">
+        <span class="visually-hidden">Category</span>
+        <select data-filter-category hidden>
+          <option value="">All categories</option>
+          {{lan_categories}}
+        </select>
+      </label>
+      <p class="note" data-filter-count data-filter-scope="on the list" aria-live="polite"></p>
+    </div>
+
+    <div class="tablewrap">
+      <table class="matrix matrix-lan">
+        <caption class="visually-hidden">The models that carry the LAN Control switch</caption>
+        <thead>
+          <tr>
+            <th scope="col">SKU</th>
+            <th scope="col">Name</th>
+            <th scope="col">Category</th>
+            <th scope="col">Here</th>
+          </tr>
+        </thead>
+        <tbody data-rows>
+{{lan_rows}}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note">
+      This is Govee's own list, as its
+      <a href="{{lan_source}}">WLAN guide</a> gave it on {{lan_retrieved}}.
+      The guide changes without notice, and it wins over this page.
+      {{lan_paged}} of these models have a page here, which says what the
+      toolkit reaches on each one.
+    </p>
+  </div>
+</section>
+
+<section class="slab tight">
+  <div class="shell narrow">
+    <h2>The switch is not in the settings?</h2>
+    <p>A model on this list can take a while to show it. The
+    <a href="{{base}}docs/troubleshooting/#the-lan-control-switch-is-missing">troubleshooting page</a>
+    says what to do.</p>
+    <a class="btn" href="{{base}}devices/">See the device list</a>
+  </div>
+</section>

@@ -6,7 +6,7 @@
 import { watch } from "node:fs";
 import { readdir, rm } from "node:fs/promises";
 import { basename, dirname, join, sep } from "node:path";
-import { catalogPath, root } from "./config.ts";
+import { catalogPath, lanListPath, root } from "./config.ts";
 import type { Change } from "./serve.ts";
 
 const SOURCES = ["src", "content"];
@@ -14,7 +14,7 @@ const CSS_DIR = `src${sep}assets${sep}css${sep}`;
 
 /**
  * Calls `rebuild` after a burst of changes under `src/` and `content/`, or to
- * the catalog. The change is `css` where every file that changed is a
+ * the catalog or the LAN list. The change is `css` where every file that changed is a
  * stylesheet.
  */
 export function watchSources(rebuild: (change: Change) => Promise<void>): void {
@@ -38,7 +38,11 @@ export function watchSources(rebuild: (change: Change) => Promise<void>): void {
   watch(dirname(catalogPath), (_, file) => {
     if (file === catalog) touch(catalog);
   });
-  console.log("watching src/, content/ and the catalog …");
+  const lan = basename(lanListPath);
+  watch(dirname(lanListPath), (_, file) => {
+    if (file === lan) touch(lan);
+  });
+  console.log("watching src/, content/, the catalog and the LAN list …");
 }
 
 /**

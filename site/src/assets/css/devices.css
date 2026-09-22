@@ -6,6 +6,13 @@
   font: 400 15px/1 var(--sans);
 }
 .search input::placeholder { color: var(--muted); }
+/* No `display` here: the select ships `hidden` until the script wires it. */
+.category select {
+  padding: 11px 38px 11px 14px; border-radius: 10px; appearance: none;
+  background: var(--panel) no-repeat right 14px center / 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%238b8f99' stroke-width='1.6'/%3E%3C/svg%3E");
+  border: 1px solid var(--line); color: var(--text); font: 400 15px/1 var(--sans); cursor: pointer;
+}
 .toolbar .note { margin: 0; }
 
 /* The table component. `.tablewrap` is the frame and `.matrix` the grid of
@@ -28,6 +35,12 @@
    centered, they read as a row of answers rather than as four ragged
    columns. */
 .matrix-list th:nth-child(n + 4), .matrix-list td:nth-child(n + 4) { text-align: center; }
+
+/* The LAN Control list: a row leads to a page where the catalog has one. */
+.matrix-lan { min-width: 560px; }
+.matrix-lan tbody tr.has-page { cursor: pointer; }
+.matrix-lan tbody tr.has-page:hover { background: var(--panel); }
+.matrix-lan tbody tr.has-page:hover th[scope="row"] a { color: var(--ember); }
 .matrix-list td:nth-child(n + 4) .caps-row { justify-content: center; }
 .matrix-list thead th:nth-child(n + 4) .mbadge { display: inline-flex; }
 

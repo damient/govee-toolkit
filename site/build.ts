@@ -15,12 +15,13 @@ import { crumbs } from "./lib/crumbs.ts";
 import { devicePage, renderIndex, sorted } from "./lib/devices.ts";
 import { navItem } from "./lib/docs.ts";
 import { faqPage } from "./lib/faq.ts";
+import { readLanList, renderLanList } from "./lib/lan-list.ts";
 import { fill } from "./lib/html.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
 import { REFERENCE, referencePage } from "./lib/reference.ts";
 import { breadcrumb, deviceData, homeData, jsonLd, robots, sitemapXml } from "./lib/seo.ts";
 import { type Change, notify, serve } from "./lib/serve.ts";
-import type { Catalog, Crumb, Device, NavEntry, Reference } from "./lib/types.ts";
+import type { Catalog, Crumb, Device, LanList, NavEntry, Reference } from "./lib/types.ts";
 
 /** A hand-written page under `src/pages/`. */
 interface Source {
@@ -29,7 +30,7 @@ interface Source {
   nav: string;
   title: string | null;
   klass?: string;
-  render?: (template: string, devices: Device[]) => string;
+  render?: (template: string, devices: Device[], lan: LanList) => string;
   trail?: Crumb[];
   description?: string;
 }
@@ -78,6 +79,15 @@ const pages: Source[] = [
     trail: [["Devices", "devices/"], ["Add a device", "devices/add/"]],
     description: "Two ways to put your Govee light on this list: send it to us and we add it for free, or follow the guide and add it yourself.",
   },
+  {
+    src: "lan-devices.html",
+    url: "devices/lan/",
+    nav: "devices",
+    title: "Models with LAN Control",
+    render: renderLanList,
+    trail: [["Devices", "devices/"], ["LAN Control", "devices/lan/"]],
+    description: "Every Govee model that carries the LAN Control switch, which lets your own network reach the light over Wi-Fi. Search by SKU or by name.",
+  },
 ];
 
 const FOOT_SKIP = new Set(["docs/configure/", "docs/troubleshooting/"]);
@@ -99,13 +109,14 @@ async function main(): Promise<void> {
     await cp(join(root, "public"), out, { recursive: true, filter: (path: string) => !path.endsWith(".DS_Store") });
   }
 
-  const [, css, layout, docs, reference, faq] = await Promise.all([
+  const [, css, layout, docs, reference, faq, lan] = await Promise.all([
     writeFile(join(out, ".nojekyll"), ""),
     assets(out),
     readFile(join(root, "src/layout.html"), "utf8"),
     readDocs(),
     readFile(join(root, "content/reference.json"), "utf8").then((text): Reference => JSON.parse(text)),
     faqPage(),
+    readLanList(),
   ]);
   const nav: NavEntry[] = [
     ...docs.map((d) => ({ url: `docs/${d.slug}/`, title: d.title, order: d.order })),
@@ -128,7 +139,7 @@ async function main(): Promise<void> {
     ...pages.map((page, at) => ({
       ...page,
       jsonld: page.url === "" ? homeData() : page.trail ? [breadcrumb(page.trail)] : [],
-      body: fill(page.render ? page.render(sources[at] ?? "", devices) : (sources[at] ?? ""), {
+      body: fill(page.render ? page.render(sources[at] ?? "", devices, lan) : (sources[at] ?? ""), {
         crumbs: page.trail ? crumbs(page.trail) : "",
       }),
     })),
