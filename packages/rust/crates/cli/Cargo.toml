@@ -31,7 +31,7 @@ cloud = ["govee-toolkit/cloud"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-govee-toolkit = { path = "../..", version = "0.11", default-features = false }
+govee-toolkit = { path = "../..", version = "0.12", default-features = false }
 serde_json.workspace = true
 tokio = { workspace = true, features = [
   "io-std",
