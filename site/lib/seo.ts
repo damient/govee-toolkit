@@ -70,7 +70,7 @@ export function deviceData(
   };
 }
 
-/** One documentation page that declares `faq` in its front matter. */
+/** The FAQ page: one question per `##` heading. */
 export function faqData(doc: { sections: { title: string; answer: string }[] }): LinkedData {
   return {
     "@context": "https://schema.org",

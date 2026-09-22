@@ -24,7 +24,6 @@ export interface Doc {
   title: string;
   description: string;
   order: number;
-  faq: boolean;
   headings: Heading[];
   html: string;
   sections: { title: string; answer: string }[];
@@ -39,11 +38,11 @@ export async function readDocs(): Promise<Doc[]> {
   );
   return docs.sort((a, b) => a.order - b.order);
 }
+
 /** One Markdown file under `content/` that sits outside the documentation menu. */
 export async function readPage(file: string): Promise<Doc> {
   return renderDoc(file, await readFile(join(root, "content", file), "utf8"));
 }
-
 
 /** One documentation page, inside the frame every one of them shares. */
 export function docPage(doc: Doc, nav: NavEntry[]): string {
@@ -55,8 +54,8 @@ export function docPage(doc: Doc, nav: NavEntry[]): string {
     body: doc.html,
   });
 }
-const MENU = /<!--\s*menu:\s*(.+?)\s*-->/;
 
+const MENU = /<!--\s*menu:\s*(.+?)\s*-->/;
 
 function renderDoc(file: string, raw: string): Doc {
   const { meta, body } = frontMatter(raw);
@@ -92,7 +91,6 @@ function renderDoc(file: string, raw: string): Doc {
     title: meta.title ?? file,
     description: meta.description ?? "",
     order: Number(meta.order ?? 99),
-    faq: meta.faq === "true",
     headings,
     html,
     sections: sections(html, headings),
@@ -117,8 +115,9 @@ function plainText(html: string): string {
   return html
     .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&#39;|&quot;/g, '"')
+    .replace(/&#39;/g, "'").replace(/&quot;/g, '"')
     .replace(/\s+/g, " ")
+    .replace(/ ([,.;:!?)])/g, "$1")
     .trim();
 }
 
