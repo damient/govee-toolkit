@@ -26,12 +26,28 @@ at.
 
 #### Added
 
+- `devices/schema.yaml` takes `capabilities.segments.groups`: a zone count
+  under the LED count, which a host paints over the LEDs itself. The DMX bridge
+  lays out that many zones. See [`docs/dmx.md`](docs/dmx.md) 1.2.
+- `H6022` declares `segments.groups: 15`, the width the `ble` mask and the
+  `cloud` zone array reach. The lamp serves a 47-channel `segment` personality
+  beside its 398-channel `pixel` one.
+- `H61A0` declares `segments.groups: 15`, the width the `ble` mask reaches.
+  The unit renders the 15 groups as 15 bands over lan, the count it renders
+  over ble. **Breaking:** the `segment` personality goes from 32 channels to
+  47; repatch the fixture and rewrite the cue.
 - `H61A0` records that the `status` reply reports the armed state of the lan
   raw segment channel. The `0xB2` payload is `01` while the channel is armed.
   A caller reads it instead of watching the device.
 - `H6008` records that the raw segment channel renders nothing on the bulb.
   The arming frame left the `0xB2` payload at `00`, and no paint frame
   rendered, over `0xB0`, `0xB4` and five encodings of the length field.
+
+#### Fixed
+
+- `H6022` records the `ble` zone width under
+  `measurements.ble.addressable_zones`, the name the SDK reads. The count is
+  the 15 the unit answered.
 
 ### 2026-09-20
 
