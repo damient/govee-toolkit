@@ -192,9 +192,14 @@ excluded. An inconsistent length gets the frame dropped silently.
 | `0xB1` | Enable the segment channel | `[0\|1]` |
 | `0xB0` | Per-segment colors | `[gradient, nbSeg, R,G,B × nbSeg]` |
 | `0xB4` | Zoned variant, used by some models | `[gradient, nbSeg, (R,G,B,zone) × nbSeg]` |
-| `0xB2` | Appears in the `status` reply, role unknown | `[0]` |
+| `0xB2` | The armed state, in the `status` reply | `[0\|1]` |
 
 Sequence: `turn(1)` → `0xB1` with `1` to arm → stream of `0xB0`.
+
+**The `status` reply reports the armed state.** Its `pt` carries the `0xB2`
+frame, whose payload is `1` while the channel is armed. A model that serves no
+segment channel can answer a payload that stays `0`, so the byte confirms an
+arm and does not prove the absence of one.
 
 ```
 arm      : bb 00 01 b1 01 0a

@@ -22,6 +22,17 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-22
+
+#### Added
+
+- `H61A0` records that the `status` reply reports the armed state of the lan
+  raw segment channel. The `0xB2` payload is `01` while the channel is armed.
+  A caller reads it instead of watching the device.
+- `H6008` records that the raw segment channel renders nothing on the bulb.
+  The arming frame left the `0xB2` payload at `00`, and no paint frame
+  rendered, over `0xB0`, `0xB4` and five encodings of the length field.
+
 ### 2026-09-20
 
 #### Added

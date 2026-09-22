@@ -160,7 +160,7 @@ measurements:
 verified:
   by: "damient"
   firmware: "1.01.25"
-  date: "2026-09-17"
+  date: "2026-09-22"
   notes: >-
     lan mode exercised over UDP on two units, against wifi version 1.01.12.
     Both units answered the multicast discovery and every command in the table
@@ -172,9 +172,13 @@ verified:
     as the anchor. The bounds are 2700 and 6500 K, walked one kelvin at a time,
     and the same on both units. The undocumented `status` command answers a
     `pt` of `bb 01 00 b2 00 08`, the 0xB2 frame of docs/protocol/lan.md 2.3.
-    The `razer` segment channel was NOT probed. The bulb takes commands sent
-    back to back: three with no wait between them each applied, over 8
-    attempts, and so did two. It shows none of the drop that
+    The `razer` segment channel renders nothing. The arming frame
+    `bb 00 01 b1 01 0a` left the `0xB2` payload at `00`, and no paint frame
+    rendered: `0xB0` at 1 and at 10 zones, `0xB4`, and `0xB0` with no arming
+    frame first. Five encodings of the length field were sent, since this
+    firmware answers a length of 256 for a payload of one byte. The bulb takes
+    commands sent back to back: three with no wait between them each applied,
+    over 8 attempts, and so did two. It shows none of the drop that
     docs/protocol/lan.md 1, "Consecutive commands" describes.
 
     cloud mode exercised against a live account on the same unit. Power,
