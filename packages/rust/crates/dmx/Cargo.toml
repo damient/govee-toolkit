@@ -3,7 +3,7 @@ name = "govee-toolkit-dmx"
 description = "A DMX bridge over govee-toolkit: a lighting desk drives Govee devices on the LAN over Art-Net. Unofficial."
 # Versioned apart from the crate it reads, and released under `dmx-vX.Y.Z` —
 # see docs/versioning.md.
-version = "0.1.0"
+version = "0.2.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

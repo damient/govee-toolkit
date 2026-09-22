@@ -6,6 +6,8 @@ releases under `dmx-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md). The design
 is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 
+## [0.2.0] — 2026-09-22
+
 ### Added
 
 - The white channel drives `segment` and `pixel`: a white over the whole
