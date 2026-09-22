@@ -22,12 +22,12 @@ function load(kind: string): Map<string, Icon> {
   for (const file of readdirSync(dir)) {
     if (!file.endsWith(".svg")) continue;
     const source = readFileSync(join(dir, file), "utf8");
-    const open = source.match(/<svg\b[^>]*>/);
+    const open = source.match(/<svg\b[^>]*>/u);
     if (open?.index === undefined) throw new Error(`${kind}/${file}: no <svg> element`);
-    const viewBox = /viewBox="([^"]+)"/.exec(open[0])?.[1];
-    if (!viewBox) throw new Error(`${kind}/${file}: no viewBox`);
+    const viewBox = /viewBox="([^"]+)"/u.exec(open[0])?.[1];
+    if (viewBox === undefined) throw new Error(`${kind}/${file}: no viewBox`);
     const inner = source.slice(open.index + open[0].length, source.lastIndexOf("</svg>"));
-    icons.set(file.slice(0, -4), { viewBox, inner: inner.trim().replace(/\s*\n\s*/g, "") });
+    icons.set(file.slice(0, -4), { viewBox, inner: inner.trim().replaceAll(/\s*\n\s*/gu, "") });
   }
   return icons;
 }
@@ -79,5 +79,5 @@ export function badgeIcon(name: string): string {
 
 /** The icon of one device family, or an empty string when no file draws it. */
 export function familyIcon(family: string | undefined): string {
-  return svg(family ? FAMILIES.get(family) : undefined, "family-icon");
+  return svg(family === undefined ? undefined : FAMILIES.get(family), "family-icon");
 }

@@ -17,7 +17,9 @@ export const PALETTE: [Rgb, Rgb, ...Rgb[]] = [
 export function build(el: HTMLElement, tag: string): HTMLElement[] {
   const zones: HTMLElement[] = [];
   for (let i = 0; i < ZONES; i += 1) {
-    zones.push(el.appendChild(document.createElement(tag)));
+    const zone = document.createElement(tag);
+    el.append(zone);
+    zones.push(zone);
   }
   return zones;
 }

@@ -16,7 +16,7 @@
     "qa": "../tools/qa-site.sh",
     "lint": "npm run lint:types && npm run lint:js && npm run lint:css && npm run lint:html",
     "lint:types": "tsc -p tsconfig.json && tsc -p src/assets/ts/tsconfig.json",
-    "lint:js": "oxlint",
+    "lint:js": "oxlint --type-aware",
     "lint:css": "stylelint \"src/assets/css/*.css\"",
     "lint:html": "html-validate \"dist/**/*.html\""
   },
@@ -29,6 +29,7 @@
     "esbuild": "0.28.2",
     "html-validate": "11.15.0",
     "oxlint": "1.82.0",
+    "oxlint-tsgolint": "7.0.2002",
     "stylelint": "17.15.0",
     "stylelint-config-standard": "40.0.0",
     "typescript": "7.0.2"

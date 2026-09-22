@@ -36,7 +36,7 @@ export async function readDocs(): Promise<Doc[]> {
   const docs = await Promise.all(
     files.map(async (file) => renderDoc(file, await readFile(join(dir, file), "utf8"))),
   );
-  return docs.sort((a, b) => a.order - b.order);
+  return docs.toSorted((a, b) => a.order - b.order);
 }
 
 /** One Markdown file under `content/` that sits outside the documentation menu. */
@@ -55,7 +55,7 @@ export function docPage(doc: Doc, nav: NavEntry[]): string {
   });
 }
 
-const MENU = /<!--\s*menu:\s*(.+?)\s*-->/;
+const MENU = /<!--\s*menu:\s*(.+?)\s*-->/u;
 
 function renderDoc(file: string, raw: string): Doc {
   const { meta, body } = frontMatter(raw);
@@ -66,7 +66,7 @@ function renderDoc(file: string, raw: string): Doc {
   md.use({
     renderer: {
       code({ text, lang }: Tokens.Code) {
-        const name = (lang ?? "").trim().split(/\s+/)[0] ?? "";
+        const name = (lang ?? "").trim().split(/\s+/u)[0] ?? "";
         return codeBlock(highlight(text, name), text);
       },
       heading({ depth, tokens }: Tokens.Heading) {
@@ -79,7 +79,7 @@ function renderDoc(file: string, raw: string): Doc {
         const label = headingLabel(tokens);
         const id = slugify(label);
         const menu = at === -1 ? undefined : MENU.exec(tokens.slice(at).map((t) => t.raw).join(""))?.[1];
-        headings.push({ id, text: label, ...(menu ? { menu } : {}) });
+        headings.push({ id, text: label, ...(menu === undefined ? {} : { menu }) });
         return `<h2 id="${escapeAttr(id)}"><a class="anchor" href="#${escapeAttr(id)}">`
           + `${this.parser.parseInline(named)}</a>${trailing}</h2>\n`;
       },
@@ -87,7 +87,7 @@ function renderDoc(file: string, raw: string): Doc {
   });
   const html = md.parse(fill(body, { base, repo: repoUrl, ...modeBadges(), ...versionChips() }), { async: false });
   return {
-    slug: meta.slug ?? file.replace(/\.md$/, ""),
+    slug: meta.slug ?? file.replace(/\.md$/u, ""),
     title: meta.title ?? file,
     description: meta.description ?? "",
     order: Number(meta.order ?? 99),
@@ -100,7 +100,7 @@ function renderDoc(file: string, raw: string): Doc {
 // The heading is the question, so the answer must not repeat it: the cut
 // starts after the `</h2>`.
 function sections(html: string, headings: Heading[]): Doc["sections"] {
-  const parts = html.split(/<h2 id="[^"]*">/).slice(1);
+  const parts = html.split(/<h2 id="[^"]*">/u).slice(1);
   return headings.map((heading, index) => {
     const part = parts[index] ?? "";
     const close = part.indexOf("</h2>");
@@ -113,11 +113,11 @@ function sections(html: string, headings: Heading[]): Doc["sections"] {
 
 function plainText(html: string): string {
   return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&#39;/g, "'").replace(/&quot;/g, '"')
-    .replace(/\s+/g, " ")
-    .replace(/ ([,.;:!?)])/g, "$1")
+    .replaceAll(/<[^>]+>/gu, " ")
+    .replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">")
+    .replaceAll("&#39;", "'").replaceAll("&quot;", '"')
+    .replaceAll(/\s+/gu, " ")
+    .replaceAll(/ ([,.;:!?)])/gu, "$1")
     .trim();
 }
 
@@ -133,7 +133,7 @@ function headingLabel(tokens: Token[] = []): string {
 }
 
 function frontMatter(raw: string): { meta: Record<string, string>; body: string } {
-  const match = raw.match(/^---\n([\s\S]*?)\n---\n?/);
+  const match = raw.match(/^---\n([\s\S]*?)\n---\n?/u);
   if (!match) return { meta: {}, body: raw };
   const meta: Record<string, string> = {};
   for (const line of (match[1] ?? "").split("\n")) {

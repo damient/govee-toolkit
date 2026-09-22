@@ -55,14 +55,14 @@ export function serve({ live = false } = {}): void {
   const port = Number(process.env.PORT ?? 8787);
   createServer((request, response) => {
     const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
-    if (live && path === LIVE_PATH) return listen(response);
+    if (live && path === LIVE_PATH) { listen(response); return; }
     let file = join(dist, path);
-    if (!file.startsWith(dist)) return send(response, 403, "Forbidden");
+    if (!file.startsWith(dist)) { send(response, 403, "Forbidden"); return; }
     if (existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
     let ext = extname(file);
     if (!existsSync(file)) {
       file = join(dist, "404.html");
-      if (!existsSync(file)) return send(response, 404, "Not found");
+      if (!existsSync(file)) { send(response, 404, "Not found"); return; }
       // A missing stylesheet must fail as a stylesheet, not arrive as HTML
       // the browser parses.
       ext = ".html";
@@ -73,7 +73,7 @@ export function serve({ live = false } = {}): void {
     if (live && ext === ".html") {
       readFile(file, "utf8")
         .then((html) => response.end(html.replace("</body>", `${CLIENT}\n</body>`)))
-        .catch(() => send(response, 500, "Read failed"));
+        .catch(() => { send(response, 500, "Read failed"); });
       return;
     }
     createReadStream(file).pipe(response);
@@ -87,7 +87,7 @@ export function serve({ live = false } = {}): void {
       console.error(`Or serve on another port: PORT=8788 npm run dev`);
       process.exit(1);
     })
-    .listen(port, () => console.log(`http://localhost:${port}`));
+    .listen(port, () => { console.log(`http://localhost:${port}`); });
 }
 
 // `retry` shortens the wait of the browser after a restart, which is 3 s by
@@ -100,7 +100,9 @@ function listen(response: ServerResponse): void {
   });
   response.write("retry: 250\n\n");
   clients.add(response);
-  response.on("close", () => clients.delete(response));
+  response.on("close", () => {
+    clients.delete(response);
+  });
 }
 
 function send(response: ServerResponse, code: number, body: string): void {

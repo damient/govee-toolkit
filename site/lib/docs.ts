@@ -46,7 +46,7 @@ function pager(base: string, nav: NavLink[], current: string): string {
     pagerLink(base, nav[at - 1], "prev"),
     pagerLink(base, nav[at + 1], "next"),
   ].filter(Boolean);
-  if (!links.length) return "";
+  if (links.length === 0) return "";
   return `<nav class="pager" aria-label="Documentation pages">
           ${links.join("\n          ")}
         </nav>`;
@@ -68,7 +68,7 @@ function docSelect(base: string, nav: NavLink[], current: string, toc: TocEntry[
   const items = nav
     .map((item) => {
       if (item.url !== current) return navItem(base, item, current);
-      const inner = toc.length
+      const inner = toc.length > 0
         ? `\n            ${tocList(toc, "doc-select-toc", collapse ? "toc-select" : "")}`
         : "";
       return navItem(base, item, current, inner, "on");
@@ -132,7 +132,7 @@ const CHEVRON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
  */
 function tocList(entries: TocEntry[], klass: string, fold = ""): string {
   const items = entries.map((entry) => {
-    if (!entry.children?.length) return `<li>${tocLink(entry)}</li>`;
+    if (!entry.children || entry.children.length === 0) return `<li>${tocLink(entry)}</li>`;
     const nested = tocList(entry.children, "");
     const body = fold
       ? `<details name="${escapeAttr(fold)}"><summary data-to="${escapeAttr(entry.id)}">${escapeHtml(entry.text)}${CHEVRON}</summary>${nested}</details>`
@@ -144,5 +144,5 @@ function tocList(entries: TocEntry[], klass: string, fold = ""): string {
 
 function tocLink(entry: TocEntry): string {
   const label = escapeHtml(entry.text);
-  return `<a href="#${escapeAttr(entry.id)}">${entry.code ? `<code>${label}</code>` : label}</a>`;
+  return `<a href="#${escapeAttr(entry.id)}">${entry.code === true ? `<code>${label}</code>` : label}</a>`;
 }

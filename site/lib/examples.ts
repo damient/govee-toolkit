@@ -6,7 +6,7 @@ import type { Examples, RefEntry, Values } from "./types.ts";
 
 // A `{name}` the map holds. An unknown name is left alone, so a Rust format
 // string inside an example survives.
-const PLACEHOLDER = /\{(\w+)\}/g;
+const PLACEHOLDER = /\{(\w+)\}/gu;
 
 const fill = (source: string, values: Values): string =>
   source.replace(PLACEHOLDER, (all, name: string) => (name in values ? String(values[name]) : all));

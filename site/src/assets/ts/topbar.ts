@@ -10,7 +10,9 @@ export function topbar(el: HTMLElement): void {
 
   // `scrollY` is read straight in the handler: it costs no layout, and a
   // frame in flight would leave the bar wrong while frames are throttled.
-  const read = () => el.toggleAttribute("data-past-top", scrollY > DEPTH);
+  const read = () => {
+    el.toggleAttribute("data-past-top", scrollY > DEPTH);
+  };
   addEventListener("scroll", read, { passive: true });
   read();
 }

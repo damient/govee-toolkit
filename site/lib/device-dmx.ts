@@ -33,7 +33,7 @@ const swatch = (component: string | undefined): string =>
 function mark(channel: Channel): string {
   if (channel.slot === "color") return swatch(channel.component);
   const cap = SLOT_CAPS.get(channel.slot);
-  return cap ? icon(cap) : slotIcon(channel.slot);
+  return cap === undefined ? slotIcon(channel.slot) : icon(cap);
 }
 
 /**
@@ -45,9 +45,9 @@ function slotLabel(channel: Channel): string {
   const name = escapeHtml(
     channel.slot === "color"
       ? capitalize(channel.component ?? "color")
-      : (SLOTS.get(channel.slot) ?? channel.slot.replace(/_/g, " ")),
+      : (SLOTS.get(channel.slot) ?? channel.slot.replaceAll("_", " ")),
   );
-  if (!channel.unreached) return name;
+  if (channel.unreached !== true) return name;
   return `${name}
             <span class="dmx-order">this model drives nothing here</span>`;
 }
@@ -64,7 +64,7 @@ const valueList = (lines: string[]): string => `<ul class="dmx-values">
 
 function values(channel: Channel): string {
   const bands = channel.values ?? [];
-  if (!bands.length) return DASH;
+  if (bands.length === 0) return DASH;
   return valueList(
     bands.map(
       (band) =>
@@ -77,7 +77,7 @@ function values(channel: Channel): string {
 // One channel as a column of a desk: the number on top, then the slot, then
 // the bands. Every column takes one width, as the faders of a desk do.
 function column(head: string, channel: Channel, slot: string, cell: string): string {
-  const unreached = channel.unreached ? " data-unreached" : "";
+  const unreached = channel.unreached === true ? " data-unreached" : "";
   return `<li class="dmx-column"${unreached}>
               <span class="dmx-channel">${head}${mark(channel)}</span>
               <span class="dmx-slot">${slot}</span>
@@ -90,7 +90,7 @@ function column(head: string, channel: Channel, slot: string, cell: string): str
 // is and the order inside it.
 function zoneColumn(run: [Channel, ...Channel[]]): string {
   const first = run[0];
-  const last = run[run.length - 1] ?? first;
+  const last = run.at(-1) ?? first;
   const zones = new Set(run.map((c) => c.zone)).size;
   const components = [...new Set(run.map((c) => c.component))].join(", ");
   const head = `${first.offset} – ${last.offset}`;
@@ -156,12 +156,12 @@ function pane(entry: Personality, at: number): string {
  */
 export function dmx(device: Device): string {
   const entries = device.dmx?.personalities ?? [];
-  if (!entries.length) return "";
+  if (entries.length === 0) return "";
   return `<h2 id="dmx">DMX</h2>
       <div class="dmx" data-dmx>
         <div class="tabs tabs-dmx" role="tablist" aria-label="Personality">
-          ${entries.map(tab).join("\n          ")}
+          ${entries.map((entry, at) => tab(entry, at)).join("\n          ")}
         </div>
-        ${entries.map(pane).join("\n        ")}
+        ${entries.map((entry, at) => pane(entry, at)).join("\n        ")}
       </div>`;
 }

@@ -4,7 +4,7 @@
 // file.
 
 import { MODES } from "./config.ts";
-import { escapeHtml } from "./html.ts";
+import { escapeHtml, filled } from "./html.ts";
 import { badgeIcon, familyIcon, modeIcon } from "./icons.ts";
 import type { Mode } from "./types.ts";
 
@@ -32,7 +32,7 @@ export function dmxBadge(): string {
 /** One badge, naming the device family. Empty where the catalog names none.
  * It takes the same box as a mode badge: the two sit on one line. */
 export function familyBadge(family: string | undefined): string {
-  return family ? badge("family", familyIcon(family), escapeHtml(family)) : "";
+  return filled(family) ? badge("family", familyIcon(family), escapeHtml(family)) : "";
 }
 
 /** One `{{badge_<mode>}}` variable per mode, so a static page names a mode

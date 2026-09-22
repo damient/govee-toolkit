@@ -8,8 +8,8 @@ import { cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { assets } from "./lib/assets.ts";
-import { CATALOG_SCHEMA, DESCRIPTION, SITE_URL, base, catalogPath, dist, repo, repoUrl, root } from "./lib/config.ts";
-import { docPage, readDocs } from "./lib/content.ts";
+import { DESCRIPTION, SITE_URL, base, dist, repo, repoUrl, root } from "./lib/config.ts";
+import { type Doc, docPage, readDocs } from "./lib/content.ts";
 import { sweepStaging, watchSources } from "./lib/dev.ts";
 import { crumbs } from "./lib/crumbs.ts";
 import { devicePage, renderIndex, sorted } from "./lib/devices.ts";
@@ -17,11 +17,12 @@ import { navItem } from "./lib/docs.ts";
 import { faqPage } from "./lib/faq.ts";
 import { readLanList, renderLanList } from "./lib/lan-list.ts";
 import { fill } from "./lib/html.ts";
+import { isReference, readCatalog, readJson } from "./lib/json.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
 import { REFERENCE, referencePage } from "./lib/reference.ts";
 import { breadcrumb, deviceData, homeData, jsonLd, robots, sitemapXml } from "./lib/seo.ts";
 import { type Change, notify, serve } from "./lib/serve.ts";
-import type { Catalog, Crumb, Device, LanList, NavEntry, Reference } from "./lib/types.ts";
+import type { Crumb, Device, LanList, NavEntry, Reference } from "./lib/types.ts";
 
 /** A hand-written page under `src/pages/`. */
 interface Source {
@@ -94,34 +95,20 @@ const FOOT_SKIP = new Set(["docs/configure/", "docs/troubleshooting/"]);
 
 async function main(): Promise<void> {
   const catalog = await readCatalog();
-  await rm(out, { recursive: true, force: true });
-  await mkdir(out, { recursive: true });
-
-  // `assets()` bundles the stylesheet and the script, so neither source
-  // directory is copied: only the bundle reaches the site.
-  const skip = [join(root, "src/assets/css"), join(root, "src/assets/ts")];
-  const copy = {
-    recursive: true,
-    filter: (path: string) => !path.endsWith(".DS_Store") && !skip.some((dir) => path.startsWith(dir)),
-  };
-  await cp(join(root, "src/assets"), join(out, "assets"), copy);
-  if (existsSync(join(root, "public"))) {
-    await cp(join(root, "public"), out, { recursive: true, filter: (path: string) => !path.endsWith(".DS_Store") });
-  }
-
+  await stage();
   const [, css, layout, docs, reference, faq, lan] = await Promise.all([
     writeFile(join(out, ".nojekyll"), ""),
     assets(out),
     readFile(join(root, "src/layout.html"), "utf8"),
     readDocs(),
-    readFile(join(root, "content/reference.json"), "utf8").then((text): Reference => JSON.parse(text)),
+    readJson(join(root, "content/reference.json"), isReference),
     faqPage(),
     readLanList(),
   ]);
   const nav: NavEntry[] = [
     ...docs.map((d) => ({ url: `docs/${d.slug}/`, title: d.title, order: d.order })),
     REFERENCE,
-  ].sort((a, b) => a.order - b.order);
+  ].toSorted((a, b) => a.order - b.order);
   const docsHome = nav[0]?.url ?? REFERENCE.url;
   // The footer names a short list. The side menu keeps every page.
   const docNav = nav
@@ -131,30 +118,68 @@ async function main(): Promise<void> {
   const ctx: Context = { css, docsHome, docNav, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
 
   const devices = sorted(catalog);
-  const sources = await Promise.all(
-    pages.map((page) => readFile(join(root, "src/pages", page.src), "utf8")),
-  );
-
   const all: Page[] = [
-    ...pages.map((page, at) => ({
-      ...page,
-      jsonld: page.url === "" ? homeData() : page.trail ? [breadcrumb(page.trail)] : [],
-      body: fill(page.render ? page.render(sources[at] ?? "", devices, lan) : (sources[at] ?? ""), {
-        crumbs: page.trail ? crumbs(page.trail) : "",
-      }),
-    })),
-    ...devices.map((device) => {
-      const page = devicePage(device, reference);
-      return {
-        url: page.url,
-        nav: "devices",
-        title: page.title,
-        description: page.description,
-        klass: "is-device",
-        jsonld: [breadcrumb(page.breadcrumb), deviceData(device, page)],
-        body: page.body,
-      };
-    }),
+    ...(await sourcePages(devices, lan)),
+    ...devices.map((device) => deviceEntry(device, reference)),
+    ...docPages(docs, nav, docsHome, reference),
+    faq,
+    NOT_FOUND,
+  ];
+
+  // `Promise.all` keeps the order, and the sitemap follows it.
+  const written = await Promise.all(all.map((page) => emit(layout, page, ctx)));
+  const sitemap = written.filter((url) => url !== null);
+
+  await writeFile(join(out, "robots.txt"), robots());
+  await writeFile(join(out, "sitemap.xml"), sitemapXml(sitemap));
+
+  await publish();
+  const clock = new Date().toTimeString().slice(0, 8);
+  console.log(`${clock}  site -> ${relative(repo, dist)} (${sitemap.length} pages, ${devices.length} devices)`);
+}
+
+// `assets()` bundles the stylesheet and the script, so neither source
+// directory is copied: only the bundle reaches the site.
+async function stage(): Promise<void> {
+  await rm(out, { recursive: true, force: true });
+  await mkdir(out, { recursive: true });
+  const skip = [join(root, "src/assets/css"), join(root, "src/assets/ts")];
+  const copy = {
+    recursive: true,
+    filter: (path: string) => !path.endsWith(".DS_Store") && !skip.some((dir) => path.startsWith(dir)),
+  };
+  await cp(join(root, "src/assets"), join(out, "assets"), copy);
+  if (existsSync(join(root, "public"))) {
+    await cp(join(root, "public"), out, { recursive: true, filter: (path: string) => !path.endsWith(".DS_Store") });
+  }
+}
+
+function sourcePages(devices: Device[], lan: LanList): Promise<Page[]> {
+  return Promise.all(pages.map(async (page) => {
+    const source = await readFile(join(root, "src/pages", page.src), "utf8");
+    const jsonld = page.url === "" ? homeData() : page.trail ? [breadcrumb(page.trail)] : [];
+    const body = fill(page.render ? page.render(source, devices, lan) : source, {
+      crumbs: page.trail ? crumbs(page.trail) : "",
+    });
+    return Object.assign({ jsonld, body }, page);
+  }));
+}
+
+function deviceEntry(device: Device, reference: Reference): Page {
+  const page = devicePage(device, reference);
+  return {
+    url: page.url,
+    nav: "devices",
+    title: page.title,
+    description: page.description,
+    klass: "is-device",
+    jsonld: [breadcrumb(page.breadcrumb), deviceData(device, page)],
+    body: page.body,
+  };
+}
+
+function docPages(docs: Doc[], nav: NavEntry[], docsHome: string, reference: Reference): Page[] {
+  return [
     ...docs.map((doc) => ({
       url: `docs/${doc.slug}/`,
       nav: "docs",
@@ -173,27 +198,16 @@ async function main(): Promise<void> {
       jsonld: [breadcrumb([["Docs", docsHome], ["Reference", "reference/"]])],
       body: referencePage(reference, nav),
     },
-    faq,
-    {
-      url: "404.html",
-      nav: "",
-      title: "Page not found",
-      noindex: true,
-      body: `<section class="slab"><h1>Page not found</h1><p class="lede">That page does not exist. <a href="${base}">Go back to the start</a>.</p></section>`,
-    },
   ];
-
-  // `Promise.all` keeps the order, and the sitemap follows it.
-  const written = await Promise.all(all.map((page) => emit(layout, page, ctx)));
-  const sitemap = written.filter((url) => url !== null);
-
-  await writeFile(join(out, "robots.txt"), robots());
-  await writeFile(join(out, "sitemap.xml"), sitemapXml(sitemap));
-
-  await publish();
-  const clock = new Date().toTimeString().slice(0, 8);
-  console.log(`${clock}  site -> ${relative(repo, dist)} (${sitemap.length} pages, ${devices.length} devices)`);
 }
+
+const NOT_FOUND: Page = {
+  url: "404.html",
+  nav: "",
+  title: "Page not found",
+  noindex: true,
+  body: `<section class="slab"><h1>Page not found</h1><p class="lede">That page does not exist. <a href="${base}">Go back to the start</a>.</p></section>`,
+};
 
 // Two renames, so that `dist/` is missing for microseconds instead of for the
 // length of a build.
@@ -213,12 +227,12 @@ async function emit(layout: string, page: Page, ctx: Context): Promise<string | 
     site: SITE_URL,
     repo: repoUrl,
     lang: "en",
-    title: page.title ? `${page.title} — Govee Toolkit` : "Govee Toolkit — control your Govee lights locally",
+    title: page.title !== null && page.title !== "" ? `${page.title} — Govee Toolkit` : "Govee Toolkit — control your Govee lights locally",
     description: page.description ?? DESCRIPTION,
     bodyclass: page.klass ?? "",
     canonical,
     og_type: page.url === "" ? "website" : "article",
-    robots: page.noindex
+    robots: page.noindex === true
       ? '<meta name="robots" content="noindex, follow">'
       : '<meta name="robots" content="index, follow, max-image-preview:large">',
     css: ctx.css,
@@ -233,7 +247,7 @@ async function emit(layout: string, page: Page, ctx: Context): Promise<string | 
     : join(out, page.url, "index.html");
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, html);
-  return page.noindex ? null : canonical;
+  return page.noindex === true ? null : canonical;
 }
 
 // The reference page sits inside the documentation, so it marks Docs while the
@@ -251,27 +265,6 @@ function topNav(current: string, docsHome: string): string {
       return `<a href="${base}${url}"${on}>${label}</a>`;
     })
     .join("\n        ");
-}
-
-async function readCatalog(): Promise<Catalog> {
-  if (!existsSync(catalogPath)) {
-    console.error(
-      `missing ${relative(repo, catalogPath)}.\n` +
-      `Generate it first: cargo run -p xtask -- catalog`,
-    );
-    process.exit(1);
-  }
-  const catalog: Catalog = JSON.parse(await readFile(catalogPath, "utf8"));
-  if (catalog.schema_version !== CATALOG_SCHEMA) {
-    console.error(
-      `${relative(repo, catalogPath)} is schema ${catalog.schema_version}, ` +
-      `and the renderers read schema ${CATALOG_SCHEMA}.\n` +
-      `A field that moved renders as "?" and as "not verified", which states ` +
-      `something nobody established. Update lib/types.ts and lib/devices.ts first.`,
-    );
-    process.exit(1);
-  }
-  return catalog;
 }
 
 // `--dev` is what `npm run dev` passes: a failed build leaves the server and
