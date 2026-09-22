@@ -42,7 +42,7 @@ chooses a transport.
 | How the protocol works, for any device | `docs/protocol/*.md` |
 | What a specific model does, and numbers measured on it | `devices/<SKU>.yaml` |
 | Human-readable "does my device work" | `docs/compatibility.md` |
-| Govee's own list of LAN-capable models | `docs/lan-supported-devices.md` |
+| Govee's own list of LAN-capable models | `docs/lan-supported-devices.json` (the table in `docs/lan-supported-devices.md` and the site page are generated from it) |
 | Full feature list | `docs/features.md` |
 | The DMX bridge: channels, patch, send policy | `docs/dmx.md` |
 | Ordering of the work | `docs/roadmap.md` |
@@ -147,6 +147,10 @@ SKU.
   Git keeps a leaked capture after the fix.
 - `docs/compatibility.md` holds two generated tables. After a device file
   changes, run `cargo run -p xtask -- compat`; CI fails on drift.
+- The table in `docs/lan-supported-devices.md` is generated from
+  `docs/lan-supported-devices.json`. `tools/fetch-lan-list.py` refreshes both.
+  After a change by hand to the JSON file, run `cargo run -p xtask -- lan`;
+  CI fails on drift.
 - **The site reads the device files too.** After a change to `devices/*.yaml`
   or to `docs/compatibility.md`, run `tools/qa-site.sh`. It rebuilds
   `dist/catalog.json`, which the devices page reads, and then the site.

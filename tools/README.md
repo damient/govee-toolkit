@@ -15,6 +15,7 @@
 | Codec layering | [`check-no-io.sh`](check-no-io.sh) |
 | Release notes from the changelog | [`release-notes.sh`](release-notes.sh) |
 | Stub prose from the binding | [`sync-stubs.py`](sync-stubs.py) |
+| Govee's list of LAN Control models | [`fetch-lan-list.py`](fetch-lan-list.py) |
 | Generated catalog and tables | [`packages/rust/crates/xtask`](../packages/rust/crates/xtask) |
 
 `sync-stubs.py` writes the docstrings of
@@ -27,6 +28,20 @@ drifted apart. Run it after editing a doc comment of the binding:
 tools/sync-stubs.py           # rewrite the stubs
 tools/sync-stubs.py --check   # what CI runs
 ```
+
+`fetch-lan-list.py` reads the list of models that carry the LAN Control
+switch, from the endpoint that the WLAN guide reads. It rewrites
+`docs/lan-supported-devices.json`, then runs `xtask lan` for the table in
+`docs/lan-supported-devices.md`. The site page reads the JSON file too.
+
+```bash
+tools/fetch-lan-list.py           # rewrite the list and the table
+tools/fetch-lan-list.py --check   # exit 1 when the list changed
+```
+
+It prints each model that the list adds, removes or moves to another category.
+A model that the file already holds keeps its name and its category, because
+those are cleaned by hand. CI does not run it: the check needs the network.
 
 `record-artnet.py` records the captures that
 [`../tests/fixtures/artnet/README.md`](../tests/fixtures/artnet/README.md)
@@ -179,6 +194,7 @@ cd packages/rust
 cargo run -p xtask                    # dist/catalog.json, the release artifact
 cargo run -p xtask -- compat          # the tables in docs/compatibility.md
 cargo run -p xtask -- compat --check  # fails when they have drifted
+cargo run -p xtask -- lan             # the table in docs/lan-supported-devices.md
 cargo run -p xtask -- dupes           # fails on a layout two device files
                                       # declare and no family carries
 ```

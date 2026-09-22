@@ -1,8 +1,10 @@
-//! Repository tasks, all of them generating something from `devices/*.yaml`.
+//! Repository tasks, each of them generating something from a data file.
 //!
 //! - `xtask catalog [path]` — the distributable catalog.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //! - `xtask dmx [--check]` — the tables in `docs/dmx-profiles.md`.
+//! - `xtask lan [--check]` — the tables in `docs/lan-supported-devices.md`,
+//!   from `docs/lan-supported-devices.json`.
 //! - `xtask dupes` — command layouts two device files declare, and no shared
 //!   table carries.
 //!
@@ -28,6 +30,7 @@ use govee_toolkit::codec::{Catalog, Device, SCHEMA_VERSION};
 
 mod dmx;
 mod dupes;
+mod lan;
 
 fn main() {
     let root = repository_root();
@@ -36,13 +39,16 @@ fn main() {
     match args.first().map(String::as_str) {
         Some("compat") => compat(&root, check),
         Some("dmx") => dmx(&root, check),
+        Some("lan") => lan(&root, check),
         Some("dupes") => {
             let devices = root.join("devices");
             dupes::dupes(&load(&devices), &load_families(&devices));
         }
         Some("catalog") | None => catalog(&root, args.get(1).map(PathBuf::from)),
         Some(other) => {
-            eprintln!("unknown task `{other}`; expected `catalog`, `compat`, `dmx` or `dupes`");
+            eprintln!(
+                "unknown task `{other}`; expected `catalog`, `compat`, `dmx`, `lan` or `dupes`"
+            );
             process::exit(2);
         }
     }
@@ -109,6 +115,25 @@ fn dmx(root: &Path, check: bool) {
     );
 }
 
+/// The two blocks in `docs/lan-supported-devices.md`. The site reads the same
+/// JSON file, so the page and the site cannot disagree.
+fn lan(root: &Path, check: bool) {
+    let path = root.join("docs/lan-supported-devices.json");
+    let text =
+        fs::read_to_string(&path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+    let list: serde_json::Value =
+        serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    generate(
+        &root.join("docs/lan-supported-devices.md"),
+        "lan",
+        &[
+            ("lan-source", lan::source_block(&list)),
+            ("lan-models", lan::model_table(&list)),
+        ],
+        check,
+    );
+}
+
 /// Replace each named block of `page`, then write it or check it.
 ///
 /// `--check` exits 1 on a difference and names the task that repairs it. The
@@ -117,13 +142,13 @@ fn generate(page: &Path, task: &str, blocks: &[(&str, String)], check: bool) {
     let text =
         fs::read_to_string(page).unwrap_or_else(|e| panic!("cannot read {}: {e}", page.display()));
     let updated = blocks.iter().fold(text.clone(), |text, (name, body)| {
-        replace_block(&text, name, body)
+        replace_block(page, &text, name, body)
     });
 
     if check {
         if updated != text {
             eprintln!(
-                "{} is out of date with devices/*.yaml. Run `cargo run -p xtask -- {task}`.",
+                "{} is out of date with its data. Run `cargo run -p xtask -- {task}`.",
                 page.display()
             );
             process::exit(1);
@@ -219,12 +244,12 @@ fn borrow(sources: &[(String, String)]) -> impl Iterator<Item = (&str, &str)> {
         .map(|(name, text)| (name.as_str(), text.as_str()))
 }
 
-fn replace_block(text: &str, name: &str, body: &str) -> String {
+fn replace_block(page: &Path, text: &str, name: &str, body: &str) -> String {
     let open = format!("<!-- generated: {name} -->");
     let close = "<!-- /generated -->";
     let start = text
         .find(&open)
-        .unwrap_or_else(|| panic!("docs/compatibility.md has no `{open}` marker"));
+        .unwrap_or_else(|| panic!("{} has no `{open}` marker", page.display()));
     let after = start + open.len();
     let end = text[after..]
         .find(close)
