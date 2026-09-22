@@ -33,10 +33,7 @@ pub const UNIVERSE: u16 = 512;
 /// One layout of the channels a device answers to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Personality {
-    /// One color over the whole device, plus the white temperature. The
-    /// white channel stays in the table where `lan` reaches no white
-    /// temperature, and drives nothing: one device takes the same 6 channels
-    /// as the next one, so a cue file carries between models.
+    /// One color over the whole device.
     Full,
     /// One RGB triple for each zone the Govee app exposes.
     Segment,
@@ -67,11 +64,12 @@ impl Personality {
         }
     }
 
-    /// The dimmer and the mode channel are the 2 every personality carries.
+    /// The dimmer, the mode and the white channel are the 3 every
+    /// personality carries.
     fn width(self, zones: u32) -> u64 {
         match self {
             Self::Full => 6,
-            Self::Segment | Self::Pixel => 2 + 3 * u64::from(zones),
+            Self::Segment | Self::Pixel => 3 + 3 * u64::from(zones),
         }
     }
 }
@@ -308,12 +306,16 @@ fn channels(
     personality: Personality,
     zones: u32,
 ) -> Result<Vec<Channel>, Missing> {
-    let mut channels = vec![dimmer(device)?, Channel::plain(2, Slot::Mode)];
+    // The white channel stays in the table where `lan` reaches no white
+    // temperature, and drives nothing: the zones start at one offset on every
+    // device, so a cue file carries between models.
+    let mut channels = vec![
+        dimmer(device)?,
+        Channel::plain(2, Slot::Mode),
+        white(device, 3)?,
+    ];
     match personality {
-        Personality::Full => {
-            color(device, &mut channels)?;
-            channels.push(white(device, next(&channels))?);
-        }
+        Personality::Full => color(device, &mut channels)?,
         Personality::Segment | Personality::Pixel => {
             for index in 0..zones {
                 for component in [Component::Red, Component::Green, Component::Blue] {

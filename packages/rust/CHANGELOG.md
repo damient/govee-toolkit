@@ -7,6 +7,24 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `capabilities.segments.groups` gives a device whose every zone is one LED a
+  coarse `segment` table.
+- `profile::Spread` and `Profile::spread()` — one colour per LED from one
+  colour per coarse zone. Groups are contiguous runs, within one LED of each
+  other.
+- `capabilities.segments.groups` is refused where it counts nothing, outnumbers
+  the LEDs, or has no `native_pixels` to group.
+- `describe --json` carries `segments.groups`.
+
+### Changed
+
+- **Breaking:** `profile::Profile` puts `Slot::WhiteTemp` at offset 3 on every
+  personality. Colors and zones start at offset 4.
+- **Breaking:** `segment` and `pixel` take 3 + 3 × zones channels, so one
+  universe holds 169 zones.
+
 ## [0.11.0] — 2026-09-21
 
 ### Added
@@ -42,14 +60,7 @@ releases apart and keeps
   temperature, channel 6 holds its place and drives nothing, and the table
   names it `unreached`.
 - A device whose every zone is one addressable LED serves `pixel` alone:
-  `segment` would lay out the same table. `capabilities.segments.groups` gives
-  it a coarse `segment` table instead.
-- `profile::Spread` and `Profile::spread()` — how one coarse zone covers the
-  LEDs behind it, and one colour per LED from one colour per zone. Groups are
-  contiguous runs in chain order, and two runs differ by one LED at most.
-- `capabilities.segments.groups` is refused where it counts nothing, where it
-  outnumbers the LEDs, and where no `native_pixels` records a LED to group.
-- `describe --json` carries `segments.groups`.
+  `segment` would lay out the same table.
 - A table wider than one universe is an error, never a truncation.
 - `profile::Scale` — a slot scaled into what a device parameter takes, plus the
   step count the pair resolves to. The dimmer and the white channel carry no

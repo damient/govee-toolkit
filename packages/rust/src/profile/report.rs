@@ -240,8 +240,8 @@ mod tests {
             serde_json::json!([250, 255])
         );
         assert_eq!(channels[1]["values"][2]["label"], "full resend");
-        assert_eq!(channels[2]["values"][0]["label"], "no red");
-        assert_eq!(channels[2]["values"][1]["label"], "red 0 to 100%");
+        assert_eq!(channels[3]["values"][0]["label"], "no red");
+        assert_eq!(channels[3]["values"][1]["label"], "red 0 to 100%");
     }
 
     #[test]
@@ -250,11 +250,11 @@ mod tests {
         let device = catalog.device("H61A0").expect("the SKU resolves");
         let table = Profile::of(device, Personality::Segment).expect("a segment personality");
         let record = json(device, &[Ok(table)]);
-        let green = &record["personalities"][0]["channels"][3];
+        let green = &record["personalities"][0]["channels"][4];
         assert_eq!(green["slot"], "zone");
         assert_eq!(green["zone"], 0);
         assert_eq!(green["component"], "green");
-        assert_eq!(green["offset"], 4);
+        assert_eq!(green["offset"], 5);
     }
 
     #[test]
