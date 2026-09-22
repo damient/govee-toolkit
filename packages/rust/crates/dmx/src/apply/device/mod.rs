@@ -25,7 +25,7 @@ pub(super) struct Feeder {
     govee: Govee,
     id: DeviceId,
     /// `None` where the personality carries no zone: those devices take the
-    /// `color` and `color_temp` roles instead.
+    /// `color` role instead.
     options: Option<StreamOptions>,
     /// How the table covers the LEDs behind its zones. `None` where the frame
     /// carries the zones of the table as they are.

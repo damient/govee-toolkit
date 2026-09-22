@@ -440,6 +440,11 @@ verified:
     docs/protocol/lan.md 2.3 is `01` while the channel is armed and `00` while
     it is not.
 
+    A `colortemp` sent while the segment channel is armed applies the white
+    and ends the channel: the frames that follow paint nothing. A disarm after
+    it keeps the white. The arm that follows a white paints the first frame
+    with no dark step. Exercised once through the CLI, judged by eye.
+
     `arm_settle_ms` was measured on this unit over lan, through the CLI. Each
     trial disarmed the channel, wrote a color over `colorwc`, waited 3 s, sent
     the arming frame, waited n ms, then painted five zones red and five blue.

@@ -112,7 +112,7 @@ impl Feeder {
             self.sent.zones.clear();
         }
         if self.options.is_some() {
-            return Ok(self.zones(&look.zones).await? || wrote);
+            return Ok(self.zones_or_white(look).await? || wrote);
         }
         let white = look
             .white_temp
@@ -147,8 +147,7 @@ impl Feeder {
         Ok(wrote)
     }
 
-    /// Power the device on, and arm the channel where the personality paints
-    /// zones. Arming a dark strip paints nothing, so the order is fixed.
+    /// Power the device on.
     ///
     /// An armed channel is proof the device is on, so the power command is
     /// skipped there whatever the refresh cleared: a power command ends the
@@ -163,13 +162,49 @@ impl Feeder {
         self.mark();
         self.sent.on = Some(true);
         self.counts.frames_sent += 1;
-        if let Some(options) = self.options.clone()
-            && self.stream.is_none()
-        {
+        Ok(true)
+    }
+
+    /// Arm the channel. The pass powers the device on first: arming a dark
+    /// strip paints nothing.
+    async fn arm(&mut self) -> Result<()> {
+        let Some(options) = self.options.clone() else {
+            return Ok(());
+        };
+        if self.stream.is_some() {
+            return Ok(());
+        }
+        self.space().await?;
+        let stream = self.device().open_stream(options).await?;
+        self.mark();
+        self.stream = Some(stream);
+        Ok(())
+    }
+
+    /// The white over the whole device where the white channel carries a
+    /// value, and the zones otherwise.
+    ///
+    /// A white command ends the armed channel, and the zones that follow
+    /// paint nothing — see `docs/protocol/lan.md` 2.3. The white therefore
+    /// goes out while the channel is armed, and the disarm follows it: a
+    /// disarm first would show the color the device held before the stream.
+    /// The white channel back at 0 arms the channel again.
+    async fn zones_or_white(&mut self, look: &Look) -> Result<bool> {
+        let Some(kelvin) = look.white_temp else {
+            self.arm().await?;
+            return self.zones(&look.zones).await;
+        };
+        if self.sent.white_temp == Some(kelvin) {
+            return Ok(false);
+        }
+        self.space().await?;
+        self.device().color_temp(kelvin).await?;
+        self.mark();
+        self.sent.white_temp = Some(kelvin);
+        self.counts.frames_sent += 1;
+        if self.stream.is_some() {
             self.space().await?;
-            let stream = self.device().open_stream(options).await?;
-            self.mark();
-            self.stream = Some(stream);
+            self.close().await;
         }
         Ok(true)
     }

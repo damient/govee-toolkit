@@ -84,7 +84,7 @@ fn the_fixture_rig_resolves_to_the_channels_the_desk_shows() {
             |sku| catalog.device(sku).ok(),
         )
         .unwrap_or_else(|e| panic!("{e:?}"));
-    assert_eq!(spans(&rig), vec![(0, 1, 47), (0, 48, 94), (0, 95, 100)]);
+    assert_eq!(spans(&rig), vec![(0, 1, 48), (0, 49, 96), (0, 97, 102)]);
     assert_eq!(rig.universes(), vec![PortAddress::new(0).expect("0 fits")]);
 }
 
@@ -101,9 +101,9 @@ fn a_channel_names_the_fixture_that_answers_to_it() {
     let universe = PortAddress::new(0).expect("0 fits");
     let inside = rig.at(universe, Some(60));
     assert_eq!(inside.len(), 1);
-    assert_eq!(inside[0].span.first, 48);
+    assert_eq!(inside[0].span.first, 49);
     assert_eq!(rig.at(universe, None).len(), 3);
-    assert!(rig.at(universe, Some(101)).is_empty());
+    assert!(rig.at(universe, Some(103)).is_empty());
     assert!(
         rig.at(PortAddress::new(1).expect("1 fits"), None)
             .is_empty()
@@ -169,18 +169,18 @@ fn an_address_outside_a_universe_is_refused() {
 #[test]
 fn a_fixture_past_the_end_of_its_universe_is_refused() {
     let entry = "  - { device: A, universe: 0, address: 500, personality: segment }\n";
-    let errors = one("H61A0", entry).expect_err("47 channels do not fit from 500");
+    let errors = one("H61A0", entry).expect_err("48 channels do not fit from 500");
     let [Error::PastUniverse { span, .. }] = errors.as_slice() else {
         panic!("{errors:?}");
     };
-    assert_eq!((span.first, span.last), (500, 546));
+    assert_eq!((span.first, span.last), (500, 547));
 }
 
 #[test]
 fn two_fixtures_on_one_channel_are_refused() {
     let entry = "  - { device: A, universe: 0, address: 1, personality: segment }\n  \
-                 - { device: B, universe: 0, address: 47, personality: full }\n";
-    let errors = one("H61A0", entry).expect_err("channel 47 is taken twice");
+                 - { device: B, universe: 0, address: 48, personality: full }\n";
+    let errors = one("H61A0", entry).expect_err("channel 48 is taken twice");
     let [
         Error::Overlap {
             first_span,
@@ -191,7 +191,7 @@ fn two_fixtures_on_one_channel_are_refused() {
     else {
         panic!("{errors:?}");
     };
-    assert_eq!((first_span.last, second_span.first), (47, 47));
+    assert_eq!((first_span.last, second_span.first), (48, 48));
 }
 
 #[test]
@@ -199,7 +199,7 @@ fn one_address_on_two_universes_is_no_overlap() {
     let entry = "  - { device: A, universe: 0, address: 1, personality: segment }\n  \
                  - { device: B, universe: 1, address: 1, personality: segment }\n";
     let spans = one("H61A0", entry).expect("two universes do not overlap");
-    assert_eq!(spans, vec![(0, 1, 47), (1, 1, 47)]);
+    assert_eq!(spans, vec![(0, 1, 48), (1, 1, 48)]);
 }
 
 #[test]
