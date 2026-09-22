@@ -230,47 +230,54 @@
 .tabs-dmx { gap: 8px; margin: 1.6em 0 0; }
 /* `reference.css` sets the language tabs after this file, so these carry the
    page class to win the cascade rather than a repeated selector. */
-/* `reference.css` sets the language tabs after this file, so these carry the
-   page class to win the cascade rather than a repeated selector. */
 .is-device .tabs-dmx button {
   display: block; text-align: left; font-size: 16px; line-height: 1.5; padding: 11px 17px;
 }
 .is-device .tabs-dmx .dmx-tab-width { display: block; font-size: 13px; color: var(--muted); }
-/* The mark column carries no head: the icon stands for the slot beside it. */
-.is-device .matrix-dmx th:nth-child(2), .is-device .matrix-dmx td:nth-child(2) { width: 64px; }
-.matrix-dmx .dmx-mark { padding-right: 0; line-height: 0; }
-.matrix-dmx .cap-icon { width: 18px; height: 18px; }
+/* The channel table as a desk: one column per channel, each one the same
+   width. The frame shrinks to the columns and scrolls where the screen is
+   narrower. The columns share three rows through `subgrid`, so the number, the
+   slot and the bands line up across a personality. */
+.dmx-frame {
+  width: fit-content; max-width: 100%; margin: 1.6em 0; overflow-x: auto;
+  border: 1px solid var(--line); border-radius: var(--radius);
+}
+.prose .dmx-desk {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 176px;
+  grid-template-rows: auto auto 1fr; margin: 0; padding: 0; list-style: none;
+}
+.prose .dmx-column {
+  display: grid; grid-row: span 3; grid-template-rows: subgrid; margin: 0;
+  border-left: 1px solid var(--line);
+}
+.dmx-column:first-child { border-left: 0; }
+.dmx-channel {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 12px 14px; background: var(--panel); border-bottom: 1px solid var(--line);
+  font: 500 20px/1 var(--mono); color: var(--text); white-space: nowrap;
+}
+.dmx-channel .cap-icon, .dmx-swatch { flex: none; width: 18px; height: 18px; }
+.dmx-slot { padding: 12px 14px 10px; font-weight: 500; color: var(--text); text-align: center; }
+.dmx-bands { padding: 12px 14px 14px; color: var(--prose); text-align: center; }
+/* A channel the model drives nothing from reads dimmer than the others, and
+   says so under its slot name. */
+.dmx-column[data-unreached] .dmx-channel { color: var(--muted); }
+.dmx-order { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; font-weight: 400; }
 /* A color channel drives that component, so the chip carries the primary
    itself and not a color of the theme. */
-.dmx-swatch { width: 18px; height: 18px; }
 .dmx-swatch[data-component="red"] { color: #e5484d; }
 .dmx-swatch[data-component="green"] { color: #30a46c; }
 .dmx-swatch[data-component="blue"] { color: #3e63dd; }
-/* Each column takes the width its content needs, and `.tablewrap` scrolls
-   where the screen is narrower than the four together. A phone reads the same
-   table as a desktop, one column at a time. */
-.is-device .matrix-dmx { table-layout: auto; }
-.is-device .matrix-dmx th, .is-device .matrix-dmx td { overflow-wrap: normal; }
-/* Every personality holds the same four columns, so the first three carry one
-   set of widths and the blocks read as one table cut in pieces. */
-.is-device .matrix-dmx th:first-child, .is-device .matrix-dmx td:first-child {
-  width: 1%; white-space: nowrap;
-}
-.is-device .matrix-dmx th:nth-child(3), .is-device .matrix-dmx td:nth-child(3) { width: 14em; }
-/* One band of slots per line, with a rule between two bands: a channel holds
+/* One band of slots per entry, with a rule between two bands: a channel holds
    up to three, and each one is a separate answer. The slots take a badge,
    because a pair of numbers is what the operator matches against a fader. */
-.dmx-values { margin: 0; padding: 0; list-style: none; }
-.dmx-values li {
-  display: flex; align-items: center; gap: 12px; padding: 7px 0; white-space: nowrap;
-}
+.prose .dmx-values { margin: 0; padding: 0; list-style: none; }
+.prose .dmx-values li { margin: 0; padding: 14px 0; font-size: 14px; line-height: 1.4; }
 .dmx-values li:first-child { padding-top: 0; }
 .dmx-values li:last-child { padding-bottom: 0; }
 .dmx-values li + li { border-top: 1px solid var(--line); }
 .dmx-slots {
-  flex: none; min-width: 6em; text-align: center; padding: 5px 9px;
+  display: table; min-width: 6em; margin: 0 auto 8px; text-align: center; padding: 5px 9px;
   border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted);
-  font: 500 11px/1 var(--mono); letter-spacing: .04em;
+  font: 500 11px/1 var(--mono); letter-spacing: .04em; white-space: nowrap;
 }
-/* A channel the model drives nothing from says so under its slot name. */
-.dmx-order { display: block; color: var(--muted); font-size: .9em; }
