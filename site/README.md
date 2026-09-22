@@ -10,7 +10,7 @@ pages so that the header, the footer and the device tables exist once.
 | Path | What it holds |
 | ---- | ------------- |
 | `src/layout.html` | The shell of every page. |
-| `src/pages/*.html` | The hand-written pages: home and devices. |
+| `src/pages/*.html` | The hand-written pages: home, devices, add a device and the LAN Control list. |
 | `content/reference.json` | One entry per command, with an example in each language. It feeds the reference page and the "What you can send" section of every model page. |
 | `src/assets/css/*.css` | The stylesheet. `site.css` imports the rest. |
 | `src/assets/ts/*.ts` | The browser script. `site.ts` wires the rest to the page. |
@@ -27,7 +27,8 @@ pages so that the header, the footer and the device tables exist once.
 ## Build
 
 The build needs Node 26 or later. The devices page reads
-`../dist/catalog.json`, which `xtask` generates from `devices/*.yaml`.
+`../dist/catalog.json`, which `xtask` generates from `devices/*.yaml`. The LAN
+Control page reads `../docs/lan-supported-devices.json`, which is committed.
 Generate it first:
 
 ```bash
@@ -259,6 +260,7 @@ file stays under 300 lines, which `tools/check-file-length.sh` enforces.
 
 - Nothing about a device is written here. The devices page is generated from
   the device files, and a fact the YAML does not carry does not reach the site.
+  The LAN Control page is generated from `docs/lan-supported-devices.json`.
 - A mode that nobody probed shows `?`, never `none`.
 - The site states what works today. Planned work is marked as planned.
 - The copy writes for a reader, in the positive form. A limit of a mode

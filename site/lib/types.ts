@@ -1,7 +1,8 @@
-// The shape of the two inputs the renderers read: `dist/catalog.json`, which
-// `xtask catalog` writes, and `content/reference.json`. Each type lists the
-// fields a renderer reads and no more, so a field the site ignores can change
-// without a change here.
+// The shape of the inputs the renderers read: `dist/catalog.json`, which
+// `xtask catalog` writes, `content/reference.json` and
+// `docs/lan-supported-devices.json`. Each type lists the fields a renderer
+// reads and no more, so a field the site ignores can change without a change
+// here.
 
 /** A mode a device file can declare. `MODES` in `config.ts` holds the order. */
 export type Mode = "lan" | "ble" | "cloud";
@@ -119,3 +120,10 @@ export interface TocEntry {
 
 /** A `[label, url]` pair of a breadcrumb trail. */
 export type Crumb = [string, string];
+
+/** `docs/lan-supported-devices.json`: the models that carry the LAN switch. */
+export interface LanList {
+  source: string;
+  retrieved: string;
+  models: { sku: string; name: string; category: string }[];
+}

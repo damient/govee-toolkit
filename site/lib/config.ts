@@ -23,5 +23,8 @@ export const DESCRIPTION = "An unofficial toolkit that controls Govee lights fro
 export const catalogPath = join(repo, "dist/catalog.json");
 export const CATALOG_SCHEMA = 1;
 
+/** The models that carry the LAN switch. `xtask lan` reads the same file. */
+export const lanListPath = join(repo, "docs/lan-supported-devices.json");
+
 /** The modes a device file can declare, in the order a reader looks for. */
 export const MODES: readonly Mode[] = ["lan", "ble", "cloud"];
