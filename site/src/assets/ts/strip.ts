@@ -10,7 +10,7 @@ function off(zone: HTMLElement): void {
 
 // The window that is lit now, so a move writes the zones that change and
 // leaves the rest alone.
-function lamp(zones: HTMLElement[]): { light: (index: number) => void; clear: () => void } {
+function lamp(zones: HTMLElement[]): (index: number) => void {
   let from = 0;
   let to = -1;
   const light = (index: number) => {
@@ -32,16 +32,13 @@ function lamp(zones: HTMLElement[]): { light: (index: number) => void; clear: ()
     from = first;
     to = last;
   };
-  const clear = () => {
-    for (const zone of zones.slice(from, to + 1)) off(zone);
-    from = 0;
-    to = -1;
-  };
-  return { light, clear };
+  return light;
 }
 
 export function strip(el: HTMLElement): void {
-  const { light, clear } = lamp(build(el, "b"));
+  const light = lamp(build(el, "b"));
+  // The zone the strip lights at rest, and again when the pointer leaves.
+  const rest = Math.floor(ZONES / 2);
 
   // The box is read when the pointer arrives and when the layout can have
   // moved, never inside the move: reading it there forces a layout per event.
@@ -72,10 +69,10 @@ export function strip(el: HTMLElement): void {
   el.addEventListener("pointerleave", () => {
     x = null;
     forget();
-    clear();
+    light(rest);
   });
   addEventListener("resize", forget, { passive: true });
   addEventListener("scroll", forget, { passive: true });
 
-  light(Math.floor(ZONES / 2));
+  light(rest);
 }
