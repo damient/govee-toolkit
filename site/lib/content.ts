@@ -14,6 +14,8 @@ import { versionChips } from "./versions.ts";
 interface Heading {
   id: string;
   text: string;
+  /** The label a menu shows, from `<!-- menu: Label -->` at the end of the heading. */
+  menu?: string;
 }
 
 /** One documentation page, read from its Markdown file. */
@@ -37,6 +39,11 @@ export async function readDocs(): Promise<Doc[]> {
   );
   return docs.sort((a, b) => a.order - b.order);
 }
+/** One Markdown file under `content/` that sits outside the documentation menu. */
+export async function readPage(file: string): Promise<Doc> {
+  return renderDoc(file, await readFile(join(root, "content", file), "utf8"));
+}
+
 
 /** One documentation page, inside the frame every one of them shares. */
 export function docPage(doc: Doc, nav: NavEntry[]): string {
@@ -48,6 +55,8 @@ export function docPage(doc: Doc, nav: NavEntry[]): string {
     body: doc.html,
   });
 }
+const MENU = /<!--\s*menu:\s*(.+?)\s*-->/;
+
 
 function renderDoc(file: string, raw: string): Doc {
   const { meta, body } = frontMatter(raw);
@@ -67,10 +76,11 @@ function renderDoc(file: string, raw: string): Doc {
         // that part outside the anchor: the link is the name alone.
         const at = tokens.findIndex((t) => t.type === "html");
         const named = at === -1 ? tokens : tokens.slice(0, at);
-        const trailing = at === -1 ? "" : this.parser.parseInline(tokens.slice(at));
+        const trailing = at === -1 ? "" : this.parser.parseInline(tokens.slice(at)).replace(MENU, "");
         const label = headingLabel(tokens);
         const id = slugify(label);
-        headings.push({ id, text: label });
+        const menu = at === -1 ? undefined : MENU.exec(tokens.slice(at).map((t) => t.raw).join(""))?.[1];
+        headings.push({ id, text: label, ...(menu ? { menu } : {}) });
         return `<h2 id="${escapeAttr(id)}"><a class="anchor" href="#${escapeAttr(id)}">`
           + `${this.parser.parseInline(named)}</a>${trailing}</h2>\n`;
       },

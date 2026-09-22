@@ -17,6 +17,7 @@ pages so that the header, the footer and the device tables exist once.
 | `src/assets/` | The fonts and the images. |
 | `lib/*.ts` | The renderers the build calls. `config.ts` holds the address of the site, and `types.ts` the shape of the catalog and of the reference. |
 | `content/docs/*.md` | The documentation pages. One file, one page. |
+| `content/faq.md` | The FAQ page. Each `##` heading is a question, and `<!-- menu: Label -->` at its end names it in the menu on the left. The page carries the `FAQPage` JSON-LD block. |
 | `public/` | Anything that must land at the root of the site, such as `CNAME`. |
 | `build.ts` | The build. |
 | `tools/og.py` | Draws the social preview image and the touch icon. It writes `tools/og.svg` and both PNGs. |
@@ -149,7 +150,7 @@ The reference page satisfies every name, so it shows every block.
 
 ## The top bar
 
-The links are `Home`, `Docs` and `Devices`. The install page and the reference
+The links are `Home`, `Docs`, `Devices` and `FAQ`. The install page and the reference
 page both sit inside the documentation, so the top bar marks `Docs` while a
 reader is on either one.
 
