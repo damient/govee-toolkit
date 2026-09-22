@@ -232,8 +232,9 @@ impl Feeder {
             return Ok(false);
         }
         self.space().await?;
+        let painted = self.spread.map(|spread| spread.apply(zones));
         if let Some(stream) = &self.stream {
-            stream.set_all(zones)?;
+            stream.set_all(painted.as_deref().unwrap_or(zones))?;
         }
         self.sent.zones.clear();
         self.sent.zones.extend_from_slice(zones);

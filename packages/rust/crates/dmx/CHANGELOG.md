@@ -50,6 +50,10 @@ is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
   reports the state it read and writes none, so a live fixture stays out.
 - A new entry takes the lowest free channels of the lowest universe from
   `--universe`. A second scan fills the gap a deleted entry left.
+- A fixture on `segment`, on a device whose file declares
+  `capabilities.segments.groups`, streams one colour per LED: the bridge paints
+  each group over its own run. The rendering does not depend on how the
+  firmware groups the LEDs. See [`docs/dmx.md`](../../../../docs/dmx.md) 1.2.
 - `patch --personality` takes `full`, `segment`, `pixel`, or `widest` for the
   widest table the device serves. The default is `full`, which is 6 channels.
 - `patch --dry-run` prints the entries and writes nothing. `--reset` writes the
