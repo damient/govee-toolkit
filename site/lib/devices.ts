@@ -113,18 +113,32 @@ function row(d: Device): string {
  * title, the description and the body, and never touches the file system.
  */
 export function devicePage(d: Device, reference: Reference) {
-  const modes = MODES.map((m) => `${m} ${support(d, m)}`).join(", ");
-  const verified = d.verified?.date
-    ? `Verified on ${d.verified.date}.`
-    : "Nobody has verified this model yet.";
   const trail: Crumb[] = [["Devices", "devices/"], [d.sku, `devices/${d.sku}/`]];
   return {
     url: `devices/${d.sku}/`,
-    title: `${d.sku} — ${d.name}`,
-    description: `What govee-toolkit reaches on the ${d.sku} (${d.name}): ${modes}. ${verified}`,
+    title: `Govee ${d.sku} — ${d.name}`,
+    description: describe(d),
     body: pageBody(d, reference, trail),
     breadcrumb: trail,
   };
+}
+
+// The description a search result shows. It names the paths that reach the
+// model and no other, as the copy of the site does.
+const PATHS: Record<Mode, string> = { lan: "Wi-Fi", ble: "Bluetooth", cloud: "the cloud" };
+
+function describe(d: Device): string {
+  const paths = MODES.filter((m) => REACHES.has(support(d, m))).map((m) => PATHS[m]);
+  const head = `the Govee ${d.sku} (${d.name})`;
+  const what = paths.length
+    ? `Control ${head} from your own computer, over ${joined(paths)}${d.dmx?.personalities?.length ? ", and from a DMX desk" : ""}.`
+    : `What Govee Toolkit reaches on ${head} is still to probe.`;
+  const when = d.verified?.date ? ` Verified on ${d.verified.date}.` : "";
+  return what + when;
+}
+
+function joined(words: string[]): string {
+  return words.length < 2 ? (words[0] ?? "") : `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`;
 }
 
 function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {

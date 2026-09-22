@@ -18,7 +18,7 @@ import { faqPage } from "./lib/faq.ts";
 import { fill } from "./lib/html.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
 import { REFERENCE, referencePage } from "./lib/reference.ts";
-import { breadcrumb, deviceData, faqData, homeData, jsonLd, robots, sitemapXml } from "./lib/seo.ts";
+import { breadcrumb, deviceData, homeData, jsonLd, robots, sitemapXml } from "./lib/seo.ts";
 import { type Change, notify, serve } from "./lib/serve.ts";
 import type { Catalog, Crumb, Device, NavEntry, Reference } from "./lib/types.ts";
 
@@ -67,7 +67,7 @@ const pages: Source[] = [
     title: "Devices",
     render: renderIndex,
     trail: [["Devices", "devices/"]],
-    description: "Which Govee models the toolkit reaches, over Wi-Fi, over Bluetooth, over the cloud and from a DMX desk. Built from the device files, so it cannot disagree with them.",
+    description: "Which Govee lights work with Govee Toolkit: what each model answers over Wi-Fi, over Bluetooth, through the cloud and from a DMX desk.",
   },
   {
     src: "add-device.html",
@@ -150,10 +150,7 @@ async function main(): Promise<void> {
       title: doc.title,
       description: doc.description,
       klass: "is-doc",
-      jsonld: [
-        breadcrumb([["Docs", docsHome], [doc.title, `docs/${doc.slug}/`]]),
-        ...(doc.faq ? [faqData(doc)] : []),
-      ],
+      jsonld: [breadcrumb([["Docs", docsHome], [doc.title, `docs/${doc.slug}/`]])],
       body: docPage(doc, nav),
     })),
     {
@@ -162,10 +159,10 @@ async function main(): Promise<void> {
       title: REFERENCE.title,
       description: reference.intro,
       klass: "is-doc",
-    faq,
       jsonld: [breadcrumb([["Docs", docsHome], ["Reference", "reference/"]])],
       body: referencePage(reference, nav),
     },
+    faq,
     {
       url: "404.html",
       nav: "",
@@ -232,10 +229,10 @@ async function emit(layout: string, page: Page, ctx: Context): Promise<string | 
 // reader is on it.
 function topNav(current: string, docsHome: string): string {
   const items = [
-    { url: "faq/", key: "faq", label: "FAQ" },
     { url: "", key: "home", label: "Home" },
     { url: docsHome, key: "docs", label: "Docs" },
     { url: "devices/", key: "devices", label: "Devices" },
+    { url: "faq/", key: "faq", label: "FAQ" },
   ];
   return items
     .map(({ url, key, label }) => {
