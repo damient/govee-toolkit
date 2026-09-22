@@ -7,7 +7,7 @@ import { MODES } from "./config.ts";
 import { crumbs } from "./crumbs.ts";
 import { dmx } from "./device-dmx.ts";
 import { usage } from "./device-usage.ts";
-import { DASH, escapeAttr, escapeHtml, fill } from "./html.ts";
+import { DASH, escapeAttr, escapeHtml, fill, filled } from "./html.ts";
 import { familyIcon, icon, sharesMark } from "./icons.ts";
 import { dmxBadge, familyBadge, modeBadge } from "./mode-badge.ts";
 import type { Capability, Catalog, Crumb, Device, Mode, Reference, Support } from "./types.ts";
@@ -31,7 +31,7 @@ const order = (key: string): number => CAP_ORDER.get(key) ?? CAPS.length;
 
 /** Sorts by SKU, so that two builds of one catalog give one page. */
 export function sorted(catalog: Catalog): Device[] {
-  return [...catalog.devices].sort((a, b) => a.sku.localeCompare(b.sku));
+  return catalog.devices.toSorted((a, b) => a.sku.localeCompare(b.sku));
 }
 
 const support = (device: Device, mode: Mode): Support => device.modes?.[mode]?.support ?? "unknown";
@@ -46,12 +46,12 @@ const pill = (value: Support): string =>
 
 /** A key such as `segment_brightness` as a reader reads it. */
 function label(key: string): string {
-  return CAP_LABELS.get(key) ?? key.replace(/_/g, " ");
+  return CAP_LABELS.get(key) ?? key.replaceAll("_", " ");
 }
 
 export function renderIndex(template: string, devices: Device[]): string {
   return fill(template, {
-    devices_rows: devices.map(row).join("\n"),
+    devices_rows: devices.map((d) => row(d)).join("\n"),
     caps_legend: capsLegend(devices),
     check_mark: CHECK,
   });
@@ -65,8 +65,8 @@ function modeCell(d: Device, mode: Mode): string {
   // carries one of them. The model page names both.
   const caps = [...(d.modes?.[mode]?.capabilities ?? [])]
     .filter((c) => !sharesMark(c))
-    .sort((a, b) => order(a) - order(b));
-  if (!caps.length) {
+    .toSorted((a, b) => order(a) - order(b));
+  if (caps.length === 0) {
     if (state === "none") return DASH;
     return pill(state);
   }
@@ -84,16 +84,20 @@ function modeCell(d: Device, mode: Mode): string {
 function capsLegend(devices: Device[]): string {
   const keys = new Set(devices.flatMap((d) => Object.keys(d.capabilities ?? {})));
   return [...keys]
-    .filter((key) => icon(key) && !sharesMark(key))
-    .sort((a, b) => order(a) - order(b))
+    .filter((key) => icon(key) !== "" && !sharesMark(key))
+    .toSorted((a, b) => order(a) - order(b))
     .map((key) => `<li>${icon(key)}${escapeHtml(label(key))}</li>`)
     .join("\n        ");
 }
 
 // The DMX column answers yes or nothing: the bridge derives a channel table
 // from the device file, so a model that carries no table answers no desk.
+function hasDmx(d: Device): boolean {
+  return (d.dmx?.personalities?.length ?? 0) > 0;
+}
+
 function dmxCell(d: Device): string {
-  if (!d.dmx?.personalities?.length) return DASH;
+  if (!hasDmx(d)) return DASH;
   return `<span class="dmx-yes">${CHECK}<span class="visually-hidden">DMX</span></span>`;
 }
 
@@ -130,10 +134,10 @@ const PATHS: Record<Mode, string> = { lan: "Wi-Fi", ble: "Bluetooth", cloud: "th
 function describe(d: Device): string {
   const paths = MODES.filter((m) => REACHES.has(support(d, m))).map((m) => PATHS[m]);
   const head = `the Govee ${d.sku} (${d.name})`;
-  const what = paths.length
-    ? `Control ${head} from your own computer, over ${joined(paths)}${d.dmx?.personalities?.length ? ", and from a DMX desk" : ""}.`
+  const what = paths.length > 0
+    ? `Control ${head} from your own computer, over ${joined(paths)}${hasDmx(d) ? ", and from a DMX desk" : ""}.`
     : `What Govee Toolkit reaches on ${head} is still to probe.`;
-  const when = d.verified?.date ? ` Verified on ${d.verified.date}.` : "";
+  const when = filled(d.verified?.date) ? ` Verified on ${d.verified.date}.` : "";
   return what + when;
 }
 
@@ -150,7 +154,7 @@ function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {
     <h1>${title}</h1>
     <p class="mode-line">${familyBadge(d.family)}${MODES.filter((m) => REACHES.has(support(d, m)))
       .map((m) => modeBadge(m))
-      .join("")}${d.dmx?.personalities?.length ? dmxBadge() : ""}${badges(d)}</p>
+      .join("")}${hasDmx(d) ? dmxBadge() : ""}${badges(d)}</p>
   </div>
 </section>
 
@@ -177,16 +181,16 @@ function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {
 }
 
 function badges(d: Device): string {
-  return d.verified?.date
+  return filled(d.verified?.date)
     ? `<span class="badge badge-ok">${CHECK}verified</span>`
     : `<span class="badge badge-unknown">not verified</span>`;
 }
 
 function capabilities(d: Device): string {
   const caps = Object.entries(d.capabilities ?? {});
-  if (!caps.length) return "";
+  if (caps.length === 0) return "";
   const list = caps
-    .sort(([a], [b]) => order(a) - order(b))
+    .toSorted(([a], [b]) => order(a) - order(b))
     .map(([key, value]) => `<li>${icon(key)}${escapeHtml(label(key))}${counts(key, value, d)}</li>`)
     .join("");
   return `<h2 id="what-the-hardware-does">What the hardware does</h2>
@@ -200,14 +204,14 @@ function counts(key: string, value: Capability | null, device: Device): string {
   if (key !== "segments" || !value) return "";
   const parts: string[] = [];
   const grid = device.measurements?.segment_grid;
-  const oneZonePerPixel = value.count && value.count === value.native_pixels;
+  const oneZonePerPixel = (value.count ?? 0) > 0 && value.count === value.native_pixels;
   if (oneZonePerPixel && Array.isArray(grid) && grid.length === 2) {
     parts.push(`${escapeHtml(grid[0])} × ${escapeHtml(grid[1])} grid`);
-  } else if (value.count) {
+  } else if ((value.count ?? 0) > 0) {
     parts.push(`${escapeHtml(value.count)} zones`);
   }
-  if (value.native_pixels) parts.push(`${escapeHtml(value.native_pixels)} pixels`);
-  return parts.length
+  if ((value.native_pixels ?? 0) > 0) parts.push(`${escapeHtml(value.native_pixels)} pixels`);
+  return parts.length > 0
     ? `<span class="badge-count"><span aria-hidden="true">|</span> ${parts.join(" · ")}</span>`
     : "";
 }
@@ -215,8 +219,8 @@ function counts(key: string, value: Capability | null, device: Device): string {
 
 // Every mode holds a row, and one that reaches nothing answers in words.
 function modeCaps(d: Device, mode: Mode): string {
-  const caps = [...(d.modes?.[mode]?.capabilities ?? [])].sort((a, b) => order(a) - order(b));
-  if (caps.length) {
+  const caps = (d.modes?.[mode]?.capabilities ?? []).toSorted((a, b) => order(a) - order(b));
+  if (caps.length > 0) {
     const chips = caps.map((c) => `<li>${icon(c)}${escapeHtml(label(c))}</li>`).join("");
     return `<ul class="caps">${chips}</ul>`;
   }
@@ -244,12 +248,12 @@ function modeSections(d: Device): string {
 function aliases(d: Device): string {
   const same = d.aliases ?? [];
   const candidates = d.candidate_aliases ?? [];
-  if (!same.length && !candidates.length) return "";
-  const verified = same.length
+  if (same.length === 0 && candidates.length === 0) return "";
+  const verified = same.length > 0
     ? `<p><strong>The same device:</strong> ${same.map((s) => `<code>${escapeHtml(s)}</code>`).join(", ")}.
       Each was verified to behave identically.</p>`
     : "";
-  const maybe = candidates.length
+  const maybe = candidates.length > 0
     ? `<p><strong>Looks like the same product, not verified:</strong> ${candidates.map((s) => `<code>${escapeHtml(s)}</code>`).join(", ")}.
       A different length has a different segment count, so these are candidates
       and nothing more.</p>`
@@ -259,17 +263,17 @@ function aliases(d: Device): string {
 }
 
 function verification(d: Device): string {
-  if (!d.verified?.date) {
+  if (!filled(d.verified?.date)) {
     return `<h2 id="verification">Verification</h2>
       <p>Nobody has verified this model yet. That is a different answer from
       <em>it does not work</em>: an untested model is untested.
       <a href="{{repo}}/issues">Report what you observe</a> and the device file
       takes it.</p>`;
   }
-  const firmware = d.verified.firmware
+  const firmware = filled(d.verified.firmware)
     ? ` on firmware <code>${escapeHtml(d.verified.firmware)}</code>`
     : "";
-  const by = d.verified.by ? ` by <code>${escapeHtml(d.verified.by)}</code>` : "";
+  const by = filled(d.verified.by) ? ` by <code>${escapeHtml(d.verified.by)}</code>` : "";
   return `<h2 id="verification">Verification</h2>
       <p>Verified${by} on <time datetime="${escapeAttr(d.verified.date)}">${escapeHtml(d.verified.date)}</time>${firmware}.</p>`;
 }

@@ -50,5 +50,5 @@ export function highlight(source: string, language: string): string {
 // No grammar knows `govee`. It stands at the head of a line, so it is never
 // inside a span already.
 function command(html: string): string {
-  return html.replace(/^(\s*)(govee)\b/gm, '$1<span class="hljs-built_in">$2</span>');
+  return html.replaceAll(/^(\s*)(govee)\b/gmu, '$1<span class="hljs-built_in">$2</span>');
 }

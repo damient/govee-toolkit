@@ -36,9 +36,9 @@ export function wire(
     if (!button) return;
     const step = STEPS[event.key];
     let next = null;
-    if (step) next = buttons[(buttons.indexOf(button) + step + buttons.length) % buttons.length];
+    if (step !== undefined) next = buttons[(buttons.indexOf(button) + step + buttons.length) % buttons.length];
     if (event.key === "Home") next = buttons[0];
-    if (event.key === "End") next = buttons[buttons.length - 1];
+    if (event.key === "End") next = buttons.at(-1);
     if (!next) return;
     event.preventDefault();
     choose(next.dataset[key]);

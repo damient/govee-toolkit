@@ -1,12 +1,11 @@
 // What the whole build agrees on: where the site lives, and where its inputs
 // are.
 
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 import type { Mode } from "./types.ts";
 
 /** The site directory: every input path starts here. */
-export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+export const root = resolve(import.meta.dirname, "..");
 export const repo = resolve(root, "..");
 export const dist = join(root, "dist");
 

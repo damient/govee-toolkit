@@ -4,7 +4,7 @@
 import { base } from "./config.ts";
 import { docShell } from "./docs.ts";
 import { examples } from "./examples.ts";
-import { escapeAttr, escapeHtml, inline } from "./html.ts";
+import { escapeAttr, escapeHtml, filled, inline } from "./html.ts";
 import { langBlock } from "./languages.ts";
 import { modeBadge } from "./mode-badge.ts";
 import type { Mode, NavEntry, RefEntry, RefGroup, Reference } from "./types.ts";
@@ -36,7 +36,7 @@ ${reference.groups.map(referenceGroup).join("\n")}`,
 // A `modes` list names the modes that reach the item. It is absent where every
 // mode reaches it, so a badge marks the exception and not the rule.
 const modeMarks = (modes: Mode[] | undefined): string =>
-  modes ? `<span class="ref-modes">${modes.map(modeBadge).join("")}</span>` : "";
+  modes ? `<span class="ref-modes">${modes.map((mode) => modeBadge(mode)).join("")}</span>` : "";
 
 function referenceGroup(group: RefGroup): string {
   const entries = group.entries.map(referenceEntry).join("\n");
@@ -47,7 +47,7 @@ ${entries}
 }
 
 function referenceEntry(entry: RefEntry): string {
-  const detail = entry.detail ? `<p>${inline(entry.detail)}</p>` : "";
+  const detail = filled(entry.detail) ? `<p>${inline(entry.detail)}</p>` : "";
   return `          <article class="ref-entry" id="${escapeAttr(entry.id)}">
             <div class="ref-text">
               <h3><a class="anchor" href="#${entry.id}"><code>${escapeHtml(entry.title)}</code></a>${modeMarks(entry.modes)}</h3>

@@ -1,7 +1,7 @@
 // What a machine reads: the JSON-LD blocks, `robots.txt` and the sitemap.
 
 import { DESCRIPTION, SITE_URL, base, repoUrl } from "./config.ts";
-import { escapeHtml } from "./html.ts";
+import { escapeHtml, filled } from "./html.ts";
 import type { Crumb, Device } from "./types.ts";
 
 /** One JSON-LD object. */
@@ -9,7 +9,7 @@ type LinkedData = Record<string, unknown>;
 
 /** The JSON-LD blocks of one page, as script tags. Empty when it has none. */
 export function jsonLd(blocks: LinkedData[] | undefined): string {
-  if (!blocks?.length) return "";
+  if (!blocks || blocks.length === 0) return "";
   return blocks
     .map((block) => `<script type="application/ld+json">${JSON.stringify(block)}</script>`)
     .join("\n");
@@ -66,7 +66,7 @@ export function deviceData(
     url: `${SITE_URL}${base}${page.url}`,
     inLanguage: "en",
     isPartOf: { "@type": "WebSite", name: "Govee Toolkit", url: `${SITE_URL}${base}` },
-    ...(device.verified?.date ? { dateModified: device.verified.date } : {}),
+    ...(filled(device.verified?.date) ? { dateModified: device.verified.date } : {}),
   };
 }
 

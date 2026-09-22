@@ -226,7 +226,7 @@ npm run lint       # all four
 | Command | Tool | What it reads |
 | ------- | ---- | ------------- |
 | `npm run lint:types` | tsc | `build.ts` and `lib/`, then `src/assets/ts/` |
-| `npm run lint:js` | oxlint | `build.ts`, `lib/` and `src/assets/ts/` |
+| `npm run lint:js` | oxlint, with the rules that read the types | `build.ts`, `lib/` and `src/assets/ts/` |
 | `npm run lint:css` | stylelint | `src/assets/css/` |
 | `npm run lint:html` | html-validate | `dist/`, after a build |
 

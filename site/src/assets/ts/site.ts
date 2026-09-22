@@ -12,19 +12,21 @@ import { tabs } from "./tabs.ts";
 import { theme } from "./theme.ts";
 import { topbar } from "./topbar.ts";
 
-// The selector names the element and the module names its type. Nothing
-// checks that the two agree.
-const wire = <E extends Element>(selector: string, setup: (element: E) => void) =>
-  document.querySelectorAll<E>(selector).forEach((element) => setup(element));
+// An element of another type than the module expects is skipped.
+const wire = <E extends Element>(selector: string, type: new () => E, setup: (element: E) => void): void => {
+  for (const element of document.querySelectorAll(selector)) {
+    if (element instanceof type) setup(element);
+  }
+};
 
-wire("[data-strip]", strip);
-wire("[data-topbar]", topbar);
-wire("[data-copy]", copy);
-wire("[data-filter]", filter);
-wire("[data-rows]", rowLink);
-wire("[data-doc-select]", docSelect);
-wire("[data-theme-toggle]", theme);
-wire("[data-menu-toggle]", menu);
-wire("[data-spy]", spy);
-wire("[data-dmx]", personalities);
+wire("[data-strip]", HTMLElement, strip);
+wire("[data-topbar]", HTMLElement, topbar);
+wire("[data-copy]", HTMLButtonElement, copy);
+wire("[data-filter]", HTMLInputElement, filter);
+wire("[data-rows]", HTMLElement, rowLink);
+wire("[data-doc-select]", HTMLDetailsElement, docSelect);
+wire("[data-theme-toggle]", HTMLButtonElement, theme);
+wire("[data-menu-toggle]", HTMLButtonElement, menu);
+wire("[data-spy]", HTMLElement, spy);
+wire("[data-dmx]", HTMLElement, personalities);
 tabs();

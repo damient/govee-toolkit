@@ -4,7 +4,7 @@ import { paint, wire } from "./tablist.ts";
 // everywhere.
 export function tabs(): void {
   const elements = [...document.querySelectorAll<HTMLElement>("[data-langs]")];
-  if (!elements.length) return;
+  if (elements.length === 0) return;
 
   // Queried once: a language change writes these and queries nothing.
   const groups = elements.map((el) => ({
@@ -25,11 +25,13 @@ export function tabs(): void {
   };
 
   const choose = (language: string | undefined) => {
-    if (!language) return;
+    if (language === undefined) return;
     show(language);
     try {
       localStorage.setItem("language", language);
-    } catch { /* private mode: the choice lasts for this page only. */ }
+    } catch {
+      // Private mode: the choice lasts for this page only.
+    }
   };
 
   for (const group of groups) {
@@ -39,6 +41,8 @@ export function tabs(): void {
   let stored: string | null = null;
   try {
     stored = localStorage.getItem("language");
-  } catch { /* nothing stored. */ }
-  if (stored) show(stored);
+  } catch {
+    // Private mode: nothing is stored.
+  }
+  if (stored !== null) show(stored);
 }

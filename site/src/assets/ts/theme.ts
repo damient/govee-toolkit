@@ -2,8 +2,11 @@
 // it. sessionStorage keeps the choice for the tab and not beyond it.
 export function theme(button: HTMLButtonElement): void {
   const system = matchMedia("(prefers-color-scheme: dark)");
-  const current = () => document.documentElement.dataset.theme
-    || (system.matches ? "dark" : "light");
+  const current = () => {
+    const chosen = document.documentElement.dataset.theme;
+    if (chosen !== undefined && chosen !== "") return chosen;
+    return system.matches ? "dark" : "light";
+  };
 
   button.addEventListener("click", () => {
     const next = current() === "dark" ? "light" : "dark";

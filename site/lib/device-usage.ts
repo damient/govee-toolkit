@@ -5,7 +5,7 @@
 
 import { MODES } from "./config.ts";
 import { examples } from "./examples.ts";
-import { escapeAttr, escapeHtml } from "./html.ts";
+import { escapeAttr, escapeHtml, filled } from "./html.ts";
 import { langBlock } from "./languages.ts";
 import { modeBadge, modeMark } from "./mode-badge.ts";
 import type { Device, Mode, Range, RefEntry, Reference, Values } from "./types.ts";
@@ -31,11 +31,11 @@ function index(device: Device): Map<string, RoleEntry> {
   const roles = new Map<string, RoleEntry>();
   for (const mode of MODES) {
     for (const command of Object.values(device.commands?.[mode] ?? {})) {
-      if (!command.role) continue;
+      if (!filled(command.role)) continue;
       const entry: RoleEntry = roles.get(command.role) ?? { modes: new Set(), ranges: new Map() };
       entry.modes.add(mode);
       for (const arg of Object.values(command.args ?? {})) {
-        if (!arg.role || !arg.range) continue;
+        if (!filled(arg.role) || !arg.range) continue;
         const byMode: ByMode = entry.ranges.get(arg.role) ?? new Map();
         byMode.set(mode, arg.range);
         entry.ranges.set(arg.role, byMode);
@@ -59,14 +59,14 @@ function merge(roles: Map<string, RoleEntry>, wanted: string[]): Served | null {
       entry.ranges.set(arg, into);
     }
   }
-  return entry.has.size ? entry : null;
+  return entry.has.size > 0 ? entry : null;
 }
 
 /** A value inside the range of every mode, so one example holds wherever the
  * reader sends it. Falls back where the device file bounds nothing. */
 function pick(entry: Served, role: string, fallback: Values[string]): Values[string] {
   const byMode = entry.ranges.get(role);
-  if (!byMode?.size) return fallback;
+  if (!byMode || byMode.size === 0) return fallback;
   const ranges = [...byMode.values()];
   const low = Math.max(...ranges.map((r) => r[0]));
   const high = Math.min(...ranges.map((r) => r[1]));
@@ -77,7 +77,7 @@ function pick(entry: Served, role: string, fallback: Values[string]): Values[str
   return Math.min(high, Math.max(low, value));
 }
 
-const boundsList = (rows: string[]): string => (rows.length ? `<ul class="bounds">${rows.join("")}</ul>` : "");
+const boundsList = (rows: string[]): string => (rows.length > 0 ? `<ul class="bounds">${rows.join("")}</ul>` : "");
 
 // The modes share a row where they agree on the range, and hold one row each
 // where they do not.
@@ -85,7 +85,7 @@ function bounds(entry: Served, args: Record<string, string>): string {
   const rows: string[] = [];
   for (const [label, role] of Object.entries(args)) {
     const byMode = entry.ranges.get(role);
-    if (!byMode?.size) continue;
+    if (!byMode || byMode.size === 0) continue;
     const forms = new Set([...byMode.values()].map((r) => `${r[0]}–${r[1]}`));
     if (forms.size === 1 && byMode.size === entry.modes.size) {
       rows.push(`<li><code>${escapeHtml(label)}</code> ${[...forms][0]}</li>`);
@@ -111,8 +111,8 @@ function native(device: Device): boolean {
 function segments(device: Device): string {
   const seg = zones(device);
   const rows: string[] = [];
-  if (seg?.count) rows.push(`<li><code>zones</code> ${seg.count}</li>`);
-  if (seg?.native_pixels) rows.push(`<li><code>pixels</code> ${seg.native_pixels}</li>`);
+  if (seg?.count !== undefined && seg.count > 0) rows.push(`<li><code>zones</code> ${seg.count}</li>`);
+  if (seg?.native_pixels !== undefined && seg.native_pixels > 0) rows.push(`<li><code>pixels</code> ${seg.native_pixels}</li>`);
   return boundsList(rows);
 }
 
@@ -133,9 +133,9 @@ function block(item: ActionEntry, entry: Served, device: Device): string {
   const served = MODES.filter((m) => entry.modes.has(m));
   const marks = served.length === MODES.length
     ? ""
-    : `<span class="ref-modes">${served.map(modeBadge).join("")}</span>`;
-  const summary = action.summary ? `<p class="summary">${escapeHtml(action.summary)}</p>` : "";
-  const extra = action.segments ? segments(device) : "";
+    : `<span class="ref-modes">${served.map((mode) => modeBadge(mode)).join("")}</span>`;
+  const summary = filled(action.summary) ? `<p class="summary">${escapeHtml(action.summary)}</p>` : "";
+  const extra = action.segments === true ? segments(device) : "";
   const { values, can } = unit(item, entry, device);
   return `<article class="ref-entry" id="send-${escapeAttr(item.id)}">
             <div class="ref-text">
@@ -156,12 +156,12 @@ export function usage(device: Device, reference: Reference): string {
   const actions = reference.groups
     .flatMap((group) => group.entries)
     .filter((item): item is ActionEntry => Boolean(item.action))
-    .sort((a, b) => a.action.order - b.action.order);
+    .toSorted((a, b) => a.action.order - b.action.order);
   const blocks = actions.map((item) => {
     const entry = merge(roles, item.roles ?? []);
     return entry ? block(item, entry, device) : "";
   }).filter(Boolean);
-  if (!blocks.length) return "";
+  if (blocks.length === 0) return "";
   return `<h2 id="send">What you can send</h2>
       <div class="usage">
           ${blocks.join("\n          ")}

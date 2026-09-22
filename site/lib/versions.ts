@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { repo } from "./config.ts";
 import { escapeHtml } from "./html.ts";
 import { badgeIcon } from "./icons.ts";
+import { versionOf } from "./json.ts";
 
 // One package, one manifest and one registry. The key is the name a page
 // writes as `{{version_<key>}}` and `{{registry_<key>}}`.
@@ -42,12 +43,12 @@ const PACKAGES = {
 // or the `[project]` table holds. A dependency states its version indented or
 // inside a table of its own.
 function fromToml(text: string): string | undefined {
-  return /^version\s*=\s*"([^"]+)"/m.exec(text)?.[1];
+  return /^version\s*=\s*"([^"]+)"/mu.exec(text)?.[1];
 }
 
 function read(path: string): string {
   const text = readFileSync(join(repo, path), "utf8");
-  const version: unknown = path.endsWith(".json") ? JSON.parse(text).version : fromToml(text);
+  const version: unknown = path.endsWith(".json") ? versionOf(text) : fromToml(text);
   if (typeof version !== "string" || !version) throw new Error(`${path}: no version`);
   return version;
 }

@@ -7,7 +7,7 @@ export function copy(button: HTMLButtonElement): void {
   const label = button.textContent?.trim() || "Copy";
   const rest = () => {
     button.innerHTML = COPY_ICON;
-    button.removeAttribute("data-state");
+    delete button.dataset.state;
     say(label);
   };
   const say = (text: string) => {
@@ -17,7 +17,7 @@ export function copy(button: HTMLButtonElement): void {
 
   let queued: ReturnType<typeof setTimeout> | undefined;
   rest();
-  button.addEventListener("click", async () => {
+  const write = async () => {
     clearTimeout(queued);
     try {
       await navigator.clipboard.writeText(button.dataset.copy ?? "");
@@ -29,5 +29,8 @@ export function copy(button: HTMLButtonElement): void {
       say("Copy failed");
     }
     queued = setTimeout(rest, 1600);
+  };
+  button.addEventListener("click", () => {
+    void write();
   });
 }

@@ -7,5 +7,5 @@ export function personalities(block: HTMLElement): void {
   const buttons = [...block.querySelectorAll<HTMLButtonElement>("button[data-personality]")];
   const panes = [...block.querySelectorAll<HTMLElement>(".dmx-pane")];
   if (buttons.length < 2) return;
-  wire(block, "personality", buttons, (name) => paint(buttons, panes, "personality", name));
+  wire(block, "personality", buttons, (name) => { paint(buttons, panes, "personality", name); });
 }

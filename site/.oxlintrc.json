@@ -1,12 +1,10 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "categories": { "correctness": "error", "suspicious": "error", "perf": "error" },
+  "categories": { "correctness": "error", "suspicious": "error", "perf": "error", "pedantic": "error" },
   "env": { "browser": true, "es2024": true },
   "ignorePatterns": ["dist", "node_modules"],
   "rules": {
-    "unicorn/consistent-function-scoping": "off",
-    "unicorn/no-array-sort": "off",
-    "oxc/no-map-spread": "off"
+    "typescript/prefer-readonly-parameter-types": "off"
   },
   "overrides": [
     {

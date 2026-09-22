@@ -30,7 +30,7 @@ export function watchSources(rebuild: (change: Change) => Promise<void>): void {
     }, 80);
   };
   for (const dir of SOURCES) {
-    watch(join(root, dir), { recursive: true }, (_, file) => touch(join(dir, file ?? "")));
+    watch(join(root, dir), { recursive: true }, (_, file) => { touch(join(dir, file ?? "")); });
   }
   // The directory and not the file: `xtask` replaces the file, and a watch on
   // the file ends with the file it watched.
@@ -51,7 +51,7 @@ export function watchSources(rebuild: (change: Change) => Promise<void>): void {
  */
 export async function sweepStaging(): Promise<void> {
   const stale = (await readdir(root)).filter((name) => {
-    const pid = /^\.dist-build-(\d+)$/.exec(name)?.[1];
+    const pid = /^\.dist-build-(\d+)$/u.exec(name)?.[1];
     return pid !== undefined && !alive(Number(pid));
   });
   await Promise.all(stale.map((name) => rm(join(root, name), { recursive: true, force: true })));
@@ -63,6 +63,6 @@ function alive(pid: number): boolean {
     return true;
   } catch (error) {
     // `EPERM`: the process exists and belongs to another user.
-    return (error as NodeJS.ErrnoException).code === "EPERM";
+    return error instanceof Error && "code" in error && error.code === "EPERM";
   }
 }

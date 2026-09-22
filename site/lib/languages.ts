@@ -2,7 +2,7 @@
 // choice holds for the whole page: `src/assets/ts/tabs.ts` reads `data-langs`.
 
 import { highlight } from "./code.ts";
-import { escapeAttr } from "./html.ts";
+import { escapeAttr, filled } from "./html.ts";
 import type { Examples } from "./types.ts";
 
 export const LANGUAGES = [
@@ -19,8 +19,8 @@ export const LANGUAGES = [
  * tells the reader which language it is.
  */
 export function langBlock(prefix: string, examples: Examples): string {
-  const available = LANGUAGES.filter((lang) => examples[lang.id]);
-  if (!available.length) return "";
+  const available = LANGUAGES.filter((lang) => filled(examples[lang.id]));
+  if (available.length === 0) return "";
   const id = (lang: { id: string }) => `${prefix}-${lang.id}`;
   const tabs = available
     .map((lang, index) => `<button type="button" role="tab" id="tab-${id(lang)}" aria-controls="pane-${id(lang)}" data-lang="${lang.id}" aria-selected="${index === 0}" tabindex="${index === 0 ? "0" : "-1"}">${lang.label}</button>`)
