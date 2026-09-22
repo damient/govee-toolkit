@@ -184,8 +184,10 @@
 
 /* The legend names every mark of the table in the chip the model page uses,
    so one mark reads the same on both pages. The two marks that carry a
-   sentence take the slot of the icon, and the row aligns them all. */
-.legend-caps { margin: 2.4em 0 0; }
+   sentence take the slot of the icon. The capabilities take the first row,
+   the marks the second. */
+.legend-caps { margin: 0; justify-content: center; }
+.legend-caps:first-of-type { margin: 2.4em 0 16px; }
 .legend-caps .pill { padding: 3px 8px; }
 .legend-caps .muted { width: 15px; text-align: center; }
 
