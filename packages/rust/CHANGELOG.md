@@ -7,6 +7,8 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.12.0] — 2026-09-22
+
 ### Added
 
 - `capabilities.segments.groups` gives a device whose every zone is one LED a
