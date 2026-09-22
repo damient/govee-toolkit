@@ -50,21 +50,24 @@ fn every_segmented_device_answers_a_zone_personality() {
         };
         let profile =
             Profile::of(device, personality).unwrap_or_else(|e| panic!("{}: {e}", device.sku));
-        assert_eq!(profile.width(), u16::try_from(2 + 3 * zones).unwrap_or(0));
+        assert_eq!(profile.width(), u16::try_from(3 + 3 * zones).unwrap_or(0));
         check_offsets(&device.sku, &profile);
     }
 }
 
-/// Offset 1 and offset 2 mean the same thing on every personality and every
-/// model, so a cue file carries between them.
+/// Offsets 1 to 3 mean the same thing on every personality and every model,
+/// so a cue file carries between them.
 #[test]
-fn the_second_channel_of_every_personality_is_the_mode() {
+fn the_mode_and_the_white_channel_hold_offsets_2_and_3_everywhere() {
     for device in catalog().devices() {
         for table in super::served(device) {
             let profile = table.expect("a served personality");
             let second = profile.channels().get(1).expect("a second channel");
             assert_eq!(second.slot, Slot::Mode, "{}", device.sku);
             assert_eq!(second.offset, 2, "{}", device.sku);
+            let third = profile.channels().get(2).expect("a third channel");
+            assert_eq!(third.slot, Slot::WhiteTemp, "{}", device.sku);
+            assert_eq!(third.offset, 3, "{}", device.sku);
         }
     }
 }
@@ -93,32 +96,32 @@ fn the_first_channel_of_every_personality_is_the_dimmer() {
 }
 
 /// `segment` lays the zones out in zone order, one triple each, so the
-/// operator reads channel 3 as the red of zone 0.
+/// operator reads channel 4 as the red of zone 0.
 #[test]
 fn a_segment_personality_lays_one_triple_on_each_zone() {
     let catalog = catalog();
     let device = catalog.device("H61A0").expect("the SKU resolves");
     let profile = Profile::of(device, Personality::Segment).expect("a segment personality");
     assert_eq!(
-        profile.channels().get(2..5),
+        profile.channels().get(3..6),
         Some(
             [
                 Channel::plain(
-                    3,
+                    4,
                     Slot::Zone {
                         index: 0,
                         component: Component::Red
                     }
                 ),
                 Channel::plain(
-                    4,
+                    5,
                     Slot::Zone {
                         index: 0,
                         component: Component::Green
                     }
                 ),
                 Channel::plain(
-                    5,
+                    6,
                     Slot::Zone {
                         index: 0,
                         component: Component::Blue
@@ -161,7 +164,7 @@ fn built(capabilities: &str, lan: &str) -> Catalog {
 }
 
 /// The white channel holds its place where `lan` reaches no white
-/// temperature, so `full` takes 6 channels on every device. It drives
+/// temperature, so the zones start at one offset on every device. It drives
 /// nothing there: a scale is what a channel needs to send a value.
 #[test]
 fn a_device_that_reaches_no_white_keeps_the_channel_and_drives_nothing() {
@@ -170,7 +173,7 @@ fn a_device_that_reaches_no_white_keeps_the_channel_and_drives_nothing() {
     assert_eq!(personalities(device), vec![Personality::Full]);
     let profile = Profile::of(device, Personality::Full).expect("a full personality");
     assert_eq!(profile.width(), 6);
-    let white = profile.channels().get(5).expect("the white channel");
+    let white = profile.channels().get(2).expect("the white channel");
     assert_eq!(white.slot, Slot::WhiteTemp);
     assert_eq!(white.scale, None);
 }
@@ -182,7 +185,7 @@ fn a_color_component_scales_into_the_pair_the_command_declares() {
     let catalog = built(RGB, "power, brightness, color");
     let device = parse(&catalog);
     let profile = Profile::of(device, Personality::Full).expect("a full personality");
-    let red = profile.channels().get(2).expect("the red channel");
+    let red = profile.channels().get(3).expect("the red channel");
     assert_eq!(red.slot, Slot::Color(Component::Red));
     let scale = red.scale.expect("a scale");
     assert_eq!(scale.range(), [0, 255]);
@@ -210,7 +213,7 @@ fn a_zone_count_over_one_universe_is_an_error() {
         Err(Error::TooWide {
             sku: "HTEST".to_owned(),
             personality: Personality::Segment,
-            channels: 602,
+            channels: 603,
         })
     );
 }
@@ -270,7 +273,7 @@ fn a_declared_group_count_lays_out_a_coarse_table() {
     );
     let profile = Profile::of(device, Personality::Segment).expect("a segment personality");
     assert_eq!(profile.zones(), 5);
-    assert_eq!(profile.width(), 17);
+    assert_eq!(profile.width(), 18);
     let spread = profile.spread().expect("the table paints its own groups");
     assert_eq!(spread.pixels(), 10);
     assert_eq!(spread.apply(&[[1, 0, 0]; 5]).len(), 10);

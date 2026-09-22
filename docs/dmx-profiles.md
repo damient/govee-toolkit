@@ -23,9 +23,9 @@ is never truncated to fit.
 | SKU | Name | `full` | `segment` | `pixel` |
 | --- | ---- | ------ | --------- | ------- |
 | [H6008](../devices/H6008.yaml) | Smart LED Bulb RGBWW | 6 | — | — |
-| [H6022](../devices/H6022.yaml) | Table Lamp 2 | 6 | 47 | 398 |
+| [H6022](../devices/H6022.yaml) | Table Lamp 2 | 6 | 48 | 399 |
 | [H6114](../devices/H6114.yaml) | RGB Car LED Strip Lights | — | — | — |
-| [H61A0](../devices/H61A0.yaml) | 3m RGBIC LED Neon Rope Lights | 6 | 47 | 128 |
+| [H61A0](../devices/H61A0.yaml) | 3m RGBIC LED Neon Rope Lights | 6 | 48 | 129 |
 <!-- /generated -->
 
 Channel 1 and channel 2 are the same on every personality and every model.
