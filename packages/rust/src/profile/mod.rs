@@ -13,6 +13,7 @@ mod channel;
 mod reach;
 pub mod report;
 mod scale;
+mod spread;
 #[cfg(test)]
 mod tests;
 
@@ -20,6 +21,7 @@ use std::fmt;
 
 pub use channel::{Channel, Component, MODE_IDLE_TOP, MODE_RESEND, Slot};
 pub use scale::{OFF, Scale, Zero};
+pub use spread::Spread;
 use thiserror::Error;
 
 use self::reach::{BRIGHTNESS, COLOR, COLORTEMP, POWER, SEGMENTS, bounds, reaches};
@@ -164,6 +166,7 @@ pub struct Profile {
     personality: Personality,
     channels: Vec<Channel>,
     zones: usize,
+    spread: Option<Spread>,
 }
 
 impl Profile {
@@ -175,7 +178,7 @@ impl Profile {
     /// drive a channel of the personality, and [`Error::TooWide`] where the
     /// table is wider than one universe.
     pub fn of(device: &Device, personality: Personality) -> Result<Self, Error> {
-        let zones = zone_count(device, personality).map_err(|missing| Error::Unserved {
+        let (zones, spread) = layout(device, personality).map_err(|missing| Error::Unserved {
             sku: device.sku.clone(),
             personality,
             missing,
@@ -205,6 +208,7 @@ impl Profile {
             personality,
             channels,
             zones,
+            spread,
         })
     }
 
@@ -224,6 +228,15 @@ impl Profile {
     #[must_use]
     pub fn zones(&self) -> usize {
         self.zones
+    }
+
+    /// How the table covers the LEDs behind its zones.
+    ///
+    /// `None` where one frame carries one zone per channel triple, and the
+    /// firmware groups the LEDs behind it.
+    #[must_use]
+    pub fn spread(&self) -> Option<Spread> {
+        self.spread
     }
 
     /// How many channels the fixture takes from its start address.
@@ -247,29 +260,42 @@ pub fn served(device: &Device) -> Vec<Result<Profile, Error>> {
         .collect()
 }
 
-fn zone_count(device: &Device, personality: Personality) -> Result<u32, Missing> {
+/// How many zones `personality` lays out, and how it covers the LEDs behind
+/// them.
+fn layout(device: &Device, personality: Personality) -> Result<(u32, Option<Spread>), Missing> {
     if matches!(personality, Personality::Full) {
-        return Ok(0);
+        return Ok((0, None));
     }
     if !paints_zones(device) {
         return Err(Missing::Capability(SEGMENTS));
     }
-    let measured = if matches!(personality, Personality::Pixel) {
-        device
-            .capabilities
-            .native_pixels()
-            .ok_or(Missing::NativePixels)?
-    } else {
-        let zones = device.capabilities.segment_count().ok_or(Missing::Zones)?;
-        if device.capabilities.native_pixels() == Some(zones) {
+    let native = device.capabilities.native_pixels();
+    if matches!(personality, Personality::Pixel) {
+        let pixels = native.ok_or(Missing::NativePixels)?;
+        return nonzero(pixels).map(|pixels| (pixels, None));
+    }
+    // A file that states a group count paints the groups here rather than
+    // leaving the firmware to group the LEDs. See `docs/dmx.md` 1.2.
+    if let Some(groups) = device.capabilities.segment_groups() {
+        let pixels = native.ok_or(Missing::NativePixels)?;
+        if groups == pixels {
             return Err(Missing::OnePixelPerZone);
         }
-        zones
-    };
-    if measured == 0 {
+        let spread = Spread::new(groups, pixels).ok_or(Missing::Zones)?;
+        return Ok((groups, Some(spread)));
+    }
+    let zones = device.capabilities.segment_count().ok_or(Missing::Zones)?;
+    if native == Some(zones) {
+        return Err(Missing::OnePixelPerZone);
+    }
+    nonzero(zones).map(|zones| (zones, None))
+}
+
+fn nonzero(zones: u32) -> Result<u32, Missing> {
+    if zones == 0 {
         return Err(Missing::Zones);
     }
-    Ok(measured)
+    Ok(zones)
 }
 
 fn paints_zones(device: &Device) -> bool {

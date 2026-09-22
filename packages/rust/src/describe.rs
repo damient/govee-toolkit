@@ -23,6 +23,7 @@ pub fn describe(device: &Device) -> Value {
         "segments": {
             "count": device.capabilities.segment_count(),
             "native_pixels": device.capabilities.native_pixels(),
+            "groups": device.capabilities.segment_groups(),
             "refines_at": device.measurements.resolution_changepoints,
         },
         "modes": by_mode(|mode| mode_json(device, mode)),

@@ -34,6 +34,12 @@ pub struct CapabilityParams {
     /// extrapolated.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub native_pixels: Option<u32>,
+    /// Zones a host folds the LEDs into, where the model reaches a coarser
+    /// view than one zone per LED — `segments`. The host paints each group
+    /// over its own LEDs, so the boundaries are the host's and not the ones
+    /// another mode renders.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub groups: Option<u32>,
 }
 
 impl CapabilityParams {
@@ -85,6 +91,13 @@ impl Capabilities {
     #[must_use]
     pub fn native_pixels(&self) -> Option<u32> {
         self.get(SEGMENTS).and_then(|params| params.native_pixels)
+    }
+
+    /// Zones a host folds the LEDs into, from `segments.groups`. `None` where
+    /// the file declares none, which leaves the firmware to group the LEDs.
+    #[must_use]
+    pub fn segment_groups(&self) -> Option<u32> {
+        self.get(SEGMENTS).and_then(|params| params.groups)
     }
 }
 

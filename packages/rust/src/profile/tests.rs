@@ -36,10 +36,13 @@ fn every_segmented_device_answers_a_zone_personality() {
         if !has(device, SEGMENTS) {
             continue;
         }
-        let zones = device
+        let count = device
             .capabilities
             .segment_count()
             .expect("a device that reaches segments counts them");
+        // A declared group count is what `segment` lays out; `count` is what
+        // the firmware groups where the file declares none.
+        let zones = device.capabilities.segment_groups().unwrap_or(count);
         let personality = if device.capabilities.native_pixels() == Some(zones) {
             Personality::Pixel
         } else {
@@ -249,6 +252,74 @@ fn one_pixel_per_zone_serves_the_pixel_personality_alone() {
             sku: "HTEST".to_owned(),
             personality: Personality::Segment,
             missing: Missing::OnePixelPerZone,
+        })
+    );
+}
+
+/// A declared group count gives a coarse table to a device whose every zone is
+/// one addressable LED, which would otherwise serve `pixel` alone.
+#[test]
+fn a_declared_group_count_lays_out_a_coarse_table() {
+    let capabilities =
+        format!("{RGB}  segments:\n    count: 10\n    native_pixels: 10\n    groups: 5\n");
+    let catalog = built(&capabilities, "power, brightness, color, segments");
+    let device = parse(&catalog);
+    assert_eq!(
+        personalities(device),
+        vec![Personality::Full, Personality::Segment, Personality::Pixel]
+    );
+    let profile = Profile::of(device, Personality::Segment).expect("a segment personality");
+    assert_eq!(profile.zones(), 5);
+    assert_eq!(profile.width(), 17);
+    let spread = profile.spread().expect("the table paints its own groups");
+    assert_eq!(spread.pixels(), 10);
+    assert_eq!(spread.apply(&[[1, 0, 0]; 5]).len(), 10);
+}
+
+/// The group count wins over `count`, and `pixel` keeps every LED.
+#[test]
+fn the_group_count_decides_the_zones_and_leaves_the_pixel_table_alone() {
+    let capabilities =
+        format!("{RGB}  segments:\n    count: 20\n    native_pixels: 40\n    groups: 8\n");
+    let catalog = built(&capabilities, "power, brightness, color, segments");
+    let device = parse(&catalog);
+    let segment = Profile::of(device, Personality::Segment).expect("a segment personality");
+    assert_eq!(segment.zones(), 8);
+    let pixel = Profile::of(device, Personality::Pixel).expect("a pixel personality");
+    assert_eq!(pixel.zones(), 40);
+    assert_eq!(pixel.spread(), None, "`pixel` paints one LED per triple");
+}
+
+/// A group per LED lays out the `pixel` table, and one table carries one name.
+#[test]
+fn a_group_per_led_serves_the_pixel_personality_alone() {
+    let capabilities =
+        format!("{RGB}  segments:\n    count: 10\n    native_pixels: 10\n    groups: 10\n");
+    let catalog = built(&capabilities, "power, brightness, color, segments");
+    let device = parse(&catalog);
+    assert_eq!(
+        Profile::of(device, Personality::Segment),
+        Err(Error::Unserved {
+            sku: "HTEST".to_owned(),
+            personality: Personality::Segment,
+            missing: Missing::OnePixelPerZone,
+        })
+    );
+}
+
+/// Groups are painted over measured LEDs, and an unmeasured resolution is
+/// never extrapolated from the group count.
+#[test]
+fn groups_over_no_measured_pixels_serve_no_coarse_table() {
+    let capabilities = format!("{RGB}  segments:\n    count: 10\n    groups: 5\n");
+    let catalog = built(&capabilities, "power, brightness, color, segments");
+    let device = parse(&catalog);
+    assert_eq!(
+        Profile::of(device, Personality::Segment),
+        Err(Error::Unserved {
+            sku: "HTEST".to_owned(),
+            personality: Personality::Segment,
+            missing: Missing::NativePixels,
         })
     );
 }

@@ -58,7 +58,7 @@ A personality is one channel layout, the way it is on any other fixture.
 | Name | Channels | Condition |
 | --- | --- | --- |
 | `full` | 6 | `brightness` and `color` |
-| `segment` | 2 + 3 × `segments.count` | and `segments` |
+| `segment` | 2 + 3 × `segments.groups`, else `segments.count` | and `segments` |
 | `pixel` | 2 + 3 × `segments.native_pixels` | and a measured `native_pixels` |
 
 `full` is 6 channels wide on every device:
@@ -78,6 +78,23 @@ one addressable LED serves `pixel` alone: the two would lay out one table, and
 one table carries one name. A device `lan` reaches no white temperature on
 keeps channel 6 of `full` and drives nothing from it, and `govee-dmx profile`
 names that channel `unreached`.
+
+**Groups.** A device file can declare `capabilities.segments.groups`: a zone
+count under the LED count. `segment` then lays out that many zones, and the
+bridge paints each one itself over its own run of LEDs. The frame on the wire
+carries one colour per LED, the way `pixel` does, so the rendering does not
+depend on how the firmware groups the LEDs for a smaller frame. Two rules
+follow:
+
+- A group covers a contiguous run in chain order, and two runs differ by one
+  LED at most. A chain that folds back on itself carries a group across the
+  fold, so a group is not a physical band — read the `segment_chain`
+  measurement of the device file.
+- The boundaries are the bridge's. A mode that reaches the same zone count
+  through its own command can render the boundaries elsewhere.
+
+A model that declares no `groups` lays out `segments.count` zones, and the
+frame carries that many: the firmware groups the LEDs behind them.
 
 Channel 1 and channel 2 are the same on all three personalities, so a desk
 reads one fixture the same way whatever it is patched on, and a cue file

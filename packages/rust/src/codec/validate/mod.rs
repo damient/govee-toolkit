@@ -138,7 +138,29 @@ pub fn device(device: &Device) -> Vec<Problem> {
         ));
     }
 
+    problems.extend(groups(device));
+
     problems
+}
+
+/// What `capabilities.segments.groups` must agree with: the bridge paints each
+/// group over its own run of LEDs, so it needs a measured LED count to paint.
+fn groups(device: &Device) -> Vec<Problem> {
+    let Some(groups) = device.capabilities.segment_groups() else {
+        return Vec::new();
+    };
+    let message = match device.capabilities.native_pixels() {
+        None => "states a group count, but `native_pixels` records no LED to group".to_owned(),
+        Some(pixels) if groups == 0 || groups > pixels => {
+            format!("is {groups}, which is no group of the {pixels} LEDs declared")
+        }
+        Some(_) => return Vec::new(),
+    };
+    vec![Problem {
+        sku: device.sku.clone(),
+        at: "capabilities.segments.groups".to_owned(),
+        message,
+    }]
 }
 
 #[cfg(test)]
