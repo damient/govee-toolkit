@@ -153,7 +153,7 @@ export declare class DeviceHandle {
    * `resolution` takes `"app"` when it is `null`, and `rate` takes
    * `"measured"`.
    */
-  openStream(resolution?: number | 'app' | 'native', rate?: number | 'measured', gradient?: boolean | undefined | null): Promise<SegmentStream>
+  openStream(resolution?: number | 'app' | 'native' | 'groups', rate?: number | 'measured', gradient?: boolean | undefined | null): Promise<SegmentStream>
   toString(): string
   /** Turn the device on or off. */
   power(on: boolean): Promise<Served>
@@ -194,7 +194,7 @@ export declare class DeviceHandle {
    * three bytes per zone, states them all. A zone list takes one color.
    * `resolution` takes `"app"` when it is `null`.
    */
-  segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native', gradient?: boolean | undefined | null): Promise<Served>
+  segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean | undefined | null): Promise<Served>
   /**
    * Ask the firmware to interpolate between zones, and to wrap from the
    * last zone back to the first.

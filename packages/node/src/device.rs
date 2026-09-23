@@ -206,7 +206,9 @@ impl DeviceHandle {
     pub fn open_stream<'env>(
         &self,
         env: &'env Env,
-        #[napi(ts_arg_type = "number | 'app' | 'native'")] resolution: Option<Unknown<'_>>,
+        #[napi(ts_arg_type = "number | 'app' | 'native' | 'groups'")] resolution: Option<
+            Unknown<'_>,
+        >,
         #[napi(ts_arg_type = "number | 'measured'")] rate: Option<Unknown<'_>>,
         gradient: Option<bool>,
     ) -> napi::Result<PromiseRaw<'env, SegmentStream>> {

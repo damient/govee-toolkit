@@ -5,6 +5,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Added
+
+- `segment --resolution groups` and `stream --resolution groups` — one zone per
+  `capabilities.segments.groups`, over a mask or over every LED.
+
 ## [0.6.0] — 2026-09-21
 
 ### Added
