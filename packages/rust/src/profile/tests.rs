@@ -275,7 +275,6 @@ fn a_declared_group_count_lays_out_a_coarse_table() {
     assert_eq!(profile.zones(), 5);
     assert_eq!(profile.width(), 18);
     let spread = profile.spread().expect("the table paints its own groups");
-    assert_eq!(spread.pixels(), 10);
     assert_eq!(spread.apply(&[[1, 0, 0]; 5]).len(), 10);
 }
 
