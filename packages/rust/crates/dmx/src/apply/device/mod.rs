@@ -17,7 +17,7 @@ use super::look::Look;
 use super::rate::Pace;
 use super::{Counts, Failure, Timing};
 use crate::patch::{Fixture, SignalLoss};
-use crate::profile::{Personality, Spread};
+use crate::profile::Personality;
 
 /// One fixture, and the device it drives.
 #[derive(Debug)]
@@ -27,9 +27,6 @@ pub(super) struct Feeder {
     /// `None` where the personality carries no zone: those devices take the
     /// `color` role instead.
     options: Option<StreamOptions>,
-    /// How the table covers the LEDs behind its zones. `None` where the frame
-    /// carries the zones of the table as they are.
-    spread: Option<Spread>,
     stream: Option<SegmentStream>,
     timing: Timing,
     loss: SignalLoss,
@@ -66,7 +63,6 @@ impl Feeder {
             govee: govee.clone(),
             id: id.clone(),
             options: options(fixture),
-            spread: fixture.profile.spread(),
             stream: None,
             timing,
             loss: fixture.entry.on_signal_loss,
@@ -274,11 +270,12 @@ impl Feeder {
 /// How the stream opens for this fixture, and `None` where the personality
 /// carries no zone.
 fn options(fixture: &Fixture) -> Option<StreamOptions> {
-    // A table that paints its own groups carries one colour per LED, so the
-    // stream opens at the native resolution whatever the table is wide.
+    // A table that lays out the declared groups opens one zone per group, and
+    // the stream paints each group over its own run of LEDs.
     let resolution = match (fixture.profile.personality(), fixture.profile.spread()) {
         (Personality::Full, _) => return None,
-        (Personality::Pixel, _) | (Personality::Segment, Some(_)) => Resolution::Native,
+        (Personality::Pixel, _) => Resolution::Native,
+        (Personality::Segment, Some(_)) => Resolution::Groups,
         (Personality::Segment, None) => Resolution::App,
     };
     Some(StreamOptions {

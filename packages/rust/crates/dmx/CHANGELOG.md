@@ -17,8 +17,8 @@ is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 - A switch between white and zones pays `arm_settle_ms` before the first paint,
   and some units show dark for that time.
 - A fixture on `segment`, on a device that declares
-  `capabilities.segments.groups`, streams one colour per LED and paints each
-  group over its own run. See [`docs/dmx.md`](../../../../docs/dmx.md) 1.2.
+  `capabilities.segments.groups`, opens the stream at `Resolution::Groups`. See
+  [`docs/dmx.md`](../../../../docs/dmx.md) 1.2.
 
 ### Changed
 
