@@ -82,7 +82,7 @@ nothing from it, and `govee-dmx profile` names that channel `unreached`.
 **Groups.** A device file can declare `capabilities.segments.groups`: a zone
 count under the LED count. `segment` then lays out that many zones, and the
 bridge opens the stream at the `groups` resolution. The stream paints each zone
-over its own run of LEDs, and the frame on the wire carries one colour per LED,
+over its own run of LEDs, and the frame on the wire carries one color per LED,
 the way `pixel` does. The rendering therefore does not depend on how the
 firmware groups the LEDs for a smaller frame. Two rules follow:
 
