@@ -9,6 +9,7 @@ import { strip } from "./strip.ts";
 import { tabs } from "./tabs.ts";
 import { theme } from "./theme.ts";
 import { topbar } from "./topbar.ts";
+import { video } from "./video.ts";
 
 // An element of another type than the module expects is skipped.
 const wire = <E extends Element>(selector: string, type: new () => E, setup: (element: E) => void): void => {
@@ -27,4 +28,5 @@ wire("[data-theme-toggle]", HTMLButtonElement, theme);
 wire("[data-menu-toggle]", HTMLButtonElement, menu);
 wire("[data-spy]", HTMLElement, spy);
 wire("[data-dmx]", HTMLElement, personalities);
+wire("[data-video]", HTMLAnchorElement, video);
 tabs();
