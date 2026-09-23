@@ -1,4 +1,33 @@
-import { PALETTE, ZONES, build, mix, rgb } from "./zones.ts";
+// How many zones the decoration draws. This is a drawing count and not a
+// measurement: a real zone count belongs to a device file.
+const ZONES = 42;
+
+/** One color as `[r, g, b]`, each 0–255. */
+type Rgb = [number, number, number];
+
+const PALETTE: [Rgb, Rgb] = [
+  [255, 61, 0],
+  [255, 179, 92],
+];
+
+function build(el: HTMLElement, tag: string): HTMLElement[] {
+  const zones: HTMLElement[] = [];
+  for (let i = 0; i < ZONES; i += 1) {
+    const zone = document.createElement(tag);
+    el.append(zone);
+    zones.push(zone);
+  }
+  return zones;
+}
+
+function rgb([r, g, b]: Rgb, alpha = 1): string {
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function mix(a: Rgb, b: Rgb, t: number): Rgb {
+  const at = (from: number, to: number) => Math.round(from + (to - from) * t);
+  return [at(a[0], b[0]), at(a[1], b[1]), at(a[2], b[2])];
+}
 
 // How far the light carries on each side of the pointer.
 const REACH = 6;
