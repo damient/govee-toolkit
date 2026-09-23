@@ -46,9 +46,19 @@ enum Step {
 pub(super) struct Sent {
     pub(super) on: Option<bool>,
     pub(super) brightness: Option<i64>,
-    pub(super) color: Option<[u8; 3]>,
-    pub(super) white_temp: Option<i64>,
-    pub(super) zones: Vec<[u8; 3]>,
+    paint: Option<Paint>,
+}
+
+/// What the device shows. White, color and zones are exclusive states on the
+/// device: a write of one ends the other two.
+///
+/// A change of variant is a change of state, so the white channel back at 0
+/// sends the color or the zones again with no reset of its own.
+#[derive(Debug, PartialEq, Eq)]
+enum Paint {
+    White(i64),
+    Color([u8; 3]),
+    Zones(Vec<[u8; 3]>),
 }
 
 impl Feeder {
@@ -103,53 +113,50 @@ impl Feeder {
             self.counts.frames_sent += 1;
             wrote = true;
         }
-        // The white channel back at 0 sends no white command, and the color
-        // did not change, so nothing else would take the device out of white.
-        // The color is what does it, so the pass sends it again.
-        if look.white_temp.is_none() && self.sent.white_temp.is_some() {
-            self.sent.white_temp = None;
-            self.sent.color = None;
-            self.sent.zones.clear();
-        }
-        if self.options.is_some() {
-            return Ok(self.zones_or_white(look).await? || wrote);
-        }
-        let white = look
-            .white_temp
-            .filter(|kelvin| self.sent.white_temp != Some(*kelvin));
-        if let Some(rgb) = look.color
-            && self.sent.color != Some(rgb)
-        {
-            if white.is_some() {
-                // A white command replaces the color on the device, and it
-                // goes out last. The color would show for the milliseconds
-                // before it, which reads as a blink. The pass counts the
-                // color as applied: the device shows the white, and the pass
-                // that takes the white channel back to 0 sends the color.
-                self.sent.color = Some(rgb);
-            } else {
-                self.space().await?;
-                self.device().color(rgb).await?;
-                self.mark();
-                self.sent.color = Some(rgb);
-                self.counts.frames_sent += 1;
-                wrote = true;
-            }
-        }
-        if let Some(kelvin) = white {
-            self.white(kelvin).await?;
-            wrote = true;
-        }
-        Ok(wrote)
+        let painted = if self.options.is_some() {
+            self.zones_or_white(look).await?
+        } else {
+            self.color_or_white(look).await?
+        };
+        Ok(painted || wrote)
     }
 
-    async fn white(&mut self, kelvin: i64) -> Result<()> {
+    /// The white where the white channel carries a value, and the color
+    /// otherwise.
+    ///
+    /// The color is not sent under a white: the white replaces it, and the
+    /// color would show for the milliseconds before, which reads as a blink.
+    async fn color_or_white(&mut self, look: &Look) -> Result<bool> {
+        if let Some(kelvin) = look.white_temp {
+            return self.white(kelvin).await;
+        }
+        let Some(rgb) = look.color else {
+            // A table with no color channel paints nothing once the white is
+            // gone, so the next white must go out again.
+            self.sent.paint = None;
+            return Ok(false);
+        };
+        if self.sent.paint == Some(Paint::Color(rgb)) {
+            return Ok(false);
+        }
+        self.space().await?;
+        self.device().color(rgb).await?;
+        self.mark();
+        self.sent.paint = Some(Paint::Color(rgb));
+        self.counts.frames_sent += 1;
+        Ok(true)
+    }
+
+    async fn white(&mut self, kelvin: i64) -> Result<bool> {
+        if self.sent.paint == Some(Paint::White(kelvin)) {
+            return Ok(false);
+        }
         self.space().await?;
         self.device().color_temp(kelvin).await?;
         self.mark();
-        self.sent.white_temp = Some(kelvin);
+        self.sent.paint = Some(Paint::White(kelvin));
         self.counts.frames_sent += 1;
-        Ok(())
+        Ok(true)
     }
 
     /// Power the device on.
@@ -199,10 +206,9 @@ impl Feeder {
             self.arm().await?;
             return self.zones(&look.zones).await;
         };
-        if self.sent.white_temp == Some(kelvin) {
+        if !self.white(kelvin).await? {
             return Ok(false);
         }
-        self.white(kelvin).await?;
         if self.stream.is_some() {
             self.space().await?;
             self.close().await;
@@ -264,15 +270,23 @@ impl Feeder {
     /// The wait comes before the paint, not before the pass: a look that
     /// repeats the zones writes nothing, so a static look waits not at all.
     async fn zones(&mut self, zones: &[[u8; 3]]) -> Result<bool> {
-        if self.stream.is_none() || self.sent.zones == zones {
+        if self.stream.is_none()
+            || matches!(&self.sent.paint, Some(Paint::Zones(sent)) if sent == zones)
+        {
             return Ok(false);
         }
         self.space().await?;
         if let Some(stream) = &self.stream {
             stream.set_all(zones)?;
         }
-        self.sent.zones.clear();
-        self.sent.zones.extend_from_slice(zones);
+        // The buffer of the last zones is kept, so a repaint allocates nothing.
+        match &mut self.sent.paint {
+            Some(Paint::Zones(sent)) => {
+                sent.clear();
+                sent.extend_from_slice(zones);
+            }
+            paint => *paint = Some(Paint::Zones(zones.to_vec())),
+        }
         Ok(true)
     }
 }
