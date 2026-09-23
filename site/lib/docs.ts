@@ -4,7 +4,6 @@
 import { escapeAttr, escapeHtml } from "./html.ts";
 import type { TocEntry } from "./types.ts";
 
-/** An entry of the documentation menu, as the menu reads it. */
 type NavLink = { url: string; title: string };
 
 interface Shell {
@@ -26,8 +25,12 @@ interface Shell {
  */
 export function docShell({ base, nav, current, toc, body, klass = "", collapse = false }: Shell): string {
   return `<div class="doc-grid">
-      ${docSelect(base, nav, current, toc, collapse)}
-      ${sideNav(base, nav, current)}
+      ${menus({
+        here: nav.find((item) => item.url === current)?.title ?? "Contents",
+        label: "Documentation",
+        select: selectItems(base, nav, current, toc, collapse),
+        side: nav.map((item) => navItem(base, item, current)).join("\n          "),
+      })}
       <article class="prose${klass ? ` ${klass}` : ""}">
         ${body}
         ${pager(base, nav, current)}
@@ -60,12 +63,10 @@ function pagerLink(base: string, item: NavLink | undefined, klass: "prev" | "nex
   return `<a class="${prev ? "btn ghost" : "btn"} pager-link ${klass}" rel="${klass}" href="${base}${item.url}">${prev ? icon + text : text + icon}</a>`;
 }
 
-// The two menus as one control, for a screen too narrow to carry a column on
-// each side. The headings of the current page nest under it, so the "On this
-// page" menu stays where a reader looks for it.
-function docSelect(base: string, nav: NavLink[], current: string, toc: TocEntry[], collapse: boolean): string {
-  const here = nav.find((item) => item.url === current);
-  const items = nav
+// The headings of the current page nest under its entry of the narrow menu,
+// so the "On this page" menu stays where a reader looks for it.
+function selectItems(base: string, nav: NavLink[], current: string, toc: TocEntry[], collapse: boolean): string {
+  return nav
     .map((item) => {
       if (item.url !== current) return navItem(base, item, current);
       const inner = toc.length > 0
@@ -74,23 +75,36 @@ function docSelect(base: string, nav: NavLink[], current: string, toc: TocEntry[
       return navItem(base, item, current, inner, "on");
     })
     .join("\n          ");
-  return `<details class="doc-select" data-doc-select>
-        <summary>
-          <span class="doc-select-here">${escapeHtml(here?.title ?? "Contents")}</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg>
-        </summary>
-        <ul>
-          ${items}
-        </ul>
-      </details>`;
 }
 
-function sideNav(base: string, nav: NavLink[], current: string): string {
-  const links = nav.map((item) => navItem(base, item, current)).join("\n          ");
-  return `<nav class="doc-nav" aria-label="Documentation">
-        <p class="eyebrow">Documentation</p>
+interface Menus {
+  here: string;
+  label: string;
+  select: string;
+  side: string;
+  spy?: boolean;
+}
+
+/**
+ * The side menu, and the same entries as one control for a screen too narrow
+ * to carry a column on each side. `here` names the narrow control, `select`
+ * and `side` hold the `<li>` entries of each. `spy` marks the side entry the
+ * reader is on, for a menu of in-page anchors.
+ */
+export function menus({ here, label, select, side, spy = false }: Menus): string {
+  return `<details class="doc-select" data-doc-select>
+        <summary>
+          <span class="doc-select-here">${escapeHtml(here)}</span>
+          ${CHEVRON}
+        </summary>
         <ul>
-          ${links}
+          ${select}
+        </ul>
+      </details>
+      <nav class="doc-nav" aria-label="${escapeAttr(label)}"${spy ? " data-spy" : ""}>
+        <p class="eyebrow">${escapeHtml(label)}</p>
+        <ul>
+          ${side}
         </ul>
       </nav>`;
 }
@@ -118,7 +132,7 @@ function pageToc(entries: TocEntry[], collapse: boolean): string {
       </aside>`;
 }
 
-/** The chevron a folded group carries. `details[open]` turns it. */
+/** The chevron a folded control carries. `details[open]` turns it. */
 const CHEVRON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg>`;
 
 /**

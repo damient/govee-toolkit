@@ -26,7 +26,12 @@ export interface Doc {
   order: number;
   headings: Heading[];
   html: string;
-  sections: { title: string; answer: string }[];
+}
+
+/** One `##` section of a page: the heading, and the text under it as plain text. */
+export interface Section {
+  title: string;
+  answer: string;
 }
 
 /** Every documentation page, in menu order. */
@@ -93,13 +98,12 @@ function renderDoc(file: string, raw: string): Doc {
     order: Number(meta.order ?? 99),
     headings,
     html,
-    sections: sections(html, headings),
   };
 }
 
 // The heading is the question, so the answer must not repeat it: the cut
 // starts after the `</h2>`.
-function sections(html: string, headings: Heading[]): Doc["sections"] {
+export function sections({ html, headings }: Doc): Section[] {
   const parts = html.split(/<h2 id="[^"]*">/u).slice(1);
   return headings.map((heading, index) => {
     const part = parts[index] ?? "";
