@@ -13,9 +13,13 @@ releases apart and keeps
 
 - `capabilities.segments.groups` gives a device whose every zone is one LED a
   coarse `segment` table.
-- `profile::Spread` and `Profile::spread()` — one colour per LED from one
+- `codec::Spread` and `Profile::spread()` — one colour per LED from one
   colour per coarse zone. Groups are contiguous runs, within one LED of each
   other.
+- `Resolution::Groups` (`"groups"`) — one zone per `segments.groups`. A mask
+  names the groups, and a whole frame carries one colour per LED.
+- A `Resolution::Groups` stream takes its measured rate from the LEDs its
+  frame states, not from the group count.
 - `capabilities.segments.groups` is refused where it counts nothing, outnumbers
   the LEDs, or has no `native_pixels` to group.
 - `describe --json` carries `segments.groups`.
@@ -26,6 +30,8 @@ releases apart and keeps
   personality. Colors and zones start at offset 4.
 - **Breaking:** `segment` and `pixel` take 3 + 3 × zones channels, so one
   universe holds 169 zones.
+- **Breaking:** `stream::Resolution` gains `Groups`. An exhaustive `match` on
+  it needs an arm for the new variant.
 
 ## [0.11.0] — 2026-09-21
 

@@ -4,10 +4,10 @@
 //! in, since neither name lives here. See `devices/schema.yaml`.
 
 use crate::codec::frame::Token;
-use crate::codec::{ArgRole, ArgSpec, Command, Device, Mode, Role};
+use crate::codec::{ArgRole, ArgSpec, Command, Device, Mode, Role, Spread};
 use crate::error::{Error, Result};
-use crate::stream::reach::ceiling;
-use crate::stream::{Resolution, StreamOptions};
+use crate::stream::StreamOptions;
+use crate::stream::zones::zone_count;
 
 /// How the device file paints zones over the chosen mode.
 #[derive(Debug, Clone)]
@@ -64,7 +64,20 @@ pub(crate) struct Plan {
     /// frame of its own, and the value to send.
     pub(crate) gradient: Option<(Enable, i64)>,
     pub(crate) painter: Painter,
+    /// What the caller paints.
     pub(crate) zones: usize,
+    /// How the zones cover the LEDs, where the frame states one color per LED
+    /// and not one per zone.
+    pub(crate) spread: Option<Spread>,
+}
+
+impl Plan {
+    /// How many colors one frame states.
+    pub(crate) fn width(&self) -> usize {
+        self.spread.map_or(self.zones, |spread| {
+            usize::try_from(spread.pixels()).unwrap_or(usize::MAX)
+        })
+    }
 }
 
 /// Everything the device file has to say about a stream over `mode`.
@@ -91,7 +104,7 @@ pub(crate) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Resu
         )),
         None => None,
     };
-    let zones = zone_count(device, mode, &painter, options.resolution)?;
+    let (zones, spread) = zone_count(device, mode, &painter, options.resolution)?;
     // A mode that can carry the setting nowhere fails rather than paint
     // hard-edged zones under a caller that asked for interpolation.
     if options.gradient && gradient.is_none() && !carries_gradient(&painter) {
@@ -106,6 +119,7 @@ pub(crate) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Resu
         gradient,
         painter,
         zones,
+        spread,
     })
 }
 
@@ -204,73 +218,13 @@ fn arg_named<'a>(device: &'a Device, mode: Mode, command: &str, role: ArgRole) -
         })
 }
 
-/// The zone count the stream carries.
-///
-/// Where the mode paints fewer zones than the device file states, `App` falls
-/// to what the mode carries. A count the caller picked, and `Native`, are
-/// refused instead.
-///
-/// Zero means nobody recorded the count. A stream armed on it would send
-/// frames the codec refuses, and nothing reads that refusal.
-fn zone_count(
-    device: &Device,
-    mode: Mode,
-    painter: &Painter,
-    resolution: Resolution,
-) -> Result<usize> {
-    if let (Painter::Masked { .. }, Resolution::Native) = (painter, resolution) {
-        return Err(Error::NativeZonesUnreachable {
-            sku: device.sku.clone(),
-            mode,
-        });
-    }
-    let count = match resolution {
-        Resolution::App => device.capabilities.segment_count().unwrap_or(0),
-        Resolution::Native => device.capabilities.native_pixels().unwrap_or(0),
-        Resolution::Exact(n) => u32::from(n),
-    };
-    if count == 0 {
-        return Err(Error::ZoneCountUnknown {
-            sku: device.sku.clone(),
-        });
-    }
-    // Only a count the caller picked. `App` and `Native` are counts the device
-    // file states, and the file is what says the unit renders them.
-    if let Resolution::Exact(_) = resolution
-        && let Some(rendered) = device.measurements.renders_as(count)
-        && rendered != count
-    {
-        return Err(Error::ResolutionNotDistinct {
-            sku: device.sku.clone(),
-            zones: usize::try_from(count).unwrap_or(usize::MAX),
-            rendered,
-            changepoints: device.measurements.resolution_changepoints.clone(),
-        });
-    }
-    let count = usize::try_from(count).unwrap_or(usize::MAX);
-    let Some(limit) = ceiling(device, mode, painter) else {
-        return Ok(count);
-    };
-    if count <= limit {
-        return Ok(count);
-    }
-    if let Resolution::App = resolution {
-        return Ok(limit);
-    }
-    Err(Error::ZoneCountUnsupported {
-        sku: device.sku.clone(),
-        mode,
-        zones: count,
-        limit,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used)]
 
     use super::*;
     use crate::codec::Catalog;
+    use crate::stream::Resolution;
 
     const MASKED: &str = include_str!("../../tests/fixtures/masked-zones.yaml");
 
@@ -297,21 +251,6 @@ mod tests {
         assert_eq!(plan.zones, 15);
         assert!(matches!(plan.painter, Painter::Masked { .. }));
         assert_eq!(plan.painter.command(), "paint");
-    }
-
-    #[test]
-    fn native_resolution_is_refused_rather_than_masked() {
-        // 42 pixels behind 15 zones: a mask names zones, and the firmware drops
-        // the bits past the last one in silence.
-        let error = planned(Resolution::Native).expect_err("a mask reaches no pixel");
-        assert_eq!(error.code(), "native_zones_unreachable");
-    }
-
-    #[test]
-    fn more_zones_than_the_mask_names_are_refused() {
-        let error = planned(Resolution::Exact(20)).expect_err("the mask names 15");
-        assert_eq!(error.code(), "zone_count_unsupported");
-        assert_eq!(planned(Resolution::Exact(15)).unwrap().zones, 15);
     }
 
     /// The same file with the mask bounded by nothing: no `count:` on the zone

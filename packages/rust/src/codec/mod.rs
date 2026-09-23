@@ -39,6 +39,7 @@ pub mod exchange;
 pub mod frame;
 pub mod measurements;
 pub mod reply;
+pub mod spread;
 pub mod validate;
 pub mod white;
 
@@ -59,6 +60,7 @@ pub use exchange::{Exchange, Exchanges, Step};
 pub use frame::Frame;
 pub use measurements::{Ble as BleMeasurements, FrameRate, FrameRates, Measurements};
 pub use reply::Captured;
+pub use spread::Spread;
 
 include!(concat!(env!("OUT_DIR"), "/devices.rs"));
 

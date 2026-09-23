@@ -13,7 +13,8 @@
 //! it, so a repaint costs one write per distinct color. That is what `ble`
 //! offers, and no per-pixel channel sits behind it: [`Resolution::Native`] is
 //! refused there, since the firmware drops the high bits of such a mask in
-//! silence.
+//! silence. [`Resolution::Groups`] opens on either: the mask names the groups,
+//! and a whole frame carries one color per LED.
 //!
 //! A unit can answer no status while the channel is armed
 //! (`docs/protocol/lan.md` 2.3). The SDK therefore verifies no command it
@@ -58,6 +59,7 @@ mod rate;
 mod reach;
 pub(crate) mod resolve;
 mod sender;
+mod zones;
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -112,11 +114,12 @@ impl SegmentStream {
         let plan = plan(device, mode, &options)?;
         let zones = plan.zones;
         let settle = device.measurements.arm_settle();
+        // The frame and not the caller's zone count sets the rate.
         let hz = rate_hz(
             device,
             &sku,
             mode,
-            zones,
+            plan.width(),
             options.rate,
             govee.config().stream.fallback_hz,
         );
@@ -133,6 +136,7 @@ impl SegmentStream {
             enable: plan.enable,
             gradient: plan.gradient,
             painter: plan.painter,
+            spread: plan.spread,
             hz,
             zones,
             colors: Mutex::new(vec![[0, 0, 0]; zones]),

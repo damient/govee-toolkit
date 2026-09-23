@@ -185,8 +185,9 @@ pub enum Error {
 
     /// A stream was asked for native resolution over a mode that paints by
     /// zone mask. No per-pixel channel sits behind such a mode: ask for
-    /// [`Resolution::App`](crate::stream::Resolution::App) or an explicit
-    /// count.
+    /// [`Resolution::App`](crate::stream::Resolution::App),
+    /// [`Resolution::Groups`](crate::stream::Resolution::Groups) or an
+    /// explicit count.
     #[error("{sku}: mode `{mode}` paints zones by mask and cannot reach native resolution")]
     NativeZonesUnreachable {
         /// The SKU asked for.

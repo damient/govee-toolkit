@@ -144,7 +144,7 @@ pub fn device(device: &Device) -> Vec<Problem> {
     problems
 }
 
-/// What `capabilities.segments.groups` must agree with: the bridge paints each
+/// What `capabilities.segments.groups` must agree with: a stream paints each
 /// group over its own run of LEDs, so it needs a measured LED count to paint.
 fn groups(device: &Device) -> Vec<Problem> {
     let Some(groups) = device.capabilities.segment_groups() else {

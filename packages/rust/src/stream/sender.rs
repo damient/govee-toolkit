@@ -11,7 +11,7 @@ use std::time::Duration;
 use tokio::sync::Notify;
 use tokio::time::MissedTickBehavior;
 
-use crate::codec::{Args, Encoded, Mode};
+use crate::codec::{Args, Encoded, Mode, Spread};
 use crate::error::{Error, Result};
 use crate::govee::{ArmedGuard, Govee};
 use crate::stream::paint;
@@ -39,9 +39,12 @@ pub(crate) struct Shared {
     /// How the device file paints zones over this mode, and the arguments it
     /// names for it.
     pub(crate) painter: Painter,
+    /// How the zones cover the LEDs, where the frame states one color per LED.
+    /// Applied on the emitting task, so no write pays for it.
+    pub(crate) spread: Option<Spread>,
     pub(crate) hz: f64,
-    /// Fixed when the stream opens: the firmware reads the count off the frame
-    /// and re-groups the LEDs around it.
+    /// What the caller paints. Fixed when the stream opens: the firmware reads
+    /// the count off the frame and re-groups the LEDs around it.
     pub(crate) zones: usize,
     pub(crate) colors: Mutex<Vec<[u8; 3]>>,
     /// Bumped by every write.
@@ -154,6 +157,10 @@ async fn emit(shared: &Shared) {
 /// Every frame one repaint takes, all encoded before any goes out: a repaint
 /// the codec refuses leaves the previous picture, not half of the new one.
 fn encode_repaint(shared: &Shared, colors: Vec<[u8; 3]>) -> Result<Vec<Encoded>> {
+    let colors = match shared.spread {
+        Some(spread) => spread.apply(&colors),
+        None => colors,
+    };
     paint::frames(&shared.painter, colors)?
         .iter()
         .map(|args| encode(shared, shared.painter.command(), args))

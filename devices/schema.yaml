@@ -53,8 +53,10 @@ capabilities:
   # Declare it where the model reaches a view coarser than one zone per LED,
   # and say in a comment which mode reaches that count. The host paints each
   # group over its own run of LEDs, so the boundaries are the host's: they need
-  # not fall where another mode renders them. The DMX bridge lays out this many
-  # zones — see ../docs/dmx.md 1.2.
+  # not fall where another mode renders them. A stream at the `groups`
+  # resolution carries this many zones: a mask names them as they are, and a
+  # frame that states every zone carries one colour per LED. The DMX bridge
+  # lays out this many zones — see ../docs/dmx.md 1.2.
 
 modes:
   # Which modes the hardware SUPPORTS. The user enables supported modes per
