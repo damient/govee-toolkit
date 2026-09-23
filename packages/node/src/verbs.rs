@@ -141,7 +141,9 @@ impl DeviceHandle {
         )]
         colors: conv::Channels<'_>,
         zones: Option<Vec<u16>>,
-        #[napi(ts_arg_type = "number | 'app' | 'native'")] resolution: Option<Unknown<'_>>,
+        #[napi(ts_arg_type = "number | 'app' | 'native' | 'groups'")] resolution: Option<
+            Unknown<'_>,
+        >,
         gradient: Option<bool>,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let colors = conv::colors(env, &colors)?;

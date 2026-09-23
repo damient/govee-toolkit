@@ -4,6 +4,11 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `segment()` and `openStream()` take `resolution: 'groups'`: one zone per
+  `capabilities.segments.groups`, over a mask or over every LED.
+
 ## [0.2.0] — 2026-09-21
 
 ### Added

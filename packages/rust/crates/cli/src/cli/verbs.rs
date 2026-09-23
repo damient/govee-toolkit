@@ -69,8 +69,8 @@ pub(crate) enum Verb {
         /// one color.
         #[arg(long, value_name = "LIST")]
         zones: Option<String>,
-        /// How many zones the frame states: `app`, `native`, or a count. A
-        /// count the unit renders as a smaller one is refused.
+        /// How many zones the frame states: `app`, `native`, `groups`, or a
+        /// count. A count the unit renders as a smaller one is refused.
         #[arg(long, default_value_t = Resolution::default().to_string(), value_name = "RESOLUTION")]
         resolution: String,
         /// One `#RRGGBB` for every zone, or one per zone, comma-separated.

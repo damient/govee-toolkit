@@ -71,7 +71,7 @@ test("a paint is three bytes for every zone", () =>
 test("a paint that is no whole number of colors is refused", () =>
   onHandle((handle) => refusesValue(() => handle.segment(new Uint8Array([255, 0, 0, 0])))));
 
-for (const resolution of ["app", "native", 12]) {
+for (const resolution of ["app", "native", "groups", 12]) {
   test(`a resolution is a name or a zone count: ${resolution}`, () =>
     onHandle((handle) => refusesUnknown(() => handle.openStream(resolution))));
 }

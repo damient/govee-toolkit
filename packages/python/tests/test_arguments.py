@@ -55,7 +55,7 @@ async def test_a_color_reaches_the_send_path(handle):
     await refuses_unknown(handle.color, (255, 0, 0))
 
 
-@pytest.mark.parametrize("resolution", ["app", "native", 12])
+@pytest.mark.parametrize("resolution", ["app", "native", "groups", 12])
 async def test_a_resolution_is_a_name_or_a_zone_count(handle, resolution):
     await refuses_unknown(handle.open_stream, resolution=resolution)
 

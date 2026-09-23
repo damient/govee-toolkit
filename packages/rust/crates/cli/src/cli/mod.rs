@@ -151,8 +151,8 @@ pub(crate) enum Command {
     Stream {
         /// The device identity.
         device: String,
-        /// How many zones every frame states: `app`, `native`, or a count. A
-        /// count the unit renders as a smaller one is refused.
+        /// How many zones every frame states: `app`, `native`, `groups`, or a
+        /// count. A count the unit renders as a smaller one is refused.
         #[arg(long, default_value_t = Resolution::default().to_string(), value_name = "RESOLUTION")]
         resolution: String,
         /// Frames per second. The measured rate for this unit when absent.
