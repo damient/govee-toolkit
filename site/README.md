@@ -156,9 +156,10 @@ The links are `Home`, `Docs`, `Devices` and `FAQ`. The install page and the refe
 page both sit inside the documentation, so the top bar marks `Docs` while a
 reader is on either one.
 
-The theme follows the system setting. The button switches away from it, and
-the choice goes into `sessionStorage`: it follows the reader from page to page
-and ends with the tab. The next visit starts from the system setting again.
+The site starts in the dark theme and ignores the system setting. The button
+switches to the light theme, and the choice goes into `sessionStorage`: it
+follows the reader from page to page and ends with the tab. The next visit
+starts dark again.
 
 Under 820 px the links fold into a panel that opens from a button on the
 right, and the theme control moves into that panel. Every rule of the folded
