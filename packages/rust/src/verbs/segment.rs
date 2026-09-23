@@ -37,7 +37,8 @@ impl DeviceHandle<'_> {
     /// Paint zones.
     ///
     /// A color per zone needs `role: segment_color`, and reaches one LED at a
-    /// time under [`Resolution::Native`]. A zone list needs
+    /// time under [`Resolution::Native`]. Under [`Resolution::Groups`] it
+    /// paints each group over its own run of LEDs. A zone list needs
     /// `role: segment_color_masked`. "Every zone" is the bound of the mask
     /// where the frame names its zones, and the count [`Paint::resolution`]
     /// resolves where one frame states them all.
@@ -73,6 +74,10 @@ impl DeviceHandle<'_> {
             },
         )?;
         let colors = colors(sku, &plan, paint.colors)?;
+        let colors = match plan.spread {
+            Some(spread) => spread.apply(&colors),
+            None => colors,
+        };
 
         self.arm(mode, sku, device).await?;
         if let Some((entry, value)) = &plan.gradient {

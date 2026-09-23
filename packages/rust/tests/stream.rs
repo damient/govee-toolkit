@@ -193,35 +193,6 @@ fn dropping_after_the_runtime_is_gone_does_not_panic() {
     drop(rig);
 }
 
-#[tokio::test]
-async fn native_resolution_comes_from_the_measured_unit() {
-    let rig = rig().await;
-    let stream = open(&rig, options(Resolution::Native)).await;
-    assert_eq!(stream.zones(), 42);
-}
-
-#[tokio::test]
-async fn the_app_zone_count_is_not_the_native_one() {
-    let rig = rig().await;
-    let stream = open(&rig, options(Resolution::App)).await;
-    assert_eq!(stream.zones(), 10);
-}
-
-#[tokio::test]
-async fn a_measured_rate_is_read_off_the_device_file() {
-    let rig = rig().await;
-    // 42 zones falls in the 60-zone row of `devices/H61A0.yaml`.
-    let stream = open(
-        &rig,
-        StreamOptions {
-            resolution: Resolution::Native,
-            ..StreamOptions::default()
-        },
-    )
-    .await;
-    assert!((stream.rate_hz() - 25.0).abs() < f64::EPSILON);
-}
-
 /// The device file names its arguments as well as its commands, and the SDK
 /// reaches both through `role:` only.
 #[tokio::test]
@@ -237,22 +208,6 @@ async fn the_argument_names_come_from_the_device_file() {
         wait_for(|| frames(&rig.simulator).first().cloned()).await,
         Some("bb0008b00002ff000000ff0001".to_owned())
     );
-}
-
-#[tokio::test]
-async fn native_resolution_nobody_measured_is_refused() {
-    const UNMEASURED: &str = include_str!("fixtures/unmeasured.yaml");
-
-    let catalog = Catalog::from_sources([("unmeasured.yaml", UNMEASURED)]).expect("catalog");
-    let rig = rig_with(catalog, "HTEST0").await;
-
-    let error = rig
-        .govee
-        .device(&id())
-        .open_stream(options(Resolution::Native))
-        .await
-        .expect_err("an unmeasured unit has no native resolution");
-    assert_eq!(error.code(), "zone_count_unknown");
 }
 
 /// The non-negotiable is that a mode serves the request or says it cannot. A

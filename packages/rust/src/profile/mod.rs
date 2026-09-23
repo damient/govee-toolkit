@@ -13,7 +13,6 @@ mod channel;
 mod reach;
 pub mod report;
 mod scale;
-mod spread;
 #[cfg(test)]
 mod tests;
 
@@ -21,10 +20,10 @@ use std::fmt;
 
 pub use channel::{Channel, Component, MODE_IDLE_TOP, MODE_RESEND, Slot};
 pub use scale::{OFF, Scale, Zero};
-pub use spread::Spread;
 use thiserror::Error;
 
 use self::reach::{BRIGHTNESS, COLOR, COLORTEMP, POWER, SEGMENTS, bounds, reaches};
+pub use crate::codec::Spread;
 use crate::codec::{ArgRole, Device, Role};
 
 /// How many channels one universe holds.

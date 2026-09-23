@@ -28,6 +28,12 @@ pub enum Resolution {
     /// Every addressable LED, from `capabilities.segments.native_pixels`.
     /// Fails when nobody measured it, and on a mode that paints by zone mask.
     Native,
+    /// One zone per group, from `capabilities.segments.groups`. A mode that
+    /// paints by mask names the groups as its zones. A mode that states every
+    /// zone in one frame carries `native_pixels`, and the stream paints each
+    /// group over its own run of LEDs. Fails where the file declares no
+    /// groups, or where such a mode reaches no measured LED count.
+    Groups,
     /// A count the caller picks. A count the unit renders as a smaller one
     /// fails with
     /// [`Error::ResolutionNotDistinct`](crate::Error::ResolutionNotDistinct)
@@ -40,6 +46,7 @@ impl fmt::Display for Resolution {
         match self {
             Self::App => f.write_str("app"),
             Self::Native => f.write_str("native"),
+            Self::Groups => f.write_str("groups"),
             Self::Exact(zones) => write!(f, "{zones}"),
         }
     }
@@ -50,19 +57,20 @@ impl FromStr for Resolution {
 
     /// # Errors
     ///
-    /// [`ParseError`] where the text is neither `app`, nor `native`, nor a
+    /// [`ParseError`] where the text is not `app`, `native`, `groups`, or a
     /// zone count from 0 to 65535.
     fn from_str(text: &str) -> Result<Self, Self::Err> {
         match text {
             "app" => Ok(Self::App),
             "native" => Ok(Self::Native),
+            "groups" => Ok(Self::Groups),
             other => other
                 .parse::<u16>()
                 .map(Self::Exact)
                 .map_err(|_| ParseError {
                     value: other.to_owned(),
                     subject: "a resolution",
-                    expected: "`app`, `native`, or a zone count",
+                    expected: "`app`, `native`, `groups`, or a zone count",
                 }),
         }
     }
@@ -134,6 +142,7 @@ mod tests {
     fn a_resolution_reads_by_name_or_by_count() {
         assert_eq!("app".parse(), Ok(Resolution::App));
         assert_eq!("native".parse(), Ok(Resolution::Native));
+        assert_eq!("groups".parse(), Ok(Resolution::Groups));
         assert_eq!("30".parse(), Ok(Resolution::Exact(30)));
         assert!("many".parse::<Resolution>().is_err());
     }
@@ -147,7 +156,12 @@ mod tests {
 
     #[test]
     fn what_a_name_prints_reads_back() {
-        for resolution in [Resolution::App, Resolution::Native, Resolution::Exact(30)] {
+        for resolution in [
+            Resolution::App,
+            Resolution::Native,
+            Resolution::Groups,
+            Resolution::Exact(30),
+        ] {
             assert_eq!(resolution.to_string().parse(), Ok(resolution));
         }
         for rate in [Rate::Measured, Rate::Fixed(24.5)] {
@@ -160,7 +174,7 @@ mod tests {
         let failure = "many".parse::<Resolution>().err().map(|e| e.to_string());
         assert_eq!(
             failure.as_deref(),
-            Some("`many` is not a resolution; write `app`, `native`, or a zone count")
+            Some("`many` is not a resolution; write `app`, `native`, `groups`, or a zone count")
         );
     }
 }

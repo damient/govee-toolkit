@@ -1,10 +1,10 @@
 //! How one coarse zone covers the addressable LEDs behind it.
 //!
 //! A device file that declares `capabilities.segments.groups` states a zone
-//! count under its LED count. The bridge lays out that many DMX zones and
-//! paints each one over its own run of LEDs, so the rendering does not depend
-//! on how the firmware groups the LEDs for a smaller frame. See `docs/dmx.md`
-//! 1.2.
+//! count under its LED count. A stream opened at
+//! `Resolution::Groups` over a whole-frame command paints each group over its
+//! own run of LEDs, so the rendering does not depend on how the firmware
+//! groups the LEDs for a smaller frame. See `docs/dmx.md` 1.2.
 
 use crate::codec::capabilities::groups_fit;
 
@@ -29,6 +29,12 @@ impl Spread {
             return None;
         }
         Some(Self { groups, pixels })
+    }
+
+    /// How many LEDs the groups cover: the colors [`Spread::apply`] answers.
+    #[must_use]
+    pub const fn pixels(self) -> u32 {
+        self.pixels
     }
 
     /// One colour per LED, from one colour per group.
