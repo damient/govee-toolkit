@@ -3,6 +3,7 @@
 import { DESCRIPTION, SITE_URL, base, repoUrl } from "./config.ts";
 import { escapeHtml, filled } from "./html.ts";
 import type { Crumb, Device } from "./types.ts";
+import type { Section } from "./content.ts";
 
 /** One JSON-LD object. */
 type LinkedData = Record<string, unknown>;
@@ -71,11 +72,11 @@ export function deviceData(
 }
 
 /** The FAQ page: one question per `##` heading. */
-export function faqData(doc: { sections: { title: string; answer: string }[] }): LinkedData {
+export function faqData(sections: Section[]): LinkedData {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: doc.sections.map((section) => ({
+    mainEntity: sections.map((section) => ({
       "@type": "Question",
       name: section.title,
       acceptedAnswer: { "@type": "Answer", text: section.answer },
