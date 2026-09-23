@@ -101,6 +101,13 @@ impl Capabilities {
     }
 }
 
+/// Whether `groups` lays out over `pixels`: at least one group, and no more
+/// groups than LEDs.
+#[must_use]
+pub(crate) const fn groups_fit(groups: u32, pixels: u32) -> bool {
+    groups > 0 && groups <= pixels
+}
+
 impl<'de> Deserialize<'de> for Capabilities {
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
         // `power:` with nothing after it is a capability with no parameters,
