@@ -21,7 +21,6 @@ function pages(devices: Device[]): Map<string, string> {
   return map;
 }
 
-// One option per category, with its model count, in name order.
 function categories(models: LanList["models"]): string {
   const counts = new Map<string, number>();
   for (const m of models) counts.set(m.category, (counts.get(m.category) ?? 0) + 1);

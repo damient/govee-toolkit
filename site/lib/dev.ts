@@ -34,14 +34,12 @@ export function watchSources(rebuild: (change: Change) => Promise<void>): void {
   }
   // The directory and not the file: `xtask` replaces the file, and a watch on
   // the file ends with the file it watched.
-  const catalog = basename(catalogPath);
-  watch(dirname(catalogPath), (_, file) => {
-    if (file === catalog) touch(catalog);
-  });
-  const lan = basename(lanListPath);
-  watch(dirname(lanListPath), (_, file) => {
-    if (file === lan) touch(lan);
-  });
+  for (const path of [catalogPath, lanListPath]) {
+    const name = basename(path);
+    watch(dirname(path), (_, file) => {
+      if (file === name) touch(name);
+    });
+  }
   console.log("watching src/, content/, the catalog and the LAN list …");
 }
 

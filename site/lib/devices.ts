@@ -105,7 +105,7 @@ function row(d: Device): string {
   const cells = MODES.map((m) => `<td>${modeCell(d, m)}</td>`).join("")
     + `<td>${dmxCell(d)}</td>`;
   const names = [d.sku, d.name, ...(d.aliases ?? [])].join(" ").toLowerCase();
-  return `          <tr data-search="${escapeAttr(names)}">
+  return `          <tr class="has-page" data-search="${escapeAttr(names)}">
             <th scope="row"><a href="{{base}}devices/${escapeAttr(d.sku)}/">${escapeHtml(d.sku)}</a></th>
             <td class="shape">${familyIcon(d.family)}</td>
             <td>${escapeHtml(d.name)}</td>${cells}
@@ -131,8 +131,10 @@ export function devicePage(d: Device, reference: Reference) {
 // model and no other, as the copy of the site does.
 const PATHS: Record<Mode, string> = { lan: "Wi-Fi", ble: "Bluetooth", cloud: "the cloud" };
 
+const reached = (d: Device): Mode[] => MODES.filter((m) => REACHES.has(support(d, m)));
+
 function describe(d: Device): string {
-  const paths = MODES.filter((m) => REACHES.has(support(d, m))).map((m) => PATHS[m]);
+  const paths = reached(d).map((m) => PATHS[m]);
   const head = `the Govee ${d.sku} (${d.name})`;
   const what = paths.length > 0
     ? `Control ${head} from your own computer, over ${joined(paths)}${hasDmx(d) ? ", and from a DMX desk" : ""}.`
@@ -152,9 +154,7 @@ function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {
   <div class="shell">
     ${crumbs(trail)}
     <h1>${title}</h1>
-    <p class="mode-line">${familyBadge(d.family)}${MODES.filter((m) => REACHES.has(support(d, m)))
-      .map((m) => modeBadge(m))
-      .join("")}${hasDmx(d) ? dmxBadge() : ""}${badges(d)}</p>
+    <p class="mode-line">${familyBadge(d.family)}${reached(d).map((m) => modeBadge(m)).join("")}${hasDmx(d) ? dmxBadge() : ""}${badges(d)}</p>
   </div>
 </section>
 
@@ -215,7 +215,6 @@ function counts(key: string, value: Capability | null, device: Device): string {
     ? `<span class="badge-count"><span aria-hidden="true">|</span> ${parts.join(" · ")}</span>`
     : "";
 }
-
 
 // Every mode holds a row, and one that reaches nothing answers in words.
 function modeCaps(d: Device, mode: Mode): string {
