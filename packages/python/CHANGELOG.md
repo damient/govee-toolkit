@@ -4,6 +4,8 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.4.0] — 2026-09-23
+
 ### Added
 
 - `segment()` and `open_stream()` take `resolution="groups"`: one zone per

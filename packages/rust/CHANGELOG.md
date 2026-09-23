@@ -7,17 +7,17 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
-## [0.12.0] — 2026-09-22
+## [0.12.0] — 2026-09-23
 
 ### Added
 
 - `capabilities.segments.groups` gives a device whose every zone is one LED a
   coarse `segment` table.
-- `codec::Spread` and `Profile::spread()` — one colour per LED from one
-  colour per coarse zone. Groups are contiguous runs, within one LED of each
+- `codec::Spread` and `Profile::spread()` — one color per LED from one
+  color per coarse zone. Groups are contiguous runs, within one LED of each
   other.
 - `Resolution::Groups` (`"groups"`) — one zone per `segments.groups`. A mask
-  names the groups, and a whole frame carries one colour per LED.
+  names the groups, and a whole frame carries one color per LED.
 - A `Resolution::Groups` stream takes its measured rate from the LEDs its
   frame states, not from the group count.
 - `capabilities.segments.groups` is refused where it counts nothing, outnumbers
