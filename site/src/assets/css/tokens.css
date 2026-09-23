@@ -109,18 +109,8 @@
   --radius: 14px;
 }
 
-/* Two selectors, because "the system says light" and "the reader chose light"
-   are two different questions. Both answer with the scheme and the four
-   display tokens, and nothing else. */
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    color-scheme: light;
-    --sun: block;
-    --moon: none;
-    --label-light: inline;
-    --label-dark: none;
-  }
-}
+/* The site starts dark whatever the system says. Light is the reader's
+   choice only, and it sets the scheme and the four display tokens. */
 :root[data-theme="light"] {
   color-scheme: light;
   --sun: block;
