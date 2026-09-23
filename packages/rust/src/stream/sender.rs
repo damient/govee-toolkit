@@ -124,7 +124,12 @@ async fn emit(shared: &Shared) {
             continue;
         }
 
-        let Ok(colors) = shared.colors.lock().map(|colors| colors.clone()) else {
+        // The spread reads the colors under the lock, so a spread repaint
+        // allocates once and not twice.
+        let Ok(colors) = shared.colors.lock().map(|colors| match shared.spread {
+            Some(spread) => spread.apply(&colors),
+            None => colors.clone(),
+        }) else {
             return;
         };
 
@@ -156,11 +161,9 @@ async fn emit(shared: &Shared) {
 
 /// Every frame one repaint takes, all encoded before any goes out: a repaint
 /// the codec refuses leaves the previous picture, not half of the new one.
+///
+/// `colors` states one color per LED where the stream carries a spread.
 fn encode_repaint(shared: &Shared, colors: Vec<[u8; 3]>) -> Result<Vec<Encoded>> {
-    let colors = match shared.spread {
-        Some(spread) => spread.apply(&colors),
-        None => colors,
-    };
     paint::frames(&shared.painter, colors)?
         .iter()
         .map(|args| encode(shared, shared.painter.command(), args))
