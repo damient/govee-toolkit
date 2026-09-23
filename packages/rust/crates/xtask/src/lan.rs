@@ -1,10 +1,7 @@
-//! The tables in `docs/lan-supported-devices.md`, from
-//! `docs/lan-supported-devices.json`. The site reads the same file.
+//! The tables in `docs/lan-supported-devices.md`.
 
 use serde_json::Value;
 
-/// The source, the retrieval date and the count, as the page header states
-/// them.
 pub(crate) fn source_block(list: &Value) -> String {
     format!(
         "**Source:** <{}>\n**Retrieved:** {}\n**Entries:** {}\n",
@@ -14,7 +11,6 @@ pub(crate) fn source_block(list: &Value) -> String {
     )
 }
 
-/// One row per model, sorted by SKU.
 pub(crate) fn model_table(list: &Value) -> String {
     let mut rows: Vec<&Value> = models(list).iter().collect();
     rows.sort_by_key(|model| text(model, "sku"));

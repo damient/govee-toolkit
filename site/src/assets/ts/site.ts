@@ -1,6 +1,4 @@
-// Progressive enhancement only. Every page reads and works with this file
-// blocked: the line under the top bar and the strip are decoration, and the
-// device table is in the HTML before the filter touches it.
+// Progressive enhancement only: every page works with this file blocked.
 
 import { copy } from "./copy.ts";
 import { personalities } from "./dmx.ts";

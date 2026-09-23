@@ -1,7 +1,4 @@
-// Renders the device catalog from `dist/catalog.json`, which
-// `cargo run -p xtask -- catalog` writes from `devices/*.yaml`. Nothing below
-// names a model or a command: a renderer that did would disagree with the
-// device files the day one of them changes.
+// Nothing here names a model or a command: the device files own them.
 
 import { MODES } from "./config.ts";
 import { crumbs } from "./crumbs.ts";
@@ -57,12 +54,10 @@ export function renderIndex(template: string, devices: Device[]): string {
   });
 }
 
-// One cell of the list: the capabilities the mode reaches, as icons. A mode
-// that reaches none carries its state instead.
+// A mode that reaches no capability shows its state instead.
 function modeCell(d: Device, mode: Mode): string {
   const state = support(d, mode);
-  // Two capabilities that share a mark read as one mark repeated, so the list
-  // carries one of them. The model page names both.
+  // Two capabilities that share a mark show once. The model page names both.
   const caps = [...(d.modes?.[mode]?.capabilities ?? [])]
     .filter((c) => !sharesMark(c))
     .toSorted((a, b) => order(a) - order(b));
@@ -79,8 +74,7 @@ function modeCell(d: Device, mode: Mode): string {
   return `<ul class="caps-row">${items}</ul>`;
 }
 
-// The legend reads the catalog rather than a list of its own, so a device file
-// that declares a new capability adds its row here.
+// A device file that declares a new capability adds its row to the legend.
 function capsLegend(devices: Device[]): string {
   const keys = new Set(devices.flatMap((d) => Object.keys(d.capabilities ?? {})));
   return [...keys]
@@ -90,8 +84,6 @@ function capsLegend(devices: Device[]): string {
     .join("\n        ");
 }
 
-// The DMX column answers yes or nothing: the bridge derives a channel table
-// from the device file, so a model that carries no table answers no desk.
 function hasDmx(d: Device): boolean {
   return (d.dmx?.personalities?.length ?? 0) > 0;
 }
@@ -127,8 +119,6 @@ export function devicePage(d: Device, reference: Reference) {
   };
 }
 
-// The description a search result shows. It names the paths that reach the
-// model and no other, as the copy of the site does.
 const PATHS: Record<Mode, string> = { lan: "Wi-Fi", ble: "Bluetooth", cloud: "the cloud" };
 
 const reached = (d: Device): Mode[] => MODES.filter((m) => REACHES.has(support(d, m)));
@@ -197,9 +187,7 @@ function capabilities(d: Device): string {
       <ul class="caps caps-lg">${list}</ul>`;
 }
 
-// A capability is a yes or a no, except the segments: the zone and pixel
-// counts decide what a reader can paint. Where one zone is one LED, the grid
-// carries the shape that the two equal counts do not.
+// Where one zone is one LED, the grid carries the shape that the counts do not.
 function counts(key: string, value: Capability | null, device: Device): string {
   if (key !== "segments" || !value) return "";
   const parts: string[] = [];
@@ -216,7 +204,6 @@ function counts(key: string, value: Capability | null, device: Device): string {
     : "";
 }
 
-// Every mode holds a row, and one that reaches nothing answers in words.
 function modeCaps(d: Device, mode: Mode): string {
   const caps = (d.modes?.[mode]?.capabilities ?? []).toSorted((a, b) => order(a) - order(b));
   if (caps.length > 0) {

@@ -3,8 +3,7 @@
 //! - `xtask catalog [path]` — the distributable catalog.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //! - `xtask dmx [--check]` — the tables in `docs/dmx-profiles.md`.
-//! - `xtask lan [--check]` — the tables in `docs/lan-supported-devices.md`,
-//!   from `docs/lan-supported-devices.json`.
+//! - `xtask lan [--check]` — the tables in `docs/lan-supported-devices.md`.
 //! - `xtask dupes` — command layouts two device files declare, and no shared
 //!   table carries.
 //!
@@ -115,8 +114,6 @@ fn dmx(root: &Path, check: bool) {
     );
 }
 
-/// The two blocks in `docs/lan-supported-devices.md`. The site reads the same
-/// JSON file, so the page and the site cannot disagree.
 fn lan(root: &Path, check: bool) {
     let path = root.join("docs/lan-supported-devices.json");
     let text =

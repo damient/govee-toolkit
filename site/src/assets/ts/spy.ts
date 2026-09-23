@@ -1,17 +1,10 @@
-// Marks the entry the reader is on, and keeps that link inside the menu's own
-// scroll. A folded group opens when the reader scrolls into it — see
-// `tocList()` in `lib/docs.ts`.
-//
-// A click on the menu holds that marking until the page stops moving. The
-// scroll it starts crosses every section between here and there, and the menu
-// would otherwise open each group it passes.
+// A click on the menu holds the marking until the page stops moving: the
+// scroll crosses every section between, and would open each group it passes.
 import { byId } from "./dom.ts";
 
 const SETTLED_MS = 140;
 
-// One query, so the entries stay in menu order, which is page order: a group
-// title sits before the entries of its group. The marker reads that order to
-// find the last section above the line.
+// One query keeps the menu order, which is the page order that the marker needs.
 function entries(nav: HTMLElement): { links: Map<string, HTMLElement>; targets: HTMLElement[] } {
   const links = new Map<string, HTMLElement>();
   for (const item of nav.querySelectorAll<HTMLElement>('a[href^="#"], summary[data-to]')) {
@@ -30,8 +23,7 @@ function highlight(link: HTMLElement): void {
   const group = link.closest(".sub-group");
   const title = group?.querySelector(":scope > details > summary, :scope > a");
   if (title) title.setAttribute("aria-current", "true");
-  // At the top of a group, the first entry is the section the reader is in:
-  // the title alone marks the group and no entry of it.
+  // At the top of a group, the reader is in the section of the first entry.
   if (link === title) {
     group?.querySelector("ul a")?.setAttribute("aria-current", "true");
   }
@@ -68,8 +60,6 @@ function marker(nav: HTMLElement, links: Map<string, HTMLElement>, targets: HTML
   };
 }
 
-// The menu drives the page: the marking waits for the scroll to settle, and a
-// reader who scrolls themselves takes it back at once.
 function holder(mark: () => void): { hold: () => void; holding: () => boolean } {
   let held: ReturnType<typeof setTimeout> | undefined;
   const release = () => {
@@ -88,11 +78,8 @@ function holder(mark: () => void): { hold: () => void; holding: () => boolean } 
   return { hold, holding: () => held !== undefined };
 }
 
-// A group's title goes to its section, and opens the group on the way. A
-// title that closes its group moves the page nowhere.
-//
-// The page moves on `toggle`, where the group carries its new state, and
-// `asked` is what tells a reader's click from the opening the marker does.
+// `toggle` carries the new state of the group. `asked` tells a click from an
+// opening by the marker.
 function follow(nav: HTMLElement, hold: () => void): void {
   for (const summary of nav.querySelectorAll<HTMLElement>("summary[data-to]")) {
     const group = summary.parentElement;

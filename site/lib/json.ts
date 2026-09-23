@@ -1,5 +1,4 @@
-// The JSON files the build reads. The guards check the top level only: a wrong
-// file fails here, and the renderers trust the fields below it.
+// The guards check the top level only. The renderers trust the fields below it.
 
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";

@@ -270,8 +270,6 @@ impl Feeder {
 /// How the stream opens for this fixture, and `None` where the personality
 /// carries no zone.
 fn options(fixture: &Fixture) -> Option<StreamOptions> {
-    // A table that lays out the declared groups opens one zone per group, and
-    // the stream paints each group over its own run of LEDs.
     let resolution = match (fixture.profile.personality(), fixture.profile.spread()) {
         (Personality::Full, _) => return None,
         (Personality::Pixel, _) => Resolution::Native,

@@ -1,5 +1,4 @@
-// The language tabs, shared by the reference page and the model pages. One
-// choice holds for the whole page: `src/assets/ts/tabs.ts` reads `data-langs`.
+// `src/assets/ts/tabs.ts` reads `data-langs`.
 
 import { highlight } from "./code.ts";
 import { escapeAttr, filled } from "./html.ts";

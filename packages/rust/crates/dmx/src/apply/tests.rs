@@ -120,8 +120,6 @@ fn a_segment_fixture_reads_the_zones_at_its_own_address() {
     assert_eq!(second.color, None, "a segment personality carries no color");
 }
 
-/// The white channel of a zone personality sits at offset 3, ahead of the
-/// zones, and whitens the whole device.
 #[test]
 fn a_segment_fixture_reads_the_white_ahead_of_its_zones() {
     let catalog = catalog();

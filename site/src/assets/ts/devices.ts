@@ -1,5 +1,4 @@
-// The category select ships `hidden`: without this script it filters nothing,
-// so it stays out of the page.
+// The category select ships `hidden`: without this script it filters nothing.
 export function filter(input: HTMLInputElement): void {
   const rows = [...document.querySelectorAll<HTMLTableRowElement>("[data-rows] tr")];
   const count = document.querySelector<HTMLElement>("[data-filter-count]");
@@ -31,8 +30,7 @@ export function filter(input: HTMLInputElement): void {
   apply();
 }
 
-// The link in the row header stays the target, so the keyboard and a middle
-// click reach the page through it. A row without one leads nowhere.
+// The link in the row header stays the target for the keyboard and a middle click.
 export function rowLink(body: HTMLElement): void {
   body.addEventListener("click", (event) => {
     if (!(event.target instanceof Element) || event.target.closest("a")) return;

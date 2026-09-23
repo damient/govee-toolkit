@@ -1,8 +1,4 @@
-//! The white channel of a zone personality.
-//!
-//! A white command ends the armed segment channel, so the white goes out over
-//! the armed channel and the disarm follows it. The white channel back at 0
-//! arms the channel again — see `docs/dmx.md`, "White temperature".
+//! The white channel of a zone personality — see `docs/dmx.md` 1.3.
 
 #![allow(clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
 
@@ -84,8 +80,7 @@ async fn the_white_goes_out_over_the_armed_channel_and_the_disarm_follows() {
     applier.close().await;
 }
 
-/// A white held on the desk sends nothing more, and a white that moves sends
-/// the white alone: the channel is already disarmed.
+/// The channel is already disarmed.
 #[tokio::test]
 async fn a_white_that_moves_sends_the_white_alone() {
     let simulator = simulator().await;

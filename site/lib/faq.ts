@@ -1,7 +1,4 @@
-// The FAQ page: one Markdown file, `content/faq.md`, where each `##` heading is
-// a question. It carries the `FAQPage` block. It takes the frame of a
-// documentation page, and its menu names the questions in place of the pages,
-// since it speaks to a reader who writes no code.
+// Each `##` heading of `content/faq.md` is a question, and the menu names them.
 
 import { readPage, sections } from "./content.ts";
 import { menus } from "./docs.ts";

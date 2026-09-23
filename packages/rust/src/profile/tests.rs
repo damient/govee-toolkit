@@ -28,8 +28,7 @@ fn check_offsets(sku: &str, profile: &Profile) {
     assert_eq!(offsets, expected, "{sku} `{}`", profile.personality());
 }
 
-/// A device whose zones are its addressable LEDs serves `pixel` alone, so
-/// every segmented device answers one of the two zone personalities.
+/// A device whose zones are its addressable LEDs serves `pixel` alone.
 #[test]
 fn every_segmented_device_answers_a_zone_personality() {
     for device in catalog().devices() {
@@ -53,8 +52,7 @@ fn every_segmented_device_answers_a_zone_personality() {
     }
 }
 
-/// Offsets 1 to 3 mean the same thing on every personality and every model,
-/// so a cue file carries between them.
+/// A cue file carries between models.
 #[test]
 fn the_mode_and_the_white_channel_hold_offsets_2_and_3_everywhere() {
     for device in catalog().devices() {
@@ -161,9 +159,7 @@ fn built(capabilities: &str, lan: &str) -> Catalog {
         .expect("the device file parses")
 }
 
-/// The white channel holds its place where `lan` reaches no white
-/// temperature, so the zones start at one offset on every device. It drives
-/// nothing there: a scale is what a channel needs to send a value.
+/// A channel needs a scale to send a value.
 #[test]
 fn a_device_that_reaches_no_white_keeps_the_channel_and_drives_nothing() {
     let catalog = built(RGB, "power, brightness, color");
@@ -257,8 +253,7 @@ fn one_pixel_per_zone_serves_the_pixel_personality_alone() {
     );
 }
 
-/// A declared group count gives a coarse table to a device whose every zone is
-/// one addressable LED, which would otherwise serve `pixel` alone.
+/// The device has one addressable LED per zone.
 #[test]
 fn a_declared_group_count_lays_out_a_coarse_table() {
     let capabilities =
@@ -276,7 +271,6 @@ fn a_declared_group_count_lays_out_a_coarse_table() {
     assert_eq!(spread.apply(&[[1, 0, 0]; 5]).len(), 10);
 }
 
-/// The group count wins over `count`, and `pixel` keeps every LED.
 #[test]
 fn the_group_count_decides_the_zones_and_leaves_the_pixel_table_alone() {
     let capabilities =
@@ -290,7 +284,7 @@ fn the_group_count_decides_the_zones_and_leaves_the_pixel_table_alone() {
     assert_eq!(pixel.spread(), None, "`pixel` paints one LED per triple");
 }
 
-/// A group per LED lays out the `pixel` table, and one table carries one name.
+/// One table carries one name.
 #[test]
 fn a_group_per_led_serves_the_pixel_personality_alone() {
     let capabilities =
@@ -307,8 +301,7 @@ fn a_group_per_led_serves_the_pixel_personality_alone() {
     );
 }
 
-/// Groups are painted over measured LEDs, and an unmeasured resolution is
-/// never extrapolated from the group count.
+/// An unmeasured resolution is never extrapolated from the group count.
 #[test]
 fn groups_over_no_measured_pixels_serve_no_coarse_table() {
     let capabilities = format!("{RGB}  segments:\n    count: 10\n    groups: 5\n");

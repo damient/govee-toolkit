@@ -64,8 +64,8 @@ const MENU = /<!--\s*menu:\s*(.+?)\s*-->/u;
 
 function renderDoc(file: string, raw: string): Doc {
   const { meta, body } = frontMatter(raw);
-  // The heading renderer fills this: the id it writes into the anchor is the
-  // id the table of contents links to, derived once.
+  // The heading renderer fills this, so that the anchor id and the table of
+  // contents id are one value.
   const headings: Heading[] = [];
   const md = new Marked({ async: false });
   md.use({
@@ -76,8 +76,7 @@ function renderDoc(file: string, raw: string): Doc {
       },
       heading({ depth, tokens }: Tokens.Heading) {
         if (depth !== 2) return `<h${depth}>${this.parser.parseInline(tokens)}</h${depth}>\n`;
-        // A heading that ends with inline HTML, a version chip for one, keeps
-        // that part outside the anchor: the link is the name alone.
+        // Inline HTML at the end of a heading stays outside the anchor.
         const at = tokens.findIndex((t) => t.type === "html");
         const named = at === -1 ? tokens : tokens.slice(0, at);
         const trailing = at === -1 ? "" : this.parser.parseInline(tokens.slice(at)).replace(MENU, "");
@@ -101,8 +100,7 @@ function renderDoc(file: string, raw: string): Doc {
   };
 }
 
-// The heading is the question, so the answer must not repeat it: the cut
-// starts after the `</h2>`.
+// The heading is the question: the answer starts after the `</h2>`.
 export function sections({ html, headings }: Doc): Section[] {
   const parts = html.split(/<h2 id="[^"]*">/u).slice(1);
   return headings.map((heading, index) => {
@@ -125,8 +123,6 @@ function plainText(html: string): string {
     .trim();
 }
 
-// A heading can end with inline HTML, a state badge for one. The anchor and
-// the table of contents take what stands before it.
 function headingLabel(tokens: Token[] = []): string {
   const words: string[] = [];
   for (const token of tokens) {

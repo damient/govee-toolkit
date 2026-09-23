@@ -1,6 +1,4 @@
-// Renders the list of models that carry the LAN switch, from
-// `docs/lan-supported-devices.json`. `xtask lan` writes the table in
-// `docs/lan-supported-devices.md` from the same file.
+// `xtask lan` writes `docs/lan-supported-devices.md` from the same JSON file.
 
 import { lanListPath } from "./config.ts";
 import { escapeAttr, escapeHtml, fill } from "./html.ts";
@@ -11,8 +9,7 @@ export function readLanList(): Promise<LanList> {
   return readJson(lanListPath, isLanList);
 }
 
-// An alias is verified to behave as its model, so it shares the model page. A
-// candidate alias is not, and it gets no link.
+// A candidate alias is not verified, so it gets no link.
 function pages(devices: Device[]): Map<string, string> {
   const map = new Map<string, string>();
   for (const d of devices) {

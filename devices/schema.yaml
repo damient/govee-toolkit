@@ -49,14 +49,10 @@ capabilities:
   # `segments.native_pixels` is the addressable LEDs. It depends on the LENGTH
   # of the unit, not only on the SKU: record a measured value, or leave it out.
   # Never extrapolate one.
-  # `segments.groups` is a coarser zone count a host paints over those LEDs.
-  # Declare it where the model reaches a view coarser than one zone per LED,
-  # and say in a comment which mode reaches that count. The host paints each
-  # group over its own run of LEDs, so the boundaries are the host's: they need
-  # not fall where another mode renders them. A stream at the `groups`
-  # resolution carries this many zones: a mask names them as they are, and a
-  # frame that states every zone carries one colour per LED. The DMX bridge
-  # lays out this many zones — see ../docs/dmx.md 1.2.
+  # `segments.groups` is a zone count that the host paints over those LEDs.
+  # Declare it where a mode reaches a view coarser than one zone per LED, and
+  # name that mode in a comment. The host sets the group boundaries: they need
+  # not match the boundaries that another mode renders.
 
 modes:
   # Which modes the hardware SUPPORTS. The user enables supported modes per

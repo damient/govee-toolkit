@@ -49,11 +49,8 @@ pub(super) struct Sent {
     paint: Option<Paint>,
 }
 
-/// What the device shows. White, color and zones are exclusive states on the
-/// device: a write of one ends the other two.
-///
-/// A change of variant is a change of state, so the white channel back at 0
-/// sends the color or the zones again with no reset of its own.
+/// White, color and zones are exclusive on the device: a write of one ends
+/// the other two. A change of variant therefore sends the new state again.
 #[derive(Debug, PartialEq, Eq)]
 enum Paint {
     White(i64),
@@ -121,18 +118,14 @@ impl Feeder {
         Ok(painted || wrote)
     }
 
-    /// The white where the white channel carries a value, and the color
-    /// otherwise.
-    ///
-    /// The color is not sent under a white: the white replaces it, and the
-    /// color would show for the milliseconds before, which reads as a blink.
+    /// The color is not sent under a white: it would show for the
+    /// milliseconds before the white, which reads as a blink.
     async fn color_or_white(&mut self, look: &Look) -> Result<bool> {
         if let Some(kelvin) = look.white_temp {
             return self.white(kelvin).await;
         }
         let Some(rgb) = look.color else {
-            // A table with no color channel paints nothing once the white is
-            // gone, so the next white must go out again.
+            // The next white must go out again.
             self.sent.paint = None;
             return Ok(false);
         };
@@ -177,8 +170,7 @@ impl Feeder {
         Ok(true)
     }
 
-    /// Arm the channel. The pass powers the device on first: arming a dark
-    /// strip paints nothing.
+    /// The device must be on first: an armed dark strip paints nothing.
     async fn arm(&mut self) -> Result<()> {
         let Some(options) = self.options.clone() else {
             return Ok(());
@@ -193,14 +185,9 @@ impl Feeder {
         Ok(())
     }
 
-    /// The white over the whole device where the white channel carries a
-    /// value, and the zones otherwise.
-    ///
-    /// A white command ends the armed channel, and the zones that follow
-    /// paint nothing — see `docs/protocol/lan.md` 2.3. The white therefore
-    /// goes out while the channel is armed, and the disarm follows it: a
-    /// disarm first would show the color the device held before the stream.
-    /// The white channel back at 0 arms the channel again.
+    /// A white command ends the armed channel (`docs/protocol/lan.md` 2.3).
+    /// The disarm must follow the white: a disarm first shows the color that
+    /// the device held before the stream.
     async fn zones_or_white(&mut self, look: &Look) -> Result<bool> {
         let Some(kelvin) = look.white_temp else {
             self.arm().await?;
@@ -279,7 +266,7 @@ impl Feeder {
         if let Some(stream) = &self.stream {
             stream.set_all(zones)?;
         }
-        // The buffer of the last zones is kept, so a repaint allocates nothing.
+        // Keep the buffer: a repaint allocates nothing.
         match &mut self.sent.paint {
             Some(Paint::Zones(sent)) => {
                 sent.clear();
