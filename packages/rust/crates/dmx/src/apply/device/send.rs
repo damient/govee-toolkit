@@ -137,14 +137,19 @@ impl Feeder {
             }
         }
         if let Some(kelvin) = white {
-            self.space().await?;
-            self.device().color_temp(kelvin).await?;
-            self.mark();
-            self.sent.white_temp = Some(kelvin);
-            self.counts.frames_sent += 1;
+            self.white(kelvin).await?;
             wrote = true;
         }
         Ok(wrote)
+    }
+
+    async fn white(&mut self, kelvin: i64) -> Result<()> {
+        self.space().await?;
+        self.device().color_temp(kelvin).await?;
+        self.mark();
+        self.sent.white_temp = Some(kelvin);
+        self.counts.frames_sent += 1;
+        Ok(())
     }
 
     /// Power the device on.
@@ -197,11 +202,7 @@ impl Feeder {
         if self.sent.white_temp == Some(kelvin) {
             return Ok(false);
         }
-        self.space().await?;
-        self.device().color_temp(kelvin).await?;
-        self.mark();
-        self.sent.white_temp = Some(kelvin);
-        self.counts.frames_sent += 1;
+        self.white(kelvin).await?;
         if self.stream.is_some() {
             self.space().await?;
             self.close().await;
