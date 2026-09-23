@@ -39,8 +39,7 @@ pub(crate) struct Shared {
     /// How the device file paints zones over this mode, and the arguments it
     /// names for it.
     pub(crate) painter: Painter,
-    /// How the zones cover the LEDs, where the frame states one color per LED.
-    /// Applied on the emitting task, so no write pays for it.
+    /// Applied on the emitting task, so that no write pays for it.
     pub(crate) spread: Option<Spread>,
     pub(crate) hz: f64,
     /// What the caller paints. Fixed when the stream opens: the firmware reads
@@ -124,8 +123,7 @@ async fn emit(shared: &Shared) {
             continue;
         }
 
-        // The spread reads the colors under the lock, so a spread repaint
-        // allocates once and not twice.
+        // Spread under the lock: a repaint then allocates once.
         let Ok(colors) = shared.colors.lock().map(|colors| match shared.spread {
             Some(spread) => spread.apply(&colors),
             None => colors.clone(),
@@ -161,8 +159,6 @@ async fn emit(shared: &Shared) {
 
 /// Every frame one repaint takes, all encoded before any goes out: a repaint
 /// the codec refuses leaves the previous picture, not half of the new one.
-///
-/// `colors` states one color per LED where the stream carries a spread.
 fn encode_repaint(shared: &Shared, colors: Vec<[u8; 3]>) -> Result<Vec<Encoded>> {
     paint::frames(&shared.painter, colors)?
         .iter()

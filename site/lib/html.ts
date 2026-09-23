@@ -1,4 +1,3 @@
-// The helpers every renderer shares.
 
 import { Marked } from "marked";
 

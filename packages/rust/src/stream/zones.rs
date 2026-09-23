@@ -6,15 +6,11 @@ use crate::stream::Resolution;
 use crate::stream::reach::ceiling;
 use crate::stream::resolve::Painter;
 
-/// The zone count the stream carries, and how the zones cover the LEDs where
-/// they are not one per color of the frame.
-///
 /// Where the mode paints fewer zones than the device file states, `App` falls
-/// to what the mode carries. A count the caller picked, and `Native`, are
-/// refused instead.
+/// to what the mode carries, and every other resolution is refused.
 ///
-/// Zero means nobody recorded the count. A stream armed on it would send
-/// frames the codec refuses, and nothing reads that refusal.
+/// A count of 0 is refused: the codec refuses its frames, and nothing reads
+/// that refusal on a stream.
 pub(super) fn zone_count(
     device: &Device,
     mode: Mode,
@@ -38,8 +34,8 @@ pub(super) fn zone_count(
             sku: device.sku.clone(),
         });
     }
-    // Only a count the caller picked. `App` and `Native` are counts the device
-    // file states, and the file is what says the unit renders them.
+    // `App` and `Native` come from the device file, which states that they
+    // render.
     if let Resolution::Exact(_) = resolution
         && let Some(rendered) = device.measurements.renders_as(count)
         && rendered != count
@@ -69,11 +65,6 @@ pub(super) fn zone_count(
     })
 }
 
-/// The zones a [`Resolution::Groups`] stream carries, and how they cover the
-/// LEDs where one frame states every LED.
-///
-/// The mask names the groups as they are. A whole frame states `native_pixels`
-/// colors, and a group count equal to it needs no spread.
 fn groups(device: &Device, mode: Mode, painter: &Painter) -> Result<(usize, Option<Spread>)> {
     let unknown = || Error::ZoneCountUnknown {
         sku: device.sku.clone(),
@@ -137,8 +128,7 @@ mod tests {
 
     #[test]
     fn native_resolution_is_refused_rather_than_masked() {
-        // 42 pixels behind 15 zones: a mask names zones, and the firmware drops
-        // the bits past the last one in silence.
+        // The firmware drops in silence the mask bits past the last zone.
         let error = planned(Resolution::Native).expect_err("a mask reaches no pixel");
         assert_eq!(error.code(), "native_zones_unreachable");
     }
@@ -178,8 +168,6 @@ mod tests {
 
     #[test]
     fn a_whole_frame_narrower_than_the_leds_refuses_the_groups() {
-        // 40 LEDs behind a color list of 20: the frame cannot state every LED
-        // the groups cover.
         let file = include_str!("../../tests/fixtures/narrow-colors.yaml")
             .replace("native_pixels: 40", "native_pixels: 40\n    groups: 8");
         let catalog =

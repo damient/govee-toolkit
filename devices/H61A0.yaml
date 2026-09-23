@@ -34,9 +34,7 @@ capabilities:
   segments:
     count: 10             # zones the Govee app exposes
     native_pixels: 42     # measured on a 3 m unit — see measurements below
-    groups: 15            # the width the `ble` mask reaches, and the count
-                          # this unit was seen to render as 15 bands. The host
-                          # paints them over the 42 LEDs
+    groups: 15            # the width that the `ble` mask reaches
 
 modes:
   lan:
@@ -308,7 +306,7 @@ verified:
     at `personality: segment`. Alternating red and green over the 15 zones read
     as 15 bands. The same 15 zones painted over ble, through the mask, read as
     15 bands as well, so the two modes reach one rendering here. The frame
-    carries one colour for each of the 42 LEDs.
+    carries one color for each of the 42 LEDs.
 
     Trap: a `turn` sent while the lan raw segment channel is armed ends the
     channel, and the rope goes back to the color it held before the stream.

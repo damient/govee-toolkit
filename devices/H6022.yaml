@@ -32,8 +32,8 @@ capabilities:
   segments:
     count: 132            # the phone controller paints a grid of 12 by 11
     native_pixels: 132    # one zone is one LED, see verified below
-    groups: 15            # the width the `ble` mask and the `cloud` zone array
-                          # reach, so a host has a coarse view to paint
+    groups: 15            # the width that the `ble` mask and the `cloud`
+                          # zone array reach
 
 modes:
   lan:

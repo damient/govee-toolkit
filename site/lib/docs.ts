@@ -1,5 +1,3 @@
-// The frame every documentation page shares. The Markdown pages and the
-// reference page differ in what they put in the middle, and in nothing else.
 
 import { escapeAttr, escapeHtml } from "./html.ts";
 import type { TocEntry } from "./types.ts";
@@ -63,8 +61,7 @@ function pagerLink(base: string, item: NavLink | undefined, klass: "prev" | "nex
   return `<a class="${prev ? "btn ghost" : "btn"} pager-link ${klass}" rel="${klass}" href="${base}${item.url}">${prev ? icon + text : text + icon}</a>`;
 }
 
-// The headings of the current page nest under its entry of the narrow menu,
-// so the "On this page" menu stays where a reader looks for it.
+// The headings of the current page nest under its entry of the narrow menu.
 function selectItems(base: string, nav: NavLink[], current: string, toc: TocEntry[], collapse: boolean): string {
   return nav
     .map((item) => {

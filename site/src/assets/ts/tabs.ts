@@ -1,12 +1,10 @@
 import { paint, wire } from "./tablist.ts";
 
-// One choice for the whole page: a reader who works in Python reads Python
-// everywhere.
+// One choice holds for the whole page.
 export function tabs(): void {
   const elements = [...document.querySelectorAll<HTMLElement>("[data-langs]")];
   if (elements.length === 0) return;
 
-  // Queried once: a language change writes these and queries nothing.
   const groups = elements.map((el) => ({
     el,
     buttons: [...el.querySelectorAll<HTMLButtonElement>(".tabs button")],

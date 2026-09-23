@@ -227,10 +227,7 @@ impl Profile {
         self.zones
     }
 
-    /// How the table covers the LEDs behind its zones.
-    ///
-    /// `None` where one frame carries one zone per channel triple, and the
-    /// firmware groups the LEDs behind it.
+    /// `None` where the firmware groups the LEDs behind the zones.
     #[must_use]
     pub fn spread(&self) -> Option<Spread> {
         self.spread
@@ -257,8 +254,6 @@ pub fn served(device: &Device) -> Vec<Result<Profile, Error>> {
         .collect()
 }
 
-/// How many zones `personality` lays out, and how it covers the LEDs behind
-/// them.
 fn layout(device: &Device, personality: Personality) -> Result<(u32, Option<Spread>), Missing> {
     if matches!(personality, Personality::Full) {
         return Ok((0, None));
@@ -271,8 +266,6 @@ fn layout(device: &Device, personality: Personality) -> Result<(u32, Option<Spre
         let pixels = native.ok_or(Missing::NativePixels)?;
         return nonzero(pixels).map(|pixels| (pixels, None));
     }
-    // A file that states a group count paints the groups here rather than
-    // leaving the firmware to group the LEDs. See `docs/dmx.md` 1.2.
     if let Some(groups) = device.capabilities.segment_groups() {
         let pixels = native.ok_or(Missing::NativePixels)?;
         if groups == pixels {
@@ -305,9 +298,8 @@ fn channels(
     personality: Personality,
     zones: u32,
 ) -> Result<Vec<Channel>, Missing> {
-    // The white channel stays in the table where `lan` reaches no white
-    // temperature, and drives nothing: the zones start at one offset on every
-    // device, so a cue file carries between models.
+    // The white channel stays where `lan` reaches no white temperature, so
+    // that a cue file carries between models.
     let mut channels = vec![
         dimmer(device)?,
         Channel::plain(2, Slot::Mode),

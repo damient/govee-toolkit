@@ -1,8 +1,5 @@
-// Builds the static site into `dist/`. See `README.md` for the inputs, and
-// `lib/config.ts` for the address of the site.
-//
-// The catalog comes from the device files through `cargo run -p xtask --
-// catalog`. The site never restates a device fact that the YAML carries.
+// Builds the static site into `dist/`. The inputs are in `README.md`. The site
+// never restates a device fact that the YAML carries.
 
 import { cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -55,9 +52,8 @@ interface Context {
   vars: Record<string, string>;
 }
 
-// Staging, so that a reload during a rebuild reaches the old site or the new
-// one and never a half-written directory. The process id keeps a manual build
-// from deleting the staging directory of a running `npm run dev`.
+// A reload during a rebuild reaches the old site or the new one, never half of
+// one. The process id keeps a manual build off the staging of `npm run dev`.
 const out = join(root, `.dist-build-${process.pid}`);
 
 const pages: Source[] = [
@@ -126,7 +122,6 @@ async function main(): Promise<void> {
     NOT_FOUND,
   ];
 
-  // `Promise.all` keeps the order, and the sitemap follows it.
   const written = await Promise.all(all.map((page) => emit(layout, page, ctx)));
   const sitemap = written.filter((url) => url !== null);
 
@@ -138,8 +133,7 @@ async function main(): Promise<void> {
   console.log(`${clock}  site -> ${relative(repo, dist)} (${sitemap.length} pages, ${devices.length} devices)`);
 }
 
-// `assets()` bundles the stylesheet and the script, so neither source
-// directory is copied: only the bundle reaches the site.
+// `assets()` bundles the stylesheet and the script: only the bundle is copied.
 async function stage(): Promise<void> {
   await rm(out, { recursive: true, force: true });
   await mkdir(out, { recursive: true });
@@ -209,8 +203,7 @@ const NOT_FOUND: Page = {
   body: `<section class="slab"><h1>Page not found</h1><p class="lede">That page does not exist. <a href="${base}">Go back to the start</a>.</p></section>`,
 };
 
-// Two renames, so that `dist/` is missing for microseconds instead of for the
-// length of a build.
+// Two renames: `dist/` is missing for microseconds, not for a whole build.
 async function publish(): Promise<void> {
   const previous = `${dist}.previous`;
   await rm(previous, { recursive: true, force: true });
@@ -250,8 +243,6 @@ async function emit(layout: string, page: Page, ctx: Context): Promise<string | 
   return page.noindex === true ? null : canonical;
 }
 
-// The reference page sits inside the documentation, so it marks Docs while the
-// reader is on it.
 function topNav(current: string, docsHome: string): string {
   const items = [
     { url: "", key: "home", label: "Home" },
@@ -267,8 +258,7 @@ function topNav(current: string, docsHome: string): string {
     .join("\n        ");
 }
 
-// `--dev` is what `npm run dev` passes: a failed build leaves the server and
-// the watch up, so the next save can fix it.
+// `npm run dev`: a failed build leaves the server and the watch up.
 const dev = process.argv.includes("--dev");
 
 if (dev) {

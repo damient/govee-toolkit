@@ -28,11 +28,11 @@ pub enum Resolution {
     /// Every addressable LED, from `capabilities.segments.native_pixels`.
     /// Fails when nobody measured it, and on a mode that paints by zone mask.
     Native,
-    /// One zone per group, from `capabilities.segments.groups`. A mode that
-    /// paints by mask names the groups as its zones. A mode that states every
-    /// zone in one frame carries `native_pixels`, and the stream paints each
-    /// group over its own run of LEDs. Fails where the file declares no
-    /// groups, or where such a mode reaches no measured LED count.
+    /// One zone per group, from `capabilities.segments.groups`. Fails where:
+    ///
+    /// - the file declares no groups;
+    /// - a whole-frame mode has no measured `native_pixels`;
+    /// - the frame carries fewer colors than `native_pixels`.
     Groups,
     /// A count the caller picks. A count the unit renders as a smaller one
     /// fails with

@@ -114,7 +114,7 @@ impl SegmentStream {
         let plan = plan(device, mode, &options)?;
         let zones = plan.zones;
         let settle = device.measurements.arm_settle();
-        // The frame and not the caller's zone count sets the rate.
+        // The frame width sets the rate, not the zone count of the caller.
         let hz = rate_hz(
             device,
             &sku,

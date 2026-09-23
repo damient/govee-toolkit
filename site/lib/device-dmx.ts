@@ -1,29 +1,21 @@
-// The "DMX" section of a model page: the channel table an operator patches a
-// desk with. `dist/catalog.json` carries the table, derived by
-// `govee-toolkit-dmx` from the device file, so this page and the DMX bridge
-// cannot disagree. Nothing below derives a channel of its own.
+// `dist/catalog.json` carries the channel table. Nothing here derives a channel.
 
 import { DASH, escapeAttr, escapeHtml } from "./html.ts";
 import { icon, slotIcon } from "./icons.ts";
 import type { Channel, Device, Personality, Range } from "./types.ts";
 
-// A slot kind as a reader reads it. An unknown kind falls back to its own
-// name, so a new slot reaches the page without a change here.
+// An unknown kind falls back to its own name.
 const SLOTS = new Map([
   ["dimmer", "Dimmer"],
   ["white_temp", "White"],
   ["mode", "Mode"],
 ]);
 
-// A slot that drives a capability carries that capability's mark, so a reader
-// finds the same icon and the same color as in the lists above. `mode` drives
-// none and carries a mark of its own.
 const SLOT_CAPS = new Map([
   ["dimmer", "brightness"],
   ["zone", "segments"],
 ]);
 
-// A color channel carries the component itself rather than a drawing of one.
 // The white channel is a color channel to the desk, so it takes a chip too.
 const swatch = (component: string | undefined): string =>
   `<svg class="dmx-swatch" data-component="${escapeAttr(component ?? "")}" viewBox="0 0 24 24"
@@ -54,8 +46,6 @@ function slotLabel(channel: Channel): string {
 
 const capitalize = (word: string): string => word.charAt(0).toUpperCase() + word.slice(1);
 
-// A band of slots, as a desk numbers them. `catalog.json` carries the bands,
-// so the page never works out what a slot means.
 const slots = ([low, high]: Range): string => (low === high ? String(low) : `${low} – ${high}`);
 
 const valueList = (lines: string[]): string => `<ul class="dmx-values">
@@ -74,8 +64,6 @@ function values(channel: Channel): string {
   );
 }
 
-// One channel as a column of a desk: the number on top, then the slot, then
-// the bands. Every column takes one width, as the faders of a desk do.
 function column(head: string, channel: Channel, slot: string, cell: string): string {
   const unreached = channel.unreached === true ? " data-unreached" : "";
   return `<li class="dmx-column"${unreached}>
@@ -85,9 +73,7 @@ function column(head: string, channel: Channel, slot: string, cell: string): str
             </li>`;
 }
 
-// A zone triple repeats once per zone, and a 132-zone strip holds 396 of them.
-// The run reads as one column: the operator needs where it starts, how wide it
-// is and the order inside it.
+// The zone triples show as one column: a strip can hold hundreds of them.
 function zoneColumn(run: [Channel, ...Channel[]]): string {
   const first = run[0];
   const last = run.at(-1) ?? first;
@@ -121,8 +107,7 @@ function columns(channels: Channel[]): string[] {
 const paneId = (entry: Personality): string => `pane-dmx-${entry.personality}`;
 const tabId = (entry: Personality): string => `tab-dmx-${entry.personality}`;
 
-// One tab per personality. The width sits in the tab because that is what an
-// operator compares before opening one.
+// The width sits in the tab: an operator compares it before opening one.
 function tab(entry: Personality, at: number): string {
   const width = entry.channels ? `${entry.width} channels` : "no table";
   return `<button type="button" role="tab" id="${escapeAttr(tabId(entry))}"

@@ -23,8 +23,7 @@ async fn rig_with(catalog: Catalog, sku: &str) -> Rig {
     Rig::start(Config::default(), catalog, sku).await
 }
 
-/// Open a stream and forget the arming frame, so a test sees only what it asked
-/// for.
+/// Forgets the arming frame.
 async fn open(rig: &Rig, options: StreamOptions) -> govee_toolkit::SegmentStream {
     let stream = rig
         .govee
@@ -55,8 +54,6 @@ fn options(resolution: Resolution) -> StreamOptions {
     }
 }
 
-/// 15 groups over 42 LEDs: the caller paints the groups, and the frame states
-/// every LED. LEDs 0 to 2 fall in group 0.
 #[tokio::test]
 async fn a_group_stream_paints_each_group_over_its_own_leds() {
     let rig = rig().await;
@@ -103,8 +100,7 @@ async fn a_measured_rate_is_read_off_the_device_file() {
     assert!((stream.rate_hz() - 25.0).abs() < f64::EPSILON);
 }
 
-/// The frame and not the zone count sets the rate: 15 groups fall in the
-/// 20-zone row, and the 42 LEDs the frame states in the 60-zone row.
+/// 15 groups fall in the 20-zone row, and 42 LEDs in the 60-zone row.
 #[tokio::test]
 async fn a_group_stream_is_paced_by_the_leds_its_frame_states() {
     let rig = rig().await;

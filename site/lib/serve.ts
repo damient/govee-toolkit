@@ -21,11 +21,8 @@ const LIVE_PATH = "/__reload";
 /** What changed: `css` swaps the inlined stylesheet, `page` reloads. */
 export type Change = "css" | "page";
 
-// The server adds this to every page it sends, so `dist/` stays the site that
-// ships. An `open` after an `error` is a restarted server: `node --watch`
-// restarts it when `lib/` changes, and the site is rebuilt by then. The
-// stylesheet is inlined in the page, so a CSS change reads the new page and
-// takes its `<style>`.
+// Added when the page is sent, so that `dist/` stays the site that ships. An
+// `open` after an `error` is a server that `node --watch` restarted.
 const CLIENT = `<script type="module">
 const events = new EventSource("${LIVE_PATH}");
 let lost = false;
@@ -63,8 +60,7 @@ export function serve({ live = false } = {}): void {
     if (!existsSync(file)) {
       file = join(dist, "404.html");
       if (!existsSync(file)) { send(response, 404, "Not found"); return; }
-      // A missing stylesheet must fail as a stylesheet, not arrive as HTML
-      // the browser parses.
+      // A missing stylesheet must not arrive as HTML that the browser parses.
       ext = ".html";
       response.statusCode = 404;
     }
@@ -78,8 +74,7 @@ export function serve({ live = false } = {}): void {
     }
     createReadStream(file).pipe(response);
   })
-    // Without this, a port already taken raises an unhandled error event, and
-    // a reader takes the stack trace for a watcher that does not work.
+    // A port already taken otherwise prints a stack trace.
     .on("error", (error: NodeJS.ErrnoException) => {
       if (error.code !== "EADDRINUSE") throw error;
       console.error(`port ${port} is taken. Another server already serves the site.`);
@@ -90,8 +85,7 @@ export function serve({ live = false } = {}): void {
     .listen(port, () => { console.log(`http://localhost:${port}`); });
 }
 
-// `retry` shortens the wait of the browser after a restart, which is 3 s by
-// default.
+// `retry` shortens the wait of the browser after a restart (3 s by default).
 function listen(response: ServerResponse): void {
   response.writeHead(200, {
     "Content-Type": "text/event-stream",

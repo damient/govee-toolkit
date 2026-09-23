@@ -1,8 +1,4 @@
-// The shape of the inputs the renderers read: `dist/catalog.json`, which
-// `xtask catalog` writes, `content/reference.json` and
-// `docs/lan-supported-devices.json`. Each type lists the fields a renderer
-// reads and no more, so a field the site ignores can change without a change
-// here.
+// Each type lists only the fields that a renderer reads.
 
 /** A mode a device file can declare. `MODES` in `config.ts` holds the order. */
 export type Mode = "lan" | "ble" | "cloud";

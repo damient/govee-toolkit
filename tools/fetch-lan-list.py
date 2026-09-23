@@ -123,8 +123,7 @@ def main() -> None:
     if args.check:
         sys.exit(1 if changed else 0)
 
-    # The date moves on a run without a change too: it says when the list was
-    # last read.
+    # The date moves on a run with no change too: it records the last read.
     document["models"] = models
     document["retrieved"] = datetime.datetime.now(datetime.UTC).date().isoformat()
     write(document)

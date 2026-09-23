@@ -1,7 +1,5 @@
-// What `npm run dev` adds to a build: a rebuild on every change, and the
-// signal that makes an open page follow it. `node --watch` restarts the whole
-// process on a change to `build.ts` or `lib/`, because an imported module is
-// cached and a rebuild inside one process reads the old code.
+// `node --watch` restarts the process on a change to `build.ts` or `lib/`: a
+// rebuild inside one process reads the cached modules.
 
 import { watch } from "node:fs";
 import { readdir, rm } from "node:fs/promises";
@@ -32,8 +30,7 @@ export function watchSources(rebuild: (change: Change) => Promise<void>): void {
   for (const dir of SOURCES) {
     watch(join(root, dir), { recursive: true }, (_, file) => { touch(join(dir, file ?? "")); });
   }
-  // The directory and not the file: `xtask` replaces the file, and a watch on
-  // the file ends with the file it watched.
+  // Watch the directory: `xtask` replaces the file, which ends a file watch.
   for (const path of [catalogPath, lanListPath]) {
     const name = basename(path);
     watch(dirname(path), (_, file) => {

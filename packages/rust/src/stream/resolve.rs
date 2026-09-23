@@ -66,13 +66,10 @@ pub(crate) struct Plan {
     pub(crate) painter: Painter,
     /// What the caller paints.
     pub(crate) zones: usize,
-    /// How the zones cover the LEDs, where the frame states one color per LED
-    /// and not one per zone.
     pub(crate) spread: Option<Spread>,
 }
 
 impl Plan {
-    /// How many colors one frame states.
     pub(crate) fn width(&self) -> usize {
         self.spread.map_or(self.zones, |spread| {
             usize::try_from(spread.pixels()).unwrap_or(usize::MAX)

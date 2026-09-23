@@ -1,19 +1,10 @@
-//! How one coarse zone covers the addressable LEDs behind it.
-//!
-//! A device file that declares `capabilities.segments.groups` states a zone
-//! count under its LED count. A stream opened at
-//! `Resolution::Groups` over a whole-frame command paints each group over its
-//! own run of LEDs, so the rendering does not depend on how the firmware
-//! groups the LEDs for a smaller frame. See `docs/dmx.md` 1.2.
+//! How the `capabilities.segments.groups` of a device file cover its LEDs.
 
 use crate::codec::capabilities::groups_fit;
 
-/// Where the LEDs of one group start and stop.
-///
 /// Groups are contiguous runs in chain order, and two runs differ by one LED
-/// at most: LED `i` falls in group `i * groups / pixels`. A chain that folds
-/// back on itself therefore carries a group across the fold — see the
-/// `segment_chain` measurement of the device file.
+/// at most. A chain that folds back carries a group across the fold — see
+/// the `segment_chain` measurement of the device file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Spread {
     groups: u32,
@@ -21,8 +12,7 @@ pub struct Spread {
 }
 
 impl Spread {
-    /// The layout of `groups` over `pixels`, and `None` where either counts
-    /// nothing or where the groups outnumber the LEDs.
+    /// `None` where a count is 0 or where the groups outnumber the LEDs.
     #[must_use]
     pub const fn new(groups: u32, pixels: u32) -> Option<Self> {
         if !groups_fit(groups, pixels) {
@@ -31,16 +21,14 @@ impl Spread {
         Some(Self { groups, pixels })
     }
 
-    /// How many LEDs the groups cover: the colors [`Spread::apply`] answers.
+    /// The number of colors that [`Spread::apply`] returns.
     #[must_use]
     pub const fn pixels(self) -> u32 {
         self.pixels
     }
 
-    /// One colour per LED, from one colour per group.
-    ///
-    /// A group the caller states no colour for renders black, which is what a
-    /// desk that sends a short packet asks for.
+    /// One color per LED, from one color per group. A group with no color
+    /// renders black.
     #[must_use]
     pub fn apply(self, groups: &[[u8; 3]]) -> Vec<[u8; 3]> {
         (0..u64::from(self.pixels))
@@ -82,8 +70,6 @@ mod tests {
         );
     }
 
-    /// 132 LEDs over 15 groups is 8.8 LEDs a group, so no run is the same
-    /// length as every other one.
     #[test]
     fn a_count_that_does_not_divide_spreads_the_remainder() {
         let groups: Vec<[u8; 3]> = (0..15).map(|index| [index, 0, 0]).collect();
@@ -105,7 +91,7 @@ mod tests {
     }
 
     #[test]
-    fn a_group_the_caller_states_no_colour_for_renders_black() {
+    fn a_group_with_no_color_renders_black() {
         assert_eq!(spread(2, 4).apply(&[[9, 9, 9]])[3], [0, 0, 0]);
     }
 
