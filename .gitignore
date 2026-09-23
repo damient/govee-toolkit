@@ -41,3 +41,6 @@ release/
 
 # Local experiments, kept out of the published tree.
 /.examples/
+
+# Social media images, built by hand from the site's hero.
+/social/
