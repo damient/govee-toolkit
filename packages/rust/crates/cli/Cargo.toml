@@ -3,7 +3,7 @@ name = "govee-toolkit-cli"
 description = "Command line interface to govee-toolkit: discover Govee devices and send commands over the LAN, over Bluetooth or through the cloud. Unofficial."
 # Versioned apart from the crate it wraps, and released under `cli-vX.Y.Z` —
 # see docs/versioning.md.
-version = "0.6.0"
+version = "0.7.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
