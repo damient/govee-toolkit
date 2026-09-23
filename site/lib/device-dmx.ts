@@ -15,7 +15,6 @@ const SLOTS = new Map([
   ["mode", "Mode"],
 ]);
 
-
 // A slot that drives a capability carries that capability's mark, so a reader
 // finds the same icon and the same color as in the lists above. `mode` drives
 // none and carries a mark of its own.

@@ -31,7 +31,6 @@ export function filter(input: HTMLInputElement): void {
   apply();
 }
 
-
 // The link in the row header stays the target, so the keyboard and a middle
 // click reach the page through it. A row without one leads nowhere.
 export function rowLink(body: HTMLElement): void {

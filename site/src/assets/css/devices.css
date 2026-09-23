@@ -8,22 +8,19 @@
 .matrix tbody tr:last-child th, .matrix tbody tr:last-child td { border-bottom: 0; }
 .matrix th[scope="row"] { font-family: var(--mono); font-weight: 500; }
 
-/* The model index: every row leads to a page, and the seven columns need more
-   width than a phone has. */
+/* A row that leads to a model page. */
+.matrix tbody tr.has-page { cursor: pointer; }
+.matrix tbody tr.has-page:hover { background: var(--panel); }
+.matrix tbody tr.has-page:hover th[scope="row"] a { color: var(--ember); }
+
+/* The model index: the seven columns need more width than a phone has. */
 .matrix-list { min-width: 720px; }
-.matrix-list tbody tr { cursor: pointer; }
-.matrix-list tbody tr:hover { background: var(--panel); }
-.matrix-list tbody tr:hover th[scope="row"] a { color: var(--ember); }
 /* The three mode columns and the DMX column answer one question each:
    centered, they read as a row of answers rather than as four ragged
    columns. */
 .matrix-list th:nth-child(n + 4), .matrix-list td:nth-child(n + 4) { text-align: center; }
 
-/* The LAN Control list: a row leads to a page where the catalog has one. */
 .matrix-lan { min-width: 560px; }
-.matrix-lan tbody tr.has-page { cursor: pointer; }
-.matrix-lan tbody tr.has-page:hover { background: var(--panel); }
-.matrix-lan tbody tr.has-page:hover th[scope="row"] a { color: var(--ember); }
 .matrix-list td:nth-child(n + 4) .caps-row { justify-content: center; }
 .matrix-list thead th:nth-child(n + 4) .mbadge { display: inline-flex; }
 

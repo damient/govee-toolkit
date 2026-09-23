@@ -43,7 +43,7 @@ fi
 
 if [ "$group" != rust ]; then
   over "$SITE_LIMIT" site/build.ts site/lib site/src \
-    \( -name '*.ts' -o -name '*.mjs' -o -name '*.js' -o -name '*.css' -o -name '*.html' \) \
+    \( -name '*.ts' -o -name '*.css' -o -name '*.html' \) \
     -not -path '*/node_modules/*'
 fi
 
