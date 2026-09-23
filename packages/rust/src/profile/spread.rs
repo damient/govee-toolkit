@@ -6,6 +6,8 @@
 //! on how the firmware groups the LEDs for a smaller frame. See `docs/dmx.md`
 //! 1.2.
 
+use crate::codec::capabilities::groups_fit;
+
 /// Where the LEDs of one group start and stop.
 ///
 /// Groups are contiguous runs in chain order, and two runs differ by one LED
@@ -23,7 +25,7 @@ impl Spread {
     /// nothing or where the groups outnumber the LEDs.
     #[must_use]
     pub const fn new(groups: u32, pixels: u32) -> Option<Self> {
-        if groups == 0 || pixels == 0 || groups > pixels {
+        if !groups_fit(groups, pixels) {
             return None;
         }
         Some(Self { groups, pixels })

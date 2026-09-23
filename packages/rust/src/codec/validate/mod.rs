@@ -6,6 +6,7 @@
 
 use self::command::{check_command, check_role_args};
 use self::modes::check_mode_capabilities;
+use crate::codec::capabilities::groups_fit;
 use crate::codec::catalog::{Command, Device, Mode, Role};
 
 mod cloud;
@@ -151,7 +152,7 @@ fn groups(device: &Device) -> Vec<Problem> {
     };
     let message = match device.capabilities.native_pixels() {
         None => "states a group count, but `native_pixels` records no LED to group".to_owned(),
-        Some(pixels) if groups == 0 || groups > pixels => {
+        Some(pixels) if !groups_fit(groups, pixels) => {
             format!("is {groups}, which is no group of the {pixels} LEDs declared")
         }
         Some(_) => return Vec::new(),
