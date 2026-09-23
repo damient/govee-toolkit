@@ -81,16 +81,16 @@ nothing from it, and `govee-dmx profile` names that channel `unreached`.
 
 **Groups.** A device file can declare `capabilities.segments.groups`: a zone
 count under the LED count. `segment` then lays out that many zones, and the
-bridge paints each one itself over its own run of LEDs. The frame on the wire
-carries one colour per LED, the way `pixel` does, so the rendering does not
-depend on how the firmware groups the LEDs for a smaller frame. Two rules
-follow:
+bridge opens the stream at the `groups` resolution. The stream paints each zone
+over its own run of LEDs, and the frame on the wire carries one colour per LED,
+the way `pixel` does. The rendering therefore does not depend on how the
+firmware groups the LEDs for a smaller frame. Two rules follow:
 
 - A group covers a contiguous run in chain order, and two runs differ by one
   LED at most. A chain that folds back on itself carries a group across the
   fold, so a group is not a physical band — read the `segment_chain`
   measurement of the device file.
-- The boundaries are the bridge's. A mode that reaches the same zone count
+- The boundaries are the SDK's. A mode that reaches the same zone count
   through its own command can render the boundaries elsewhere.
 
 A model that declares no `groups` lays out `segments.count` zones, and the
