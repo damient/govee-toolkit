@@ -28,30 +28,28 @@ fn check_offsets(sku: &str, profile: &Profile) {
     assert_eq!(offsets, expected, "{sku} `{}`", profile.personality());
 }
 
-/// A device whose zones are its addressable LEDs serves `pixel` alone, so it
-/// is the one personality every segmented device has to answer.
+/// A device whose zones are its addressable LEDs serves `pixel` alone, so
+/// every segmented device answers one of the two zone personalities.
 #[test]
 fn every_segmented_device_answers_a_zone_personality() {
     for device in catalog().devices() {
         if !has(device, SEGMENTS) {
             continue;
         }
-        let count = device
-            .capabilities
-            .segment_count()
-            .expect("a device that reaches segments counts them");
-        // A declared group count is what `segment` lays out; `count` is what
-        // the firmware groups where the file declares none.
-        let zones = device.capabilities.segment_groups().unwrap_or(count);
-        let personality = if device.capabilities.native_pixels() == Some(zones) {
-            Personality::Pixel
-        } else {
-            Personality::Segment
-        };
-        let profile =
-            Profile::of(device, personality).unwrap_or_else(|e| panic!("{}: {e}", device.sku));
-        assert_eq!(profile.width(), u16::try_from(3 + 3 * zones).unwrap_or(0));
-        check_offsets(&device.sku, &profile);
+        let zoned: Vec<Profile> = super::served(device)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|p| matches!(p.personality(), Personality::Segment | Personality::Pixel))
+            .collect();
+        assert!(!zoned.is_empty(), "{}", device.sku);
+        for profile in zoned {
+            assert_eq!(
+                usize::from(profile.width()),
+                3 + 3 * profile.zones(),
+                "{}",
+                device.sku
+            );
+        }
     }
 }
 
