@@ -31,12 +31,6 @@ impl Spread {
         Some(Self { groups, pixels })
     }
 
-    /// How many LEDs the frame carries.
-    #[must_use]
-    pub const fn pixels(self) -> u32 {
-        self.pixels
-    }
-
     /// One colour per LED, from one colour per group.
     ///
     /// A group the caller states no colour for renders black, which is what a
