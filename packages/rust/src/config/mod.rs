@@ -127,10 +127,9 @@ pub struct DeviceConfig {
     pub modes: Option<Vec<Mode>>,
     /// The SKU to read the device file under, instead of the reported one.
     pub sku: Option<String>,
-    /// A name for logs and user interfaces. Nothing reads it as identity.
+    /// A name for logs, interfaces and targets. The key stays the identity.
     pub name: Option<String>,
-    /// The groups the device is a member of. A group name is a target that
-    /// names every member at once.
+    /// The groups of the device. A group is a target for every member.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub groups: Vec<String>,
 }

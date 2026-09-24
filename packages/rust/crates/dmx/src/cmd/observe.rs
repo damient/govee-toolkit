@@ -39,15 +39,14 @@ impl Printer {
         }
     }
 
-    /// `id`, as a message names it: with the name the patch gives, where it
-    /// gives one.
+    /// `id`, with the name the patch gives it.
     fn label(&self, id: &DeviceId) -> String {
         self.labels
             .get(id)
             .map_or_else(|| id.to_string(), ToString::to_string)
     }
 
-    /// `record`, with the name the patch gives `id`, where it gives one.
+    /// `record`, with the name the patch gives `id`.
     fn named(&self, mut record: Value, id: &DeviceId) -> Value {
         let name = self.labels.get(id).and_then(|label| label.name.as_deref());
         if let (Some(name), Some(fields)) = (name, record.as_object_mut()) {

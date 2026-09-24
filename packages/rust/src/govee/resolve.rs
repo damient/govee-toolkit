@@ -34,12 +34,8 @@ impl Govee {
         self.known_over(id, self.inner.config.modes_for(id)).await
     }
 
-    /// [`Govee::ensure_known`] over `mode` alone.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::ModeNotEnabled`] where the configuration does not enable
-    /// `mode` for this device, and every error of [`Govee::ensure_known`].
+    /// [`Govee::ensure_known`] over `mode` alone, or
+    /// [`Error::ModeNotEnabled`].
     pub(crate) async fn ensure_known_on(&self, id: &DeviceId, mode: Mode) -> Result<Mode> {
         if !self.inner.config.modes_for(id).contains(&mode) {
             return Err(Error::ModeNotEnabled {

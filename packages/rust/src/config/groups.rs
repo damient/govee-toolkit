@@ -1,7 +1,4 @@
-//! Groups: a name that several devices carry under `groups:`, so one target
-//! names every member.
-//!
-//! A group matches by name, ignoring case and exactly, as a device name does.
+//! Groups and names match whole and ignore case.
 
 use super::{Config, Problem};
 use crate::transport::DeviceId;
@@ -13,8 +10,7 @@ impl Config {
         self.devices.get(id).map_or(&[], |d| d.groups.as_slice())
     }
 
-    /// The members of `group`, in identity order. Empty where no device
-    /// carries that group.
+    /// The members of `group`, in identity order.
     #[must_use]
     pub fn members(&self, group: &str) -> Vec<DeviceId> {
         self.devices
@@ -24,8 +20,7 @@ impl Config {
             .collect()
     }
 
-    /// The devices the configuration gives `name`, in identity order. The
-    /// comparison ignores case and is exact.
+    /// The devices the configuration gives `name`, in identity order.
     pub fn named<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a DeviceId> + 'a {
         self.devices
             .iter()
@@ -41,8 +36,6 @@ impl Config {
             .any(|device| carries(&device.groups, group))
     }
 
-    /// A group that a device also carries as a name makes a bare target
-    /// ambiguous, and a group listed twice on one device is a slip.
     pub(super) fn group_problems(&self) -> Vec<Problem> {
         let mut problems = Vec::new();
         for (id, device) in &self.devices {

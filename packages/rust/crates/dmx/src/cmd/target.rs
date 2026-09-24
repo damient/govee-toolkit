@@ -1,10 +1,5 @@
 //! A target of `govee-dmx`: the grammar [`Selector`] reads, plus the names and
-//! the groups the patch gives its fixtures — see `docs/dmx.md` 2.
-//!
-//! What the patch gives wins over the configuration inside `govee-dmx`. A
-//! name or a group that the patch and the configuration give to different
-//! devices is refused, and so is a bare target that reads as two kinds:
-//! nothing is guessed.
+//! the groups of the patch. The rules are `docs/dmx.md` 4.3.
 
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::Failure;
@@ -35,7 +30,7 @@ pub(crate) fn select(
     Ok(chosen)
 }
 
-/// The patch and the configuration, read as one source of names and groups.
+/// The patch and the configuration, as one source of names and groups.
 struct Sources<'a> {
     rig: &'a Rig,
     config: &'a Config,

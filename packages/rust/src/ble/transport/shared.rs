@@ -111,8 +111,7 @@ pub(super) struct Shared {
     /// accepts only one, and a new connection costs seconds.
     pub(super) links: Links,
     pub(super) events: broadcast::Sender<Event>,
-    /// One scan at a time: the scan that ends first stops the adapter under
-    /// any other one.
+    /// One scan at a time: the first scan to end stops the adapter for all.
     pub(super) scanning: Mutex<()>,
 }
 

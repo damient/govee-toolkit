@@ -92,8 +92,8 @@ impl Govee {
     /// where the target alone does not. A SKU, a name and a group select
     /// among the devices the SDK knows, so scan first.
     ///
-    /// `mode` is the one mode the caller will drive. A SKU and a name then
-    /// match among the devices that enable it. An identity selects itself
+    /// `mode` is the one mode the caller will drive. A SKU, a name and a group
+    /// then match among the devices that enable it. An identity selects itself
     /// either way.
     #[napi]
     pub fn select(
@@ -144,12 +144,11 @@ impl Govee {
         }
     }
 
-    /// A handle for one device, by the identity it reports or by the name
-    /// the configuration gives.
+    /// A handle for one device, by its identity or by the name the
+    /// configuration gives it. It reads the configuration and no scan.
     ///
-    /// `id:…` and `name:…` state the kind. A bare target is a name where the
-    /// configuration gives one, and an identity otherwise. It reads the
-    /// configuration and no scan.
+    /// A bare target is a name where the configuration gives one, and an
+    /// identity where it reads as one. `id:` and `name:` state the kind.
     #[napi]
     pub fn device(&self, env: &Env, target: String) -> napi::Result<DeviceHandle> {
         Ok(DeviceHandle {
@@ -176,11 +175,8 @@ impl Govee {
         })
     }
 
-    /// The identities that one target names: one device, or every member of
-    /// a group the configuration gives, in identity order.
-    ///
-    /// `group:…` states the kind. A bare target is a group where no device
-    /// carries it as a name. It reads the configuration and no scan.
+    /// The identities that one target names, from the configuration and with
+    /// no scan: one device, or every member of a group in identity order.
     #[napi]
     pub fn targets(&self, env: &Env, target: String) -> napi::Result<Vec<String>> {
         Ok(self
@@ -190,11 +186,9 @@ impl Govee {
             .collect())
     }
 
-    /// A handle for one device or one group. Every verb on it answers one
-    /// `Outcome` per member and rejects for nothing a member does.
-    ///
-    /// `target` reads as it does for `targets()`. `mode` pins every member
-    /// to one mode, as `deviceOn()` does.
+    /// A handle for the devices `targets()` reads. Every verb on it answers
+    /// one `Outcome` per member and rejects for nothing a member does. `mode`
+    /// pins every member, as `deviceOn()` does.
     #[napi]
     pub fn group(
         &self,

@@ -193,8 +193,7 @@ fn entry(placement: &Placement) -> String {
     );
     let _ = writeln!(text, "  - device: \"{}\"", placement.device);
     if let Some(name) = &placement.name {
-        // A JSON string is a YAML scalar in double quotes, whatever the name
-        // holds.
+        // A JSON string is a quoted YAML scalar, whatever the name holds.
         let _ = writeln!(text, "    name: {}", serde_json::Value::from(name.as_str()));
     }
     if !placement.groups.is_empty() {
@@ -324,8 +323,7 @@ mod tests {
         assert_eq!(patch.patch[1].device.as_str(), "AA:BB:CC:DD:EE:02");
     }
 
-    /// A new entry takes the name the configuration gives, in quotes, so a
-    /// name that YAML would read as another type stays a name.
+    /// Unquoted, `kitchen: left` reads as a map.
     #[test]
     fn a_new_entry_takes_the_name_the_configuration_gives() {
         let mut named = placement("AA:BB:CC:DD:EE:01", 1);

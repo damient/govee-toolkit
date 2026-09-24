@@ -15,8 +15,7 @@ pub enum Error {
         prefix: String,
     },
 
-    /// A bare target reads as two kinds. The prefixed forms say which one is
-    /// meant.
+    /// A bare target that reads as two kinds.
     #[error(
         "`{target}` reads as a {kind} and as a {other}; write `{kind}:{target}` or `{other}:{target}`"
     )]
@@ -47,8 +46,7 @@ pub enum Error {
         mode: Mode,
     },
 
-    /// A command that drives one device got a target that names a model or a
-    /// group.
+    /// A command that drives one device got a SKU or a group.
     #[error(
         "`{target}` can name more than one device; this command takes one device, by identity or by name"
     )]
@@ -57,16 +55,14 @@ pub enum Error {
         target: String,
     },
 
-    /// A command that reads the configuration alone got a SKU, which only a
-    /// scan resolves.
+    /// A command that reads the configuration alone got a SKU.
     #[error("`{target}` names a model; this command takes an identity, a name or a group")]
     Model {
         /// The target, in its prefixed form.
         target: String,
     },
 
-    /// A command that drives one device got a name that the configuration
-    /// gives to more than one device.
+    /// A command that drives one device got a name that two devices carry.
     #[error("`{target}` names more than one device in the configuration")]
     Several {
         /// The target, in its prefixed form.

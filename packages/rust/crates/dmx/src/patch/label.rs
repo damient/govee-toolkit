@@ -4,8 +4,8 @@ use std::fmt;
 
 use govee_toolkit::DeviceId;
 
-/// One entry, as a message names it. The operator reads the name the patch
-/// gives, and the identity tells two entries of one name apart.
+/// The name the patch gives, and the identity that tells two entries of one
+/// name apart.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Label {
     /// The identity the entry names.

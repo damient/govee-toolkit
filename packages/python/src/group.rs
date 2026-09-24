@@ -1,8 +1,3 @@
-//! Several devices driven as one, and what each member answered.
-//!
-//! A verb on a group raises for nothing a member does: every member answers
-//! its own `Outcome`, and a member that fails stops no other one.
-
 use std::future::Future;
 
 use govee_toolkit::codec::Mode;
@@ -14,8 +9,7 @@ use crate::conv;
 use crate::errors::to_py;
 use crate::types::Served;
 
-/// What one member answered: `served` or `mode` where the call succeeded,
-/// and `error` where it failed.
+/// What one member answered.
 #[pyclass(
     frozen,
     skip_from_py_object,
@@ -50,8 +44,7 @@ impl Outcome {
         self.mode.clone()
     }
 
-    /// The command that was served. `None` where the call failed, and for
-    /// `ensure_known()`.
+    /// The command served. `None` on a failure and for `ensure_known()`.
     #[getter]
     fn served(&self) -> Option<Served> {
         self.served.clone()
@@ -110,14 +103,13 @@ pub(crate) struct GroupHandle {
 
 #[pymethods]
 impl GroupHandle {
-    /// The identities of the members, in the order every outcome list follows.
+    /// The identities of the members, in the order of every outcome list.
     #[getter]
     fn members(&self) -> Vec<String> {
         self.members.iter().map(ToString::to_string).collect()
     }
 
-    /// Scan for every member that no mode knows yet. Each outcome carries the
-    /// mode a command would go over.
+    /// Scan for every member that no mode knows. Each outcome carries its mode.
     fn ensure_known<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let (govee, pinned, members) = self.parts();
         future_into_py(py, async move {
@@ -136,7 +128,7 @@ impl GroupHandle {
         })
     }
 
-    /// Set the level on every member. The range is each member's own.
+    /// Set the level on every member, against its own range.
     fn brightness<'py>(&self, py: Python<'py>, level: i64) -> PyResult<Bound<'py, PyAny>> {
         self.served(py, move |govee, pinned, members| async move {
             govee
@@ -164,7 +156,7 @@ impl GroupHandle {
         })
     }
 
-    /// Play an effect on every member, as `DeviceHandle.music()` does.
+    /// `DeviceHandle.music()` on every member.
     #[pyo3(signature = (effect, sensitivity=None, soft=None, color=None))]
     fn music<'py>(
         &self,
@@ -180,8 +172,7 @@ impl GroupHandle {
         })
     }
 
-    /// Paint the segments of every member once, as `DeviceHandle.segment()`
-    /// does. A zone list reads against each member's own zones.
+    /// `DeviceHandle.segment()` on every member, against its own zones.
     #[pyo3(signature = (colors, zones=None, resolution=None, gradient=false))]
     fn segment<'py>(
         &self,
