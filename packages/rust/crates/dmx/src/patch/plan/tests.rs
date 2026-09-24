@@ -31,6 +31,7 @@ fn plan(text: &str, layout: Layout, scanned: &[(DeviceId, &str)]) -> Plan {
             id,
             device,
             name: None,
+            groups: &[],
         })
         .collect();
     let patch = Patch::parse(text, "patch.yaml").unwrap_or_else(|e| panic!("{e}"));

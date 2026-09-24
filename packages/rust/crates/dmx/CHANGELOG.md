@@ -14,6 +14,12 @@ is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
   `config.yaml`. A name that the two give to different devices is refused.
 - `govee-dmx patch` writes the name that `config.yaml` gives a device into
   the new entry.
+- A patch entry takes `groups:`. `govee-dmx identify` reads a group of the
+  patch first, then `config.yaml`, and lights it in patch order.
+- A group that the patch and `config.yaml` give to different devices is
+  refused, and so is a bare target that reads as a name and a group.
+- `govee-dmx patch` writes the groups that `config.yaml` gives a device into
+  the new entry. The `--json` forms of the fixtures carry `groups`.
 
 ### Changed
 
@@ -21,6 +27,8 @@ is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
   and the name, in place of a `DeviceId`.
 - **Breaking:** `Placement::name` is `Placement::model`. `Placement::name` and
   `Candidate::name` carry the name of the fixture.
+- **Breaking:** `Entry`, `Placement` and `Candidate` gain `groups`. Fill the
+  new field where the code builds one.
 
 ## [0.2.0] — 2026-09-23
 
