@@ -11,6 +11,7 @@
 mod address;
 mod entry;
 mod error;
+mod label;
 mod plan;
 mod resolve;
 pub mod stamp;
@@ -26,6 +27,7 @@ use serde::Deserialize;
 pub use self::address::{MAX as MAX_PORT_ADDRESS, PortAddress};
 pub use self::entry::{Entry, SignalLoss};
 pub use self::error::{Error, Span};
+pub use self::label::Label;
 pub use self::plan::{Candidate, Layout, Placement, Plan, Skip};
 pub use self::resolve::{Fixture, Rig};
 pub use self::write::update;

@@ -189,16 +189,18 @@ fn insertion(text: &str) -> usize {
 fn entry(placement: &Placement) -> String {
     let mut text = format!(
         "  # {}  {}  {} channels\n",
-        placement.sku, placement.name, placement.width
+        placement.sku, placement.model, placement.width
     );
+    let _ = writeln!(text, "  - device: \"{}\"", placement.device);
+    if let Some(name) = &placement.name {
+        // A JSON string is a YAML scalar in double quotes, whatever the name
+        // holds.
+        let _ = writeln!(text, "    name: {}", serde_json::Value::from(name.as_str()));
+    }
     let _ = write!(
         text,
-        "  - device: \"{}\"\n    enabled: true\n    sku: {}\n    universe: {}\n    address: {}\n    personality: {}\n",
-        placement.device,
-        placement.sku,
-        placement.universe,
-        placement.address,
-        placement.personality
+        "    enabled: true\n    sku: {}\n    universe: {}\n    address: {}\n    personality: {}\n",
+        placement.sku, placement.universe, placement.address, placement.personality
     );
     text
 }
@@ -216,7 +218,8 @@ mod tests {
         Placement {
             device: DeviceId::new(id),
             sku: "H6199".to_owned(),
-            name: "Strip".to_owned(),
+            model: "Strip".to_owned(),
+            name: None,
             personality: Personality::Full,
             universe: PortAddress::new(0).unwrap_or_else(|| unreachable!()),
             address,
@@ -310,6 +313,18 @@ mod tests {
         assert_eq!(patch.node.name, "desk");
         assert_eq!(patch.patch.len(), 2);
         assert_eq!(patch.patch[1].device.as_str(), "AA:BB:CC:DD:EE:02");
+    }
+
+    /// A new entry takes the name the configuration gives, in quotes, so a
+    /// name that YAML would read as another type stays a name.
+    #[test]
+    fn a_new_entry_takes_the_name_the_configuration_gives() {
+        let mut named = placement("AA:BB:CC:DD:EE:01", 1);
+        named.name = Some("kitchen: left".to_owned());
+        let text = write("", &[named, placement("AA:BB:CC:DD:EE:02", 7)], &[]);
+        let patch = Patch::parse(&text, "test").expect("the file parses");
+        assert_eq!(patch.patch[0].name.as_deref(), Some("kitchen: left"));
+        assert_eq!(patch.patch[1].name, None);
     }
 
     #[test]

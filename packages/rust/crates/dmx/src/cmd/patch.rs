@@ -102,6 +102,7 @@ pub(crate) fn update(
             Ok(file) => candidates.push(Candidate {
                 id: &device.id,
                 device: file,
+                name: device.name.as_deref(),
             }),
             Err(error) => ignored.push(skip(device, &error.to_string())),
         }
@@ -222,6 +223,7 @@ fn record(written: &Written, path: &Path) -> Value {
         .map(|placement| {
             json!({
                 "device": placement.device.to_string(),
+                "name": placement.name,
                 "sku": placement.sku,
                 "personality": placement.personality.as_str(),
                 "universe": placement.universe.get(),

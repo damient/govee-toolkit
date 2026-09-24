@@ -27,7 +27,11 @@ fn plan(text: &str, layout: Layout, scanned: &[(DeviceId, &str)]) -> Plan {
         .collect();
     let candidates: Vec<Candidate<'_>> = devices
         .iter()
-        .map(|(id, device)| Candidate { id, device })
+        .map(|(id, device)| Candidate {
+            id,
+            device,
+            name: None,
+        })
         .collect();
     let patch = Patch::parse(text, "patch.yaml").unwrap_or_else(|e| panic!("{e}"));
     patch

@@ -8,7 +8,6 @@
 
 use std::path::Path;
 
-use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{DeviceId, Govee, Walk, WalkObserver};
 use govee_toolkit_dmx::patch::{Fixture, Patch, PortAddress, Rig};
@@ -22,7 +21,7 @@ use super::rig::{configure, resolve, scan};
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Chosen {
     /// The devices the command line named, in the grammar
-    /// [`govee_toolkit::Selector`] reads.
+    /// [`super::target::select`] reads.
     pub(crate) targets: Vec<String>,
     /// The port-address to light.
     pub(crate) universe: Option<PortAddress>,
@@ -114,8 +113,10 @@ impl WalkObserver for Spans<'_> {
         if let Some(object) = record.as_object_mut() {
             object.insert("event".to_owned(), json!("identify"));
         }
-        self.writer
-            .emit(&record, &format!("identify {id}  {}", fixture.span));
+        self.writer.emit(
+            &record,
+            &format!("identify {}  {}", fixture.entry.label(), fixture.span),
+        );
     }
 
     fn refused(&self, id: &DeviceId, reason: &str) {
@@ -144,9 +145,7 @@ fn lit<'a>(govee: &Govee, rig: &'a Rig, chosen: &Chosen) -> Result<Vec<&'a Fixtu
     }
     let mut named: Vec<&Fixture> = Vec::new();
     if !chosen.targets.is_empty() {
-        let ids = govee
-            .select(&chosen.targets, Some(Mode::Lan))
-            .map_err(|e| Failure::config(e.to_string()))?;
+        let ids = super::target::select(govee, rig, &chosen.targets)?;
         for id in &ids {
             let Some(fixture) = fixtures.iter().find(|f| &f.entry.device == id) else {
                 return Err(Failure::config(format!(

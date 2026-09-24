@@ -345,3 +345,14 @@ fn an_entry_can_hold_its_own_state() {
     assert!(patch.patch[0].hold);
     assert!(!patch.patch[0].enabled);
 }
+
+/// An operator reads the name the patch gives, and the identity beside it.
+#[test]
+fn a_fault_names_the_fixture_by_the_name_the_patch_gives() {
+    let entry = "  - { device: A, name: kitchen, universe: 0, address: 513, personality: full }\n";
+    let errors = one("H6008", entry).expect_err("the address is outside a universe");
+    let [error] = errors.as_slice() else {
+        panic!("{errors:?}");
+    };
+    assert!(error.to_string().starts_with("kitchen (A): "), "{error}");
+}

@@ -4,6 +4,7 @@
 //! took, the failures, and the counters at the end: a line per frame at 44
 //! frames per second would bury them.
 
+use std::collections::BTreeMap;
 use std::net::SocketAddr;
 
 use govee_toolkit::DeviceId;
@@ -11,7 +12,7 @@ use govee_toolkit::exit::Writer;
 use govee_toolkit_dmx::apply::{Counts, Look};
 use govee_toolkit_dmx::input::UniverseFrame;
 use govee_toolkit_dmx::node::Observer;
-use govee_toolkit_dmx::patch::{Fixture, Patch, Rig};
+use govee_toolkit_dmx::patch::{Fixture, Label, Patch, Rig};
 use serde_json::{Value, json};
 
 /// The lines, or the records, one run writes.
@@ -23,6 +24,9 @@ pub(crate) struct Printer {
     /// Whether the run prints the answered polls. A desk polls every few
     /// seconds, and the lines bury the counters of a long run.
     debug: bool,
+    /// Every patched fixture, as a message names it. [`Printer::started`]
+    /// fills it.
+    labels: BTreeMap<DeviceId, Label>,
 }
 
 impl Printer {
@@ -31,11 +35,35 @@ impl Printer {
             writer,
             dry_run,
             debug,
+            labels: BTreeMap::new(),
         }
     }
 
+    /// `id`, as a message names it: with the name the patch gives, where it
+    /// gives one.
+    fn label(&self, id: &DeviceId) -> String {
+        self.labels
+            .get(id)
+            .map_or_else(|| id.to_string(), ToString::to_string)
+    }
+
+    /// `record`, with the name the patch gives `id`, where it gives one.
+    fn named(&self, mut record: Value, id: &DeviceId) -> Value {
+        let name = self.labels.get(id).and_then(|label| label.name.as_deref());
+        if let (Some(name), Some(fields)) = (name, record.as_object_mut()) {
+            fields.insert("name".to_owned(), json!(name));
+        }
+        record
+    }
+
     /// The socket, the node name and the rig, before the first frame.
-    pub(crate) fn started(&self, bound: Option<SocketAddr>, patch: &Patch, rig: &Rig) {
+    pub(crate) fn started(&mut self, bound: Option<SocketAddr>, patch: &Patch, rig: &Rig) {
+        self.labels = rig
+            .fixtures()
+            .iter()
+            .chain(rig.reserved())
+            .map(|fixture| (fixture.entry.device.clone(), fixture.entry.label()))
+            .collect();
         let address = bound.map_or_else(|| patch.node.bind.to_string(), |a| a.to_string());
         let fixtures: Vec<Value> = rig.fixtures().iter().map(Fixture::json).collect();
         self.writer.emit(
@@ -64,7 +92,7 @@ impl Printer {
         lines.extend(rig.fixtures().iter().map(|fixture| {
             format!(
                 "{}  {}  {}",
-                fixture.entry.device,
+                fixture.entry.label(),
                 fixture.span,
                 fixture.profile.personality()
             )
@@ -72,7 +100,8 @@ impl Printer {
         lines.extend(rig.reserved().iter().map(|fixture| {
             format!(
                 "{}  {}  reserved, not driven",
-                fixture.entry.device, fixture.span
+                fixture.entry.label(),
+                fixture.span
             )
         }));
         lines.join("\n")
@@ -81,16 +110,19 @@ impl Printer {
     /// What each device did, once the node has stopped.
     pub(crate) fn ended(&self, counts: &[Counts]) {
         for count in counts {
+            let record = json!({
+                "event": "counts",
+                "device": count.id.to_string(),
+                "frames_sent": count.frames_sent,
+                "frames_superseded": count.frames_superseded,
+            });
             self.writer.emit(
-                &json!({
-                    "event": "counts",
-                    "device": count.id.to_string(),
-                    "frames_sent": count.frames_sent,
-                    "frames_superseded": count.frames_superseded,
-                }),
+                &self.named(record, &count.id),
                 &format!(
                     "{}  {} frames sent  {} superseded",
-                    count.id, count.frames_sent, count.frames_superseded
+                    self.label(&count.id),
+                    count.frames_sent,
+                    count.frames_superseded
                 ),
             );
         }
@@ -127,8 +159,10 @@ impl Observer for Printer {
             fields.insert("event".to_owned(), json!("resolved"));
             fields.insert("device".to_owned(), json!(id.to_string()));
         }
-        self.writer
-            .emit(&record, &format!("  {id}  {}", look_text(look)));
+        self.writer.emit(
+            &self.named(record, id),
+            &format!("  {}  {}", self.label(id), look_text(look)),
+        );
     }
 
     fn refused(&mut self, source: SocketAddr, reason: &str) {
@@ -167,9 +201,10 @@ impl Observer for Printer {
     /// Always reported, and on stderr: a run that drives 39 devices and drops
     /// one must say so.
     fn failed(&mut self, id: &DeviceId, reason: &str) {
+        let record = json!({ "event": "failed", "device": id.to_string(), "reason": reason });
         self.writer.warn(
-            &json!({ "event": "failed", "device": id.to_string(), "reason": reason }),
-            &format!("failed  {id}  {reason}"),
+            &self.named(record, id),
+            &format!("failed  {}  {reason}", self.label(id)),
         );
     }
 }

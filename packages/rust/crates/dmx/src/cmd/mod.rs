@@ -9,6 +9,7 @@ pub(crate) mod patch;
 pub(crate) mod profile;
 pub(crate) mod rig;
 pub(crate) mod run;
+pub(crate) mod target;
 
 use govee_toolkit::exit::Failure;
 use govee_toolkit_dmx::patch::{MAX_PORT_ADDRESS, PortAddress};

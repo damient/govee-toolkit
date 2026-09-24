@@ -3,10 +3,10 @@
 //! An operator reads these next to a desk, so every message names the entry
 //! and, where the fault is a channel range, the range itself.
 
-use govee_toolkit::DeviceId;
 use thiserror::Error;
 
 use super::address::PortAddress;
+use super::label::Label;
 use crate::profile::{self, Personality, UNIVERSE};
 
 /// The channels one fixture answers to, on one port-address.
@@ -55,7 +55,7 @@ pub enum Error {
     #[error("{device}: {field} is {value}, over the {max} it holds")]
     Address {
         /// The entry it is about.
-        device: DeviceId,
+        device: Label,
         /// Which of `net`, `subnet` and `universe` is too large.
         field: &'static str,
         /// What the patch says.
@@ -70,7 +70,7 @@ pub enum Error {
     )]
     StartAddress {
         /// The entry it is about.
-        device: DeviceId,
+        device: Label,
         /// What the patch says.
         address: u16,
     },
@@ -83,7 +83,7 @@ pub enum Error {
     )]
     PastUniverse {
         /// The entry it is about.
-        device: DeviceId,
+        device: Label,
         /// The personality it asks for.
         personality: Personality,
         /// The channels it would take.
@@ -96,11 +96,11 @@ pub enum Error {
     #[error("{first} and {second} overlap: {first_span} and {second_span}")]
     Overlap {
         /// The entry that sits lower.
-        first: DeviceId,
+        first: Label,
         /// The channels it takes.
         first_span: Span,
         /// The entry that sits higher.
-        second: DeviceId,
+        second: Label,
         /// The channels it takes.
         second_span: Span,
     },
@@ -109,7 +109,7 @@ pub enum Error {
     #[error("{device} is patched twice")]
     Twice {
         /// The entry it is about.
-        device: DeviceId,
+        device: Label,
     },
     /// Nothing states how many channels the entry holds, so the next scan
     /// could hand them to a second fixture.
@@ -118,19 +118,19 @@ pub enum Error {
     )]
     Unsized {
         /// The entry it is about.
-        device: DeviceId,
+        device: Label,
     },
     /// Nothing says what the device is, so nothing says what it serves.
     #[error("{device}: no device of that identity answered; the bridge drives what it found")]
     Unknown {
         /// The entry it is about.
-        device: DeviceId,
+        device: Label,
     },
     /// The device serves the personality through nothing.
     #[error("{device}: {source}")]
     Unserved {
         /// The entry it is about.
-        device: DeviceId,
+        device: Label,
         /// What the channel table refused.
         source: profile::Error,
     },
