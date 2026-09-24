@@ -14,6 +14,8 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 - A verb on a group reaches every member at once. A failed member stops no
   other one, and the run exits with the code of the first failure.
 - `identify` and `devices` take a group as a target.
+- A bare target that is no name, no group and no identity fails before any
+  scan, with exit code 4.
 
 ## [0.7.0] — 2026-09-23
 

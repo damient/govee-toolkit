@@ -263,6 +263,7 @@ fn one_reads_an_identity() {
 #[test]
 fn one_refuses_what_is_not_one_device() {
     assert!(matches!(one("name:attic"), Err(Error::NoMatch { .. })));
+    assert!(matches!(one("attic"), Err(Error::NoMatch { .. })));
     assert!(matches!(one("twin"), Err(Error::Several { .. })));
     assert!(matches!(one("sku:H6008"), Err(Error::NotOne { .. })));
     assert!(matches!(one("name:"), Err(Error::EmptyValue { .. })));
@@ -293,6 +294,7 @@ fn many_reads_a_group_in_identity_order() {
 #[test]
 fn many_refuses_what_the_configuration_cannot_resolve() {
     assert!(matches!(many("group:attic"), Err(Error::NoMatch { .. })));
+    assert!(matches!(many("attic"), Err(Error::NoMatch { .. })));
     assert!(matches!(many("sku:H6008"), Err(Error::Model { .. })));
     assert_eq!(
         many("hall").err(),

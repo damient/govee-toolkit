@@ -10,7 +10,8 @@ releases apart and keeps
 ### Added
 
 - `Selector::one()` reads a target that names one device: an identity, or a
-  name that `config.yaml` gives. It reads no scan.
+  name that `config.yaml` gives. It reads no scan. A bare target that is no
+  name and does not read as an identity is `select::Error::NoMatch`.
 - `select::Error::NotOne` and `select::Error::Several` — a SKU, or a name that
   two configured devices carry, where one device is expected.
 - `Govee::target()` — `Selector::one()` against the configuration in force.

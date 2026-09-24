@@ -21,13 +21,14 @@ impl Selector {
     /// Read a target that names one device, against the names in `config`.
     ///
     /// `id:…` and `name:…` state the kind. A bare target is a name where the
-    /// configuration gives one, and an identity otherwise.
+    /// configuration gives one, and an identity where it reads as one.
     ///
     /// # Errors
     ///
     /// - [`Error::Empty`] and [`Error::EmptyValue`] as for [`Selector::parse`].
     /// - [`Error::NotOne`] for `sku:…` and for a group.
-    /// - [`Error::NoMatch`] for a `name:…` the configuration does not give.
+    /// - [`Error::NoMatch`] for a `name:…` the configuration does not give, and
+    ///   for a bare target that is no name and does not read as an identity.
     /// - [`Error::Several`] for a name that two devices carry.
     /// - [`Error::Ambiguous`] for a bare target that reads as two kinds.
     pub fn one(target: &str, config: &Config) -> Result<DeviceId, Error> {
@@ -126,7 +127,10 @@ fn find(target: &str, config: &Config) -> Result<Found, Error> {
         (None, Some(_)) if identity => Err(ambiguous(target, ID, GROUP)),
         (Some(id), None) => Ok(Found::Device(id)),
         (None, Some(found)) => Ok(found),
-        (None, None) => Ok(Found::Device(DeviceId::new(target))),
+        (None, None) if identity => Ok(Found::Device(DeviceId::new(target))),
+        (None, None) => Err(Error::NoMatch {
+            target: format!("{NAME}:{target}"),
+        }),
     }
 }
 
