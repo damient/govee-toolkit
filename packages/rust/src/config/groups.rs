@@ -24,6 +24,15 @@ impl Config {
             .collect()
     }
 
+    /// The devices the configuration gives `name`, in identity order. The
+    /// comparison ignores case and is exact.
+    pub fn named<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a DeviceId> + 'a {
+        self.devices
+            .iter()
+            .filter(move |(_, device)| gives(device.name.as_deref(), name))
+            .map(|(id, _)| id)
+    }
+
     /// Whether a device carries `group` under `groups:`.
     #[must_use]
     pub fn is_group(&self, group: &str) -> bool {
@@ -71,6 +80,10 @@ impl Config {
 
 pub(crate) fn carries(groups: &[String], group: &str) -> bool {
     groups.iter().any(|given| given.eq_ignore_ascii_case(group))
+}
+
+pub(crate) fn gives(given: Option<&str>, name: &str) -> bool {
+    given.is_some_and(|given| given.eq_ignore_ascii_case(name))
 }
 
 #[cfg(test)]

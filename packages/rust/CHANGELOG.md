@@ -24,6 +24,10 @@ releases apart and keeps
   a device or every member of a group, from the configuration alone.
 - `Govee::group()`, `Govee::group_on()` and `GroupHandle` — a verb on every
   member at once, one `Outcome` per member. A failed member stops no other one.
+- `select::Names` and `Selector::resolve()` — a bare target settles against
+  the names and the groups of a source the caller gives. The known devices
+  and `Config` implement `Names`.
+- `Config::named()` — the devices the configuration gives one name.
 - `Device::groups` — the groups the configuration puts a device in.
 - `select::Error::Model` — `sku:…` where the configuration alone resolves the
   target.

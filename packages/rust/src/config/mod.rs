@@ -44,6 +44,7 @@ mod groups;
 mod lan;
 
 pub use self::cloud::{CloudConfig, KEY_ENV};
+pub(crate) use self::groups::{carries, gives};
 pub use self::lan::LanConfig;
 
 /// The whole configuration file.

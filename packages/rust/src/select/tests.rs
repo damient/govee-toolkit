@@ -206,7 +206,7 @@ fn a_bare_sku_that_a_device_carries_as_a_name_is_refused() {
     let known = vec![device("1C:8B:C4:A2:C0:46:64:6E", "H61A0", Some("H6008"))];
     let selector = Selector::Sku("H6008".to_owned());
     assert_eq!(
-        settle("H6008", selector, &known).err(),
+        settle("H6008", selector, known.as_slice()).err(),
         Some(Error::Ambiguous {
             target: "H6008".to_owned(),
             kind: "sku".to_owned(),
@@ -337,12 +337,12 @@ fn a_bare_target_that_no_device_carries_as_a_name_reads_as_a_group() {
     ];
     let bare = Selector::Name("ambient".to_owned());
     assert_eq!(
-        settle("ambient", bare, &known),
+        settle("ambient", bare, known.as_slice()),
         Ok(Selector::Group("ambient".to_owned()))
     );
     let clash = Selector::Name("kitchen".to_owned());
     assert!(matches!(
-        settle("kitchen", clash, &known),
+        settle("kitchen", clash, known.as_slice()),
         Err(Error::Ambiguous { .. })
     ));
     let group = Selector::Group("ambient".to_owned());

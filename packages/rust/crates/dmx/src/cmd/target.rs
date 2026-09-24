@@ -8,7 +8,8 @@
 
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::Failure;
-use govee_toolkit::{DeviceId, Govee, Selector, select};
+use govee_toolkit::select::Names;
+use govee_toolkit::{Config, DeviceId, Govee, Selector, select};
 use govee_toolkit_dmx::patch::{Fixture, Rig};
 
 /// The devices `targets` name, in the order they were written, each one once.
@@ -34,31 +35,33 @@ pub(crate) fn select(
     Ok(chosen)
 }
 
+/// The patch and the configuration, read as one source of names and groups.
+struct Sources<'a> {
+    rig: &'a Rig,
+    config: &'a Config,
+}
+
+impl Names for Sources<'_> {
+    fn names(&self, name: &str) -> bool {
+        !self.rig.named(name).is_empty() || self.config.names(name)
+    }
+
+    fn groups(&self, group: &str) -> bool {
+        !self.rig.grouped(group).is_empty() || self.config.groups(group)
+    }
+}
+
 fn one(govee: &Govee, rig: &Rig, target: &str) -> Result<Vec<DeviceId>, Failure> {
     let refused = |e: select::Error| Failure::config(e.to_string());
-    let selector = Selector::parse(target, govee.catalog()).map_err(refused)?;
-    let bare = !prefixed(target);
     let config = govee.config();
+    let selector =
+        Selector::resolve(target, govee.catalog(), &Sources { rig, config }).map_err(refused)?;
     match &selector {
         Selector::Name(name) => {
             let named = ids(&rig.named(name));
-            let grouped = if bare {
-                ids(&rig.grouped(name))
-            } else {
-                Vec::new()
-            };
-            let config_named = !configured(govee, name).is_empty();
             if !named.is_empty() {
-                if bare && (!grouped.is_empty() || config.is_group(name)) {
-                    return Err(refused(ambiguous(target, "name", "group")));
-                }
-                return agree(named, &configured(govee, name), "name", name);
-            }
-            if !grouped.is_empty() {
-                if config_named {
-                    return Err(refused(ambiguous(target, "name", "group")));
-                }
-                return agree(grouped, &config.members(name), "group", name);
+                let configured: Vec<DeviceId> = config.named(name).cloned().collect();
+                return agree(named, &configured, "name", name);
             }
         }
         Selector::Group(group) => {
@@ -67,17 +70,12 @@ fn one(govee: &Govee, rig: &Rig, target: &str) -> Result<Vec<DeviceId>, Failure>
                 return agree(grouped, &config.members(group), "group", group);
             }
         }
-        Selector::Id(_) | Selector::Sku(_) => {
-            let written = target.trim();
-            if bare && !rig.named(written).is_empty() {
-                return Err(refused(ambiguous(target, kind(&selector), "name")));
-            }
-            if bare && !rig.grouped(written).is_empty() {
-                return Err(refused(ambiguous(target, kind(&selector), "group")));
-            }
-        }
+        Selector::Id(_) | Selector::Sku(_) => {}
     }
-    govee.select([target], Some(Mode::Lan)).map_err(refused)
+    // The prefixed form: the scanned devices do not settle the target again.
+    govee
+        .select([selector.to_string()], Some(Mode::Lan))
+        .map_err(refused)
 }
 
 /// `patched`, where the configuration gives `value` to no device outside it.
@@ -100,50 +98,6 @@ fn ids(fixtures: &[&Fixture]) -> Vec<DeviceId> {
         .iter()
         .map(|fixture| fixture.entry.device.clone())
         .collect()
-}
-
-fn ambiguous(target: &str, kind: &str, other: &str) -> select::Error {
-    select::Error::Ambiguous {
-        target: target.trim().to_owned(),
-        kind: kind.to_owned(),
-        other: other.to_owned(),
-    }
-}
-
-/// Every device the configuration gives `name`. It reads the file and no
-/// scan, so a device that is off still counts.
-fn configured(govee: &Govee, name: &str) -> Vec<DeviceId> {
-    govee
-        .config()
-        .devices
-        .iter()
-        .filter(|(_, device)| {
-            device
-                .name
-                .as_deref()
-                .is_some_and(|given| given.eq_ignore_ascii_case(name))
-        })
-        .map(|(id, _)| id.clone())
-        .collect()
-}
-
-/// A prefix states the kind, so a prefixed target is never ambiguous.
-fn prefixed(target: &str) -> bool {
-    target.split_once(':').is_some_and(|(prefix, _)| {
-        matches!(
-            prefix.trim().to_ascii_lowercase().as_str(),
-            "id" | "sku" | "name" | "group"
-        )
-    })
-}
-
-fn kind(selector: &Selector) -> &'static str {
-    match selector {
-        Selector::Id(_) => "id",
-        Selector::Sku(_) => "sku",
-        Selector::Name(_) => "name",
-        Selector::Group(_) => "group",
-    }
 }
 
 #[cfg(test)]
