@@ -3,7 +3,7 @@
 //! Each one calls the matching method of the crate, which reads the entry the
 //! device file marks with that `role:`. No command name lives here.
 
-use govee_toolkit::{Identify, Music, Paint};
+use govee_toolkit::{Identify, Paint};
 use napi::Env;
 use napi::bindgen_prelude::{PromiseRaw, Unknown};
 use napi_derive::napi;
@@ -114,14 +114,7 @@ impl DeviceHandle {
             conv::Channels<'_>,
         >,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
-        let color = color.map(|value| conv::rgb(env, &value)).transpose()?;
-        let default = Music::default();
-        let music = Music {
-            effect,
-            sensitivity: sensitivity.unwrap_or(default.sensitivity),
-            soft: soft.unwrap_or(default.soft),
-            color,
-        };
+        let music = conv::music(env, effect, sensitivity, soft, color.as_ref())?;
         self.served(env, |govee, pinned, id| async move {
             govee.device_maybe_on(&id, pinned).music(&music).await
         })

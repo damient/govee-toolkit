@@ -6,7 +6,6 @@ use govee_toolkit::Error;
 use napi::bindgen_prelude::{Function, JsObjectValue, Object, Unknown};
 use napi::{Env, JsValue};
 
-/// Build one JavaScript error object.
 fn object<'env>(
     env: &'env Env,
     constructor: &str,
@@ -35,25 +34,38 @@ fn build(env: &Env, constructor: &str, name: &str, code: &str, message: String) 
     )
 }
 
-/// A core failure, as an error object to hand over rather than throw.
-pub(crate) fn error_object<'env>(
-    env: &'env Env,
-    name: &str,
-    code: &str,
-    message: &str,
-) -> napi::Result<Object<'env>> {
-    object(env, "Error", name, code, message)
+/// The name, the code and the message of a core failure. The object itself
+/// is built on the JavaScript thread.
+#[derive(Debug, Clone)]
+pub(crate) struct Parts {
+    name: &'static str,
+    code: &'static str,
+    message: String,
+}
+
+impl Parts {
+    pub(crate) fn new(error: &Error) -> Self {
+        Self {
+            name: error.category().class_name(),
+            code: error.code(),
+            message: error.to_string(),
+        }
+    }
+
+    /// The error object to hand over rather than throw.
+    pub(crate) fn object<'env>(&self, env: &'env Env) -> napi::Result<Object<'env>> {
+        object(env, "Error", self.name, self.code, &self.message)
+    }
 }
 
 /// A core failure, as the error JavaScript sees.
 pub(crate) fn to_js(env: &Env, error: &Error) -> napi::Error {
-    build(
-        env,
-        "Error",
-        error.category().class_name(),
-        error.code(),
-        error.to_string(),
-    )
+    let Parts {
+        name,
+        code,
+        message,
+    } = Parts::new(error);
+    build(env, "Error", name, code, message)
 }
 
 /// Hand a core result to JavaScript.

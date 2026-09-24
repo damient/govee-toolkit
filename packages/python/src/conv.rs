@@ -1,7 +1,7 @@
 //! What crosses between a Python value and a core value.
 
 use govee_toolkit::codec::{Supplied, UnknownMode, coerce};
-use govee_toolkit::{Mode, ParseError, Rate, Resolution};
+use govee_toolkit::{Mode, Music, ParseError, Rate, Resolution};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyFloat, PyInt, PyString};
 use serde::Serialize;
@@ -15,6 +15,22 @@ pub(crate) fn mode(name: &str) -> PyResult<Mode> {
 
 pub(crate) fn modes(names: Vec<String>) -> PyResult<Vec<Mode>> {
     names.into_iter().map(|name| mode(&name)).collect()
+}
+
+/// `None` takes the core's default for `sensitivity` and for `soft`.
+pub(crate) fn music(
+    effect: i64,
+    sensitivity: Option<i64>,
+    soft: Option<bool>,
+    color: Option<&Bound<'_, PyAny>>,
+) -> PyResult<Music> {
+    let default = Music::default();
+    Ok(Music {
+        effect,
+        sensitivity: sensitivity.unwrap_or(default.sensitivity),
+        soft: soft.unwrap_or(default.soft),
+        color: color.map(rgb).transpose()?,
+    })
 }
 
 fn triple(channels: &[i64]) -> PyResult<[u8; 3]> {

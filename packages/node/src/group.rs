@@ -6,13 +6,13 @@
 use std::future::Future;
 
 use govee_toolkit::codec::Mode;
-use govee_toolkit::{DeviceId, Govee, Music, Outcome as CoreOutcome, Paint, Served as CoreServed};
+use govee_toolkit::{DeviceId, Govee, Outcome as CoreOutcome, Paint, Served as CoreServed};
 use napi::Env;
 use napi::bindgen_prelude::{Object, PromiseRaw, Unknown};
 use napi_derive::napi;
 
 use crate::conv;
-use crate::errors::error_object;
+use crate::errors::Parts;
 use crate::types::Served;
 
 /// What one member answered: `served` or `mode` where the call succeeded,
@@ -22,9 +22,7 @@ pub struct Outcome {
     id: String,
     mode: Option<String>,
     served: Option<CoreServed>,
-    /// The name, the code and the message of the error. The object itself is
-    /// built on the JavaScript thread, when `error` is read.
-    error: Option<(String, String, String)>,
+    error: Option<Parts>,
 }
 
 #[napi]
@@ -60,7 +58,7 @@ impl Outcome {
     pub fn error<'env>(&self, env: &'env Env) -> napi::Result<Option<Object<'env>>> {
         self.error
             .as_ref()
-            .map(|(name, code, message)| error_object(env, name, code, message))
+            .map(|parts| parts.object(env))
             .transpose()
     }
 
@@ -90,11 +88,7 @@ impl Outcome {
                 id,
                 mode: None,
                 served: None,
-                error: Some((
-                    error.category().class_name().to_owned(),
-                    error.code().to_owned(),
-                    error.to_string(),
-                )),
+                error: Some(Parts::new(&error)),
             },
         }
     }
@@ -201,13 +195,7 @@ impl GroupHandle {
             conv::Channels<'_>,
         >,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        let default = Music::default();
-        let music = Music {
-            effect,
-            sensitivity: sensitivity.unwrap_or(default.sensitivity),
-            soft: soft.unwrap_or(default.soft),
-            color: color.map(|value| conv::rgb(env, &value)).transpose()?,
-        };
+        let music = conv::music(env, effect, sensitivity, soft, color.as_ref())?;
         self.served(env, move |govee, pinned, members| async move {
             govee.group_maybe_on(&members, pinned).music(&music).await
         })
