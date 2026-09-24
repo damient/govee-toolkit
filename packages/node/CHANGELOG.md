@@ -4,6 +4,8 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.4.0] — 2026-09-24
+
 ### Added
 
 - `Govee.targets()` — the identities one target names: a device, or every
@@ -13,6 +15,8 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 - `Outcome` carries `id`, `ok`, `mode`, `served`, and `error`: the `Error`
   that the call on one device would carry.
 - `Device.groups` — the groups the configuration puts a device in.
+- `Govee.select()` takes a group, bare or as `group:<name>`, and selects its
+  members.
 
 ### Changed
 
@@ -23,6 +27,11 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 - **Breaking:** both throw for a bare target that is no name and does not
   read as an identity. `Govee.targets()` and `Govee.group()` throw for it
   too, before any scan.
+
+### Fixed
+
+- `lan.cache` in `config.yaml` takes a path alone. `cache: false` is refused
+  with an `Error` that names `cache_disabled: true`.
 
 ## [0.3.0] — 2026-09-23
 

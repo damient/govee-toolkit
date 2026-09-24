@@ -7,11 +7,13 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.13.0] — 2026-09-24
+
 ### Added
 
-- `Selector::one()` reads a target that names one device: an identity, or a
-  name that `config.yaml` gives. It reads no scan. A bare target that is no
-  name and does not read as an identity is `select::Error::NoMatch`.
+- `Selector::one()` reads a target that names one device, an identity or a
+  configured name, with no scan. A bare target that names nothing is
+  `select::Error::NoMatch`.
 - `select::Error::NotOne` and `select::Error::Several` — a SKU, or a name that
   two configured devices carry, where one device is expected.
 - `Govee::target()` — `Selector::one()` against the configuration in force.
@@ -23,13 +25,11 @@ releases apart and keeps
 - `Selector::many()` and `Govee::targets()` — the identities one target names,
   a device or every member of a group, from the configuration alone.
 - `Govee::group()`, `Govee::group_on()` and `GroupHandle` — a verb on every
-  member at once, one `Outcome` per member. A failed member stops no other one.
-  `GroupHandle::ensure_known()` scans for every member at once, so absent
-  members cost one scan window between them. A pinned group scans over its
-  mode alone.
+  member at once, one `Outcome` each. A failed member stops no other one.
+- `GroupHandle::ensure_known()` scans for every member at once: absent members
+  cost one scan window. A pinned group scans over its mode alone.
 - `select::Names` and `Selector::resolve()` — a bare target settles against
-  the names and the groups of a source the caller gives. The known devices
-  and `Config` implement `Names`.
+  the caller's names and groups. The known devices and `Config` implement it.
 - `Config::named()` — the devices the configuration gives one name.
 - `Device::groups` — the groups the configuration puts a device in.
 - `select::Error::Model` — `sku:…` where the configuration alone resolves the
@@ -46,15 +46,13 @@ releases apart and keeps
   the new variant and fill the new field.
 - `select::Error::NotOne` covers a group as well as a SKU.
 - `exit`: `mode_not_enabled` exits with code 3, `CONFIG`, in place of 1.
-- `ble` runs one scan at a time: the scan that ends first stopped the adapter
-  under any other one. A `scan_for()` that waited answers a device the scan
-  before it heard, without a scan of its own.
+- `ble` runs one scan at a time. A `scan_for()` that waited answers a device
+  that the scan before it heard, with no scan of its own.
 
 ### Fixed
 
-- `lan.cache` in `config.yaml` takes a path alone. `cache: false` is refused
-  with a message that names `cache_disabled: true`: it wrote the cache to a
-  file called `false`.
+- `lan.cache` in `config.yaml` takes a path alone. `cache: false` is refused,
+  and the message names `cache_disabled: true`.
 
 ## [0.12.0] — 2026-09-23
 

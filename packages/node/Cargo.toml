@@ -4,7 +4,7 @@ description = "napi-rs binding over govee-toolkit. Not published to crates.io: i
 # `tools/release-notes.sh` reads the number from package.json to check the tag,
 # the manifest and the changelog against each other. Raise it there and here
 # together.
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT"
