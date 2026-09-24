@@ -23,6 +23,7 @@ impl Shared {
     /// [`Error::Io`](crate::transport::Error::Io) if no adapter is available
     /// or the scan cannot be started.
     pub(super) async fn scan(&self, window: Duration) -> Result<Vec<Discovered>> {
+        let _scanning = self.scanning.lock().await;
         let adapter = self.adapter.as_ref();
         adapter
             .start_scan()
@@ -60,6 +61,10 @@ impl Shared {
         id: &DeviceId,
         window: Duration,
     ) -> Result<Option<Discovered>> {
+        let _scanning = self.scanning.lock().await;
+        if let Some(found) = self.recorded(id)? {
+            return Ok(Some(found));
+        }
         let adapter = self.adapter.as_ref();
         adapter
             .start_scan()
@@ -78,6 +83,18 @@ impl Shared {
             tracing::debug!(error = %e, "the ble scan could not be stopped");
         }
         Ok(found)
+    }
+
+    /// A device that the scan before this one recorded while this one waited
+    /// for the adapter.
+    fn recorded(&self, id: &DeviceId) -> Result<Option<Discovered>> {
+        let devices = self.devices.lock()?;
+        Ok(devices.get(id).map(|tracked| Discovered {
+            id: id.clone(),
+            endpoint: tracked.endpoint.clone(),
+            sku: tracked.sku.clone(),
+            firmware: None,
+        }))
     }
 
     /// Answers the device. `adopted` carries the endpoints already recorded,

@@ -75,3 +75,28 @@ async fn ensure_known_reports_each_member() {
     assert!(known[0].result.is_err());
     assert_eq!(known[1].result.as_ref().ok(), Some(&Mode::Lan));
 }
+
+#[tokio::test]
+async fn a_pinned_ensure_known_fails_a_member_that_does_not_enable_the_mode() {
+    let rig = rig().await;
+    let known = rig.govee.group_on(&[id()], Mode::Ble).ensure_known().await;
+    let refused = known[0].result.as_ref().expect_err("ble is not enabled");
+    assert_eq!(refused.code(), "mode_not_enabled");
+}
+
+/// One after the other, five absent members would cost five scan windows.
+#[tokio::test]
+async fn absent_members_cost_one_scan_window_between_them() {
+    let rig = rig().await;
+    let absent: Vec<DeviceId> = (0..5)
+        .map(|n| DeviceId::new(format!("11:22:33:44:55:7{n}")))
+        .collect();
+    let started = std::time::Instant::now();
+    let known = rig.govee.group(&absent).ensure_known().await;
+    assert!(known.iter().all(|outcome| outcome.result.is_err()));
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < std::time::Duration::from_millis(600),
+        "{elapsed:?}"
+    );
+}

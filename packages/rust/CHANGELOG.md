@@ -24,6 +24,9 @@ releases apart and keeps
   a device or every member of a group, from the configuration alone.
 - `Govee::group()`, `Govee::group_on()` and `GroupHandle` — a verb on every
   member at once, one `Outcome` per member. A failed member stops no other one.
+  `GroupHandle::ensure_known()` scans for every member at once, so absent
+  members cost one scan window between them. A pinned group scans over its
+  mode alone.
 - `select::Names` and `Selector::resolve()` — a bare target settles against
   the names and the groups of a source the caller gives. The known devices
   and `Config` implement `Names`.
@@ -42,6 +45,9 @@ releases apart and keeps
 - **Breaking:** `Selector` gains `Group`, and `Device` gains `groups`. Match
   the new variant and fill the new field.
 - `select::Error::NotOne` covers a group as well as a SKU.
+- `ble` runs one scan at a time: the scan that ends first stopped the adapter
+  under any other one. A `scan_for()` that waited answers a device the scan
+  before it heard, without a scan of its own.
 
 ## [0.12.0] — 2026-09-23
 
