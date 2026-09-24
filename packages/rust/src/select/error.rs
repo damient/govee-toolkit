@@ -75,6 +75,14 @@ pub enum Error {
 }
 
 impl Error {
+    pub(crate) fn ambiguous(target: &str, kind: &str, other: &str) -> Self {
+        Self::Ambiguous {
+            target: target.trim().to_owned(),
+            kind: kind.to_owned(),
+            other: other.to_owned(),
+        }
+    }
+
     /// A stable, language-neutral identifier for this failure. One namespace
     /// with [`crate::Error::code`].
     #[must_use]

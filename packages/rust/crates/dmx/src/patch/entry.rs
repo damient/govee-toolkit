@@ -103,9 +103,7 @@ impl Entry {
         }
         .resolve(&self.label())
     }
-}
 
-impl Entry {
     /// The entry, as a message names it.
     #[must_use]
     pub fn label(&self) -> Label {

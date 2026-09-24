@@ -2,7 +2,7 @@
 //! configuration gives, or a group. It reads no scan, so it resolves before
 //! any transport starts.
 
-use super::{Error, GROUP, ID, Kind, NAME, SKU, Selector, ambiguous, is_identity, kind};
+use super::{Error, GROUP, NAME, Names, SKU, Selector, resolve};
 use crate::config::Config;
 use crate::govee::Govee;
 use crate::transport::DeviceId;
@@ -10,10 +10,7 @@ use crate::transport::DeviceId;
 /// What one target names in the configuration.
 enum Found {
     Device(DeviceId),
-    Group {
-        name: String,
-        members: Vec<DeviceId>,
-    },
+    Group(String),
     Model(String),
 }
 
@@ -34,7 +31,7 @@ impl Selector {
     pub fn one(target: &str, config: &Config) -> Result<DeviceId, Error> {
         match find(target, config)? {
             Found::Device(id) => Ok(id),
-            Found::Group { name, .. } => Err(Error::NotOne {
+            Found::Group(name) => Err(Error::NotOne {
                 target: format!("{GROUP}:{name}"),
             }),
             Found::Model(sku) => Err(Error::NotOne {
@@ -57,7 +54,7 @@ impl Selector {
     pub fn many(target: &str, config: &Config) -> Result<Vec<DeviceId>, Error> {
         match find(target, config)? {
             Found::Device(id) => Ok(vec![id]),
-            Found::Group { members, .. } => Ok(members),
+            Found::Group(name) => Ok(config.members(&name)),
             Found::Model(sku) => Err(Error::Model {
                 target: format!("{SKU}:{sku}"),
             }),
@@ -93,67 +90,39 @@ impl Govee {
     }
 }
 
-fn find(target: &str, config: &Config) -> Result<Found, Error> {
-    let target = target.trim();
-    if target.is_empty() {
-        return Err(Error::Empty);
+/// The devices the configuration names, found by a scan or not.
+impl Names for Config {
+    fn names(&self, name: &str) -> bool {
+        self.named(name).next().is_some()
     }
-    if let Some((prefix, value)) = target.split_once(':')
-        && let Some(kind) = kind(prefix)
-    {
-        let value = value.trim();
-        if value.is_empty() {
-            return Err(Error::EmptyValue {
-                prefix: kind.as_str().to_owned(),
-            });
-        }
-        return match kind {
-            Kind::Id => Ok(Found::Device(DeviceId::new(value))),
-            Kind::Sku => Ok(Found::Model(value.to_uppercase())),
-            Kind::Name => named(value, config)?
-                .map(Found::Device)
-                .ok_or_else(|| Error::NoMatch {
-                    target: format!("{NAME}:{value}"),
-                }),
-            Kind::Group => group(value, config).ok_or_else(|| Error::NoMatch {
-                target: format!("{GROUP}:{value}"),
-            }),
-        };
-    }
-    let identity = is_identity(target);
-    match (named(target, config)?, group(target, config)) {
-        (Some(_), Some(_)) => Err(ambiguous(target, NAME, GROUP)),
-        (Some(_), None) if identity => Err(ambiguous(target, ID, NAME)),
-        (None, Some(_)) if identity => Err(ambiguous(target, ID, GROUP)),
-        (Some(id), None) => Ok(Found::Device(id)),
-        (None, Some(found)) => Ok(found),
-        (None, None) if identity => Ok(Found::Device(DeviceId::new(target))),
-        (None, None) => Err(Error::NoMatch {
-            target: format!("{NAME}:{target}"),
-        }),
+
+    fn groups(&self, group: &str) -> bool {
+        self.is_group(group)
     }
 }
 
+/// A bare target never reads as a SKU here: which SKUs exist is the catalog's
+/// to say, and this reads the configuration alone.
+fn find(target: &str, config: &Config) -> Result<Found, Error> {
+    let selector = resolve(target, None, config)?;
+    let found = match &selector {
+        Selector::Id(id) => Some(Found::Device(id.clone())),
+        Selector::Sku(sku) => Some(Found::Model(sku.clone())),
+        Selector::Name(name) => named(name, config)?.map(Found::Device),
+        Selector::Group(group) => config.is_group(group).then(|| Found::Group(group.clone())),
+    };
+    found.ok_or_else(|| Error::NoMatch {
+        target: selector.to_string(),
+    })
+}
+
 fn named(name: &str, config: &Config) -> Result<Option<DeviceId>, Error> {
-    let mut found = config.devices.iter().filter(|(_, device)| {
-        device
-            .name
-            .as_deref()
-            .is_some_and(|given| given.eq_ignore_ascii_case(name))
-    });
-    let first = found.next().map(|(id, _)| id.clone());
+    let mut found = config.named(name);
+    let first = found.next().cloned();
     if found.next().is_some() {
         return Err(Error::Several {
             target: format!("{NAME}:{name}"),
         });
     }
     Ok(first)
-}
-
-fn group(name: &str, config: &Config) -> Option<Found> {
-    let members = config.members(name);
-    (!members.is_empty()).then(|| Found::Group {
-        name: name.to_owned(),
-        members,
-    })
 }
