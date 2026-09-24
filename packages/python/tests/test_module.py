@@ -15,6 +15,8 @@ EXPORTED = (
     "Device",
     "DeviceHandle",
     "DeviceStatus",
+    "GroupHandle",
+    "Outcome",
     "Health",
     "Reply",
     "Served",

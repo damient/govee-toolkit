@@ -11,6 +11,7 @@ mod device;
 mod errors;
 mod events;
 mod govee;
+mod group;
 mod stream;
 mod types;
 
@@ -32,6 +33,7 @@ fn _govee_toolkit(module: &Bound<'_, PyModule>) -> PyResult<()> {
     device::register(module)?;
     events::register(module)?;
     govee::register(module)?;
+    group::register(module)?;
     stream::register(module)?;
     Ok(())
 }

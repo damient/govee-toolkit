@@ -91,3 +91,40 @@ test("a handle takes a name the configuration gives", async () => {
     await govee.close();
   }
 });
+
+const GROUPED = `devices:
+  "BB:00:00:00:00:02":
+    name: hall
+    groups: [ambient]
+  "AA:00:00:00:00:01":
+    groups: [Ambient]
+    modes: [ble]
+`;
+
+test("a group names its members, and each member answers alone", async () => {
+  const path = join(mkdtempSync(join(tmpdir(), "govee-")), "config.yaml");
+  writeFileSync(path, GROUPED);
+  const govee = await Govee.start(Config.loadFrom(path));
+  try {
+    const members = ["AA:00:00:00:00:01", "BB:00:00:00:00:02"];
+    assert.deepEqual(govee.targets("ambient"), members);
+    assert.deepEqual(govee.targets("hall"), ["BB:00:00:00:00:02"]);
+    const group = govee.group("group:ambient", "lan");
+    assert.deepEqual(group.members, members);
+
+    const outcomes = await group.power(true);
+    assert.deepEqual(
+      outcomes.map((outcome) => outcome.id),
+      members,
+    );
+    assert.ok(outcomes.every((outcome) => !outcome.ok));
+    assert.equal(outcomes[0].error.code, "mode_not_enabled");
+    assert.ok(outcomes[1].error instanceof Error);
+    assert.equal(outcomes[1].error.code, "unknown_device");
+    assert.equal(outcomes[1].served, null);
+
+    assert.throws(() => govee.device("ambient"), { code: "target_not_understood" });
+  } finally {
+    await govee.close();
+  }
+});

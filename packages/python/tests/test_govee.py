@@ -69,3 +69,38 @@ async def test_a_handle_takes_a_name_the_configuration_gives(tmp_path):
             assert refused.value.code == code, target
     finally:
         await sdk.close()
+
+
+GROUPED = """\
+devices:
+  "BB:00:00:00:00:02":
+    name: hall
+    groups: [ambient]
+  "AA:00:00:00:00:01":
+    groups: [Ambient]
+    modes: [ble]
+"""
+
+
+async def test_a_group_names_its_members_and_each_answers_alone(tmp_path):
+    path = tmp_path / "config.yaml"
+    path.write_text(GROUPED, encoding="utf-8")
+    sdk = await Govee.start(Config.load_from(path))
+    try:
+        assert sdk.targets("ambient") == ["AA:00:00:00:00:01", "BB:00:00:00:00:02"]
+        assert sdk.targets("hall") == ["BB:00:00:00:00:02"]
+        group = sdk.group("group:ambient", mode="lan")
+        assert group.members == ["AA:00:00:00:00:01", "BB:00:00:00:00:02"]
+
+        outcomes = await group.power(True)
+        assert [o.id for o in outcomes] == group.members
+        assert not any(o.ok for o in outcomes)
+        assert outcomes[0].error.code == "mode_not_enabled"
+        assert outcomes[1].error.code == "unknown_device"
+        assert outcomes[1].served is None
+
+        with pytest.raises(ConfigError) as refused:
+            sdk.device("ambient")
+        assert refused.value.code == "target_not_understood"
+    finally:
+        await sdk.close()

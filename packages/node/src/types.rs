@@ -77,6 +77,12 @@ impl Device {
         self.inner.name.clone()
     }
 
+    /// The groups the configuration puts it in.
+    #[napi(getter)]
+    pub fn groups(&self) -> Vec<String> {
+        self.inner.groups.clone()
+    }
+
     /// The enabled modes, in preference order.
     #[napi(getter)]
     pub fn modes(&self) -> Vec<String> {

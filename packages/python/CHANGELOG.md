@@ -4,6 +4,16 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `Govee.targets()` — the identities one target names: a device, or every
+  member of a group that `config.yaml` gives.
+- `Govee.group()` and `GroupHandle` — every verb on every member at once. Each
+  answers a list of `Outcome`, and a failed member stops no other one.
+- `Outcome` carries `id`, `ok`, `mode`, `served`, and `error`: the exception
+  that the call on one device would carry.
+- `Device.groups` — the groups the configuration puts a device in.
+
 ### Changed
 
 - **Breaking:** `Govee.device()` and `Govee.device_on()` take a name that the
