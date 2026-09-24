@@ -35,6 +35,9 @@ pub struct Candidate<'a> {
     /// The name the configuration gives the device. A new entry takes it as
     /// the name of the fixture.
     pub name: Option<&'a str>,
+    /// The groups the configuration puts the device in. A new entry takes
+    /// them as the groups of the fixture.
+    pub groups: &'a [String],
 }
 
 /// One entry the plan adds.
@@ -48,6 +51,9 @@ pub struct Placement {
     pub model: String,
     /// The name of the fixture, where the configuration gives the device one.
     pub name: Option<String>,
+    /// The groups of the fixture, where the configuration puts the device in
+    /// some.
+    pub groups: Vec<String>,
     /// The layout the entry takes.
     pub personality: Personality,
     /// The port-address it lands on.
@@ -225,6 +231,7 @@ fn place(
             sku: candidate.device.sku.clone(),
             model: candidate.device.name.clone(),
             name: candidate.name.map(ToOwned::to_owned),
+            groups: candidate.groups.to_vec(),
             personality,
             universe,
             address,

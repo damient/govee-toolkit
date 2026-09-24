@@ -37,6 +37,7 @@ impl Fixture {
         json!({
             "device": self.entry.device.to_string(),
             "name": self.entry.name,
+            "groups": self.entry.groups,
             "universe": self.universe.get(),
             "first": self.span.first,
             "last": self.span.last,
@@ -100,6 +101,22 @@ impl Rig {
                     .name
                     .as_deref()
                     .is_some_and(|given| given.eq_ignore_ascii_case(name))
+            })
+            .collect()
+    }
+
+    /// Every driven fixture whose entry carries `group`, in patch order. The
+    /// comparison ignores case and is exact.
+    #[must_use]
+    pub fn grouped(&self, group: &str) -> Vec<&Fixture> {
+        self.fixtures
+            .iter()
+            .filter(|fixture| {
+                fixture
+                    .entry
+                    .groups
+                    .iter()
+                    .any(|given| given.eq_ignore_ascii_case(group))
             })
             .collect()
     }

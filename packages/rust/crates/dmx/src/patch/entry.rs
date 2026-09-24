@@ -46,6 +46,10 @@ pub struct Entry {
     /// and a target of `govee-dmx` reads it.
     #[serde(default)]
     pub name: Option<String>,
+    /// The groups of the fixture. A target of `govee-dmx` reads them, and
+    /// they win over the groups of `config.yaml`.
+    #[serde(default)]
+    pub groups: Vec<String>,
     /// The SKU the entry was written for. It sizes the entry where the device
     /// did not answer, so a fixture that is off keeps its channels. An entry
     /// that carries none is sized by the device alone.

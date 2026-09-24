@@ -197,6 +197,14 @@ fn entry(placement: &Placement) -> String {
         // holds.
         let _ = writeln!(text, "    name: {}", serde_json::Value::from(name.as_str()));
     }
+    if !placement.groups.is_empty() {
+        // A JSON array is a YAML flow sequence.
+        let _ = writeln!(
+            text,
+            "    groups: {}",
+            serde_json::Value::from(placement.groups.clone())
+        );
+    }
     let _ = write!(
         text,
         "    enabled: true\n    sku: {}\n    universe: {}\n    address: {}\n    personality: {}\n",
@@ -220,6 +228,7 @@ mod tests {
             sku: "H6199".to_owned(),
             model: "Strip".to_owned(),
             name: None,
+            groups: Vec::new(),
             personality: Personality::Full,
             universe: PortAddress::new(0).unwrap_or_else(|| unreachable!()),
             address,
@@ -325,6 +334,17 @@ mod tests {
         let patch = Patch::parse(&text, "test").expect("the file parses");
         assert_eq!(patch.patch[0].name.as_deref(), Some("kitchen: left"));
         assert_eq!(patch.patch[1].name, None);
+    }
+
+    #[test]
+    fn a_new_entry_takes_the_groups_the_configuration_gives() {
+        let mut grouped = placement("AA:BB:CC:DD:EE:01", 1);
+        grouped.groups = vec!["bar".to_owned(), "yes: no".to_owned()];
+        let text = write("", &[grouped, placement("AA:BB:CC:DD:EE:02", 7)], &[]);
+        let patch = Patch::parse(&text, "test").expect("the file parses");
+        assert_eq!(patch.patch[0].groups, ["bar", "yes: no"]);
+        assert!(patch.patch[1].groups.is_empty());
+        assert!(!text.contains("groups: []"), "{text}");
     }
 
     #[test]

@@ -190,6 +190,7 @@ node:
 patch:
   - device: "AA:BB:CC:DD:EE:FF"
     name: kitchen           # optional. The name of the fixture
+    groups: [bar]           # optional. The groups of the fixture
     sku: H61A0              # optional. What sizes the entry while the device
                             # is off the network
     enabled: true           # the scan writes it. `false` keeps the channels
@@ -213,6 +214,11 @@ the personality decides how many channels follow it.
 key that joins the entry to its device, so a name can change and no address
 moves. `govee-dmx patch` writes the name that `config.yaml` gives the device
 into a new entry, and never writes it again after that.
+
+`groups` puts the fixture in one group or more. A target of `govee-dmx` reads
+a group as it reads a name, and `govee-dmx patch` writes the groups that
+`config.yaml` gives the device into a new entry. A group is a target alone: to
+drive several fixtures from one set of channels, patch them as a clone.
 
 A 10-zone device on `personality: segment` and `address: 1` therefore takes
 channels 1 to 33 of universe 0: channel 1 is the dimmer, channel 2 is the mode
@@ -408,9 +414,9 @@ the patch lists them. The terminal prints the entry before its fixture lights.
 
 A command line that names nothing walks the whole rig. A `TARGET` names the
 device of a fixture, in the grammar `govee identify` reads: an identity, a
-SKU, or a name. `name:` states the kind where a name reads as an identity or
-a SKU. `--universe` and `--address` name fixtures
-by the channels they answer to instead:
+SKU, a name, or a group. `name:` and `group:` state the kind where a target
+reads as two kinds. `--universe` and `--address` name
+fixtures by the channels they answer to instead:
 
 ```sh
 govee-dmx identify --address 33        # the fixture on channel 33 of universe 0
@@ -418,7 +424,9 @@ govee-dmx identify --universe 1        # every fixture of universe 1
 govee-dmx identify H6008 kitchen       # by model, and by name
 ```
 
-A name reads the `name:` of the patch first, and `config.yaml` after it:
+A name reads the `name:` of the patch first, and `config.yaml` after it. A
+group reads the `groups:` of the patch the same way, and lights its fixtures
+in patch order:
 
 - A name that the patch gives selects that fixture, whatever name
   `config.yaml` gives its device.
@@ -426,6 +434,10 @@ A name reads the `name:` of the patch first, and `config.yaml` after it:
   refused. Write the identity, as `id:<identity>`.
 - A bare target that reads as an identity or a SKU, and that a fixture carries
   as a name, is refused. Write `name:` or `sku:` to state the kind.
+- A group that `config.yaml` gives to a device outside the same group of the
+  patch is refused. Write the identities, as `id:<identity>`.
+- A bare target that reads as a name and as a group, in the patch or in
+  `config.yaml`, is refused. Write `name:` or `group:` to state the kind.
 
 - `--universe` is the port-address to light. With `--address`, the universe
   that channel sits on. The default is 0.
