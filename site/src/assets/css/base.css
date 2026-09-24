@@ -28,6 +28,7 @@ code, pre, kbd { font-family: var(--mono); font-size: .92em; }
    browser draw a synthetic bold. */
 strong, b { font-weight: 600; }
 :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
+::selection { background: var(--accent-ember); color: #fff; }
 img, svg { max-width: 100%; }
 
 .shell { width: 100%; max-width: var(--shell); margin-inline: auto; padding-inline: var(--gutter); }
