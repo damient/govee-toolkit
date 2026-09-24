@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 slug: troubleshooting
-order: 7
+order: 8
 description: Nothing answers the scan, a command does nothing, a value is refused — what each one means.
 ---
 

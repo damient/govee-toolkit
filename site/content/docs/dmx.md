@@ -1,7 +1,7 @@
 ---
 title: DMX
 slug: dmx
-order: 6
+order: 7
 description: Drive your lights from a lighting desk over DMX, the way a show drives every other fixture.
 ---
 

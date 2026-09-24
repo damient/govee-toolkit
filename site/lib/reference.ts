@@ -10,7 +10,7 @@ import { modeBadge } from "./mode-badge.ts";
 import type { Mode, NavEntry, RefEntry, RefGroup, Reference } from "./types.ts";
 
 /** Where the page sits in the documentation menu. */
-export const REFERENCE: NavEntry = { url: "reference/", title: "Reference", order: 4 };
+export const REFERENCE: NavEntry = { url: "reference/", title: "Reference", order: 5 };
 
 /** The page, from `content/reference.json` and the documentation menu. */
 export function referencePage(reference: Reference, nav: NavEntry[]): string {

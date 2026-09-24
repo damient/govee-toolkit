@@ -32,13 +32,23 @@
         {
           "id": "select",
           "title": "select",
-          "summary": "Name devices by identity, by SKU or by name.",
-          "detail": "A target is an identity (`1C:8B:\u2026`), a SKU (`H6159`), or a name the configuration gives a device (`kitchen`). `id:`, `sku:` and `name:` state the kind where the target alone does not. A SKU matches that model and no alias of it, and a name matches the whole name. A SKU and a name read the devices already known, so scan first. A handle for one device takes a name too, and reads it from the configuration with no scan.",
+          "summary": "Name devices by identity, by SKU, by name or by group.",
+          "detail": "A target is an identity (`1C:8B:\u2026`), a SKU (`H6159`), a name the configuration gives a device (`kitchen`), or a group the configuration gives (`ambient`). `id:`, `sku:`, `name:` and `group:` state the kind where the target alone does not. A SKU matches that model and no alias of it, and a name or a group matches whole. `select` reads the devices already known, so scan first. A handle for one device takes a name too, and reads it from the configuration with no scan.",
           "examples": {
-            "cli": "govee devices H6159\ngovee devices kitchen\ngovee on kitchen",
-            "rust": "let chosen = govee.select([\"H6159\", \"kitchen\"])?;\nlet kitchen = govee.device(&govee.target(\"kitchen\")?);",
+            "cli": "govee devices H6159\ngovee devices kitchen ambient\ngovee on kitchen",
+            "rust": "let chosen = govee.select([\"H6159\", \"kitchen\"], None)?;\nlet kitchen = govee.device(&govee.target(\"kitchen\")?);",
             "python": "chosen = govee.select([\"H6159\", \"kitchen\"])\nkitchen = govee.device(\"kitchen\")",
             "node": "const chosen = govee.select(['H6159', 'kitchen'])\nconst kitchen = govee.device('kitchen')"
+          }
+        },
+        {
+          "id": "group",
+          "title": "group",
+          "summary": "Send one command to every device of a group at once.",
+          "detail": "`groups:` in the configuration puts a device in a group. `targets` reads the members from the configuration with no scan. Each member answers one outcome over its own modes, and a member that fails stops no other one. `group_on` restricts every member to one mode. A member that does not enable it fails alone.",
+          "examples": {
+            "cli": "govee on ambient\ngovee brightness group:ambient 40",
+            "rust": "let ambient = govee.group(&govee.targets(\"ambient\")?);\nfor outcome in ambient.brightness(40).await {\n    if let Err(error) = outcome.result {\n        eprintln!(\"{}: {error}\", outcome.id);\n    }\n}"
           }
         },
         {
