@@ -124,7 +124,7 @@ impl From<crate::Error> for Failure {
     fn from(error: crate::Error) -> Self {
         let kind = error.code();
         let code = match kind {
-            "config" | "configuration" | "local_devices" | "env" => CONFIG,
+            "config" | "configuration" | "local_devices" | "env" | "mode_not_enabled" => CONFIG,
             // A target the command line names badly is a usage fault; one
             // that matches nothing is the rig answering.
             "target_not_understood" | "ambiguous_target" => USAGE,

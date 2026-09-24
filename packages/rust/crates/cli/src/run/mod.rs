@@ -204,17 +204,14 @@ fn configure(cli: &Cli, mut config: Config, target: Option<&DeviceId>) -> Result
     // enable the mode fails alone.
     if let Some(id) = target {
         if !config.modes_for(id).contains(&mode) {
-            return Err(not_enabled(id, mode));
+            return Err(Failure::from(govee_toolkit::Error::ModeNotEnabled {
+                id: id.clone(),
+                mode,
+            }));
         }
         config.devices.entry(id.clone()).or_default().modes = Some(vec![mode]);
     }
     Ok(config)
-}
-
-pub(super) fn not_enabled(id: &DeviceId, mode: Mode) -> Failure {
-    Failure::unsupported(format!(
-        "`{id}` does not enable mode `{mode}`; the configuration decides which modes a device has"
-    ))
 }
 
 fn load(cli: &Cli) -> Result<Config, Failure> {
