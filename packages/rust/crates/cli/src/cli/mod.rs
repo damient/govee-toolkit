@@ -65,7 +65,7 @@ pub(crate) enum Command {
 
     /// List the devices already known, without touching the network.
     Devices {
-        /// The devices to list: an identity, a SKU, or a name. Every
+        /// The devices to list: an identity, a SKU, a name, or a group. Every
         /// known device when absent. See `identify` for the whole grammar.
         #[arg(value_name = "TARGET")]
         targets: Vec<String>,
@@ -107,9 +107,10 @@ pub(crate) enum Command {
     /// The walk drives `lan`, and the mode `--mode` names where it names one.
     /// It substitutes no other mode.
     ///
-    /// A target names an identity (`1C:8B:…`), a SKU (`H6159`), or a name the
-    /// configuration gives a device (`kitchen`). `id:`, `sku:` and
-    /// `name:` state the kind where the target alone does not.
+    /// A target names an identity (`1C:8B:…`), a SKU (`H6159`), a name the
+    /// configuration gives a device (`kitchen`), or a group the configuration
+    /// gives (`ambient`). `id:`, `sku:`, `name:` and `group:` state the kind
+    /// where the target alone does not.
     Identify {
         /// The devices, in the order to light them. Every device a scan finds
         /// when absent.
@@ -196,6 +197,7 @@ pub(crate) enum Command {
 }
 
 impl Command {
+    /// The target of a command that drives one device.
     pub(crate) fn device(&self) -> Option<&str> {
         match self {
             Self::Send { device, .. } | Self::Status { device } | Self::Stream { device, .. } => {
@@ -203,13 +205,21 @@ impl Command {
             }
             #[cfg(feature = "ble")]
             Self::Provision { device, .. } => Some(device),
-            Self::Verb(verb) => Some(verb.device()),
             Self::Scan { .. }
+            | Self::Verb(_)
             | Self::Identify { .. }
             | Self::Devices { .. }
             | Self::Doctor
             | Self::Describe { .. }
             | Self::Watch { .. } => None,
+        }
+    }
+
+    /// The target of a command that drives one device or one group.
+    pub(crate) fn members(&self) -> Option<&str> {
+        match self {
+            Self::Verb(verb) => Some(verb.device()),
+            _ => None,
         }
     }
 }

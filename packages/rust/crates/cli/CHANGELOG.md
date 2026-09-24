@@ -9,6 +9,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 - Every command that drives one device takes a name from `config.yaml`, bare
   or as `name:kitchen`, in place of the identity.
+- `on`, `off`, `brightness`, `color`, `colortemp`, `segment`, `gradient` and
+  `music` take a group from `config.yaml`, bare or as `group:ambient`.
+- A verb on a group reaches every member at once. A failed member stops no
+  other one, and the run exits with the code of the first failure.
+- `identify` and `devices` take a group as a target.
 
 ## [0.7.0] — 2026-09-23
 
