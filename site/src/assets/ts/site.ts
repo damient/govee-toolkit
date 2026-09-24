@@ -3,6 +3,7 @@
 import { copy } from "./copy.ts";
 import { personalities } from "./dmx.ts";
 import { filter, rowLink } from "./devices.ts";
+import { dots } from "./dots.ts";
 import { docSelect, menu } from "./menu.ts";
 import { spy } from "./spy.ts";
 import { strip } from "./strip.ts";
@@ -20,6 +21,7 @@ const wire = <E extends Element>(selector: string, type: new () => E, setup: (el
 
 wire("[data-strip]", HTMLElement, strip);
 wire("[data-topbar]", HTMLElement, topbar);
+wire("[data-dots]", HTMLElement, dots);
 wire("[data-copy]", HTMLButtonElement, copy);
 wire("[data-filter]", HTMLInputElement, filter);
 wire("[data-rows]", HTMLElement, rowLink);

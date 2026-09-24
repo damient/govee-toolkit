@@ -25,7 +25,7 @@
 
 .sitefoot .foot-base { display: block; margin-top: 48px; padding-top: 26px; border-top: 1px solid var(--line); text-align: center; }
 .sitefoot .foot-line { margin: 0; font-size: .95rem; }
-.foot-dots { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 16px 0; }
+.foot-dots { display: flex; align-items: center; gap: 8px; width: fit-content; margin: 16px auto; }
 .foot-dots i {
   width: 7px; height: 7px; border-radius: 50%; background: var(--dot);
   box-shadow: 0 0 9px 0 var(--dot), 0 0 20px 1px color-mix(in oklab, var(--dot) 45%, transparent);
