@@ -66,8 +66,13 @@ devices:
     modes: [lan, ble]       # preferred lan, may switch to ble
   "99:88:77:66:55:44":
     modes: [cloud]          # remote device, cloud only
-    name: "hallway"         # for logs and interfaces; never read as identity
+    name: "hallway"         # a target in place of the identity
+    groups: [upstairs]      # a target that names every member at once
 ```
+
+A group sends the command to every member at once. Each member goes over its
+own enabled modes, and the group substitutes no mode. A member that fails
+stops no other one: the result names each member that failed, and why.
 
 A key the file does not define is refused rather than ignored: a misspelled
 option that was silently dropped would read as a setting that did not work.

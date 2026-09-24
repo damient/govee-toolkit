@@ -21,6 +21,8 @@
 //!     modes: [lan]              # one mode means one mode: it never switches
 //!   "11:22:33:44:55:66":
 //!     modes: [lan, ble]         # lan preferred, may switch to ble
+//!     name: desk
+//!     groups: [office]          # a target that names every member
 //! ```
 //!
 //! Unknown keys are refused: a misspelled option that was ignored would read
@@ -38,6 +40,7 @@ use crate::error::{Error, Result};
 use crate::transport::DeviceId;
 
 mod cloud;
+mod groups;
 mod lan;
 
 pub use self::cloud::{CloudConfig, KEY_ENV};
@@ -125,6 +128,10 @@ pub struct DeviceConfig {
     pub sku: Option<String>,
     /// A name for logs and user interfaces. Nothing reads it as identity.
     pub name: Option<String>,
+    /// The groups the device is a member of. A group name is a target that
+    /// names every member at once.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub groups: Vec<String>,
 }
 
 /// One thing wrong with the configuration.
@@ -292,6 +299,7 @@ impl Config {
                 }
             }
         }
+        problems.extend(self.group_problems());
         problems
     }
 }

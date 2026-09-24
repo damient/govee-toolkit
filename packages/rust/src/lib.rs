@@ -101,6 +101,8 @@ pub mod transport;
 mod describe;
 #[cfg(feature = "transport")]
 mod device;
+#[cfg(feature = "transport")]
+mod group;
 
 #[cfg(feature = "transport")]
 mod event;
@@ -130,6 +132,8 @@ pub use error::{Category, Error, Result};
 pub use event::{Device, Event, Served};
 #[cfg(feature = "transport")]
 pub use govee::{Govee, Walk, WalkObserver, WalkReport};
+#[cfg(feature = "transport")]
+pub use group::{GroupHandle, Outcome};
 #[cfg(feature = "ble")]
 pub use provision::{Provisioned, WifiCredentials};
 #[cfg(feature = "transport")]

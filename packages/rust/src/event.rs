@@ -176,6 +176,8 @@ pub struct Device {
     pub sku: String,
     /// The name the configuration gives it, if any.
     pub name: Option<String>,
+    /// The groups the configuration puts it in.
+    pub groups: Vec<String>,
     /// The enabled modes, in preference order.
     pub modes: Vec<Mode>,
     /// Its health per enabled mode. A mode is absent when this build carries

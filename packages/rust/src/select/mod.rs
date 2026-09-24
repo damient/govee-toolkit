@@ -1,4 +1,4 @@
-//! Naming devices on a command line: by identity, by SKU or by name.
+//! Naming devices on a command line: by identity, by SKU, by name or by group.
 //!
 //! One target names one kind of thing. A prefix states the kind, and a bare
 //! target takes the kind it reads as:
@@ -8,21 +8,24 @@
 //! | `1C:8B:C4:A2:C0:46:64:6E`, `id:…` | the identity a device reports |
 //! | `H6159`, `sku:H6159` | every known device of that model |
 //! | `kitchen`, `name:kitchen` | the device the configuration names |
+//! | `ambient`, `group:ambient` | every device the configuration puts in that group |
 //!
 //! A bare target reads as a SKU where a device file is encoded under it, and
-//! never from the shape of the text alone. A bare target that reads as an
-//! identity or a SKU, and that a known device also carries as a name, is
-//! refused. Nothing is guessed.
+//! never from the shape of the text alone. Any other bare target is a name,
+//! or a group where no device carries that name. A bare target that reads as
+//! two kinds is refused. Nothing is guessed.
 //!
 //! A SKU matches the SKU a device is encoded under, and no alias of it: an
 //! operator who types one model does not mean the other.
 
+mod error;
 mod one;
 #[cfg(test)]
 mod tests;
 
 use std::fmt;
 
+pub use self::error::Error;
 use crate::codec::{Catalog, Mode};
 use crate::event::Device;
 use crate::govee::Govee;
@@ -31,6 +34,7 @@ use crate::transport::DeviceId;
 const ID: &str = "id";
 const SKU: &str = "sku";
 const NAME: &str = "name";
+const GROUP: &str = "group";
 
 /// One target, read from what a person typed.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,6 +46,9 @@ pub enum Selector {
     /// Every known device the configuration gives this name. The comparison
     /// ignores case and is exact.
     Name(String),
+    /// Every known device the configuration puts in this group. The
+    /// comparison ignores case and is exact.
+    Group(String),
 }
 
 impl Selector {
@@ -65,6 +72,7 @@ impl fmt::Display for Selector {
             Self::Id(id) => write!(f, "{ID}:{id}"),
             Self::Sku(sku) => write!(f, "{SKU}:{sku}"),
             Self::Name(name) => write!(f, "{NAME}:{name}"),
+            Self::Group(group) => write!(f, "{GROUP}:{group}"),
         }
     }
 }
@@ -95,6 +103,7 @@ enum Kind {
     Id,
     Sku,
     Name,
+    Group,
 }
 
 impl Kind {
@@ -103,6 +112,7 @@ impl Kind {
             Self::Id => ID,
             Self::Sku => SKU,
             Self::Name => NAME,
+            Self::Group => GROUP,
         }
     }
 
@@ -111,6 +121,7 @@ impl Kind {
             Self::Id => Selector::Id(DeviceId::new(value)),
             Self::Sku => Selector::Sku(value.to_uppercase()),
             Self::Name => Selector::Name(value.to_owned()),
+            Self::Group => Selector::Group(value.to_owned()),
         }
     }
 }
@@ -121,6 +132,7 @@ fn kind(prefix: &str) -> Option<Kind> {
         ID => Some(Kind::Id),
         SKU => Some(Kind::Sku),
         NAME => Some(Kind::Name),
+        GROUP => Some(Kind::Group),
         _ => None,
     }
 }
@@ -155,80 +167,6 @@ fn is_sku(target: &str, catalog: &Catalog) -> bool {
         .any(|device| device.sku.eq_ignore_ascii_case(target))
 }
 
-/// Why a target names no device.
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[non_exhaustive]
-pub enum Error {
-    /// A target with nothing in it.
-    #[error("a target names no device")]
-    Empty,
-
-    /// A prefix with nothing after it.
-    #[error("`{prefix}:` names no {prefix}")]
-    EmptyValue {
-        /// The prefix that was written.
-        prefix: String,
-    },
-
-    /// A bare target reads as one kind, and a known device carries it as a
-    /// name. The prefixed forms say which one is meant.
-    #[error(
-        "`{target}` is both a {kind} and the name of a device; write `{kind}:{target}` or `name:{target}`"
-    )]
-    Ambiguous {
-        /// What was written.
-        target: String,
-        /// The kind it reads as.
-        kind: String,
-    },
-
-    /// A target that matches no device the SDK knows. A scan is what makes a
-    /// device known; the cache answers for `lan` between runs.
-    #[error("`{target}` matches no known device")]
-    NoMatch {
-        /// The target, in its prefixed form.
-        target: String,
-    },
-
-    /// A SKU or a name matches known devices, and the configuration enables
-    /// the mode the caller will drive for none of them.
-    #[error("`{target}` matches no known device that enables `{mode}`")]
-    NotOnMode {
-        /// The target, in its prefixed form.
-        target: String,
-        /// The mode the caller will drive.
-        mode: Mode,
-    },
-
-    /// A command that drives one device got a target that names a model.
-    #[error("`{target}` names a model; this command takes one device, by identity or by name")]
-    NotOne {
-        /// The target, in its prefixed form.
-        target: String,
-    },
-
-    /// A command that drives one device got a name that the configuration
-    /// gives to more than one device.
-    #[error("`{target}` names more than one device in the configuration")]
-    Several {
-        /// The target, in its prefixed form.
-        target: String,
-    },
-}
-
-impl Error {
-    /// A stable, language-neutral identifier for this failure. One namespace
-    /// with [`crate::Error::code`].
-    #[must_use]
-    pub fn code(&self) -> &'static str {
-        match self {
-            Self::Empty | Self::EmptyValue { .. } | Self::NotOne { .. } => "target_not_understood",
-            Self::Ambiguous { .. } | Self::Several { .. } => "ambiguous_target",
-            Self::NoMatch { .. } | Self::NotOnMode { .. } => "no_such_target",
-        }
-    }
-}
-
 impl Govee {
     /// The devices the targets name, in the order they were written.
     ///
@@ -255,9 +193,9 @@ impl Govee {
         let mut chosen: Vec<DeviceId> = Vec::new();
         for target in targets {
             let target = target.as_ref();
-            let (selector, prefixed) = read(target, self.catalog())?;
+            let (mut selector, prefixed) = read(target, self.catalog())?;
             if !prefixed {
-                check_ambiguity(target, &selector, &known)?;
+                selector = settle(target, selector, &known)?;
             }
             for id in matches(&selector, &known, mode)? {
                 if !chosen.contains(&id) {
@@ -269,19 +207,35 @@ impl Govee {
     }
 }
 
-fn check_ambiguity(written: &str, selector: &Selector, known: &[Device]) -> Result<(), Error> {
-    let kind = match selector {
+/// The kind a bare target takes once the devices are known: a name that no
+/// device carries and a group does is that group. A bare target that reads as
+/// two kinds is [`Error::Ambiguous`].
+fn settle(written: &str, selector: Selector, known: &[Device]) -> Result<Selector, Error> {
+    let named = named(known, written).next().is_some();
+    let grouped = grouped(known, written).next().is_some();
+    let kind = match &selector {
         Selector::Id(_) => ID,
         Selector::Sku(_) => SKU,
-        Selector::Name(_) => return Ok(()),
+        Selector::Name(_) if named && grouped => NAME,
+        Selector::Name(name) if grouped => return Ok(Selector::Group(name.clone())),
+        Selector::Name(_) | Selector::Group(_) => return Ok(selector),
     };
-    if named(known, written).next().is_none() {
-        return Ok(());
-    }
-    Err(Error::Ambiguous {
+    let other = if kind != NAME && named {
+        NAME
+    } else if kind == NAME || grouped {
+        GROUP
+    } else {
+        return Ok(selector);
+    };
+    Err(ambiguous(written, kind, other))
+}
+
+fn ambiguous(written: &str, kind: &str, other: &str) -> Error {
+    Error::Ambiguous {
         target: written.to_owned(),
         kind: kind.to_owned(),
-    })
+        other: other.to_owned(),
+    }
 }
 
 /// The mode narrows the match and never turns an empty match into a mode
@@ -299,6 +253,7 @@ fn matches(
             .filter(|device| device.sku.eq_ignore_ascii_case(sku))
             .collect(),
         Selector::Name(name) => named(known, name).collect(),
+        Selector::Group(group) => grouped(known, group).collect(),
     };
     if found.is_empty() {
         return Err(Error::NoMatch {
@@ -325,5 +280,14 @@ fn named<'a>(known: &'a [Device], name: &'a str) -> impl Iterator<Item = &'a Dev
             .name
             .as_deref()
             .is_some_and(|given| given.eq_ignore_ascii_case(name))
+    })
+}
+
+fn grouped<'a>(known: &'a [Device], group: &'a str) -> impl Iterator<Item = &'a Device> + 'a {
+    known.iter().filter(move |device| {
+        device
+            .groups
+            .iter()
+            .any(|given| given.eq_ignore_ascii_case(group))
     })
 }

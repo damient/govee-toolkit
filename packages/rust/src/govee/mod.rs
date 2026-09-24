@@ -288,6 +288,7 @@ impl Govee {
             id: id.clone(),
             sku: self.sku_of(id, reported),
             name: self.inner.config.name_for(id).map(ToOwned::to_owned),
+            groups: self.inner.config.groups_for(id).to_vec(),
             modes,
             health,
         }
