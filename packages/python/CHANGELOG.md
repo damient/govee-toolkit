@@ -20,6 +20,9 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
   configuration gives, bare or as `name:<name>`, as well as an identity.
 - **Breaking:** both raise `ConfigError` for `sku:…`, a name of two devices,
   and a bare identity that is also a name. Write `id:<identity>` for that one.
+- **Breaking:** both raise `ConfigError` for a bare target that is no name
+  and does not read as an identity. `Govee.targets()` and `Govee.group()`
+  raise it too, before any scan.
 
 ## [0.4.0] — 2026-09-23
 
