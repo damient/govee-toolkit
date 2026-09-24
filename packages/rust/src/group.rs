@@ -25,12 +25,12 @@ pub struct Outcome<T = Served> {
     pub result: Result<T>,
 }
 
-/// A borrow of the SDK and the identities of the members, holding no state
-/// of its own.
+/// A borrow of the SDK and of the identities of the members, holding no
+/// state of its own.
 #[derive(Debug, Clone)]
 pub struct GroupHandle<'a> {
     govee: &'a Govee,
-    members: Vec<DeviceId>,
+    members: &'a [DeviceId],
     pinned: Option<Mode>,
 }
 
@@ -38,24 +38,28 @@ impl Govee {
     /// A handle for several devices. [`Govee::targets`] turns a group name
     /// into its members.
     #[must_use]
-    pub fn group(&self, members: &[DeviceId]) -> GroupHandle<'_> {
+    pub fn group<'a>(&'a self, members: &'a [DeviceId]) -> GroupHandle<'a> {
         self.group_maybe_on(members, None)
     }
 
     /// A handle for several devices, each one driven over `mode` alone. A
     /// member that does not enable `mode` fails alone.
     #[must_use]
-    pub fn group_on(&self, members: &[DeviceId], mode: Mode) -> GroupHandle<'_> {
+    pub fn group_on<'a>(&'a self, members: &'a [DeviceId], mode: Mode) -> GroupHandle<'a> {
         self.group_maybe_on(members, Some(mode))
     }
 
     /// A handle for several devices, pinned to `mode` where the caller names
     /// one — see [`Govee::device_maybe_on`].
     #[must_use]
-    pub fn group_maybe_on(&self, members: &[DeviceId], mode: Option<Mode>) -> GroupHandle<'_> {
+    pub fn group_maybe_on<'a>(
+        &'a self,
+        members: &'a [DeviceId],
+        mode: Option<Mode>,
+    ) -> GroupHandle<'a> {
         GroupHandle {
             govee: self,
-            members: members.to_vec(),
+            members,
             pinned: mode,
         }
     }
@@ -65,7 +69,7 @@ impl<'a> GroupHandle<'a> {
     /// The members, in the order each [`Outcome`] list follows.
     #[must_use]
     pub fn members(&self) -> &[DeviceId] {
-        &self.members
+        self.members
     }
 
     /// Run `verb` on every member at once, and answer one [`Outcome`] per
@@ -88,20 +92,26 @@ impl<'a> GroupHandle<'a> {
     }
 
     /// Scan for every member that no mode knows yet, and answer the mode a
-    /// command would go over — see [`Govee::ensure_known`].
+    /// command would go over — see [`Govee::ensure_known`]. A pinned group
+    /// scans over its mode alone, and a member that does not enable it fails
+    /// alone.
     ///
-    /// One member after the other: the first scan records every device that
-    /// answered, so the next member is usually known already. Two scans at
-    /// once would also compete for one Bluetooth adapter.
+    /// Every member scans at once, so members that are absent cost one scan
+    /// window and not one each. A `lan` scan reads every reply, whichever
+    /// request it answers. `ble` runs one scan at a time on its adapter, and
+    /// a member that an earlier scan heard does not scan again.
     pub async fn ensure_known(&self) -> Vec<Outcome<Mode>> {
-        let mut outcomes = Vec::with_capacity(self.members.len());
-        for id in &self.members {
-            outcomes.push(Outcome {
+        let calls = self.members.iter().map(|id| async move {
+            let result = match self.pinned {
+                Some(mode) => self.govee.ensure_known_on(id, mode).await,
+                None => self.govee.ensure_known(id).await,
+            };
+            Outcome {
                 id: id.clone(),
-                result: self.govee.ensure_known(id).await,
-            });
-        }
-        outcomes
+                result,
+            }
+        });
+        join_all(calls).await
     }
 
     /// [`DeviceHandle::power`] on every member.

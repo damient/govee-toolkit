@@ -8,7 +8,7 @@
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::stream::Resolution;
-use govee_toolkit::{DeviceId, Govee, GroupHandle, Music, Outcome, Paint, Served};
+use govee_toolkit::{DeviceId, Error, Govee, GroupHandle, Music, Outcome, Paint, Served};
 use serde_json::json;
 
 pub(super) enum Verb {
@@ -35,31 +35,23 @@ pub(super) async fn run(
 ) -> Result<(), Failure> {
     let mut failures: Vec<(DeviceId, Failure)> = Vec::new();
     let mut reached = Vec::new();
-    for id in members {
-        match known(govee, id, restrict).await {
-            Ok(()) => reached.push(id.clone()),
-            Err(failure) => failures.push((id.clone(), failure)),
+    for outcome in govee.group_maybe_on(members, restrict).ensure_known().await {
+        match outcome.result {
+            Ok(_) => reached.push(outcome.id),
+            // The same record as one device that does not enable `--mode`.
+            Err(Error::ModeNotEnabled { id, mode, .. }) => {
+                failures.push((outcome.id, super::not_enabled(&id, mode)));
+            }
+            Err(error) => failures.push((outcome.id, Failure::from(error))),
         }
     }
-    for outcome in play(&govee.group(&reached), verb).await {
+    for outcome in play(&govee.group_maybe_on(&reached, restrict), verb).await {
         match outcome.result {
             Ok(served) => report(writer, &served),
             Err(error) => failures.push((outcome.id, Failure::from(error))),
         }
     }
     verdict(writer, members.len(), failures)
-}
-
-/// A member that does not enable `--mode` fails before a scan looks for it
-/// over another mode.
-async fn known(govee: &Govee, id: &DeviceId, restrict: Option<Mode>) -> Result<(), Failure> {
-    if let Some(mode) = restrict
-        && !govee.device(id).modes().contains(&mode)
-    {
-        return Err(super::not_enabled(id, mode));
-    }
-    govee.ensure_known(id).await?;
-    Ok(())
 }
 
 async fn play(group: &GroupHandle<'_>, verb: Verb) -> Vec<Outcome> {

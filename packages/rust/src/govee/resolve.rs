@@ -31,8 +31,27 @@ impl Govee {
     /// [`Error::ModeNotImplemented`] or [`Error::MissingCredential`] where no
     /// enabled mode has a transport in this build.
     pub async fn ensure_known(&self, id: &DeviceId) -> Result<Mode> {
-        let modes = self.inner.config.modes_for(id).to_vec();
-        if let Some(mode) = self.first_mode_holding(id, &modes) {
+        self.known_over(id, self.inner.config.modes_for(id)).await
+    }
+
+    /// [`Govee::ensure_known`] over `mode` alone.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::ModeNotEnabled`] where the configuration does not enable
+    /// `mode` for this device, and every error of [`Govee::ensure_known`].
+    pub(crate) async fn ensure_known_on(&self, id: &DeviceId, mode: Mode) -> Result<Mode> {
+        if !self.inner.config.modes_for(id).contains(&mode) {
+            return Err(Error::ModeNotEnabled {
+                id: id.clone(),
+                mode,
+            });
+        }
+        self.known_over(id, &[mode]).await
+    }
+
+    async fn known_over(&self, id: &DeviceId, modes: &[Mode]) -> Result<Mode> {
+        if let Some(mode) = self.first_mode_holding(id, modes) {
             return Ok(mode);
         }
 

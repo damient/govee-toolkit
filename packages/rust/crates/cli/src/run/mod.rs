@@ -33,7 +33,7 @@ pub(crate) async fn dispatch(cli: &Cli, writer: Writer) -> Result<(), Failure> {
         .map(|target| Selector::many(target, &config))
         .transpose()?
         .unwrap_or_default();
-    let govee = Govee::start(configure(cli, config, target.as_ref(), &members)?).await?;
+    let govee = Govee::start(configure(cli, config, target.as_ref())?).await?;
     let outcome = route(&govee, cli, writer, target.as_ref(), &members).await;
     // `ble` loses the last frame it wrote when nothing releases the adapter.
     let released = govee.shutdown().await.map_err(Failure::from);
@@ -190,12 +190,7 @@ fn modes(govee: &Govee, restrict: Option<Mode>) -> Vec<Mode> {
     restrict.map_or_else(|| govee.modes(), |mode| vec![mode])
 }
 
-fn configure(
-    cli: &Cli,
-    mut config: Config,
-    target: Option<&DeviceId>,
-    members: &[DeviceId],
-) -> Result<Config, Failure> {
+fn configure(cli: &Cli, mut config: Config, target: Option<&DeviceId>) -> Result<Config, Failure> {
     if let Command::Scan { timeout_ms } = cli.command {
         config.lan.scan_window_ms = timeout_ms;
     }
@@ -205,21 +200,13 @@ fn configure(
     let Some(mode) = cli.global.mode else {
         return Ok(config);
     };
-    if let Some(id) = target
-        && !config.modes_for(id).contains(&mode)
-    {
-        return Err(not_enabled(id, mode));
-    }
-    // A member that does not enable the mode keeps its modes, and
-    // `verbs::run` fails that member alone before anything scans for it.
-    let pinned: Vec<DeviceId> = target
-        .into_iter()
-        .chain(members)
-        .filter(|id| config.modes_for(id).contains(&mode))
-        .cloned()
-        .collect();
-    for id in pinned {
-        config.devices.entry(id).or_default().modes = Some(vec![mode]);
+    // `verbs::run` pins the members of a verb, so a member that does not
+    // enable the mode fails alone.
+    if let Some(id) = target {
+        if !config.modes_for(id).contains(&mode) {
+            return Err(not_enabled(id, mode));
+        }
+        config.devices.entry(id.clone()).or_default().modes = Some(vec![mode]);
     }
     Ok(config)
 }

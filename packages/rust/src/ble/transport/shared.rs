@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use std::time::Instant;
 
-use tokio::sync::{broadcast, watch};
+use tokio::sync::{Mutex, broadcast, watch};
 
 use crate::ble::link::{Link, adapter as adapter_error};
 use crate::ble::pace::{Budget, Pacer};
@@ -111,6 +111,9 @@ pub(super) struct Shared {
     /// accepts only one, and a new connection costs seconds.
     pub(super) links: Links,
     pub(super) events: broadcast::Sender<Event>,
+    /// One scan at a time: the scan that ends first stops the adapter under
+    /// any other one.
+    pub(super) scanning: Mutex<()>,
 }
 
 impl Shared {
@@ -131,6 +134,7 @@ impl Shared {
             devices: Devices::new(),
             links: Links::new(),
             events,
+            scanning: Mutex::new(()),
         }
     }
 
