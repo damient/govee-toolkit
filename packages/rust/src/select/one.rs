@@ -1,13 +1,11 @@
-//! A target that the configuration alone resolves: an identity, a name the
-//! configuration gives, or a group. It reads no scan, so it resolves before
-//! any transport starts.
+//! A target that the configuration alone resolves, before any transport
+//! starts.
 
 use super::{Error, GROUP, NAME, Names, SKU, Selector, resolve};
 use crate::config::Config;
 use crate::govee::Govee;
 use crate::transport::DeviceId;
 
-/// What one target names in the configuration.
 enum Found {
     Device(DeviceId),
     Group(String),
@@ -17,15 +15,11 @@ enum Found {
 impl Selector {
     /// Read a target that names one device, against the names in `config`.
     ///
-    /// `id:…` and `name:…` state the kind. A bare target is a name where the
-    /// configuration gives one, and an identity where it reads as one.
-    ///
     /// # Errors
     ///
     /// - [`Error::Empty`] and [`Error::EmptyValue`] as for [`Selector::parse`].
     /// - [`Error::NotOne`] for `sku:…` and for a group.
-    /// - [`Error::NoMatch`] for a `name:…` the configuration does not give, and
-    ///   for a bare target that is no name and does not read as an identity.
+    /// - [`Error::NoMatch`] for a name that the configuration does not give.
     /// - [`Error::Several`] for a name that two devices carry.
     /// - [`Error::Ambiguous`] for a bare target that reads as two kinds.
     pub fn one(target: &str, config: &Config) -> Result<DeviceId, Error> {
@@ -42,9 +36,6 @@ impl Selector {
 
     /// Read a target that names one device or one group, against `config`.
     /// A group answers its members in identity order.
-    ///
-    /// `group:…` states the kind. A bare target is a group where no device
-    /// carries it as a name and a device carries it under `groups:`.
     ///
     /// # Errors
     ///
@@ -63,11 +54,8 @@ impl Selector {
 }
 
 impl Govee {
-    /// The identity of the one device that `target` names, against the
-    /// configuration in force. Pass the result to [`Govee::device`].
-    ///
-    /// It reads the configuration and no scan, so it costs nothing on the send
-    /// path.
+    /// The identity of the one device that `target` names, from the
+    /// configuration and with no scan. Pass it to [`Govee::device`].
     ///
     /// # Errors
     ///
@@ -77,10 +65,8 @@ impl Govee {
     }
 
     /// The identities that `target` names, one device or every member of a
-    /// group, against the configuration in force. Pass the result to
+    /// group, from the configuration and with no scan. Pass them to
     /// [`Govee::group`].
-    ///
-    /// It reads the configuration and no scan.
     ///
     /// # Errors
     ///
@@ -90,7 +76,6 @@ impl Govee {
     }
 }
 
-/// The devices the configuration names, found by a scan or not.
 impl Names for Config {
     fn names(&self, name: &str) -> bool {
         self.named(name).next().is_some()
@@ -101,8 +86,6 @@ impl Names for Config {
     }
 }
 
-/// A bare target never reads as a SKU here: which SKUs exist is the catalog's
-/// to say, and this reads the configuration alone.
 fn find(target: &str, config: &Config) -> Result<Found, Error> {
     let selector = resolve(target, None, config)?;
     let found = match &selector {

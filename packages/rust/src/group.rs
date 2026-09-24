@@ -1,8 +1,5 @@
-//! Several devices driven as one: a verb goes to every member at once.
-//!
-//! A member that fails stops no other one. Each member answers its own
-//! [`Outcome`], over its own enabled modes: the group substitutes no mode, and
-//! a member whose device file carries no entry for the verb fails alone.
+//! Several devices driven as one. Each member answers its own [`Outcome`] over
+//! its own modes, and a member that fails stops no other one.
 
 use std::future::Future;
 
@@ -25,8 +22,7 @@ pub struct Outcome<T = Served> {
     pub result: Result<T>,
 }
 
-/// A borrow of the SDK and of the identities of the members, holding no
-/// state of its own.
+/// A handle for several devices. It holds no state of its own.
 #[derive(Debug, Clone)]
 pub struct GroupHandle<'a> {
     govee: &'a Govee,
@@ -49,8 +45,7 @@ impl Govee {
         self.group_maybe_on(members, Some(mode))
     }
 
-    /// A handle for several devices, pinned to `mode` where the caller names
-    /// one — see [`Govee::device_maybe_on`].
+    /// [`Govee::group`], or [`Govee::group_on`] where `mode` is `Some`.
     #[must_use]
     pub fn group_maybe_on<'a>(
         &'a self,
@@ -72,8 +67,7 @@ impl<'a> GroupHandle<'a> {
         self.members
     }
 
-    /// Run `verb` on every member at once, and answer one [`Outcome`] per
-    /// member, in member order.
+    /// Run `verb` on every member at once.
     pub async fn each<T, F, Fut>(&self, verb: F) -> Vec<Outcome<T>>
     where
         F: Fn(DeviceHandle<'a>) -> Fut,
@@ -91,15 +85,8 @@ impl<'a> GroupHandle<'a> {
         join_all(calls).await
     }
 
-    /// Scan for every member that no mode knows yet, and answer the mode a
-    /// command would go over — see [`Govee::ensure_known`]. A pinned group
-    /// scans over its mode alone, and a member that does not enable it fails
-    /// alone.
-    ///
-    /// Every member scans at once, so members that are absent cost one scan
-    /// window and not one each. A `lan` scan reads every reply, whichever
-    /// request it answers. `ble` runs one scan at a time on its adapter, and
-    /// a member that an earlier scan heard does not scan again.
+    /// [`Govee::ensure_known`] on every member at once, so absent members cost
+    /// one scan window between them. A pinned group scans over its mode alone.
     pub async fn ensure_known(&self) -> Vec<Outcome<Mode>> {
         let calls = self.members.iter().map(|id| async move {
             let result = match self.pinned {
@@ -120,9 +107,7 @@ impl<'a> GroupHandle<'a> {
             .await
     }
 
-    /// [`DeviceHandle::brightness`] on every member. The range is each
-    /// member's own, so one level can be in range for one member and out of
-    /// range for another.
+    /// [`DeviceHandle::brightness`] on every member, against its own range.
     pub async fn brightness(&self, level: i64) -> Vec<Outcome> {
         self.each(|handle| async move { handle.brightness(level).await })
             .await
@@ -140,8 +125,7 @@ impl<'a> GroupHandle<'a> {
             .await
     }
 
-    /// [`DeviceHandle::segment`] on every member. A zone list reads against
-    /// each member's own zones.
+    /// [`DeviceHandle::segment`] on every member, against its own zones.
     pub async fn segment(&self, paint: &Paint<'_>) -> Vec<Outcome> {
         self.each(|handle| async move { handle.segment(paint).await })
             .await

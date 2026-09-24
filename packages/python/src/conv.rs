@@ -17,7 +17,6 @@ pub(crate) fn modes(names: Vec<String>) -> PyResult<Vec<Mode>> {
     names.into_iter().map(|name| mode(&name)).collect()
 }
 
-/// `None` takes the core's default for `sensitivity` and for `soft`.
 pub(crate) fn music(
     effect: i64,
     sensitivity: Option<i64>,

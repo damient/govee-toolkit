@@ -19,8 +19,7 @@ use crate::transport::breaker::Policy;
 #[serde(default, deny_unknown_fields)]
 pub struct LanConfig {
     /// Where discovery results are cached. Unset uses the default path.
-    /// Only a path reads here: `false` is refused, because it would name a
-    /// file called `false`. [`LanConfig::cache_disabled`] keeps the cache in
+    /// `false` is refused: [`LanConfig::cache_disabled`] keeps the cache in
     /// memory.
     #[serde(deserialize_with = "cache_path")]
     pub cache: Option<PathBuf>,

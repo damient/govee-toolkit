@@ -42,12 +42,10 @@ impl fmt::Display for SignalLoss {
 pub struct Entry {
     /// The identity `govee scan` reports.
     pub device: DeviceId,
-    /// The name of the fixture. Messages and the `--json` forms carry it,
-    /// and a target of `govee-dmx` reads it.
+    /// The name of the fixture, for messages and targets.
     #[serde(default)]
     pub name: Option<String>,
-    /// The groups of the fixture. A target of `govee-dmx` reads them, and
-    /// they win over the groups of `config.yaml`.
+    /// The groups of the fixture. They win over the groups of `config.yaml`.
     #[serde(default)]
     pub groups: Vec<String>,
     /// The SKU the entry was written for. It sizes the entry where the device

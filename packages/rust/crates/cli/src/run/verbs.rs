@@ -1,9 +1,8 @@
 //! Each verb calls the matching method of the crate, which reads the entry the
 //! device file marks with that `role:`. No command name reaches this file.
 //!
-//! A verb goes to every member at once. A member that fails stops no other
-//! one: its line goes to stderr, and the run exits with the code of the first
-//! member that failed.
+//! A member that fails stops no other one: its line goes to stderr, and the
+//! run exits with the code of the first failure.
 
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};

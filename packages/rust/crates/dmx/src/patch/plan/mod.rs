@@ -32,11 +32,9 @@ pub struct Candidate<'a> {
     pub id: &'a DeviceId,
     /// The device file it is encoded under.
     pub device: &'a Device,
-    /// The name the configuration gives the device. A new entry takes it as
-    /// the name of the fixture.
+    /// The name the configuration gives the device.
     pub name: Option<&'a str>,
-    /// The groups the configuration puts the device in. A new entry takes
-    /// them as the groups of the fixture.
+    /// The groups the configuration puts the device in.
     pub groups: &'a [String],
 }
 
@@ -51,8 +49,7 @@ pub struct Placement {
     pub model: String,
     /// The name of the fixture, where the configuration gives the device one.
     pub name: Option<String>,
-    /// The groups of the fixture, where the configuration puts the device in
-    /// some.
+    /// The groups of the fixture.
     pub groups: Vec<String>,
     /// The layout the entry takes.
     pub personality: Personality,

@@ -277,8 +277,8 @@ export declare class Govee {
    * where the target alone does not. A SKU, a name and a group select
    * among the devices the SDK knows, so scan first.
    *
-   * `mode` is the one mode the caller will drive. A SKU and a name then
-   * match among the devices that enable it. An identity selects itself
+   * `mode` is the one mode the caller will drive. A SKU, a name and a group
+   * then match among the devices that enable it. An identity selects itself
    * either way.
    */
   select(targets: Array<string>, mode?: string | undefined | null): Array<string>
@@ -294,12 +294,11 @@ export declare class Govee {
   /** The device catalog in force. */
   get catalog(): Catalog
   /**
-   * A handle for one device, by the identity it reports or by the name
-   * the configuration gives.
+   * A handle for one device, by its identity or by the name the
+   * configuration gives it. It reads the configuration and no scan.
    *
-   * `id:…` and `name:…` state the kind. A bare target is a name where the
-   * configuration gives one, and an identity otherwise. It reads the
-   * configuration and no scan.
+   * A bare target is a name where the configuration gives one, and an
+   * identity where it reads as one. `id:` and `name:` state the kind.
    */
   device(target: string): DeviceHandle
   /**
@@ -314,19 +313,14 @@ export declare class Govee {
    */
   deviceOn(target: string, mode: string): DeviceHandle
   /**
-   * The identities that one target names: one device, or every member of
-   * a group the configuration gives, in identity order.
-   *
-   * `group:…` states the kind. A bare target is a group where no device
-   * carries it as a name. It reads the configuration and no scan.
+   * The identities that one target names, from the configuration and with
+   * no scan: one device, or every member of a group in identity order.
    */
   targets(target: string): Array<string>
   /**
-   * A handle for one device or one group. Every verb on it answers one
-   * `Outcome` per member and rejects for nothing a member does.
-   *
-   * `target` reads as it does for `targets()`. `mode` pins every member
-   * to one mode, as `deviceOn()` does.
+   * A handle for the devices `targets()` reads. Every verb on it answers
+   * one `Outcome` per member and rejects for nothing a member does. `mode`
+   * pins every member, as `deviceOn()` does.
    */
   group(target: string, mode?: string | undefined | null): GroupHandle
   /** Subscribe to what the SDK reports. Iterate it with `for await`. */
@@ -341,30 +335,21 @@ export declare class Govee {
 
 /** A handle on the members of a group. It holds no state of its own. */
 export declare class GroupHandle {
-  /**
-   * The identities of the members, in the order every outcome list
-   * follows.
-   */
+  /** The identities of the members, in the order of every outcome list. */
   get members(): Array<string>
-  /**
-   * Scan for every member that no mode knows yet. Each outcome carries the
-   * mode a command would go over.
-   */
+  /** Scan for every member that no mode knows. Each outcome carries its mode. */
   ensureKnown(): Promise<Array<Outcome>>
   /** Turn every member on or off. */
   power(on: boolean): Promise<Array<Outcome>>
-  /** Set the level on every member. The range is each member's own. */
+  /** Set the level on every member, against its own range. */
   brightness(level: number): Promise<Array<Outcome>>
   /** Set one color on every member. */
   color(rgb: [number, number, number] | Uint8Array): Promise<Array<Outcome>>
   /** Set the white temperature on every member, in kelvin. */
   colorTemp(kelvin: number): Promise<Array<Outcome>>
-  /** Play an effect on every member, as `DeviceHandle.music()` does. */
+  /** `DeviceHandle.music()` on every member. */
   music(effect: number, sensitivity?: number | undefined | null, soft?: boolean | undefined | null, color?: [number, number, number] | Uint8Array): Promise<Array<Outcome>>
-  /**
-   * Paint the segments of every member once, as `DeviceHandle.segment()`
-   * does. A zone list reads against each member's own zones.
-   */
+  /** `DeviceHandle.segment()` on every member, against its own zones. */
   segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean | undefined | null): Promise<Array<Outcome>>
   /** Set the interpolation between zones on every member. */
   gradient(on: boolean): Promise<Array<Outcome>>
@@ -382,10 +367,7 @@ export declare class Health {
   toString(): string
 }
 
-/**
- * What one member answered: `served` or `mode` where the call succeeded,
- * and `error` where it failed.
- */
+/** What one member answered. */
 export declare class Outcome {
   /** The member. */
   get id(): string
@@ -393,15 +375,9 @@ export declare class Outcome {
   get ok(): boolean
   /** The mode that served the call. `null` where it failed. */
   get mode(): string | null
-  /**
-   * The command that was served. `null` where the call failed, and for
-   * `ensureKnown()`.
-   */
+  /** The command served. `null` on a failure and for `ensureKnown()`. */
   get served(): Served | null
-  /**
-   * The error the call on one device would throw. `null` where it
-   * succeeded.
-   */
+  /** What the call on one device throws. `null` where it succeeded. */
   get error(): Error | null
   toString(): string
 }

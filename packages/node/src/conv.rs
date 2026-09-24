@@ -71,7 +71,6 @@ fn rgb_array(env: &Env, value: &Unknown<'_>) -> napi::Result<[u8; 3]> {
     triple(env, &ints(env, &array)?)
 }
 
-/// `None` takes the core's default for `sensitivity` and for `soft`.
 pub(crate) fn music(
     env: &Env,
     effect: i64,

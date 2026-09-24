@@ -86,8 +86,8 @@ impl Govee {
     /// where the target alone does not. A SKU, a name and a group select
     /// among the devices the SDK knows, so scan first.
     ///
-    /// `mode` is the one mode the caller will drive. A SKU and a name then
-    /// match among the devices that enable it. An identity selects itself
+    /// `mode` is the one mode the caller will drive. A SKU, a name and a group
+    /// then match among the devices that enable it. An identity selects itself
     /// either way.
     #[pyo3(signature = (targets, mode = None))]
     fn select(&self, targets: Vec<String>, mode: Option<String>) -> PyResult<Vec<String>> {
@@ -134,12 +134,11 @@ impl Govee {
         }
     }
 
-    /// A handle for one device, by the identity it reports or by the name
-    /// the configuration gives.
+    /// A handle for one device, by its identity or by the name the
+    /// configuration gives it. It reads the configuration and no scan.
     ///
-    /// `id:…` and `name:…` state the kind. A bare target is a name where the
-    /// configuration gives one, and an identity otherwise. It reads the
-    /// configuration and no scan.
+    /// A bare target is a name where the configuration gives one, and an
+    /// identity where it reads as one. `id:` and `name:` state the kind.
     fn device(&self, target: &str) -> PyResult<DeviceHandle> {
         Ok(DeviceHandle {
             govee: self.inner.clone(),
@@ -164,11 +163,8 @@ impl Govee {
         })
     }
 
-    /// The identities that one target names: one device, or every member of
-    /// a group the configuration gives, in identity order.
-    ///
-    /// `group:…` states the kind. A bare target is a group where no device
-    /// carries it as a name. It reads the configuration and no scan.
+    /// The identities that one target names, from the configuration and with
+    /// no scan: one device, or every member of a group in identity order.
     fn targets(&self, target: &str) -> PyResult<Vec<String>> {
         Ok(self
             .members(target)?
@@ -177,11 +173,9 @@ impl Govee {
             .collect())
     }
 
-    /// A handle for one device or one group. Every verb on it answers one
-    /// `Outcome` per member and raises for nothing a member does.
-    ///
-    /// `target` reads as it does for `targets()`. `mode` pins every member
-    /// to one mode, as `device_on()` does.
+    /// A handle for the devices `targets()` reads. Every verb on it answers
+    /// one `Outcome` per member and raises for nothing a member does. `mode`
+    /// pins every member, as `device_on()` does.
     #[pyo3(signature = (target, mode = None))]
     fn group(&self, target: &str, mode: Option<String>) -> PyResult<GroupHandle> {
         Ok(GroupHandle {

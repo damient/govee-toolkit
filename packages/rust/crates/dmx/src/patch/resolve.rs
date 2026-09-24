@@ -89,8 +89,7 @@ impl Rig {
             .collect()
     }
 
-    /// Every driven fixture whose entry carries `name`, in patch order. The
-    /// comparison ignores case and is exact.
+    /// The driven fixtures named `name`, whole and ignoring case, in order.
     #[must_use]
     pub fn named(&self, name: &str) -> Vec<&Fixture> {
         self.fixtures
@@ -105,8 +104,7 @@ impl Rig {
             .collect()
     }
 
-    /// Every driven fixture whose entry carries `group`, in patch order. The
-    /// comparison ignores case and is exact.
+    /// The driven fixtures in `group`, whole and ignoring case, in order.
     #[must_use]
     pub fn grouped(&self, group: &str) -> Vec<&Fixture> {
         self.fixtures

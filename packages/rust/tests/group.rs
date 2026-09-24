@@ -1,5 +1,4 @@
-//! A group against a simulated device: every member answers its own outcome,
-//! and a member that fails stops no other one.
+//! Groups, against a simulated device.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 

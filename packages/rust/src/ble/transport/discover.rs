@@ -85,8 +85,7 @@ impl Shared {
         Ok(found)
     }
 
-    /// A device that the scan before this one recorded while this one waited
-    /// for the adapter.
+    /// A device that an earlier scan recorded while this one waited.
     fn recorded(&self, id: &DeviceId) -> Result<Option<Discovered>> {
         let devices = self.devices.lock()?;
         Ok(devices.get(id).map(|tracked| Discovered {

@@ -1,8 +1,3 @@
-//! Several devices driven as one, and what each member answered.
-//!
-//! A verb on a group rejects for nothing a member does: every member answers
-//! its own `Outcome`, and a member that fails stops no other one.
-
 use std::future::Future;
 
 use govee_toolkit::codec::Mode;
@@ -15,8 +10,7 @@ use crate::conv;
 use crate::errors::Parts;
 use crate::types::Served;
 
-/// What one member answered: `served` or `mode` where the call succeeded,
-/// and `error` where it failed.
+/// What one member answered.
 #[napi]
 pub struct Outcome {
     id: String,
@@ -45,15 +39,13 @@ impl Outcome {
         self.mode.clone()
     }
 
-    /// The command that was served. `null` where the call failed, and for
-    /// `ensureKnown()`.
+    /// The command served. `null` on a failure and for `ensureKnown()`.
     #[napi(getter)]
     pub fn served(&self) -> Option<Served> {
         self.served.clone().map(Served::from)
     }
 
-    /// The error the call on one device would throw. `null` where it
-    /// succeeded.
+    /// What the call on one device throws. `null` where it succeeded.
     #[napi(getter, ts_return_type = "Error | null")]
     pub fn error<'env>(&self, env: &'env Env) -> napi::Result<Option<Object<'env>>> {
         self.error
@@ -104,15 +96,13 @@ pub struct GroupHandle {
 
 #[napi]
 impl GroupHandle {
-    /// The identities of the members, in the order every outcome list
-    /// follows.
+    /// The identities of the members, in the order of every outcome list.
     #[napi(getter)]
     pub fn members(&self) -> Vec<String> {
         self.members.iter().map(ToString::to_string).collect()
     }
 
-    /// Scan for every member that no mode knows yet. Each outcome carries the
-    /// mode a command would go over.
+    /// Scan for every member that no mode knows. Each outcome carries its mode.
     #[napi]
     pub fn ensure_known<'env>(
         &self,
@@ -140,7 +130,7 @@ impl GroupHandle {
         })
     }
 
-    /// Set the level on every member. The range is each member's own.
+    /// Set the level on every member, against its own range.
     #[napi]
     pub fn brightness<'env>(
         &self,
@@ -183,7 +173,7 @@ impl GroupHandle {
         })
     }
 
-    /// Play an effect on every member, as `DeviceHandle.music()` does.
+    /// `DeviceHandle.music()` on every member.
     #[napi]
     pub fn music<'env>(
         &self,
@@ -201,8 +191,7 @@ impl GroupHandle {
         })
     }
 
-    /// Paint the segments of every member once, as `DeviceHandle.segment()`
-    /// does. A zone list reads against each member's own zones.
+    /// `DeviceHandle.segment()` on every member, against its own zones.
     #[napi]
     pub fn segment<'env>(
         &self,

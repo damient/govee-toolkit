@@ -47,8 +47,7 @@ pub enum Selector {
     /// Every known device the configuration gives this name. The comparison
     /// ignores case and is exact.
     Name(String),
-    /// Every known device the configuration puts in this group. The
-    /// comparison ignores case and is exact.
+    /// Every known device in this group, whole and ignoring case.
     Group(String),
 }
 
@@ -68,8 +67,7 @@ impl Selector {
     }
 
     /// Read one target, and settle a bare one against the names and the
-    /// groups that `source` gives. A name that no device carries and a group
-    /// does is that group.
+    /// groups that `source` gives.
     ///
     /// # Errors
     ///
@@ -105,16 +103,13 @@ impl fmt::Display for Selector {
 
 /// The names and the groups that a bare target settles against.
 pub trait Names {
-    /// Whether a device carries `name`. The comparison ignores case and is
-    /// exact.
+    /// Whether a device carries `name`, whole and ignoring case.
     fn names(&self, name: &str) -> bool;
 
-    /// Whether a device carries `group`. The comparison ignores case and is
-    /// exact.
+    /// Whether a device carries `group`, whole and ignoring case.
     fn groups(&self, group: &str) -> bool;
 }
 
-/// The devices the SDK knows.
 impl Names for [Device] {
     fn names(&self, name: &str) -> bool {
         named(self, name).next().is_some()
@@ -152,7 +147,6 @@ enum Written<'a> {
     Bare(&'a str),
 }
 
-/// The trimmed target, split at a prefix that states its kind.
 fn split(target: &str) -> Result<Written<'_>, Error> {
     let target = target.trim();
     if target.is_empty() {
@@ -245,17 +239,19 @@ impl Govee {
     /// The devices the targets name, in the order they were written.
     ///
     /// `mode` is the one mode the caller will drive, and `None` where it
-    /// drives none and lists instead. A SKU and a name then match among the
-    /// devices that enable `mode`. An identity selects itself, found or not.
+    /// drives none and lists instead. A SKU, a name and a group then match
+    /// among the devices that enable `mode`. An identity selects itself, found
+    /// or not.
     ///
     /// A device two targets name appears once, at the first place it was
-    /// named. A SKU and a name select among the devices the SDK knows, so
-    /// scan first where nothing has been discovered yet.
+    /// named. A SKU, a name and a group select among the devices the SDK
+    /// knows, so scan first where nothing has been discovered yet.
     ///
     /// # Errors
     ///
     /// [`Error::Ambiguous`] where a bare target reads as two kinds,
-    /// [`Error::NoMatch`] where a SKU or a name matches no known device, and
+    /// [`Error::NoMatch`] where a SKU, a name or a group matches no known
+    /// device, and
     /// [`Error::NotOnMode`] where the devices it matches enable no `mode`.
     /// Every [`Error`] [`Selector::parse`] reports travels out of here too.
     pub fn select<I, T>(&self, targets: I, mode: Option<Mode>) -> Result<Vec<DeviceId>, Error>
@@ -277,8 +273,6 @@ impl Govee {
     }
 }
 
-/// A name that no device carries and a group does is that group. A bare
-/// target that reads as two kinds is [`Error::Ambiguous`].
 fn settle<N>(written: &str, selector: Selector, source: &N) -> Result<Selector, Error>
 where
     N: Names + ?Sized,

@@ -13,7 +13,6 @@ const OPEN_DELAY = 300;
 
 const pick = <T>(items: readonly T[]): T | undefined => items[Math.floor(Math.random() * items.length)];
 
-// A single-dot move marks one dot at random with `data-on`.
 function start(el: HTMLElement, items: readonly HTMLElement[], move: string): void {
   if (SINGLE.has(move)) {
     const one = pick(items);
