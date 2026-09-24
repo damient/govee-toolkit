@@ -275,7 +275,7 @@ fn text(written: &Written, path: &Path) -> String {
         }
     }
     for placement in &plan.added {
-        lines.push(format!(
+        let mut line = format!(
             "added {}  {}  {}  universe {}  channels {} to {}",
             placement.device,
             placement.sku,
@@ -283,7 +283,16 @@ fn text(written: &Written, path: &Path) -> String {
             placement.universe,
             placement.address,
             placement.address + placement.width - 1
-        ));
+        );
+        if let Some(name) = &placement.name {
+            line.push_str("  name ");
+            line.push_str(name);
+        }
+        if !placement.groups.is_empty() {
+            line.push_str("  groups ");
+            line.push_str(&placement.groups.join(", "));
+        }
+        lines.push(line);
     }
     for skipped in plan.skipped.iter().chain(&written.ignored) {
         lines.push(format!(

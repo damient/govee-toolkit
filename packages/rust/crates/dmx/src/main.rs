@@ -87,13 +87,15 @@ enum Command {
     /// Every fixture goes off at once first. One fixture at a time then
     /// comes back on in one color. Every fixture goes off again at the end.
     ///
-    /// A target names a fixture by its device: an identity (`1C:8B:…`), a SKU
-    /// (`H6159`), or a name (`kitchen`). A name reads the `name:` of the
-    /// patch first, and `config.yaml` after it. `--universe` and `--address`
-    /// name fixtures by the channels they answer to. Every fixture the patch
-    /// enables when the command line names none.
+    /// A target names fixtures by their devices: an identity (`1C:8B:…`), a
+    /// SKU (`H6159`), a name (`kitchen`), or a group (`bar`). A name and a
+    /// group read the patch first, and `config.yaml` after it. A group lights
+    /// in patch order. Write `name:` or `group:` where a target reads as
+    /// both. `--universe` and `--address` name fixtures by the channels they
+    /// answer to. Every fixture the patch enables when the command line names
+    /// none.
     Identify {
-        /// The devices to light. Every enabled fixture when absent.
+        /// The devices or groups to light. Every enabled fixture when absent.
         #[arg(value_name = "TARGET")]
         targets: Vec<String>,
         /// The port-address to light. With `--address`, the universe that
