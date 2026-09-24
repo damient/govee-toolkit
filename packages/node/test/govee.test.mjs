@@ -1,6 +1,9 @@
 // The SDK at startup, and what it knows before any scan.
 
 import assert from "node:assert/strict";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import { withGovee } from "./helpers.mjs";
@@ -58,4 +61,33 @@ test("the events of one SDK are iterated with for await", async () => {
   await withGovee(sdk, (govee) => {
     assert.equal(typeof govee.events()[Symbol.asyncIterator], "function");
   });
+});
+
+const NAMED = `devices:
+  "AA:BB:CC:DD:EE:FF":
+    name: kitchen
+  "11:22:33:44:55:66":
+    name: twin
+  "22:33:44:55:66:77":
+    name: twin
+`;
+
+test("a handle takes a name the configuration gives", async () => {
+  const path = join(mkdtempSync(join(tmpdir(), "govee-")), "config.yaml");
+  writeFileSync(path, NAMED);
+  const govee = await Govee.start(Config.loadFrom(path));
+  try {
+    assert.equal(govee.device("kitchen").id, "AA:BB:CC:DD:EE:FF");
+    assert.equal(govee.deviceOn("name:KITCHEN", "lan").id, "AA:BB:CC:DD:EE:FF");
+    assert.equal(govee.device("id:AA:BB:CC:DD:EE:FF").id, "AA:BB:CC:DD:EE:FF");
+    for (const [target, code] of [
+      ["name:attic", "no_such_target"],
+      ["twin", "ambiguous_target"],
+      ["sku:H6008", "target_not_understood"],
+    ]) {
+      assert.throws(() => govee.device(target), { code }, target);
+    }
+  } finally {
+    await govee.close();
+  }
 });
