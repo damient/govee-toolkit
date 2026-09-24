@@ -20,6 +20,8 @@ is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
   refused, and so is a bare target that reads as a name and a group.
 - `govee-dmx patch` writes the groups that `config.yaml` gives a device into
   the new entry. The `--json` forms of the fixtures carry `groups`.
+- The `added` line of `govee-dmx patch`, `--dry-run` included, shows the
+  name and the groups of the new entry.
 
 ### Changed
 
