@@ -6,7 +6,7 @@
 use std::future::Future;
 
 use govee_toolkit::codec::Mode;
-use govee_toolkit::{DeviceId, Govee, Music, Outcome as CoreOutcome, Paint, Served as CoreServed};
+use govee_toolkit::{DeviceId, Govee, Outcome as CoreOutcome, Paint, Served as CoreServed};
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 
@@ -174,13 +174,7 @@ impl GroupHandle {
         soft: Option<bool>,
         color: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let default = Music::default();
-        let music = Music {
-            effect,
-            sensitivity: sensitivity.unwrap_or(default.sensitivity),
-            soft: soft.unwrap_or(default.soft),
-            color: color.map(conv::rgb).transpose()?,
-        };
+        let music = conv::music(effect, sensitivity, soft, color)?;
         self.served(py, move |govee, pinned, members| async move {
             govee.group_maybe_on(&members, pinned).music(&music).await
         })

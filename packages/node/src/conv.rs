@@ -1,7 +1,7 @@
 //! What crosses between a JavaScript value and a core value.
 
 use govee_toolkit::codec::{Supplied, UnknownMode, coerce};
-use govee_toolkit::{Mode, ParseError, Rate, Resolution};
+use govee_toolkit::{Mode, Music, ParseError, Rate, Resolution};
 use napi::bindgen_prelude::{Either, JsObjectValue, Object, Unknown};
 use napi::{Env, JsValue, ValueType};
 use serde::Serialize;
@@ -69,6 +69,23 @@ fn rgb_array(env: &Env, value: &Unknown<'_>) -> napi::Result<[u8; 3]> {
         return Err(refused());
     }
     triple(env, &ints(env, &array)?)
+}
+
+/// `None` takes the core's default for `sensitivity` and for `soft`.
+pub(crate) fn music(
+    env: &Env,
+    effect: i64,
+    sensitivity: Option<i64>,
+    soft: Option<bool>,
+    color: Option<&Channels<'_>>,
+) -> napi::Result<Music> {
+    let default = Music::default();
+    Ok(Music {
+        effect,
+        sensitivity: sensitivity.unwrap_or(default.sensitivity),
+        soft: soft.unwrap_or(default.soft),
+        color: color.map(|value| rgb(env, value)).transpose()?,
+    })
 }
 
 pub(crate) fn rgb(env: &Env, value: &Channels<'_>) -> napi::Result<[u8; 3]> {

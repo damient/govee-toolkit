@@ -7,8 +7,8 @@ use std::future::Future;
 
 use govee_toolkit::codec::Mode;
 use govee_toolkit::{
-    DeviceHandle as CoreHandle, DeviceId, Error, Govee, Identify, Music, Paint,
-    Served as CoreServed, StreamOptions, WifiCredentials, describe,
+    DeviceHandle as CoreHandle, DeviceId, Error, Govee, Identify, Paint, Served as CoreServed,
+    StreamOptions, WifiCredentials, describe,
 };
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -229,14 +229,7 @@ impl DeviceHandle {
         soft: Option<bool>,
         color: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let color = color.map(conv::rgb).transpose()?;
-        let default = Music::default();
-        let music = Music {
-            effect,
-            sensitivity: sensitivity.unwrap_or(default.sensitivity),
-            soft: soft.unwrap_or(default.soft),
-            color,
-        };
+        let music = conv::music(effect, sensitivity, soft, color)?;
         self.served(py, |govee, pinned, id| async move {
             govee.device_maybe_on(&id, pinned).music(&music).await
         })
