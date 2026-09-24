@@ -57,20 +57,58 @@
   .cta-links .btn { text-align: center; }
 }
 .btn {
+  position: relative; isolation: isolate; overflow: hidden;
   display: inline-block; padding: 12px 20px; border-radius: 10px;
   font: 500 15px/1 var(--sans); text-decoration: none;
   background: var(--ember); color: var(--ink);
   border: 1px solid transparent;
-  transition: background .18s ease, box-shadow .18s ease;
-}
-/* The button lights up under the pointer, the way the subject does. */
-.btn:hover {
-  background: var(--accent-ember-hot);
-  box-shadow:
-    0 4px 18px -2px color-mix(in oklab, var(--accent-ember-hot) 70%, transparent),
-    0 0 42px 2px color-mix(in oklab, var(--accent-ember-hot) 40%, transparent);
+  transition:
+    background .25s ease, box-shadow .35s ease,
+    translate .3s cubic-bezier(.2, .8, .2, 1), scale .15s ease;
 }
 .btn.ghost { background: transparent; color: var(--text); border-color: var(--line-strong); }
-.btn.ghost:hover { border-color: var(--text); background: transparent; box-shadow: none; }
+.btn.ghost:hover { border-color: var(--text); }
 
-@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+/* The primary button lights up under the pointer, the way the subject does:
+   it lifts, its glow grows and then breathes, and one band of light crosses
+   it. The band has no transition back, so it crosses in one direction only. */
+.btn:not(.ghost)::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 45%) 50%, transparent 70%);
+  translate: -120% 0;
+}
+.btn:not(.ghost):is(:hover, :focus-visible) {
+  background: var(--accent-ember-hot);
+  translate: 0 -2px;
+  box-shadow: var(--btn-glow);
+  animation: btn-breathe 2.4s ease-in-out .4s infinite alternate;
+}
+.btn:not(.ghost):is(:hover, :focus-visible)::after {
+  translate: 120% 0;
+  transition: translate .75s cubic-bezier(.3, .6, .2, 1);
+}
+.btn:not(.ghost):active { translate: 0; scale: .98; box-shadow: var(--btn-glow-low); animation: none; }
+.btn:not(.ghost) {
+  --btn-glow:
+    inset 0 1px 0 rgb(255 255 255 / 30%),
+    0 6px 20px -4px color-mix(in oklab, var(--accent-ember-hot) 75%, transparent),
+    0 0 42px 2px color-mix(in oklab, var(--accent-ember-hot) 40%, transparent);
+  --btn-glow-low:
+    inset 0 1px 0 rgb(255 255 255 / 20%),
+    0 2px 10px -2px color-mix(in oklab, var(--accent-ember-hot) 60%, transparent);
+}
+
+@keyframes btn-breathe {
+  to {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 30%),
+      0 8px 26px -4px color-mix(in oklab, var(--accent-ember-hot) 85%, transparent),
+      0 0 64px 6px color-mix(in oklab, var(--accent-ember-hot) 50%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+  .btn:not(.ghost):is(:hover, :focus-visible) { translate: none; animation: none; }
+  .btn:not(.ghost)::after { display: none; }
+}
