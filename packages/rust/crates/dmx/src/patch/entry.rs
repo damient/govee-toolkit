@@ -6,6 +6,7 @@ use govee_toolkit::DeviceId;
 use serde::{Deserialize, Deserializer, de};
 
 use super::address::Spelling;
+use super::label::Label;
 use crate::profile::Personality;
 
 /// What the bridge applies after the sender goes quiet.
@@ -41,6 +42,10 @@ impl fmt::Display for SignalLoss {
 pub struct Entry {
     /// The identity `govee scan` reports.
     pub device: DeviceId,
+    /// The name of the fixture. Messages and the `--json` forms carry it,
+    /// and a target of `govee-dmx` reads it.
+    #[serde(default)]
+    pub name: Option<String>,
     /// The SKU the entry was written for. It sizes the entry where the device
     /// did not answer, so a fixture that is off keeps its channels. An entry
     /// that carries none is sized by the device alone.
@@ -92,7 +97,18 @@ impl Entry {
             subnet: self.subnet,
             universe: self.universe,
         }
-        .resolve(&self.device)
+        .resolve(&self.label())
+    }
+}
+
+impl Entry {
+    /// The entry, as a message names it.
+    #[must_use]
+    pub fn label(&self) -> Label {
+        Label {
+            device: self.device.clone(),
+            name: self.name.clone(),
+        }
     }
 }
 

@@ -189,6 +189,7 @@ node:
                             # fixture powers off
 patch:
   - device: "AA:BB:CC:DD:EE:FF"
+    name: kitchen           # optional. The name of the fixture
     sku: H61A0              # optional. What sizes the entry while the device
                             # is off the network
     enabled: true           # the scan writes it. `false` keeps the channels
@@ -206,6 +207,12 @@ patch:
 `device` is the identity `govee scan` reports. `address` is the first channel
 the fixture answers to, the same number an operator sets on a real fixture, and
 the personality decides how many channels follow it.
+
+`name` is the name of the fixture. The messages and the `--json` forms of
+`govee-dmx` carry it, and a target of `govee-dmx` reads it. `device` stays the
+key that joins the entry to its device, so a name can change and no address
+moves. `govee-dmx patch` writes the name that `config.yaml` gives the device
+into a new entry, and never writes it again after that.
 
 A 10-zone device on `personality: segment` and `address: 1` therefore takes
 channels 1 to 33 of universe 0: channel 1 is the dimmer, channel 2 is the mode
@@ -401,14 +408,24 @@ the patch lists them. The terminal prints the entry before its fixture lights.
 
 A command line that names nothing walks the whole rig. A `TARGET` names the
 device of a fixture, in the grammar `govee identify` reads: an identity, a
-SKU, or `name:<name>`. `--universe` and `--address` name fixtures
+SKU, or a name. `name:` states the kind where a name reads as an identity or
+a SKU. `--universe` and `--address` name fixtures
 by the channels they answer to instead:
 
 ```sh
 govee-dmx identify --address 33        # the fixture on channel 33 of universe 0
 govee-dmx identify --universe 1        # every fixture of universe 1
-govee-dmx identify H6008 name:kitchen  # by model, and by the name in config.yaml
+govee-dmx identify H6008 kitchen       # by model, and by name
 ```
+
+A name reads the `name:` of the patch first, and `config.yaml` after it:
+
+- A name that the patch gives selects that fixture, whatever name
+  `config.yaml` gives its device.
+- A name that the patch gives one device and `config.yaml` gives another is
+  refused. Write the identity, as `id:<identity>`.
+- A bare target that reads as an identity or a SKU, and that a fixture carries
+  as a name, is refused. Write `name:` or `sku:` to state the kind.
 
 - `--universe` is the port-address to light. With `--address`, the universe
   that channel sits on. The default is 0.

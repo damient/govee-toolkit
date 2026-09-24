@@ -4,9 +4,8 @@
 
 use std::fmt;
 
-use govee_toolkit::DeviceId;
-
 use super::error::Error;
+use super::label::Label;
 
 /// The largest port-address, which is 15 bits.
 pub const MAX: u16 = 0x7FFF;
@@ -83,7 +82,7 @@ impl Spelling {
     ///
     /// [`Error::Address`] where a field is over the bits that hold it. The
     /// message names `device`, because the operator reads it next to a desk.
-    pub(super) fn resolve(self, device: &DeviceId) -> Result<PortAddress, Error> {
+    pub(super) fn resolve(self, device: &Label) -> Result<PortAddress, Error> {
         let too_large = |field: &'static str, value: u16, max: u16| Error::Address {
             device: device.clone(),
             field,

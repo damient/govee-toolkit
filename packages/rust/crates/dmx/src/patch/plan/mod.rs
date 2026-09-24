@@ -32,6 +32,9 @@ pub struct Candidate<'a> {
     pub id: &'a DeviceId,
     /// The device file it is encoded under.
     pub device: &'a Device,
+    /// The name the configuration gives the device. A new entry takes it as
+    /// the name of the fixture.
+    pub name: Option<&'a str>,
 }
 
 /// One entry the plan adds.
@@ -42,7 +45,9 @@ pub struct Placement {
     /// The SKU, which sizes the entry where the device does not answer.
     pub sku: String,
     /// The model name, for the operator at the desk.
-    pub name: String,
+    pub model: String,
+    /// The name of the fixture, where the configuration gives the device one.
+    pub name: Option<String>,
     /// The layout the entry takes.
     pub personality: Personality,
     /// The port-address it lands on.
@@ -143,7 +148,7 @@ impl Patch {
                 .or_else(|| entry.sku.as_deref().and_then(known));
             let Some(device) = device else {
                 errors.push(Error::Unsized {
-                    device: entry.device.clone(),
+                    device: entry.label(),
                 });
                 continue;
             };
@@ -151,7 +156,7 @@ impl Patch {
                 (Ok(universe), Ok(profile)) => taken.hold(universe, entry.address, profile.width()),
                 (Err(error), _) => errors.push(error),
                 (_, Err(source)) => errors.push(Error::Unserved {
-                    device: entry.device.clone(),
+                    device: entry.label(),
                     source,
                 }),
             }
@@ -218,7 +223,8 @@ fn place(
         return Ok(Placement {
             device: candidate.id.clone(),
             sku: candidate.device.sku.clone(),
-            name: candidate.device.name.clone(),
+            model: candidate.device.name.clone(),
+            name: candidate.name.map(ToOwned::to_owned),
             personality,
             universe,
             address,

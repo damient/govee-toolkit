@@ -36,6 +36,7 @@ impl Fixture {
     pub fn json(&self) -> Value {
         json!({
             "device": self.entry.device.to_string(),
+            "name": self.entry.name,
             "universe": self.universe.get(),
             "first": self.span.first,
             "last": self.span.last,
@@ -87,6 +88,22 @@ impl Rig {
             .collect()
     }
 
+    /// Every driven fixture whose entry carries `name`, in patch order. The
+    /// comparison ignores case and is exact.
+    #[must_use]
+    pub fn named(&self, name: &str) -> Vec<&Fixture> {
+        self.fixtures
+            .iter()
+            .filter(|fixture| {
+                fixture
+                    .entry
+                    .name
+                    .as_deref()
+                    .is_some_and(|given| given.eq_ignore_ascii_case(name))
+            })
+            .collect()
+    }
+
     /// The port-addresses the rig answers on, each one once and in order.
     /// `ArtPollReply` carries 4 of them per reply.
     #[must_use]
@@ -127,7 +144,7 @@ impl Patch {
         for entry in &self.patch {
             if entry.enabled && !seen.insert(&entry.device) {
                 errors.push(Error::Twice {
-                    device: entry.device.clone(),
+                    device: entry.label(),
                 });
                 continue;
             }
@@ -160,7 +177,7 @@ fn fixture<'a>(
         return Ok(None);
     };
     let profile = Profile::of(device, entry.personality).map_err(|source| Error::Unserved {
-        device: entry.device.clone(),
+        device: entry.label(),
         source,
     })?;
     let span = span(entry, universe, profile.width())?;
@@ -186,14 +203,14 @@ fn sized<'a>(
         return Ok(entry.sku.as_deref().and_then(known));
     }
     Err(Error::Unknown {
-        device: entry.device.clone(),
+        device: entry.label(),
     })
 }
 
 fn span(entry: &Entry, universe: PortAddress, width: u16) -> Result<Span, Error> {
     if entry.address == 0 || entry.address > UNIVERSE {
         return Err(Error::StartAddress {
-            device: entry.device.clone(),
+            device: entry.label(),
             address: entry.address,
         });
     }
@@ -205,7 +222,7 @@ fn span(entry: &Entry, universe: PortAddress, width: u16) -> Result<Span, Error>
     };
     if last > UNIVERSE {
         return Err(Error::PastUniverse {
-            device: entry.device.clone(),
+            device: entry.label(),
             personality: entry.personality,
             span,
         });
@@ -238,9 +255,9 @@ fn overlaps(fixtures: &[Fixture]) -> Vec<Error> {
                 && !clones(first, second)
             {
                 errors.push(Error::Overlap {
-                    first: first.entry.device.clone(),
+                    first: first.entry.label(),
                     first_span: first.span,
-                    second: second.entry.device.clone(),
+                    second: second.entry.label(),
                     second_span: second.span,
                 });
             }

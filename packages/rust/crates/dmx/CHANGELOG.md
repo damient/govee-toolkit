@@ -6,6 +6,22 @@ releases under `dmx-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md). The design
 is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 
+### Added
+
+- A patch entry takes `name:`, the name of the fixture. Messages and the
+  `--json` forms carry it. See [`docs/dmx.md`](../../../../docs/dmx.md) 2.
+- `govee-dmx identify` reads the `name:` of the patch first, then
+  `config.yaml`. A name that the two give to different devices is refused.
+- `govee-dmx patch` writes the name that `config.yaml` gives a device into
+  the new entry.
+
+### Changed
+
+- **Breaking:** `patch::Error` names an entry by `patch::Label`, the identity
+  and the name, in place of a `DeviceId`.
+- **Breaking:** `Placement::name` is `Placement::model`. `Placement::name` and
+  `Candidate::name` carry the name of the fixture.
+
 ## [0.2.0] — 2026-09-23
 
 ### Added
