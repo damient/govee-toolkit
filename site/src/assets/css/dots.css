@@ -1,0 +1,34 @@
+/* A 44px square on the center of the dots takes the click. */
+[data-dots][data-live] { position: relative; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+[data-dots][data-live]::before {
+  content: ""; position: absolute; top: 50%; left: 50%;
+  width: 44px; height: 44px; translate: -50% -50%;
+}
+[data-dots] i:nth-child(2) { --n: 1; }
+[data-dots] i:nth-child(3) { --n: 2; }
+
+/* The moves of the three dots, in the header and in the footer.
+   `dots.ts` sets `data-move` for one run, and `data-on` on the dot that a
+   single-dot move picks. `--n` staggers a move over the three dots. */
+[data-dots][data-move="wave"] i { animation: dot-hop .42s ease-out calc(var(--n, 0) * 110ms) both; }
+[data-dots][data-move="hop"] i[data-on] { animation: dot-hop .46s cubic-bezier(.3, .7, .4, 1.4) both; }
+[data-dots][data-move="jump"] i { animation: dot-jump .6s cubic-bezier(.3, .7, .4, 1) both; }
+[data-dots][data-move="flare"] i { animation: dot-flare .5s ease-in-out calc(var(--n, 0) * 140ms) both; }
+[data-dots][data-move="blink"] i[data-on] { animation: dot-blink .5s ease-in-out both; }
+[data-dots][data-move="squash"] i { animation: dot-squash .5s ease-out calc(var(--n, 0) * 80ms) both; }
+
+@keyframes dot-hop { 40% { transform: translateY(-6px); } }
+
+@keyframes dot-jump {
+  15% { transform: scale(1.25, .7); }
+  45% { transform: translateY(-7px) scale(.9, 1.15); }
+  75% { transform: scale(1.2, .8); }
+}
+
+@keyframes dot-flare {
+  50% { transform: scale(1.6); box-shadow: 0 0 12px 2px var(--dot), 0 0 24px 4px color-mix(in oklab, var(--dot) 55%, transparent); }
+}
+
+@keyframes dot-blink { 30%, 60% { opacity: .15; box-shadow: none; } }
+
+@keyframes dot-squash { 35% { transform: scale(1.5, .5); } 70% { transform: scale(.85, 1.2); } }
