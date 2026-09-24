@@ -42,7 +42,8 @@ devices:
     modes: [lan, ble]
 ```
 
-Every command takes the name in place of the MAC, bare or as `name:kitchen`.
+Every command takes the name in place of the MAC. Write `name:kitchen` where a
+name reads as a MAC or a SKU.
 Two devices can share a name: a command that drives one device then refuses
 it, and `govee devices` and `govee identify` take both.
 

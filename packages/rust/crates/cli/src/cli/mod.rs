@@ -65,7 +65,7 @@ pub(crate) enum Command {
 
     /// List the devices already known, without touching the network.
     Devices {
-        /// The devices to list: an identity, a SKU, or `name:<name>`. Every
+        /// The devices to list: an identity, a SKU, or a name. Every
         /// known device when absent. See `identify` for the whole grammar.
         #[arg(value_name = "TARGET")]
         targets: Vec<String>,
@@ -108,7 +108,7 @@ pub(crate) enum Command {
     /// It substitutes no other mode.
     ///
     /// A target names an identity (`1C:8B:…`), a SKU (`H6159`), or a name the
-    /// configuration gives a device (`name:kitchen`). `id:`, `sku:` and
+    /// configuration gives a device (`kitchen`). `id:`, `sku:` and
     /// `name:` state the kind where the target alone does not.
     Identify {
         /// The devices, in the order to light them. Every device a scan finds

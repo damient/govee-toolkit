@@ -4,6 +4,7 @@
 
 use super::{Error, ID, Kind, NAME, SKU, Selector, is_identity, kind};
 use crate::config::Config;
+use crate::govee::Govee;
 use crate::transport::DeviceId;
 
 impl Selector {
@@ -51,6 +52,21 @@ impl Selector {
             Some(id) => Ok(id),
             None => Ok(DeviceId::new(target)),
         }
+    }
+}
+
+impl Govee {
+    /// The identity of the one device that `target` names, against the
+    /// configuration in force. Pass the result to [`Govee::device`].
+    ///
+    /// It reads the configuration and no scan, so it costs nothing on the send
+    /// path.
+    ///
+    /// # Errors
+    ///
+    /// Every [`Error`] that [`Selector::one`] reports.
+    pub fn target(&self, target: &str) -> Result<DeviceId, Error> {
+        Selector::one(target, self.config())
     }
 }
 
