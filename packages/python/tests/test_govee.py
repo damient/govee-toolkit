@@ -38,3 +38,34 @@ async def test_the_configuration_in_force_is_the_one_it_started_with(govee):
 
 async def test_the_catalog_is_reachable_from_the_facade(govee):
     assert govee.catalog.skus()
+
+
+NAMED = """\
+devices:
+  "AA:BB:CC:DD:EE:FF":
+    name: kitchen
+  "11:22:33:44:55:66":
+    name: twin
+  "22:33:44:55:66:77":
+    name: twin
+"""
+
+
+async def test_a_handle_takes_a_name_the_configuration_gives(tmp_path):
+    path = tmp_path / "config.yaml"
+    path.write_text(NAMED, encoding="utf-8")
+    sdk = await Govee.start(Config.load_from(path))
+    try:
+        assert sdk.device("kitchen").id == "AA:BB:CC:DD:EE:FF"
+        assert sdk.device_on("name:KITCHEN", "lan").id == "AA:BB:CC:DD:EE:FF"
+        assert sdk.device("id:AA:BB:CC:DD:EE:FF").id == "AA:BB:CC:DD:EE:FF"
+        for target, code in [
+            ("name:attic", "no_such_target"),
+            ("twin", "ambiguous_target"),
+            ("sku:H6008", "target_not_understood"),
+        ]:
+            with pytest.raises(ConfigError) as refused:
+                sdk.device(target)
+            assert refused.value.code == code, target
+    finally:
+        await sdk.close()

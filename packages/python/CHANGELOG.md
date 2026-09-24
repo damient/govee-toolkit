@@ -4,6 +4,13 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Changed
+
+- **Breaking:** `Govee.device()` and `Govee.device_on()` take a name that the
+  configuration gives, bare or as `name:<name>`, as well as an identity.
+- **Breaking:** both raise `ConfigError` for `sku:…`, a name of two devices,
+  and a bare identity that is also a name. Write `id:<identity>` for that one.
+
 ## [0.4.0] — 2026-09-23
 
 ### Added

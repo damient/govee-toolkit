@@ -290,8 +290,15 @@ export declare class Govee {
   get config(): Config
   /** The device catalog in force. */
   get catalog(): Catalog
-  /** A handle for one device, by the MAC it reports. */
-  device(id: string): DeviceHandle
+  /**
+   * A handle for one device, by the identity it reports or by the name
+   * the configuration gives.
+   *
+   * `id:…` and `name:…` state the kind. A bare target is a name where the
+   * configuration gives one, and an identity otherwise. It reads the
+   * configuration and no scan.
+   */
+  device(target: string): DeviceHandle
   /**
    * A handle that drives the device over one mode alone.
    *
@@ -299,8 +306,10 @@ export declare class Govee {
    * serves one mode by design, such as a bridge that reaches a device over
    * `lan`: a handle from `device()` would move to the next enabled mode
    * when that one stops answering.
+   *
+   * `target` reads as it does for `device()`.
    */
-  deviceOn(id: string, mode: string): DeviceHandle
+  deviceOn(target: string, mode: string): DeviceHandle
   /** Subscribe to what the SDK reports. Iterate it with `for await`. */
   events(): EventStream
   /**

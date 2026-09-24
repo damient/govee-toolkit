@@ -142,14 +142,19 @@ impl Govee {
         }
     }
 
-    /// A handle for one device, by the MAC it reports.
+    /// A handle for one device, by the identity it reports or by the name
+    /// the configuration gives.
+    ///
+    /// `id:…` and `name:…` state the kind. A bare target is a name where the
+    /// configuration gives one, and an identity otherwise. It reads the
+    /// configuration and no scan.
     #[napi]
-    pub fn device(&self, id: String) -> DeviceHandle {
-        DeviceHandle {
+    pub fn device(&self, env: &Env, target: String) -> napi::Result<DeviceHandle> {
+        Ok(DeviceHandle {
             govee: self.inner.clone(),
             pinned: None,
-            id: DeviceId::new(&id),
-        }
+            id: self.target(env, &target)?,
+        })
     }
 
     /// A handle that drives the device over one mode alone.
@@ -158,12 +163,14 @@ impl Govee {
     /// serves one mode by design, such as a bridge that reaches a device over
     /// `lan`: a handle from `device()` would move to the next enabled mode
     /// when that one stops answering.
+    ///
+    /// `target` reads as it does for `device()`.
     #[napi]
-    pub fn device_on(&self, env: &Env, id: String, mode: String) -> napi::Result<DeviceHandle> {
+    pub fn device_on(&self, env: &Env, target: String, mode: String) -> napi::Result<DeviceHandle> {
         Ok(DeviceHandle {
             govee: self.inner.clone(),
             pinned: Some(conv::mode(env, &mode)?),
-            id: DeviceId::new(&id),
+            id: self.target(env, &target)?,
         })
     }
 
@@ -188,5 +195,11 @@ impl Govee {
             self.modes(),
             self.inner.devices().len()
         )
+    }
+}
+
+impl Govee {
+    fn target(&self, env: &Env, target: &str) -> napi::Result<DeviceId> {
+        map(env, self.inner.target(target).map_err(Into::into))
     }
 }

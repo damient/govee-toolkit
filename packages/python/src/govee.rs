@@ -132,13 +132,18 @@ impl Govee {
         }
     }
 
-    /// A handle for one device, by the MAC it reports.
-    fn device(&self, id: &str) -> DeviceHandle {
-        DeviceHandle {
+    /// A handle for one device, by the identity it reports or by the name
+    /// the configuration gives.
+    ///
+    /// `id:…` and `name:…` state the kind. A bare target is a name where the
+    /// configuration gives one, and an identity otherwise. It reads the
+    /// configuration and no scan.
+    fn device(&self, target: &str) -> PyResult<DeviceHandle> {
+        Ok(DeviceHandle {
             govee: self.inner.clone(),
             pinned: None,
-            id: DeviceId::new(id),
-        }
+            id: self.target(target)?,
+        })
     }
 
     /// A handle that drives the device over one mode alone.
@@ -147,11 +152,13 @@ impl Govee {
     /// serves one mode by design, such as a bridge that reaches a device over
     /// `lan`: a handle from `device()` would move to the next enabled mode
     /// when that one stops answering.
-    fn device_on(&self, id: &str, mode: &str) -> PyResult<DeviceHandle> {
+    ///
+    /// `target` reads as it does for `device()`.
+    fn device_on(&self, target: &str, mode: &str) -> PyResult<DeviceHandle> {
         Ok(DeviceHandle {
             govee: self.inner.clone(),
             pinned: Some(conv::mode(mode)?),
-            id: DeviceId::new(id),
+            id: self.target(target)?,
         })
     }
 
@@ -176,6 +183,15 @@ impl Govee {
             self.modes(),
             self.inner.devices().len()
         )
+    }
+}
+
+impl Govee {
+    fn target(&self, target: &str) -> PyResult<DeviceId> {
+        map(self
+            .inner
+            .target(target)
+            .map_err(govee_toolkit::Error::from))
     }
 }
 

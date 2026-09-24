@@ -33,12 +33,12 @@
           "id": "select",
           "title": "select",
           "summary": "Name devices by identity, by SKU or by name.",
-          "detail": "A target is an identity (`1C:8B:\u2026`), a SKU (`H6159`), or `name:kitchen` for the name the configuration gives a device. `id:`, `sku:` and `name:` state the kind where the target alone does not. A SKU matches that model and no alias of it, and a name matches the whole name. A SKU and a name read the devices already known, so scan first.",
+          "detail": "A target is an identity (`1C:8B:\u2026`), a SKU (`H6159`), or a name the configuration gives a device (`kitchen`). `id:`, `sku:` and `name:` state the kind where the target alone does not. A SKU matches that model and no alias of it, and a name matches the whole name. A SKU and a name read the devices already known, so scan first. A handle for one device takes a name too, and reads it from the configuration with no scan.",
           "examples": {
-            "cli": "govee devices H6159\ngovee devices name:kitchen",
-            "rust": "let chosen = govee.select([\"H6159\", \"name:kitchen\"])?;",
-            "python": "chosen = govee.select([\"H6159\", \"name:kitchen\"])",
-            "node": "const chosen = govee.select(['H6159', 'name:kitchen'])"
+            "cli": "govee devices H6159\ngovee devices kitchen\ngovee on kitchen",
+            "rust": "let chosen = govee.select([\"H6159\", \"kitchen\"])?;\nlet kitchen = govee.device(&govee.target(\"kitchen\")?);",
+            "python": "chosen = govee.select([\"H6159\", \"kitchen\"])\nkitchen = govee.device(\"kitchen\")",
+            "node": "const chosen = govee.select(['H6159', 'kitchen'])\nconst kitchen = govee.device('kitchen')"
           }
         },
         {
@@ -47,7 +47,7 @@
           "summary": "Light each device in turn, so a person maps an identity to a fixture in the room.",
           "detail": "The device powers on, goes to the top of the brightness range its device file declares, and paints one color. `govee identify` walks a rig: every device goes off at once, one device at a time comes back on, and every device goes off again at the end. It walks the devices the targets name, or every device a scan finds. The walk drives `lan`, and the mode `--mode` names where it names one.",
           "examples": {
-            "cli": "govee identify\ngovee identify H6159\ngovee identify 1C:8B:C4:A2:C0:46:64:6E name:kitchen",
+            "cli": "govee identify\ngovee identify H6159\ngovee identify 1C:8B:C4:A2:C0:46:64:6E kitchen",
             "rust": "device.identify(&Identify::default()).await?;",
             "python": "await device.identify()",
             "node": "await device.identify()"
@@ -323,9 +323,9 @@
           "id": "dmx-identify",
           "title": "govee-dmx identify",
           "summary": "Light each patched fixture in turn, so a person reads the rig.",
-          "detail": "The walk lights the fixtures in patch order, over `lan`. A target names the device of a fixture, in the grammar `select` reads. `--universe` and `--address` name fixtures by the channels they answer to: `--address` lights the fixture that answers to that channel, and not only the one that starts there.",
+          "detail": "The walk lights the fixtures in patch order, over `lan`. A target names the device of a fixture, in the grammar `select` reads, and a name reads the `name:` of the patch before the configuration. `--universe` and `--address` name fixtures by the channels they answer to: `--address` lights the fixture that answers to that channel, and not only the one that starts there.",
           "examples": {
-            "cli": "govee-dmx identify\ngovee-dmx identify --address 33\ngovee-dmx identify --universe 1\ngovee-dmx identify H6159 name:kitchen"
+            "cli": "govee-dmx identify\ngovee-dmx identify --address 33\ngovee-dmx identify --universe 1\ngovee-dmx identify H6159 kitchen"
           }
         },
         {

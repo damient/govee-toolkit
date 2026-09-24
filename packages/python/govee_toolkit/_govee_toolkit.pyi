@@ -464,14 +464,22 @@ class Govee:
     @property
     def catalog(self) -> Catalog:
         """The device catalog in force."""
-    def device(self, id: str) -> DeviceHandle:
-        """A handle for one device, by the MAC it reports."""
-    def device_on(self, id: str, mode: str) -> DeviceHandle:
+    def device(self, target: str) -> DeviceHandle:
+        """A handle for one device, by the identity it reports or by the name the
+        configuration gives.
+
+        `id:…` and `name:…` state the kind. A bare target is a name where the
+        configuration gives one, and an identity otherwise. It reads the configuration
+        and no scan.
+        """
+    def device_on(self, target: str, mode: str) -> DeviceHandle:
         """A handle that drives the device over one mode alone.
 
         Every call on it goes over `mode` or raises. Use it where the caller serves one
         mode by design, such as a bridge that reaches a device over `lan`: a handle from
         `device()` would move to the next enabled mode when that one stops answering.
+
+        `target` reads as it does for `device()`.
         """
     def events(self) -> EventStream:
         """Subscribe to what the SDK reports. Iterate it with `async for`."""
