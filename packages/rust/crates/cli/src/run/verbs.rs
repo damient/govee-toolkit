@@ -1,9 +1,14 @@
 //! Each verb calls the matching method of the crate, which reads the entry the
 //! device file marks with that `role:`. No command name reaches this file.
+//!
+//! A verb goes to every member at once. A member that fails stops no other
+//! one: its line goes to stderr, and the run exits with the code of the first
+//! member that failed.
 
+use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::stream::Resolution;
-use govee_toolkit::{DeviceId, Govee, Music, Paint, Served};
+use govee_toolkit::{DeviceId, Govee, GroupHandle, Music, Outcome, Paint, Served};
 use serde_json::json;
 
 pub(super) enum Verb {
@@ -24,22 +29,52 @@ pub(super) enum Verb {
 pub(super) async fn run(
     govee: &Govee,
     writer: Writer,
-    id: &DeviceId,
+    members: &[DeviceId],
+    restrict: Option<Mode>,
     verb: Verb,
 ) -> Result<(), Failure> {
-    let handle = govee.device(id);
-    let served = match verb {
-        Verb::Power(on) => handle.power(on).await,
-        Verb::Brightness(level) => handle.brightness(level).await,
-        Verb::Color(rgb) => handle.color(rgb).await,
-        Verb::ColorTemp(kelvin) => handle.color_temp(kelvin).await,
+    let mut failures: Vec<(DeviceId, Failure)> = Vec::new();
+    let mut reached = Vec::new();
+    for id in members {
+        match known(govee, id, restrict).await {
+            Ok(()) => reached.push(id.clone()),
+            Err(failure) => failures.push((id.clone(), failure)),
+        }
+    }
+    for outcome in play(&govee.group(&reached), verb).await {
+        match outcome.result {
+            Ok(served) => report(writer, &served),
+            Err(error) => failures.push((outcome.id, Failure::from(error))),
+        }
+    }
+    verdict(writer, members.len(), failures)
+}
+
+/// A member that does not enable `--mode` fails before a scan looks for it
+/// over another mode.
+async fn known(govee: &Govee, id: &DeviceId, restrict: Option<Mode>) -> Result<(), Failure> {
+    if let Some(mode) = restrict
+        && !govee.device(id).modes().contains(&mode)
+    {
+        return Err(super::not_enabled(id, mode));
+    }
+    govee.ensure_known(id).await?;
+    Ok(())
+}
+
+async fn play(group: &GroupHandle<'_>, verb: Verb) -> Vec<Outcome> {
+    match verb {
+        Verb::Power(on) => group.power(on).await,
+        Verb::Brightness(level) => group.brightness(level).await,
+        Verb::Color(rgb) => group.color(rgb).await,
+        Verb::ColorTemp(kelvin) => group.color_temp(kelvin).await,
         Verb::Segment {
             zones,
             colors,
             resolution,
             gradient,
         } => {
-            handle
+            group
                 .segment(&Paint {
                     zones: zones.as_deref(),
                     colors: &colors,
@@ -48,11 +83,38 @@ pub(super) async fn run(
                 })
                 .await
         }
-        Verb::Gradient(on) => handle.gradient(on).await,
-        Verb::Music(music) => handle.music(&music).await,
-    }?;
-    report(writer, &served);
-    Ok(())
+        Verb::Gradient(on) => group.gradient(on).await,
+        Verb::Music(music) => group.music(&music).await,
+    }
+}
+
+/// One device fails with its own failure, as a command on one device does.
+fn verdict(
+    writer: Writer,
+    count: usize,
+    mut failures: Vec<(DeviceId, Failure)>,
+) -> Result<(), Failure> {
+    if count == 1 {
+        return failures.pop().map_or(Ok(()), |(_, failure)| Err(failure));
+    }
+    for (id, failure) in &failures {
+        writer.warn(
+            &json!({
+                "id": id.to_string(),
+                "error": { "kind": failure.kind(), "message": failure.message() },
+            }),
+            &format!("{id} failed: {}", failure.message()),
+        );
+    }
+    let names: Vec<String> = failures.iter().map(|(id, _)| id.to_string()).collect();
+    let failed = failures.len();
+    match failures.into_iter().next() {
+        None => Ok(()),
+        Some((_, first)) => Err(first.with_message(format!(
+            "{failed} of {count} devices failed: {}",
+            names.join(", ")
+        ))),
+    }
 }
 
 pub(super) fn report(writer: Writer, served: &Served) {

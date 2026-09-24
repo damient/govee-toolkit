@@ -27,8 +27,14 @@ pub(crate) async fn dispatch(cli: &Cli, writer: Writer) -> Result<(), Failure> {
         .device()
         .map(|target| Selector::one(target, &config))
         .transpose()?;
-    let govee = Govee::start(configure(cli, config, target.as_ref())?).await?;
-    let outcome = route(&govee, cli, writer, target.as_ref()).await;
+    let members = cli
+        .command
+        .members()
+        .map(|target| Selector::many(target, &config))
+        .transpose()?
+        .unwrap_or_default();
+    let govee = Govee::start(configure(cli, config, target.as_ref(), &members)?).await?;
+    let outcome = route(&govee, cli, writer, target.as_ref(), &members).await;
     // `ble` loses the last frame it wrote when nothing releases the adapter.
     let released = govee.shutdown().await.map_err(Failure::from);
     outcome.and(released)
@@ -39,6 +45,7 @@ async fn route(
     cli: &Cli,
     writer: Writer,
     target: Option<&DeviceId>,
+    members: &[DeviceId],
 ) -> Result<(), Failure> {
     let restrict = cli.global.mode;
     if let Some(id) = target {
@@ -111,14 +118,15 @@ async fn route(
             )
             .await
         }
-        Command::Verb(verb) => one_verb(govee, writer, one()?, verb).await,
+        Command::Verb(verb) => play(govee, writer, members, restrict, verb).await,
     }
 }
 
-async fn one_verb(
+async fn play(
     govee: &Govee,
     writer: Writer,
-    id: &DeviceId,
+    members: &[DeviceId],
+    restrict: Option<Mode>,
     verb: &cli::Verb,
 ) -> Result<(), Failure> {
     let played = match verb {
@@ -143,7 +151,7 @@ async fn one_verb(
             ..
         } => verbs::Verb::Music(music(*effect, *sensitivity, *soft, color.as_deref())?),
     };
-    verbs::run(govee, writer, id, played).await
+    verbs::run(govee, writer, members, restrict, played).await
 }
 
 async fn segment(
@@ -182,23 +190,44 @@ fn modes(govee: &Govee, restrict: Option<Mode>) -> Vec<Mode> {
     restrict.map_or_else(|| govee.modes(), |mode| vec![mode])
 }
 
-fn configure(cli: &Cli, mut config: Config, target: Option<&DeviceId>) -> Result<Config, Failure> {
+fn configure(
+    cli: &Cli,
+    mut config: Config,
+    target: Option<&DeviceId>,
+    members: &[DeviceId],
+) -> Result<Config, Failure> {
     if let Command::Scan { timeout_ms } = cli.command {
         config.lan.scan_window_ms = timeout_ms;
     }
 
     // `--mode` narrows what the configuration enables and adds nothing:
     // sending over another mode would substitute one in silence.
-    let (Some(mode), Some(id)) = (cli.global.mode, target) else {
+    let Some(mode) = cli.global.mode else {
         return Ok(config);
     };
-    if !config.modes_for(id).contains(&mode) {
-        return Err(Failure::unsupported(format!(
-            "`{id}` does not enable mode `{mode}`; the configuration decides which modes a device has"
-        )));
+    if let Some(id) = target
+        && !config.modes_for(id).contains(&mode)
+    {
+        return Err(not_enabled(id, mode));
     }
-    config.devices.entry(id.clone()).or_default().modes = Some(vec![mode]);
+    // A member that does not enable the mode keeps its modes, and
+    // `verbs::run` fails that member alone before anything scans for it.
+    let pinned: Vec<DeviceId> = target
+        .into_iter()
+        .chain(members)
+        .filter(|id| config.modes_for(id).contains(&mode))
+        .cloned()
+        .collect();
+    for id in pinned {
+        config.devices.entry(id).or_default().modes = Some(vec![mode]);
+    }
     Ok(config)
+}
+
+pub(super) fn not_enabled(id: &DeviceId, mode: Mode) -> Failure {
+    Failure::unsupported(format!(
+        "`{id}` does not enable mode `{mode}`; the configuration decides which modes a device has"
+    ))
 }
 
 fn load(cli: &Cli) -> Result<Config, Failure> {
