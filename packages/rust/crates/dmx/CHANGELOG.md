@@ -6,6 +6,8 @@ releases under `dmx-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md). The design
 is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 
+## [0.3.0] — 2026-09-24
+
 ### Added
 
 - A patch entry takes `name:`, the name of the fixture. Messages and the
