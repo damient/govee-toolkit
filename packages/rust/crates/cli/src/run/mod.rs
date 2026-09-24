@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{Config, DeviceId, Env, Govee, Identify, Music, Walk};
+use govee_toolkit::{Config, DeviceId, Env, Govee, Identify, Music, Selector, Walk};
 
 use crate::cli::{self, Cli, Command};
 
@@ -21,18 +21,31 @@ mod verbs;
 mod watch;
 
 pub(crate) async fn dispatch(cli: &Cli, writer: Writer) -> Result<(), Failure> {
-    let govee = Govee::start(configure(cli)?).await?;
-    let outcome = route(&govee, cli, writer).await;
+    let config = load(cli)?;
+    let target = cli
+        .command
+        .device()
+        .map(|target| Selector::one(target, &config))
+        .transpose()?;
+    let govee = Govee::start(configure(cli, config, target.as_ref())?).await?;
+    let outcome = route(&govee, cli, writer, target.as_ref()).await;
     // `ble` loses the last frame it wrote when nothing releases the adapter.
     let released = govee.shutdown().await.map_err(Failure::from);
     outcome.and(released)
 }
 
-async fn route(govee: &Govee, cli: &Cli, writer: Writer) -> Result<(), Failure> {
+async fn route(
+    govee: &Govee,
+    cli: &Cli,
+    writer: Writer,
+    target: Option<&DeviceId>,
+) -> Result<(), Failure> {
     let restrict = cli.global.mode;
-    if let Some(device) = cli.command.device() {
-        discover(govee, &DeviceId::new(device)).await?;
+    if let Some(id) = target {
+        discover(govee, id).await?;
     }
+    // `Command::device` is `Some` for exactly the commands that read this.
+    let one = || target.ok_or_else(|| Failure::internal("no device target was resolved"));
 
     match &cli.command {
         Command::Scan { .. } => devices::scan(govee, writer, restrict).await,
@@ -64,37 +77,25 @@ async fn route(govee: &Govee, cli: &Cli, writer: Writer) -> Result<(), Failure> 
             };
             identify::run(govee, writer, targets, &walk).await
         }
-        Command::Send {
-            device,
-            command,
-            args,
-        } => send::run(govee, writer, &DeviceId::new(device), command, args).await,
-        Command::Status { device } => status::run(govee, writer, &DeviceId::new(device)).await,
+        Command::Send { command, args, .. } => {
+            send::run(govee, writer, one()?, command, args).await
+        }
+        Command::Status { .. } => status::run(govee, writer, one()?).await,
         Command::Watch { rescan_ms } => watch::run(govee, writer, *rescan_ms, restrict).await,
         Command::Stream {
-            device,
             resolution,
             rate,
             gradient,
-        } => {
-            stream::run(
-                govee,
-                writer,
-                &DeviceId::new(device),
-                resolution,
-                *rate,
-                *gradient,
-            )
-            .await
-        }
+            ..
+        } => stream::run(govee, writer, one()?, resolution, *rate, *gradient).await,
         #[cfg(feature = "ble")]
         Command::Provision {
-            device,
             ssid,
             password,
             open,
             utc_offset_hours,
             utc_offset_minutes,
+            ..
         } => {
             let secret = provision::Secret {
                 password: password.as_deref(),
@@ -103,47 +104,46 @@ async fn route(govee: &Govee, cli: &Cli, writer: Writer) -> Result<(), Failure> 
             provision::run(
                 govee,
                 writer,
-                &DeviceId::new(device),
+                one()?,
                 ssid.as_deref(),
                 &secret,
                 (*utc_offset_hours, *utc_offset_minutes),
             )
             .await
         }
-        Command::Verb(verb) => one_verb(govee, writer, verb).await,
+        Command::Verb(verb) => one_verb(govee, writer, one()?, verb).await,
     }
 }
 
-async fn one_verb(govee: &Govee, writer: Writer, verb: &cli::Verb) -> Result<(), Failure> {
-    let (device, played) = match verb {
-        cli::Verb::On { device } => (device, verbs::Verb::Power(true)),
-        cli::Verb::Off { device } => (device, verbs::Verb::Power(false)),
-        cli::Verb::Brightness { device, value } => (device, verbs::Verb::Brightness(*value)),
-        cli::Verb::Color { device, color } => (device, verbs::Verb::Color(args::rgb(color)?)),
-        cli::Verb::Colortemp { device, kelvin } => (device, verbs::Verb::ColorTemp(*kelvin)),
-        cli::Verb::Gradient { device, state } => (device, verbs::Verb::Gradient((*state).into())),
+async fn one_verb(
+    govee: &Govee,
+    writer: Writer,
+    id: &DeviceId,
+    verb: &cli::Verb,
+) -> Result<(), Failure> {
+    let played = match verb {
+        cli::Verb::On { .. } => verbs::Verb::Power(true),
+        cli::Verb::Off { .. } => verbs::Verb::Power(false),
+        cli::Verb::Brightness { value, .. } => verbs::Verb::Brightness(*value),
+        cli::Verb::Color { color, .. } => verbs::Verb::Color(args::rgb(color)?),
+        cli::Verb::Colortemp { kelvin, .. } => verbs::Verb::ColorTemp(*kelvin),
+        cli::Verb::Gradient { state, .. } => verbs::Verb::Gradient((*state).into()),
         cli::Verb::Segment {
-            device,
             zones,
             resolution,
             colors,
             gradient,
-        } => (
-            device,
-            segment(zones.as_deref(), resolution, colors, *gradient).await?,
-        ),
+            ..
+        } => segment(zones.as_deref(), resolution, colors, *gradient).await?,
         cli::Verb::Music {
-            device,
             effect,
             sensitivity,
             soft,
             color,
-        } => (
-            device,
-            verbs::Verb::Music(music(*effect, *sensitivity, *soft, color.as_deref())?),
-        ),
+            ..
+        } => verbs::Verb::Music(music(*effect, *sensitivity, *soft, color.as_deref())?),
     };
-    verbs::run(govee, writer, &DeviceId::new(device), played).await
+    verbs::run(govee, writer, id, played).await
 }
 
 async fn segment(
@@ -182,24 +182,22 @@ fn modes(govee: &Govee, restrict: Option<Mode>) -> Vec<Mode> {
     restrict.map_or_else(|| govee.modes(), |mode| vec![mode])
 }
 
-fn configure(cli: &Cli) -> Result<Config, Failure> {
-    let mut config = load(cli)?;
+fn configure(cli: &Cli, mut config: Config, target: Option<&DeviceId>) -> Result<Config, Failure> {
     if let Command::Scan { timeout_ms } = cli.command {
         config.lan.scan_window_ms = timeout_ms;
     }
 
     // `--mode` narrows what the configuration enables and adds nothing:
     // sending over another mode would substitute one in silence.
-    let (Some(mode), Some(device)) = (cli.global.mode, cli.command.device()) else {
+    let (Some(mode), Some(id)) = (cli.global.mode, target) else {
         return Ok(config);
     };
-    let id = DeviceId::new(device);
-    if !config.modes_for(&id).contains(&mode) {
+    if !config.modes_for(id).contains(&mode) {
         return Err(Failure::unsupported(format!(
             "`{id}` does not enable mode `{mode}`; the configuration decides which modes a device has"
         )));
     }
-    config.devices.entry(id).or_default().modes = Some(vec![mode]);
+    config.devices.entry(id.clone()).or_default().modes = Some(vec![mode]);
     Ok(config)
 }
 

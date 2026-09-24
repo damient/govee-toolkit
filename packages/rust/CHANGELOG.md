@@ -7,6 +7,13 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `Selector::one()` reads a target that names one device: an identity, or a
+  name that `config.yaml` gives. It reads no scan.
+- `select::Error::NotOne` and `select::Error::Several` — a SKU, or a name that
+  two configured devices carry, where one device is expected.
+
 ## [0.12.0] — 2026-09-23
 
 ### Added

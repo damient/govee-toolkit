@@ -80,7 +80,7 @@ pub(crate) enum Command {
 
     /// Send one device file entry by name.
     Send {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
         /// The entry in `commands.<mode>` of the device file.
         command: String,
@@ -91,7 +91,7 @@ pub(crate) enum Command {
 
     /// Read the device's state.
     Status {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
     },
 
@@ -149,7 +149,7 @@ pub(crate) enum Command {
     /// segment channel: the device goes back to the color it showed before.
     /// Use `segment` to paint colors that stay.
     Stream {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
         /// How many zones every frame states: `app`, `native`, `groups`, or a
         /// count. A count the unit renders as a smaller one is refused.
@@ -172,7 +172,7 @@ pub(crate) enum Command {
     /// which holds the one connection the radio accepts.
     #[cfg(feature = "ble")]
     Provision {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
         /// The network name. `GOVEE_WIFI_SSID` supplies it when absent, from
         /// the environment or from `.env`.
