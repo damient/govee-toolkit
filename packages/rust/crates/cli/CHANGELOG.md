@@ -5,6 +5,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Added
+
+- Every command that drives one device takes a name from `config.yaml`, bare
+  or as `name:kitchen`, in place of the identity.
+
 ## [0.7.0] — 2026-09-23
 
 ### Added

@@ -17,6 +17,7 @@
 //! A SKU matches the SKU a device is encoded under, and no alias of it: an
 //! operator who types one model does not mean the other.
 
+mod one;
 #[cfg(test)]
 mod tests;
 
@@ -198,6 +199,21 @@ pub enum Error {
         /// The mode the caller will drive.
         mode: Mode,
     },
+
+    /// A command that drives one device got a target that names a model.
+    #[error("`{target}` names a model; this command takes one device, by identity or by name")]
+    NotOne {
+        /// The target, in its prefixed form.
+        target: String,
+    },
+
+    /// A command that drives one device got a name that the configuration
+    /// gives to more than one device.
+    #[error("`{target}` names more than one device in the configuration")]
+    Several {
+        /// The target, in its prefixed form.
+        target: String,
+    },
 }
 
 impl Error {
@@ -206,8 +222,8 @@ impl Error {
     #[must_use]
     pub fn code(&self) -> &'static str {
         match self {
-            Self::Empty | Self::EmptyValue { .. } => "target_not_understood",
-            Self::Ambiguous { .. } => "ambiguous_target",
+            Self::Empty | Self::EmptyValue { .. } | Self::NotOne { .. } => "target_not_understood",
+            Self::Ambiguous { .. } | Self::Several { .. } => "ambiguous_target",
             Self::NoMatch { .. } | Self::NotOnMode { .. } => "no_such_target",
         }
     }

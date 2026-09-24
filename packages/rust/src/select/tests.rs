@@ -217,3 +217,50 @@ fn a_bare_sku_that_a_device_carries_as_a_name_is_refused() {
         Some(Selector::Sku("H6008".to_owned()))
     );
 }
+
+fn named_config() -> crate::config::Config {
+    serde_norway::from_str(
+        r#"
+devices:
+  "1C:8B:C4:A2:C0:46:64:6E":
+    name: kitchen
+  "AA:BB:CC:DD:EE:FF:00:11":
+    name: twin
+  "11:22:33:44:55:66:77:88":
+    name: TWIN
+  "22:33:44:55:66:77:88:99":
+    name: "33:44:55:66:77:88:99:AA"
+"#,
+    )
+    .expect("the configuration parses")
+}
+
+fn one(target: &str) -> Result<DeviceId, Error> {
+    Selector::one(target, &named_config())
+}
+
+#[test]
+fn one_reads_a_name_the_configuration_gives() {
+    let kitchen = DeviceId::new("1C:8B:C4:A2:C0:46:64:6E");
+    assert_eq!(one("kitchen"), Ok(kitchen.clone()));
+    assert_eq!(one("name:KITCHEN"), Ok(kitchen));
+}
+
+#[test]
+fn one_reads_an_identity() {
+    let id = DeviceId::new("AA:BB:CC:DD:EE:FF");
+    assert_eq!(one("AA:BB:CC:DD:EE:FF"), Ok(id.clone()));
+    assert_eq!(one("id:AA:BB:CC:DD:EE:FF"), Ok(id));
+}
+
+#[test]
+fn one_refuses_what_is_not_one_device() {
+    assert!(matches!(one("name:attic"), Err(Error::NoMatch { .. })));
+    assert!(matches!(one("twin"), Err(Error::Several { .. })));
+    assert!(matches!(one("sku:H6008"), Err(Error::NotOne { .. })));
+    assert!(matches!(one("name:"), Err(Error::EmptyValue { .. })));
+    assert!(matches!(
+        one("33:44:55:66:77:88:99:AA"),
+        Err(Error::Ambiguous { .. })
+    ));
+}

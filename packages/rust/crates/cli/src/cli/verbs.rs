@@ -23,19 +23,19 @@ impl From<Toggle> for bool {
 pub(crate) enum Verb {
     /// Turn the device on.
     On {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
     },
 
     /// Turn the device off.
     Off {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
     },
 
     /// Set the brightness, in the unit the device file declares.
     Brightness {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
         /// The value. Out of range is an error, never a clamp.
         value: i64,
@@ -43,7 +43,7 @@ pub(crate) enum Verb {
 
     /// Set one color over the whole device.
     Color {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
         /// `#RRGGBB`.
         color: String,
@@ -54,7 +54,7 @@ pub(crate) enum Verb {
     /// White and color are mutually exclusive: this ends the color the device
     /// showed.
     Colortemp {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
         /// The temperature in kelvin. Out of range is an error, never a clamp.
         kelvin: i64,
@@ -62,7 +62,7 @@ pub(crate) enum Verb {
 
     /// Paint addressable zones.
     Segment {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
         /// Zone indices, zero-based and comma-separated. Every zone when
         /// absent. A subset needs a mode that paints by zone mask, and takes
@@ -91,7 +91,7 @@ pub(crate) enum Verb {
     /// the device shows, so the colors cannot be repainted under the other
     /// setting. Pass `--gradient` to `segment` there, which sets both at once.
     Gradient {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
         /// Whether to interpolate.
         #[arg(value_enum)]
@@ -105,7 +105,7 @@ pub(crate) enum Verb {
     /// the device file declares one. Nothing stops the effect: set a color, a
     /// temperature or the power to end it.
     Music {
-        /// The device identity.
+        /// The device: its identity, or a name the configuration gives.
         device: String,
         /// Which effect. Where the device file bounds it, out of range is an
         /// error, never a clamp. Where it does not, the mode answers.
