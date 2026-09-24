@@ -53,7 +53,9 @@ pub enum Error {
 
     /// A caller asked for one mode, and the configuration does not enable it
     /// for this device. The caller never overrides what the user enabled.
-    #[error("{id}: mode `{mode}` is not enabled for this device")]
+    #[error(
+        "{id}: mode `{mode}` is not enabled for this device; the configuration decides which modes a device has"
+    )]
     ModeNotEnabled {
         /// The device.
         id: DeviceId,

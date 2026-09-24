@@ -45,6 +45,7 @@ releases apart and keeps
 - **Breaking:** `Selector` gains `Group`, and `Device` gains `groups`. Match
   the new variant and fill the new field.
 - `select::Error::NotOne` covers a group as well as a SKU.
+- `exit`: `mode_not_enabled` exits with code 3, `CONFIG`, in place of 1.
 - `ble` runs one scan at a time: the scan that ends first stopped the adapter
   under any other one. A `scan_for()` that waited answers a device the scan
   before it heard, without a scan of its own.

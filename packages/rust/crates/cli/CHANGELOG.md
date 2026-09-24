@@ -17,6 +17,12 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 - A bare target that is no name, no group and no identity fails before any
   scan, with exit code 4.
 
+### Changed
+
+- **Breaking:** `--mode` on a device that does not enable that mode fails with
+  `mode_not_enabled` and exit code 3, in place of `unsupported` and exit code
+  6. `identify` exits with 3 in place of 1 for the same failure.
+
 ## [0.7.0] — 2026-09-23
 
 ### Added

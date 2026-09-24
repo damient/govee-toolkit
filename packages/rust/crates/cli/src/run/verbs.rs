@@ -8,7 +8,7 @@
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::stream::Resolution;
-use govee_toolkit::{DeviceId, Error, Govee, GroupHandle, Music, Outcome, Paint, Served};
+use govee_toolkit::{DeviceId, Govee, GroupHandle, Music, Outcome, Paint, Served};
 use serde_json::json;
 
 pub(super) enum Verb {
@@ -38,10 +38,6 @@ pub(super) async fn run(
     for outcome in govee.group_maybe_on(members, restrict).ensure_known().await {
         match outcome.result {
             Ok(_) => reached.push(outcome.id),
-            // The same record as one device that does not enable `--mode`.
-            Err(Error::ModeNotEnabled { id, mode, .. }) => {
-                failures.push((outcome.id, super::not_enabled(&id, mode)));
-            }
             Err(error) => failures.push((outcome.id, Failure::from(error))),
         }
     }
