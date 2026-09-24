@@ -15,6 +15,7 @@ mod device;
 mod errors;
 mod events;
 mod govee;
+mod group;
 mod promise;
 mod stream;
 mod types;

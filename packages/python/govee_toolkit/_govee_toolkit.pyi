@@ -20,7 +20,9 @@ __all__ = [
     "EventStream",
     "Govee",
     "GoveeError",
+    "GroupHandle",
     "Health",
+    "Outcome",
     "Reply",
     "SegmentStream",
     "Served",
@@ -77,6 +79,9 @@ class Device:
     @property
     def name(self) -> str | None:
         """The name the configuration gives it, if any."""
+    @property
+    def groups(self) -> list[str]:
+        """The groups the configuration puts it in."""
     @property
     def modes(self) -> list[str]:
         """The enabled modes, in preference order."""
@@ -411,6 +416,70 @@ class DeviceHandle:
         """
 
 @final
+class Outcome:
+    """What one member answered: `served` or `mode` where the call succeeded, and
+    `error` where it failed.
+    """
+
+    @property
+    def id(self) -> str:
+        """The member."""
+    @property
+    def ok(self) -> bool:
+        """Whether the call on this member succeeded."""
+    @property
+    def mode(self) -> str | None:
+        """The mode that served the call. `None` where it failed."""
+    @property
+    def served(self) -> Served | None:
+        """The command that was served. `None` where the call failed, and for
+        `ensure_known()`.
+        """
+    @property
+    def error(self) -> GoveeError | None:
+        """What the call on one device raises. `None` where it succeeded."""
+
+@final
+class GroupHandle:
+    """A handle on the members of a group. It holds no state of its own."""
+
+    @property
+    def members(self) -> list[str]:
+        """The identities of the members, in the order every outcome list follows."""
+    async def ensure_known(self) -> list[Outcome]:
+        """Scan for every member that no mode knows yet. Each outcome carries the mode a
+        command would go over.
+        """
+    async def power(self, on: bool) -> list[Outcome]:
+        """Turn every member on or off."""
+    async def brightness(self, level: int) -> list[Outcome]:
+        """Set the level on every member. The range is each member's own."""
+    async def color(self, rgb: Color) -> list[Outcome]:
+        """Set one color on every member."""
+    async def color_temp(self, kelvin: int) -> list[Outcome]:
+        """Set the white temperature on every member, in kelvin."""
+    async def music(
+        self,
+        effect: int,
+        sensitivity: int | None = None,
+        soft: bool | None = None,
+        color: Color | None = None,
+    ) -> list[Outcome]:
+        """Play an effect on every member, as `DeviceHandle.music()` does."""
+    async def segment(
+        self,
+        colors: Sequence[Color],
+        zones: Sequence[int] | None = None,
+        resolution: Resolution | None = None,
+        gradient: bool = False,
+    ) -> list[Outcome]:
+        """Paint the segments of every member once, as `DeviceHandle.segment()` does. A
+        zone list reads against each member's own zones.
+        """
+    async def gradient(self, on: bool) -> list[Outcome]:
+        """Set the interpolation between zones on every member."""
+
+@final
 class Govee:
     """The SDK. Start one and keep it: it holds the catalog, the configuration and one
     transport per mode.
@@ -444,10 +513,10 @@ class Govee:
     def select(self, targets: Sequence[str], mode: str | None = None) -> list[str]:
         """The devices the targets name, in the order they were written.
 
-        A target is an identity (`1C:8B:…`), a SKU (`H6159`), or a name the
-        configuration gives a device (`name:kitchen`). `id:`, `sku:` and `name:` state
-        the kind where the target alone does not. A SKU and a name select among the
-        devices the SDK knows, so scan first.
+        A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name the configuration
+        gives a device (`name:kitchen`), or a group it gives (`group:ambient`). `id:`,
+        `sku:`, `name:` and `group:` state the kind where the target alone does not. A
+        SKU, a name and a group select among the devices the SDK knows, so scan first.
 
         `mode` is the one mode the caller will drive. A SKU and a name then match among
         the devices that enable it. An identity selects itself either way.
@@ -480,6 +549,20 @@ class Govee:
         `device()` would move to the next enabled mode when that one stops answering.
 
         `target` reads as it does for `device()`.
+        """
+    def targets(self, target: str) -> list[str]:
+        """The identities that one target names: one device, or every member of a group
+        the configuration gives, in identity order.
+
+        `group:…` states the kind. A bare target is a group where no device carries it
+        as a name. It reads the configuration and no scan.
+        """
+    def group(self, target: str, mode: str | None = None) -> GroupHandle:
+        """A handle for one device or one group. Every verb on it answers one `Outcome`
+        per member and raises for nothing a member does.
+
+        `target` reads as it does for `targets()`. `mode` pins every member to one mode,
+        as `device_on()` does.
         """
     def events(self) -> EventStream:
         """Subscribe to what the SDK reports. Iterate it with `async for`."""

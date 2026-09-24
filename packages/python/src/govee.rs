@@ -10,6 +10,7 @@ use crate::conv;
 use crate::device::DeviceHandle;
 use crate::errors::map;
 use crate::events::EventStream;
+use crate::group::GroupHandle;
 use crate::types::Device;
 
 /// The SDK. Start one and keep it: it holds the catalog, the configuration
@@ -79,10 +80,11 @@ impl Govee {
 
     /// The devices the targets name, in the order they were written.
     ///
-    /// A target is an identity (`1C:8B:…`), a SKU (`H6159`), or a name the
-    /// configuration gives a device (`name:kitchen`). `id:`, `sku:` and
-    /// `name:` state the kind where the target alone does not. A SKU and a
-    /// name select among the devices the SDK knows, so scan first.
+    /// A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name the
+    /// configuration gives a device (`name:kitchen`), or a group it gives
+    /// (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind
+    /// where the target alone does not. A SKU, a name and a group select
+    /// among the devices the SDK knows, so scan first.
     ///
     /// `mode` is the one mode the caller will drive. A SKU and a name then
     /// match among the devices that enable it. An identity selects itself
@@ -162,6 +164,33 @@ impl Govee {
         })
     }
 
+    /// The identities that one target names: one device, or every member of
+    /// a group the configuration gives, in identity order.
+    ///
+    /// `group:…` states the kind. A bare target is a group where no device
+    /// carries it as a name. It reads the configuration and no scan.
+    fn targets(&self, target: &str) -> PyResult<Vec<String>> {
+        Ok(self
+            .members(target)?
+            .iter()
+            .map(ToString::to_string)
+            .collect())
+    }
+
+    /// A handle for one device or one group. Every verb on it answers one
+    /// `Outcome` per member and raises for nothing a member does.
+    ///
+    /// `target` reads as it does for `targets()`. `mode` pins every member
+    /// to one mode, as `device_on()` does.
+    #[pyo3(signature = (target, mode = None))]
+    fn group(&self, target: &str, mode: Option<String>) -> PyResult<GroupHandle> {
+        Ok(GroupHandle {
+            govee: self.inner.clone(),
+            pinned: mode.map(|name| conv::mode(&name)).transpose()?,
+            members: self.members(target)?,
+        })
+    }
+
     /// Subscribe to what the SDK reports. Iterate it with `async for`.
     fn events(&self) -> EventStream {
         EventStream::new(&self.inner)
@@ -187,6 +216,13 @@ impl Govee {
 }
 
 impl Govee {
+    fn members(&self, target: &str) -> PyResult<Vec<DeviceId>> {
+        map(self
+            .inner
+            .targets(target)
+            .map_err(govee_toolkit::Error::from))
+    }
+
     fn target(&self, target: &str) -> PyResult<DeviceId> {
         map(self
             .inner

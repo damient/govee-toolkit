@@ -7,21 +7,42 @@ use napi::bindgen_prelude::{Function, JsObjectValue, Object, Unknown};
 use napi::{Env, JsValue};
 
 /// Build one JavaScript error object.
+fn object<'env>(
+    env: &'env Env,
+    constructor: &str,
+    name: &str,
+    code: &str,
+    message: &str,
+) -> napi::Result<Object<'env>> {
+    let global = env.get_global()?;
+    let class: Function<'_, String, Unknown<'_>> = global.get_named_property(constructor)?;
+    let mut object: Object<'_> = class.new_instance(message.to_owned())?.coerce_to_object()?;
+    object.set_named_property("name", name)?;
+    object.set_named_property("code", code)?;
+    Ok(object)
+}
+
+/// Build one JavaScript error to throw.
 ///
 /// napi carries a fixed set of status codes, so the object is thrown as
 /// itself through `napi::Error::from`. An environment that refuses to build
 /// it falls back to the message alone: a failure reported with less beats one
 /// not reported.
 fn build(env: &Env, constructor: &str, name: &str, code: &str, message: String) -> napi::Error {
-    let object = |message: &str| -> napi::Result<napi::Error> {
-        let global = env.get_global()?;
-        let class: Function<'_, String, Unknown<'_>> = global.get_named_property(constructor)?;
-        let mut object: Object<'_> = class.new_instance(message.to_owned())?.coerce_to_object()?;
-        object.set_named_property("name", name)?;
-        object.set_named_property("code", code)?;
-        Ok(napi::Error::from(object.to_unknown()))
-    };
-    object(&message).unwrap_or_else(|_| napi::Error::from_reason(message))
+    object(env, constructor, name, code, &message).map_or_else(
+        |_| napi::Error::from_reason(message),
+        |object| napi::Error::from(object.to_unknown()),
+    )
+}
+
+/// A core failure, as an error object to hand over rather than throw.
+pub(crate) fn error_object<'env>(
+    env: &'env Env,
+    name: &str,
+    code: &str,
+    message: &str,
+) -> napi::Result<Object<'env>> {
+    object(env, "Error", name, code, message)
 }
 
 /// A core failure, as the error JavaScript sees.

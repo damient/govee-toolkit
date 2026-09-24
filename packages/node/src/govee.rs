@@ -11,6 +11,7 @@ use crate::conv;
 use crate::device::DeviceHandle;
 use crate::errors::map;
 use crate::events::EventStream;
+use crate::group::GroupHandle;
 use crate::promise::promise;
 use crate::types::Device;
 
@@ -85,10 +86,11 @@ impl Govee {
 
     /// The devices the targets name, in the order they were written.
     ///
-    /// A target is an identity (`1C:8B:…`), a SKU (`H6159`), or a name the
-    /// configuration gives a device (`name:kitchen`). `id:`, `sku:` and
-    /// `name:` state the kind where the target alone does not. A SKU and a
-    /// name select among the devices the SDK knows, so scan first.
+    /// A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name the
+    /// configuration gives a device (`name:kitchen`), or a group it gives
+    /// (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind
+    /// where the target alone does not. A SKU, a name and a group select
+    /// among the devices the SDK knows, so scan first.
     ///
     /// `mode` is the one mode the caller will drive. A SKU and a name then
     /// match among the devices that enable it. An identity selects itself
@@ -174,6 +176,39 @@ impl Govee {
         })
     }
 
+    /// The identities that one target names: one device, or every member of
+    /// a group the configuration gives, in identity order.
+    ///
+    /// `group:…` states the kind. A bare target is a group where no device
+    /// carries it as a name. It reads the configuration and no scan.
+    #[napi]
+    pub fn targets(&self, env: &Env, target: String) -> napi::Result<Vec<String>> {
+        Ok(self
+            .members(env, &target)?
+            .iter()
+            .map(ToString::to_string)
+            .collect())
+    }
+
+    /// A handle for one device or one group. Every verb on it answers one
+    /// `Outcome` per member and rejects for nothing a member does.
+    ///
+    /// `target` reads as it does for `targets()`. `mode` pins every member
+    /// to one mode, as `deviceOn()` does.
+    #[napi]
+    pub fn group(
+        &self,
+        env: &Env,
+        target: String,
+        mode: Option<String>,
+    ) -> napi::Result<GroupHandle> {
+        Ok(GroupHandle {
+            govee: self.inner.clone(),
+            pinned: mode.map(|name| conv::mode(env, &name)).transpose()?,
+            members: self.members(env, &target)?,
+        })
+    }
+
     /// Subscribe to what the SDK reports. Iterate it with `for await`.
     #[napi]
     pub fn events(&self) -> EventStream {
@@ -199,6 +234,10 @@ impl Govee {
 }
 
 impl Govee {
+    fn members(&self, env: &Env, target: &str) -> napi::Result<Vec<DeviceId>> {
+        map(env, self.inner.targets(target).map_err(Into::into))
+    }
+
     fn target(&self, env: &Env, target: &str) -> napi::Result<DeviceId> {
         map(env, self.inner.target(target).map_err(Into::into))
     }

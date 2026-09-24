@@ -66,6 +66,8 @@ export declare class Device {
   get sku(): string
   /** The name the configuration gives it, if any. */
   get name(): string | null
+  /** The groups the configuration puts it in. */
+  get groups(): Array<string>
   /** The enabled modes, in preference order. */
   get modes(): Array<string>
   /**
@@ -269,10 +271,11 @@ export declare class Govee {
   /**
    * The devices the targets name, in the order they were written.
    *
-   * A target is an identity (`1C:8B:…`), a SKU (`H6159`), or a name the
-   * configuration gives a device (`name:kitchen`). `id:`, `sku:` and
-   * `name:` state the kind where the target alone does not. A SKU and a
-   * name select among the devices the SDK knows, so scan first.
+   * A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name the
+   * configuration gives a device (`name:kitchen`), or a group it gives
+   * (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind
+   * where the target alone does not. A SKU, a name and a group select
+   * among the devices the SDK knows, so scan first.
    *
    * `mode` is the one mode the caller will drive. A SKU and a name then
    * match among the devices that enable it. An identity selects itself
@@ -310,6 +313,22 @@ export declare class Govee {
    * `target` reads as it does for `device()`.
    */
   deviceOn(target: string, mode: string): DeviceHandle
+  /**
+   * The identities that one target names: one device, or every member of
+   * a group the configuration gives, in identity order.
+   *
+   * `group:…` states the kind. A bare target is a group where no device
+   * carries it as a name. It reads the configuration and no scan.
+   */
+  targets(target: string): Array<string>
+  /**
+   * A handle for one device or one group. Every verb on it answers one
+   * `Outcome` per member and rejects for nothing a member does.
+   *
+   * `target` reads as it does for `targets()`. `mode` pins every member
+   * to one mode, as `deviceOn()` does.
+   */
+  group(target: string, mode?: string | undefined | null): GroupHandle
   /** Subscribe to what the SDK reports. Iterate it with `for await`. */
   events(): EventStream
   /**
@@ -317,6 +336,38 @@ export declare class Govee {
    * or `ble` loses the last frame it wrote.
    */
   close(): Promise<undefined>
+  toString(): string
+}
+
+/** A handle on the members of a group. It holds no state of its own. */
+export declare class GroupHandle {
+  /**
+   * The identities of the members, in the order every outcome list
+   * follows.
+   */
+  get members(): Array<string>
+  /**
+   * Scan for every member that no mode knows yet. Each outcome carries the
+   * mode a command would go over.
+   */
+  ensureKnown(): Promise<Array<Outcome>>
+  /** Turn every member on or off. */
+  power(on: boolean): Promise<Array<Outcome>>
+  /** Set the level on every member. The range is each member's own. */
+  brightness(level: number): Promise<Array<Outcome>>
+  /** Set one color on every member. */
+  color(rgb: [number, number, number] | Uint8Array): Promise<Array<Outcome>>
+  /** Set the white temperature on every member, in kelvin. */
+  colorTemp(kelvin: number): Promise<Array<Outcome>>
+  /** Play an effect on every member, as `DeviceHandle.music()` does. */
+  music(effect: number, sensitivity?: number | undefined | null, soft?: boolean | undefined | null, color?: [number, number, number] | Uint8Array): Promise<Array<Outcome>>
+  /**
+   * Paint the segments of every member once, as `DeviceHandle.segment()`
+   * does. A zone list reads against each member's own zones.
+   */
+  segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean | undefined | null): Promise<Array<Outcome>>
+  /** Set the interpolation between zones on every member. */
+  gradient(on: boolean): Promise<Array<Outcome>>
   toString(): string
 }
 
@@ -328,6 +379,30 @@ export declare class Health {
   get failures(): number
   /** Whether a command would be sent right now. */
   get available(): boolean
+  toString(): string
+}
+
+/**
+ * What one member answered: `served` or `mode` where the call succeeded,
+ * and `error` where it failed.
+ */
+export declare class Outcome {
+  /** The member. */
+  get id(): string
+  /** Whether the call on this member succeeded. */
+  get ok(): boolean
+  /** The mode that served the call. `null` where it failed. */
+  get mode(): string | null
+  /**
+   * The command that was served. `null` where the call failed, and for
+   * `ensureKnown()`.
+   */
+  get served(): Served | null
+  /**
+   * The error the call on one device would throw. `null` where it
+   * succeeded.
+   */
+  get error(): Error | null
   toString(): string
 }
 
