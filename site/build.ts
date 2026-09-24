@@ -87,7 +87,7 @@ const pages: Source[] = [
   },
 ];
 
-const FOOT_SKIP = new Set(["docs/configure/", "docs/troubleshooting/"]);
+const FOOT_SKIP = new Set(["docs/configure/", "docs/targets/", "docs/dmx/", "docs/troubleshooting/"]);
 
 async function main(): Promise<void> {
   const catalog = await readCatalog();
