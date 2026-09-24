@@ -7,7 +7,7 @@
 //! | ------ | ---- |
 //! | `1C:8B:C4:A2:C0:46:64:6E`, `id:…` | the identity a device reports |
 //! | `H6159`, `sku:H6159` | every known device of that model |
-//! | `name:kitchen` | the device the configuration names |
+//! | `kitchen`, `name:kitchen` | the device the configuration names |
 //!
 //! A bare target reads as a SKU where a device file is encoded under it, and
 //! never from the shape of the text alone. A bare target that reads as an

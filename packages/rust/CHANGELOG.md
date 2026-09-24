@@ -13,6 +13,8 @@ releases apart and keeps
   name that `config.yaml` gives. It reads no scan.
 - `select::Error::NotOne` and `select::Error::Several` — a SKU, or a name that
   two configured devices carry, where one device is expected.
+- `Govee::target()` — `Selector::one()` against the configuration in force.
+  Pass the identity it answers to `Govee::device()`.
 
 ## [0.12.0] — 2026-09-23
 
