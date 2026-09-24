@@ -4,9 +4,11 @@
 //! works against all of them. Only the conversion to `crate::lan::Options`
 //! sits behind the `lan` feature.
 
+use std::fmt;
 use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
+use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 
 #[cfg(feature = "lan")]
 use crate::error::Result;
@@ -16,8 +18,11 @@ use crate::transport::breaker::Policy;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct LanConfig {
-    /// Where discovery results are cached. Unset uses the default path;
-    /// `false` in YAML disables the cache, which then lives in memory only.
+    /// Where discovery results are cached. Unset uses the default path.
+    /// Only a path reads here: `false` is refused, because it would name a
+    /// file called `false`. [`LanConfig::cache_disabled`] keeps the cache in
+    /// memory.
+    #[serde(deserialize_with = "cache_path")]
     pub cache: Option<PathBuf>,
     /// Keep the cache in memory rather than on disk.
     pub cache_disabled: bool,
@@ -122,6 +127,35 @@ impl LanConfig {
     }
 }
 
+fn cache_path<'de, D>(deserializer: D) -> std::result::Result<Option<PathBuf>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Path;
+
+    impl Visitor<'_> for Path {
+        type Value = Option<PathBuf>;
+
+        fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_str("a path; write `cache_disabled: true` to keep the cache in memory")
+        }
+
+        fn visit_str<E: de::Error>(self, value: &str) -> std::result::Result<Self::Value, E> {
+            Ok(Some(PathBuf::from(value)))
+        }
+
+        fn visit_unit<E: de::Error>(self) -> std::result::Result<Self::Value, E> {
+            Ok(None)
+        }
+
+        fn visit_none<E: de::Error>(self) -> std::result::Result<Self::Value, E> {
+            Ok(None)
+        }
+    }
+
+    deserializer.deserialize_any(Path)
+}
+
 #[cfg(all(test, feature = "lan"))]
 mod tests {
     use super::*;
@@ -146,5 +180,16 @@ mod tests {
             transport.forget_after.as_secs() / 86_400
         );
         assert_eq!(lan.policy(), Policy::default());
+    }
+
+    #[test]
+    #[allow(clippy::expect_used)]
+    fn the_cache_takes_a_path_and_refuses_false() {
+        let read = |yaml: &str| serde_norway::from_str::<LanConfig>(yaml);
+        let lan = read("cache: /tmp/devices.json").expect("a path parses");
+        assert_eq!(lan.cache, Some(PathBuf::from("/tmp/devices.json")));
+        assert_eq!(read("cache: ~").expect("null parses").cache, None);
+        let refused = read("cache: false").expect_err("`false` is no path");
+        assert!(refused.to_string().contains("cache_disabled"), "{refused}");
     }
 }

@@ -50,6 +50,12 @@ releases apart and keeps
   under any other one. A `scan_for()` that waited answers a device the scan
   before it heard, without a scan of its own.
 
+### Fixed
+
+- `lan.cache` in `config.yaml` takes a path alone. `cache: false` is refused
+  with a message that names `cache_disabled: true`: it wrote the cache to a
+  file called `false`.
+
 ## [0.12.0] — 2026-09-23
 
 ### Added
