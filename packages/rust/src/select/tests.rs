@@ -14,6 +14,7 @@ fn on(id: &str, sku: &str, name: Option<&str>, modes: Vec<Mode>) -> Device {
         id: DeviceId::new(id),
         sku: sku.to_owned(),
         name: name.map(ToOwned::to_owned),
+        groups: Vec::new(),
         modes,
         health: BTreeMap::new(),
     }
@@ -205,10 +206,11 @@ fn a_bare_sku_that_a_device_carries_as_a_name_is_refused() {
     let known = vec![device("1C:8B:C4:A2:C0:46:64:6E", "H61A0", Some("H6008"))];
     let selector = Selector::Sku("H6008".to_owned());
     assert_eq!(
-        check_ambiguity("H6008", &selector, &known).err(),
+        settle("H6008", selector, &known).err(),
         Some(Error::Ambiguous {
             target: "H6008".to_owned(),
             kind: "sku".to_owned(),
+            other: "name".to_owned(),
         })
     );
     // The prefixed form says which kind is meant, so it is never ambiguous.
@@ -230,6 +232,11 @@ devices:
     name: TWIN
   "22:33:44:55:66:77:88:99":
     name: "33:44:55:66:77:88:99:AA"
+    groups: [ambient, hall]
+  "33:44:55:66:77:88:99:00":
+    groups: [Ambient]
+  "44:55:66:77:88:99:00:11":
+    name: hall
 "#,
     )
     .expect("the configuration parses")
@@ -263,4 +270,79 @@ fn one_refuses_what_is_not_one_device() {
         one("33:44:55:66:77:88:99:AA"),
         Err(Error::Ambiguous { .. })
     ));
+}
+
+fn many(target: &str) -> Result<Vec<DeviceId>, Error> {
+    Selector::many(target, &named_config())
+}
+
+#[test]
+fn many_reads_a_group_in_identity_order() {
+    let members = vec![
+        DeviceId::new("22:33:44:55:66:77:88:99"),
+        DeviceId::new("33:44:55:66:77:88:99:00"),
+    ];
+    assert_eq!(many("ambient"), Ok(members.clone()));
+    assert_eq!(many("group:AMBIENT"), Ok(members));
+    assert_eq!(
+        many("name:kitchen"),
+        Ok(vec![DeviceId::new("1C:8B:C4:A2:C0:46:64:6E")])
+    );
+}
+
+#[test]
+fn many_refuses_what_the_configuration_cannot_resolve() {
+    assert!(matches!(many("group:attic"), Err(Error::NoMatch { .. })));
+    assert!(matches!(many("sku:H6008"), Err(Error::Model { .. })));
+    assert_eq!(
+        many("hall").err(),
+        Some(Error::Ambiguous {
+            target: "hall".to_owned(),
+            kind: "name".to_owned(),
+            other: "group".to_owned(),
+        })
+    );
+    assert_eq!(
+        many("group:hall").map(|ids| ids.len()),
+        Ok(1),
+        "the prefix states the kind"
+    );
+}
+
+#[test]
+fn one_refuses_a_group() {
+    assert_eq!(
+        one("ambient").err(),
+        Some(Error::NotOne {
+            target: "group:ambient".to_owned()
+        })
+    );
+    assert!(matches!(one("group:ambient"), Err(Error::NotOne { .. })));
+}
+
+fn grouped(id: &str, name: Option<&str>, groups: &[&str]) -> Device {
+    Device {
+        groups: groups.iter().map(|g| (*g).to_owned()).collect(),
+        ..device(id, "H6008", name)
+    }
+}
+
+#[test]
+fn a_bare_target_that_no_device_carries_as_a_name_reads_as_a_group() {
+    let known = vec![
+        grouped("1C:8B:C4:A2:C0:46:64:6E", Some("kitchen"), &["ambient"]),
+        grouped("AA:BB:CC:DD:EE:FF:00:11", None, &["ambient", "kitchen"]),
+    ];
+    let bare = Selector::Name("ambient".to_owned());
+    assert_eq!(
+        settle("ambient", bare, &known),
+        Ok(Selector::Group("ambient".to_owned()))
+    );
+    let clash = Selector::Name("kitchen".to_owned());
+    assert!(matches!(
+        settle("kitchen", clash, &known),
+        Err(Error::Ambiguous { .. })
+    ));
+    let group = Selector::Group("ambient".to_owned());
+    assert_eq!(matches(&group, &known, None).map(|ids| ids.len()), Ok(2));
 }

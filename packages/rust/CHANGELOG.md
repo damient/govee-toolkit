@@ -15,6 +15,28 @@ releases apart and keeps
   two configured devices carry, where one device is expected.
 - `Govee::target()` — `Selector::one()` against the configuration in force.
   Pass the identity it answers to `Govee::device()`.
+- `DeviceConfig::groups` — `groups:` in `config.yaml`. `Config::members()`,
+  `Config::groups_for()` and `Config::is_group()` read it.
+- `Selector::Group` and `group:<name>`. A bare target that no device carries
+  as a name and a device carries under `groups:` is that group.
+- `Selector::many()` and `Govee::targets()` — the identities one target names,
+  a device or every member of a group, from the configuration alone.
+- `Govee::group()`, `Govee::group_on()` and `GroupHandle` — a verb on every
+  member at once, one `Outcome` per member. A failed member stops no other one.
+- `Device::groups` — the groups the configuration puts a device in.
+- `select::Error::Model` — `sku:…` where the configuration alone resolves the
+  target.
+- `exit::Failure::with_message()` — the same kind and exit code, another line.
+- `Config::problems()` reports a name that is also a group, and a group listed
+  twice on one device.
+
+### Changed
+
+- **Breaking:** `select::Error::Ambiguous` carries `other`, the second kind a
+  bare target reads as: `name` or `group`.
+- **Breaking:** `Selector` gains `Group`, and `Device` gains `groups`. Match
+  the new variant and fill the new field.
+- `select::Error::NotOne` covers a group as well as a SKU.
 
 ## [0.12.0] — 2026-09-23
 

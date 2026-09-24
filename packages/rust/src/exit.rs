@@ -80,6 +80,15 @@ impl Failure {
         Self::new("unsupported", message, UNSUPPORTED)
     }
 
+    /// The same kind and exit code, with another line for a person.
+    #[must_use]
+    pub fn with_message(self, message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            ..self
+        }
+    }
+
     /// The name this failure reports under. It is the same namespace as the
     /// error codes of the library.
     #[must_use]
