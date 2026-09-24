@@ -4,10 +4,10 @@
 @media (min-width: 900px) { .sitefoot .shell { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 56px; } }
 .foot-brand .wordmark { display: inline-flex; margin-bottom: 14px; }
 .sitefoot .muted { font-size: .9rem; max-width: 46ch; margin: 0; }
-.foot-nav { display: grid; gap: 32px; }
+.foot-nav { display: grid; gap: 32px; text-align: center; }
 
 @media (min-width: 560px) { .foot-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.sitefoot .eyebrow { margin-bottom: 1.6em; }
+.sitefoot .eyebrow { margin-bottom: 1.6em; color: var(--text); }
 .sitefoot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .sitefoot a { color: var(--muted); text-decoration: none; font-size: .95rem; }
 .sitefoot a:hover { color: var(--text); }
