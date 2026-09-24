@@ -18,7 +18,8 @@ log=''
 # qa_init <label> <only> — <label> names the temporary log, <only> filters the
 # checks by substring and is empty for a full run.
 qa_init() {
-  log=$(mktemp -t "$1")
+  # A template with XXXXXX: GNU mktemp refuses `-t` with a bare label.
+  log=$(mktemp "${TMPDIR:-/tmp}/$1.XXXXXX")
   only=${2:-}
   trap 'rm -f "$log"' EXIT
 }
