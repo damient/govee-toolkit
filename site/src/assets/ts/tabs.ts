@@ -15,7 +15,7 @@ export function tabs(): void {
   const show = (language: string | undefined) => {
     for (const group of groups) {
       const wanted = group.buttons.some((button) => button.dataset.lang === language);
-      const chosen = wanted ? language : group.buttons[0]?.dataset.lang;
+      const chosen = wanted ? language : group.el.dataset.langs;
       if (chosen === group.on) continue;
       group.on = chosen;
       paint(group.buttons, group.panes, "lang", chosen);
