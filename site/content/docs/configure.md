@@ -2,17 +2,58 @@
 title: Configure
 slug: configure
 order: 3
-description: The .env file the toolkit reads, the Wi-Fi credentials a device needs to join your network, and the API key cloud mode needs.
+description: The config.yaml that names your devices, the .env file the toolkit reads, the Wi-Fi credentials a device needs to join your network, and the API key cloud mode needs.
 ---
 
 # Configure
 
-The toolkit reads two files. `config.yaml` says which mode each device uses,
-and [the modes page]({{base}}docs/modes/) covers that one. `.env` carries the
-credentials, and this page covers it.
+The toolkit reads two files. `config.yaml` names your devices and says which
+mode each one uses. `.env` carries the credentials.
 
 `lan` and `ble` need no credential to send a command. Read this page when you
 put a device on your Wi-Fi network, or when you enable `cloud`.
+
+## The `config.yaml` file
+
+The toolkit does not create this file. Without it, every device uses `lan`.
+Write it yourself at `~/.config/govee-toolkit/config.yaml`, or point
+`GOVEE_CONFIG` or `--config` at another path.
+
+Each device is keyed by the MAC it reports. `govee scan` lists them:
+
+<div class="terminal">
+<pre><code><span class="prompt">$</span> govee scan
+AA:BB:CC:DD:EE:FF  H6159  -  [lan]
+11:22:33:44:55:66  H619A  -  [lan]</code></pre>
+<button class="copy" type="button" data-copy="govee scan">Copy</button>
+</div>
+
+Give a device a name, and the modes it may use:
+
+```yaml
+defaults:
+  modes: [lan]
+
+devices:
+  "AA:BB:CC:DD:EE:FF":
+    name: "kitchen"
+  "11:22:33:44:55:66":
+    name: "desk"
+    modes: [lan, ble]
+```
+
+Every command takes the name in place of the MAC, bare or as `name:kitchen`.
+Two devices can share a name: a command that drives one device then refuses
+it, and `govee devices` and `govee identify` take both.
+
+<div class="terminal">
+<pre><code><span class="prompt">$</span> govee brightness kitchen 40</code></pre>
+<button class="copy" type="button" data-copy="govee brightness kitchen 40">Copy</button>
+</div>
+
+The toolkit refuses a key it does not know, so a misspelling fails at start.
+`govee doctor` reports what is wrong with the file. The
+[modes page]({{base}}docs/modes/) describes `modes:` and the other sections.
 
 ## The `.env` file
 
