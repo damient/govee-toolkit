@@ -1,7 +1,7 @@
 ---
 title: Modes
 slug: modes
-order: 5
+order: 6
 description: Wi-Fi, Bluetooth or the cloud — where each path reaches your light from, and what each one needs.
 ---
 

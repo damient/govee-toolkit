@@ -19,7 +19,7 @@ The toolkit does not create this file. Without it, every device uses `lan`.
 Write it yourself at `~/.config/govee-toolkit/config.yaml`, or point
 `GOVEE_CONFIG` or `--config` at another path.
 
-Each device is keyed by the MAC it reports. `govee scan` lists them:
+Each device is keyed by the MAC address it reports. `govee scan` lists them:
 
 <div class="terminal">
 <pre><code><span class="prompt">$</span> govee scan
@@ -27,8 +27,6 @@ AA:BB:CC:DD:EE:FF  H6159  -  [lan]
 11:22:33:44:55:66  H619A  -  [lan]</code></pre>
 <button class="copy" type="button" data-copy="govee scan">Copy</button>
 </div>
-
-Give a device a name, and the modes it may use:
 
 ```yaml
 defaults:
@@ -38,23 +36,15 @@ devices:
   "AA:BB:CC:DD:EE:FF":
     name: "kitchen"
   "11:22:33:44:55:66":
-    name: "desk"
     modes: [lan, ble]
 ```
 
-Every command takes the name in place of the MAC. Write `name:kitchen` where a
-name reads as a MAC or a SKU.
-Two devices can share a name: a command that drives one device then refuses
-it, and `govee devices` and `govee identify` take both.
-
-<div class="terminal">
-<pre><code><span class="prompt">$</span> govee brightness kitchen 40</code></pre>
-<button class="copy" type="button" data-copy="govee brightness kitchen 40">Copy</button>
-</div>
+`modes:` lists the modes a device may use, first choice first. The
+[modes page]({{base}}docs/modes/) describes each mode, and
+[names and groups]({{base}}docs/targets/) describes `name:` and `groups:`.
 
 The toolkit refuses a key it does not know, so a misspelling fails at start.
-`govee doctor` reports what is wrong with the file. The
-[modes page]({{base}}docs/modes/) describes `modes:` and the other sections.
+`govee doctor` reports what is wrong with the file.
 
 ## The `.env` file
 
