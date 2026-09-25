@@ -480,6 +480,19 @@ commands:
 # answer.
 overrides: {}
 
+# optional — the physical size of the model, in metres, for a host that places
+# devices in a space. A property of the SKU: another length of one product is
+# another SKU. The unit that `measurements:` come from records its own length
+# there. Two shapes, and nothing else:
+#
+#   geometry: { length_m: 3 }                   # a strip or a rope
+#   geometry: { width_m: 0.3, height_m: 0.2 }   # a surface
+#
+# `length_m` is the lit length. Take the size from the
+# product specification or measure it; never derive it from a pixel count.
+# Leave the block out where nobody knows the size.
+geometry: {}
+
 measurements: {}        # optional — numbers taken from a physical unit:
                         # native_pixels, latency, sustainable frame rate…
                         # Always record the unit's length with them. These are

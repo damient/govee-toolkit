@@ -139,9 +139,29 @@ pub fn device(device: &Device) -> Vec<Problem> {
         ));
     }
 
+    problems.extend(geometry(device));
     problems.extend(groups(device));
 
     problems
+}
+
+fn geometry(device: &Device) -> Vec<Problem> {
+    let Some(geometry) = &device.geometry else {
+        return Vec::new();
+    };
+    geometry
+        .problems()
+        .into_iter()
+        .map(|(field, message)| Problem {
+            sku: device.sku.clone(),
+            at: if field.is_empty() {
+                "geometry".to_owned()
+            } else {
+                format!("geometry.{field}")
+            },
+            message,
+        })
+        .collect()
 }
 
 fn groups(device: &Device) -> Vec<Problem> {
