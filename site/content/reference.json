@@ -55,12 +55,12 @@
           "id": "identify",
           "title": "identify",
           "summary": "Light each device in turn, so a person maps an identity to a fixture in the room.",
-          "detail": "The device powers on, goes to the top of the brightness range its device file declares, and paints one color. `govee identify` walks a rig: every device goes off at once, one device at a time comes back on, and every device goes off again at the end. It walks the devices the targets name, or every device a scan finds. The walk drives `lan`, and the mode `--mode` names where it names one.",
+          "detail": "The device powers on, goes to the top of the brightness range its device file declares, and paints one color. `govee identify` walks a rig: every device goes off at once, one device at a time comes back on, and every device goes off again at the end. It walks the devices the targets name, or every device a scan finds. The walk drives `lan`, and the mode `--mode` names where it names one. The SDKs run the same walk and answer a report of the devices it lit, the devices that failed, and the devices that stayed lit.",
           "examples": {
             "cli": "govee identify\ngovee identify H6159\ngovee identify 1C:8B:C4:A2:C0:46:64:6E kitchen",
-            "rust": "device.identify(&Identify::default()).await?;",
-            "python": "await device.identify()",
-            "node": "await device.identify()"
+            "rust": "govee.identify(&[\"kitchen\"], &Walk::default()).await?;",
+            "python": "await govee.identify(\"kitchen\", hold=10)",
+            "node": "await govee.identify('kitchen', { holdMs: 10000 })"
           }
         },
         {
