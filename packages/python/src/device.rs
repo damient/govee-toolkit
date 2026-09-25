@@ -182,8 +182,9 @@ impl DeviceHandle {
     /// Power the device on and paint one color, so a person sees which
     /// fixture this identity drives.
     ///
-    /// The look the device held is lost. To walk a rig, power every device
-    /// off, wait a second, and then call this on one device at a time.
+    /// One pass: the device stays on and lit. `Govee.identify()` runs the
+    /// whole walk, and powers the devices off at the end. The look the
+    /// device held is lost.
     ///
     /// `None` takes the core's defaults: green, and the top of the
     /// brightness range the device file declares.

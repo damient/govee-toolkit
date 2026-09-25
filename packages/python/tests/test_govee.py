@@ -3,6 +3,7 @@
 import pytest
 
 from govee_toolkit import MODES, Config, ConfigError, Govee
+from helpers import call
 
 pytestmark = pytest.mark.asyncio
 
@@ -102,5 +103,46 @@ async def test_a_group_names_its_members_and_each_answers_alone(tmp_path):
         with pytest.raises(ConfigError) as refused:
             sdk.device("ambient")
         assert refused.value.code == "target_not_understood"
+    finally:
+        await sdk.close()
+
+
+async def test_an_identify_walk_over_an_empty_list_walks_no_device(govee):
+    report = await govee.identify([])
+    assert report.lit == []
+    assert report.failed == []
+    assert report.stayed == []
+    assert report.ok
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"hold": -1},
+        {"wait": float("nan")},
+        {"color": (256, 0, 0)},
+        {"mode": "radio"},
+    ],
+)
+async def test_an_identify_option_out_of_range_is_refused(govee, options):
+    with pytest.raises(ValueError):
+        await call(govee.identify, [], **options)
+
+
+async def test_an_identify_keyword_the_list_does_not_name_is_refused(govee):
+    with pytest.raises(TypeError):
+        await call(govee.identify, [], hold_ms=0)
+
+
+async def test_an_identify_walk_over_a_mode_the_device_does_not_enable_is_refused(
+    tmp_path,
+):
+    path = tmp_path / "config.yaml"
+    path.write_text(GROUPED, encoding="utf-8")
+    sdk = await Govee.start(Config.load_from(path))
+    try:
+        with pytest.raises(ConfigError) as refused:
+            await sdk.identify("AA:00:00:00:00:01", wait=0, hold=0)
+        assert refused.value.code == "mode_not_enabled"
     finally:
         await sdk.close()

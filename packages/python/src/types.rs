@@ -7,7 +7,10 @@ use std::collections::BTreeMap;
 
 use govee_toolkit::summary::{Style, Summary};
 use govee_toolkit::transport::{Health as CoreHealth, Reply as CoreReply};
-use govee_toolkit::{Device as CoreDevice, DeviceStatus as CoreStatus, Served as CoreServed};
+use govee_toolkit::{
+    Device as CoreDevice, DeviceId, DeviceStatus as CoreStatus, Served as CoreServed,
+    WalkReport as CoreWalkReport,
+};
 use pyo3::prelude::*;
 
 use crate::conv::to_py;
@@ -256,11 +259,78 @@ impl From<CoreReply> for Reply {
     }
 }
 
+/// What one identify walk covered, and what it failed at.
+#[pyclass(
+    frozen,
+    skip_from_py_object,
+    module = "govee_toolkit",
+    name = "WalkReport"
+)]
+#[derive(Debug, Clone)]
+pub(crate) struct WalkReport {
+    lit: Vec<DeviceId>,
+    inner: CoreWalkReport,
+}
+
+impl WalkReport {
+    pub(crate) fn new(lit: Vec<DeviceId>, inner: CoreWalkReport) -> Self {
+        Self { lit, inner }
+    }
+}
+
+fn strings(ids: &[DeviceId]) -> Vec<String> {
+    ids.iter().map(ToString::to_string).collect()
+}
+
+#[pymethods]
+impl WalkReport {
+    /// The devices the walk covered, in the order it lit them. Empty where
+    /// the targets named none.
+    #[getter]
+    fn lit(&self) -> Vec<String> {
+        strings(&self.lit)
+    }
+
+    /// The devices that refused the opening blackout or the pass.
+    #[getter]
+    fn failed(&self) -> Vec<String> {
+        strings(&self.inner.failed)
+    }
+
+    /// The devices that refused the closing blackout, and hold the color.
+    #[getter]
+    fn stayed(&self) -> Vec<String> {
+        strings(&self.inner.stayed)
+    }
+
+    /// Whether every device took every step.
+    #[getter]
+    fn ok(&self) -> bool {
+        self.inner.failed.is_empty() && self.inner.stayed.is_empty()
+    }
+
+    fn __str__(&self) -> String {
+        self.inner
+            .summary("device")
+            .unwrap_or_else(|| self.__repr__())
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "WalkReport(lit={}, failed={}, stayed={})",
+            self.lit.len(),
+            self.inner.failed.len(),
+            self.inner.stayed.len()
+        )
+    }
+}
+
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<Health>()?;
     module.add_class::<Device>()?;
     module.add_class::<Served>()?;
     module.add_class::<DeviceStatus>()?;
     module.add_class::<Reply>()?;
+    module.add_class::<WalkReport>()?;
     Ok(())
 }
