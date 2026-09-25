@@ -101,6 +101,8 @@ A sequence over several devices is the facade's work too, and not a binary's.
 `Govee::identify_walk` takes the rig off, lights one device at a time and
 reports what failed; the caller passes an observer for the lines it prints.
 The CLI and the bridge both call it, and neither one carries the walk.
+`Govee::identify` reads the targets and runs the same walk with no observer.
+The bindings call it, so each one carries one call and not the sequence.
 
 What a binary reports is the crate's work too. `exit::Failure` carries the name
 a script reads, the line a person reads and the exit code, and `exit::Writer`
