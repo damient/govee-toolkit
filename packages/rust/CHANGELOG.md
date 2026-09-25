@@ -15,6 +15,8 @@ releases apart and keeps
   the targets, walks them, and answers the devices it covered and the report.
 - `Walk::default()` and `IDENTIFY_HOLD` — the walk `govee identify` runs: 1 s
   between two steps, a 5 s hold, over `lan`.
+- `Device::geometry` and `codec::Geometry` read the `geometry:` block of a
+  device file. `describe()` carries it under `geometry`.
 
 ### Changed
 

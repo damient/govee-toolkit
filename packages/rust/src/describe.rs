@@ -26,6 +26,7 @@ pub fn describe(device: &Device) -> Value {
             "groups": device.capabilities.segment_groups(),
             "refines_at": device.measurements.resolution_changepoints,
         },
+        "geometry": device.geometry,
         "modes": by_mode(|mode| mode_json(device, mode)),
         "commands": by_mode(|mode| commands_json(device, mode)),
         "verified": {

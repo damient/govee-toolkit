@@ -22,6 +22,14 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-25
+
+#### Added
+
+- `devices/schema.yaml` takes an optional `geometry:` block, the size of the
+  model in metres: `length_m`, or `width_m` and `height_m`.
+- `H61A0` declares `geometry.length_m: 3`, the length of the product.
+
 ### 2026-09-22
 
 #### Added
