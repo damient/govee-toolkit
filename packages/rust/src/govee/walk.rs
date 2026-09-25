@@ -12,8 +12,9 @@ use std::time::Duration;
 use crate::codec::Mode;
 use crate::error::{Error, Result};
 use crate::govee::Govee;
+use crate::select::Selector;
 use crate::transport::DeviceId;
-use crate::verbs::Identify;
+use crate::verbs::{IDENTIFY_HOLD, IDENTIFY_WAIT, Identify};
 
 /// What one walk does, beyond which devices it covers.
 #[derive(Debug, Clone, Copy)]
@@ -29,6 +30,20 @@ pub struct Walk {
     pub keep: bool,
     /// The one mode the walk drives over.
     pub mode: Mode,
+}
+
+impl Default for Walk {
+    /// The walk `govee identify` runs: green at full brightness, over `lan`,
+    /// and every device off at the end.
+    fn default() -> Self {
+        Self {
+            pass: Identify::default(),
+            wait: IDENTIFY_WAIT,
+            hold: IDENTIFY_HOLD,
+            keep: false,
+            mode: Mode::Lan,
+        }
+    }
 }
 
 /// What the caller prints while the walk runs.
@@ -116,7 +131,7 @@ impl Govee {
         blackout: &[DeviceId],
         lit: &[DeviceId],
         walk: &Walk,
-        observer: &dyn WalkObserver,
+        observer: &(dyn WalkObserver + Sync),
     ) -> Result<WalkReport> {
         self.enabled_for(blackout, walk.mode)?;
         self.enabled_for(lit, walk.mode)?;
@@ -145,6 +160,52 @@ impl Govee {
         Ok(WalkReport { failed, stayed })
     }
 
+    /// The devices a walk covers: the ones the targets name, in the order
+    /// they were written, or every device a scan over `mode` finds and the
+    /// configuration enables that mode for.
+    ///
+    /// A target is an identity, a SKU, a name or a group, as for
+    /// [`Govee::select`]. A SKU, a name and a group are answered from what the
+    /// SDK knows, so the scan runs before the selection. An identity needs no
+    /// scan: [`Govee::ensure_known`] finds that one device. A named identity
+    /// stays in the list, and the walk reports it.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::ModeNotEnabled`] where the configuration does not enable
+    /// `mode` for a device a target names, before any scan for it. What
+    /// [`Govee::select`] reports for a target, and what [`Govee::scan_on`] and
+    /// [`Govee::ensure_known`] report.
+    pub async fn walk_targets<T: AsRef<str>>(
+        &self,
+        named: &[T],
+        mode: Mode,
+    ) -> Result<Vec<DeviceId>> {
+        if named.is_empty() {
+            let found = self.scan_on(&[mode]).await?;
+            return Ok(found
+                .into_iter()
+                .map(|device| device.id)
+                .filter(|id| self.device(id).modes().contains(&mode))
+                .collect());
+        }
+        let identity = |target: &T| {
+            matches!(
+                Selector::parse(target.as_ref(), self.catalog()),
+                Ok(Selector::Id(_))
+            )
+        };
+        if !named.iter().all(identity) {
+            self.scan_on(&[mode]).await?;
+        }
+        let ids = self.select(named, Some(mode))?;
+        self.enabled_for(&ids, mode)?;
+        for id in &ids {
+            self.ensure_known(id).await?;
+        }
+        Ok(ids)
+    }
+
     /// Every device must enable the mode the walk drives.
     fn enabled_for(&self, ids: &[DeviceId], mode: Mode) -> Result<()> {
         for id in ids {
@@ -166,7 +227,7 @@ impl Govee {
         &self,
         ids: &[DeviceId],
         mode: Mode,
-        observer: &dyn WalkObserver,
+        observer: &(dyn WalkObserver + Sync),
     ) -> Vec<DeviceId> {
         let mut passes = Vec::with_capacity(ids.len());
         for id in ids {

@@ -7,6 +7,18 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `Govee::walk_targets()` — the devices an identify walk covers, from targets
+  as `Govee::select()` reads them, or every device a scan over the mode finds.
+- `Walk::default()` and `IDENTIFY_HOLD` — the walk `govee identify` runs: 1 s
+  between two steps, a 5 s hold, over `lan`.
+
+### Changed
+
+- **Breaking:** `Govee::identify_walk()` takes an observer that is `Sync`.
+  Make the observer `Sync`, for example with a `Mutex` around its state.
+
 ## [0.13.0] — 2026-09-24
 
 ### Added
