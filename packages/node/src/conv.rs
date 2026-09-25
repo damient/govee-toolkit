@@ -1,7 +1,9 @@
 //! What crosses between a JavaScript value and a core value.
 
+use std::time::Duration;
+
 use govee_toolkit::codec::{Supplied, UnknownMode, coerce};
-use govee_toolkit::{Mode, Music, ParseError, Rate, Resolution};
+use govee_toolkit::{Mode, Music, ParseError, Rate, Resolution, Walk};
 use napi::bindgen_prelude::{Either, JsObjectValue, Object, Unknown};
 use napi::{Env, JsValue, ValueType};
 use serde::Serialize;
@@ -85,6 +87,63 @@ pub(crate) fn music(
         soft: soft.unwrap_or(default.soft),
         color: color.map(|value| rgb(env, value)).transpose()?,
     })
+}
+
+const WALK_OPTIONS: [&str; 5] = ["color", "waitMs", "holdMs", "keep", "mode"];
+
+/// An option set to `undefined` or `null` takes its default.
+fn given<'a>(options: &Object<'a>, key: &str) -> napi::Result<Option<Unknown<'a>>> {
+    let value = options.get::<Unknown<'_>>(key)?;
+    Ok(value.filter(|v| !matches!(v.get_type(), Ok(ValueType::Undefined | ValueType::Null))))
+}
+
+fn millis(env: &Env, key: &str, value: &Unknown<'_>) -> napi::Result<Duration> {
+    let ms = whole(env, value)?;
+    let ms = u64::try_from(ms)
+        .map_err(|_| value_error(env, format!("`{key}` is {ms}, and a duration is 0 or more")))?;
+    Ok(Duration::from_millis(ms))
+}
+
+/// The walk an options object asks for, over the core's defaults.
+///
+/// A key it does not name is refused: a misspelled option that was ignored
+/// would read as a setting that did not work.
+pub(crate) fn walk(env: &Env, options: Option<Object<'_>>) -> napi::Result<Walk> {
+    let mut walk = Walk::default();
+    let Some(options) = options else {
+        return Ok(walk);
+    };
+    let keys = options.get_property_names()?;
+    for index in 0..keys.get_array_length()? {
+        let key: String = keys.get_element(index)?;
+        if !WALK_OPTIONS.contains(&key.as_str()) {
+            return Err(value_error(
+                env,
+                format!(
+                    "`{key}` is no option; the options are {}",
+                    WALK_OPTIONS.join(", ")
+                ),
+            ));
+        }
+    }
+    if given(&options, "color")?.is_some() {
+        let color: Channels<'_> = options.get("color")?.unwrap_or(Either::A(&[]));
+        walk.pass.color = rgb(env, &color)?;
+    }
+    if let Some(value) = given(&options, "waitMs")? {
+        walk.wait = millis(env, "waitMs", &value)?;
+    }
+    if let Some(value) = given(&options, "holdMs")? {
+        walk.hold = millis(env, "holdMs", &value)?;
+    }
+    if given(&options, "keep")?.is_some() {
+        walk.keep = options.get::<bool>("keep")?.unwrap_or(walk.keep);
+    }
+    if given(&options, "mode")?.is_some() {
+        let name: String = options.get("mode")?.unwrap_or_default();
+        walk.mode = mode(env, &name)?;
+    }
+    Ok(walk)
 }
 
 pub(crate) fn rgb(env: &Env, value: &Channels<'_>) -> napi::Result<[u8; 3]> {

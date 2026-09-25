@@ -1,8 +1,8 @@
 //! The facade: what starts the SDK, what it knows, and what it reaches.
 
-use govee_toolkit::{DeviceId, Govee as CoreGovee};
+use govee_toolkit::{DeviceId, Govee as CoreGovee, WalkReport as CoreWalkReport};
 use napi::Env;
-use napi::bindgen_prelude::PromiseRaw;
+use napi::bindgen_prelude::{Either, Object, PromiseRaw};
 use napi_derive::napi;
 
 use crate::catalog::Catalog;
@@ -13,7 +13,7 @@ use crate::errors::map;
 use crate::events::EventStream;
 use crate::group::GroupHandle;
 use crate::promise::promise;
-use crate::types::Device;
+use crate::types::{Device, WalkReport};
 
 /// The SDK. Start one and keep it: it holds the catalog, the configuration
 /// and one transport per mode.
@@ -200,6 +200,51 @@ impl Govee {
             govee: self.inner.clone(),
             pinned: mode.map(|name| conv::mode(env, &name)).transpose()?,
             members: self.members(env, &target)?,
+        })
+    }
+
+    /// Take the devices off, light each in turn, then take them off again:
+    /// the walk `govee identify` runs.
+    ///
+    /// `targets` is one target or several, read as `select()` reads them: an
+    /// identity, a SKU, a name or a group. `null` walks every device a scan
+    /// over the mode finds, and an empty array walks none. A SKU, a name and
+    /// a group scan first.
+    ///
+    /// Every option is optional. `color` is green, `waitMs` is the wait
+    /// between two steps (1000), and `holdMs` is how long the last device
+    /// holds the color (5000). `keep` leaves every device on and lit at the
+    /// end. `mode` is the one mode the walk drives, `"lan"` by default. An
+    /// option the list does not name is refused.
+    ///
+    /// Rejects with `mode_not_enabled` before it sends anything where a
+    /// device does not enable the mode. A device that fails during the walk
+    /// is in the report instead.
+    #[napi(
+        ts_args_type = "targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; waitMs?: number; holdMs?: number; keep?: boolean; mode?: string }"
+    )]
+    pub fn identify<'env>(
+        &self,
+        env: &'env Env,
+        targets: Option<Either<String, Vec<String>>>,
+        options: Option<Object<'_>>,
+    ) -> napi::Result<PromiseRaw<'env, WalkReport>> {
+        let walk = conv::walk(env, options)?;
+        let named = match targets {
+            None => Vec::new(),
+            Some(Either::A(one)) => vec![one],
+            Some(Either::B(many)) if many.is_empty() => {
+                return promise(env, async {
+                    Ok(WalkReport::new(Vec::new(), CoreWalkReport::default()))
+                });
+            }
+            Some(Either::B(many)) => many,
+        };
+        let govee = self.inner.clone();
+        promise(env, async move {
+            let lit = govee.walk_targets(&named, walk.mode).await?;
+            let report = govee.identify_walk(&lit, &lit, &walk, &()).await?;
+            Ok(WalkReport::new(lit, report))
         })
     }
 

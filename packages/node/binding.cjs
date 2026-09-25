@@ -792,6 +792,7 @@ module.exports.Reply = nativeBinding.Reply
 module.exports.SegmentStream = nativeBinding.SegmentStream
 module.exports.Served = nativeBinding.Served
 module.exports.StatusStream = nativeBinding.StatusStream
+module.exports.WalkReport = nativeBinding.WalkReport
 module.exports.CORE_VERSION = nativeBinding.CORE_VERSION
 module.exports.modes = nativeBinding.modes
 module.exports.VERSION = nativeBinding.VERSION

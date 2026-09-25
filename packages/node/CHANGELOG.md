@@ -4,6 +4,15 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `Govee.identify()` — the walk `govee identify` runs: off, green, then off
+  after the hold. It takes an identity, a name, a SKU or a group.
+- `Govee.identify()` options: `color`, `waitMs`, `holdMs`, `keep` and `mode`,
+  each optional. An option the list does not name is refused.
+- `WalkReport` — what `Govee.identify()` covered and failed at: `lit`,
+  `failed`, `stayed` and `ok`.
+
 ## [0.4.0] — 2026-09-24
 
 ### Added
