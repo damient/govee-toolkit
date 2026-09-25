@@ -41,6 +41,8 @@ release/
 
 # Local experiments, kept out of the published tree.
 /.examples/
+# The music-to-light skill, kept local with its venv and its node_modules.
+/.claude/skills/music-sync/
 
 # Social media images, built by hand from the site's hero.
 /social/
