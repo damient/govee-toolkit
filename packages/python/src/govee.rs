@@ -1,7 +1,8 @@
 //! The facade: what starts the SDK, what it knows, and what it reaches.
 
-use govee_toolkit::{DeviceId, Govee as CoreGovee};
+use govee_toolkit::{DeviceId, Govee as CoreGovee, WalkReport as CoreWalkReport};
 use pyo3::prelude::*;
+use pyo3::types::PyString;
 use pyo3_async_runtimes::tokio::future_into_py;
 
 use crate::catalog::Catalog;
@@ -11,7 +12,7 @@ use crate::device::DeviceHandle;
 use crate::errors::map;
 use crate::events::EventStream;
 use crate::group::GroupHandle;
-use crate::types::Device;
+use crate::types::{Device, WalkReport};
 
 /// The SDK. Start one and keep it: it holds the catalog, the configuration
 /// and one transport per mode.
@@ -182,6 +183,59 @@ impl Govee {
             govee: self.inner.clone(),
             pinned: mode.map(|name| conv::mode(&name)).transpose()?,
             members: self.members(target)?,
+        })
+    }
+
+    /// Take the devices off, light each in turn, then take them off again:
+    /// the walk `govee identify` runs.
+    ///
+    /// `targets` is one target or several, read as `select()` reads them: an
+    /// identity, a SKU, a name or a group. `None` walks every device a scan
+    /// over the mode finds, and an empty list walks none. A SKU, a name and
+    /// a group scan first.
+    ///
+    /// Every keyword is optional. `color` is green, `wait` is the wait
+    /// between two steps (1 s), and `hold` is how long the last device holds
+    /// the color (5 s), both in seconds. `keep` leaves every device on and
+    /// lit at the end. `mode` is the one mode the walk drives, `"lan"` by
+    /// default.
+    ///
+    /// Raises `ConfigError` with `mode_not_enabled` before it sends anything
+    /// where a device does not enable the mode. A device that fails during
+    /// the walk is in the report instead.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "each keyword is one Python argument"
+    )]
+    #[pyo3(signature = (targets=None, *, color=None, wait=None, hold=None, keep=None, mode=None))]
+    fn identify<'py>(
+        &self,
+        py: Python<'py>,
+        targets: Option<&Bound<'py, PyAny>>,
+        color: Option<&Bound<'py, PyAny>>,
+        wait: Option<f64>,
+        hold: Option<f64>,
+        keep: Option<bool>,
+        mode: Option<&str>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let walk = conv::walk(color, wait, hold, keep, mode)?;
+        let named: Vec<String> = match targets {
+            None => Vec::new(),
+            Some(one) if one.is_instance_of::<PyString>() => vec![one.extract()?],
+            Some(many) => {
+                let many: Vec<String> = many.extract()?;
+                if many.is_empty() {
+                    return future_into_py(py, async {
+                        Ok(WalkReport::new(Vec::new(), CoreWalkReport::default()))
+                    });
+                }
+                many
+            }
+        };
+        let govee = self.inner.clone();
+        future_into_py(py, async move {
+            let (lit, report) = map(govee.identify(&named, &walk).await)?;
+            Ok(WalkReport::new(lit, report))
         })
     }
 

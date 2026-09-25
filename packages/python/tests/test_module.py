@@ -26,6 +26,7 @@ EXPORTED = (
     "CodecError",
     "TransportError",
     "ConfigError",
+    "WalkReport",
 )
 
 

@@ -30,6 +30,7 @@ from ._govee_toolkit import (
     Served,
     StatusStream,
     TransportError,
+    WalkReport,
 )
 
 __version__: str
@@ -78,5 +79,6 @@ __all__ = [
     "Served",
     "StatusStream",
     "TransportError",
+    "WalkReport",
     "__version__",
 ]
