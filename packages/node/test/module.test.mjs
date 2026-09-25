@@ -23,6 +23,7 @@ const EXPORTED = [
   "SegmentStream",
   "EventStream",
   "StatusStream",
+  "WalkReport",
 ];
 
 test("the package exports the public API", () => {

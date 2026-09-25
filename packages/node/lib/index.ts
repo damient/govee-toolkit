@@ -23,6 +23,7 @@ import {
   Served,
   StatusStream,
   VERSION,
+  WalkReport,
 } from "../binding.cjs";
 
 export {
@@ -42,6 +43,7 @@ export {
   Served,
   StatusStream,
   VERSION,
+  WalkReport,
 };
 
 /** One RGB triple, each channel 0-255. */
