@@ -5,6 +5,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Changed
+
+- `identify` refuses a device that does not enable the mode before any scan,
+  with `mode_not_enabled` and exit code 3.
+
 ## [0.8.0] — 2026-09-24
 
 ### Added

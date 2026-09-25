@@ -12,7 +12,7 @@ mod music;
 mod segment;
 mod white;
 
-pub use identify::{IDENTIFY_COLOR, IDENTIFY_WAIT, Identify};
+pub use identify::{IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify};
 pub use music::Music;
 pub use segment::Paint;
 

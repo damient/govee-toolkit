@@ -214,3 +214,47 @@ fn a_summary_names_the_two_faults() {
         )
     );
 }
+
+/// The walk `govee identify` runs where the caller changes nothing.
+#[test]
+fn the_default_walk_is_the_one_the_cli_runs() {
+    let walk = Walk::default();
+    assert_eq!(walk.pass, Identify::default());
+    assert_eq!(walk.wait, Duration::from_secs(1));
+    assert_eq!(walk.hold, Duration::from_secs(5));
+    assert!(!walk.keep);
+    assert_eq!(walk.mode, Mode::Lan);
+}
+
+/// An identity needs no scan: the walk covers the device it names.
+#[tokio::test]
+async fn a_walk_target_that_names_an_identity_is_that_device() {
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
+    let named = [id().to_string()];
+
+    let ids = rig
+        .govee
+        .walk_targets(&named, Mode::Lan)
+        .await
+        .expect("the scan found the device");
+
+    assert_eq!(ids, [id()]);
+}
+
+/// A target whose device does not enable the mode is refused before anything
+/// goes out for it, a scan included.
+#[tokio::test]
+async fn a_walk_target_over_a_mode_it_does_not_enable_is_refused_before_a_scan() {
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
+    rig.simulator.clear();
+    let named = [id().to_string()];
+
+    let error = rig
+        .govee
+        .walk_targets(&named, Mode::Cloud)
+        .await
+        .expect_err("the configuration enables lan alone");
+
+    assert_eq!(error.code(), "mode_not_enabled");
+    assert_eq!(rig.simulator.received_count(), 0);
+}

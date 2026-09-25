@@ -8,11 +8,11 @@
 //! the scope the person typed, so a device outside it keeps the look it
 //! holds.
 //!
-//! [`Govee::identify_walk`] runs the walk itself.
+//! [`Govee::walk_targets`] reads the targets, and [`Govee::identify_walk`]
+//! runs the walk itself.
 
-use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{DeviceId, Govee, Selector, Walk, WalkObserver};
+use govee_toolkit::{DeviceId, Govee, Walk, WalkObserver};
 use serde_json::json;
 
 pub(super) async fn run(
@@ -21,7 +21,7 @@ pub(super) async fn run(
     named: &[String],
     walk: &Walk,
 ) -> Result<(), Failure> {
-    let targets = targets(govee, named, walk.mode).await?;
+    let targets = govee.walk_targets(named, walk.mode).await?;
     if targets.is_empty() {
         return Err(Failure::unreachable(format!(
             "no device answered over `{}`, so there is nothing to light",
@@ -54,44 +54,4 @@ impl WalkObserver for Lines {
             &format!("failed {id}  {reason}"),
         );
     }
-}
-
-/// The devices to walk: the ones the targets name, or every device a scan
-/// over `mode` finds and the configuration enables that mode for.
-///
-/// A target that names a model or a name is answered from what the SDK knows,
-/// so the scan runs before the selection. A target that names an identity
-/// needs no scan: it addresses one device, which `ensure_known` then finds.
-///
-/// A named identity stays in the list, and the walk reports it: the person
-/// asked for that device by its identity.
-async fn targets(govee: &Govee, named: &[String], mode: Mode) -> Result<Vec<DeviceId>, Failure> {
-    if named.is_empty() {
-        let found = govee.scan_on(&[mode]).await?;
-        return Ok(found
-            .into_iter()
-            .map(|device| device.id)
-            .filter(|id| govee.device(id).modes().contains(&mode))
-            .collect());
-    }
-    if named
-        .iter()
-        .any(|target| !names_one_identity(govee, target))
-    {
-        govee.scan_on(&[mode]).await?;
-    }
-    let ids = govee.select(named, Some(mode))?;
-    for id in &ids {
-        govee.ensure_known(id).await?;
-    }
-    Ok(ids)
-}
-
-/// Whether the target addresses one device on its own. A target that reads as
-/// nothing lands here as `false`, and the selection reports why.
-fn names_one_identity(govee: &Govee, target: &str) -> bool {
-    matches!(
-        Selector::parse(target, govee.catalog()),
-        Ok(Selector::Id(_))
-    )
 }

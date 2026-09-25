@@ -22,6 +22,9 @@ pub const IDENTIFY_COLOR: [u8; 3] = [0, 255, 0];
 /// between two fixtures.
 pub const IDENTIFY_WAIT: Duration = Duration::from_secs(1);
 
+/// How long a walk holds the last device lit before every device goes off.
+pub const IDENTIFY_HOLD: Duration = Duration::from_secs(5);
+
 /// What one identify pass shows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Identify {
