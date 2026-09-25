@@ -242,8 +242,7 @@ impl Govee {
         };
         let govee = self.inner.clone();
         promise(env, async move {
-            let lit = govee.walk_targets(&named, walk.mode).await?;
-            let report = govee.identify_walk(&lit, &lit, &walk, &()).await?;
+            let (lit, report) = govee.identify(&named, &walk).await?;
             Ok(WalkReport::new(lit, report))
         })
     }

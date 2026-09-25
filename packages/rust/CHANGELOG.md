@@ -11,6 +11,8 @@ releases apart and keeps
 
 - `Govee::walk_targets()` — the devices an identify walk covers, from targets
   as `Govee::select()` reads them, or every device a scan over the mode finds.
+- `Govee::identify()` — the walk `govee identify` runs, in one call: it reads
+  the targets, walks them, and answers the devices it covered and the report.
 - `Walk::default()` and `IDENTIFY_HOLD` — the walk `govee identify` runs: 1 s
   between two steps, a 5 s hold, over `lan`.
 

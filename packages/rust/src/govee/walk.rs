@@ -108,6 +108,27 @@ fn names(ids: &[DeviceId]) -> String {
 }
 
 impl Govee {
+    /// Run the walk `govee identify` runs over the devices the targets name,
+    /// and answer them with the report.
+    ///
+    /// The targets read as for [`Govee::walk_targets`], so an empty list walks
+    /// every device a scan finds. Every device goes off and lights in turn:
+    /// call [`Govee::identify_walk`] for a blackout set that differs from the
+    /// devices that light, or to report each step.
+    ///
+    /// # Errors
+    ///
+    /// What [`Govee::walk_targets`] and [`Govee::identify_walk`] report.
+    pub async fn identify<T: AsRef<str>>(
+        &self,
+        targets: &[T],
+        walk: &Walk,
+    ) -> Result<(Vec<DeviceId>, WalkReport)> {
+        let lit = self.walk_targets(targets, walk.mode).await?;
+        let report = self.identify_walk(&lit, &lit, walk, &()).await?;
+        Ok((lit, report))
+    }
+
     /// Take `blackout` off, light each of `lit` in turn, then take `blackout`
     /// off again.
     ///

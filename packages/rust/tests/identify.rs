@@ -258,3 +258,22 @@ async fn a_walk_target_over_a_mode_it_does_not_enable_is_refused_before_a_scan()
     assert_eq!(error.code(), "mode_not_enabled");
     assert_eq!(rig.simulator.received_count(), 0);
 }
+
+/// The one call the bindings make: the targets, then the walk over them.
+#[tokio::test]
+async fn identify_walks_the_devices_the_targets_name() {
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
+    rig.simulator.clear();
+    let named = [id().to_string()];
+
+    let (lit, report) = rig
+        .govee
+        .identify(&named, &walk())
+        .await
+        .expect("the configuration enables lan");
+
+    assert_eq!(lit, [id()]);
+    assert!(report.failed.is_empty(), "{:?}", report.failed);
+    assert!(report.stayed.is_empty(), "{:?}", report.stayed);
+    assert_eq!(writes(&rig, 5).await.len(), 5);
+}
