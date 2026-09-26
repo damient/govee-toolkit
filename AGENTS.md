@@ -31,6 +31,8 @@ chooses a transport.
    exception: a verb such as `on` or `brightness` is a name a person types. A
    verb reaches the device file through a `role:`, so the CLI names a role and
    the device file names the command. No SKU name reaches the CLI either way.
+   `integrations/mcp` follows the same rule: a tool names a role, never a
+   command, and its source holds no SKU name.
 4. **Never invent verification.** Do not fill `verified`, a capability, a
    measurement or a compatibility row from inference. Unverified is `?` or a
    `TODO`, and that is a perfectly good answer.
@@ -46,6 +48,7 @@ chooses a transport.
 | Full feature list | `docs/features.md` |
 | The DMX bridge: channels, patch, send policy | `docs/dmx.md` |
 | Ordering of the work | `docs/roadmap.md` |
+| The MCP server, and its work plan | `integrations/mcp/`, `docs/mcp-plan.md` |
 | Why the code is shaped this way | `docs/architecture.md` |
 | Arguments in, exact bytes out | `tests/fixtures/golden/<mode>/<SKU>.json` |
 | What a package's release changed | `packages/<pkg>/CHANGELOG.md` |
@@ -215,10 +218,17 @@ releases independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `dmx-vX.Y.Z`,
 `python-vX.Y.Z`, `node-vX.Y.Z`) through the workflows in `.github/workflows/`. The policy is
 `docs/versioning.md`.
 
+`integrations/mcp` is a local MCP server over stdio, released as `mcp-vX.Y.Z`
+under the npm name `govee-toolkit-mcp`. It wraps the Node binding and holds no
+protocol logic and no device data. It reads three sources: the binding's
+`Catalog`, `dist/api.json` from `xtask api`, and `docs/*.md` copied at build
+time. `docs/mcp-plan.md` is the plan that the work follows.
+
 `govee-toolkit` is published on crates.io — the version is the one in
 `packages/rust/Cargo.toml`. On PyPI it is the Python binding, at the version in
 `packages/python/pyproject.toml`, which a `python-vX.Y.Z` tag publishes. On
-npm the name is taken by a `0.0.0` placeholder: that package has no code yet.
+npm it is the Node binding, at the version in `packages/node/package.json`,
+which a `node-vX.Y.Z` tag publishes.
 The bare name `govee` on crates.io belongs to an unrelated project.
 
 In Rust: no `unsafe`, and no `panic` / `unwrap` / `expect` in library code. Out
@@ -250,6 +260,7 @@ push:
 | `site/` | `tools/qa-site.sh` |
 | `packages/python/` | `tools/qa-python.sh` |
 | `packages/node/` | `tools/qa-node.sh` |
+| `integrations/mcp/` | `tools/qa-mcp.sh` |
 | `tools/*.sh` | `tools/qa.sh "shell"` |
 
 `-p <crate>` narrows the cargo checks to one crate and skips the generated

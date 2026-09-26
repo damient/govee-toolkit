@@ -247,7 +247,7 @@ against the simulator.
 
 **Owns:** `.github/workflows/mcp-release.yml`, `.github/workflows/ci.yml` (one
 job), `tools/release-notes.sh`, `docs/versioning.md`, `docs/features.md`,
-`docs/README.md`, `AGENTS.md`, `CHANGELOG.md`, `integrations/mcp/README.md`.
+`docs/README.md`, `CHANGELOG.md`, `integrations/mcp/README.md`.
 
 - `mcp-release.yml` copies `node-release.yml`: it waits for CI on the tagged
   commit, then publishes to npm through trusted publishing.
@@ -261,9 +261,8 @@ job), `tools/release-notes.sh`, `docs/versioning.md`, `docs/features.md`,
 - `integrations/mcp/README.md` gives the install line for each client, for
   example `claude mcp add govee -- npx -y govee-toolkit-mcp@latest`, and the
   `env` block for `GOVEE_CONFIG` and the cloud key.
-- `AGENTS.md`: add the MCP to "Where things go" and "Packages", and add
-  `tools/qa-mcp.sh` to the table of checks. Correct the sentence that calls the
-  npm package a `0.0.0` placeholder: `govee-toolkit` is published on npm.
+- `AGENTS.md` already names the MCP, its sources and `tools/qa-mcp.sh`.
+  Correct it where the shipped package differs from the plan.
 - `docs/features.md`: one row for the MCP server.
 
 ## Rules for every agent
