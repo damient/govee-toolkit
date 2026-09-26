@@ -4,6 +4,8 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.6.0] — 2026-09-27
+
 ### Added
 
 - `Catalog.describe()` — the record `govee describe --json` prints for a SKU,
@@ -11,14 +13,11 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 - `Catalog.dmx()` — the DMX channel tables of a SKU, as `dist/catalog.json`
   carries them under `dmx`. It throws `unknown_sku` in the same way.
 - `DeviceHandle.invoke()` — reads a command whose entry declares an answer,
-  and sends any other one, over one mode resolved once. With
-  `refuseSecrets`, a command that takes a secret throws `secret_arg`, and
-  nothing is sent. It answers an `Invoked`, whose `fields` is `null` for a
-  command that was sent.
-- `GroupHandle.apply()` — several verbs in one call, in the order the core
-  fixes: power on first and power off last. A member that fails the scan or a
-  step takes no later step. It answers an `Applied`, with one `AppliedStep`
-  per verb sent.
+  and sends any other one. It answers an `Invoked`.
+- `DeviceHandle.invoke()` with `refuseSecrets` throws `secret_arg` for a
+  command that takes a secret, and sends nothing.
+- `GroupHandle.apply()` — several verbs in one call, power on first and
+  power off last. It answers an `Applied`, one `AppliedStep` per verb sent.
 - `SUPPORT` and `PERSONALITIES` — every support level and every DMX
   personality the core knows. `Catalog.capabilities()` — every capability
   name that a device of the catalog declares.
