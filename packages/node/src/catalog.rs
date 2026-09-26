@@ -64,6 +64,16 @@ impl Catalog {
         Ok(profile::report::entry(device))
     }
 
+    /// Every capability name that a device of the catalog declares, sorted.
+    #[napi]
+    pub fn capabilities(&self) -> Vec<String> {
+        self.inner
+            .capabilities()
+            .into_iter()
+            .map(ToOwned::to_owned)
+            .collect()
+    }
+
     /// How many device files the build carries.
     #[napi(getter)]
     pub fn size(&self) -> u32 {

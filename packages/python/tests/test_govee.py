@@ -107,6 +107,22 @@ async def test_a_group_names_its_members_and_each_answers_alone(tmp_path):
         await sdk.close()
 
 
+async def test_apply_sends_no_step_to_a_group_whose_members_the_scan_misses(tmp_path):
+    path = tmp_path / "config.yaml"
+    path.write_text(GROUPED, encoding="utf-8")
+    sdk = await Govee.start(Config.load_from(path))
+    try:
+        group = sdk.group("group:ambient", mode="lan")
+        applied = await group.apply(power=True, brightness=50)
+        assert not applied.ok
+        assert applied.steps == []
+        assert [o.ok for o in applied.reached] == [False, False]
+        with pytest.raises(ValueError):
+            await group.apply(segment={"colours": [[255, 0, 0]]})
+    finally:
+        await sdk.close()
+
+
 async def test_an_identify_walk_over_an_empty_list_walks_no_device(govee):
     report = await govee.identify([])
     assert report.lit == []

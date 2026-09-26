@@ -9,6 +9,30 @@
  */
 export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
 
+/** What `GroupHandle.apply()` answered. */
+export declare class Applied {
+  /**
+   * The scan of every member, run before the verbs. Each outcome carries
+   * its mode.
+   */
+  get reached(): Array<Outcome>
+  /** One per verb, in the order sent. */
+  get steps(): Array<AppliedStep>
+  /** Whether every member took every step. */
+  get ok(): boolean
+}
+
+/** What one verb of `GroupHandle.apply()` answered. */
+export declare class AppliedStep {
+  /**
+   * `power`, `brightness`, `color`, `color_temp`, `segment`, `gradient`
+   * or `music`.
+   */
+  get step(): string
+  /** One per member that the step reached, in member order. */
+  get outcomes(): Array<Outcome>
+}
+
 /** Every device the build knows. Reads no hardware. */
 export declare class Catalog {
   /** The catalog compiled into this build. */
@@ -37,6 +61,8 @@ export declare class Catalog {
    * Throws with the code `unknown_sku` when nothing declares it.
    */
   dmx(sku: string): any
+  /** Every capability name that a device of the catalog declares, sorted. */
+  capabilities(): Array<string>
   /** How many device files the build carries. */
   get size(): number
   toString(): string
@@ -97,6 +123,14 @@ export declare class Device {
  * from the SDK it was made by.
  */
 export declare class DeviceHandle {
+  /**
+   * Read a command whose entry declares an answer, and send any other one,
+   * over one mode resolved once.
+   *
+   * With `refuseSecrets`, a command that takes a secret, such as a network
+   * password, throws with the code `secret_arg`, and nothing is sent.
+   */
+  invoke(command: string, args?: Record<string, boolean | number | string | Uint8Array | Array<number> | Array<[number, number, number]>>, refuseSecrets?: boolean | undefined | null): Promise<Invoked>
   /** The MAC the device reports, uppercased. */
   get id(): string
   /** The modes enabled for it, in preference order. */
@@ -359,6 +393,14 @@ export declare class Govee {
 
 /** A handle on the members of a group. It holds no state of its own. */
 export declare class GroupHandle {
+  /**
+   * Scan for the members, then send the verbs in the order the core fixes:
+   * power on first and power off last.
+   *
+   * A member that fails the scan or a step takes no later step. It stops
+   * no other member.
+   */
+  apply(verbs: { power?: boolean, brightness?: number, color?: [number, number, number] | Uint8Array, colorTemp?: number, segment?: { colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number>, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean }, music?: { effect: number, sensitivity?: number, soft?: boolean, color?: [number, number, number] | Uint8Array }, gradient?: boolean }): Promise<Applied>
   /** The identities of the members, in the order of every outcome list. */
   get members(): Array<string>
   /** Scan for every member that no mode knows. Each outcome carries its mode. */
@@ -389,6 +431,21 @@ export declare class Health {
   /** Whether a command would be sent right now. */
   get available(): boolean
   toString(): string
+}
+
+/** What `DeviceHandle.invoke()` did with a command. */
+export declare class Invoked {
+  /** The device. */
+  get id(): string
+  /** The mode that served the command. */
+  get mode(): string
+  /** The command, as the device file names it. */
+  get command(): string
+  /**
+   * What the `reply:` layouts captured. `null` where the entry declares no
+   * answer, so the command was sent and not read.
+   */
+  get fields(): any | null
 }
 
 /** What one member answered. */
@@ -514,6 +571,12 @@ export declare const CORE_VERSION: string
  * features name — `Govee.modes()` answers which.
  */
 export declare function modes(): Array<string>
+
+/** Every DMX personality the bridge knows. */
+export declare function personalities(): Array<string>
+
+/** Every support level a device file gives a mode. */
+export declare function supportLevels(): Array<string>
 
 /** The version of this binding. */
 export declare const VERSION: string

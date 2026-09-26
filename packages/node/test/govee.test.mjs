@@ -129,6 +129,25 @@ test("a group names its members, and each member answers alone", async () => {
   }
 });
 
+test("apply sends no step to a group whose members the scan misses", async () => {
+  const path = join(mkdtempSync(join(tmpdir(), "govee-")), "config.yaml");
+  writeFileSync(path, GROUPED);
+  const govee = await Govee.start(Config.loadFrom(path));
+  try {
+    const group = govee.group("group:ambient", "lan");
+    const applied = await group.apply({ power: true, brightness: 50 });
+    assert.equal(applied.ok, false);
+    assert.deepEqual(applied.steps, []);
+    assert.deepEqual(
+      applied.reached.map((outcome) => outcome.ok),
+      [false, false],
+    );
+    assert.throws(() => group.apply({ brightnes: 50 }), { code: "invalid_argument" });
+  } finally {
+    await govee.close();
+  }
+});
+
 test("an identify walk over an empty list walks no device", async () => {
   await withGovee(sdk, async (govee) => {
     const report = await govee.identify([]);

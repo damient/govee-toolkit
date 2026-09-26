@@ -12,6 +12,7 @@ use crate::types::Served;
 
 /// What one member answered.
 #[napi]
+#[derive(Clone)]
 pub struct Outcome {
     id: String,
     mode: Option<String>,
@@ -64,7 +65,10 @@ impl Outcome {
 }
 
 impl Outcome {
-    fn new<T>(outcome: CoreOutcome<T>, read: impl FnOnce(T) -> (Mode, Option<CoreServed>)) -> Self {
+    pub(crate) fn new<T>(
+        outcome: CoreOutcome<T>,
+        read: impl FnOnce(T) -> (Mode, Option<CoreServed>),
+    ) -> Self {
         let id = outcome.id.to_string();
         match outcome.result {
             Ok(value) => {
@@ -239,7 +243,7 @@ impl GroupHandle {
 }
 
 impl GroupHandle {
-    fn parts(&self) -> (Govee, Option<Mode>, Vec<DeviceId>) {
+    pub(crate) fn parts(&self) -> (Govee, Option<Mode>, Vec<DeviceId>) {
         (self.govee.clone(), self.pinned, self.members.clone())
     }
 

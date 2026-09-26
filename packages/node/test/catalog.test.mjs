@@ -79,3 +79,13 @@ test("describe and dmx refuse an unknown SKU", () => {
     }, method);
   }
 });
+
+test("the capability list holds what every device declares, sorted", () => {
+  const names = catalog.capabilities();
+  assert.deepEqual(names, [...names].sort());
+  for (const sku of catalog.skus()) {
+    for (const name of catalog.describe(sku).capabilities) {
+      assert.ok(names.includes(name), `${sku}: ${name}`);
+    }
+  }
+});

@@ -10,6 +10,10 @@ from ._types import Arg, Color, Rate, Resolution
 __all__ = [
     "CORE_VERSION",
     "MODES",
+    "PERSONALITIES",
+    "SUPPORT",
+    "Applied",
+    "AppliedStep",
     "Catalog",
     "CodecError",
     "Config",
@@ -22,6 +26,7 @@ __all__ = [
     "GoveeError",
     "GroupHandle",
     "Health",
+    "Invoked",
     "Outcome",
     "Reply",
     "SegmentStream",
@@ -35,6 +40,10 @@ __all__ = [
 __version__: str
 CORE_VERSION: str
 MODES: tuple[str, ...]
+SUPPORT: tuple[str, ...]
+"""Every support level a device file gives a mode."""
+PERSONALITIES: tuple[str, ...]
+"""Every DMX personality the bridge knows."""
 
 class GoveeError(Exception):
     """Anything that went wrong between a call and the bytes on the wire."""
@@ -208,6 +217,8 @@ class Catalog:
 
         Raises `CodecError` with the code `unknown_sku` when nothing declares it.
         """
+    def capabilities(self) -> list[str]:
+        """Every capability name that a device of the catalog declares, sorted."""
     def __len__(self) -> int:
         """How many device files the catalog holds."""
 
@@ -333,6 +344,15 @@ class DeviceHandle:
     async def read(self, command: str, **args: Arg) -> Reply:
         """Run a command's exchanges and return what its `reply:` layouts captured."""
 
+    async def invoke(
+        self, command: str, refuse_secrets: bool = False, **args: Arg
+    ) -> Invoked:
+        """Read a command whose entry declares an answer, and send any other one, over
+        one mode resolved once. With `refuse_secrets`, a command that takes a secret,
+        such as a network password, raises with the code `secret_arg`, and nothing is
+        sent.
+        """
+
     async def status(self) -> DeviceStatus:
         """Ask the device for its state and wait for the answer."""
     def last_status(self) -> DeviceStatus | None:
@@ -448,6 +468,54 @@ class Outcome:
         """What the call on one device raises. `None` where it succeeded."""
 
 @final
+class Invoked:
+    """What `DeviceHandle.invoke()` did with a command."""
+
+    @property
+    def id(self) -> str:
+        """The device."""
+    @property
+    def mode(self) -> str:
+        """The mode that served the command."""
+    @property
+    def command(self) -> str:
+        """The command, as the device file names it."""
+    @property
+    def fields(self) -> dict[str, Any] | None:
+        """What the `reply:` layouts captured. `None` where the entry declares no
+        answer, so the command was sent and not read.
+        """
+
+@final
+class AppliedStep:
+    """What one verb of `GroupHandle.apply()` answered."""
+
+    @property
+    def step(self) -> str:
+        """`power`, `brightness`, `color`, `color_temp`, `segment`, `gradient` or
+        `music`.
+        """
+    @property
+    def outcomes(self) -> list[Outcome]:
+        """One per member that the step reached, in member order."""
+
+@final
+class Applied:
+    """What `GroupHandle.apply()` answered."""
+
+    @property
+    def reached(self) -> list[Outcome]:
+        """The scan of every member, run before the verbs. Each outcome carries its
+        mode.
+        """
+    @property
+    def steps(self) -> list[AppliedStep]:
+        """One per verb, in the order sent."""
+    @property
+    def ok(self) -> bool:
+        """Whether every member took every step."""
+
+@final
 class WalkReport:
     """What one identify walk covered, and what it failed at."""
 
@@ -499,6 +567,24 @@ class GroupHandle:
         """`DeviceHandle.segment()` on every member, against its own zones."""
     async def gradient(self, on: bool) -> list[Outcome]:
         """Set the interpolation between zones on every member."""
+    async def apply(
+        self,
+        *,
+        power: bool | None = None,
+        brightness: int | None = None,
+        color: Color | None = None,
+        color_temp: int | None = None,
+        segment: dict[str, Any] | None = None,
+        music: dict[str, Any] | None = None,
+        gradient: bool | None = None,
+    ) -> Applied:
+        """Scan for the members, then send the verbs in the order the core fixes: power
+        on first and power off last. `segment` takes the keys of `segment()`, and
+        `music` the keys of `music()`.
+
+        A member that fails the scan or a step takes no later step. It stops no other
+        member.
+        """
 
 @final
 class Govee:

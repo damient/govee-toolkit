@@ -10,6 +10,18 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
   with no started SDK. It throws `unknown_sku` when nothing declares the SKU.
 - `Catalog.dmx()` — the DMX channel tables of a SKU, as `dist/catalog.json`
   carries them under `dmx`. It throws `unknown_sku` in the same way.
+- `DeviceHandle.invoke()` — reads a command whose entry declares an answer,
+  and sends any other one, over one mode resolved once. With
+  `refuseSecrets`, a command that takes a secret throws `secret_arg`, and
+  nothing is sent. It answers an `Invoked`, whose `fields` is `null` for a
+  command that was sent.
+- `GroupHandle.apply()` — several verbs in one call, in the order the core
+  fixes: power on first and power off last. A member that fails the scan or a
+  step takes no later step. It answers an `Applied`, with one `AppliedStep`
+  per verb sent.
+- `SUPPORT` and `PERSONALITIES` — every support level and every DMX
+  personality the core knows. `Catalog.capabilities()` — every capability
+  name that a device of the catalog declares.
 
 ## [0.5.0] — 2026-09-26
 
