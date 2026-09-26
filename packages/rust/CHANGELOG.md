@@ -19,7 +19,9 @@ releases apart and keeps
 - `Walk::default()` and `IDENTIFY_HOLD` — the walk `govee identify` runs: 1 s
   between two steps, a 5 s hold, over `lan`.
 - `Device::geometry` and `codec::Geometry` read the `geometry:` block of a
-  device file. `describe()` carries it under `geometry`.
+  device file, as a line or a surface. A file that declares another shape, or
+  a size that is not above zero, fails to load. `describe()` carries the block
+  under `geometry`.
 
 ### Changed
 

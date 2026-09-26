@@ -3,7 +3,7 @@
 //! The record is the crate's own, so a binding prints the same one. The text
 //! form is this file's, and its layout can change at any release.
 
-use govee_toolkit::codec::{ArgBound, ArgSpec, Command, Device, Mode};
+use govee_toolkit::codec::{ArgBound, ArgSpec, Command, Device, Geometry, Mode};
 use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::stream::reach;
 use govee_toolkit::{DeviceId, Govee, describe};
@@ -40,16 +40,12 @@ fn as_text(device: &Device) -> String {
             )
         ),
     ];
-    if let Some(geometry) = &device.geometry {
-        let size = |value: Option<f64>| value.map_or_else(|| "?".to_owned(), |v| v.to_string());
-        lines.push(match geometry.length_m {
-            Some(length) => format!("geometry: {length} m long"),
-            None => format!(
-                "geometry: {} m wide, {} m high",
-                size(geometry.width_m),
-                size(geometry.height_m)
-            ),
-        });
+    match device.geometry {
+        Some(Geometry::Line { length_m }) => lines.push(format!("geometry: {length_m} m long")),
+        Some(Geometry::Surface { width_m, height_m }) => {
+            lines.push(format!("geometry: {width_m} m wide, {height_m} m high"));
+        }
+        _ => {}
     }
     if let Some(count) = device.capabilities.segment_count() {
         let pixels = device
