@@ -5,6 +5,8 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+## [0.9.0] — 2026-09-26
+
 ### Added
 
 - `describe` prints the size of the model where its device file declares one.
@@ -13,6 +15,7 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 - `identify` refuses a device that does not enable the mode before any scan,
   with `mode_not_enabled` and exit code 3.
+- `identify` looks every target up at once, over the mode of the walk alone.
 
 ## [0.8.0] — 2026-09-24
 

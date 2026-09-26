@@ -7,13 +7,14 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.14.0] — 2026-09-26
+
 ### Added
 
 - `Govee::walk_targets()` — the devices an identify walk covers, from targets
   as `Govee::select()` reads them, or every device a scan over the mode finds.
-- `Govee::identify()` — the walk `govee identify` runs, in one call: it reads
-  the targets and walks them. `None` walks every device a scan finds, and an
-  empty list walks none.
+- `Govee::identify()` — the walk `govee identify` runs, in one call, with an
+  observer. `None` walks every device a scan finds, and an empty list none.
 - `codec::coerce::hex()` writes a color as `#RRGGBB`, the form
   `codec::coerce::rgb()` reads. `transport::millis()` gives a duration as whole
   milliseconds. `Walk` compares with `==`.
@@ -32,6 +33,8 @@ releases apart and keeps
   Make the observer `Sync`, for example with a `Mutex` around its state.
 - **Breaking:** `WalkReport` carries `lit`, and `Govee::identify_walk()` fills
   it. A struct literal takes `..WalkReport::default()`.
+- `Govee::walk_targets()` looks every identity up at once, over the mode of
+  the walk alone.
 
 ## [0.13.0] — 2026-09-24
 
