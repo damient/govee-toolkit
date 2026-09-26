@@ -38,8 +38,7 @@ pub fn describe(device: &Device) -> Value {
     })
 }
 
-/// The record [`describe`] prints, for the device that `sku` resolves to in
-/// `catalog`. Needs no started SDK and reads no hardware.
+/// [`describe`] for the device that `sku` resolves to. Needs no started SDK.
 ///
 /// # Errors
 ///

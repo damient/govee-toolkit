@@ -7,7 +7,7 @@ use crate::stream::Resolution;
 use crate::transport::DeviceId;
 use crate::verbs::{Music, Paint};
 
-/// One role verb. [`GroupHandle::apply`] sends several in one fixed order.
+/// One role verb, for [`GroupHandle::apply`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Verb {
     /// [`crate::DeviceHandle::power`].
@@ -20,9 +20,9 @@ pub enum Verb {
     ColorTemp(i64),
     /// [`crate::DeviceHandle::segment`], with the fields of a [`Paint`].
     Segment {
-        /// The zones that take the one color. `None` paints every zone.
+        /// `None` paints every zone.
         zones: Option<Vec<u16>>,
-        /// One color for every zone, or one color per zone in order.
+        /// One color for every zone, or one per zone in order.
         colors: Vec<[u8; 3]>,
         /// The zone count the colors address.
         resolution: Resolution,
@@ -36,8 +36,7 @@ pub enum Verb {
 }
 
 impl Verb {
-    /// The name a step reports: `power`, `brightness`, `color`, `color_temp`,
-    /// `segment`, `gradient` or `music`.
+    /// The name that a step reports, in snake case.
     #[must_use]
     pub fn name(&self) -> &'static str {
         match self {
@@ -51,8 +50,7 @@ impl Verb {
         }
     }
 
-    /// Power on goes first, so that the later verbs reach a lit device, and
-    /// power off goes last.
+    /// Power on goes first, so that the later verbs reach a lit device.
     fn rank(&self) -> u8 {
         match self {
             Self::Power(true) => 0,
@@ -79,15 +77,14 @@ pub struct AppliedStep {
 /// What [`GroupHandle::apply`] answered.
 #[derive(Debug)]
 pub struct Applied {
-    /// [`GroupHandle::ensure_known`] on every member, run before the verbs.
+    /// [`GroupHandle::ensure_known`], run before the verbs.
     pub reached: Vec<Outcome<Mode>>,
     /// One per verb, in the order sent.
     pub steps: Vec<AppliedStep>,
 }
 
 impl Applied {
-    /// Every failure, in the order it happened: the scan first, then each
-    /// step.
+    /// Every failure: the scan first, then each step.
     pub fn failures(&self) -> impl Iterator<Item = (&DeviceId, &Error)> {
         let reached = self.reached.iter().filter_map(failed);
         let steps = self
@@ -139,12 +136,9 @@ impl GroupHandle<'_> {
         }
     }
 
-    /// Scan for the members, then send the verbs in a fixed order: power on
-    /// first, then gradient, brightness, white temperature, color, segments
-    /// and music, and power off last.
-    ///
-    /// A member that fails the scan or a step takes no later step. It stops
-    /// no other member. A step that no member reaches is not sent.
+    /// Scan for the members, then send the verbs, power on first and power off
+    /// last. A member that fails takes no later step, and stops no other
+    /// member.
     pub async fn apply(&self, mut verbs: Vec<Verb>) -> Applied {
         verbs.sort_by_key(Verb::rank);
         let reached = self.ensure_known().await;

@@ -11,10 +11,7 @@ export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-was
 
 /** What `GroupHandle.apply()` answered. */
 export declare class Applied {
-  /**
-   * The scan of every member, run before the verbs. Each outcome carries
-   * its mode.
-   */
+  /** The scan of every member, run before the verbs. */
   get reached(): Array<Outcome>
   /** One per verb, in the order sent. */
   get steps(): Array<AppliedStep>
@@ -24,10 +21,7 @@ export declare class Applied {
 
 /** What one verb of `GroupHandle.apply()` answered. */
 export declare class AppliedStep {
-  /**
-   * `power`, `brightness`, `color`, `color_temp`, `segment`, `gradient`
-   * or `music`.
-   */
+  /** The verb, in snake case: `color_temp`. */
   get step(): string
   /** One per member that the step reached, in member order. */
   get outcomes(): Array<Outcome>
@@ -48,17 +42,13 @@ export declare class Catalog {
    */
   device(sku: string): any
   /**
-   * The record that `govee describe --json` prints for a SKU. Reads no
-   * hardware.
-   *
-   * Throws with the code `unknown_sku` when nothing declares it.
+   * The record that `govee describe --json` prints for a SKU. Throws
+   * `unknown_sku` when nothing declares it.
    */
   describe(sku: string): any
   /**
-   * The DMX channel tables of a SKU, as `dist/catalog.json` carries them
-   * under `dmx`. Reads no hardware.
-   *
-   * Throws with the code `unknown_sku` when nothing declares it.
+   * The DMX channel tables of a SKU, as `dist/catalog.json` carries them.
+   * Throws `unknown_sku` when nothing declares it.
    */
   dmx(sku: string): any
   /** Every capability name that a device of the catalog declares, sorted. */
@@ -124,11 +114,8 @@ export declare class Device {
  */
 export declare class DeviceHandle {
   /**
-   * Read a command whose entry declares an answer, and send any other one,
-   * over one mode resolved once.
-   *
-   * With `refuseSecrets`, a command that takes a secret, such as a network
-   * password, throws with the code `secret_arg`, and nothing is sent.
+   * Read a command whose entry declares an answer, and send any other one.
+   * With `refuseSecrets`, a command that takes a secret throws `secret_arg`.
    */
   invoke(command: string, args?: Record<string, boolean | number | string | Uint8Array | Array<number> | Array<[number, number, number]>>, refuseSecrets?: boolean | undefined | null): Promise<Invoked>
   /** The MAC the device reports, uppercased. */
@@ -394,11 +381,8 @@ export declare class Govee {
 /** A handle on the members of a group. It holds no state of its own. */
 export declare class GroupHandle {
   /**
-   * Scan for the members, then send the verbs in the order the core fixes:
-   * power on first and power off last.
-   *
-   * A member that fails the scan or a step takes no later step. It stops
-   * no other member.
+   * Scan for the members, then send the verbs, power on first and power
+   * off last. A member that fails takes no later step.
    */
   apply(verbs: { power?: boolean, brightness?: number, color?: [number, number, number] | Uint8Array, colorTemp?: number, segment?: { colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number>, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean }, music?: { effect: number, sensitivity?: number, soft?: boolean, color?: [number, number, number] | Uint8Array }, gradient?: boolean }): Promise<Applied>
   /** The identities of the members, in the order of every outcome list. */
@@ -442,8 +426,8 @@ export declare class Invoked {
   /** The command, as the device file names it. */
   get command(): string
   /**
-   * What the `reply:` layouts captured. `null` where the entry declares no
-   * answer, so the command was sent and not read.
+   * What the `reply:` layouts captured, or `null` for a command that was
+   * sent and not read.
    */
   get fields(): any | null
 }

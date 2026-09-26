@@ -1,11 +1,8 @@
-//! `dist/api.json`: every role, joined to the method that serves it on each
-//! surface, and the public surface of each language.
+//! `dist/api.json`: the method that serves each role on each surface.
 //!
-//! Each surface is read from what generates or checks it, so the file cannot
-//! drift from the code. A Rust method serves the roles that the `Serves` line
-//! of its doc comment links. A CLI verb serves the roles of the methods that
-//! its arm of the dispatch reaches. The Node name is the Rust name in camel
-//! case, and the Python name is the Rust name.
+//! A Rust method serves the roles that the `Serves` line of its doc comment
+//! links. A CLI verb serves the roles of the methods that its dispatch arm
+//! reaches.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -19,14 +16,11 @@ mod rust;
 mod text;
 
 /// `(surface, role, reason)`: a role that a surface leaves out on purpose.
-/// Its entry in `roles` is an empty list for that surface.
 const OMITTED: &[(&str, &str, &str)] = &[];
 
 const SURFACES: [&str; 4] = ["cli", "rust", "node", "python"];
 
-/// Write `dist/api.json`, or with `check`, only verify the join.
-///
-/// Both exit 1 when a role has no method on a surface.
+/// Exits 1 when a role has no method on a surface.
 pub(crate) fn api(root: &Path, check: bool) {
     let rust_root = root.join("packages/rust");
     let methods: BTreeMap<&str, Vec<String>> = BTreeMap::from([
@@ -72,8 +66,7 @@ pub(crate) fn api(root: &Path, check: bool) {
     println!("{} roles -> {}", Role::CLAIMABLE.len(), out.display());
 }
 
-/// `serves` is `(role variant, Type::method)`, and `verbs` maps a method name
-/// to the CLI verbs that reach it.
+/// `serves` is `(role variant, Type::method)`.
 fn join(
     serves: &[(String, String)],
     verbs: &BTreeMap<String, Vec<String>>,
@@ -138,7 +131,6 @@ fn join(
     (Value::Object(joined), errors)
 }
 
-/// The entries of `methods` that name the Rust method `rust` on `surface`.
 fn on_surface(
     rust: &str,
     verbs: &BTreeMap<String, Vec<String>>,
@@ -166,7 +158,7 @@ fn on_surface(
         .collect()
 }
 
-/// A method up to its arguments: `Type.name`, or `govee verb`.
+/// `Type.name`, or `govee verb`.
 fn head(method: &str) -> &str {
     let end = match method.strip_prefix("govee ") {
         Some(rest) => rest.find(' ').map_or(method.len(), |i| i + "govee ".len()),

@@ -207,15 +207,12 @@ class Catalog:
         Raises `CodecError` with the code `unknown_sku` when nothing declares it.
         """
     def describe(self, sku: str) -> dict[str, Any]:
-        """The record that `govee describe --json` prints for a SKU. Reads no hardware.
-
-        Raises `CodecError` with the code `unknown_sku` when nothing declares it.
+        """The record that `govee describe --json` prints for a SKU. Raises `CodecError`
+        `unknown_sku` when nothing declares it.
         """
     def dmx(self, sku: str) -> dict[str, Any]:
-        """The DMX channel tables of a SKU, as `dist/catalog.json` carries them under
-        `dmx`. Reads no hardware.
-
-        Raises `CodecError` with the code `unknown_sku` when nothing declares it.
+        """The DMX channel tables of a SKU, as `dist/catalog.json` carries them. Raises
+        `CodecError` `unknown_sku` when nothing declares it.
         """
     def capabilities(self) -> list[str]:
         """Every capability name that a device of the catalog declares, sorted."""
@@ -347,10 +344,8 @@ class DeviceHandle:
     async def invoke(
         self, command: str, refuse_secrets: bool = False, **args: Arg
     ) -> Invoked:
-        """Read a command whose entry declares an answer, and send any other one, over
-        one mode resolved once. With `refuse_secrets`, a command that takes a secret,
-        such as a network password, raises with the code `secret_arg`, and nothing is
-        sent.
+        """Read a command whose entry declares an answer, and send any other one. With
+        `refuse_secrets`, a command that takes a secret raises `secret_arg`.
         """
 
     async def status(self) -> DeviceStatus:
@@ -482,8 +477,8 @@ class Invoked:
         """The command, as the device file names it."""
     @property
     def fields(self) -> dict[str, Any] | None:
-        """What the `reply:` layouts captured. `None` where the entry declares no
-        answer, so the command was sent and not read.
+        """What the `reply:` layouts captured, or `None` for a command that was sent and
+        not read.
         """
 
 @final
@@ -492,9 +487,7 @@ class AppliedStep:
 
     @property
     def step(self) -> str:
-        """`power`, `brightness`, `color`, `color_temp`, `segment`, `gradient` or
-        `music`.
-        """
+        """The verb, in snake case: `color_temp`."""
     @property
     def outcomes(self) -> list[Outcome]:
         """One per member that the step reached, in member order."""
@@ -505,9 +498,7 @@ class Applied:
 
     @property
     def reached(self) -> list[Outcome]:
-        """The scan of every member, run before the verbs. Each outcome carries its
-        mode.
-        """
+        """The scan of every member, run before the verbs."""
     @property
     def steps(self) -> list[AppliedStep]:
         """One per verb, in the order sent."""
@@ -578,12 +569,9 @@ class GroupHandle:
         music: dict[str, Any] | None = None,
         gradient: bool | None = None,
     ) -> Applied:
-        """Scan for the members, then send the verbs in the order the core fixes: power
-        on first and power off last. `segment` takes the keys of `segment()`, and
-        `music` the keys of `music()`.
-
-        A member that fails the scan or a step takes no later step. It stops no other
-        member.
+        """Scan for the members, then send the verbs, power on first and power off last.
+        `segment` and `music` take the keys of `segment()` and `music()`. A member that
+        fails takes no later step.
         """
 
 @final

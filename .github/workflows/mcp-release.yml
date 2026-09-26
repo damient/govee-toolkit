@@ -1,10 +1,5 @@
-# Publishes integrations/mcp. Triggered by an mcp-vX.Y.Z tag.
-#
-# The package carries no addon: it depends on the Node binding from npm, at
-# the exact version in its package.json. It ships data/, which holds
-# dist/api.json and docs/*.md at the tagged commit. Those files describe the
-# binding of this commit, so the two versions must agree. Push node-vX.Y.Z
-# first, and push mcp-vX.Y.Z when the binding is on npm.
+# Publishes integrations/mcp. Triggered by an mcp-vX.Y.Z tag. Push node-vX.Y.Z
+# first: the package depends on the binding of this commit, from npm.
 name: MCP release
 
 on:
@@ -16,8 +11,6 @@ permissions:
   contents: read
 
 jobs:
-  # The tag, the manifest version and the changelog heading have to carry the
-  # same number before anything is built or published.
   agree:
     name: Tag, manifest, changelog and binding agree
     runs-on: ubuntu-latest
@@ -33,8 +26,6 @@ jobs:
         run: tools/ci-passed.sh "$GITHUB_SHA"
       - if: github.event_name == 'push'
         run: tools/release-notes.sh mcp "$GITHUB_REF_NAME" > /dev/null
-      # A dependency on another binding version ships docs and an api.json
-      # that describe a surface the installed binding does not have.
       - name: The binding dependency is the binding of this commit
         run: |
           want=$(jq -r .version packages/node/package.json)
@@ -78,24 +69,19 @@ jobs:
         run: |
           tools/release-notes.sh mcp "$GITHUB_REF_NAME" \
             > "$RUNNER_TEMP/notes.md"
-      # The build copies dist/api.json into data/. The tests drive the control
-      # tools against the simulator.
       - name: Write dist/api.json and build the simulator
         working-directory: packages/rust
         run: |
           cargo run -q -p xtask -- api
           cargo build -q -p govee-toolkit-sim
-      # The binding from npm, not the one of this checkout: the tests run on
-      # what a user installs.
+      # The binding from npm, as a user installs it.
       - run: npm ci
       - run: npm run build
       - name: Test against the published binding
         env:
           GOVEE_SIM: ${{ github.workspace }}/packages/rust/target/debug/govee-toolkit-sim
         run: npm test
-      # npm keeps a version forever, and a tag moved to a new commit reruns
-      # this job. A version already up is skipped rather than failing the run
-      # on an upload npm would refuse anyway.
+      # A tag moved to a new commit reruns this job, and npm refuses a second upload.
       - name: Is this version already on npm?
         id: npm
         run: |
@@ -105,9 +91,7 @@ jobs:
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
-      # Trusted publishing: npm trades this job's OIDC identity for a
-      # short-lived token, so no registry token lives in the repository. It
-      # also signs the provenance attestation, hence no `--provenance` flag.
+      # Trusted publishing signs the provenance: do not add `--provenance`.
       - name: Publish
         if: steps.npm.outputs.published == 'false'
         run: npm publish

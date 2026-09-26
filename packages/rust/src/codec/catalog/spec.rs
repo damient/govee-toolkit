@@ -352,8 +352,7 @@ pub enum Role {
 }
 
 impl Role {
-    /// Every role, in declaration order. `Display` gives the name a device file
-    /// writes.
+    /// Every role. `Display` gives the name that a device file writes.
     pub const CLAIMABLE: [Self; 14] = [
         Self::Status,
         Self::Power,

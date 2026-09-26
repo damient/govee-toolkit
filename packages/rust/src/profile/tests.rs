@@ -317,7 +317,6 @@ fn groups_over_no_measured_pixels_serve_no_coarse_table() {
     );
 }
 
-/// The catalog entry holds one table per personality the device serves.
 #[test]
 fn the_catalog_entry_lists_every_served_table() {
     for device in catalog().devices() {

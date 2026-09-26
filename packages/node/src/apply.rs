@@ -1,4 +1,4 @@
-//! One command read or sent in one call, and several role verbs on a group.
+//! `DeviceHandle.invoke()` and `GroupHandle.apply()`.
 
 use govee_toolkit::{Applied as CoreApplied, Invoked as CoreInvoked, Music, Verb};
 use napi::Env;
@@ -40,8 +40,8 @@ impl Invoked {
         self.command.clone()
     }
 
-    /// What the `reply:` layouts captured. `null` where the entry declares no
-    /// answer, so the command was sent and not read.
+    /// What the `reply:` layouts captured, or `null` for a command that was
+    /// sent and not read.
     #[napi(getter)]
     pub fn fields(&self) -> Option<serde_json::Value> {
         self.fields.clone()
@@ -50,11 +50,8 @@ impl Invoked {
 
 #[napi]
 impl DeviceHandle {
-    /// Read a command whose entry declares an answer, and send any other one,
-    /// over one mode resolved once.
-    ///
-    /// With `refuseSecrets`, a command that takes a secret, such as a network
-    /// password, throws with the code `secret_arg`, and nothing is sent.
+    /// Read a command whose entry declares an answer, and send any other one.
+    /// With `refuseSecrets`, a command that takes a secret throws `secret_arg`.
     #[napi]
     pub fn invoke<'env>(
         &self,
@@ -104,8 +101,7 @@ pub struct AppliedStep {
 
 #[napi]
 impl AppliedStep {
-    /// `power`, `brightness`, `color`, `color_temp`, `segment`, `gradient`
-    /// or `music`.
+    /// The verb, in snake case: `color_temp`.
     #[napi(getter)]
     pub fn step(&self) -> &'static str {
         self.step
@@ -128,8 +124,7 @@ pub struct Applied {
 
 #[napi]
 impl Applied {
-    /// The scan of every member, run before the verbs. Each outcome carries
-    /// its mode.
+    /// The scan of every member, run before the verbs.
     #[napi(getter)]
     pub fn reached(&self) -> Vec<Outcome> {
         self.reached.clone()
@@ -176,11 +171,8 @@ impl From<CoreApplied> for Applied {
 
 #[napi]
 impl GroupHandle {
-    /// Scan for the members, then send the verbs in the order the core fixes:
-    /// power on first and power off last.
-    ///
-    /// A member that fails the scan or a step takes no later step. It stops
-    /// no other member.
+    /// Scan for the members, then send the verbs, power on first and power
+    /// off last. A member that fails takes no later step.
     #[napi]
     pub fn apply<'env>(
         &self,

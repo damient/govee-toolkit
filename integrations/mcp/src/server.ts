@@ -1,5 +1,4 @@
-// The server, served over stdio. stdout carries the JSON-RPC stream: every log
-// goes to stderr.
+// stdout carries the JSON-RPC stream: every log goes to stderr.
 
 import { readFileSync } from "node:fs";
 

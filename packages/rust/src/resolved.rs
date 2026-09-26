@@ -79,14 +79,11 @@ impl<'a> Resolved<'a> {
             .is_some_and(crate::codec::catalog::Command::answers)
     }
 
-    /// Refuse a command whose entry on this mode takes a secret, such as a
-    /// network password. A caller that must not hold a secret calls it before
-    /// [`Resolved::args`].
+    /// Refuse a command whose entry on this mode takes a secret.
     ///
     /// # Errors
     ///
-    /// [`crate::codec::Error::SecretArg`] where the entry declares such an
-    /// argument.
+    /// [`crate::codec::Error::SecretArg`] where the entry declares one.
     pub fn refuse_secret(&self, command: &str) -> Result<()> {
         let entry = self.device.commands.get(self.mode).get(command);
         match entry.and_then(crate::codec::catalog::Command::secret_arg) {

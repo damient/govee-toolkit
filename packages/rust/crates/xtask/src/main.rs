@@ -1,8 +1,7 @@
 //! Repository tasks, each of them generating something from a data file.
 //!
 //! - `xtask catalog [path]` — the distributable catalog.
-//! - `xtask api [--check]` — `dist/api.json`, each role joined to the method
-//!   that serves it on each surface.
+//! - `xtask api [--check]` — `dist/api.json`, the methods that serve each role.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //! - `xtask dmx [--check]` — the tables in `docs/dmx-profiles.md`.
 //! - `xtask lan [--check]` — the tables in `docs/lan-supported-devices.md`.
@@ -355,7 +354,6 @@ fn read(path: &Path) -> String {
     fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()))
 }
 
-/// Pretty JSON with a final newline, in a directory created when missing.
 fn write_json(out: &Path, document: &serde_json::Value) {
     if let Some(parent) = out.parent() {
         fs::create_dir_all(parent).unwrap_or_else(|e| panic!("{}: {e}", parent.display()));

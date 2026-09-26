@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# Runs the checks of integrations/mcp: the types, the lint, the build and the
-# tests, the control tests against crates/sim. `tools/qa.sh` runs it as one of
-# its checks.
-#
-# Nothing here reaches the network except the simulator, which answers on
-# the real lan ports. The dependencies have to be installed already, with
-# the binding of this checkout linked in: `npm ci && npm run link:binding`.
+# Runs the checks of integrations/mcp. Install the dependencies first, with the
+# binding of this checkout: `npm ci && npm run link:binding`.
 
 set -uo pipefail
 
@@ -28,9 +23,7 @@ check() {
 
 node_checks=("mcp types" "mcp lint" "mcp build" "mcp tests")
 
-# The package ships dist/api.json, so the build needs a current one. Writing
-# it checks the join too, so `tools/qa.sh` does not check it again. The
-# control tests need the simulator.
+# `xtask api` also checks the join, which `tools/qa.sh` does not check again.
 if have cargo; then
   check "mcp api join" cargo run -q --manifest-path "$rust/Cargo.toml" -p xtask -- api
   check "mcp simulator" cargo build -q --manifest-path "$rust/Cargo.toml" -p govee-toolkit-sim

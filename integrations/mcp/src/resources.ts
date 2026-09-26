@@ -1,5 +1,4 @@
-// The docs pages and the device records, as resources. The tools serve the
-// same content: many clients do not let the model read a resource on its own.
+// The tools serve the same content: many clients do not let the model read a resource.
 
 import { type McpServer, ResourceTemplate } from "@modelcontextprotocol/server";
 
