@@ -1,4 +1,4 @@
-//! The roles, the Rust surface and the CLI surface, parsed from source.
+//! The Rust surface and the CLI surface, parsed from source.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -8,23 +8,6 @@ use syn::{Attribute, Fields, FnArg, ImplItem, Item, Type, Visibility};
 
 /// The public types whose methods make the Rust surface.
 const HANDLES: [&str; 4] = ["Govee", "DeviceHandle", "GroupHandle", "SegmentStream"];
-
-/// The variants of `enum Role`, in the snake case the device files write.
-pub(super) fn roles(spec: &Path) -> Vec<String> {
-    let file = parse(spec);
-    let role = file
-        .items
-        .iter()
-        .find_map(|item| match item {
-            Item::Enum(e) if e.ident == "Role" => Some(e),
-            _ => None,
-        })
-        .unwrap_or_else(|| panic!("{} declares no `enum Role`", spec.display()));
-    role.variants
-        .iter()
-        .map(|v| separated(&v.ident.to_string(), '_'))
-        .collect()
-}
 
 /// Every `pub fn` of [`HANDLES`], as `Type::name(arg: Type, …)`, sorted.
 pub(super) fn methods(src: &Path) -> Vec<String> {
@@ -110,10 +93,7 @@ fn subcommands(items: &[Item], name: &str, out: &mut Vec<String>) {
             }
             continue;
         }
-        let mut words = vec![
-            "govee".to_owned(),
-            separated(&variant.ident.to_string(), '-'),
-        ];
+        let mut words = vec!["govee".to_owned(), kebab(&variant.ident.to_string())];
         if let Fields::Named(fields) = &variant.fields {
             words.extend(fields.named.iter().map(|field| {
                 let ident = field
@@ -190,12 +170,12 @@ fn last_ident(ty: &Type) -> Option<String> {
     Some(path.path.segments.last()?.ident.to_string())
 }
 
-/// `ColorTemp` to `color_temp` with `_`, or to `color-temp` with `-`.
-fn separated(camel: &str, separator: char) -> String {
+/// `ColorTemp` to `color-temp`.
+fn kebab(camel: &str) -> String {
     let mut out = String::new();
     for (i, c) in camel.chars().enumerate() {
         if c.is_uppercase() && i > 0 {
-            out.push(separator);
+            out.push('-');
         }
         out.extend(c.to_lowercase());
     }
@@ -223,9 +203,7 @@ fn tidy(tokens: &str) -> String {
 }
 
 fn parse(path: &Path) -> syn::File {
-    let text =
-        fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
-    syn::parse_file(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+    syn::parse_file(&crate::read(path)).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 
 /// Every `*.rs` under `dir`, sorted, with `tests.rs` and `tests/` left out.

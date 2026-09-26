@@ -13,6 +13,7 @@ releases apart and keeps
   started SDK. It returns `unknown_sku` when nothing declares the SKU.
 - `profile::report::entry()` — the DMX channel tables of one device, as
   `dist/catalog.json` carries them under `dmx`.
+- `Role::CLAIMABLE` is public: every role, in declaration order.
 
 ## [0.14.0] — 2026-09-26
 
