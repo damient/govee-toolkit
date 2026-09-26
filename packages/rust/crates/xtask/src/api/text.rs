@@ -107,11 +107,7 @@ fn signature(prefix: &str, text: &str) -> String {
     let mut level = 0;
     let mut close = text.len();
     for (index, c) in text.char_indices().skip(open) {
-        match c {
-            '(' | '[' | '{' | '<' => level += 1,
-            ')' | ']' | '}' | '>' if !text[..index].ends_with('=') => level -= 1,
-            _ => {}
-        }
+        level += bracket(text, index, c);
         if level == 0 {
             close = index;
             break;
@@ -132,18 +128,24 @@ fn split_top(text: &str) -> Vec<&str> {
     let mut level = 0i32;
     let mut start = 0;
     for (index, c) in text.char_indices() {
-        match c {
-            '(' | '[' | '{' | '<' => level += 1,
-            ')' | ']' | '}' | '>' if !text[..index].ends_with('=') => level -= 1,
-            ',' if level == 0 => {
-                parts.push(&text[start..index]);
-                start = index + 1;
-            }
-            _ => {}
+        level += bracket(text, index, c);
+        if c == ',' && level == 0 {
+            parts.push(&text[start..index]);
+            start = index + 1;
         }
     }
     parts.push(&text[start..]);
     parts
+}
+
+/// +1 for an opening bracket, -1 for a closing one. The `>` of `=>` closes
+/// nothing.
+fn bracket(text: &str, index: usize, c: char) -> i32 {
+    match c {
+        '(' | '[' | '{' | '<' => 1,
+        ')' | ']' | '}' | '>' if !text[..index].ends_with('=') => -1,
+        _ => 0,
+    }
 }
 
 /// How many round brackets `text` leaves open.
