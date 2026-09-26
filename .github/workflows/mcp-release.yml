@@ -113,16 +113,6 @@ jobs:
         run: npm publish
       - name: GitHub release
         if: github.event_name == 'push'
-        working-directory: .
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # A tag moved to a new commit reruns this job against a release that
-          # already exists, which `create` reports as a validation failure.
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release edit "$GITHUB_REF_NAME" --verify-tag \
-              --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
-          else
-            gh release create "$GITHUB_REF_NAME" --verify-tag \
-              --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
-          fi
+        uses: ./.github/actions/github-release
+        with:
+          notes: ${{ runner.temp }}/notes.md
