@@ -7,6 +7,8 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.15.0] — 2026-09-27
+
 ### Added
 
 - `describe_sku()` — the `describe()` record for a SKU of a `Catalog`, with no
@@ -17,13 +19,12 @@ releases apart and keeps
 - `Resolved::invoke()` reads a command whose entry declares an answer, and
   sends any other one. It answers `Invoked::Read` or `Invoked::Sent`.
 - `Resolved::refuse_secret()` fails with the new `codec::Error::SecretArg`
-  (`secret_arg`) when the entry takes a secret. `Command::secret_arg()` and
-  `ArgRole::is_secret()` state which argument carries one: `password`.
-- `GroupHandle::apply()` scans for the members, then sends several `Verb`s in
-  one fixed order: power on first, then gradient, brightness, white
-  temperature, color, segments and music, and power off last. A member that
-  fails the scan or a step takes no later step, and stops no other member.
-  It answers `Applied`, with one `AppliedStep` per verb sent.
+  (`secret_arg`) when the entry takes a secret argument.
+- `Command::secret_arg()` and `ArgRole::is_secret()` name the argument that
+  carries a secret: `password`.
+- `GroupHandle::apply()` sends several `Verb`s, power on first and power off
+  last. A member that fails a step takes no later step, and stops no other.
+- `Verb`, and `Applied` with one `AppliedStep` per verb sent.
   `GroupHandle::play()` sends one `Verb`.
 - `Support::ALL` — every support level. `Catalog::capabilities()` — every
   capability name that a device of the catalog declares.

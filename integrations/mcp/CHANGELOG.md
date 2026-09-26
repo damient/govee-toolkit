@@ -4,6 +4,8 @@ Changes to `govee-toolkit-mcp`, the MCP server in `integrations/mcp`. It
 versions apart from the binding it wraps and releases under `mcp-vX.Y.Z`. The
 policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.1.0] — 2026-09-27
+
 ### Added
 
 - A local MCP server over stdio, with the bin `govee-toolkit-mcp`.
@@ -11,12 +13,14 @@ policy is [`../../docs/versioning.md`](../../docs/versioning.md).
   `get_dmx_profile`, `get_api` and `read_doc`. None of them starts the SDK
   or reaches the network.
 - Control tools over the Node binding: `scan`, `list_known`, `status`,
-  `set`, `send`, `identify` and `doctor`. The SDK starts on the first
-  control call, reads the configuration that the CLI reads, and closes when
-  stdin closes or on `SIGINT` and `SIGTERM`. `mode` pins a call to one mode,
-  and a binding error returns its code with no retry on another mode. `send`
-  refuses a command that takes a secret, such as a network password, with
-  `secret_arg`. `set` sends its steps in the order the core fixes, and a
-  member that fails a step takes no later step.
+  `set`, `send`, `identify` and `doctor`.
+- The SDK starts on the first control call, reads the configuration that the
+  CLI reads, and closes when stdin closes or on `SIGINT` and `SIGTERM`.
+- `mode` pins a control call to one mode. A binding error returns its code,
+  with no retry on another mode.
+- `send` refuses a command that takes a secret, such as a network password,
+  with `secret_arg`.
+- `set` sends its steps in the order the core fixes. A member that fails a
+  step takes no later step.
 - Resources: each docs page at `gtk://docs/<topic>`, and each device record
   at `gtk://devices/{sku}`.
