@@ -1,22 +1,23 @@
 let queued: ReturnType<typeof setTimeout> | undefined;
 
+function created(): HTMLElement {
+  const box = document.createElement("p");
+  box.className = "toast";
+  box.setAttribute("role", "status");
+  document.body.append(box);
+  return box;
+}
+
 /** Shows `text` at the foot of the viewport for a moment. A new call replaces the text. */
 export function toast(text: string): void {
-  let box = document.querySelector<HTMLElement>(".toast");
-  if (!box) {
-    box = document.createElement("p");
-    box.className = "toast";
-    box.setAttribute("role", "status");
-    document.body.append(box);
-  }
-  const shown = box;
-  shown.textContent = text;
+  const box = document.querySelector<HTMLElement>(".toast") ?? created();
+  box.textContent = text;
   clearTimeout(queued);
   // The frame between the insert and the class lets the entry transition run.
   requestAnimationFrame(() => {
-    shown.classList.add("is-shown");
+    box.classList.add("is-shown");
   });
   queued = setTimeout(() => {
-    shown.classList.remove("is-shown");
+    box.classList.remove("is-shown");
   }, 1800);
 }
