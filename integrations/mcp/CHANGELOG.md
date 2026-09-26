@@ -10,5 +10,11 @@ policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 - Read tools over the embedded catalog: `list_devices`, `describe_device`,
   `get_dmx_profile`, `get_api` and `read_doc`. None of them starts the SDK
   or reaches the network.
+- Control tools over the Node binding: `scan`, `list_known`, `status`,
+  `set`, `send`, `identify` and `doctor`. The SDK starts on the first
+  control call, reads the configuration that the CLI reads, and closes when
+  stdin closes or on `SIGINT` and `SIGTERM`. `mode` pins a call to one mode,
+  and a binding error returns its code with no retry on another mode. `send`
+  refuses a command that takes a password.
 - Resources: each docs page at `gtk://docs/<topic>`, and each device record
   at `gtk://devices/{sku}`.
