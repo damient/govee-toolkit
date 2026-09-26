@@ -144,6 +144,26 @@ read once and the bytes go over the mode the values were read for.
   `x86_64`, musl `aarch64` and musl `armv7` wheels. It serves the Home Assistant
   component, which runs on the last four.
 
+## The MCP server
+
+`integrations/mcp` wraps the Node binding and holds no device data and no
+protocol logic. It reads three sources, and each one is generated:
+
+- the device data, from `Catalog.describe()` and `Catalog.dmx()`;
+- the API of each language, from `dist/api.json`, which `xtask api` writes;
+- the docs, from `docs/*.md`, which the build copies into the package.
+
+A tool that filters by mode, capability or role reads the valid values from
+these sources. Its source holds no SKU name, no command name and no list
+written by hand.
+
+- The catalog is the one that the binding embeds. The server loads no remote
+  catalog, because `payload:` and `frame:` are executable
+  ([`security.md`](security.md)).
+- A control tool asks for no confirmation. It changes the state of a light and
+  destroys no data.
+- A method added to the Node `Catalog` is also added to the Python `Catalog`.
+
 ## The catalog as an artifact
 
 `devices/*.yaml` is the source of truth, one file per SKU. `cargo run -p xtask`
