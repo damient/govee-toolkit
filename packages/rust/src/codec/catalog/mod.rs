@@ -311,7 +311,7 @@ pub struct Device {
     /// on load, so nothing downstream reads it. See [`Overrides`].
     #[serde(default, skip_serializing)]
     pub overrides: Overrides,
-    /// The physical size of the model. `None` where the file declares none.
+    /// The physical size of the model.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub geometry: Option<Geometry>,
     /// Numbers taken from one physical unit.

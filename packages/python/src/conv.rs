@@ -42,7 +42,6 @@ fn seconds(key: &str, value: f64) -> PyResult<Duration> {
     })
 }
 
-/// The walk the keywords ask for, over the core's defaults.
 pub(crate) fn walk(
     color: Option<&Bound<'_, PyAny>>,
     wait: Option<f64>,

@@ -230,8 +230,7 @@ fn walk(
         wait: Duration::from_millis(wait_ms),
         hold: Duration::from_millis(hold_ms),
         keep,
-        // The rig a walk answers for is the rig on the network. `--mode`
-        // names another one, and never widens the walk to two.
+        // `--mode` replaces `lan`; it never widens the walk to two modes.
         mode: restrict.unwrap_or(Mode::Lan),
     })
 }
@@ -244,7 +243,6 @@ mod tests {
 
     use super::*;
 
-    /// The walk `Walk::default()` documents as the one `govee identify` runs.
     #[test]
     fn identify_with_no_option_runs_the_default_walk() {
         let cli = Cli::try_parse_from(["govee", "identify"]).expect("parses");

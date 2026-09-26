@@ -186,23 +186,14 @@ impl Govee {
         })
     }
 
-    /// Take the devices off, light each in turn, then take them off again:
-    /// the walk `govee identify` runs.
+    /// Run the walk `govee identify` runs. `targets` reads as `select()`
+    /// reads it; `None` walks every device that a scan finds. Defaults, in
+    /// seconds: `color` green, `wait` 1 between steps, `hold` 5 on the last
+    /// device, `keep` False, `mode` `"lan"`.
     ///
-    /// `targets` is one target or several, read as `select()` reads them: an
-    /// identity, a SKU, a name or a group. `None` walks every device a scan
-    /// over the mode finds, and an empty list walks none. A SKU, a name and
-    /// a group scan first.
-    ///
-    /// Every keyword is optional. `color` is green, `wait` is the wait
-    /// between two steps (1 s), and `hold` is how long the last device holds
-    /// the color (5 s), both in seconds. `keep` leaves every device on and
-    /// lit at the end. `mode` is the one mode the walk drives, `"lan"` by
-    /// default.
-    ///
-    /// Raises `ConfigError` with `mode_not_enabled` before it sends anything
-    /// where a device does not enable the mode. A device that fails during
-    /// the walk is in the report instead.
+    /// Raises `ConfigError` with `mode_not_enabled` before it sends a command
+    /// where a device does not enable the mode. A device that fails is in the
+    /// report.
     #[expect(
         clippy::too_many_arguments,
         reason = "each keyword is one Python argument"

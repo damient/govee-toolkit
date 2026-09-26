@@ -216,8 +216,7 @@ fn a_summary_names_the_two_faults() {
     );
 }
 
-/// Green, a second between two steps, a 5 s hold, over `lan`. `govee` and
-/// `govee-dmx` each check their own defaults against this walk.
+/// `govee` and `govee-dmx` check their own defaults against this walk.
 #[test]
 fn the_default_walk_is_green_a_second_apart_over_lan() {
     let walk = Walk::default();
@@ -228,7 +227,6 @@ fn the_default_walk_is_green_a_second_apart_over_lan() {
     assert_eq!(walk.mode, Mode::Lan);
 }
 
-/// An identity needs no scan: the walk covers the device it names.
 #[tokio::test]
 async fn a_walk_target_that_names_an_identity_is_that_device() {
     let rig = rig("defaults:\n  modes: [lan]\n").await;
@@ -243,8 +241,6 @@ async fn a_walk_target_that_names_an_identity_is_that_device() {
     assert_eq!(ids, [id()]);
 }
 
-/// A target whose device does not enable the mode is refused before anything
-/// goes out for it, a scan included.
 #[tokio::test]
 async fn a_walk_target_over_a_mode_it_does_not_enable_is_refused_before_a_scan() {
     let rig = rig("defaults:\n  modes: [lan]\n").await;
@@ -261,7 +257,6 @@ async fn a_walk_target_over_a_mode_it_does_not_enable_is_refused_before_a_scan()
     assert_eq!(rig.simulator.received_count(), 0);
 }
 
-/// The one call the bindings make: the targets, then the walk over them.
 #[tokio::test]
 async fn identify_walks_the_devices_the_targets_name() {
     let rig = rig("defaults:\n  modes: [lan]\n").await;
@@ -279,7 +274,6 @@ async fn identify_walks_the_devices_the_targets_name() {
     assert_eq!(writes(&rig, 5).await.len(), 5);
 }
 
-/// An empty list walks no device, sends nothing and does not wait.
 #[tokio::test]
 async fn identify_over_an_empty_list_walks_no_device() {
     let rig = rig("defaults:\n  modes: [lan]\n").await;

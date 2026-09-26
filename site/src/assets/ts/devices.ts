@@ -32,8 +32,7 @@ export function filter(input: HTMLInputElement): void {
   apply();
 }
 
-// The link in the row header stays the target for the keyboard, a middle click
-// and a click with a modifier. A plain pointer click on the SKU copies it.
+// A plain click on the SKU copies it; the link serves the keyboard and every other click.
 export function rowLink(body: HTMLElement): void {
   body.addEventListener("click", (event) => {
     if (!(event.target instanceof Element)) return;
