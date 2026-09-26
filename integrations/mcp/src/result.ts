@@ -1,5 +1,3 @@
-// The shape of a tool answer, and the enum a schema builds from catalog values.
-
 import type { CallToolResult } from "@modelcontextprotocol/server";
 import { z } from "zod";
 

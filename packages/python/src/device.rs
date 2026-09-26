@@ -147,10 +147,9 @@ impl DeviceHandle {
         })
     }
 
-    /// Read a command whose entry declares an answer, and send any other one,
-    /// over one mode resolved once. With `refuse_secrets`, a command that
-    /// takes a secret, such as a network password, raises with the code
-    /// `secret_arg`, and nothing is sent.
+    /// Read a command whose entry declares an answer, and send any other one.
+    /// With `refuse_secrets`, a command that takes a secret raises
+    /// `secret_arg`.
     #[pyo3(signature = (command, refuse_secrets=false, **args))]
     fn invoke<'py>(
         &self,

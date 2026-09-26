@@ -1,5 +1,4 @@
-// The server as a client launches it: a child process on stdio. stdout carries
-// the JSON-RPC stream, so one byte of log there breaks the client.
+// stdout carries the JSON-RPC stream: one byte of log there breaks the client.
 
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -50,7 +49,6 @@ test("stdout carries JSON-RPC and nothing else, and the server exits when stdin 
   child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`);
   for (const line of rest) child.stdin.write(`${line}\n`);
 
-  // Close stdin once every request has its answer.
   const answered = new Promise<void>((resolve) => {
     child.stdout.on("data", () => {
       if (stdout.split("\n").filter((line) => line.includes('"id"')).length >= requests.length) resolve();

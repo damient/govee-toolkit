@@ -1,6 +1,4 @@
-// The control tools. Each one starts the SDK on its first call and reaches the
-// devices over the modes that the configuration enables. None of them retries
-// on another mode: a binding error is the answer.
+// A binding error is the answer: no control tool retries on another mode.
 
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";

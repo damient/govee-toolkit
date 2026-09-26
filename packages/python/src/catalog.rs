@@ -42,21 +42,15 @@ impl Catalog {
         to_py(py, device)
     }
 
-    /// The record that `govee describe --json` prints for a SKU. Reads no
-    /// hardware.
-    ///
-    /// Raises `CodecError` with the code `unknown_sku` when nothing declares
-    /// it.
+    /// The record that `govee describe --json` prints for a SKU. Raises
+    /// `CodecError` `unknown_sku` when nothing declares it.
     fn describe(&self, py: Python<'_>, sku: &str) -> PyResult<Py<PyAny>> {
         let record = map(describe_sku(&self.inner, sku).map_err(Into::into))?;
         to_py(py, &record)
     }
 
-    /// The DMX channel tables of a SKU, as `dist/catalog.json` carries them
-    /// under `dmx`. Reads no hardware.
-    ///
-    /// Raises `CodecError` with the code `unknown_sku` when nothing declares
-    /// it.
+    /// The DMX channel tables of a SKU, as `dist/catalog.json` carries them.
+    /// Raises `CodecError` `unknown_sku` when nothing declares it.
     fn dmx(&self, py: Python<'_>, sku: &str) -> PyResult<Py<PyAny>> {
         let device = map(self.inner.device(sku).map_err(Into::into))?;
         to_py(py, &profile::report::entry(device))

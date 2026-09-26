@@ -207,12 +207,9 @@ impl GroupHandle {
         })
     }
 
-    /// Scan for the members, then send the verbs in the order the core fixes:
-    /// power on first and power off last. `segment` takes the keys of
-    /// `segment()`, and `music` the keys of `music()`.
-    ///
-    /// A member that fails the scan or a step takes no later step. It stops
-    /// no other member.
+    /// Scan for the members, then send the verbs, power on first and power
+    /// off last. `segment` and `music` take the keys of `segment()` and
+    /// `music()`. A member that fails takes no later step.
     #[pyo3(signature = (*, power=None, brightness=None, color=None, color_temp=None, segment=None, music=None, gradient=None))]
     #[allow(clippy::too_many_arguments)]
     fn apply<'py>(

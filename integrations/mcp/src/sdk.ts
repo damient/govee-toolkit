@@ -1,7 +1,5 @@
-// One `Govee` for the life of the process, started on the first control call,
-// and what every control tool shares. It reads the configuration that the CLI
-// reads: `GOVEE_CONFIG` names the file, and the cloud key comes from the `env`
-// of the client's MCP configuration.
+// One `Govee` for the process, started on the first control call. It reads the
+// configuration of the CLI, and the cloud key from the `env` of the MCP client.
 
 import type { CallToolResult } from "@modelcontextprotocol/server";
 import { Govee } from "govee-toolkit";

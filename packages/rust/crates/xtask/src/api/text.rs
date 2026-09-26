@@ -1,9 +1,6 @@
-//! The Node and Python surfaces, read from the declaration files.
-//!
-//! napi writes `binding.d.cts` and stubtest checks `_govee_toolkit.pyi`
-//! against the module, so both files state what each binding exports.
+//! The Node and Python surfaces. napi writes `binding.d.cts`, and stubtest
+//! checks `_govee_toolkit.pyi` against the module.
 
-/// Every class member and function of `binding.d.cts`, as
 /// `Class.name(arg: type, …)`. A getter has no argument list.
 pub(super) fn node(text: &str) -> Vec<String> {
     let mut out = Vec::new();
@@ -42,9 +39,8 @@ pub(super) fn node(text: &str) -> Vec<String> {
     out
 }
 
-/// Every public class member and function of the stub, as
 /// `Class.name(arg: type, …)`, and a constructor as `Class(…)`. A property
-/// has no argument list. Any other name that starts with `_` is left out.
+/// has no argument list.
 pub(super) fn python(text: &str) -> Vec<String> {
     let lines: Vec<&str> = text.lines().collect();
     let mut out = Vec::new();
@@ -99,8 +95,7 @@ pub(super) fn python(text: &str) -> Vec<String> {
     out
 }
 
-/// `name(args) -> ret` to `<prefix>name(args)`, without `self` or a trailing
-/// comma.
+/// `name(args) -> ret` to `<prefix>name(args)`.
 fn signature(prefix: &str, text: &str) -> String {
     let open = text.find('(').unwrap_or(text.len());
     let name = &text[..open];
@@ -122,7 +117,6 @@ fn signature(prefix: &str, text: &str) -> String {
     format!("{prefix}{name}({})", args.join(", "))
 }
 
-/// Split at the commas that no bracket encloses.
 fn split_top(text: &str) -> Vec<&str> {
     let mut parts = Vec::new();
     let mut level = 0i32;
@@ -138,8 +132,7 @@ fn split_top(text: &str) -> Vec<&str> {
     parts
 }
 
-/// +1 for an opening bracket, -1 for a closing one. The `>` of `=>` closes
-/// nothing.
+/// The `>` of `=>` closes nothing.
 fn bracket(text: &str, index: usize, c: char) -> i32 {
     match c {
         '(' | '[' | '{' | '<' => 1,
@@ -148,7 +141,6 @@ fn bracket(text: &str, index: usize, c: char) -> i32 {
     }
 }
 
-/// How many round brackets `text` leaves open.
 fn depth(text: &str) -> i32 {
     text.chars().fold(0, |level, c| match c {
         '(' => level + 1,
@@ -157,7 +149,6 @@ fn depth(text: &str) -> i32 {
     })
 }
 
-/// `color_temp` to `colorTemp`, as napi names a method.
 pub(super) fn camel(snake: &str) -> String {
     let mut out = String::new();
     let mut upper = false;

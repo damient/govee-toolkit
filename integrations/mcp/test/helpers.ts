@@ -12,9 +12,8 @@ import type { z } from "zod";
 
 import { createServer } from "../src/server.ts";
 
-// Point every path the core reads at an empty temporary directory. A cache
-// that a real run wrote puts devices in `list_known` that no test found, and
-// the checkout's own `.env` names a configuration through `GOVEE_CONFIG`.
+// A real cache puts devices in `list_known`, and the `.env` of the checkout
+// names a configuration: point every path the core reads at an empty directory.
 const state = mkdtempSync(join(tmpdir(), "govee-mcp-test-"));
 const emptyEnv = join(state, "env");
 writeFileSync(emptyEnv, "");

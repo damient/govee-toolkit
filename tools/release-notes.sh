@@ -24,8 +24,7 @@ pkg=$1 tag=$2
 root=$(cd "$(dirname "$0")/.." && pwd)
 
 # `cli` and `dmx` do not sit at packages/<pkg>: they are crates of the Rust
-# workspace, and each releases apart from the crate it reads. `mcp` sits under
-# integrations/.
+# workspace, and each releases apart from the crate it reads.
 pattern='^version *= *"\([^"]*\)".*'
 case $pkg in
 rust) subdir=packages/rust file=Cargo.toml ;;

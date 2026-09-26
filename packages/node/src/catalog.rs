@@ -45,19 +45,15 @@ impl Catalog {
         to_js(env, device)
     }
 
-    /// The record that `govee describe --json` prints for a SKU. Reads no
-    /// hardware.
-    ///
-    /// Throws with the code `unknown_sku` when nothing declares it.
+    /// The record that `govee describe --json` prints for a SKU. Throws
+    /// `unknown_sku` when nothing declares it.
     #[napi]
     pub fn describe(&self, env: &Env, sku: String) -> napi::Result<serde_json::Value> {
         map(env, describe_sku(&self.inner, &sku).map_err(Into::into))
     }
 
-    /// The DMX channel tables of a SKU, as `dist/catalog.json` carries them
-    /// under `dmx`. Reads no hardware.
-    ///
-    /// Throws with the code `unknown_sku` when nothing declares it.
+    /// The DMX channel tables of a SKU, as `dist/catalog.json` carries them.
+    /// Throws `unknown_sku` when nothing declares it.
     #[napi]
     pub fn dmx(&self, env: &Env, sku: String) -> napi::Result<serde_json::Value> {
         let device = map(env, self.inner.device(&sku).map_err(Into::into))?;

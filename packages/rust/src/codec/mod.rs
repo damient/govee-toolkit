@@ -228,8 +228,7 @@ impl Catalog {
         self.0.devices.iter()
     }
 
-    /// Every capability name that a device of the catalog declares, sorted.
-    /// The names are data: a device file can add one.
+    /// Every capability name that a device of the catalog declares.
     #[must_use]
     pub fn capabilities(&self) -> std::collections::BTreeSet<&str> {
         self.skus()

@@ -9,11 +9,9 @@ use syn::{Expr, ExprCall, ExprMatch, ExprMethodCall, ExprPath, ExprStruct, Item,
 
 use super::rust::{kebab, parse};
 
-/// Method name to the CLI verbs that call it, sorted.
-///
-/// An arm of `route` reaches every method that the `<module>::<fn>` it calls
-/// calls in `run/<module>.rs`. An arm of `play` reaches the method that its
-/// `Verb` variant names: `Verb::ColorTemp` reaches `color_temp`.
+/// An arm of `route` reaches the methods that its `<module>::<fn>` calls in
+/// `run/<module>.rs`. An arm of `play` reaches the method that its `Verb`
+/// variant names.
 pub(super) fn verbs(run: &Path) -> BTreeMap<String, Vec<String>> {
     let items = parse(&run.join("mod.rs")).items;
     let mut out: BTreeMap<String, Vec<String>> = BTreeMap::new();
@@ -52,7 +50,6 @@ pub(super) fn verbs(run: &Path) -> BTreeMap<String, Vec<String>> {
     out
 }
 
-/// The verb and the body of each arm of the first `match` in `name`.
 fn arms<'a>(items: &'a [Item], name: &str) -> Vec<(String, &'a Expr)> {
     let f = function(items, name).unwrap_or_else(|| panic!("the CLI declares no `fn {name}`"));
     let mut first = FirstMatch(None);
@@ -67,8 +64,6 @@ fn arms<'a>(items: &'a [Item], name: &str) -> Vec<(String, &'a Expr)> {
         .collect()
 }
 
-/// The last segment of the path an arm matches: `Status` for
-/// `Command::Status { .. }`.
 fn variant(pat: &Pat) -> Option<String> {
     let path = match pat {
         Pat::Path(p) => &p.path,
@@ -96,7 +91,6 @@ impl<'a> Visit<'a> for FirstMatch<'a> {
     }
 }
 
-/// What one expression calls and names.
 #[derive(Default)]
 struct Calls {
     /// `module::name(…)`.
@@ -105,7 +99,7 @@ struct Calls {
     functions: Vec<String>,
     /// `x.name(…)`.
     methods: Vec<String>,
-    /// The variant of every `Verb::Variant`.
+    /// `Verb::Variant`.
     verbs: Vec<String>,
 }
 
@@ -160,7 +154,6 @@ impl<'a> Visit<'a> for Calls {
     }
 }
 
-/// `ColorTemp` to `color_temp`.
 fn snake(camel: &str) -> String {
     kebab(camel).replace('-', "_")
 }

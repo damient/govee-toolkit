@@ -1,5 +1,4 @@
-// Copies `dist/api.json` and `docs/**/*.md` into `data/`, which the package
-// ships. The server reads the docs topics from that directory.
+// Copies `dist/api.json` and `docs/**/*.md` into `data/`, which the package ships.
 
 import { existsSync } from "node:fs";
 import { copyFile, mkdir, readdir, rm } from "node:fs/promises";

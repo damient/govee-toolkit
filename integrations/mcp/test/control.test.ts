@@ -1,13 +1,6 @@
-// The control tools against `crates/sim` over `lan`. The simulator binds the
-// real ports and answers the multicast scan, so a real device on the same
-// network answers too: every call targets the identity of the simulator.
-//
-// `GOVEE_SIM` names the simulator binary. Without it, the test looks for the
-// debug build, and skips when there is none. `tools/qa-mcp.sh` builds it and
-// sets the variable, so a missing binary fails there.
-//
-// The test files run one at a time (`--test-concurrency=1`): two SDKs in two
-// processes share port 4002, and one can take the scan reply of the other.
+// A real device answers the scan too: every call targets the simulator. The
+// test files run one at a time, because two SDKs that share port 4002 can take
+// the scan reply of each other.
 
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn } from "node:child_process";
