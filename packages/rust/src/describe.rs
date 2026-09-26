@@ -6,7 +6,7 @@
 
 use serde_json::{Map, Value, json};
 
-use crate::codec::{ArgBound, ArgSpec, Command, Device, Mode, ModeSupport};
+use crate::codec::{self, ArgBound, ArgSpec, Catalog, Command, Device, Mode, ModeSupport};
 use crate::stream::reach;
 
 /// One device file, as the record `govee describe --json` prints and every
@@ -36,6 +36,16 @@ pub fn describe(device: &Device) -> Value {
             "notes": device.verified.notes,
         },
     })
+}
+
+/// The record [`describe`] prints, for the device that `sku` resolves to in
+/// `catalog`. Needs no started SDK and reads no hardware.
+///
+/// # Errors
+///
+/// [`codec::Error::UnknownSku`] if nothing declares the SKU.
+pub fn describe_sku(catalog: &Catalog, sku: &str) -> codec::Result<Value> {
+    catalog.device(sku).map(describe)
 }
 
 /// One entry per mode, so a reader finds every mode whether or not the file
@@ -103,5 +113,28 @@ fn bound(spec: &ArgSpec) -> Value {
         ArgBound::Zones(count) => json!(count),
         ArgBound::MaxLen(len) => json!(len),
         ArgBound::None => Value::Null,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used)]
+
+    use super::*;
+
+    #[test]
+    fn a_sku_describes_as_its_device_file() {
+        let catalog = Catalog::embedded().expect("the catalog parses");
+        let sku = catalog.skus().next().expect("the catalog holds a device");
+        let device = catalog.device(sku).expect("the SKU resolves");
+
+        assert_eq!(describe_sku(&catalog, sku).unwrap(), describe(device));
+    }
+
+    #[test]
+    fn a_sku_nothing_declares_is_unknown() {
+        let catalog = Catalog::embedded().expect("the catalog parses");
+        let error = describe_sku(&catalog, "HNONE").expect_err("nothing declares it");
+        assert_eq!(error.code(), "unknown_sku");
     }
 }
