@@ -46,7 +46,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | ✅ | **Rust** (`packages/rust`) — the reference implementation and the only place protocol logic lives |
 | ✅ | **Python** (`packages/python`) — PyO3 binding, an `asyncio` API, `abi3` wheels for Linux, macOS and Windows on `x86_64` and `aarch64`, and Linux wheels for `armv7` and for musl |
 | ✅ | **Node.js / TypeScript** (`packages/node`) — napi-rs binding, a promise-based API and TypeScript types; prebuilt addons for Linux and Windows on `x86_64` and `aarch64` and for macOS on `aarch64` |
-| ✅ | Each package versioned and released independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `dmx-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) |
+| ✅ | Each package versioned and released independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `dmx-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `mcp-vX.Y.Z`) |
 
 ## Tools & apps
 
@@ -61,6 +61,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 
 | | Feature |
 | --- | ------- |
+| 🚧 | **MCP server** (`integrations/mcp`) — a local server over stdio. It describes the catalog, the DMX channel tables, the API of each language and the docs, and drives the devices over `lan`, `ble` and `cloud` through the Node binding. See [`../integrations/mcp/README.md`](../integrations/mcp/README.md) |
 | 🔜 | **Matter bridge** — one integration, reachable from any Matter controller |
 | 🔜 | **Home Assistant** — custom component distributable through HACS, carries the LAN segment channel Matter cannot express |
 | 🔜 | **Homebridge** — HomeKit plugin |
