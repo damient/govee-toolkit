@@ -24,6 +24,9 @@ const EXPORTED = [
   "EventStream",
   "StatusStream",
   "WalkReport",
+  "Invoked",
+  "Applied",
+  "AppliedStep",
 ];
 
 test("the package exports the public API", () => {
@@ -55,4 +58,11 @@ test("the modes are the names the core knows", () => {
 
 test("the mode names cannot be written to", () => {
   assert.ok(Object.isFrozen(govee.MODES));
+});
+
+test("the support levels and the personalities are the names the core knows", () => {
+  assert.ok(govee.SUPPORT.includes("unknown"));
+  assert.ok(govee.PERSONALITIES.includes("full"));
+  assert.ok(Object.isFrozen(govee.SUPPORT));
+  assert.ok(Object.isFrozen(govee.PERSONALITIES));
 });

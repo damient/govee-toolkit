@@ -778,6 +778,8 @@ function __napiStampBindingTarget(exportsObject, target) {
 // linked import resolves to `undefined`.
 module.exports.__napiBindingTarget = __napiStampBindingTarget(nativeBinding, __napiLoadedBindingTarget)
 module.exports = nativeBinding
+module.exports.Applied = nativeBinding.Applied
+module.exports.AppliedStep = nativeBinding.AppliedStep
 module.exports.Catalog = nativeBinding.Catalog
 module.exports.Config = nativeBinding.Config
 module.exports.Device = nativeBinding.Device
@@ -787,6 +789,7 @@ module.exports.EventStream = nativeBinding.EventStream
 module.exports.Govee = nativeBinding.Govee
 module.exports.GroupHandle = nativeBinding.GroupHandle
 module.exports.Health = nativeBinding.Health
+module.exports.Invoked = nativeBinding.Invoked
 module.exports.Outcome = nativeBinding.Outcome
 module.exports.Reply = nativeBinding.Reply
 module.exports.SegmentStream = nativeBinding.SegmentStream
@@ -795,4 +798,6 @@ module.exports.StatusStream = nativeBinding.StatusStream
 module.exports.WalkReport = nativeBinding.WalkReport
 module.exports.CORE_VERSION = nativeBinding.CORE_VERSION
 module.exports.modes = nativeBinding.modes
+module.exports.personalities = nativeBinding.personalities
+module.exports.supportLevels = nativeBinding.supportLevels
 module.exports.VERSION = nativeBinding.VERSION

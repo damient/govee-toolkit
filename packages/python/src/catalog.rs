@@ -62,6 +62,15 @@ impl Catalog {
         to_py(py, &profile::report::entry(device))
     }
 
+    /// Every capability name that a device of the catalog declares, sorted.
+    fn capabilities(&self) -> Vec<String> {
+        self.inner
+            .capabilities()
+            .into_iter()
+            .map(ToOwned::to_owned)
+            .collect()
+    }
+
     fn __len__(&self) -> usize {
         self.inner.devices().count()
     }
