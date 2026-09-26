@@ -197,6 +197,17 @@ class Catalog:
 
         Raises `CodecError` with the code `unknown_sku` when nothing declares it.
         """
+    def describe(self, sku: str) -> dict[str, Any]:
+        """The record that `govee describe --json` prints for a SKU. Reads no hardware.
+
+        Raises `CodecError` with the code `unknown_sku` when nothing declares it.
+        """
+    def dmx(self, sku: str) -> dict[str, Any]:
+        """The DMX channel tables of a SKU, as `dist/catalog.json` carries them under
+        `dmx`. Reads no hardware.
+
+        Raises `CodecError` with the code `unknown_sku` when nothing declares it.
+        """
     def __len__(self) -> int:
         """How many device files the catalog holds."""
 
