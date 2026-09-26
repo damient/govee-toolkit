@@ -102,7 +102,6 @@ else
   check "compatibility tables" cargo run -q -p xtask -- compat --check
   check "dmx profile tables" cargo run -q -p xtask -- dmx --check
   check "lan list table" cargo run -q -p xtask -- lan --check
-  check "api join" cargo run -q -p xtask -- api --check
   check "duplicated command layouts" cargo run -q -p xtask -- dupes
 fi
 

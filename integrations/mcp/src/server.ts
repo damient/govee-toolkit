@@ -25,25 +25,6 @@ export function createServer(): McpServer {
   return server;
 }
 
-/** Run by `close()` before the process exits, in order. */
-const onShutdown: (() => Promise<void>)[] = [];
-
-export function atShutdown(hook: () => Promise<void>): void {
-  onShutdown.push(hook);
-}
-
-async function shutdown(): Promise<never> {
-  // One chain, so each hook starts after the one before, and a failure stops no other hook.
-  await onShutdown.reduce(
-    (previous, hook) =>
-      previous.then(hook).catch((error: unknown) => {
-        console.error("shutdown:", error);
-      }),
-    Promise.resolve(),
-  );
-  process.exit(0);
-}
-
 /** Serves over the process stdio until stdin closes or a signal arrives. */
 export function serve(): void {
   const handle = serveStdio(createServer, {
@@ -51,8 +32,17 @@ export function serve(): void {
       console.error(error);
     },
   });
-  atShutdown(() => handle.close());
-  atShutdown(closeSdk);
+  const shutdown = async (): Promise<never> => {
+    // One chain, so each hook starts after the one before, and a failure stops no other hook.
+    await [() => handle.close(), closeSdk].reduce(
+      (previous, hook) =>
+        previous.then(hook).catch((error: unknown) => {
+          console.error("shutdown:", error);
+        }),
+      Promise.resolve(),
+    );
+    process.exit(0);
+  };
   process.stdin.on("close", () => void shutdown());
   process.on("SIGINT", () => void shutdown());
   process.on("SIGTERM", () => void shutdown());

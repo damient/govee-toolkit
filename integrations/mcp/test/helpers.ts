@@ -61,6 +61,6 @@ export async function failureCode(client: Client, name: string, args: Record<str
   return text(result).split(":")[0] ?? "";
 }
 
-export function text(result: CallToolResult): string {
+function text(result: CallToolResult): string {
   return result.content.map((block) => (block.type === "text" ? block.text : "")).join("");
 }

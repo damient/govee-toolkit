@@ -3,7 +3,7 @@
 
 import { type McpServer, ResourceTemplate } from "@modelcontextprotocol/server";
 
-import { allSkus, describe, dmx } from "./catalog.ts";
+import { allSkus, record } from "./catalog.ts";
 import { docTopics, readDoc } from "./data.ts";
 
 export function registerResources(server: McpServer): void {
@@ -25,8 +25,7 @@ export function registerResources(server: McpServer): void {
     devices,
     { title: "One device record, as `describe_device` returns it", mimeType: "application/json" },
     (uri, { sku }) => {
-      const name = String(sku);
-      const text = JSON.stringify({ ...describe(name), dmx: dmx(name) });
+      const text = JSON.stringify(record(String(sku)));
       return { contents: [{ uri: uri.href, mimeType: "application/json", text }] };
     },
   );

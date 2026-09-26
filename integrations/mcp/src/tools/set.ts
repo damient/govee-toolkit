@@ -2,7 +2,7 @@
 // the CLI, so a device and a group answer the same shape.
 
 import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
-import type { GroupHandle, Outcome } from "govee-toolkit";
+import type { Applied, GroupHandle } from "govee-toolkit";
 import { z } from "zod";
 
 import { codeError, failure, ok } from "../result.ts";
@@ -43,29 +43,12 @@ const outcomeShape = z.object({
 });
 
 type SetInput = z.infer<typeof setInput>;
-type Step = [string, (group: GroupHandle) => Promise<Outcome[]>];
-type Done = { step: string; outcomes: Record<string, unknown>[] }[];
 
-/** The steps in the order they are sent: power on first, power off last. */
-function steps(input: SetInput): Step[] {
-  const { power, brightness, color, color_temp, segment, music, gradient } = input;
-  const list: Step[] = [];
-  if (power === true) list.push(["power", (g) => g.power(true)]);
-  if (gradient !== undefined) list.push(["gradient", (g) => g.gradient(gradient)]);
-  if (brightness !== undefined) list.push(["brightness", (g) => g.brightness(brightness)]);
-  if (color_temp !== undefined) list.push(["color_temp", (g) => g.colorTemp(color_temp)]);
-  if (color !== undefined) list.push(["color", (g) => g.color(color)]);
-  if (segment !== undefined) {
-    const { colors, zones, resolution, gradient: blend } = segment;
-    const paint = colors.length === 1 && colors[0] !== undefined ? colors[0] : colors;
-    list.push(["segment", (g) => g.segment(paint, zones ?? null, resolution, blend ?? null)]);
-  }
-  if (music !== undefined) {
-    const { effect, sensitivity, soft, color: tint } = music;
-    list.push(["music", (g) => g.music(effect, sensitivity ?? null, soft ?? null, tint)]);
-  }
-  if (power === false) list.push(["power", (g) => g.power(false)]);
-  return list;
+/** The verbs of the input, under the keys that `GroupHandle.apply()` takes. The core orders them. */
+function verbs(input: SetInput): Parameters<GroupHandle["apply"]>[0] {
+  const { power, brightness, color, color_temp: colorTemp, segment, music, gradient } = input;
+  const all = { power, brightness, color, colorTemp, segment, music, gradient };
+  return Object.fromEntries(Object.entries(all).filter(([, value]) => value !== undefined));
 }
 
 export function registerSet(server: McpServer): void {
@@ -75,8 +58,9 @@ export function registerSet(server: McpServer): void {
       title: "Set the state of a device or a group",
       description:
         "Set one or more of power, brightness, color, white temperature, segments, a music effect and the gradient, " +
-        "on one device or on every member of a group. The steps go out in a fixed order, and the first step that " +
-        "fails stops the ones after it. Each outcome names the mode that served it. " +
+        "on one device or on every member of a group. The steps go out in a fixed order, power on first and power off last. " +
+        "A member that fails a step takes no later step, and the other members go on. " +
+        "Each outcome names the mode that served it. " +
         "A value outside the range that the device file declares fails with the codec error: nothing is clamped. " +
         "To send a command that no argument here names, call `send`.",
       inputSchema: setInput,
@@ -87,28 +71,28 @@ export function registerSet(server: McpServer): void {
       annotations: CONTROL,
     },
     (input) =>
-      attempt((govee) => {
-        const plan = steps(input);
-        if (plan.length === 0) throw codeError("invalid_argument", "name at least one value to set");
+      attempt(async (govee) => {
+        const plan = verbs(input);
+        if (Object.keys(plan).length === 0) throw codeError("invalid_argument", "name at least one value to set");
         const group = govee.group(input.target, input.mode ?? null);
-        return run(group, [["reach", (g) => g.ensureKnown()], ...plan], []);
+        return answer(group.members, await group.apply(plan));
       }),
   );
 }
 
-/** Sends each step after the one before, and stops at the first step that a member fails. */
-async function run(group: GroupHandle, [next, ...rest]: Step[], done: Done): Promise<CallToolResult> {
-  if (next === undefined) return ok({ members: group.members, steps: done });
-  const [step, call] = next;
-  const outcomes = await call(group);
-  done.push({ step, outcomes: outcomes.map((o) => outcomeRow(o)) });
-  const failed = outcomes.filter((o) => !o.ok);
-  if (failed.length === 0) return run(group, rest, done);
-  // One device fails with its own error, as a command on one device does.
+/** The scan as the `reach` step, then each verb. A failure names the first error and how many members failed. */
+function answer(members: string[], applied: Applied): CallToolResult {
+  const steps = [
+    { step: "reach", outcomes: applied.reached.map((o) => outcomeRow(o)) },
+    ...applied.steps.map(({ step, outcomes }) => ({ step, outcomes: outcomes.map((o) => outcomeRow(o)) })),
+  ];
+  if (applied.ok) return ok({ members, steps });
+  const failed = [applied.reached, ...applied.steps.map((s) => s.outcomes)].flat().filter((o) => !o.ok);
   const first = failure(failed[0]?.error);
+  // One device fails with its own error, as a command on one device does.
   const summary =
-    outcomes.length === 1
+    members.length === 1
       ? `${first.code}: ${first.message}`
-      : `${first.code}: ${failed.length} of ${outcomes.length} devices failed at ${step}`;
-  return { isError: true, content: [{ type: "text", text: `${summary}\n${JSON.stringify({ steps: done })}` }] };
+      : `${first.code}: ${new Set(failed.map((o) => o.id)).size} of ${members.length} devices failed`;
+  return { isError: true, content: [{ type: "text", text: `${summary}\n${JSON.stringify({ steps })}` }] };
 }
