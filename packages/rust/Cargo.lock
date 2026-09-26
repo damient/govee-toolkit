@@ -2582,8 +2582,10 @@ name = "xtask"
 version = "0.14.0"
 dependencies = [
  "govee-toolkit",
+ "quote",
  "serde_json",
  "serde_norway",
+ "syn 2.0.119",
 ]
 
 [[package]]

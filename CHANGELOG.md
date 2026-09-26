@@ -22,6 +22,15 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-26
+
+#### Added
+
+- `cargo run -p xtask -- api` writes `dist/api.json`. The file joins each role
+  to the method that serves it on the CLI, Rust, Node and Python, and lists
+  the public surface of each one. `api --check` fails when a role has no
+  method on a surface.
+
 ### 2026-09-25
 
 #### Added

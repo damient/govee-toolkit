@@ -1,6 +1,8 @@
 //! Repository tasks, each of them generating something from a data file.
 //!
 //! - `xtask catalog [path]` — the distributable catalog.
+//! - `xtask api [--check]` — `dist/api.json`, each role joined to the method
+//!   that serves it on each surface.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //! - `xtask dmx [--check]` — the tables in `docs/dmx-profiles.md`.
 //! - `xtask lan [--check]` — the tables in `docs/lan-supported-devices.md`.
@@ -28,6 +30,7 @@ use std::{env, fs, process};
 use govee_toolkit::codec::{Catalog, Device, SCHEMA_VERSION};
 use govee_toolkit::profile;
 
+mod api;
 mod dmx;
 mod dupes;
 mod lan;
@@ -37,6 +40,7 @@ fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let check = args.iter().any(|a| a == "--check");
     match args.first().map(String::as_str) {
+        Some("api") => api::api(&root, check),
         Some("compat") => compat(&root, check),
         Some("dmx") => dmx(&root, check),
         Some("lan") => lan(&root, check),
@@ -47,7 +51,7 @@ fn main() {
         Some("catalog") | None => catalog(&root, args.get(1).map(PathBuf::from)),
         Some(other) => {
             eprintln!(
-                "unknown task `{other}`; expected `catalog`, `compat`, `dmx`, `lan` or `dupes`"
+                "unknown task `{other}`; expected `catalog`, `api`, `compat`, `dmx`, `lan` or `dupes`"
             );
             process::exit(2);
         }
