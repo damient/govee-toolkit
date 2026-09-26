@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
-use govee_toolkit::{Catalog, Config, DeviceId, Mode};
+use govee_toolkit::{Catalog, Config, DeviceId, Mode, Verb};
 
 mod common;
 
@@ -98,4 +98,52 @@ async fn absent_members_cost_one_scan_window_between_them() {
         elapsed < std::time::Duration::from_millis(600),
         "{elapsed:?}"
     );
+}
+
+#[tokio::test]
+async fn apply_sends_power_on_first_and_skips_a_member_the_scan_misses() {
+    let rig = rig().await;
+    let members = rig.govee.targets("ambient").expect("a group");
+
+    let applied = rig
+        .govee
+        .group(&members)
+        .apply(vec![Verb::Brightness(50), Verb::Power(true)])
+        .await;
+
+    assert!(applied.reached[0].result.is_err());
+    let names: Vec<&str> = applied.steps.iter().map(|step| step.name).collect();
+    assert_eq!(names, ["power", "brightness"]);
+    for step in &applied.steps {
+        assert_eq!(step.outcomes.len(), 1, "{}", step.name);
+        assert_eq!(step.outcomes[0].id, id());
+        assert!(step.outcomes[0].result.is_ok(), "{}", step.name);
+    }
+    assert_eq!(applied.failures().count(), 1);
+    assert!(!applied.is_clean());
+}
+
+#[tokio::test]
+async fn apply_sends_power_off_last() {
+    let rig = rig().await;
+    let applied = rig
+        .govee
+        .group(&[id()])
+        .apply(vec![Verb::Power(false), Verb::Color([255, 0, 0])])
+        .await;
+    let names: Vec<&str> = applied.steps.iter().map(|step| step.name).collect();
+    assert_eq!(names, ["color", "power"]);
+    assert!(applied.is_clean());
+}
+
+#[tokio::test]
+async fn apply_sends_no_step_when_the_scan_reaches_no_member() {
+    let rig = rig().await;
+    let applied = rig
+        .govee
+        .group(&[DeviceId::new(ABSENT)])
+        .apply(vec![Verb::Power(true)])
+        .await;
+    assert!(applied.steps.is_empty());
+    assert_eq!(applied.failures().count(), 1);
 }

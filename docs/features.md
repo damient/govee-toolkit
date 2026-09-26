@@ -26,7 +26,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **White temperature** (`color_temp()`) — one call sets the kelvin value and, where the frame carries it, the RGB rendering the firmware does not compute |
 | ✅ | **Music** (`music()`) — plays an effect the device renders from its own microphone, over `ble` and `cloud`. `lan` carries no music command |
 | ✅ | **Identify** (`identify()`) — powers one device on and paints one color, so a person maps an identity to a fixture in the room. `govee identify` and `govee-dmx identify` walk a whole rig, or the devices a target names: an identity, a SKU, a name, a group, and on the bridge a universe and a channel. |
-| ✅ | **Names and groups** — `name:` and `groups:` in `config.yaml` give targets in place of an identity. A verb on a group goes to every member at once, and a member that fails stops no other one (`Govee::group()`, `govee on <group>`) |
+| ✅ | **Names and groups** — `name:` and `groups:` in `config.yaml` give targets in place of an identity. A verb on a group goes to every member at once, and a member that fails stops no other one (`Govee::group()`, `govee on <group>`). `GroupHandle::apply()` sends several verbs in one fixed order, power on first and power off last. |
 | ✅ | **Wi-Fi provisioning** (`provision_wifi()`) — puts a device out of the box on a network over `ble`, which is what makes `lan` reachable |
 
 ## Modes

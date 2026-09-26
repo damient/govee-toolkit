@@ -25,9 +25,9 @@ pub struct Outcome<T = Served> {
 /// A handle for several devices. It holds no state of its own.
 #[derive(Debug, Clone)]
 pub struct GroupHandle<'a> {
-    govee: &'a Govee,
+    pub(crate) govee: &'a Govee,
     members: &'a [DeviceId],
-    pinned: Option<Mode>,
+    pub(crate) pinned: Option<Mode>,
 }
 
 impl Govee {
