@@ -4,6 +4,8 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.6.0] — 2026-09-26
+
 ### Added
 
 - `Govee.identify()` — the walk `govee identify` runs: off, green, then off
