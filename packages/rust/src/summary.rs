@@ -4,7 +4,7 @@
 //! every language.
 
 use crate::transport::{Health, Reply};
-use crate::{Device, DeviceStatus, Served};
+use crate::{Device, DeviceStatus, Served, WalkReport};
 
 /// How a host language writes a boolean and a value the device did not
 /// report.
@@ -94,6 +94,17 @@ impl Summary for DeviceStatus {
 impl Summary for Reply {
     fn summary(&self, _style: Style) -> String {
         format!("Reply(id='{}')", self.id)
+    }
+}
+
+impl Summary for WalkReport {
+    fn summary(&self, _style: Style) -> String {
+        format!(
+            "WalkReport(lit={}, failed={}, stayed={})",
+            self.lit.len(),
+            self.failed.len(),
+            self.stayed.len()
+        )
     }
 }
 

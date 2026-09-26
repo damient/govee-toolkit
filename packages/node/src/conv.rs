@@ -91,12 +91,6 @@ pub(crate) fn music(
 
 const WALK_OPTIONS: [&str; 5] = ["color", "waitMs", "holdMs", "keep", "mode"];
 
-/// An option set to `undefined` or `null` takes its default.
-fn given<'a>(options: &Object<'a>, key: &str) -> napi::Result<Option<Unknown<'a>>> {
-    let value = options.get::<Unknown<'_>>(key)?;
-    Ok(value.filter(|v| !matches!(v.get_type(), Ok(ValueType::Undefined | ValueType::Null))))
-}
-
 fn millis(env: &Env, key: &str, value: &Unknown<'_>) -> napi::Result<Duration> {
     let ms = whole(env, value)?;
     let ms = u64::try_from(ms)
@@ -113,9 +107,7 @@ pub(crate) fn walk(env: &Env, options: Option<Object<'_>>) -> napi::Result<Walk>
     let Some(options) = options else {
         return Ok(walk);
     };
-    let keys = options.get_property_names()?;
-    for index in 0..keys.get_array_length()? {
-        let key: String = keys.get_element(index)?;
+    for key in Object::keys(&options)? {
         if !WALK_OPTIONS.contains(&key.as_str()) {
             return Err(value_error(
                 env,
@@ -126,21 +118,21 @@ pub(crate) fn walk(env: &Env, options: Option<Object<'_>>) -> napi::Result<Walk>
             ));
         }
     }
-    if given(&options, "color")?.is_some() {
-        let color: Channels<'_> = options.get("color")?.unwrap_or(Either::A(&[]));
+    // `Option` reads `undefined` and `null` as `None`: the option takes its
+    // default.
+    if let Some(color) = options.get::<Option<Channels<'_>>>("color")?.flatten() {
         walk.pass.color = rgb(env, &color)?;
     }
-    if let Some(value) = given(&options, "waitMs")? {
+    if let Some(value) = options.get::<Option<Unknown<'_>>>("waitMs")?.flatten() {
         walk.wait = millis(env, "waitMs", &value)?;
     }
-    if let Some(value) = given(&options, "holdMs")? {
+    if let Some(value) = options.get::<Option<Unknown<'_>>>("holdMs")?.flatten() {
         walk.hold = millis(env, "holdMs", &value)?;
     }
-    if given(&options, "keep")?.is_some() {
-        walk.keep = options.get::<bool>("keep")?.unwrap_or(walk.keep);
+    if let Some(keep) = options.get::<Option<bool>>("keep")?.flatten() {
+        walk.keep = keep;
     }
-    if given(&options, "mode")?.is_some() {
-        let name: String = options.get("mode")?.unwrap_or_default();
+    if let Some(name) = options.get::<Option<String>>("mode")?.flatten() {
         walk.mode = mode(env, &name)?;
     }
     Ok(walk)

@@ -12,7 +12,10 @@ releases apart and keeps
 - `Govee::walk_targets()` — the devices an identify walk covers, from targets
   as `Govee::select()` reads them, or every device a scan over the mode finds.
 - `Govee::identify()` — the walk `govee identify` runs, in one call: it reads
-  the targets, walks them, and answers the devices it covered and the report.
+  the targets and walks them. `None` walks every device a scan finds, and an
+  empty list walks none.
+- `WalkReport::lit` and `WalkReport::is_clean()` — the devices a walk covered,
+  and whether every device took every step.
 - `Walk::default()` and `IDENTIFY_HOLD` — the walk `govee identify` runs: 1 s
   between two steps, a 5 s hold, over `lan`.
 - `Device::geometry` and `codec::Geometry` read the `geometry:` block of a
@@ -22,6 +25,8 @@ releases apart and keeps
 
 - **Breaking:** `Govee::identify_walk()` takes an observer that is `Sync`.
   Make the observer `Sync`, for example with a `Mutex` around its state.
+- **Breaking:** `WalkReport` carries `lit`, and `Govee::identify_walk()` fills
+  it. A struct literal takes `..WalkReport::default()`.
 
 ## [0.13.0] — 2026-09-24
 

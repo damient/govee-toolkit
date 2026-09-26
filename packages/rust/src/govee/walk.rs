@@ -9,6 +9,8 @@
 
 use std::time::Duration;
 
+use futures_util::future::try_join_all;
+
 use crate::codec::Mode;
 use crate::error::{Error, Result};
 use crate::govee::Govee;
@@ -65,9 +67,11 @@ impl WalkObserver for () {
     fn refused(&self, _id: &DeviceId, _reason: &str) {}
 }
 
-/// What one walk failed at. Empty lists are a clean walk.
+/// What one walk covered, and what it failed at.
 #[derive(Debug, Clone, Default)]
 pub struct WalkReport {
+    /// The devices the walk covered, in the order it lit them.
+    pub lit: Vec<DeviceId>,
     /// The devices that refused the opening blackout or the pass.
     pub failed: Vec<DeviceId>,
     /// The devices that refused the closing blackout, and hold the color.
@@ -75,6 +79,12 @@ pub struct WalkReport {
 }
 
 impl WalkReport {
+    /// Whether every device took every step.
+    #[must_use]
+    pub fn is_clean(&self) -> bool {
+        self.failed.is_empty() && self.stayed.is_empty()
+    }
+
     /// What the walk failed at, as one line, and `None` where it failed at
     /// nothing. `noun` names one device the way the caller does, such as
     /// `"fixture"`; the line adds the plural `s`.
@@ -96,7 +106,7 @@ impl WalkReport {
                 names(&self.stayed)
             ));
         }
-        (!parts.is_empty()).then(|| parts.join("; "))
+        (!self.is_clean()).then(|| parts.join("; "))
     }
 }
 
@@ -108,25 +118,33 @@ fn names(ids: &[DeviceId]) -> String {
 }
 
 impl Govee {
-    /// Run the walk `govee identify` runs over the devices the targets name,
-    /// and answer them with the report.
+    /// Run the walk `govee identify` runs over the devices the targets name.
     ///
-    /// The targets read as for [`Govee::walk_targets`], so an empty list walks
-    /// every device a scan finds. Every device goes off and lights in turn:
-    /// call [`Govee::identify_walk`] for a blackout set that differs from the
-    /// devices that light, or to report each step.
+    /// `None` walks every device a scan over `walk.mode` finds, and an empty
+    /// list walks none. The targets read as for [`Govee::walk_targets`].
+    /// Every device goes off and lights in turn: call
+    /// [`Govee::identify_walk`] for a blackout set that differs from the
+    /// devices that light. Where no device is left to walk, the report is
+    /// empty and the call does not wait.
     ///
     /// # Errors
     ///
     /// What [`Govee::walk_targets`] and [`Govee::identify_walk`] report.
     pub async fn identify<T: AsRef<str>>(
         &self,
-        targets: &[T],
+        targets: Option<&[T]>,
         walk: &Walk,
-    ) -> Result<(Vec<DeviceId>, WalkReport)> {
-        let lit = self.walk_targets(targets, walk.mode).await?;
-        let report = self.identify_walk(&lit, &lit, walk, &()).await?;
-        Ok((lit, report))
+        observer: &(dyn WalkObserver + Sync),
+    ) -> Result<WalkReport> {
+        let lit = match targets {
+            Some([]) => Vec::new(),
+            Some(named) => self.walk_targets(named, walk.mode).await?,
+            None => self.walk_targets::<&str>(&[], walk.mode).await?,
+        };
+        if lit.is_empty() {
+            return Ok(WalkReport::default());
+        }
+        self.identify_walk(&lit, &lit, walk, observer).await
     }
 
     /// Take `blackout` off, light each of `lit` in turn, then take `blackout`
@@ -178,7 +196,11 @@ impl Govee {
                 .collect();
             stayed = self.take_off(&rest, walk.mode, observer).await;
         }
-        Ok(WalkReport { failed, stayed })
+        Ok(WalkReport {
+            lit: lit.to_vec(),
+            failed,
+            stayed,
+        })
     }
 
     /// The devices a walk covers: the ones the targets name, in the order
@@ -188,7 +210,7 @@ impl Govee {
     /// A target is an identity, a SKU, a name or a group, as for
     /// [`Govee::select`]. A SKU, a name and a group are answered from what the
     /// SDK knows, so the scan runs before the selection. An identity needs no
-    /// scan: [`Govee::ensure_known`] finds that one device. A named identity
+    /// scan: a lookup over `mode` alone finds that one device. A named identity
     /// stays in the list, and the walk reports it.
     ///
     /// # Errors
@@ -196,7 +218,7 @@ impl Govee {
     /// [`Error::ModeNotEnabled`] where the configuration does not enable
     /// `mode` for a device a target names, before any scan for it. What
     /// [`Govee::select`] reports for a target, and what [`Govee::scan_on`] and
-    /// [`Govee::ensure_known`] report.
+    /// [`Govee::ensure_known`] report over `mode`.
     pub async fn walk_targets<T: AsRef<str>>(
         &self,
         named: &[T],
@@ -221,9 +243,7 @@ impl Govee {
         }
         let ids = self.select(named, Some(mode))?;
         self.enabled_for(&ids, mode)?;
-        for id in &ids {
-            self.ensure_known(id).await?;
-        }
+        try_join_all(ids.iter().map(|id| self.ensure_known_on(id, mode))).await?;
         Ok(ids)
     }
 

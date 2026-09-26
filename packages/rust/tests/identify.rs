@@ -205,6 +205,7 @@ fn a_summary_names_the_two_faults() {
     let report = govee_toolkit::WalkReport {
         failed: vec![DeviceId::new("AA:BB:CC:DD:EE:01")],
         stayed: vec![DeviceId::new("AA:BB:CC:DD:EE:02")],
+        ..govee_toolkit::WalkReport::default()
     };
     assert_eq!(
         report.summary("fixture").as_deref(),
@@ -266,14 +267,34 @@ async fn identify_walks_the_devices_the_targets_name() {
     rig.simulator.clear();
     let named = [id().to_string()];
 
-    let (lit, report) = rig
+    let report = rig
         .govee
-        .identify(&named, &walk())
+        .identify(Some(&named[..]), &walk(), &())
         .await
         .expect("the configuration enables lan");
 
-    assert_eq!(lit, [id()]);
-    assert!(report.failed.is_empty(), "{:?}", report.failed);
-    assert!(report.stayed.is_empty(), "{:?}", report.stayed);
+    assert_eq!(report.lit, [id()]);
+    assert!(report.is_clean(), "{report:?}");
     assert_eq!(writes(&rig, 5).await.len(), 5);
+}
+
+/// An empty list walks no device, sends nothing and does not wait.
+#[tokio::test]
+async fn identify_over_an_empty_list_walks_no_device() {
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
+    rig.simulator.clear();
+    let slow = Walk {
+        wait: Duration::from_secs(60),
+        ..walk()
+    };
+
+    let report = rig
+        .govee
+        .identify::<&str>(Some(&[]), &slow, &())
+        .await
+        .expect("an empty list is no error");
+
+    assert!(report.lit.is_empty());
+    assert!(report.is_clean());
+    assert_eq!(rig.simulator.received_count(), 0);
 }
