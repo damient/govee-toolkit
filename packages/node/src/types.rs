@@ -7,7 +7,10 @@ use std::collections::HashMap;
 
 use govee_toolkit::summary::{Style, Summary};
 use govee_toolkit::transport::{Health as CoreHealth, Reply as CoreReply};
-use govee_toolkit::{Device as CoreDevice, DeviceStatus as CoreStatus, Served as CoreServed};
+use govee_toolkit::{
+    Device as CoreDevice, DeviceId, DeviceStatus as CoreStatus, Served as CoreServed,
+    WalkReport as CoreWalkReport,
+};
 use napi::Env;
 use napi_derive::napi;
 
@@ -249,5 +252,55 @@ impl Reply {
 impl From<CoreReply> for Reply {
     fn from(inner: CoreReply) -> Self {
         Self { inner }
+    }
+}
+
+/// What one identify walk covered, and what it failed at.
+#[napi]
+pub struct WalkReport {
+    inner: CoreWalkReport,
+}
+
+impl From<CoreWalkReport> for WalkReport {
+    fn from(inner: CoreWalkReport) -> Self {
+        Self { inner }
+    }
+}
+
+fn strings(ids: &[DeviceId]) -> Vec<String> {
+    ids.iter().map(ToString::to_string).collect()
+}
+
+#[napi]
+impl WalkReport {
+    /// The devices the walk covered, in the order it lit them.
+    #[napi(getter)]
+    pub fn lit(&self) -> Vec<String> {
+        strings(&self.inner.lit)
+    }
+
+    /// The devices that refused the opening blackout or the pass.
+    #[napi(getter)]
+    pub fn failed(&self) -> Vec<String> {
+        strings(&self.inner.failed)
+    }
+
+    /// The devices that refused the closing blackout, and hold the color.
+    #[napi(getter)]
+    pub fn stayed(&self) -> Vec<String> {
+        strings(&self.inner.stayed)
+    }
+
+    /// Whether every device took every step.
+    #[napi(getter)]
+    pub fn ok(&self) -> bool {
+        self.inner.is_clean()
+    }
+
+    #[napi(js_name = "toString")]
+    pub fn to_js_string(&self) -> String {
+        self.inner
+            .summary("device")
+            .unwrap_or_else(|| Summary::summary(&self.inner, Style::Javascript))
     }
 }

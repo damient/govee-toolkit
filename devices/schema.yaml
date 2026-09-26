@@ -480,6 +480,12 @@ commands:
 # answer.
 overrides: {}
 
+# optional — the physical size of the SKU, in metres. `length_m` is the lit
+# length of a strip; `width_m` and `height_m` give a surface. Take the size
+# from the product specification or measure it; never derive it from a pixel
+# count. Leave the block out where nobody knows the size.
+geometry: {}
+
 measurements: {}        # optional — numbers taken from a physical unit:
                         # native_pixels, latency, sustainable frame rate…
                         # Always record the unit's length with them. These are

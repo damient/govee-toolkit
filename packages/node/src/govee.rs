@@ -2,7 +2,7 @@
 
 use govee_toolkit::{DeviceId, Govee as CoreGovee};
 use napi::Env;
-use napi::bindgen_prelude::PromiseRaw;
+use napi::bindgen_prelude::{Either, Object, PromiseRaw};
 use napi_derive::napi;
 
 use crate::catalog::Catalog;
@@ -13,7 +13,7 @@ use crate::errors::map;
 use crate::events::EventStream;
 use crate::group::GroupHandle;
 use crate::promise::promise;
-use crate::types::Device;
+use crate::types::{Device, WalkReport};
 
 /// The SDK. Start one and keep it: it holds the catalog, the configuration
 /// and one transport per mode.
@@ -200,6 +200,34 @@ impl Govee {
             govee: self.inner.clone(),
             pinned: mode.map(|name| conv::mode(env, &name)).transpose()?,
             members: self.members(env, &target)?,
+        })
+    }
+
+    /// Run the walk `govee identify` runs. `targets` reads as `select()`
+    /// reads it; `null` walks every device that a scan finds. Defaults:
+    /// `color` green, `waitMs` 1000 between steps, `holdMs` 5000 on the last
+    /// device, `keep` false, `mode` `"lan"`. An unknown option is refused.
+    ///
+    /// Rejects with `mode_not_enabled` before it sends a command where a
+    /// device does not enable the mode. A device that fails is in the report.
+    #[napi(
+        ts_args_type = "targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; waitMs?: number; holdMs?: number; keep?: boolean; mode?: string }"
+    )]
+    pub fn identify<'env>(
+        &self,
+        env: &'env Env,
+        targets: Option<Either<String, Vec<String>>>,
+        options: Option<Object<'_>>,
+    ) -> napi::Result<PromiseRaw<'env, WalkReport>> {
+        let walk = conv::walk(env, options)?;
+        let named = targets.map(|targets| match targets {
+            Either::A(one) => vec![one],
+            Either::B(many) => many,
+        });
+        let govee = self.inner.clone();
+        promise(env, async move {
+            let report = govee.identify(named.as_deref(), &walk, &()).await?;
+            Ok(WalkReport::from(report))
         })
     }
 

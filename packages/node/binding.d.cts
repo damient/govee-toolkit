@@ -170,8 +170,8 @@ export declare class DeviceHandle {
    * Power the device on and paint one color, so a person sees which
    * fixture this identity drives.
    *
-   * The look the device held is lost. To walk a rig, power every device
-   * off, wait a second, and then call this on one device at a time.
+   * One pass: the device stays on and lit, and loses the look it held.
+   * `Govee.identify()` runs the whole walk.
    *
    * `null` takes the core's defaults: green, and the top of the
    * brightness range the device file declares.
@@ -323,6 +323,16 @@ export declare class Govee {
    * pins every member, as `deviceOn()` does.
    */
   group(target: string, mode?: string | undefined | null): GroupHandle
+  /**
+   * Run the walk `govee identify` runs. `targets` reads as `select()`
+   * reads it; `null` walks every device that a scan finds. Defaults:
+   * `color` green, `waitMs` 1000 between steps, `holdMs` 5000 on the last
+   * device, `keep` false, `mode` `"lan"`. An unknown option is refused.
+   *
+   * Rejects with `mode_not_enabled` before it sends a command where a
+   * device does not enable the mode. A device that fails is in the report.
+   */
+  identify(targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; waitMs?: number; holdMs?: number; keep?: boolean; mode?: string }): Promise<WalkReport>
   /** Subscribe to what the SDK reports. Iterate it with `for await`. */
   events(): EventStream
   /**
@@ -467,6 +477,19 @@ export declare class StatusStream {
    * is gone.
    */
   next(): Promise<DeviceStatus | undefined | null>
+}
+
+/** What one identify walk covered, and what it failed at. */
+export declare class WalkReport {
+  /** The devices the walk covered, in the order it lit them. */
+  get lit(): Array<string>
+  /** The devices that refused the opening blackout or the pass. */
+  get failed(): Array<string>
+  /** The devices that refused the closing blackout, and hold the color. */
+  get stayed(): Array<string>
+  /** Whether every device took every step. */
+  get ok(): boolean
+  toString(): string
 }
 
 /** The version of the core this binding was built from. */

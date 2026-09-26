@@ -15,7 +15,8 @@ use std::time::Duration;
 use clap::{Parser, Subcommand};
 use govee_toolkit::codec::{Mode, coerce};
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{Identify, Walk};
+use govee_toolkit::transport::millis;
+use govee_toolkit::{IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify, Walk};
 use govee_toolkit_dmx::patch::Layout;
 use govee_toolkit_dmx::profile::{Personality, UNIVERSE};
 
@@ -110,15 +111,15 @@ enum Command {
         #[arg(long, value_name = "FILE")]
         patch: Option<PathBuf>,
         /// The color each fixture shows, as `#RRGGBB`.
-        #[arg(long, default_value = "#00ff00", value_name = "COLOR")]
+        #[arg(long, default_value_t = coerce::hex(IDENTIFY_COLOR), value_name = "COLOR")]
         color: String,
         /// How long the walk waits between two steps: after the rig goes
         /// off, and after each fixture lights.
-        #[arg(long, default_value_t = 1000, value_name = "MS")]
+        #[arg(long, default_value_t = millis(IDENTIFY_WAIT), value_name = "MS")]
         wait_ms: u64,
         /// How long the last fixture holds the color before every fixture
         /// goes off.
-        #[arg(long, default_value_t = 5000, value_name = "MS")]
+        #[arg(long, default_value_t = millis(IDENTIFY_HOLD), value_name = "MS")]
         hold_ms: u64,
         /// Leave every fixture on and lit at the end.
         #[arg(long, conflicts_with = "hold_ms")]
@@ -329,5 +330,29 @@ fn dispatch(command: Command, writer: Writer) -> Result<(), Failure> {
                 writer,
             )
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::panic, clippy::expect_used)]
+
+    use super::*;
+
+    #[test]
+    fn identify_with_no_option_runs_the_default_walk() {
+        let cli = Cli::try_parse_from(["govee-dmx", "identify"]).expect("parses");
+        let Command::Identify {
+            color,
+            wait_ms,
+            hold_ms,
+            keep,
+            ..
+        } = cli.command
+        else {
+            panic!("parses as identify");
+        };
+        let walk = walk(&color, wait_ms, hold_ms, keep).expect("the default color reads");
+        assert_eq!(walk, Walk::default());
     }
 }

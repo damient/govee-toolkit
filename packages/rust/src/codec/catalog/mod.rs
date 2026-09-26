@@ -13,6 +13,7 @@ use crate::codec::capabilities::{Capabilities, ModeCapabilities, Reason};
 use crate::codec::chunk::Chunk;
 use crate::codec::cloud::{Capability, Read};
 use crate::codec::exchange::{Exchanges, Step};
+use crate::codec::geometry::Geometry;
 use crate::codec::measurements::Measurements;
 
 mod bounds;
@@ -310,6 +311,9 @@ pub struct Device {
     /// on load, so nothing downstream reads it. See [`Overrides`].
     #[serde(default, skip_serializing)]
     pub overrides: Overrides,
+    /// The physical size of the model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub geometry: Option<Geometry>,
     /// Numbers taken from one physical unit.
     #[serde(default)]
     pub measurements: Measurements,

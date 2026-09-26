@@ -10,6 +10,7 @@ use std::fmt;
 use serde_json::{Value, json};
 
 use crate::codec::args::ArgValue;
+use crate::codec::coerce::hex;
 use crate::codec::{ArgRole, Captured};
 use crate::transport::DeviceId;
 
@@ -141,10 +142,6 @@ impl fmt::Display for DeviceStatus {
 /// A value the device reported, or `?` where it reported none.
 pub(crate) fn reported(value: Option<impl fmt::Display>) -> String {
     value.map_or_else(|| "?".to_owned(), |value| value.to_string())
-}
-
-fn hex(rgb: [u8; 3]) -> String {
-    format!("#{:02X}{:02X}{:02X}", rgb[0], rgb[1], rgb[2])
 }
 
 #[cfg(test)]

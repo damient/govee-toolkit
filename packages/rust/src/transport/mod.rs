@@ -32,7 +32,8 @@ use tokio::sync::{broadcast, watch};
 use crate::codec::{Encoded, Mode};
 
 /// A duration as whole milliseconds, saturating rather than wrapping.
-pub(crate) fn millis(d: std::time::Duration) -> u64 {
+#[must_use]
+pub fn millis(d: std::time::Duration) -> u64 {
     u64::try_from(d.as_millis()).unwrap_or(u64::MAX)
 }
 

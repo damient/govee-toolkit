@@ -205,6 +205,7 @@ fn a_summary_names_the_two_faults() {
     let report = govee_toolkit::WalkReport {
         failed: vec![DeviceId::new("AA:BB:CC:DD:EE:01")],
         stayed: vec![DeviceId::new("AA:BB:CC:DD:EE:02")],
+        ..govee_toolkit::WalkReport::default()
     };
     assert_eq!(
         report.summary("fixture").as_deref(),
@@ -213,4 +214,82 @@ fn a_summary_names_the_two_faults() {
              these fixtures did not go off at the end: AA:BB:CC:DD:EE:02"
         )
     );
+}
+
+/// `govee` and `govee-dmx` check their own defaults against this walk.
+#[test]
+fn the_default_walk_is_green_a_second_apart_over_lan() {
+    let walk = Walk::default();
+    assert_eq!(walk.pass, Identify::default());
+    assert_eq!(walk.wait, Duration::from_secs(1));
+    assert_eq!(walk.hold, Duration::from_secs(5));
+    assert!(!walk.keep);
+    assert_eq!(walk.mode, Mode::Lan);
+}
+
+#[tokio::test]
+async fn a_walk_target_that_names_an_identity_is_that_device() {
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
+    let named = [id().to_string()];
+
+    let ids = rig
+        .govee
+        .walk_targets(&named, Mode::Lan)
+        .await
+        .expect("the scan found the device");
+
+    assert_eq!(ids, [id()]);
+}
+
+#[tokio::test]
+async fn a_walk_target_over_a_mode_it_does_not_enable_is_refused_before_a_scan() {
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
+    rig.simulator.clear();
+    let named = [id().to_string()];
+
+    let error = rig
+        .govee
+        .walk_targets(&named, Mode::Cloud)
+        .await
+        .expect_err("the configuration enables lan alone");
+
+    assert_eq!(error.code(), "mode_not_enabled");
+    assert_eq!(rig.simulator.received_count(), 0);
+}
+
+#[tokio::test]
+async fn identify_walks_the_devices_the_targets_name() {
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
+    rig.simulator.clear();
+    let named = [id().to_string()];
+
+    let report = rig
+        .govee
+        .identify(Some(&named[..]), &walk(), &())
+        .await
+        .expect("the configuration enables lan");
+
+    assert_eq!(report.lit, [id()]);
+    assert!(report.is_clean(), "{report:?}");
+    assert_eq!(writes(&rig, 5).await.len(), 5);
+}
+
+#[tokio::test]
+async fn identify_over_an_empty_list_walks_no_device() {
+    let rig = rig("defaults:\n  modes: [lan]\n").await;
+    rig.simulator.clear();
+    let slow = Walk {
+        wait: Duration::from_secs(60),
+        ..walk()
+    };
+
+    let report = rig
+        .govee
+        .identify::<&str>(Some(&[]), &slow, &())
+        .await
+        .expect("an empty list is no error");
+
+    assert!(report.lit.is_empty());
+    assert!(report.is_clean());
+    assert_eq!(rig.simulator.received_count(), 0);
 }

@@ -69,19 +69,7 @@ async fn route(
             hold_ms,
             keep,
         } => {
-            let walk = Walk {
-                pass: Identify {
-                    color: args::rgb(color)?,
-                    ..Identify::default()
-                },
-                wait: Duration::from_millis(*wait_ms),
-                hold: Duration::from_millis(*hold_ms),
-                keep: *keep,
-                // The rig a walk answers for is the rig on the network.
-                // `--mode` names another one, and never widens the walk to
-                // two.
-                mode: restrict.unwrap_or(Mode::Lan),
-            };
+            let walk = walk(color, *wait_ms, *hold_ms, *keep, restrict)?;
             identify::run(govee, writer, targets, &walk).await
         }
         Command::Send { command, args, .. } => {
@@ -225,4 +213,50 @@ fn load(cli: &Cli) -> Result<Config, Failure> {
         None => govee_toolkit::paths::config_file_from(&env),
     };
     Ok(Config::load_from_with(path, env)?)
+}
+
+fn walk(
+    color: &str,
+    wait_ms: u64,
+    hold_ms: u64,
+    keep: bool,
+    restrict: Option<Mode>,
+) -> Result<Walk, Failure> {
+    Ok(Walk {
+        pass: Identify {
+            color: args::rgb(color)?,
+            ..Identify::default()
+        },
+        wait: Duration::from_millis(wait_ms),
+        hold: Duration::from_millis(hold_ms),
+        keep,
+        // `--mode` replaces `lan`; it never widens the walk to two modes.
+        mode: restrict.unwrap_or(Mode::Lan),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::panic, clippy::expect_used)]
+
+    use clap::Parser as _;
+
+    use super::*;
+
+    #[test]
+    fn identify_with_no_option_runs_the_default_walk() {
+        let cli = Cli::try_parse_from(["govee", "identify"]).expect("parses");
+        let Command::Identify {
+            color,
+            wait_ms,
+            hold_ms,
+            keep,
+            ..
+        } = &cli.command
+        else {
+            panic!("parses as identify");
+        };
+        let walk = walk(color, *wait_ms, *hold_ms, *keep, None).expect("the default color reads");
+        assert_eq!(walk, Walk::default());
+    }
 }

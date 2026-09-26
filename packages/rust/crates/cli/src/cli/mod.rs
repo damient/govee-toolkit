@@ -5,8 +5,9 @@ use std::path::PathBuf;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser as _};
 use clap::{Parser, Subcommand};
-use govee_toolkit::Resolution;
-use govee_toolkit::codec::Mode;
+use govee_toolkit::codec::{Mode, coerce};
+use govee_toolkit::transport::millis;
+use govee_toolkit::{IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Resolution};
 
 mod verbs;
 
@@ -117,15 +118,15 @@ pub(crate) enum Command {
         #[arg(value_name = "TARGET")]
         targets: Vec<String>,
         /// The color each device shows, as `#RRGGBB`.
-        #[arg(long, default_value = "#00ff00", value_name = "COLOR")]
+        #[arg(long, default_value_t = coerce::hex(IDENTIFY_COLOR), value_name = "COLOR")]
         color: String,
         /// How long the walk waits between two steps: after the rig goes
         /// off, and after each device lights.
-        #[arg(long, default_value_t = 1000, value_name = "MS")]
+        #[arg(long, default_value_t = millis(IDENTIFY_WAIT), value_name = "MS")]
         wait_ms: u64,
         /// How long the last device holds the color before every device goes
         /// off.
-        #[arg(long, default_value_t = 5000, value_name = "MS")]
+        #[arg(long, default_value_t = millis(IDENTIFY_HOLD), value_name = "MS")]
         hold_ms: u64,
         /// Leave every device on and lit at the end.
         #[arg(long, conflicts_with = "hold_ms")]

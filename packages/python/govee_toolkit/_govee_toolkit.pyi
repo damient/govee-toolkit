@@ -28,6 +28,7 @@ __all__ = [
     "Served",
     "StatusStream",
     "TransportError",
+    "WalkReport",
     "__version__",
 ]
 
@@ -340,8 +341,8 @@ class DeviceHandle:
         """Power the device on and paint one color, so a person sees which fixture this
         identity drives.
 
-        The look the device held is lost. To walk a rig, power every device off, wait a
-        second, and then call this on one device at a time.
+        One pass: the device stays on and lit, and loses the look it held.
+        `Govee.identify()` runs the whole walk.
 
         `None` takes the core's defaults: green, and the top of the brightness range the
         device file declares.
@@ -434,6 +435,23 @@ class Outcome:
     @property
     def error(self) -> GoveeError | None:
         """What the call on one device raises. `None` where it succeeded."""
+
+@final
+class WalkReport:
+    """What one identify walk covered, and what it failed at."""
+
+    @property
+    def lit(self) -> list[str]:
+        """The devices the walk covered, in the order it lit them."""
+    @property
+    def failed(self) -> list[str]:
+        """The devices that refused the opening blackout or the pass."""
+    @property
+    def stayed(self) -> list[str]:
+        """The devices that refused the closing blackout, and hold the color."""
+    @property
+    def ok(self) -> bool:
+        """Whether every device took every step."""
 
 @final
 class GroupHandle:
@@ -549,6 +567,24 @@ class Govee:
         """A handle for the devices `targets()` reads. Every verb on it answers one
         `Outcome` per member and raises for nothing a member does. `mode` pins every
         member, as `device_on()` does.
+        """
+    async def identify(
+        self,
+        targets: str | Sequence[str] | None = None,
+        *,
+        color: Color | None = None,
+        wait: float | None = None,
+        hold: float | None = None,
+        keep: bool | None = None,
+        mode: str | None = None,
+    ) -> WalkReport:
+        """Run the walk `govee identify` runs. `targets` reads as `select()` reads it;
+        `None` walks every device that a scan finds. Defaults, in seconds: `color`
+        green, `wait` 1 between steps, `hold` 5 on the last device, `keep` False,
+        `mode` `"lan"`.
+
+        Raises `ConfigError` with `mode_not_enabled` before it sends a command where a
+        device does not enable the mode. A device that fails is in the report.
         """
     def events(self) -> EventStream:
         """Subscribe to what the SDK reports. Iterate it with `async for`."""

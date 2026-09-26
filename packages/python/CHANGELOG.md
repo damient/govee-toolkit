@@ -4,6 +4,15 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `Govee.identify()` — the walk `govee identify` runs: off, green, then off
+  after the hold. It takes an identity, a name, a SKU or a group.
+- `Govee.identify()` keywords: `color`, `wait`, `hold`, `keep` and `mode`,
+  each optional. `wait` and `hold` are in seconds.
+- `WalkReport` — what `Govee.identify()` covered and failed at: `lit`,
+  `failed`, `stayed` and `ok`.
+
 ## [0.5.0] — 2026-09-24
 
 ### Added

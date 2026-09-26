@@ -7,6 +7,32 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `Govee::walk_targets()` — the devices an identify walk covers, from targets
+  as `Govee::select()` reads them, or every device a scan over the mode finds.
+- `Govee::identify()` — the walk `govee identify` runs, in one call: it reads
+  the targets and walks them. `None` walks every device a scan finds, and an
+  empty list walks none.
+- `codec::coerce::hex()` writes a color as `#RRGGBB`, the form
+  `codec::coerce::rgb()` reads. `transport::millis()` gives a duration as whole
+  milliseconds. `Walk` compares with `==`.
+- `WalkReport::lit` and `WalkReport::is_clean()` — the devices a walk covered,
+  and whether every device took every step.
+- `Walk::default()` and `IDENTIFY_HOLD` — the walk `govee identify` runs: 1 s
+  between two steps, a 5 s hold, over `lan`.
+- `Device::geometry` and `codec::Geometry` read the `geometry:` block of a
+  device file, as a line or a surface. A file that declares another shape, or
+  a size that is not above zero, fails to load. `describe()` carries the block
+  under `geometry`.
+
+### Changed
+
+- **Breaking:** `Govee::identify_walk()` takes an observer that is `Sync`.
+  Make the observer `Sync`, for example with a `Mutex` around its state.
+- **Breaking:** `WalkReport` carries `lit`, and `Govee::identify_walk()` fills
+  it. A struct literal takes `..WalkReport::default()`.
+
 ## [0.13.0] — 2026-09-24
 
 ### Added

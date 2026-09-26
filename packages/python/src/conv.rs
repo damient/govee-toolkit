@@ -1,7 +1,9 @@
 //! What crosses between a Python value and a core value.
 
+use std::time::Duration;
+
 use govee_toolkit::codec::{Supplied, UnknownMode, coerce};
-use govee_toolkit::{Mode, Music, ParseError, Rate, Resolution};
+use govee_toolkit::{Mode, Music, ParseError, Rate, Resolution, Walk};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyFloat, PyInt, PyString};
 use serde::Serialize;
@@ -30,6 +32,38 @@ pub(crate) fn music(
         soft: soft.unwrap_or(default.soft),
         color: color.map(rgb).transpose()?,
     })
+}
+
+fn seconds(key: &str, value: f64) -> PyResult<Duration> {
+    Duration::try_from_secs_f64(value).map_err(|_| {
+        value_error(format!(
+            "`{key}` is {value}, and a duration is a number of seconds, 0 or more"
+        ))
+    })
+}
+
+pub(crate) fn walk(
+    color: Option<&Bound<'_, PyAny>>,
+    wait: Option<f64>,
+    hold: Option<f64>,
+    keep: Option<bool>,
+    mode: Option<&str>,
+) -> PyResult<Walk> {
+    let mut walk = Walk::default();
+    if let Some(color) = color {
+        walk.pass.color = rgb(color)?;
+    }
+    if let Some(wait) = wait {
+        walk.wait = seconds("wait", wait)?;
+    }
+    if let Some(hold) = hold {
+        walk.hold = seconds("hold", hold)?;
+    }
+    walk.keep = keep.unwrap_or(walk.keep);
+    if let Some(name) = mode {
+        walk.mode = self::mode(name)?;
+    }
+    Ok(walk)
 }
 
 fn triple(channels: &[i64]) -> PyResult<[u8; 3]> {

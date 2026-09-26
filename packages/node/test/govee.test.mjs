@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { withGovee } from "./helpers.mjs";
+import { refusesValue, withGovee } from "./helpers.mjs";
 import * as sdk from "../dist/index.js";
 
 const { Config, Govee, MODES } = sdk;
@@ -124,6 +124,40 @@ test("a group names its members, and each member answers alone", async () => {
     assert.equal(outcomes[1].served, null);
 
     assert.throws(() => govee.device("ambient"), { code: "target_not_understood" });
+  } finally {
+    await govee.close();
+  }
+});
+
+test("an identify walk over an empty list walks no device", async () => {
+  await withGovee(sdk, async (govee) => {
+    const report = await govee.identify([]);
+    assert.deepEqual(report.lit, []);
+    assert.deepEqual(report.failed, []);
+    assert.deepEqual(report.stayed, []);
+    assert.equal(report.ok, true);
+  });
+});
+
+test("an identify option the list does not name is refused", async () => {
+  await withGovee(sdk, async (govee) => {
+    await refusesValue(() => govee.identify([], { holdMS: 0 }));
+    await refusesValue(() => govee.identify([], { holdMs: -1 }));
+    await refusesValue(() => govee.identify([], { waitMs: 0.5 }));
+    await refusesValue(() => govee.identify([], { color: [256, 0, 0] }));
+    await refusesValue(() => govee.identify([], { mode: "radio" }));
+  });
+});
+
+test("an identify walk over a mode the device does not enable is refused before a scan", async () => {
+  const path = join(mkdtempSync(join(tmpdir(), "govee-")), "config.yaml");
+  writeFileSync(path, GROUPED);
+  const govee = await Govee.start(Config.loadFrom(path));
+  try {
+    await assert.rejects(
+      () => govee.identify("AA:00:00:00:00:01", { waitMs: 0, holdMs: 0 }),
+      { code: "mode_not_enabled" },
+    );
   } finally {
     await govee.close();
   }

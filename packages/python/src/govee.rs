@@ -2,6 +2,7 @@
 
 use govee_toolkit::{DeviceId, Govee as CoreGovee};
 use pyo3::prelude::*;
+use pyo3::types::PyString;
 use pyo3_async_runtimes::tokio::future_into_py;
 
 use crate::catalog::Catalog;
@@ -11,7 +12,7 @@ use crate::device::DeviceHandle;
 use crate::errors::map;
 use crate::events::EventStream;
 use crate::group::GroupHandle;
-use crate::types::Device;
+use crate::types::{Device, WalkReport};
 
 /// The SDK. Start one and keep it: it holds the catalog, the configuration
 /// and one transport per mode.
@@ -182,6 +183,42 @@ impl Govee {
             govee: self.inner.clone(),
             pinned: mode.map(|name| conv::mode(&name)).transpose()?,
             members: self.members(target)?,
+        })
+    }
+
+    /// Run the walk `govee identify` runs. `targets` reads as `select()`
+    /// reads it; `None` walks every device that a scan finds. Defaults, in
+    /// seconds: `color` green, `wait` 1 between steps, `hold` 5 on the last
+    /// device, `keep` False, `mode` `"lan"`.
+    ///
+    /// Raises `ConfigError` with `mode_not_enabled` before it sends a command
+    /// where a device does not enable the mode. A device that fails is in the
+    /// report.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "each keyword is one Python argument"
+    )]
+    #[pyo3(signature = (targets=None, *, color=None, wait=None, hold=None, keep=None, mode=None))]
+    fn identify<'py>(
+        &self,
+        py: Python<'py>,
+        targets: Option<&Bound<'py, PyAny>>,
+        color: Option<&Bound<'py, PyAny>>,
+        wait: Option<f64>,
+        hold: Option<f64>,
+        keep: Option<bool>,
+        mode: Option<&str>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let walk = conv::walk(color, wait, hold, keep, mode)?;
+        let named: Option<Vec<String>> = match targets {
+            None => None,
+            Some(one) if one.is_instance_of::<PyString>() => Some(vec![one.extract()?]),
+            Some(many) => Some(many.extract()?),
+        };
+        let govee = self.inner.clone();
+        future_into_py(py, async move {
+            let report = map(govee.identify(named.as_deref(), &walk, &()).await)?;
+            Ok(WalkReport::from(report))
         })
     }
 

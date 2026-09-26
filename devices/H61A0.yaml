@@ -245,6 +245,9 @@ overrides:
         device is 6 seconds: the transport refuses a frame that waits longer
         than `max_wait`. See docs/protocol/cloud.md 5.
 
+geometry:
+  length_m: 3
+
 # Measured on one physical unit. These numbers depend on the unit's LENGTH as
 # much as on the SKU. See docs/protocol/lan.md 2.3 and 2.7.
 measurements:

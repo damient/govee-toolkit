@@ -1,7 +1,9 @@
 //! What crosses between a JavaScript value and a core value.
 
+use std::time::Duration;
+
 use govee_toolkit::codec::{Supplied, UnknownMode, coerce};
-use govee_toolkit::{Mode, Music, ParseError, Rate, Resolution};
+use govee_toolkit::{Mode, Music, ParseError, Rate, Resolution, Walk};
 use napi::bindgen_prelude::{Either, JsObjectValue, Object, Unknown};
 use napi::{Env, JsValue, ValueType};
 use serde::Serialize;
@@ -85,6 +87,51 @@ pub(crate) fn music(
         soft: soft.unwrap_or(default.soft),
         color: color.map(|value| rgb(env, value)).transpose()?,
     })
+}
+
+const WALK_OPTIONS: [&str; 5] = ["color", "waitMs", "holdMs", "keep", "mode"];
+
+fn millis(env: &Env, key: &str, value: &Unknown<'_>) -> napi::Result<Duration> {
+    let ms = whole(env, value)?;
+    let ms = u64::try_from(ms)
+        .map_err(|_| value_error(env, format!("`{key}` is {ms}, and a duration is 0 or more")))?;
+    Ok(Duration::from_millis(ms))
+}
+
+/// A misspelled key is refused: ignored, it reads as a setting that failed.
+pub(crate) fn walk(env: &Env, options: Option<Object<'_>>) -> napi::Result<Walk> {
+    let mut walk = Walk::default();
+    let Some(options) = options else {
+        return Ok(walk);
+    };
+    for key in Object::keys(&options)? {
+        if !WALK_OPTIONS.contains(&key.as_str()) {
+            return Err(value_error(
+                env,
+                format!(
+                    "`{key}` is no option; the options are {}",
+                    WALK_OPTIONS.join(", ")
+                ),
+            ));
+        }
+    }
+    // `undefined` and `null` read as `None`: the default holds.
+    if let Some(color) = options.get::<Option<Channels<'_>>>("color")?.flatten() {
+        walk.pass.color = rgb(env, &color)?;
+    }
+    if let Some(value) = options.get::<Option<Unknown<'_>>>("waitMs")?.flatten() {
+        walk.wait = millis(env, "waitMs", &value)?;
+    }
+    if let Some(value) = options.get::<Option<Unknown<'_>>>("holdMs")?.flatten() {
+        walk.hold = millis(env, "holdMs", &value)?;
+    }
+    if let Some(keep) = options.get::<Option<bool>>("keep")?.flatten() {
+        walk.keep = keep;
+    }
+    if let Some(name) = options.get::<Option<String>>("mode")?.flatten() {
+        walk.mode = mode(env, &name)?;
+    }
+    Ok(walk)
 }
 
 pub(crate) fn rgb(env: &Env, value: &Channels<'_>) -> napi::Result<[u8; 3]> {
