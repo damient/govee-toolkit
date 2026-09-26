@@ -117,12 +117,16 @@ The changelog is the source, and the release is derived from it:
    entries that have accumulated at the top of the changelog, and bumps the
    version in the package manifest. Both are reviewed there.
 2. A signed tag names the package and the version — `git tag -s rust-v0.3.0 -m
-   rust-v0.3.0 && git push --tags`.
-3. The tag starts the package's release workflow. Its first step runs
-   `tools/release-notes.sh <pkg> <tag>`, which compares the tag, the manifest
-   version and the changelog heading, and prints that section. Three numbers
-   that disagree fail the run before anything is built.
-4. The section becomes the body of the GitHub release, and the workflow
+   rust-v0.3.0 && git push origin rust-v0.3.0`. Push each tag alone: GitHub
+   starts no workflow for a push of more than three tags. Push `rust-v…`
+   first, since the other packages need the core on crates.io.
+3. The tag starts the package's release workflow. Its first step,
+   `tools/ci-passed.sh`, waits for CI on the tagged commit and fails the run
+   unless CI passed. After a CI rerun that passes, rerun the release job.
+4. The next step runs `tools/release-notes.sh <pkg> <tag>`, which compares the
+   tag, the manifest version and the changelog heading, and prints that
+   section. Three numbers that disagree fail the run before anything is built.
+5. The section becomes the body of the GitHub release, and the workflow
    publishes to the registry.
 
 No registry token is stored in the repository: each workflow publishes through
