@@ -3,8 +3,10 @@ use std::future::Future;
 use govee_toolkit::codec::Mode;
 use govee_toolkit::{DeviceId, Govee, Outcome as CoreOutcome, Paint, Served as CoreServed};
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use pyo3_async_runtimes::tokio::future_into_py;
 
+use crate::apply::{self, Verbs};
 use crate::conv;
 use crate::errors::to_py;
 use crate::types::Served;
@@ -65,7 +67,10 @@ impl Outcome {
 }
 
 impl Outcome {
-    fn new<T>(outcome: CoreOutcome<T>, read: impl FnOnce(T) -> (Mode, Option<Served>)) -> Self {
+    pub(crate) fn new<T>(
+        outcome: CoreOutcome<T>,
+        read: impl FnOnce(T) -> (Mode, Option<Served>),
+    ) -> Self {
         let id = outcome.id.to_string();
         match outcome.result {
             Ok(value) => {
@@ -202,6 +207,39 @@ impl GroupHandle {
         })
     }
 
+    /// Scan for the members, then send the verbs in the order the core fixes:
+    /// power on first and power off last. `segment` takes the keys of
+    /// `segment()`, and `music` the keys of `music()`.
+    ///
+    /// A member that fails the scan or a step takes no later step. It stops
+    /// no other member.
+    #[pyo3(signature = (*, power=None, brightness=None, color=None, color_temp=None, segment=None, music=None, gradient=None))]
+    #[allow(clippy::too_many_arguments)]
+    fn apply<'py>(
+        &self,
+        py: Python<'py>,
+        power: Option<bool>,
+        brightness: Option<i64>,
+        color: Option<&Bound<'py, PyAny>>,
+        color_temp: Option<i64>,
+        segment: Option<&Bound<'py, PyDict>>,
+        music: Option<&Bound<'py, PyDict>>,
+        gradient: Option<bool>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let verbs = Verbs {
+            power,
+            brightness,
+            color,
+            color_temp,
+            segment,
+            music,
+            gradient,
+        }
+        .read()?;
+        let (govee, pinned, members) = self.parts();
+        future_into_py(py, apply::apply(govee, pinned, members, verbs))
+    }
+
     fn __repr__(&self) -> String {
         format!("GroupHandle(members={:?})", self.members())
     }
@@ -236,5 +274,7 @@ impl GroupHandle {
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<GroupHandle>()?;
-    module.add_class::<Outcome>()
+    module.add_class::<Outcome>()?;
+    module.add_class::<apply::Applied>()?;
+    module.add_class::<apply::AppliedStep>()
 }

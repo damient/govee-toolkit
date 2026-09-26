@@ -36,6 +36,9 @@ test("send refuses an unknown device", () =>
 test("a verb refuses an unknown device", () =>
   onHandle((handle) => refusesUnknown(() => handle.power(true))));
 
+test("invoke refuses an unknown device", () =>
+  onHandle((handle) => refusesUnknown(() => handle.invoke("power", undefined, true))));
+
 test("read refuses an unknown device", () =>
   onHandle((handle) => refusesUnknown(() => handle.read("status"))));
 

@@ -8,6 +8,7 @@
 //! reference.
 #![allow(clippy::needless_pass_by_value, clippy::trivially_copy_pass_by_ref)]
 
+mod apply;
 mod catalog;
 mod config;
 mod conv;
@@ -37,4 +38,24 @@ pub const CORE_VERSION: &str = govee_toolkit::VERSION;
 #[must_use]
 pub fn modes() -> Vec<&'static str> {
     govee_toolkit::Mode::NAMES.to_vec()
+}
+
+/// Every support level a device file gives a mode.
+#[napi]
+#[must_use]
+pub fn support_levels() -> Vec<String> {
+    govee_toolkit::codec::Support::ALL
+        .iter()
+        .map(ToString::to_string)
+        .collect()
+}
+
+/// Every DMX personality the bridge knows.
+#[napi]
+#[must_use]
+pub fn personalities() -> Vec<&'static str> {
+    govee_toolkit::profile::Personality::ALL
+        .iter()
+        .map(|personality| personality.as_str())
+        .collect()
 }

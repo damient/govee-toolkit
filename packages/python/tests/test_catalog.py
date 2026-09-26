@@ -72,3 +72,11 @@ def test_describe_and_dmx_refuse_an_unknown_sku(catalog, method):
     with pytest.raises(CodecError) as raised:
         getattr(catalog, method)("H0000")
     assert raised.value.code == "unknown_sku"
+
+
+def test_the_capability_list_holds_what_every_device_declares(catalog):
+    names = catalog.capabilities()
+    assert names == sorted(names)
+    for sku in catalog.skus():
+        for name in catalog.describe(sku)["capabilities"]:
+            assert name in names, (sku, name)

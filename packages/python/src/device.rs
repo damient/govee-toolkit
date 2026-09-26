@@ -147,6 +147,24 @@ impl DeviceHandle {
         })
     }
 
+    /// Read a command whose entry declares an answer, and send any other one,
+    /// over one mode resolved once. With `refuse_secrets`, a command that
+    /// takes a secret, such as a network password, raises with the code
+    /// `secret_arg`, and nothing is sent.
+    #[pyo3(signature = (command, refuse_secrets=false, **args))]
+    fn invoke<'py>(
+        &self,
+        py: Python<'py>,
+        command: String,
+        refuse_secrets: bool,
+        args: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let supplied = conv::args(args)?;
+        let (govee, pinned, id) = self.parts();
+        let call = crate::apply::invoke(govee, pinned, id, command, supplied, refuse_secrets);
+        future_into_py(py, call)
+    }
+
     /// Ask the device for its state and wait for the answer.
     fn status<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let (govee, pinned, id) = self.parts();
@@ -362,5 +380,6 @@ impl DeviceHandle {
 }
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
-    module.add_class::<DeviceHandle>()
+    module.add_class::<DeviceHandle>()?;
+    module.add_class::<crate::apply::Invoked>()
 }

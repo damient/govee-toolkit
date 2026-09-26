@@ -27,6 +27,11 @@ EXPORTED = (
     "TransportError",
     "ConfigError",
     "WalkReport",
+    "Invoked",
+    "Applied",
+    "AppliedStep",
+    "SUPPORT",
+    "PERSONALITIES",
 )
 
 
@@ -78,3 +83,8 @@ def test_the_modes_are_the_names_the_core_knows():
     assert "lan" in govee_toolkit.MODES
     assert len(set(govee_toolkit.MODES)) == len(govee_toolkit.MODES)
     assert all(name == name.lower() for name in govee_toolkit.MODES)
+
+
+def test_the_support_levels_and_the_personalities_are_the_names_the_core_knows():
+    assert "unknown" in govee_toolkit.SUPPORT
+    assert "full" in govee_toolkit.PERSONALITIES
