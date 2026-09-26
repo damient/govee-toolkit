@@ -4,7 +4,7 @@
 import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
-import { allSkus, describe, dmx, row, vocabulary } from "../catalog.ts";
+import { allSkus, describe, dmx, record, row, vocabulary } from "../catalog.ts";
 import { docTopics, readApi, readDoc } from "../data.ts";
 import { UNVERIFIED, codeError, fail, ok, oneOf } from "../result.ts";
 
@@ -27,11 +27,11 @@ interface DeviceFilter {
 }
 
 function matches(sku: string, { mode, capability, support }: DeviceFilter): boolean {
-  const record = describe(sku);
-  const scoped = mode === undefined ? undefined : record.modes[mode];
+  const described = describe(sku);
+  const scoped = mode === undefined ? undefined : described.modes[mode];
   if (support !== undefined && scoped?.support !== support) return false;
   if (capability === undefined) return true;
-  return (scoped?.capabilities ?? record.capabilities).includes(capability);
+  return (scoped?.capabilities ?? described.capabilities).includes(capability);
 }
 
 function listDevices(server: McpServer): void {
@@ -93,7 +93,7 @@ function describeDevice(server: McpServer): void {
       }),
       annotations: READ,
     },
-    ({ sku }) => attempt(() => ok({ ...describe(sku), dmx: dmx(sku) })),
+    ({ sku }) => attempt(() => ok(record(sku))),
   );
 }
 

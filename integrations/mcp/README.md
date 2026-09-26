@@ -129,6 +129,12 @@ preference order of the device applies. A binding error returns
 `isError: true` and the code of the binding, such as `mode_not_enabled`. A
 tool never retries on another mode.
 
+`set` sends its steps in the order that the core fixes: power on first and
+power off last. A member that fails a step takes no later step, and the other
+members go on. `send` reads a command whose entry declares an answer, and
+sends any other one. It refuses a command that takes a secret, such as a
+network password, with `secret_arg`.
+
 The server does not provision Wi-Fi, because the password goes through the
 model. It does not open a segment stream, because a stream does not fit a tool
 call.

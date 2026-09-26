@@ -5,7 +5,7 @@
 
 import type { CallToolResult } from "@modelcontextprotocol/server";
 import { Govee } from "govee-toolkit";
-import type { Device, DeviceStatus, Health, Outcome, Served } from "govee-toolkit";
+import type { Device, DeviceHandle, DeviceStatus, Health, Outcome } from "govee-toolkit";
 import { z } from "zod";
 
 import { vocabulary } from "./catalog.ts";
@@ -31,12 +31,20 @@ export async function closeSdk(): Promise<void> {
 }
 
 /** Starts the SDK, runs the call, and turns a thrown binding error into a tool failure. */
-export async function attempt(answer: (govee: Govee) => Promise<CallToolResult>): Promise<CallToolResult> {
+export async function attempt(
+  answer: (govee: Govee) => CallToolResult | Promise<CallToolResult>,
+): Promise<CallToolResult> {
   try {
     return await answer(await sdk());
   } catch (error) {
     return fail(error);
   }
+}
+
+/** The device handle, pinned when `mode` is given, and the mode that serves it. */
+export async function reach(govee: Govee, target: string, mode?: string): Promise<[DeviceHandle, string]> {
+  const handle = mode === undefined ? govee.device(target) : govee.deviceOn(target, mode);
+  return [handle, await handle.ensureKnown()];
 }
 
 export const CONTROL = { readOnlyHint: false, destructiveHint: false, openWorldHint: true } as const;
@@ -69,10 +77,6 @@ export function deviceRow(device: Device): Record<string, unknown> {
     modes: device.modes,
     health: Object.fromEntries(Object.entries(device.health).map(([mode, h]) => [mode, health(h)])),
   };
-}
-
-export function servedRow(served: Served): Record<string, unknown> {
-  return { id: served.id, mode: served.mode, command: served.command };
 }
 
 export function outcomeRow(outcome: Outcome): Record<string, unknown> {

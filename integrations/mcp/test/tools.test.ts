@@ -2,13 +2,21 @@
 // `npm test -- --test-update-snapshots` when a tool changes on purpose.
 
 import assert from "node:assert/strict";
-import test from "node:test";
+import { before, test } from "node:test";
+
+import type { Tool } from "@modelcontextprotocol/client";
 
 import { connect } from "./helpers.ts";
 import { vocabulary } from "../src/catalog.ts";
 import { docTopics, readApi } from "../src/data.ts";
 
 const api = readApi();
+let tools: Tool[];
+
+before(async () => {
+  const client = await connect();
+  ({ tools } = await client.listTools());
+});
 
 // An enum read at startup changes with the catalog and the docs, not with the
 // server. The snapshot names its source; an enum that matches no source stays
@@ -36,30 +44,22 @@ function withSources(value: unknown): unknown {
   );
 }
 
-test("the tools and their schemas match the snapshot", async (t) => {
-  const client = await connect();
-  const { tools } = await client.listTools();
+test("the tools and their schemas match the snapshot", (t) => {
   const shapes = tools
     .map(({ name, annotations, inputSchema, outputSchema }) => ({ name, annotations, inputSchema, outputSchema }))
     .toSorted((a, b) => a.name.localeCompare(b.name));
   t.assert.snapshot(withSources(shapes));
-  await client.close();
 });
 
-test("every tool carries a title, a description and an output schema", async () => {
-  const client = await connect();
-  const { tools } = await client.listTools();
+test("every tool carries a title, a description and an output schema", () => {
   for (const tool of tools) {
     assert.ok((tool.title ?? "") !== "", `${tool.name} has no title`);
     assert.ok((tool.description ?? "") !== "", `${tool.name} has no description`);
     assert.ok(tool.outputSchema, `${tool.name} has no output schema`);
   }
-  await client.close();
 });
 
-test("a read tool is read only, and a control tool that sends is not", async () => {
-  const client = await connect();
-  const { tools } = await client.listTools();
+test("a read tool is read only, and a control tool that sends is not", () => {
   const hints = new Map(tools.map((tool) => [tool.name, tool.annotations]));
   for (const name of ["list_devices", "describe_device", "get_dmx_profile", "get_api", "read_doc"]) {
     assert.equal(hints.get(name)?.readOnlyHint, true, name);
@@ -70,5 +70,4 @@ test("a read tool is read only, and a control tool that sends is not", async () 
     assert.equal(hints.get(name)?.destructiveHint, false, name);
     assert.equal(hints.get(name)?.openWorldHint, true, name);
   }
-  await client.close();
 });

@@ -22,15 +22,19 @@ export function readApi(): Api {
   return api.parse(JSON.parse(readFileSync(`${data}api.json`, "utf8")));
 }
 
+// `data/` does not change while the server runs.
+const docs = new Map(
+  readdirSync(`${data}docs`, { recursive: true, encoding: "utf8" })
+    .filter((path) => path.endsWith(".md"))
+    .map((path) => [path.replaceAll("\\", "/").slice(0, -".md".length), readFileSync(`${data}docs/${path}`, "utf8")]),
+);
+
 /** Every docs page copied, as its path under `docs/` without `.md`: `modes`, `protocol/lan`. */
 export function docTopics(): string[] {
-  return readdirSync(`${data}docs`, { recursive: true, encoding: "utf8" })
-    .filter((path) => path.endsWith(".md"))
-    .map((path) => path.replaceAll("\\", "/").slice(0, -".md".length))
-    .toSorted();
+  return [...docs.keys()].toSorted();
 }
 
 /** One docs page. `topic` must be one that {@link docTopics} returns. */
 export function readDoc(topic: string): string {
-  return readFileSync(`${data}docs/${topic}.md`, "utf8");
+  return docs.get(topic) ?? "";
 }

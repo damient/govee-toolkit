@@ -6,8 +6,8 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
 import { vocabulary } from "../catalog.ts";
-import { codeError, ok, oneOf } from "../result.ts";
-import { CONTROL, TARGET, attempt, deviceRow, modeArg, rgb, servedRow, statusRow } from "../sdk.ts";
+import { ok, oneOf } from "../result.ts";
+import { CONTROL, TARGET, attempt, deviceRow, modeArg, reach, rgb, statusRow } from "../sdk.ts";
 import { registerSet } from "./set.ts";
 
 const deviceShape = z.looseObject({ id: z.string(), sku: z.string(), modes: z.array(z.string()) });
@@ -55,7 +55,7 @@ function listKnown(server: McpServer): void {
       outputSchema: z.object({ devices: z.array(deviceShape) }),
       annotations: { ...CONTROL, readOnlyHint: true },
     },
-    () => attempt((govee) => Promise.resolve(ok({ devices: govee.devices().map((device) => deviceRow(device)) }))),
+    () => attempt((govee) => ok({ devices: govee.devices().map((device) => deviceRow(device)) })),
   );
 }
 
@@ -74,20 +74,13 @@ function status(server: McpServer): void {
     },
     ({ target, mode: pinned }) =>
       attempt(async (govee) => {
-        const handle = pinned === undefined ? govee.device(target) : govee.deviceOn(target, pinned);
-        const serving = await handle.ensureKnown();
+        const [handle, serving] = await reach(govee, target, pinned);
         return ok(statusRow(await handle.status(), serving));
       }),
   );
 }
 
 const argValue = z.union([z.boolean(), z.number(), z.string(), z.array(z.number()), z.array(rgb)]);
-
-const commandShape = z.looseObject({
-  args: z.record(z.string(), z.looseObject({ role: z.string().optional() })).optional(),
-  reply: z.unknown().optional(),
-});
-const specShape = z.looseObject({ commands: z.record(z.string(), z.record(z.string(), commandShape)) });
 
 function send(server: McpServer): void {
   server.registerTool(
@@ -99,7 +92,8 @@ function send(server: McpServer): void {
         "`describe_device` lists the commands of each mode and their arguments. " +
         "A command that declares a reply is read, and the answer holds the fields it captured. " +
         "A value outside the declared range fails, and nothing is sent. " +
-        "A command that takes a password is refused: the password would travel through this conversation.",
+        "A command that takes a secret, such as a network password, fails with `secret_arg`: " +
+          "the secret would travel through this conversation.",
       inputSchema: z.object({
         target: z.string().describe(TARGET),
         mode: modeArg,
@@ -111,15 +105,10 @@ function send(server: McpServer): void {
     },
     ({ target, mode: pinned, command, args }) =>
       attempt(async (govee) => {
-        const handle = pinned === undefined ? govee.device(target) : govee.deviceOn(target, pinned);
-        const serving = await handle.ensureKnown();
-        const entry = specShape.parse(handle.spec()).commands[serving]?.[command];
-        if (Object.values(entry?.args ?? {}).some((arg) => arg.role === "password")) {
-          throw codeError("refused", `\`${command}\` takes a password, which this server does not carry`);
-        }
-        if (entry?.reply === undefined) return ok(servedRow(await handle.send(command, args)));
-        const reply = await handle.read(command, args);
-        return ok({ id: reply.id, mode: serving, command, fields: reply.fields as unknown });
+        const [handle] = await reach(govee, target, pinned);
+        const done = await handle.invoke(command, args, true);
+        const answer = { id: done.id, mode: done.mode, command: done.command };
+        return ok(done.fields === null ? answer : { ...answer, fields: done.fields as unknown });
       }),
   );
 }
@@ -173,9 +162,7 @@ function doctor(server: McpServer): void {
     },
     () =>
       attempt((govee) =>
-        Promise.resolve(
-          ok({ problems: govee.problems(), modes: govee.modes(), config: govee.config.toJSON() as unknown }),
-        ),
+        ok({ problems: govee.problems(), modes: govee.modes(), config: govee.config.toJSON() as unknown }),
       ),
   );
 }
