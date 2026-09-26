@@ -170,9 +170,8 @@ export declare class DeviceHandle {
    * Power the device on and paint one color, so a person sees which
    * fixture this identity drives.
    *
-   * One pass: the device stays on and lit. `Govee.identify()` runs the
-   * whole walk, and powers the devices off at the end. The look the
-   * device held is lost.
+   * One pass: the device stays on and lit, and loses the look it held.
+   * `Govee.identify()` runs the whole walk.
    *
    * `null` takes the core's defaults: green, and the top of the
    * brightness range the device file declares.
@@ -325,23 +324,13 @@ export declare class Govee {
    */
   group(target: string, mode?: string | undefined | null): GroupHandle
   /**
-   * Take the devices off, light each in turn, then take them off again:
-   * the walk `govee identify` runs.
+   * Run the walk `govee identify` runs. `targets` reads as `select()`
+   * reads it; `null` walks every device that a scan finds. Defaults:
+   * `color` green, `waitMs` 1000 between steps, `holdMs` 5000 on the last
+   * device, `keep` false, `mode` `"lan"`. An unknown option is refused.
    *
-   * `targets` is one target or several, read as `select()` reads them: an
-   * identity, a SKU, a name or a group. `null` walks every device a scan
-   * over the mode finds, and an empty array walks none. A SKU, a name and
-   * a group scan first.
-   *
-   * Every option is optional. `color` is green, `waitMs` is the wait
-   * between two steps (1000), and `holdMs` is how long the last device
-   * holds the color (5000). `keep` leaves every device on and lit at the
-   * end. `mode` is the one mode the walk drives, `"lan"` by default. An
-   * option the list does not name is refused.
-   *
-   * Rejects with `mode_not_enabled` before it sends anything where a
-   * device does not enable the mode. A device that fails during the walk
-   * is in the report instead.
+   * Rejects with `mode_not_enabled` before it sends a command where a
+   * device does not enable the mode. A device that fails is in the report.
    */
   identify(targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; waitMs?: number; holdMs?: number; keep?: boolean; mode?: string }): Promise<WalkReport>
   /** Subscribe to what the SDK reports. Iterate it with `for await`. */
@@ -492,10 +481,7 @@ export declare class StatusStream {
 
 /** What one identify walk covered, and what it failed at. */
 export declare class WalkReport {
-  /**
-   * The devices the walk covered, in the order it lit them. Empty where
-   * the targets named none.
-   */
+  /** The devices the walk covered, in the order it lit them. */
   get lit(): Array<string>
   /** The devices that refused the opening blackout or the pass. */
   get failed(): Array<string>

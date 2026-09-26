@@ -35,8 +35,6 @@ pub struct Walk {
 }
 
 impl Default for Walk {
-    /// The walk `govee identify` runs: green at full brightness, over `lan`,
-    /// and every device off at the end.
     fn default() -> Self {
         Self {
             pass: Identify::default(),
@@ -118,14 +116,9 @@ fn names(ids: &[DeviceId]) -> String {
 }
 
 impl Govee {
-    /// Run the walk `govee identify` runs over the devices the targets name.
-    ///
-    /// `None` walks every device a scan over `walk.mode` finds, and an empty
-    /// list walks none. The targets read as for [`Govee::walk_targets`].
-    /// Every device goes off and lights in turn: call
-    /// [`Govee::identify_walk`] for a blackout set that differs from the
-    /// devices that light. Where no device is left to walk, the report is
-    /// empty and the call does not wait.
+    /// Run the walk `govee identify` runs over the targets, read as for
+    /// [`Govee::walk_targets`]; `None` walks every device that a scan finds.
+    /// With no device to walk, the call returns an empty report at once.
     ///
     /// # Errors
     ///
@@ -203,22 +196,15 @@ impl Govee {
         })
     }
 
-    /// The devices a walk covers: the ones the targets name, in the order
-    /// they were written, or every device a scan over `mode` finds and the
-    /// configuration enables that mode for.
-    ///
-    /// A target is an identity, a SKU, a name or a group, as for
-    /// [`Govee::select`]. A SKU, a name and a group are answered from what the
-    /// SDK knows, so the scan runs before the selection. An identity needs no
-    /// scan: a lookup over `mode` alone finds that one device. A named identity
-    /// stays in the list, and the walk reports it.
+    /// The devices that `named` selects as for [`Govee::select`], in the
+    /// order written, or with `named` empty, every device that a scan over
+    /// `mode` finds and that enables `mode`. Identities alone cost no scan.
     ///
     /// # Errors
     ///
-    /// [`Error::ModeNotEnabled`] where the configuration does not enable
-    /// `mode` for a device a target names, before any scan for it. What
-    /// [`Govee::select`] reports for a target, and what [`Govee::scan_on`] and
-    /// [`Govee::ensure_known`] report over `mode`.
+    /// [`Error::ModeNotEnabled`] where a selected device does not enable
+    /// `mode`, and what [`Govee::select`], [`Govee::scan_on`] and
+    /// [`Govee::ensure_known`] report.
     pub async fn walk_targets<T: AsRef<str>>(
         &self,
         named: &[T],

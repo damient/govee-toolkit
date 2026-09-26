@@ -339,7 +339,6 @@ mod tests {
 
     use super::*;
 
-    /// The walk `Walk::default()` documents, over `lan` as the bridge drives.
     #[test]
     fn identify_with_no_option_runs_the_default_walk() {
         let cli = Cli::try_parse_from(["govee-dmx", "identify"]).expect("parses");

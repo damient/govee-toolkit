@@ -1,8 +1,4 @@
-//! The physical size of the model, for a host that places devices in a space.
-//!
-//! A property of the SKU: another length of one product is another SKU. The
-//! size of the unit that the numbers under `measurements:` come from stays
-//! there.
+//! The physical size of a SKU. A measured unit records its own `unit_length_m`.
 
 use std::fmt;
 
@@ -10,11 +6,7 @@ use serde::de::value::MapAccessDeserializer;
 use serde::de::{self, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 
-/// A device file's `geometry:` block. Metres throughout, each size finite and
-/// above zero.
-///
-/// The device file fails to load where the block declares another shape or
-/// another size, and the error names the field.
+/// A device file's `geometry:` block, in metres. Each size is above zero.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(untagged)]
 #[non_exhaustive]
@@ -33,7 +25,6 @@ pub enum Geometry {
     },
 }
 
-/// The block as the file writes it, before the shape is known.
 #[derive(Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 #[expect(
@@ -88,8 +79,7 @@ impl<'de> Deserialize<'de> for Geometry {
     }
 }
 
-/// Checks the shape inside `visit_map`: an error raised there carries the
-/// path and the position, and an error raised after the block does not.
+/// An error raised inside `visit_map` carries the path and the position.
 struct Shape;
 
 impl<'de> Visitor<'de> for Shape {

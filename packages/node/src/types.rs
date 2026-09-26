@@ -273,8 +273,7 @@ fn strings(ids: &[DeviceId]) -> Vec<String> {
 
 #[napi]
 impl WalkReport {
-    /// The devices the walk covered, in the order it lit them. Empty where
-    /// the targets named none.
+    /// The devices the walk covered, in the order it lit them.
     #[napi(getter)]
     pub fn lit(&self) -> Vec<String> {
         strings(&self.inner.lit)

@@ -98,10 +98,7 @@ fn millis(env: &Env, key: &str, value: &Unknown<'_>) -> napi::Result<Duration> {
     Ok(Duration::from_millis(ms))
 }
 
-/// The walk an options object asks for, over the core's defaults.
-///
-/// A key it does not name is refused: a misspelled option that was ignored
-/// would read as a setting that did not work.
+/// A misspelled key is refused: ignored, it reads as a setting that failed.
 pub(crate) fn walk(env: &Env, options: Option<Object<'_>>) -> napi::Result<Walk> {
     let mut walk = Walk::default();
     let Some(options) = options else {
@@ -118,8 +115,7 @@ pub(crate) fn walk(env: &Env, options: Option<Object<'_>>) -> napi::Result<Walk>
             ));
         }
     }
-    // `Option` reads `undefined` and `null` as `None`: the option takes its
-    // default.
+    // `undefined` and `null` read as `None`: the default holds.
     if let Some(color) = options.get::<Option<Channels<'_>>>("color")?.flatten() {
         walk.pass.color = rgb(env, &color)?;
     }

@@ -203,23 +203,13 @@ impl Govee {
         })
     }
 
-    /// Take the devices off, light each in turn, then take them off again:
-    /// the walk `govee identify` runs.
+    /// Run the walk `govee identify` runs. `targets` reads as `select()`
+    /// reads it; `null` walks every device that a scan finds. Defaults:
+    /// `color` green, `waitMs` 1000 between steps, `holdMs` 5000 on the last
+    /// device, `keep` false, `mode` `"lan"`. An unknown option is refused.
     ///
-    /// `targets` is one target or several, read as `select()` reads them: an
-    /// identity, a SKU, a name or a group. `null` walks every device a scan
-    /// over the mode finds, and an empty array walks none. A SKU, a name and
-    /// a group scan first.
-    ///
-    /// Every option is optional. `color` is green, `waitMs` is the wait
-    /// between two steps (1000), and `holdMs` is how long the last device
-    /// holds the color (5000). `keep` leaves every device on and lit at the
-    /// end. `mode` is the one mode the walk drives, `"lan"` by default. An
-    /// option the list does not name is refused.
-    ///
-    /// Rejects with `mode_not_enabled` before it sends anything where a
-    /// device does not enable the mode. A device that fails during the walk
-    /// is in the report instead.
+    /// Rejects with `mode_not_enabled` before it sends a command where a
+    /// device does not enable the mode. A device that fails is in the report.
     #[napi(
         ts_args_type = "targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; waitMs?: number; holdMs?: number; keep?: boolean; mode?: string }"
     )]
