@@ -19,6 +19,10 @@ publish = false
 govee-toolkit = { path = "../..", default-features = false }
 serde_json.workspace = true
 serde_norway = "0.9"
+# `xtask api` reads the Rust and CLI surfaces from their source. `printing`,
+# on by default, is what turns a parsed type back into text.
+quote = "1"
+syn = { version = "2", features = ["full"] }
 
 [lints]
 workspace = true
