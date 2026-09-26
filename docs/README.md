@@ -20,6 +20,7 @@
   capability gaps
 - [`protocol/state.md`](protocol/state.md) — what a device keeps between
   commands, over every mode
+- [`mcp-plan.md`](mcp-plan.md) — the work plan for the MCP server
 - [`security.md`](security.md) — what the LAN protocol does not protect, and
   where the cloud API key lives
 - [`versioning.md`](versioning.md) — semver across three packages, MSRV and
