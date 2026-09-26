@@ -52,3 +52,23 @@ def test_an_unknown_sku_is_refused(catalog):
 def test_a_codec_failure_is_a_govee_failure(catalog):
     with pytest.raises(GoveeError):
         catalog.device("H0000")
+
+
+def test_a_sku_describes_as_govee_describe_prints_it(catalog):
+    sku = catalog.skus()[0]
+    record = catalog.describe(sku)
+    assert record["sku"] == catalog.device(sku)["sku"]
+    assert "modes" in record
+    assert "commands" in record
+
+
+def test_a_sku_gives_its_dmx_channel_tables(catalog):
+    for sku in catalog.skus():
+        assert isinstance(catalog.dmx(sku)["personalities"], list), sku
+
+
+@pytest.mark.parametrize("method", ["describe", "dmx"])
+def test_describe_and_dmx_refuse_an_unknown_sku(catalog, method):
+    with pytest.raises(CodecError) as raised:
+        getattr(catalog, method)("H0000")
+    assert raised.value.code == "unknown_sku"
