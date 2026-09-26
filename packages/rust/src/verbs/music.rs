@@ -47,6 +47,8 @@ impl DeviceHandle<'_> {
     /// takes a value, reads it back and plays nothing. The entry's `notes:`
     /// record what one unit did.
     ///
+    /// Serves [`Role::Music`].
+    ///
     /// # Errors
     ///
     /// As for [`DeviceHandle::power`], for the command marked `role: music`
