@@ -26,6 +26,7 @@ use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
 use govee_toolkit::codec::{Catalog, Device, SCHEMA_VERSION};
+use govee_toolkit::profile;
 
 mod dmx;
 mod dupes;
@@ -84,7 +85,7 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
 fn device_json(device: &Device) -> serde_json::Value {
     let mut value = serde_json::to_value(device).expect("serialize the device");
     if let Some(object) = value.as_object_mut() {
-        object.insert("dmx".to_owned(), dmx::catalog_entry(device));
+        object.insert("dmx".to_owned(), profile::report::entry(device));
     }
     value
 }

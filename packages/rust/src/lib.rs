@@ -121,7 +121,7 @@ pub use codec::{Args, Catalog, Mode};
 #[cfg(feature = "transport")]
 pub use config::{CloudConfig, Config, DeviceConfig, LanConfig, Problem, StreamConfig};
 #[cfg(feature = "transport")]
-pub use describe::describe;
+pub use describe::{describe, describe_sku};
 #[cfg(feature = "transport")]
 pub use device::DeviceHandle;
 #[cfg(feature = "transport")]

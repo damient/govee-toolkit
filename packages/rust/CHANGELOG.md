@@ -7,6 +7,13 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `describe_sku()` — the `describe()` record for a SKU of a `Catalog`, with no
+  started SDK. It returns `unknown_sku` when nothing declares the SKU.
+- `profile::report::entry()` — the DMX channel tables of one device, as
+  `dist/catalog.json` carries them under `dmx`.
+
 ## [0.14.0] — 2026-09-26
 
 ### Added
