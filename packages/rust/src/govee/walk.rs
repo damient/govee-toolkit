@@ -19,7 +19,7 @@ use crate::transport::DeviceId;
 use crate::verbs::{IDENTIFY_HOLD, IDENTIFY_WAIT, Identify};
 
 /// What one walk does, beyond which devices it covers.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Walk {
     /// What each device shows.
     pub pass: Identify,

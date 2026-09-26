@@ -216,9 +216,10 @@ fn a_summary_names_the_two_faults() {
     );
 }
 
-/// The walk `govee identify` runs where the caller changes nothing.
+/// Green, a second between two steps, a 5 s hold, over `lan`. `govee` and
+/// `govee-dmx` each check their own defaults against this walk.
 #[test]
-fn the_default_walk_is_the_one_the_cli_runs() {
+fn the_default_walk_is_green_a_second_apart_over_lan() {
     let walk = Walk::default();
     assert_eq!(walk.pass, Identify::default());
     assert_eq!(walk.wait, Duration::from_secs(1));
