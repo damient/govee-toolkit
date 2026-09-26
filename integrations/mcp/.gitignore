@@ -1,0 +1,2 @@
+# `scripts/copy-data.ts` writes it at build time.
+/data/
