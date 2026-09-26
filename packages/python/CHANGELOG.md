@@ -4,6 +4,14 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `Catalog.describe()` — the record `govee describe --json` prints for a SKU,
+  with no started SDK. It raises `CodecError` with the code `unknown_sku` when
+  nothing declares the SKU.
+- `Catalog.dmx()` — the DMX channel tables of a SKU, as `dist/catalog.json`
+  carries them under `dmx`. It raises `unknown_sku` in the same way.
+
 ## [0.6.0] — 2026-09-26
 
 ### Added
