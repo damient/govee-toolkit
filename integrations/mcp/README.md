@@ -6,7 +6,7 @@ drives the devices over `lan`, `ble` and `cloud`.
 
 It wraps the Node binding, `govee-toolkit`. It holds no device data and no
 protocol logic: every value it returns comes from the binding, from
-`dist/api.json` or from `docs/*.md`.
+`dist/api.json` or from `docs/`.
 
 ## Install
 
@@ -164,8 +164,5 @@ stdout carries the JSON-RPC stream. The server writes every log to stderr.
 
 ## Release
 
-The package releases under `mcp-vX.Y.Z`, through
-`.github/workflows/mcp-release.yml`. It depends on `govee-toolkit` at the
-version in `../../packages/node/package.json`, and the release fails when the
-two differ. Push `node-vX.Y.Z` first. See
+The package releases under `mcp-vX.Y.Z`. Push `node-vX.Y.Z` first: see
 [`../../docs/versioning.md`](../../docs/versioning.md).

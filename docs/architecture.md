@@ -151,7 +151,7 @@ protocol logic. It reads three sources, and each one is generated:
 
 - the device data, from `Catalog.describe()` and `Catalog.dmx()`;
 - the API of each language, from `dist/api.json`, which `xtask api` writes;
-- the docs, from `docs/*.md`, which the build copies into the package.
+- the docs, from `docs/`, which the build copies into the package.
 
 A tool that filters by mode, capability or role reads the valid values from
 these sources. Its source holds no SKU name, no command name and no list
