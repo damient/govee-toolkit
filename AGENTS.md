@@ -48,7 +48,7 @@ chooses a transport.
 | Full feature list | `docs/features.md` |
 | The DMX bridge: channels, patch, send policy | `docs/dmx.md` |
 | Ordering of the work | `docs/roadmap.md` |
-| The MCP server, and its work plan | `integrations/mcp/`, `docs/mcp-plan.md` |
+| The MCP server | `integrations/mcp/` |
 | Why the code is shaped this way | `docs/architecture.md` |
 | Arguments in, exact bytes out | `tests/fixtures/golden/<mode>/<SKU>.json` |
 | What a package's release changed | `packages/<pkg>/CHANGELOG.md` |
@@ -225,8 +225,7 @@ protocol logic and no device data. It reads three sources: the binding's
 `npm run build` copies into `data/`. Its control tools drive the devices
 through the binding's `Govee`. It depends on `govee-toolkit` at the version in
 `packages/node/package.json`, and `mcp-release.yml` fails when the two differ:
-push `node-vX.Y.Z` before `mcp-vX.Y.Z`. `docs/mcp-plan.md` is the plan that
-the work follows.
+push `node-vX.Y.Z` before `mcp-vX.Y.Z`.
 
 `govee-toolkit` is published on crates.io — the version is the one in
 `packages/rust/Cargo.toml`. On PyPI it is the Python binding, at the version in
