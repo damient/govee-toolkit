@@ -11,10 +11,20 @@ export function ok(value: Record<string, unknown>): CallToolResult {
   };
 }
 
+/** A thrown error as an answer carries it: the binding code, or `error` where it has none. */
+export interface Failure {
+  code: string;
+  message: string;
+}
+
+export function failure(error: unknown): Failure {
+  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "error";
+  return { code, message: error instanceof Error ? error.message : String(error) };
+}
+
 /** A failure, with the binding error code first: `unknown_sku: …`. */
 export function fail(error: unknown): CallToolResult {
-  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "error";
-  const message = error instanceof Error ? error.message : String(error);
+  const { code, message } = failure(error);
   return { isError: true, content: [{ type: "text", text: `${code}: ${message}` }] };
 }
 

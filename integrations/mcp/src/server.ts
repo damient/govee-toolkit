@@ -8,7 +8,9 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { z } from "zod";
 
 import { registerResources } from "./resources.ts";
+import { closeSdk } from "./sdk.ts";
 import { registerCatalogTools } from "./tools/catalog.ts";
+import { registerControlTools } from "./tools/control.ts";
 
 const { name, version } = z
   .object({ name: z.string(), version: z.string() })
@@ -18,6 +20,7 @@ const { name, version } = z
 export function createServer(): McpServer {
   const server = new McpServer({ name, version }, { capabilities: { tools: {}, resources: {} } });
   registerCatalogTools(server);
+  registerControlTools(server);
   registerResources(server);
   return server;
 }
@@ -49,6 +52,7 @@ export function serve(): void {
     },
   });
   atShutdown(() => handle.close());
+  atShutdown(closeSdk);
   process.stdin.on("close", () => void shutdown());
   process.on("SIGINT", () => void shutdown());
   process.on("SIGTERM", () => void shutdown());
