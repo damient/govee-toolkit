@@ -82,7 +82,7 @@ reported at runtime.
 ## Which binding the MCP server wraps
 
 `govee-toolkit-mcp` depends on the Node binding at an exact version. It ships
-`dist/api.json` and `docs/*.md` from its tagged commit, so these files must
+`dist/api.json` and `docs/` from its tagged commit, so these files must
 describe the binding that it installs:
 
 - The `govee-toolkit` version in `integrations/mcp/package.json` must equal
@@ -138,7 +138,7 @@ The changelog is the source, and the release is derived from it:
 2. A signed tag names the package and the version — `git tag -s rust-v0.3.0 -m
    rust-v0.3.0 && git push origin rust-v0.3.0`. Push each tag alone: GitHub
    starts no workflow for a push of more than three tags. Push `rust-v…`
-   first, since the other packages need the core on crates.io.
+   before `cli-v…` and `dmx-v…`, which need the core on crates.io.
 3. The tag starts the package's release workflow. Its first step,
    `tools/ci-passed.sh`, waits for CI on the tagged commit and fails the run
    unless CI passed. After a CI rerun that passes, rerun the release job.
