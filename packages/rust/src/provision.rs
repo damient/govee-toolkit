@@ -72,6 +72,9 @@ impl DeviceHandle<'_> {
     /// [`Provisioned::Accepted`] needs a file that declares the
     /// acknowledgement to read.
     ///
+    /// Serves [`Role::WifiLink`], [`Role::WifiApiType`],
+    /// [`Role::WifiProvision`] and [`Role::WifiProvisionWithApi`].
+    ///
     /// # Errors
     ///
     /// [`Error::NoModeAvailable`] if `ble` is not enabled for this device,

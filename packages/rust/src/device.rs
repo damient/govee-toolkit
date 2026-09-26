@@ -229,7 +229,8 @@ impl<'a> DeviceHandle<'a> {
         SegmentStream::open(self.govee, &self.id, self.mode()?, options).await
     }
 
-    /// Ask the device for its state and wait for the answer.
+    /// Ask the device for its state and wait for the answer. Serves
+    /// [`Role::Status`](crate::codec::Role::Status).
     ///
     /// # Errors
     ///

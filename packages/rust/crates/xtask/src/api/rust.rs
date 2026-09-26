@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use quote::ToTokens;
-use syn::{Attribute, Fields, FnArg, ImplItem, Item, Type, Visibility};
+use syn::{Attribute, Fields, FnArg, ImplItem, ImplItemFn, Item, Type, Visibility};
 
 /// The public types whose methods make the Rust surface.
 const HANDLES: [&str; 4] = ["Govee", "DeviceHandle", "GroupHandle", "SegmentStream"];
@@ -13,19 +13,74 @@ const HANDLES: [&str; 4] = ["Govee", "DeviceHandle", "GroupHandle", "SegmentStre
 pub(super) fn methods(src: &Path) -> Vec<String> {
     let mut out = Vec::new();
     for path in rust_files(src) {
-        collect(&parse(&path).items, &mut out);
+        each_method(&parse(&path).items, &mut |owner, f| {
+            let args: Vec<String> = f
+                .sig
+                .inputs
+                .iter()
+                .filter_map(|arg| match arg {
+                    FnArg::Typed(t) => Some(format!(
+                        "{}: {}",
+                        tidy(&t.pat.to_token_stream().to_string()),
+                        tidy(&t.ty.to_token_stream().to_string())
+                    )),
+                    FnArg::Receiver(_) => None,
+                })
+                .collect();
+            out.push(format!("{owner}::{}({})", f.sig.ident, args.join(", ")));
+        });
     }
     out.sort();
     out.dedup();
     out
 }
 
-fn collect(items: &[Item], out: &mut Vec<String>) {
+/// `(role, Type::name)` for every `pub fn` of [`HANDLES`] that links a role in
+/// its doc comment, as its `Serves` line does. The role is the variant name,
+/// as `Debug` writes it.
+pub(super) fn serves(src: &Path) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for path in rust_files(src) {
+        each_method(&parse(&path).items, &mut |owner, f| {
+            for role in doc_roles(&f.attrs) {
+                out.push((role, format!("{owner}::{}", f.sig.ident)));
+            }
+        });
+    }
+    out.sort();
+    out.dedup();
+    out
+}
+
+/// The variant of every ``[`Role::Variant`]`` link in the doc comment.
+fn doc_roles(attrs: &[Attribute]) -> Vec<String> {
+    let doc: String = attrs
+        .iter()
+        .filter_map(|attr| match &attr.meta {
+            syn::Meta::NameValue(pair) if pair.path.is_ident("doc") => match &pair.value {
+                syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Str(s),
+                    ..
+                }) => Some(s.value() + " "),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect();
+    doc.split("[`Role::")
+        .skip(1)
+        .filter_map(|rest| rest.split_once("`]").map(|(role, _)| role.to_owned()))
+        .collect()
+}
+
+/// Call `visit` with the owner and the item of every `pub fn` in an inherent
+/// `impl` of one of [`HANDLES`], test modules left out.
+fn each_method(items: &[Item], visit: &mut impl FnMut(&str, &ImplItemFn)) {
     for item in items {
         match item {
             Item::Mod(module) if !is_test(&module.attrs) => {
                 if let Some((_, inner)) = &module.content {
-                    collect(inner, out);
+                    each_method(inner, visit);
                 }
             }
             Item::Impl(block) if block.trait_.is_none() => {
@@ -39,20 +94,7 @@ fn collect(items: &[Item], out: &mut Vec<String>) {
                     if let ImplItem::Fn(f) = inner
                         && matches!(f.vis, Visibility::Public(_))
                     {
-                        let args: Vec<String> = f
-                            .sig
-                            .inputs
-                            .iter()
-                            .filter_map(|arg| match arg {
-                                FnArg::Typed(t) => Some(format!(
-                                    "{}: {}",
-                                    tidy(&t.pat.to_token_stream().to_string()),
-                                    tidy(&t.ty.to_token_stream().to_string())
-                                )),
-                                FnArg::Receiver(_) => None,
-                            })
-                            .collect();
-                        out.push(format!("{owner}::{}({})", f.sig.ident, args.join(", ")));
+                        visit(&owner, f);
                     }
                 }
             }
@@ -165,13 +207,13 @@ fn is_test(attrs: &[Attribute]) -> bool {
 
 /// The last segment of a path type: `Vec` for `Vec<String>`, and `Verb` for
 /// `Verb`. `Option<T>` and `Vec<T>` name the wrapper, not `T`.
-fn last_ident(ty: &Type) -> Option<String> {
+pub(super) fn last_ident(ty: &Type) -> Option<String> {
     let Type::Path(path) = ty else { return None };
     Some(path.path.segments.last()?.ident.to_string())
 }
 
 /// `ColorTemp` to `color-temp`.
-fn kebab(camel: &str) -> String {
+pub(super) fn kebab(camel: &str) -> String {
     let mut out = String::new();
     for (i, c) in camel.chars().enumerate() {
         if c.is_uppercase() && i > 0 {
@@ -202,7 +244,7 @@ fn tidy(tokens: &str) -> String {
     .fold(tokens.to_owned(), |text, (from, to)| text.replace(from, to))
 }
 
-fn parse(path: &Path) -> syn::File {
+pub(super) fn parse(path: &Path) -> syn::File {
     syn::parse_file(&crate::read(path)).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 

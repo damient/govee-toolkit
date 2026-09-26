@@ -46,6 +46,9 @@ impl DeviceHandle<'_> {
     /// The channel is armed where the file marks `role: segment_enable`.
     /// Nothing disarms it: a disarm ends the channel, and the colors with it.
     ///
+    /// Serves [`Role::SegmentEnable`], [`Role::SegmentColor`],
+    /// [`Role::SegmentColorMasked`] and [`Role::SegmentGradient`].
+    ///
     /// # Errors
     ///
     /// [`Error::NoRoleCommand`], [`Error::NoRoleArg`],
@@ -154,6 +157,8 @@ impl DeviceHandle<'_> {
     /// painting frame takes [`Paint::gradient`] instead, which sets both at
     /// once: the SDK does not hold what the device shows, so it cannot repaint
     /// the same colors under the other setting.
+    ///
+    /// Serves [`Role::SegmentGradient`].
     ///
     /// # Errors
     ///

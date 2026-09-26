@@ -2,8 +2,10 @@
 //! surface, and the public surface of each language.
 //!
 //! Each surface is read from what generates or checks it, so the file cannot
-//! drift from the code. The one table written by hand is [`JOIN`], and
-//! `--check` fails when it names a method that a surface does not carry.
+//! drift from the code. A Rust method serves the roles that the `Serves` line
+//! of its doc comment links. A CLI verb serves the roles of the methods that
+//! its arm of the dispatch reaches. The Node name is the Rust name in camel
+//! case, and the Python name is the Rust name.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -12,31 +14,9 @@ use std::process;
 use govee_toolkit::codec::Role;
 use serde_json::{Value, json};
 
+mod dispatch;
 mod rust;
 mod text;
-
-/// `(role, Rust method, CLI verbs)`: the Rust method that serves a role, and
-/// the CLI verbs that reach it.
-///
-/// The Node name is the Rust name in camel case, and the Python name is the
-/// Rust name. A role must appear here or in [`OMITTED`] for each surface.
-#[rustfmt::skip]
-const JOIN: &[(&str, &str, &[&str])] = &[
-    ("status", "DeviceHandle::status", &["status"]),
-    ("power", "DeviceHandle::power", &["on", "off"]),
-    ("brightness", "DeviceHandle::brightness", &["brightness"]),
-    ("color", "DeviceHandle::color", &["color"]),
-    ("color_temp", "DeviceHandle::color_temp", &["colortemp"]),
-    ("segment_enable", "DeviceHandle::segment", &["segment"]),
-    ("segment_color", "DeviceHandle::segment", &["segment"]),
-    ("segment_color_masked", "DeviceHandle::segment", &["segment"]),
-    ("segment_gradient", "DeviceHandle::gradient", &["gradient"]),
-    ("wifi_link", "DeviceHandle::provision_wifi", &["provision"]),
-    ("wifi_api_type", "DeviceHandle::provision_wifi", &["provision"]),
-    ("wifi_provision", "DeviceHandle::provision_wifi", &["provision"]),
-    ("wifi_provision_with_api", "DeviceHandle::provision_wifi", &["provision"]),
-    ("music", "DeviceHandle::music", &["music"]),
-];
 
 /// `(surface, role, reason)`: a role that a surface leaves out on purpose.
 /// Its entry in `roles` is an empty list for that surface.
@@ -49,7 +29,6 @@ const SURFACES: [&str; 4] = ["cli", "rust", "node", "python"];
 /// Both exit 1 when a role has no method on a surface.
 pub(crate) fn api(root: &Path, check: bool) {
     let rust_root = root.join("packages/rust");
-    let roles: Vec<String> = Role::CLAIMABLE.iter().map(ToString::to_string).collect();
     let methods: BTreeMap<&str, Vec<String>> = BTreeMap::from([
         ("cli", rust::cli(&rust_root.join("crates/cli/src/cli"))),
         ("rust", rust::methods(&rust_root.join("src"))),
@@ -65,12 +44,16 @@ pub(crate) fn api(root: &Path, check: bool) {
         ),
     ]);
 
-    let (joined, errors) = join(&roles, &methods);
+    let serves = rust::serves(&rust_root.join("src"));
+    let verbs = dispatch::verbs(&rust_root.join("crates/cli/src/run"));
+    let (joined, errors) = join(&serves, &verbs, &methods);
     if !errors.is_empty() {
         for error in &errors {
             eprintln!("api: {error}");
         }
-        eprintln!("Add the method, or name the role in `OMITTED` in crates/xtask/src/api.");
+        eprintln!(
+            "Link the role in the `Serves` line of its method, or name it in `OMITTED` in crates/xtask/src/api."
+        );
         process::exit(1);
     }
     if check {
@@ -86,20 +69,32 @@ pub(crate) fn api(root: &Path, check: bool) {
     });
     let out = root.join("dist/api.json");
     crate::write_json(&out, &document);
-    println!("{} roles -> {}", roles.len(), out.display());
+    println!("{} roles -> {}", Role::CLAIMABLE.len(), out.display());
 }
 
-fn join(roles: &[String], methods: &BTreeMap<&str, Vec<String>>) -> (Value, Vec<String>) {
+/// `serves` is `(role variant, Type::method)`, and `verbs` maps a method name
+/// to the CLI verbs that reach it.
+fn join(
+    serves: &[(String, String)],
+    verbs: &BTreeMap<String, Vec<String>>,
+    methods: &BTreeMap<&str, Vec<String>>,
+) -> (Value, Vec<String>) {
     let mut errors = Vec::new();
-    for (joined, ..) in JOIN {
-        if !roles.iter().any(|role| role == joined) {
+    for (variant, method) in serves {
+        if !Role::CLAIMABLE
+            .iter()
+            .any(|role| format!("{role:?}") == *variant)
+        {
             errors.push(format!(
-                "`{joined}` is joined, and the `Role` enum has no such role"
+                "`{method}` serves `Role::{variant}`, which is no role"
             ));
         }
     }
     for (surface, role, _) in OMITTED {
-        if !roles.iter().any(|known| known == role) {
+        if !Role::CLAIMABLE
+            .iter()
+            .any(|known| known.to_string() == *role)
+        {
             errors.push(format!(
                 "`{role}` is omitted, and the `Role` enum has no such role"
             ));
@@ -112,34 +107,54 @@ fn join(roles: &[String], methods: &BTreeMap<&str, Vec<String>>) -> (Value, Vec<
     }
 
     let mut joined = serde_json::Map::new();
-    for role in roles {
-        let Some(&(_, rust, cli)) = JOIN.iter().find(|(joined, ..)| joined == role) else {
-            errors.push(format!("`{role}` is in no row of `JOIN`"));
-            continue;
-        };
+    for role in Role::CLAIMABLE {
+        let (variant, name) = (format!("{role:?}"), role.to_string());
+        let serving: Vec<&str> = serves
+            .iter()
+            .filter(|(v, _)| *v == variant)
+            .map(|(_, method)| method.as_str())
+            .collect();
         let mut row = serde_json::Map::new();
         for surface in SURFACES {
-            let omitted = OMITTED.iter().any(|(s, r, _)| *s == surface && r == role);
+            let omitted = OMITTED.iter().any(|(s, r, _)| *s == surface && *r == name);
             let found = if omitted {
                 Vec::new()
             } else {
-                serving(rust, cli, surface, &methods[surface])
+                let mut found: Vec<String> = serving
+                    .iter()
+                    .flat_map(|rust| on_surface(rust, verbs, surface, &methods[surface]))
+                    .collect();
+                found.sort();
+                found.dedup();
+                found
             };
             if found.is_empty() && !omitted {
-                errors.push(format!("`{role}` has no method on `{surface}`"));
+                errors.push(format!("`{name}` has no method on `{surface}`"));
             }
             row.insert(surface.to_owned(), json!(found));
         }
-        joined.insert(role.clone(), Value::Object(row));
+        joined.insert(name, Value::Object(row));
     }
     (Value::Object(joined), errors)
 }
 
-/// The entries of `methods` that serve one row of [`JOIN`] on `surface`.
-fn serving(rust: &str, cli: &[&str], surface: &str, methods: &[String]) -> Vec<String> {
-    let (class, name) = rust.split_once("::").expect("`Type::method` in `JOIN`");
+/// The entries of `methods` that name the Rust method `rust` on `surface`.
+fn on_surface(
+    rust: &str,
+    verbs: &BTreeMap<String, Vec<String>>,
+    surface: &str,
+    methods: &[String],
+) -> Vec<String> {
+    let Some((class, name)) = rust.split_once("::") else {
+        return Vec::new();
+    };
     let names: Vec<String> = match surface {
-        "cli" => cli.iter().map(|verb| format!("govee {verb}")).collect(),
+        "cli" => verbs
+            .get(name)
+            .into_iter()
+            .flatten()
+            .map(|verb| format!("govee {verb}"))
+            .collect(),
         "rust" => vec![rust.to_owned()],
         "node" => vec![format!("{class}.{}", text::camel(name))],
         _ => vec![format!("{class}.{name}")],

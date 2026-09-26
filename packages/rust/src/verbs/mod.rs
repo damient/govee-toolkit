@@ -24,7 +24,7 @@ use crate::event::Served;
 use crate::resolved::Resolved;
 
 impl<'a> DeviceHandle<'a> {
-    /// Turn the device on or off.
+    /// Turn the device on or off. Serves [`Role::Power`].
     ///
     /// # Errors
     ///
@@ -37,7 +37,7 @@ impl<'a> DeviceHandle<'a> {
 
     /// Set the brightness, in the unit the argument's `range:` gives. That
     /// range differs per SKU and per mode, and a value outside it is an error,
-    /// never a clamp.
+    /// never a clamp. Serves [`Role::Brightness`].
     ///
     /// # Errors
     ///
@@ -48,7 +48,7 @@ impl<'a> DeviceHandle<'a> {
             .await
     }
 
-    /// Set one color over the whole device.
+    /// Set one color over the whole device. Serves [`Role::Color`].
     ///
     /// # Errors
     ///
