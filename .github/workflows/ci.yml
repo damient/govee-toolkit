@@ -476,6 +476,41 @@ jobs:
         run: git diff --exit-code -- binding.cjs binding.d.cts
       - run: npm test
 
+  mcp:
+    name: MCP server
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            packages/node/package-lock.json
+            integrations/mcp/package-lock.json
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: |
+            packages/rust
+            packages/node
+      # The binding of this checkout, not the one on npm: a pull request that
+      # changes both the binding and a tool is tested as one change. The
+      # release workflow tests the package against the binding on npm.
+      - name: Build the binding
+        working-directory: packages/node
+        run: npm ci && npm run build:debug
+      - name: Install the dependencies
+        working-directory: integrations/mcp
+        run: npm ci && npm run link:binding
+      # The script writes dist/api.json, builds the simulator, then runs the
+      # build, the types, the lint and the tests. A skipped check exits 2 and
+      # fails the job.
+      - run: tools/qa-mcp.sh
+
   docs:
     name: Documentation
     if: github.event.pull_request.draft != true

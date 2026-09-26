@@ -1,0 +1,128 @@
+# Publishes integrations/mcp. Triggered by an mcp-vX.Y.Z tag.
+#
+# The package carries no addon: it depends on the Node binding from npm, at
+# the exact version in its package.json. It ships data/, which holds
+# dist/api.json and docs/*.md at the tagged commit. Those files describe the
+# binding of this commit, so the two versions must agree. Push node-vX.Y.Z
+# first, and push mcp-vX.Y.Z when the binding is on npm.
+name: MCP release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["mcp-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  # The tag, the manifest version and the changelog heading have to carry the
+  # same number before anything is built or published.
+  agree:
+    name: Tag, manifest, changelog and binding agree
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read   # read the CI run of the tagged commit
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: CI passed on this commit
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci-passed.sh "$GITHUB_SHA"
+      - if: github.event_name == 'push'
+        run: tools/release-notes.sh mcp "$GITHUB_REF_NAME" > /dev/null
+      # A dependency on another binding version ships docs and an api.json
+      # that describe a surface the installed binding does not have.
+      - name: The binding dependency is the binding of this commit
+        run: |
+          want=$(jq -r .version packages/node/package.json)
+          have=$(jq -r '.dependencies["govee-toolkit"]' integrations/mcp/package.json)
+          if [ "$have" != "$want" ]; then
+            echo "::error::integrations/mcp depends on govee-toolkit $have; packages/node is at $want"
+            exit 1
+          fi
+          if ! npm view "govee-toolkit@$want" version >/dev/null 2>&1; then
+            echo "::error::govee-toolkit $want is not on npm; release node-v$want first"
+            exit 1
+          fi
+
+  publish:
+    name: Publish
+    needs: agree
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # npm trusted publishing
+      contents: write   # create the GitHub release
+    defaults:
+      run:
+        working-directory: integrations/mcp
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Do not set `registry-url`: the job holds no token, so the option only
+      # writes an empty `_authToken`. npmjs.org is the default registry.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      # Trusted publishing needs npm 11.5.1 or newer; node 24 ships past that.
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: packages/rust
+      - name: Release notes
+        if: github.event_name == 'push'
+        working-directory: .
+        run: |
+          tools/release-notes.sh mcp "$GITHUB_REF_NAME" \
+            > "$RUNNER_TEMP/notes.md"
+      # The build copies dist/api.json into data/. The tests drive the control
+      # tools against the simulator.
+      - name: Write dist/api.json and build the simulator
+        working-directory: packages/rust
+        run: |
+          cargo run -q -p xtask -- api
+          cargo build -q -p govee-toolkit-sim
+      # The binding from npm, not the one of this checkout: the tests run on
+      # what a user installs.
+      - run: npm ci
+      - run: npm run build
+      - name: Test against the published binding
+        env:
+          GOVEE_SIM: ${{ github.workspace }}/packages/rust/target/debug/govee-toolkit-sim
+        run: npm test
+      # npm keeps a version forever, and a tag moved to a new commit reruns
+      # this job. A version already up is skipped rather than failing the run
+      # on an upload npm would refuse anyway.
+      - name: Is this version already on npm?
+        id: npm
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if npm view "govee-toolkit-mcp@$version" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+      # Trusted publishing: npm trades this job's OIDC identity for a
+      # short-lived token, so no registry token lives in the repository. It
+      # also signs the provenance attestation, hence no `--provenance` flag.
+      - name: Publish
+        if: steps.npm.outputs.published == 'false'
+        run: npm publish
+      - name: GitHub release
+        if: github.event_name == 'push'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A tag moved to a new commit reruns this job against a release that
+          # already exists, which `create` reports as a validation failure.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --verify-tag \
+              --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag \
+              --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
+          fi
