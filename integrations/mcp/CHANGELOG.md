@@ -15,6 +15,8 @@ policy is [`../../docs/versioning.md`](../../docs/versioning.md).
   control call, reads the configuration that the CLI reads, and closes when
   stdin closes or on `SIGINT` and `SIGTERM`. `mode` pins a call to one mode,
   and a binding error returns its code with no retry on another mode. `send`
-  refuses a command that takes a password.
+  refuses a command that takes a secret, such as a network password, with
+  `secret_arg`. `set` sends its steps in the order the core fixes, and a
+  member that fails a step takes no later step.
 - Resources: each docs page at `gtk://docs/<topic>`, and each device record
   at `gtk://devices/{sku}`.

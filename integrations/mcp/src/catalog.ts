@@ -1,7 +1,7 @@
 // The embedded catalog, as the read tools see it. Every value a tool accepts
 // is read from here, so the source names no SKU, mode or capability.
 
-import { Catalog, MODES } from "govee-toolkit";
+import { Catalog, MODES, PERSONALITIES, SUPPORT } from "govee-toolkit";
 import { z } from "zod";
 
 const described = z.looseObject({
@@ -36,6 +36,8 @@ const skus: readonly string[] = catalog.skus();
 const records = new Map(skus.map((sku) => [sku, described.parse(catalog.describe(sku))]));
 const tables = new Map(skus.map((sku) => [sku, dmxEntry.parse(catalog.dmx(sku))]));
 
+// The maps hold every SKU. A miss calls the binding only for the `unknown_sku` error it throws.
+
 /** Throws the binding error, with its `code`, when nothing declares the SKU. */
 export function describe(sku: string): Described {
   return records.get(sku) ?? described.parse(catalog.describe(sku));
@@ -46,32 +48,30 @@ export function dmx(sku: string): DmxEntry {
   return tables.get(sku) ?? dmxEntry.parse(catalog.dmx(sku));
 }
 
+/** The record that `describe_device` and the device resource return. */
+export function record(sku: string): Described & { dmx: DmxEntry } {
+  return { ...describe(sku), dmx: dmx(sku) };
+}
+
 export function allSkus(): readonly string[] {
   return skus;
 }
 
 export function row(sku: string): Row {
-  const record = describe(sku);
+  const found = describe(sku);
   return {
     sku,
-    alias_of: record.sku === sku ? null : record.sku,
-    name: record.name,
-    family: record.family,
-    support: Object.fromEntries(Object.entries(record.modes).map(([mode, m]) => [mode, m.support])),
+    alias_of: found.sku === sku ? null : found.sku,
+    name: found.name,
+    family: found.family,
+    support: Object.fromEntries(Object.entries(found.modes).map(([mode, m]) => [mode, m.support])),
   };
 }
 
-function distinct(values: Iterable<string>): string[] {
-  return [...new Set(values)].toSorted();
-}
-
-/** The values a filter or an argument accepts, as the catalog carries them. */
+/** The values a filter or an argument accepts, as the core lists them. */
 export const vocabulary = {
-  skus: [...skus],
   modes: [...MODES],
-  capabilities: distinct(
-    [...records.values()].flatMap((r) => r.capabilities.concat(Object.values(r.modes).flatMap((m) => m.capabilities))),
-  ),
-  support: distinct([...records.values()].flatMap((r) => Object.values(r.modes).map((m) => m.support))),
-  personalities: distinct([...tables.values()].flatMap((t) => t.personalities.map((p) => p.personality))),
+  capabilities: catalog.capabilities(),
+  support: [...SUPPORT],
+  personalities: [...PERSONALITIES],
 };

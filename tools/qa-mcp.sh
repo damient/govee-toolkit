@@ -28,7 +28,8 @@ check() {
 
 node_checks=("mcp types" "mcp lint" "mcp build" "mcp tests")
 
-# The package ships dist/api.json, so the build needs a current one. The
+# The package ships dist/api.json, so the build needs a current one. Writing
+# it checks the join too, so `tools/qa.sh` does not check it again. The
 # control tests need the simulator.
 if have cargo; then
   check "mcp api join" cargo run -q --manifest-path "$rust/Cargo.toml" -p xtask -- api

@@ -126,6 +126,31 @@ test("set with power and brightness names the mode that served each step", { ski
   }
 });
 
+test("set sends power off after the other steps", { skip, timeout: 30_000 }, async () => {
+  const device = await scanForSim();
+  const brightness = await lowestFor(device.sku, "brightness");
+  const answer = await structured(client, "set", { target: SIM_ID, mode: "lan", power: false, brightness }, setShape);
+  assert.deepEqual(
+    answer.steps.map((s) => s.step),
+    ["reach", "brightness", "power"],
+  );
+});
+
+const roleShape = z.looseObject({
+  commands: z.record(z.string(), z.record(z.string(), z.looseObject({ role: z.string().nullable().optional() }))),
+});
+const sentShape = z.looseObject({ id: z.string(), mode: z.string(), command: z.string() });
+
+// No lan entry declares a `reply:` layout, so the command is sent, and the answer carries no fields.
+test("send sends a command whose entry declares no answer", { skip, timeout: 30_000 }, async () => {
+  const device = await scanForSim();
+  const record = await structured(client, "describe_device", { sku: device.sku }, roleShape);
+  const command = Object.entries(record.commands.lan ?? {}).find(([, entry]) => entry.role === "status")?.[0];
+  assert.ok(command !== undefined, "the device file declares no status command over lan");
+  const answer = await structured(client, "send", { target: SIM_ID, mode: "lan", command }, sentShape);
+  assert.deepEqual(answer, { id: SIM_ID, mode: "lan", command });
+});
+
 test("status reads the simulator over lan", { skip, timeout: 30_000 }, async () => {
   await scanForSim();
   const answer = await structured(client, "status", { target: SIM_ID, mode: "lan" }, statusShape);
