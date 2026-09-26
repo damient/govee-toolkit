@@ -8,14 +8,15 @@ set -euo pipefail
 
 RUST_LIMIT=${RUST_LIMIT:-400}
 SITE_LIMIT=${SITE_LIMIT:-300}
+MCP_LIMIT=${MCP_LIMIT:-300}
 root=$(cd "$(dirname "$0")/.." && pwd)
 
 # One group, or every group when no argument is given.
 group=${1:-all}
 case $group in
-all | rust | site) ;;
+all | rust | site | mcp) ;;
 *)
-  echo "usage: $(basename "$0") [rust|site]" >&2
+  echo "usage: $(basename "$0") [rust|site|mcp]" >&2
   exit 2
   ;;
 esac
@@ -35,16 +36,20 @@ over() {
     awk '$2 != "total" { print $1, $2 }')
 }
 
-if [ "$group" != site ]; then
+if [ "$group" = all ] || [ "$group" = rust ]; then
   over "$RUST_LIMIT" packages/rust/src packages/rust/tests packages/rust/crates \
     packages/python/src packages/node/src \
     -name '*.rs' -not -path '*/target/*'
 fi
 
-if [ "$group" != rust ]; then
+if [ "$group" = all ] || [ "$group" = site ]; then
   over "$SITE_LIMIT" site/build.ts site/lib site/src \
     \( -name '*.ts' -o -name '*.css' -o -name '*.html' \) \
     -not -path '*/node_modules/*'
+fi
+
+if [ "$group" = all ] || [ "$group" = mcp ]; then
+  over "$MCP_LIMIT" integrations/mcp/src integrations/mcp/scripts -name '*.ts'
 fi
 
 [ $status -eq 0 ] || echo "Split the file along its responsibilities; see CONTRIBUTING.md."
