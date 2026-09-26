@@ -119,6 +119,13 @@ pub fn rgb(text: &str) -> Option<[u8; 3]> {
     Some([red, green, blue])
 }
 
+/// Write one color as `#RRGGBB`, the form [`rgb`] reads.
+#[must_use]
+pub fn hex(color: [u8; 3]) -> String {
+    let [red, green, blue] = color;
+    format!("#{red:02X}{green:02X}{blue:02X}")
+}
+
 /// Read a list of `#RRGGBB` colors. `None` if one item does not read.
 #[must_use]
 pub fn colors(text: &str) -> Option<Vec<[u8; 3]>> {

@@ -14,6 +14,9 @@ releases apart and keeps
 - `Govee::identify()` — the walk `govee identify` runs, in one call: it reads
   the targets and walks them. `None` walks every device a scan finds, and an
   empty list walks none.
+- `codec::coerce::hex()` writes a color as `#RRGGBB`, the form
+  `codec::coerce::rgb()` reads. `transport::millis()` gives a duration as whole
+  milliseconds. `Walk` compares with `==`.
 - `WalkReport::lit` and `WalkReport::is_clean()` — the devices a walk covered,
   and whether every device took every step.
 - `Walk::default()` and `IDENTIFY_HOLD` — the walk `govee identify` runs: 1 s
