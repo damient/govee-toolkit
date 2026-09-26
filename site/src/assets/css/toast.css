@@ -1,0 +1,12 @@
+/* The short message at the foot of the viewport, from `toast.ts`. */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 50; margin: 0;
+  padding: 10px 18px; border: 0; border-radius: 999px;
+  background: var(--green); color: var(--ink); font: 500 14px/1.2 var(--sans);
+  box-shadow: 0 12px 32px -12px rgb(0 0 0 / 50%);
+  opacity: 0; transform: translate(-50%, 16px); pointer-events: none;
+  transition: opacity .2s ease, transform .25s cubic-bezier(.2, .8, .3, 1.2);
+}
+.toast.is-shown { opacity: 1; transform: translate(-50%, 0); }
+
+@media (prefers-reduced-motion: reduce) { .toast { transition: opacity .2s ease; transform: translate(-50%, 0); } }
