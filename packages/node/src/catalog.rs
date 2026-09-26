@@ -1,6 +1,6 @@
 //! What `devices/*.yaml` declares, as the SDK reads it.
 
-use govee_toolkit::Catalog as CoreCatalog;
+use govee_toolkit::{Catalog as CoreCatalog, describe_sku, profile};
 use napi::Env;
 use napi_derive::napi;
 
@@ -43,6 +43,25 @@ impl Catalog {
     pub fn device(&self, env: &Env, sku: String) -> napi::Result<serde_json::Value> {
         let device = map(env, self.inner.device(&sku).map_err(Into::into))?;
         to_js(env, device)
+    }
+
+    /// The record that `govee describe --json` prints for a SKU. Reads no
+    /// hardware.
+    ///
+    /// Throws with the code `unknown_sku` when nothing declares it.
+    #[napi]
+    pub fn describe(&self, env: &Env, sku: String) -> napi::Result<serde_json::Value> {
+        map(env, describe_sku(&self.inner, &sku).map_err(Into::into))
+    }
+
+    /// The DMX channel tables of a SKU, as `dist/catalog.json` carries them
+    /// under `dmx`. Reads no hardware.
+    ///
+    /// Throws with the code `unknown_sku` when nothing declares it.
+    #[napi]
+    pub fn dmx(&self, env: &Env, sku: String) -> napi::Result<serde_json::Value> {
+        let device = map(env, self.inner.device(&sku).map_err(Into::into))?;
+        Ok(profile::report::entry(device))
     }
 
     /// How many device files the build carries.

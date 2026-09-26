@@ -23,6 +23,20 @@ export declare class Catalog {
    * Throws with the code `unknown_sku` when nothing declares it.
    */
   device(sku: string): any
+  /**
+   * The record that `govee describe --json` prints for a SKU. Reads no
+   * hardware.
+   *
+   * Throws with the code `unknown_sku` when nothing declares it.
+   */
+  describe(sku: string): any
+  /**
+   * The DMX channel tables of a SKU, as `dist/catalog.json` carries them
+   * under `dmx`. Reads no hardware.
+   *
+   * Throws with the code `unknown_sku` when nothing declares it.
+   */
+  dmx(sku: string): any
   /** How many device files the build carries. */
   get size(): number
   toString(): string
