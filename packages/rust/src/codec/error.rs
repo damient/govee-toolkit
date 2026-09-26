@@ -57,6 +57,16 @@ pub enum Error {
         declared: String,
     },
 
+    /// The command takes a secret, and the caller refused to carry one — see
+    /// [`crate::Resolved::refuse_secret`].
+    #[error("{command}: argument `{arg}` carries a secret, which this caller does not carry")]
+    SecretArg {
+        /// The command.
+        command: String,
+        /// The argument that carries the secret.
+        arg: String,
+    },
+
     /// An argument was supplied with the wrong shape.
     #[error("{command}: argument `{arg}` expects {expected}, got {got}")]
     ArgType {
@@ -336,6 +346,7 @@ impl Error {
             Self::UnknownCommand { .. } => "unknown_command",
             Self::MissingArg { .. } => "missing_arg",
             Self::UnknownArg { .. } => "unknown_arg",
+            Self::SecretArg { .. } => "secret_arg",
             Self::ArgType { .. } => "arg_type",
             Self::ArgSyntax { .. } => "arg_syntax",
             Self::OutOfRange { .. } => "out_of_range",
