@@ -220,12 +220,8 @@ releases independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `dmx-vX.Y.Z`,
 
 `integrations/mcp` is a local MCP server over stdio, released as `mcp-vX.Y.Z`
 under the npm name `govee-toolkit-mcp`. It wraps the Node binding and holds no
-protocol logic and no device data. It reads three sources: the binding's
-`Catalog`, `dist/api.json` from `xtask api`, and `docs/*.md`, which
-`npm run build` copies into `data/`. Its control tools drive the devices
-through the binding's `Govee`. It depends on `govee-toolkit` at the version in
-`packages/node/package.json`, and `mcp-release.yml` fails when the two differ:
-push `node-vX.Y.Z` before `mcp-vX.Y.Z`.
+protocol logic and no device data — see `docs/architecture.md`. Push
+`node-vX.Y.Z` before `mcp-vX.Y.Z` (`docs/versioning.md`).
 
 `govee-toolkit` is published on crates.io — the version is the one in
 `packages/rust/Cargo.toml`. On PyPI it is the Python binding, at the version in

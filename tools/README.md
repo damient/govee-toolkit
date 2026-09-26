@@ -7,7 +7,8 @@
 | Local CI mirror, site only | [`qa-site.sh`](qa-site.sh) |
 | Local CI mirror, Python only | [`qa-python.sh`](qa-python.sh) |
 | Local CI mirror, Node only | [`qa-node.sh`](qa-node.sh) |
-| Pass/fail reporter the four share | [`lib/qa.sh`](lib/qa.sh) |
+| Local CI mirror, MCP server only | [`qa-mcp.sh`](qa-mcp.sh) |
+| Pass/fail reporter the five share | [`lib/qa.sh`](lib/qa.sh) |
 | Build artifact sweep | [`clean-target.sh`](clean-target.sh) |
 | Redaction check | [`check-captures.sh`](check-captures.sh) |
 | Art-Net capture recorder | [`record-artnet.py`](record-artnet.py) |
@@ -131,7 +132,12 @@ tools/qa-node.sh clippy     # the checks whose name holds "clippy"
 It needs Node.js 20 or newer and `packages/node/node_modules`, which
 `cd packages/node && npm ci` writes, and reports a missing one as skipped.
 
-`lib/qa.sh` holds what the four scripts share: the check runner, the skip rule
+`qa-mcp.sh` mirrors the `mcp` job of `ci.yml`: `xtask api`, the simulator,
+then the build, the types, the lint and the tests of `integrations/mcp`. It
+needs `npm ci && npm run link:binding` in `integrations/mcp`, and reports a
+missing install as skipped.
+
+`lib/qa.sh` holds what the five scripts share: the check runner, the skip rule
 and the summary. Each script sources it and declares its own checks, so the
 report reads the same either way. It carries no shebang, so it names its shell
 with a `# shellcheck shell=bash` directive.
@@ -202,6 +208,8 @@ gh run rerun <release run id> --failed
 ```bash
 cd packages/rust
 cargo run -p xtask                    # dist/catalog.json, the release artifact
+cargo run -p xtask -- api             # dist/api.json, the methods of each role
+cargo run -p xtask -- api --check     # fails when a role has no method
 cargo run -p xtask -- compat          # the tables in docs/compatibility.md
 cargo run -p xtask -- compat --check  # fails when they have drifted
 cargo run -p xtask -- lan             # the table in docs/lan-supported-devices.md
