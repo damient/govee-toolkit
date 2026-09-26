@@ -1,6 +1,6 @@
 //! The facade: what starts the SDK, what it knows, and what it reaches.
 
-use govee_toolkit::{DeviceId, Govee as CoreGovee, WalkReport as CoreWalkReport};
+use govee_toolkit::{DeviceId, Govee as CoreGovee};
 use napi::Env;
 use napi::bindgen_prelude::{Either, Object, PromiseRaw};
 use napi_derive::napi;
@@ -230,20 +230,14 @@ impl Govee {
         options: Option<Object<'_>>,
     ) -> napi::Result<PromiseRaw<'env, WalkReport>> {
         let walk = conv::walk(env, options)?;
-        let named = match targets {
-            None => Vec::new(),
-            Some(Either::A(one)) => vec![one],
-            Some(Either::B(many)) if many.is_empty() => {
-                return promise(env, async {
-                    Ok(WalkReport::new(Vec::new(), CoreWalkReport::default()))
-                });
-            }
-            Some(Either::B(many)) => many,
-        };
+        let named = targets.map(|targets| match targets {
+            Either::A(one) => vec![one],
+            Either::B(many) => many,
+        });
         let govee = self.inner.clone();
         promise(env, async move {
-            let (lit, report) = govee.identify(&named, &walk).await?;
-            Ok(WalkReport::new(lit, report))
+            let report = govee.identify(named.as_deref(), &walk, &()).await?;
+            Ok(WalkReport::from(report))
         })
     }
 

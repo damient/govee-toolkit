@@ -268,13 +268,12 @@ impl From<CoreReply> for Reply {
 )]
 #[derive(Debug, Clone)]
 pub(crate) struct WalkReport {
-    lit: Vec<DeviceId>,
     inner: CoreWalkReport,
 }
 
-impl WalkReport {
-    pub(crate) fn new(lit: Vec<DeviceId>, inner: CoreWalkReport) -> Self {
-        Self { lit, inner }
+impl From<CoreWalkReport> for WalkReport {
+    fn from(inner: CoreWalkReport) -> Self {
+        Self { inner }
     }
 }
 
@@ -288,7 +287,7 @@ impl WalkReport {
     /// the targets named none.
     #[getter]
     fn lit(&self) -> Vec<String> {
-        strings(&self.lit)
+        strings(&self.inner.lit)
     }
 
     /// The devices that refused the opening blackout or the pass.
@@ -306,7 +305,7 @@ impl WalkReport {
     /// Whether every device took every step.
     #[getter]
     fn ok(&self) -> bool {
-        self.inner.failed.is_empty() && self.inner.stayed.is_empty()
+        self.inner.is_clean()
     }
 
     fn __str__(&self) -> String {
@@ -316,12 +315,7 @@ impl WalkReport {
     }
 
     fn __repr__(&self) -> String {
-        format!(
-            "WalkReport(lit={}, failed={}, stayed={})",
-            self.lit.len(),
-            self.inner.failed.len(),
-            self.inner.stayed.len()
-        )
+        Summary::summary(&self.inner, Style::Python)
     }
 }
 

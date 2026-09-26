@@ -1,6 +1,6 @@
 //! The facade: what starts the SDK, what it knows, and what it reaches.
 
-use govee_toolkit::{DeviceId, Govee as CoreGovee, WalkReport as CoreWalkReport};
+use govee_toolkit::{DeviceId, Govee as CoreGovee};
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 use pyo3_async_runtimes::tokio::future_into_py;
@@ -219,23 +219,15 @@ impl Govee {
         mode: Option<&str>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let walk = conv::walk(color, wait, hold, keep, mode)?;
-        let named: Vec<String> = match targets {
-            None => Vec::new(),
-            Some(one) if one.is_instance_of::<PyString>() => vec![one.extract()?],
-            Some(many) => {
-                let many: Vec<String> = many.extract()?;
-                if many.is_empty() {
-                    return future_into_py(py, async {
-                        Ok(WalkReport::new(Vec::new(), CoreWalkReport::default()))
-                    });
-                }
-                many
-            }
+        let named: Option<Vec<String>> = match targets {
+            None => None,
+            Some(one) if one.is_instance_of::<PyString>() => Some(vec![one.extract()?]),
+            Some(many) => Some(many.extract()?),
         };
         let govee = self.inner.clone();
         future_into_py(py, async move {
-            let (lit, report) = map(govee.identify(&named, &walk).await)?;
-            Ok(WalkReport::new(lit, report))
+            let report = map(govee.identify(named.as_deref(), &walk, &()).await)?;
+            Ok(WalkReport::from(report))
         })
     }
 

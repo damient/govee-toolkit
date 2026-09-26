@@ -258,13 +258,12 @@ impl From<CoreReply> for Reply {
 /// What one identify walk covered, and what it failed at.
 #[napi]
 pub struct WalkReport {
-    lit: Vec<DeviceId>,
     inner: CoreWalkReport,
 }
 
-impl WalkReport {
-    pub(crate) fn new(lit: Vec<DeviceId>, inner: CoreWalkReport) -> Self {
-        Self { lit, inner }
+impl From<CoreWalkReport> for WalkReport {
+    fn from(inner: CoreWalkReport) -> Self {
+        Self { inner }
     }
 }
 
@@ -278,7 +277,7 @@ impl WalkReport {
     /// the targets named none.
     #[napi(getter)]
     pub fn lit(&self) -> Vec<String> {
-        strings(&self.lit)
+        strings(&self.inner.lit)
     }
 
     /// The devices that refused the opening blackout or the pass.
@@ -296,13 +295,13 @@ impl WalkReport {
     /// Whether every device took every step.
     #[napi(getter)]
     pub fn ok(&self) -> bool {
-        self.inner.failed.is_empty() && self.inner.stayed.is_empty()
+        self.inner.is_clean()
     }
 
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
         self.inner
             .summary("device")
-            .unwrap_or_else(|| format!("WalkReport(lit={})", self.lit.len()))
+            .unwrap_or_else(|| Summary::summary(&self.inner, Style::Javascript))
     }
 }

@@ -8,8 +8,7 @@
 //! the scope the person typed, so a device outside it keeps the look it
 //! holds.
 //!
-//! [`Govee::walk_targets`] reads the targets, and [`Govee::identify_walk`]
-//! runs the walk itself.
+//! [`Govee::identify`] reads the targets and runs the walk.
 
 use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{DeviceId, Govee, Walk, WalkObserver};
@@ -21,16 +20,14 @@ pub(super) async fn run(
     named: &[String],
     walk: &Walk,
 ) -> Result<(), Failure> {
-    let targets = govee.walk_targets(named, walk.mode).await?;
-    if targets.is_empty() {
+    let targets = (!named.is_empty()).then_some(named);
+    let report = govee.identify(targets, walk, &Lines(writer)).await?;
+    if report.lit.is_empty() {
         return Err(Failure::unreachable(format!(
             "no device answered over `{}`, so there is nothing to light",
             walk.mode
         )));
     }
-    let report = govee
-        .identify_walk(&targets, &targets, walk, &Lines(writer))
-        .await?;
     match report.summary("device") {
         Some(summary) => Err(Failure::unreachable(summary)),
         None => Ok(()),
