@@ -13,11 +13,18 @@ jobs:
     permissions:
       id-token: write   # crates.io trusted publishing
       contents: write   # create the GitHub release
+      actions: read     # read the CI run of the tagged commit
     defaults:
       run:
         working-directory: packages/rust/crates/cli
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: CI passed on this commit
+        if: github.event_name == 'push'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci-passed.sh "$GITHUB_SHA"
       # The tag, the manifest version and the changelog heading have to carry
       # the same number before anything is built or published.
       - name: Tag, manifest and changelog agree

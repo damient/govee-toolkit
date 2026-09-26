@@ -14,6 +14,7 @@
 | File length, per language | [`check-file-length.sh`](check-file-length.sh) |
 | Codec layering | [`check-no-io.sh`](check-no-io.sh) |
 | Release notes from the changelog | [`release-notes.sh`](release-notes.sh) |
+| CI gate of a release | [`ci-passed.sh`](ci-passed.sh) |
 | Stub prose from the binding | [`sync-stubs.py`](sync-stubs.py) |
 | Govee's list of LAN Control models | [`fetch-lan-list.py`](fetch-lan-list.py) |
 | Generated catalog and tables | [`packages/rust/crates/xtask`](../packages/rust/crates/xtask) |
@@ -184,8 +185,17 @@ tools/release-notes.sh rust rust-v0.3.0
 
 It fails when the tag, the version in the package manifest and the changelog
 heading are not the same number, or when the section exists with no entries
-under it. The release workflows run it as their first step, so a tag pushed
-past a manifest nobody bumped stops there instead of publishing.
+under it. The release workflows run it before any build, so a tag pushed past
+a manifest nobody bumped stops there instead of publishing.
+
+`ci-passed.sh` takes a commit and waits for the CI run of its push to main.
+It fails when that run does not pass, or when no run completes in 45 minutes.
+The release workflows run it first, so a tag pushed right after a merge waits
+for CI. After a CI rerun that passes, rerun the release job:
+
+```bash
+gh run rerun <release run id> --failed
+```
 
 `xtask` generates what is derived from `devices/*.yaml`:
 
