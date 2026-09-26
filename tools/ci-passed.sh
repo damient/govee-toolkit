@@ -3,11 +3,6 @@
 #
 #   tools/ci-passed.sh <sha>
 #
-# A release workflow runs it first, so a tag pushed right after a merge waits
-# for CI on main instead of publishing a commit that CI has not passed. A
-# registry keeps a version forever, so the check comes before anything is
-# built. After a CI rerun that passes, rerun the release job.
-#
 # Needs `gh`, GH_TOKEN and GITHUB_REPOSITORY. The job needs `actions: read`.
 
 set -euo pipefail
@@ -22,8 +17,7 @@ TIMEOUT_S=${TIMEOUT_S:-2700}
 INTERVAL_S=${INTERVAL_S:-30}
 deadline=$((SECONDS + TIMEOUT_S))
 
-# The newest CI run on a push of this commit. A pull request run tests the
-# merge result, not the commit, so it does not count.
+# A pull request run tests the merge result, not the commit: count push runs only.
 latest() {
   gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$sha&event=push" \
     --jq '.workflow_runs | sort_by(.run_number) | last

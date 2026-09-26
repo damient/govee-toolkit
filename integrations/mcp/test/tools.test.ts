@@ -18,9 +18,8 @@ before(async () => {
   ({ tools } = await client.listTools());
 });
 
-// An enum read at startup changes with the catalog and the docs, not with the
-// server. The snapshot names its source; an enum that matches no source stays
-// as it is and shows in the diff.
+// An enum read at startup follows the catalog and the docs, so the snapshot
+// names its source. An enum that matches no source shows in the diff.
 const sources = new Map<string, string>(
   Object.entries({
     modes: vocabulary.modes,

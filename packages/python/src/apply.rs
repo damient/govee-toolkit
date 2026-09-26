@@ -1,4 +1,4 @@
-//! One command read or sent in one call, and several role verbs on a group.
+//! `DeviceHandle.invoke()` and `GroupHandle.apply()`.
 
 use govee_toolkit::codec::{Mode, Supplied};
 use govee_toolkit::{Applied as CoreApplied, DeviceId, Govee, Invoked as CoreInvoked, Verb};
@@ -45,8 +45,8 @@ impl Invoked {
         self.command.clone()
     }
 
-    /// What the `reply:` layouts captured. `None` where the entry declares no
-    /// answer, so the command was sent and not read.
+    /// What the `reply:` layouts captured, or `None` for a command that was
+    /// sent and not read.
     #[getter]
     fn fields(&self, py: Python<'_>) -> PyResult<Option<Py<PyAny>>> {
         self.fields
@@ -63,7 +63,6 @@ impl Invoked {
     }
 }
 
-/// `DeviceHandle.invoke()`, off the Python thread.
 pub(crate) async fn invoke(
     govee: Govee,
     pinned: Option<Mode>,
@@ -110,8 +109,7 @@ pub(crate) struct AppliedStep {
 
 #[pymethods]
 impl AppliedStep {
-    /// `power`, `brightness`, `color`, `color_temp`, `segment`, `gradient`
-    /// or `music`.
+    /// The verb, in snake case: `color_temp`.
     #[getter]
     fn step(&self) -> &'static str {
         self.step
@@ -144,8 +142,7 @@ pub(crate) struct Applied {
 
 #[pymethods]
 impl Applied {
-    /// The scan of every member, run before the verbs. Each outcome carries
-    /// its mode.
+    /// The scan of every member, run before the verbs.
     #[getter]
     fn reached(&self, py: Python<'_>) -> Vec<Py<Outcome>> {
         self.reached.iter().map(|o| o.clone_ref(py)).collect()
@@ -168,7 +165,6 @@ impl Applied {
     }
 }
 
-/// `GroupHandle.apply()`, off the Python thread.
 pub(crate) async fn apply(
     govee: Govee,
     pinned: Option<Mode>,
@@ -232,7 +228,7 @@ fn known_keys(dict: &Bound<'_, PyDict>, what: &str, keys: &[&str]) -> PyResult<(
     Ok(())
 }
 
-/// The keyword arguments of `GroupHandle.apply()`, as core verbs.
+/// The keyword arguments of `GroupHandle.apply()`.
 pub(crate) struct Verbs<'a, 'py> {
     pub(crate) power: Option<bool>,
     pub(crate) brightness: Option<i64>,

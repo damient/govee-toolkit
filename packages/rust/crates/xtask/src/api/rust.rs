@@ -6,10 +6,9 @@ use std::path::{Path, PathBuf};
 use quote::ToTokens;
 use syn::{Attribute, Fields, FnArg, ImplItem, ImplItemFn, Item, Type, Visibility};
 
-/// The public types whose methods make the Rust surface.
 const HANDLES: [&str; 4] = ["Govee", "DeviceHandle", "GroupHandle", "SegmentStream"];
 
-/// Every `pub fn` of [`HANDLES`], as `Type::name(arg: Type, …)`, sorted.
+/// `Type::name(arg: Type, …)`.
 pub(super) fn methods(src: &Path) -> Vec<String> {
     let mut out = Vec::new();
     for path in rust_files(src) {
@@ -35,9 +34,7 @@ pub(super) fn methods(src: &Path) -> Vec<String> {
     out
 }
 
-/// `(role, Type::name)` for every `pub fn` of [`HANDLES`] that links a role in
-/// its doc comment, as its `Serves` line does. The role is the variant name,
-/// as `Debug` writes it.
+/// `(role variant, Type::name)`.
 pub(super) fn serves(src: &Path) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for path in rust_files(src) {
@@ -52,7 +49,6 @@ pub(super) fn serves(src: &Path) -> Vec<(String, String)> {
     out
 }
 
-/// The variant of every ``[`Role::Variant`]`` link in the doc comment.
 fn doc_roles(attrs: &[Attribute]) -> Vec<String> {
     let doc: String = attrs
         .iter()
@@ -73,8 +69,6 @@ fn doc_roles(attrs: &[Attribute]) -> Vec<String> {
         .collect()
 }
 
-/// Call `visit` with the owner and the item of every `pub fn` in an inherent
-/// `impl` of one of [`HANDLES`], test modules left out.
 fn each_method(items: &[Item], visit: &mut impl FnMut(&str, &ImplItemFn)) {
     for item in items {
         match item {
@@ -103,8 +97,7 @@ fn each_method(items: &[Item], visit: &mut impl FnMut(&str, &ImplItemFn)) {
     }
 }
 
-/// Every subcommand of `enum Command`, with the verbs of `enum Verb`, as
-/// `govee <kebab-name> <ARGS>`, sorted.
+/// `govee <kebab-name> <ARGS>`.
 pub(super) fn cli(dir: &Path) -> Vec<String> {
     let items: Vec<Item> = rust_files(dir)
         .iter()
@@ -150,7 +143,7 @@ fn subcommands(items: &[Item], name: &str, out: &mut Vec<String>) {
     }
 }
 
-/// One field as clap renders it in a usage line.
+/// One field, as clap renders it in a usage line.
 fn argument(ident: &str, ty: &Type, attrs: &[Attribute]) -> String {
     let mut long = None;
     let mut value_name = None;
@@ -205,14 +198,12 @@ fn is_test(attrs: &[Attribute]) -> bool {
     has_word(attrs, "cfg", "test")
 }
 
-/// The last segment of a path type: `Vec` for `Vec<String>`, and `Verb` for
-/// `Verb`. `Option<T>` and `Vec<T>` name the wrapper, not `T`.
+/// `Option<T>` and `Vec<T>` give the wrapper, not `T`.
 pub(super) fn last_ident(ty: &Type) -> Option<String> {
     let Type::Path(path) = ty else { return None };
     Some(path.path.segments.last()?.ident.to_string())
 }
 
-/// `ColorTemp` to `color-temp`.
 pub(super) fn kebab(camel: &str) -> String {
     let mut out = String::new();
     for (i, c) in camel.chars().enumerate() {
@@ -248,7 +239,6 @@ pub(super) fn parse(path: &Path) -> syn::File {
     syn::parse_file(&crate::read(path)).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 
-/// Every `*.rs` under `dir`, sorted, with `tests.rs` and `tests/` left out.
 fn rust_files(dir: &Path) -> Vec<PathBuf> {
     let mut out = Vec::new();
     let mut pending = vec![dir.to_path_buf()];

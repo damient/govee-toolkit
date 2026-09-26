@@ -1,5 +1,4 @@
-// The embedded catalog, as the read tools see it. Every value a tool accepts
-// is read from here, so the source names no SKU, mode or capability.
+// Every value a tool accepts comes from the embedded catalog, never from this source.
 
 import { Catalog, MODES, PERSONALITIES, SUPPORT } from "govee-toolkit";
 import { z } from "zod";

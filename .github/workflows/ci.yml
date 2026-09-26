@@ -497,18 +497,14 @@ jobs:
           workspaces: |
             packages/rust
             packages/node
-      # The binding of this checkout, not the one on npm: a pull request that
-      # changes both the binding and a tool is tested as one change. The
-      # release workflow tests the package against the binding on npm.
+      # The binding of this checkout, so that a change to the binding and to a
+      # tool is tested as one change.
       - name: Build the binding
         working-directory: packages/node
         run: npm ci && npm run build:debug
       - name: Install the dependencies
         working-directory: integrations/mcp
         run: npm ci && npm run link:binding
-      # The script writes dist/api.json, builds the simulator, then runs the
-      # build, the types, the lint and the tests. A skipped check exits 2 and
-      # fails the job.
       - run: tools/qa-mcp.sh
 
   docs:

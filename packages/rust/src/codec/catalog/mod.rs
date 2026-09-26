@@ -27,7 +27,7 @@ pub use overrides::{ArgOverride, Override, Overrides, apply as apply_overrides};
 pub use spec::{ArgRole, ArgSpec, Role};
 
 impl ArgRole {
-    /// Whether a value in this role is a secret: [`ArgRole::Password`].
+    /// Whether the role is a secret: [`ArgRole::Password`].
     #[must_use]
     pub fn is_secret(self) -> bool {
         matches!(self, Self::Password)
@@ -59,7 +59,7 @@ pub enum Support {
 }
 
 impl Support {
-    /// Every level, in declaration order.
+    /// Every level.
     pub const ALL: [Self; 5] = [
         Self::Full,
         Self::Capped,

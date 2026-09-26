@@ -1,5 +1,4 @@
-// `set`: the role verbs of a group handle. One device is a group of one, as in
-// the CLI, so a device and a group answer the same shape.
+// One device is a group of one, as in the CLI, so both answer the same shape.
 
 import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import type { Applied, GroupHandle } from "govee-toolkit";

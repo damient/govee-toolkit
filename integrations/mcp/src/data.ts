@@ -1,5 +1,3 @@
-// What `scripts/copy-data.ts` copied into `data/`: the API join and the docs.
-
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 

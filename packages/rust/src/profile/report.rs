@@ -21,11 +21,8 @@ pub fn json(device: &Device, tables: &[Result<Profile, Error>]) -> Value {
     })
 }
 
-/// The tables `device` serves, as `dist/catalog.json` carries them under `dmx`.
-///
-/// The catalog, the site, the node and the bindings read this one record. A
-/// personality the device serves through nothing is left out, and one wider
-/// than a universe carries its error.
+/// The tables that `device` serves, as `dist/catalog.json` carries them. A
+/// personality wider than a universe carries its error.
 #[must_use]
 pub fn entry(device: &Device) -> Value {
     json!({ "personalities": personalities(&super::served(device)) })
