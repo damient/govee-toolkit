@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{Config, DeviceId, Env, Govee, Identify, Music, Selector, Walk};
+use govee_toolkit::{Config, DeviceId, Env, Govee, Identify, Music, Selector, Verb, Walk};
 
 use crate::cli::{self, Cli, Command};
 
@@ -118,12 +118,12 @@ async fn play(
     verb: &cli::Verb,
 ) -> Result<(), Failure> {
     let played = match verb {
-        cli::Verb::On { .. } => verbs::Verb::Power(true),
-        cli::Verb::Off { .. } => verbs::Verb::Power(false),
-        cli::Verb::Brightness { value, .. } => verbs::Verb::Brightness(*value),
-        cli::Verb::Color { color, .. } => verbs::Verb::Color(args::rgb(color)?),
-        cli::Verb::Colortemp { kelvin, .. } => verbs::Verb::ColorTemp(*kelvin),
-        cli::Verb::Gradient { state, .. } => verbs::Verb::Gradient((*state).into()),
+        cli::Verb::On { .. } => Verb::Power(true),
+        cli::Verb::Off { .. } => Verb::Power(false),
+        cli::Verb::Brightness { value, .. } => Verb::Brightness(*value),
+        cli::Verb::Color { color, .. } => Verb::Color(args::rgb(color)?),
+        cli::Verb::Colortemp { kelvin, .. } => Verb::ColorTemp(*kelvin),
+        cli::Verb::Gradient { state, .. } => Verb::Gradient((*state).into()),
         cli::Verb::Segment {
             zones,
             resolution,
@@ -137,7 +137,7 @@ async fn play(
             soft,
             color,
             ..
-        } => verbs::Verb::Music(music(*effect, *sensitivity, *soft, color.as_deref())?),
+        } => Verb::Music(music(*effect, *sensitivity, *soft, color.as_deref())?),
     };
     verbs::run(govee, writer, members, restrict, played).await
 }
@@ -147,8 +147,8 @@ async fn segment(
     resolution: &str,
     colors: &str,
     gradient: bool,
-) -> Result<verbs::Verb, Failure> {
-    Ok(verbs::Verb::Segment {
+) -> Result<Verb, Failure> {
+    Ok(Verb::Segment {
         zones: zones.map(args::zones).transpose()?,
         colors: args::colors_or_stdin(colors).await?,
         resolution: args::resolution(resolution)?,

@@ -14,6 +14,19 @@ releases apart and keeps
 - `profile::report::entry()` — the DMX channel tables of one device, as
   `dist/catalog.json` carries them under `dmx`.
 - `Role::CLAIMABLE` is public: every role, in declaration order.
+- `Resolved::invoke()` reads a command whose entry declares an answer, and
+  sends any other one. It answers `Invoked::Read` or `Invoked::Sent`.
+- `Resolved::refuse_secret()` fails with the new `codec::Error::SecretArg`
+  (`secret_arg`) when the entry takes a secret. `Command::secret_arg()` and
+  `ArgRole::is_secret()` state which argument carries one: `password`.
+- `GroupHandle::apply()` scans for the members, then sends several `Verb`s in
+  one fixed order: power on first, then gradient, brightness, white
+  temperature, color, segments and music, and power off last. A member that
+  fails the scan or a step takes no later step, and stops no other member.
+  It answers `Applied`, with one `AppliedStep` per verb sent.
+  `GroupHandle::play()` sends one `Verb`.
+- `Support::ALL` — every support level. `Catalog::capabilities()` — every
+  capability name that a device of the catalog declares.
 
 ## [0.14.0] — 2026-09-26
 

@@ -98,6 +98,8 @@ pub mod summary;
 pub mod transport;
 
 #[cfg(feature = "transport")]
+mod apply;
+#[cfg(feature = "transport")]
 mod describe;
 #[cfg(feature = "transport")]
 mod device;
@@ -117,6 +119,8 @@ pub mod select;
 #[cfg(feature = "transport")]
 mod verbs;
 
+#[cfg(feature = "transport")]
+pub use apply::{Applied, AppliedStep, Verb};
 pub use codec::{Args, Catalog, Mode};
 #[cfg(feature = "transport")]
 pub use config::{CloudConfig, Config, DeviceConfig, LanConfig, Problem, StreamConfig};
@@ -137,7 +141,7 @@ pub use group::{GroupHandle, Outcome};
 #[cfg(feature = "ble")]
 pub use provision::{Provisioned, WifiCredentials};
 #[cfg(feature = "transport")]
-pub use resolved::Resolved;
+pub use resolved::{Invoked, Resolved};
 #[cfg(feature = "transport")]
 pub use select::Selector;
 #[cfg(feature = "transport")]
