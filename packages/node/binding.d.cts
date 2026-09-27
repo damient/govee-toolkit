@@ -116,6 +116,8 @@ export declare class DeviceHandle {
   /**
    * Read a command whose entry declares an answer, and send any other one.
    * With `refuseSecrets`, a command that takes a secret throws `secret_arg`.
+   *
+   * @param [refuseSecrets=false]
    */
   invoke(command: string, args?: Record<string, boolean | number | string | Uint8Array | Array<number> | Array<[number, number, number]>>, refuseSecrets?: boolean | undefined | null): Promise<Invoked>
   /** The MAC the device reports, uppercased. */
@@ -178,6 +180,9 @@ export declare class DeviceHandle {
    *
    * Answers `"accepted"` where the device acknowledged the transfer, and
    * `"sent"` where its device file declares no acknowledgement.
+   *
+   * @param [utcOffsetHours=0]
+   * @param [utcOffsetMinutes=0]
    */
   provisionWifi(network: string, password: string, utcOffsetHours?: number | undefined | null, utcOffsetMinutes?: number | undefined | null): Promise<string>
   /**
@@ -187,8 +192,9 @@ export declare class DeviceHandle {
    * channel holds the colors only while it is armed, and the device goes
    * back to the color it showed before once the stream closes.
    *
-   * `resolution` takes `"app"` when it is `null`, and `rate` takes
-   * `"measured"`.
+   * @param [resolution='app']
+   * @param [rate='measured']
+   * @param [gradient=false]
    */
   openStream(resolution?: number | 'app' | 'native' | 'groups', rate?: number | 'measured', gradient?: boolean | undefined | null): Promise<SegmentStream>
   toString(): string
@@ -208,8 +214,11 @@ export declare class DeviceHandle {
    * One pass: the device stays on and lit, and loses the look it held.
    * `Govee.identify()` runs the whole walk.
    *
-   * `null` takes the core's defaults: green, and the top of the
-   * brightness range the device file declares.
+   * `fullBrightness` sets the top of the brightness range the device
+   * file declares.
+   *
+   * @param [color=[0, 255, 0]]
+   * @param [fullBrightness=true]
    */
   identify(color?: [number, number, number] | Uint8Array, fullBrightness?: boolean | undefined | null): Promise<undefined>
   /** Set the white temperature, in kelvin. It ends color mode. */
@@ -221,7 +230,8 @@ export declare class DeviceHandle {
    * the device renders. `color` imposes a color, and `null` leaves the
    * colors to the firmware.
    *
-   * `null` takes the core's default for `sensitivity` and for `soft`.
+   * @param [sensitivity=50]
+   * @param [soft=false]
    */
   music(effect: number, sensitivity?: number | undefined | null, soft?: boolean | undefined | null, color?: [number, number, number] | Uint8Array): Promise<Served>
   /**
@@ -229,7 +239,9 @@ export declare class DeviceHandle {
    *
    * One color fills every zone. An array of colors, or a `Uint8Array` of
    * three bytes per zone, states them all. A zone list takes one color.
-   * `resolution` takes `"app"` when it is `null`.
+   *
+   * @param [resolution='app']
+   * @param [gradient=false]
    */
   segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean | undefined | null): Promise<Served>
   /**
@@ -360,14 +372,20 @@ export declare class Govee {
   group(target: string, mode?: string | undefined | null): GroupHandle
   /**
    * Run the walk `govee identify` runs. `targets` reads as `select()`
-   * reads it; `null` walks every device that a scan finds. Defaults:
-   * `color` green, `waitMs` 1000 between steps, `holdMs` 5000 on the last
-   * device, `keep` false, `mode` `"lan"`. An unknown option is refused.
+   * reads it; `null` walks every device that a scan finds. `wait` is the
+   * time between two steps and `hold` the time on the last device, in
+   * seconds. An unknown option is refused.
    *
    * Rejects with `mode_not_enabled` before it sends a command where a
    * device does not enable the mode. A device that fails is in the report.
+   *
+   * @param [options.color=[0, 255, 0]]
+   * @param [options.wait=1]
+   * @param [options.hold=5]
+   * @param [options.keep=false]
+   * @param [options.mode='lan']
    */
-  identify(targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; waitMs?: number; holdMs?: number; keep?: boolean; mode?: string }): Promise<WalkReport>
+  identify(targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; wait?: number; hold?: number; keep?: boolean; mode?: string }): Promise<WalkReport>
   /** Subscribe to what the SDK reports. Iterate it with `for await`. */
   events(): EventStream
   /**
@@ -397,9 +415,19 @@ export declare class GroupHandle {
   color(rgb: [number, number, number] | Uint8Array): Promise<Array<Outcome>>
   /** Set the white temperature on every member, in kelvin. */
   colorTemp(kelvin: number): Promise<Array<Outcome>>
-  /** `DeviceHandle.music()` on every member. */
+  /**
+   * `DeviceHandle.music()` on every member.
+   *
+   * @param [sensitivity=50]
+   * @param [soft=false]
+   */
   music(effect: number, sensitivity?: number | undefined | null, soft?: boolean | undefined | null, color?: [number, number, number] | Uint8Array): Promise<Array<Outcome>>
-  /** `DeviceHandle.segment()` on every member, against its own zones. */
+  /**
+   * `DeviceHandle.segment()` on every member, against its own zones.
+   *
+   * @param [resolution='app']
+   * @param [gradient=false]
+   */
   segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean | undefined | null): Promise<Array<Outcome>>
   /** Set the interpolation between zones on every member. */
   gradient(on: boolean): Promise<Array<Outcome>>

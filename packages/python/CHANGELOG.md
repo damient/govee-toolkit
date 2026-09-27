@@ -23,6 +23,11 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
   personality the core knows. `Catalog.capabilities()` — every capability
   name that a device of the catalog declares.
 
+### Changed
+
+- The signatures of `identify()`, `music()`, `segment()` and `open_stream()`
+  carry the defaults the core applies, as `help()` and the stub show them.
+
 ## [0.6.0] — 2026-09-26
 
 ### Added

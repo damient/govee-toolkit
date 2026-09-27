@@ -178,6 +178,9 @@ impl GroupHandle {
     }
 
     /// `DeviceHandle.music()` on every member.
+    ///
+    /// @param [sensitivity=50]
+    /// @param [soft=false]
     #[napi]
     pub fn music<'env>(
         &self,
@@ -196,6 +199,9 @@ impl GroupHandle {
     }
 
     /// `DeviceHandle.segment()` on every member, against its own zones.
+    ///
+    /// @param [resolution='app']
+    /// @param [gradient=false]
     #[napi]
     pub fn segment<'env>(
         &self,

@@ -362,7 +362,7 @@ class DeviceHandle:
     async def color(self, rgb: Color) -> Served:
         """Set one color, as three channels."""
     async def identify(
-        self, color: Color | None = None, full_brightness: bool | None = None
+        self, color: Color = (0, 255, 0), full_brightness: bool = True
     ) -> None:
         """Power the device on and paint one color, so a person sees which fixture this
         identity drives.
@@ -370,8 +370,7 @@ class DeviceHandle:
         One pass: the device stays on and lit, and loses the look it held.
         `Govee.identify()` runs the whole walk.
 
-        `None` takes the core's defaults: green, and the top of the brightness range the
-        device file declares.
+        `full_brightness` sets the top of the brightness range the device file declares.
         """
 
     async def color_temp(self, kelvin: int) -> Served:
@@ -380,29 +379,27 @@ class DeviceHandle:
     async def music(
         self,
         effect: int,
-        sensitivity: int | None = None,
-        soft: bool | None = None,
+        sensitivity: int = 50,
+        soft: bool = False,
         color: Color | None = None,
     ) -> Served:
         """Play an effect the device renders from its own microphone.
 
         The identifiers are the mode's own: one the entry accepts is not one the device
         renders. `color` imposes a color, and `None` leaves the colors to the firmware.
-
-        `None` takes the core's default for `sensitivity` and for `soft`.
         """
 
     async def segment(
         self,
         colors: Sequence[Color],
         zones: Sequence[int] | None = None,
-        resolution: Resolution | None = None,
+        resolution: Resolution = "app",
         gradient: bool = False,
     ) -> Served:
         """Paint the segments once.
 
         One color fills every zone, and a list states them all. A zone list takes one
-        color. `resolution` takes `"app"` when it is `None`.
+        color.
         """
 
     async def gradient(self, on: bool) -> Served:
@@ -429,8 +426,8 @@ class DeviceHandle:
 
     async def open_stream(
         self,
-        resolution: Resolution | None = None,
-        rate: Rate | None = None,
+        resolution: Resolution = "app",
+        rate: Rate = "measured",
         gradient: bool = False,
     ) -> SegmentStream:
         """Open the raw segment channel and paint it frame by frame.
@@ -438,8 +435,6 @@ class DeviceHandle:
         Power the device on first: arming a dark strip paints nothing. The channel holds
         the colors only while it is armed, and the device goes back to the color it
         showed before once the stream closes.
-
-        `resolution` takes `"app"` when it is `None`, and `rate` takes `"measured"`.
         """
 
 @final
@@ -543,8 +538,8 @@ class GroupHandle:
     async def music(
         self,
         effect: int,
-        sensitivity: int | None = None,
-        soft: bool | None = None,
+        sensitivity: int = 50,
+        soft: bool = False,
         color: Color | None = None,
     ) -> list[Outcome]:
         """`DeviceHandle.music()` on every member."""
@@ -552,7 +547,7 @@ class GroupHandle:
         self,
         colors: Sequence[Color],
         zones: Sequence[int] | None = None,
-        resolution: Resolution | None = None,
+        resolution: Resolution = "app",
         gradient: bool = False,
     ) -> list[Outcome]:
         """`DeviceHandle.segment()` on every member, against its own zones."""
@@ -657,16 +652,15 @@ class Govee:
         self,
         targets: str | Sequence[str] | None = None,
         *,
-        color: Color | None = None,
-        wait: float | None = None,
-        hold: float | None = None,
-        keep: bool | None = None,
-        mode: str | None = None,
+        color: Color = (0, 255, 0),
+        wait: float = 1.0,
+        hold: float = 5.0,
+        keep: bool = False,
+        mode: str = "lan",
     ) -> WalkReport:
         """Run the walk `govee identify` runs. `targets` reads as `select()` reads it;
-        `None` walks every device that a scan finds. Defaults, in seconds: `color`
-        green, `wait` 1 between steps, `hold` 5 on the last device, `keep` False,
-        `mode` `"lan"`.
+        `None` walks every device that a scan finds. `wait` is the time between two
+        steps and `hold` the time on the last device, in seconds.
 
         Raises `ConfigError` with `mode_not_enabled` before it sends a command where a
         device does not enable the mode. A device that fails is in the report.

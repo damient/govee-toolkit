@@ -52,6 +52,8 @@ impl Invoked {
 impl DeviceHandle {
     /// Read a command whose entry declares an answer, and send any other one.
     /// With `refuseSecrets`, a command that takes a secret throws `secret_arg`.
+    ///
+    /// @param [refuseSecrets=false]
     #[napi]
     pub fn invoke<'env>(
         &self,

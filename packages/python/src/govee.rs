@@ -187,9 +187,9 @@ impl Govee {
     }
 
     /// Run the walk `govee identify` runs. `targets` reads as `select()`
-    /// reads it; `None` walks every device that a scan finds. Defaults, in
-    /// seconds: `color` green, `wait` 1 between steps, `hold` 5 on the last
-    /// device, `keep` False, `mode` `"lan"`.
+    /// reads it; `None` walks every device that a scan finds. `wait` is the
+    /// time between two steps and `hold` the time on the last device, in
+    /// seconds.
     ///
     /// Raises `ConfigError` with `mode_not_enabled` before it sends a command
     /// where a device does not enable the mode. A device that fails is in the
@@ -198,7 +198,10 @@ impl Govee {
         clippy::too_many_arguments,
         reason = "each keyword is one Python argument"
     )]
-    #[pyo3(signature = (targets=None, *, color=None, wait=None, hold=None, keep=None, mode=None))]
+    #[pyo3(
+        signature = (targets=None, *, color=None, wait=None, hold=None, keep=None, mode=None),
+        text_signature = "($self, targets=None, *, color=(0, 255, 0), wait=1.0, hold=5.0, keep=False, mode='lan')"
+    )]
     fn identify<'py>(
         &self,
         py: Python<'py>,
