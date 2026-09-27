@@ -144,6 +144,12 @@ read once and the bytes go over the mode the values were read for.
   `x86_64`, musl `aarch64` and musl `armv7` wheels. It serves the Home Assistant
   component, which runs on the last four.
 
+Each surface states the default of an optional parameter in its own
+signature: the Python stub, an `@param [name=value]` line of the Node doc
+comment, and the clap attribute of the CLI. `xtask api` compares them and
+fails when two surfaces give one parameter two values. The reference page of
+the site reads the same extraction.
+
 ## The MCP server
 
 `integrations/mcp` wraps the Node binding and holds no device data and no

@@ -208,13 +208,23 @@ gh run rerun <release run id> --failed
 ```bash
 cd packages/rust
 cargo run -p xtask                    # dist/catalog.json, the release artifact
-cargo run -p xtask -- api             # dist/api.json, the methods of each role
-cargo run -p xtask -- api --check     # fails when a role has no method
+cargo run -p xtask -- api             # dist/api.json, the methods and their parameters
+cargo run -p xtask -- api --check     # fails when a role has no method, or when
+                                      # two surfaces give one parameter two defaults
 cargo run -p xtask -- compat          # the tables in docs/compatibility.md
 cargo run -p xtask -- compat --check  # fails when they have drifted
 cargo run -p xtask -- lan             # the table in docs/lan-supported-devices.md
 cargo run -p xtask -- dupes           # fails on a layout two device files
                                       # declare and no family carries
+```
+
+`xtask api` reads the parameters of the CLI from `crates/cli/args.json` and
+`crates/dmx/args.json`. A test of each binary writes the file from clap, and
+fails when the file is stale:
+
+```bash
+GOVEE_BLESS=1 cargo test -p govee-toolkit-cli args_json   # rewrite args.json
+GOVEE_BLESS=1 cargo test -p govee-toolkit-dmx args_json
 ```
 
 No script supplies the local credentials: the SDK reads the repository's

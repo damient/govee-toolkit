@@ -1,0 +1,243 @@
+{
+  "govee-dmx": [],
+  "govee-dmx identify": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": true,
+      "name": "TARGET",
+      "required": false,
+      "value": "TARGET"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--universe",
+      "required": false,
+      "value": "UNIVERSE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--address",
+      "required": false,
+      "value": "CHANNEL"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--patch",
+      "required": false,
+      "value": "FILE"
+    },
+    {
+      "choices": null,
+      "default": "#00FF00",
+      "multiple": false,
+      "name": "--color",
+      "required": false,
+      "value": "COLOR"
+    },
+    {
+      "choices": null,
+      "default": "1000",
+      "multiple": false,
+      "name": "--wait-ms",
+      "required": false,
+      "value": "MS"
+    },
+    {
+      "choices": null,
+      "default": "5000",
+      "multiple": false,
+      "name": "--hold-ms",
+      "required": false,
+      "value": "MS"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--keep",
+      "required": false,
+      "value": null
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--config",
+      "required": false,
+      "value": "CONFIG"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--json",
+      "required": false,
+      "value": null
+    }
+  ],
+  "govee-dmx patch": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--patch",
+      "required": false,
+      "value": "FILE"
+    },
+    {
+      "choices": null,
+      "default": "full",
+      "multiple": false,
+      "name": "--personality",
+      "required": false,
+      "value": "PERSONALITY"
+    },
+    {
+      "choices": null,
+      "default": "0",
+      "multiple": false,
+      "name": "--universe",
+      "required": false,
+      "value": "UNIVERSE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--reset",
+      "required": false,
+      "value": null
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--dry-run",
+      "required": false,
+      "value": null
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--config",
+      "required": false,
+      "value": "CONFIG"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--json",
+      "required": false,
+      "value": null
+    }
+  ],
+  "govee-dmx profile": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "SKU",
+      "required": true,
+      "value": "SKU"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--personality",
+      "required": false,
+      "value": "PERSONALITY"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--json",
+      "required": false,
+      "value": null
+    }
+  ],
+  "govee-dmx run": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--patch",
+      "required": false,
+      "value": "FILE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--scan",
+      "required": false,
+      "value": null
+    },
+    {
+      "choices": null,
+      "default": "full",
+      "multiple": false,
+      "name": "--personality",
+      "required": false,
+      "value": "PERSONALITY"
+    },
+    {
+      "choices": null,
+      "default": "0",
+      "multiple": false,
+      "name": "--universe",
+      "required": false,
+      "value": "UNIVERSE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--dry-run",
+      "required": false,
+      "value": null
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--no-reset",
+      "required": false,
+      "value": null
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--debug",
+      "required": false,
+      "value": null
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--config",
+      "required": false,
+      "value": "CONFIG"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--json",
+      "required": false,
+      "value": null
+    }
+  ]
+}

@@ -23,6 +23,13 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-09-27
+
+#### Added
+
+- `dist/api.json` lists the parameters of every method on every surface. `xtask
+  api` fails when two surfaces give one parameter two defaults.
+
 ### 2026-09-26
 
 #### Added
