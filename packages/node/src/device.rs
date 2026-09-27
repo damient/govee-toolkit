@@ -169,6 +169,9 @@ impl DeviceHandle {
     ///
     /// Answers `"accepted"` where the device acknowledged the transfer, and
     /// `"sent"` where its device file declares no acknowledgement.
+    ///
+    /// @param [utcOffsetHours=0]
+    /// @param [utcOffsetMinutes=0]
     #[napi]
     pub fn provision_wifi<'env>(
         &self,
@@ -200,8 +203,9 @@ impl DeviceHandle {
     /// channel holds the colors only while it is armed, and the device goes
     /// back to the color it showed before once the stream closes.
     ///
-    /// `resolution` takes `"app"` when it is `null`, and `rate` takes
-    /// `"measured"`.
+    /// @param [resolution='app']
+    /// @param [rate='measured']
+    /// @param [gradient=false]
     #[napi]
     pub fn open_stream<'env>(
         &self,

@@ -160,9 +160,9 @@ test("an identify walk over an empty list walks no device", async () => {
 
 test("an identify option the list does not name is refused", async () => {
   await withGovee(sdk, async (govee) => {
-    await refusesValue(() => govee.identify([], { holdMS: 0 }));
-    await refusesValue(() => govee.identify([], { holdMs: -1 }));
-    await refusesValue(() => govee.identify([], { waitMs: 0.5 }));
+    await refusesValue(() => govee.identify([], { holdMs: 0 }));
+    await refusesValue(() => govee.identify([], { hold: -1 }));
+    await refusesValue(() => govee.identify([], { wait: Infinity }));
     await refusesValue(() => govee.identify([], { color: [256, 0, 0] }));
     await refusesValue(() => govee.identify([], { mode: "radio" }));
   });
@@ -174,7 +174,7 @@ test("an identify walk over a mode the device does not enable is refused before 
   const govee = await Govee.start(Config.loadFrom(path));
   try {
     await assert.rejects(
-      () => govee.identify("AA:00:00:00:00:01", { waitMs: 0, holdMs: 0 }),
+      () => govee.identify("AA:00:00:00:00:01", { wait: 0, hold: 0 }),
       { code: "mode_not_enabled" },
     );
   } finally {

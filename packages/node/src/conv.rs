@@ -89,13 +89,16 @@ pub(crate) fn music(
     })
 }
 
-const WALK_OPTIONS: [&str; 5] = ["color", "waitMs", "holdMs", "keep", "mode"];
+const WALK_OPTIONS: [&str; 5] = ["color", "wait", "hold", "keep", "mode"];
 
-fn millis(env: &Env, key: &str, value: &Unknown<'_>) -> napi::Result<Duration> {
-    let ms = whole(env, value)?;
-    let ms = u64::try_from(ms)
-        .map_err(|_| value_error(env, format!("`{key}` is {ms}, and a duration is 0 or more")))?;
-    Ok(Duration::from_millis(ms))
+fn seconds(env: &Env, key: &str, value: &Unknown<'_>) -> napi::Result<Duration> {
+    let number = value.coerce_to_number()?.get_double()?;
+    Duration::try_from_secs_f64(number).map_err(|_| {
+        value_error(
+            env,
+            format!("`{key}` is {number}, and a duration is a number of seconds, 0 or more"),
+        )
+    })
 }
 
 /// A misspelled key is refused: ignored, it reads as a setting that failed.
@@ -119,11 +122,11 @@ pub(crate) fn walk(env: &Env, options: Option<Object<'_>>) -> napi::Result<Walk>
     if let Some(color) = options.get::<Option<Channels<'_>>>("color")?.flatten() {
         walk.pass.color = rgb(env, &color)?;
     }
-    if let Some(value) = options.get::<Option<Unknown<'_>>>("waitMs")?.flatten() {
-        walk.wait = millis(env, "waitMs", &value)?;
+    if let Some(value) = options.get::<Option<Unknown<'_>>>("wait")?.flatten() {
+        walk.wait = seconds(env, "wait", &value)?;
     }
-    if let Some(value) = options.get::<Option<Unknown<'_>>>("holdMs")?.flatten() {
-        walk.hold = millis(env, "holdMs", &value)?;
+    if let Some(value) = options.get::<Option<Unknown<'_>>>("hold")?.flatten() {
+        walk.hold = seconds(env, "hold", &value)?;
     }
     if let Some(keep) = options.get::<Option<bool>>("keep")?.flatten() {
         walk.keep = keep;

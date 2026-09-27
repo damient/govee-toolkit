@@ -204,14 +204,20 @@ impl Govee {
     }
 
     /// Run the walk `govee identify` runs. `targets` reads as `select()`
-    /// reads it; `null` walks every device that a scan finds. Defaults:
-    /// `color` green, `waitMs` 1000 between steps, `holdMs` 5000 on the last
-    /// device, `keep` false, `mode` `"lan"`. An unknown option is refused.
+    /// reads it; `null` walks every device that a scan finds. `wait` is the
+    /// time between two steps and `hold` the time on the last device, in
+    /// seconds. An unknown option is refused.
     ///
     /// Rejects with `mode_not_enabled` before it sends a command where a
     /// device does not enable the mode. A device that fails is in the report.
+    ///
+    /// @param [options.color=[0, 255, 0]]
+    /// @param [options.wait=1]
+    /// @param [options.hold=5]
+    /// @param [options.keep=false]
+    /// @param [options.mode='lan']
     #[napi(
-        ts_args_type = "targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; waitMs?: number; holdMs?: number; keep?: boolean; mode?: string }"
+        ts_args_type = "targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; wait?: number; hold?: number; keep?: boolean; mode?: string }"
     )]
     pub fn identify<'env>(
         &self,
