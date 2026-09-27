@@ -37,14 +37,22 @@ impl DeviceHandle {
         self.id.to_string()
     }
 
+    /// The one mode every call on this handle goes over, or `null` where each
+    /// call takes the first enabled mode that answers.
+    #[napi(getter)]
+    pub fn pinned(&self) -> Option<String> {
+        self.pinned.map(|mode| mode.to_string())
+    }
+
     /// The modes enabled for it, in preference order.
     #[napi(getter)]
-    pub fn modes(&self) -> Vec<String> {
-        self.core()
+    pub fn modes(&self, env: &Env) -> napi::Result<Vec<String>> {
+        Ok(self
+            .core(env)?
             .modes()
             .iter()
             .map(ToString::to_string)
-            .collect()
+            .collect())
     }
 
     /// Its health in one mode. `null` when the transport that serves that
@@ -52,8 +60,7 @@ impl DeviceHandle {
     #[napi]
     pub fn health(&self, env: &Env, mode: String) -> napi::Result<Option<Health>> {
         Ok(self
-            .govee
-            .device(&self.id)
+            .core(env)?
             .health(conv::mode(env, &mode)?)
             .map(Health::from))
     }
@@ -62,45 +69,47 @@ impl DeviceHandle {
     /// so the answer can change before the next call.
     #[napi]
     pub fn serving_mode(&self, env: &Env) -> napi::Result<String> {
-        Ok(map(env, self.core().serving_mode())?.to_string())
+        Ok(map(env, self.core(env)?.serving_mode())?.to_string())
     }
 
     /// What `devices/<SKU>.yaml` declares for it. Reads no hardware.
     #[napi]
     pub fn spec(&self, env: &Env) -> napi::Result<serde_json::Value> {
-        to_js(env, map(env, self.core().spec())?)
+        to_js(env, map(env, self.core(env)?.spec())?)
     }
 
     /// What `devices/<SKU>.yaml` declares, as the record `govee describe`
     /// prints.
     #[napi]
     pub fn describe(&self, env: &Env) -> napi::Result<serde_json::Value> {
-        to_js(env, &describe(map(env, self.core().spec())?))
+        to_js(env, &describe(map(env, self.core(env)?.spec())?))
     }
 
     /// The last status heard, without asking for a new one.
     #[napi]
-    pub fn last_status(&self) -> Option<DeviceStatus> {
-        self.core().last_status().map(DeviceStatus::from)
+    pub fn last_status(&self, env: &Env) -> napi::Result<Option<DeviceStatus>> {
+        Ok(self.core(env)?.last_status().map(DeviceStatus::from))
     }
 
     /// Watch its status as answers arrive, over the mode that would serve a
     /// command now. `null` when no enabled mode can, or when that transport
     /// has heard nothing.
     #[napi]
-    pub fn watch_status(&self) -> Option<StatusStream> {
-        self.core().watch_status().map(StatusStream::new)
+    pub fn watch_status(&self, env: &Env) -> napi::Result<Option<StatusStream>> {
+        Ok(self.core(env)?.watch_status().map(StatusStream::new))
     }
 
     /// Scan for the device if no mode knows it yet, then answer the mode a
     /// command would go over.
     ///
-    /// The scan covers every enabled mode, whatever this handle is pinned to.
+    /// Call it once before the first command: the send path does not scan.
+    /// The enabled modes scan at the same time, and a pinned handle scans
+    /// over its mode alone.
     #[napi]
     pub fn ensure_known<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, String>> {
-        let (govee, _, id) = self.parts();
+        let (govee, pinned, id) = self.parts();
         promise(env, async move {
-            Ok(govee.ensure_known(&id).await?.to_string())
+            Ok(govee.device(&id, pinned)?.ensure_known().await?.to_string())
         })
     }
 
@@ -121,7 +130,7 @@ impl DeviceHandle {
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let supplied = conv::args(env, args)?;
         self.served(env, |govee, pinned, id| async move {
-            let handle = govee.device_maybe_on(&id, pinned);
+            let handle = govee.device(&id, pinned)?;
             let call = handle.resolve()?;
             let values = call.args(&command, supplied)?;
             call.send(&command, &values).await
@@ -143,7 +152,7 @@ impl DeviceHandle {
         let supplied = conv::args(env, args)?;
         let (govee, pinned, id) = self.parts();
         promise(env, async move {
-            let handle = govee.device_maybe_on(&id, pinned);
+            let handle = govee.device(&id, pinned)?;
             let call = handle.resolve()?;
             let values = call.args(&command, supplied)?;
             Ok(Reply::from(call.read(&command, &values).await?))
@@ -156,7 +165,7 @@ impl DeviceHandle {
         let (govee, pinned, id) = self.parts();
         promise(env, async move {
             Ok(DeviceStatus::from(
-                govee.device_maybe_on(&id, pinned).status().await?,
+                govee.device(&id, pinned)?.status().await?,
             ))
         })
     }
@@ -190,7 +199,7 @@ impl DeviceHandle {
         let (govee, pinned, id) = self.parts();
         promise(env, async move {
             let done = govee
-                .device_maybe_on(&id, pinned)
+                .device(&id, pinned)?
                 .provision_wifi(&credentials)
                 .await?;
             Ok(done.as_str().to_owned())
@@ -224,10 +233,7 @@ impl DeviceHandle {
         let (govee, pinned, id) = self.parts();
         promise(env, async move {
             Ok(SegmentStream::new(
-                govee
-                    .device_maybe_on(&id, pinned)
-                    .open_stream(options)
-                    .await?,
+                govee.device(&id, pinned)?.open_stream(options).await?,
             ))
         })
     }
@@ -239,8 +245,9 @@ impl DeviceHandle {
 }
 
 impl DeviceHandle {
-    pub(crate) fn core(&self) -> CoreHandle<'_> {
-        self.govee.device_maybe_on(&self.id, self.pinned)
+    /// An identity never fails to resolve, so the error is never raised.
+    pub(crate) fn core(&self, env: &Env) -> napi::Result<CoreHandle<'_>> {
+        map(env, self.govee.device(&self.id, self.pinned))
     }
 
     pub(crate) fn parts(&self) -> (Govee, Option<Mode>, DeviceId) {
