@@ -90,6 +90,10 @@ export interface RefEntry {
   title: string;
   summary: string;
   detail?: string;
+  /** The Rust methods the entry shows. Python and Node.js take theirs from them. */
+  api?: string[];
+  /** The commands the entry shows, as `dist/api.json` names them. */
+  cli?: string[];
   modes?: Mode[];
   roles?: string[];
   args?: Record<string, string>;
@@ -97,6 +101,22 @@ export interface RefEntry {
   action?: { order: number; title: string; summary?: string; segments?: boolean };
   examples: Examples;
   adds?: { needs?: string[]; examples: Examples }[];
+}
+
+/** `dist/api.json`: the fields the reference page reads. */
+export interface Api {
+  schema_version: number;
+  /** A Rust method to the method of each surface that carries it. */
+  surfaces: Record<string, Record<string, string[]>>;
+  /** A surface to its methods, and a method to its parameters. */
+  params: Record<string, Record<string, ApiParam[]>>;
+}
+
+export interface ApiParam {
+  name: string;
+  type: string;
+  required: boolean;
+  default: string | null;
 }
 
 /** One entry of the documentation menu. */

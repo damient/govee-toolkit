@@ -22,6 +22,9 @@ export const DESCRIPTION = "An unofficial toolkit that controls Govee lights fro
 export const catalogPath = join(repo, "dist/catalog.json");
 export const CATALOG_SCHEMA = 1;
 
+/** The parameters of every method, which `xtask api` writes. */
+export const apiPath = join(repo, "dist/api.json");
+
 /** The models that carry the LAN switch. `xtask lan` reads the same file. */
 export const lanListPath = join(repo, "docs/lan-supported-devices.json");
 

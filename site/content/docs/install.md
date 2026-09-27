@@ -48,7 +48,7 @@ through the crate.
 <button class="copy" type="button" data-copy="cargo install govee-toolkit-cli">Copy</button>
 </div>
 
-[Every command, with an example in each language]({{base}}reference/)
+[Every command, with an example in each language]({{base}}docs/reference/)
 
 ## Python {{version_python}} {{registry_python}}
 

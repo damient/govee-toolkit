@@ -4,7 +4,7 @@
 import { watch } from "node:fs";
 import { readdir, rm } from "node:fs/promises";
 import { basename, dirname, join, sep } from "node:path";
-import { catalogPath, lanListPath, root } from "./config.ts";
+import { apiPath, catalogPath, lanListPath, root } from "./config.ts";
 import type { Change } from "./serve.ts";
 
 const SOURCES = ["src", "content"];
@@ -31,7 +31,7 @@ export function watchSources(rebuild: (change: Change) => Promise<void>): void {
     watch(join(root, dir), { recursive: true }, (_, file) => { touch(join(dir, file ?? "")); });
   }
   // Watch the directory: `xtask` replaces the file, which ends a file watch.
-  for (const path of [catalogPath, lanListPath]) {
+  for (const path of [catalogPath, apiPath, lanListPath]) {
     const name = basename(path);
     watch(dirname(path), (_, file) => {
       if (file === name) touch(name);
