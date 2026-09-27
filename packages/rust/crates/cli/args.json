@@ -1,0 +1,430 @@
+{
+  "govee": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--json",
+      "required": false,
+      "value": null
+    },
+    {
+      "choices": [
+        "lan",
+        "ble",
+        "cloud"
+      ],
+      "default": null,
+      "multiple": false,
+      "name": "--mode",
+      "required": false,
+      "value": "MODE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--config",
+      "required": false,
+      "value": "PATH"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--env-file",
+      "required": false,
+      "value": "PATH"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--no-env",
+      "required": false,
+      "value": null
+    }
+  ],
+  "govee brightness": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "VALUE",
+      "required": true,
+      "value": "VALUE"
+    }
+  ],
+  "govee color": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "COLOR",
+      "required": true,
+      "value": "COLOR"
+    }
+  ],
+  "govee colortemp": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "KELVIN",
+      "required": true,
+      "value": "KELVIN"
+    }
+  ],
+  "govee describe": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "TARGET",
+      "required": true,
+      "value": "TARGET"
+    }
+  ],
+  "govee devices": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": true,
+      "name": "TARGET",
+      "required": false,
+      "value": "TARGET"
+    }
+  ],
+  "govee doctor": [],
+  "govee gradient": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    },
+    {
+      "choices": [
+        "on",
+        "off"
+      ],
+      "default": null,
+      "multiple": false,
+      "name": "STATE",
+      "required": true,
+      "value": "STATE"
+    }
+  ],
+  "govee identify": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": true,
+      "name": "TARGET",
+      "required": false,
+      "value": "TARGET"
+    },
+    {
+      "choices": null,
+      "default": "#00FF00",
+      "multiple": false,
+      "name": "--color",
+      "required": false,
+      "value": "COLOR"
+    },
+    {
+      "choices": null,
+      "default": "1000",
+      "multiple": false,
+      "name": "--wait-ms",
+      "required": false,
+      "value": "MS"
+    },
+    {
+      "choices": null,
+      "default": "5000",
+      "multiple": false,
+      "name": "--hold-ms",
+      "required": false,
+      "value": "MS"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--keep",
+      "required": false,
+      "value": null
+    }
+  ],
+  "govee music": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "EFFECT",
+      "required": true,
+      "value": "EFFECT"
+    },
+    {
+      "choices": null,
+      "default": "50",
+      "multiple": false,
+      "name": "--sensitivity",
+      "required": false,
+      "value": "LEVEL"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--soft",
+      "required": false,
+      "value": null
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--color",
+      "required": false,
+      "value": "COLOR"
+    }
+  ],
+  "govee off": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    }
+  ],
+  "govee on": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    }
+  ],
+  "govee provision": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--ssid",
+      "required": false,
+      "value": "SSID"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--password",
+      "required": false,
+      "value": "PASSWORD"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--open",
+      "required": false,
+      "value": null
+    },
+    {
+      "choices": null,
+      "default": "0",
+      "multiple": false,
+      "name": "--utc-offset-hours",
+      "required": false,
+      "value": "HOURS"
+    },
+    {
+      "choices": null,
+      "default": "0",
+      "multiple": false,
+      "name": "--utc-offset-minutes",
+      "required": false,
+      "value": "MINUTES"
+    }
+  ],
+  "govee scan": [
+    {
+      "choices": null,
+      "default": "3000",
+      "multiple": false,
+      "name": "--timeout-ms",
+      "required": false,
+      "value": "MS"
+    }
+  ],
+  "govee segment": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--zones",
+      "required": false,
+      "value": "LIST"
+    },
+    {
+      "choices": null,
+      "default": "app",
+      "multiple": false,
+      "name": "--resolution",
+      "required": false,
+      "value": "RESOLUTION"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "COLORS",
+      "required": true,
+      "value": "COLORS"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--gradient",
+      "required": false,
+      "value": null
+    }
+  ],
+  "govee send": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "COMMAND",
+      "required": true,
+      "value": "COMMAND"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": true,
+      "name": "--arg",
+      "required": false,
+      "value": "NAME=VALUE"
+    }
+  ],
+  "govee status": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    }
+  ],
+  "govee stream": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    },
+    {
+      "choices": null,
+      "default": "app",
+      "multiple": false,
+      "name": "--resolution",
+      "required": false,
+      "value": "RESOLUTION"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--rate",
+      "required": false,
+      "value": "HZ"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "--gradient",
+      "required": false,
+      "value": null
+    }
+  ],
+  "govee watch": [
+    {
+      "choices": null,
+      "default": "0",
+      "multiple": false,
+      "name": "--rescan-ms",
+      "required": false,
+      "value": "MS"
+    }
+  ]
+}

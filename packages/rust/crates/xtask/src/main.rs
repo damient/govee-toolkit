@@ -1,7 +1,8 @@
 //! Repository tasks, each of them generating something from a data file.
 //!
 //! - `xtask catalog [path]` — the distributable catalog.
-//! - `xtask api [--check]` — `dist/api.json`, the methods that serve each role.
+//! - `xtask api [--check]` — `dist/api.json`, the methods that serve each role
+//!   and the parameters of every method.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //! - `xtask dmx [--check]` — the tables in `docs/dmx-profiles.md`.
 //! - `xtask lan [--check]` — the tables in `docs/lan-supported-devices.md`.

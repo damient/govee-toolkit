@@ -1,6 +1,8 @@
 //! The Node and Python surfaces. napi writes `binding.d.cts`, and stubtest
 //! checks `_govee_toolkit.pyi` against the module.
 
+use std::collections::BTreeMap;
+
 /// `Class.name(arg: type, …)`. A getter has no argument list.
 pub(super) fn node(text: &str) -> Vec<String> {
     let mut out = Vec::new();
@@ -36,6 +38,43 @@ pub(super) fn node(text: &str) -> Vec<String> {
         }
     }
     out.sort();
+    out
+}
+
+/// The `@param [name=value]` lines of each doc comment, by the `Class.name`
+/// that follows them.
+pub(super) fn node_defaults(text: &str) -> BTreeMap<String, BTreeMap<String, String>> {
+    let mut out: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
+    let mut class: Option<&str> = None;
+    let mut pending = BTreeMap::new();
+    for line in text.lines() {
+        if let Some(rest) = line.strip_prefix("export declare class ") {
+            class = rest.split([' ', '{']).next();
+            continue;
+        }
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed
+            .strip_prefix("* @param [")
+            .and_then(|rest| rest.rsplit_once(']'))
+            .and_then(|(inside, _)| inside.split_once('='))
+        {
+            pending.insert(rest.0.to_owned(), rest.1.to_owned());
+            continue;
+        }
+        if trimmed.starts_with('*') || trimmed.starts_with("/*") || pending.is_empty() {
+            continue;
+        }
+        let member = trimmed.strip_prefix("static ").unwrap_or(trimmed);
+        let name = member.split('(').next().unwrap_or_default();
+        let key = match class {
+            Some(class) => format!("{class}.{name}"),
+            None => name
+                .strip_prefix("export declare function ")
+                .unwrap_or(name)
+                .to_owned(),
+        };
+        out.insert(key, std::mem::take(&mut pending));
+    }
     out
 }
 
@@ -117,13 +156,18 @@ fn signature(prefix: &str, text: &str) -> String {
     format!("{prefix}{name}({})", args.join(", "))
 }
 
-fn split_top(text: &str) -> Vec<&str> {
+pub(super) fn split_top(text: &str) -> Vec<&str> {
+    split_any(text, &[','])
+}
+
+/// `text` cut at each separator that stands outside brackets.
+pub(super) fn split_any<'a>(text: &'a str, separators: &[char]) -> Vec<&'a str> {
     let mut parts = Vec::new();
     let mut level = 0i32;
     let mut start = 0;
     for (index, c) in text.char_indices() {
         level += bracket(text, index, c);
-        if c == ',' && level == 0 {
+        if separators.contains(&c) && level == 0 {
             parts.push(&text[start..index]);
             start = index + 1;
         }
@@ -133,7 +177,7 @@ fn split_top(text: &str) -> Vec<&str> {
 }
 
 /// The `>` of `=>` closes nothing.
-fn bracket(text: &str, index: usize, c: char) -> i32 {
+pub(super) fn bracket(text: &str, index: usize, c: char) -> i32 {
     match c {
         '(' | '[' | '{' | '<' => 1,
         ')' | ']' | '}' | '>' if !text[..index].ends_with('=') => -1,

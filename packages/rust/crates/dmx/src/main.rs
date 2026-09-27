@@ -20,6 +20,8 @@ use govee_toolkit::{IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify, Walk
 use govee_toolkit_dmx::patch::Layout;
 use govee_toolkit_dmx::profile::{Personality, UNIVERSE};
 
+#[cfg(all(test, feature = "artnet"))]
+mod args;
 mod cmd;
 
 /// The spelling for the widest layout the device serves.
