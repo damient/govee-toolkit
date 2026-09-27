@@ -83,37 +83,26 @@ impl Govee {
         self.inner.transports.keys().copied().collect()
     }
 
-    /// Run a discovery scan on every transport and return what answered.
+    /// Run a discovery scan on the modes named, or on every transport with
+    /// `None`, and return what answered.
     ///
     /// Each transport listens for its own window, which is a property of the
     /// wire. The windows run at the same time, so the call takes the longest
-    /// one and not their sum. Nothing on the send path calls this.
+    /// one and not their sum. A mode this build carries no transport for
+    /// contributes nothing, and `Some(&[])` scans nothing. Nothing on the send
+    /// path calls this.
     ///
     /// # Errors
     ///
     /// [`Error::Transport`] if a request cannot be sent. One transport failing
     /// fails the call: a scan covering fewer modes than asked would read as a
     /// device that is not there.
-    pub async fn scan(&self) -> Result<Vec<Device>> {
-        let modes: Vec<Mode> = self.inner.transports.keys().copied().collect();
-        self.scan_on(&modes).await
-    }
-
-    /// Run a discovery scan on the modes named, and return what answered over
-    /// one of them.
-    ///
-    /// A mode this build carries no transport for contributes nothing, and is
-    /// not an error: the caller named the modes it wants covered.
-    ///
-    /// # Errors
-    ///
-    /// As for [`Govee::scan`].
-    pub async fn scan_on(&self, modes: &[Mode]) -> Result<Vec<Device>> {
+    pub async fn scan(&self, modes: Option<&[Mode]>) -> Result<Vec<Device>> {
         let windows = self
             .inner
             .transports
             .iter()
-            .filter(|(mode, _)| modes.contains(mode))
+            .filter(|(mode, _)| modes.is_none_or(|modes| modes.contains(mode)))
             .map(|(_, transport)| transport.scan(transport.scan_window()));
         // In mode order, whatever the order the answers arrive in: two modes
         // that report one MAC must always agree on which SKU wins.

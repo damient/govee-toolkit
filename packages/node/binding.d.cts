@@ -297,19 +297,15 @@ export declare class Govee {
    */
   static start(config?: Config | undefined | null, catalog?: Catalog | undefined | null): Promise<Govee>
   /**
-   * Run a discovery scan on every mode and return what answered.
+   * Run a discovery scan and return what answered. Without `modes`, it
+   * scans every mode.
    *
    * The scans run at the same time, so the call takes the longest window
-   * and not their sum. Nothing on the send path calls this.
+   * and not their sum. A mode this build carries no transport for
+   * contributes nothing and is not an error. Nothing on the send path calls
+   * this.
    */
-  scan(): Promise<Array<Device>>
-  /**
-   * Run a discovery scan on the modes named.
-   *
-   * A mode this build carries no transport for contributes nothing and is
-   * not an error.
-   */
-  scanOn(modes: Array<string>): Promise<Array<Device>>
+  scan(modes?: Array<string> | undefined | null): Promise<Array<Device>>
   /**
    * Every device known, across every mode. One reachable over two modes
    * appears once.

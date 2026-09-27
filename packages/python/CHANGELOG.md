@@ -25,6 +25,8 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 
 ### Changed
 
+- **Breaking:** `Govee.scan()` takes an optional `modes` list, and `scan_on()`
+  goes. Replace `scan_on(modes)` with `scan(modes)`.
 - The signatures of `identify()`, `music()`, `segment()` and `open_stream()`
   carry the defaults the core applies, as `help()` and the stub show them.
 

@@ -17,7 +17,7 @@ pub(super) async fn run(
     // Subscribed before the scan, so that what the scan finds is reported.
     let mut events = govee.events();
     let modes = super::modes(govee, restrict);
-    govee.scan_on(&modes).await?;
+    govee.scan(Some(&modes)).await?;
     if rescan_ms > 0 {
         rescan(govee.clone(), rescan_ms, modes);
     }
@@ -46,7 +46,7 @@ fn rescan(govee: Govee, every_ms: u64, modes: Vec<Mode>) {
         ticker.tick().await;
         loop {
             ticker.tick().await;
-            drop(govee.scan_on(&modes).await);
+            drop(govee.scan(Some(&modes)).await);
         }
     });
 }

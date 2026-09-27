@@ -48,27 +48,23 @@ impl Govee {
         })
     }
 
-    /// Run a discovery scan on every mode and return what answered.
+    /// Run a discovery scan and return what answered. Without `modes`, it
+    /// scans every mode.
     ///
     /// The scans run at the same time, so the call takes the longest window
-    /// and not their sum. Nothing on the send path calls this.
-    fn scan<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+    /// and not their sum. A mode this build carries no transport for
+    /// contributes nothing and is not an error. Nothing on the send path calls
+    /// this.
+    #[pyo3(signature = (modes = None))]
+    fn scan<'py>(
+        &self,
+        py: Python<'py>,
+        modes: Option<Vec<String>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let wanted = modes.map(conv::modes).transpose()?;
         let govee = self.inner.clone();
         future_into_py(py, async move {
-            let found = map(govee.scan().await)?;
-            Ok(found.into_iter().map(Device::from).collect::<Vec<_>>())
-        })
-    }
-
-    /// Run a discovery scan on the modes named.
-    ///
-    /// A mode this build carries no transport for contributes nothing and is
-    /// not an error.
-    fn scan_on<'py>(&self, py: Python<'py>, modes: Vec<String>) -> PyResult<Bound<'py, PyAny>> {
-        let wanted = conv::modes(modes)?;
-        let govee = self.inner.clone();
-        future_into_py(py, async move {
-            let found = map(govee.scan_on(&wanted).await)?;
+            let found = map(govee.scan(wanted.as_deref()).await)?;
             Ok(found.into_iter().map(Device::from).collect::<Vec<_>>())
         })
     }

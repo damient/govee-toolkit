@@ -180,7 +180,7 @@ async fn a_scan_listens_for_each_transport_s_own_window() {
         &format!("{}lan:\n  scan_window_ms: 9000\n", enabling_ble()),
     );
 
-    govee.scan().await.expect("the scan runs");
+    govee.scan(None).await.expect("the scan runs");
 
     assert_eq!(ble.scanned(), vec![SCAN_WINDOW]);
 }
@@ -197,7 +197,7 @@ async fn a_scan_spends_the_windows_at_the_same_time() {
     ]);
 
     let start = Instant::now();
-    govee.scan().await.expect("the scan runs");
+    govee.scan(None).await.expect("the scan runs");
 
     assert_eq!(start.elapsed(), long);
     assert_eq!(ble.scanned(), vec![SCAN_WINDOW]);

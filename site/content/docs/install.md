@@ -26,7 +26,7 @@ opt-in.
 use govee_toolkit::{Config, Govee};
 
 let govee = Govee::start(Config::load()?).await?;
-for device in govee.scan().await? {
+for device in govee.scan(None).await? {
     govee.device(device.id()).power(true).await?;
 }
 ```

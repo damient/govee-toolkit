@@ -40,7 +40,7 @@
 //!
 //! # async fn example() -> Result<(), govee_toolkit::Error> {
 //! let govee = Govee::start(Config::load()?).await?;
-//! govee.scan().await?;
+//! govee.scan(None).await?;
 //!
 //! for device in govee.devices() {
 //!     let served = govee
