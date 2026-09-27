@@ -19,7 +19,7 @@ impl DeviceHandle {
     #[napi]
     pub fn power<'env>(&self, env: &'env Env, on: bool) -> napi::Result<PromiseRaw<'env, Served>> {
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).power(on).await
+            govee.device(&id, pinned)?.power(on).await
         })
     }
 
@@ -32,7 +32,7 @@ impl DeviceHandle {
         level: i64,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).brightness(level).await
+            govee.device(&id, pinned)?.brightness(level).await
         })
     }
 
@@ -45,7 +45,7 @@ impl DeviceHandle {
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let rgb = conv::rgb(env, &rgb)?;
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).color(rgb).await
+            govee.device(&id, pinned)?.color(rgb).await
         })
     }
 
@@ -79,10 +79,7 @@ impl DeviceHandle {
         };
         let (govee, pinned, id) = self.parts();
         promise(env, async move {
-            govee
-                .device_maybe_on(&id, pinned)
-                .identify(&options)
-                .await?;
+            govee.device(&id, pinned)?.identify(&options).await?;
             Ok(())
         })
     }
@@ -95,7 +92,7 @@ impl DeviceHandle {
         kelvin: i64,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).color_temp(kelvin).await
+            govee.device(&id, pinned)?.color_temp(kelvin).await
         })
     }
 
@@ -120,7 +117,7 @@ impl DeviceHandle {
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let music = conv::music(env, effect, sensitivity, soft, color.as_ref())?;
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).music(&music).await
+            govee.device(&id, pinned)?.music(&music).await
         })
     }
 
@@ -155,7 +152,7 @@ impl DeviceHandle {
                 resolution,
                 gradient,
             };
-            govee.device_maybe_on(&id, pinned).segment(&paint).await
+            govee.device(&id, pinned)?.segment(&paint).await
         })
     }
 
@@ -168,7 +165,7 @@ impl DeviceHandle {
         on: bool,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).gradient(on).await
+            govee.device(&id, pinned)?.gradient(on).await
         })
     }
 }

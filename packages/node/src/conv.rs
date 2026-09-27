@@ -19,6 +19,36 @@ pub(crate) fn modes(env: &Env, names: Vec<String>) -> napi::Result<Vec<Mode>> {
     names.iter().map(|name| mode(env, name)).collect()
 }
 
+/// The mode that each key of `keys` names in `options`, in the order of
+/// `keys`. `undefined` and `null` read as absent.
+///
+/// A misspelled key is refused: ignored, it reads as a mode that holds no
+/// device.
+pub(crate) fn option_modes<const N: usize>(
+    env: &Env,
+    options: Option<&Object<'_>>,
+    keys: [&str; N],
+) -> napi::Result<[Option<Mode>; N]> {
+    let mut modes = [None; N];
+    let Some(options) = options else {
+        return Ok(modes);
+    };
+    for key in Object::keys(options)? {
+        if !keys.contains(&key.as_str()) {
+            return Err(value_error(
+                env,
+                format!("`{key}` is no option; the options are {}", keys.join(", ")),
+            ));
+        }
+    }
+    for (slot, key) in modes.iter_mut().zip(keys) {
+        if let Some(name) = options.get::<Option<String>>(key)?.flatten() {
+            *slot = Some(mode(env, &name)?);
+        }
+    }
+    Ok(modes)
+}
+
 /// The largest whole number a JavaScript `number` carries exactly. Past it
 /// the value the caller wrote and the value that arrives are two numbers.
 const MAX_SAFE_INTEGER: f64 = 9_007_199_254_740_991.0;

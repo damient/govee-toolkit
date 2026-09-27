@@ -1,4 +1,4 @@
-//! `DeviceHandle.invoke()` and `GroupHandle.apply()`.
+//! `DeviceHandle.invoke()` and `Devices.apply()`.
 
 use govee_toolkit::{Applied as CoreApplied, Invoked as CoreInvoked, Music, Verb};
 use napi::Env;
@@ -7,8 +7,8 @@ use napi_derive::napi;
 
 use crate::conv::{self, Channels};
 use crate::device::DeviceHandle;
+use crate::devices::{Devices, Outcome, devices};
 use crate::errors::value_error;
-use crate::group::{GroupHandle, Outcome};
 use crate::promise::promise;
 
 /// What `DeviceHandle.invoke()` did with a command.
@@ -68,7 +68,7 @@ impl DeviceHandle {
         let supplied = conv::args(env, args)?;
         let (govee, pinned, id) = self.parts();
         promise(env, async move {
-            let handle = govee.device_maybe_on(&id, pinned);
+            let handle = govee.device(&id, pinned)?;
             let call = handle.resolve()?;
             if refuse_secrets.unwrap_or(false) {
                 call.refuse_secret(&command)?;
@@ -93,7 +93,7 @@ impl DeviceHandle {
     }
 }
 
-/// What one verb of `GroupHandle.apply()` answered.
+/// What one verb of `Devices.apply()` answered.
 #[napi]
 #[derive(Clone)]
 pub struct AppliedStep {
@@ -116,7 +116,7 @@ impl AppliedStep {
     }
 }
 
-/// What `GroupHandle.apply()` answered.
+/// What `Devices.apply()` answered.
 #[napi]
 pub struct Applied {
     reached: Vec<Outcome>,
@@ -172,7 +172,7 @@ impl From<CoreApplied> for Applied {
 }
 
 #[napi]
-impl GroupHandle {
+impl Devices {
     /// Scan for the members, then send the verbs, power on first and power
     /// off last. A member that fails takes no later step.
     #[napi]
@@ -185,9 +185,9 @@ impl GroupHandle {
         verbs: Object<'_>,
     ) -> napi::Result<PromiseRaw<'env, Applied>> {
         let verbs = read_verbs(env, &verbs)?;
-        let (govee, pinned, members) = self.parts();
-        env.spawn_future(async move {
-            let applied = govee.group_maybe_on(&members, pinned).apply(verbs).await;
+        let (govee, pinned, ids) = self.parts();
+        promise(env, async move {
+            let applied = devices(&govee, &ids, pinned)?.apply(verbs).await;
             Ok(Applied::from(applied))
         })
     }
