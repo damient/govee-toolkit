@@ -9,19 +9,18 @@
           "id": "scan",
           "title": "scan",
           "summary": "Look for devices and report what answers.",
-          "detail": "`scan_on` scans only the modes you name, and never enables a mode the configuration leaves out.",
+          "detail": "With a list of modes, the scan covers only those modes. It never enables a mode that the configuration leaves out.",
           "api": [
-            "Govee::scan",
-            "Govee::scan_on"
+            "Govee::scan"
           ],
           "cli": [
             "govee scan"
           ],
           "examples": {
             "cli": "govee scan\ngovee scan --mode lan",
-            "rust": "let devices = govee.scan().await?;\nlet lan_only = govee.scan_on(&[Mode::Lan]).await?;",
-            "python": "devices = await govee.scan()\nlan_only = await govee.scan_on([\"lan\"])",
-            "node": "const devices = await govee.scan()\nconst lanOnly = await govee.scanOn(['lan'])"
+            "rust": "let devices = govee.scan(None).await?;\nlet lan_only = govee.scan(Some(&[Mode::Lan])).await?;",
+            "python": "devices = await govee.scan()\nlan_only = await govee.scan([\"lan\"])",
+            "node": "const devices = await govee.scan()\nconst lanOnly = await govee.scan(['lan'])"
           }
         },
         {

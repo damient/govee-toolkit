@@ -20,7 +20,7 @@ use govee_toolkit_dmx::patch::{Patch, Rig};
 /// [`Failure::unreachable`] where the scan cannot be sent.
 pub(crate) async fn scan(govee: &Govee) -> Result<Vec<govee_toolkit::Device>, Failure> {
     govee
-        .scan_on(&[Mode::Lan])
+        .scan(Some(&[Mode::Lan]))
         .await
         .map_err(|e| Failure::unreachable(e.to_string()))
 }

@@ -203,7 +203,7 @@ impl Govee {
     /// # Errors
     ///
     /// [`Error::ModeNotEnabled`] where a selected device does not enable
-    /// `mode`, and what [`Govee::select`], [`Govee::scan_on`] and
+    /// `mode`, and what [`Govee::select`], [`Govee::scan`] and
     /// [`Govee::ensure_known`] report.
     pub async fn walk_targets<T: AsRef<str>>(
         &self,
@@ -211,7 +211,7 @@ impl Govee {
         mode: Mode,
     ) -> Result<Vec<DeviceId>> {
         if named.is_empty() {
-            let found = self.scan_on(&[mode]).await?;
+            let found = self.scan(Some(&[mode])).await?;
             return Ok(found
                 .into_iter()
                 .map(|device| device.id)
@@ -225,7 +225,7 @@ impl Govee {
             )
         };
         if !named.iter().all(identity) {
-            self.scan_on(&[mode]).await?;
+            self.scan(Some(&[mode])).await?;
         }
         let ids = self.select(named, Some(mode))?;
         self.enabled_for(&ids, mode)?;

@@ -337,13 +337,13 @@ async fn a_file_that_names_no_status_command_still_sends() {
 }
 
 #[tokio::test]
-async fn a_scan_on_another_mode_touches_no_wire_of_this_one() {
+async fn a_scan_of_another_mode_touches_no_wire_of_this_one() {
     let rig = rig("defaults:\n  modes: [lan, cloud]\n").await;
     rig.simulator.clear();
 
     let found = rig
         .govee
-        .scan_on(&[Mode::Cloud])
+        .scan(Some(&[Mode::Cloud]))
         .await
         .expect("a mode with no transport contributes nothing");
     assert!(found.is_empty(), "{found:?}");

@@ -583,17 +583,13 @@ class Govee:
         it reads the one the wheel carries.
         """
 
-    async def scan(self) -> list[Device]:
-        """Run a discovery scan on every mode and return what answered.
+    async def scan(self, modes: Sequence[str] | None = None) -> list[Device]:
+        """Run a discovery scan and return what answered. Without `modes`, it scans
+        every mode.
 
         The scans run at the same time, so the call takes the longest window and not
-        their sum. Nothing on the send path calls this.
-        """
-    async def scan_on(self, modes: Sequence[str]) -> list[Device]:
-        """Run a discovery scan on the modes named.
-
-        A mode this build carries no transport for contributes nothing and is not an
-        error.
+        their sum. A mode this build carries no transport for contributes nothing and is
+        not an error. Nothing on the send path calls this.
         """
 
     def devices(self) -> list[Device]:

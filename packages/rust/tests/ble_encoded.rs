@@ -43,7 +43,7 @@ async fn rig(device: &BleDevice, options: Options) -> Govee {
     let config: Config = serde_norway::from_str(&enabling_ble()).expect("the configuration parses");
     let govee = Govee::attach(config, catalog(), [Arc::new(ble.clone()) as Arc<_>])
         .expect("the configuration applies");
-    govee.scan().await.expect("the scan runs");
+    govee.scan(None).await.expect("the scan runs");
     ble.bind(&id(), ENDPOINT).expect("the scan heard it");
     govee
 }
