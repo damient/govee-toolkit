@@ -82,6 +82,15 @@
 }
 .ref-help:hover, .ref-help:focus-visible { color: var(--text); border-color: var(--text); }
 
+/* On a phone, the name, the summary and the mode badges take one line each.
+   The detail spans the head, since a box centred on the mark overflows the
+   screen and makes the page scroll sideways, even while it is hidden. */
+@media (max-width: 640px) {
+  .ref-head { flex-direction: column; align-items: flex-start; row-gap: 14px; position: relative; }
+  .ref-help.tip { position: static; }
+  .ref-help .tip-box { left: 0; right: 0; translate: none; width: auto; max-width: none; }
+}
+
 /* The parameters of a language, folded under its example. */
 .ref-fold { margin-top: 12px; }
 .ref-fold > summary {
