@@ -14,7 +14,7 @@ const EXPORTED = [
   "Catalog",
   "Device",
   "DeviceHandle",
-  "GroupHandle",
+  "Devices",
   "Outcome",
   "DeviceStatus",
   "Health",
