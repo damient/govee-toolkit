@@ -9,10 +9,10 @@ mod catalog;
 mod config;
 mod conv;
 mod device;
+mod devices;
 mod errors;
 mod events;
 mod govee;
-mod group;
 mod stream;
 mod types;
 
@@ -40,7 +40,7 @@ fn govee_toolkit_module(module: &Bound<'_, PyModule>) -> PyResult<()> {
     device::register(module)?;
     events::register(module)?;
     govee::register(module)?;
-    group::register(module)?;
+    devices::register(module)?;
     stream::register(module)?;
     Ok(())
 }
