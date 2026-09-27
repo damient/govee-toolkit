@@ -25,15 +25,20 @@ check() {
   check_in "$site" "$name" "$@"
 }
 
-# The devices page reads this file, so the site build needs it before it runs.
-# An existing one is left alone when cargo is missing: it is the same artifact
-# the workflow uploads.
+# The devices page reads the catalog and the reference page reads the API, so
+# the site build needs both before it runs. An existing file is left alone
+# when cargo is missing: it is the same artifact the workflow writes.
 if have cargo; then
   check "device catalog" cargo run -q --manifest-path "$root/packages/rust/Cargo.toml" -p xtask
-elif [ -f "$root/dist/catalog.json" ]; then
-  skip "device catalog" "cargo, to regenerate dist/catalog.json"
+  check "api" cargo run -q --manifest-path "$root/packages/rust/Cargo.toml" -p xtask -- api
 else
-  skip "device catalog" "cargo, to write dist/catalog.json"
+  for file in catalog api; do
+    if [ -f "$root/dist/$file.json" ]; then
+      skip "$file" "cargo, to regenerate dist/$file.json"
+    else
+      skip "$file" "cargo, to write dist/$file.json"
+    fi
+  done
 fi
 
 if have npm && [ -d "$site/node_modules" ]; then

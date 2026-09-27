@@ -14,12 +14,12 @@ import { navItem } from "./lib/docs.ts";
 import { faqPage } from "./lib/faq.ts";
 import { readLanList, renderLanList } from "./lib/lan-list.ts";
 import { fill } from "./lib/html.ts";
-import { isReference, readCatalog, readJson } from "./lib/json.ts";
+import { isReference, readApi, readCatalog, readJson } from "./lib/json.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
 import { REFERENCE, referencePage } from "./lib/reference.ts";
-import { breadcrumb, deviceData, homeData, jsonLd, robots, sitemapXml } from "./lib/seo.ts";
+import { breadcrumb, deviceData, homeData, jsonLd, redirect, robots, sitemapXml } from "./lib/seo.ts";
 import { type Change, notify, serve } from "./lib/serve.ts";
-import type { Crumb, Device, LanList, NavEntry, Reference } from "./lib/types.ts";
+import type { Api, Crumb, Device, LanList, NavEntry, Reference } from "./lib/types.ts";
 
 /** A hand-written page under `src/pages/`. */
 interface Source {
@@ -91,6 +91,7 @@ const FOOT_SKIP = new Set(["docs/configure/", "docs/targets/", "docs/dmx/", "doc
 
 async function main(): Promise<void> {
   const catalog = await readCatalog();
+  const api = await readApi();
   await stage();
   const [, css, layout, docs, reference, faq, lan] = await Promise.all([
     writeFile(join(out, ".nojekyll"), ""),
@@ -117,7 +118,7 @@ async function main(): Promise<void> {
   const all: Page[] = [
     ...(await sourcePages(devices, lan)),
     ...devices.map((device) => deviceEntry(device, reference)),
-    ...docPages(docs, nav, docsHome, reference),
+    ...docPages(docs, nav, docsHome, reference, api),
     faq,
     NOT_FOUND,
   ];
@@ -125,6 +126,10 @@ async function main(): Promise<void> {
   const written = await Promise.all(all.map((page) => emit(layout, page, ctx)));
   const sitemap = written.filter((url) => url !== null);
 
+  await Promise.all(Object.entries(MOVED).map(async ([from, to]) => {
+    await mkdir(join(out, from), { recursive: true });
+    await writeFile(join(out, from, "index.html"), redirect(to));
+  }));
   await writeFile(join(out, "robots.txt"), robots());
   await writeFile(join(out, "sitemap.xml"), sitemapXml(sitemap));
 
@@ -172,7 +177,7 @@ function deviceEntry(device: Device, reference: Reference): Page {
   };
 }
 
-function docPages(docs: Doc[], nav: NavEntry[], docsHome: string, reference: Reference): Page[] {
+function docPages(docs: Doc[], nav: NavEntry[], docsHome: string, reference: Reference, api: Api): Page[] {
   return [
     ...docs.map((doc) => ({
       url: `docs/${doc.slug}/`,
@@ -189,11 +194,14 @@ function docPages(docs: Doc[], nav: NavEntry[], docsHome: string, reference: Ref
       title: REFERENCE.title,
       description: reference.intro,
       klass: "is-doc",
-      jsonld: [breadcrumb([["Docs", docsHome], ["Reference", "reference/"]])],
-      body: referencePage(reference, nav),
+      jsonld: [breadcrumb([["Docs", docsHome], ["Reference", REFERENCE.url]])],
+      body: referencePage(reference, api, nav),
     },
   ];
 }
+
+// A page that moved keeps its old address, which a published README links to.
+const MOVED: Record<string, string> = { "reference/": REFERENCE.url };
 
 const NOT_FOUND: Page = {
   url: "404.html",

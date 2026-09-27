@@ -34,6 +34,7 @@ export function tabs(): void {
 
   for (const group of groups) {
     wire(group.el, "lang", group.buttons, choose);
+    folds(group.el);
   }
 
   let stored: string | null = null;
@@ -43,4 +44,18 @@ export function tabs(): void {
     // Private mode: nothing is stored.
   }
   if (stored !== null) show(stored);
+}
+
+// The parameter folds of one block open and close together, so a reader who
+// opens one keeps it open in every language. A fold already in the wanted
+// state fires no toggle, which ends the loop.
+function folds(el: HTMLElement): void {
+  const all = [...el.querySelectorAll<HTMLDetailsElement>("details.ref-fold")];
+  for (const fold of all) {
+    fold.addEventListener("toggle", () => {
+      for (const other of all) {
+        if (other.open !== fold.open) other.open = fold.open;
+      }
+    });
+  }
 }

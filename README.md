@@ -43,7 +43,7 @@ than taking a slower path in silence.
   <a href="https://gvetk.com/docs/start/"><img alt="Get started" src="https://img.shields.io/badge/Get%20started-0b7285?style=for-the-badge"></a>
   <a href="https://gvetk.com/devices/"><img alt="Devices" src="https://img.shields.io/badge/Devices-3b444b?style=for-the-badge"></a>
   <a href="https://gvetk.com/docs/modes/"><img alt="Modes" src="https://img.shields.io/badge/Modes-3b444b?style=for-the-badge"></a>
-  <a href="https://gvetk.com/reference/"><img alt="API reference" src="https://img.shields.io/badge/API%20reference-3b444b?style=for-the-badge"></a>
+  <a href="https://gvetk.com/docs/reference/"><img alt="API reference" src="https://img.shields.io/badge/API%20reference-3b444b?style=for-the-badge"></a>
   <a href="devices/README.md"><img alt="Add a device" src="https://img.shields.io/badge/Add%20a%20device-3b444b?style=for-the-badge"></a>
 </p>
 

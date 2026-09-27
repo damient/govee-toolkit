@@ -133,25 +133,15 @@
 /* One badge per capability a mode reaches. The name is in the badge for a
    screen reader and in the tooltip for the eye: the icon alone names nothing. */
 .caps-row { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+/* The tooltip opens above the badge, so the row below never covers it. The
+   table wrapper scrolls on x, which clips its y as well, and the head above
+   the first row is what keeps the topmost tooltip inside. */
 .cap-chip {
-  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 7px;
   background: var(--panel-2); border: 1px solid var(--line);
 }
 .cap-chip .cap-icon { width: 15px; height: 15px; }
-/* Above the badge, so the row below never covers it. The table wrapper scrolls
-   on x, which clips its y as well, and the head above the first row is what
-   keeps the topmost tooltip inside. */
-.cap-chip::after {
-  content: attr(data-tip); position: absolute; bottom: calc(100% + 7px); left: 50%;
-  transform: translateX(-50%); padding: 5px 8px; border-radius: 6px; z-index: 5;
-  background: var(--panel); border: 1px solid var(--line-strong); color: var(--text);
-  font: 400 11px/1 var(--mono); white-space: nowrap; pointer-events: none;
-  opacity: 0; visibility: hidden; transition: opacity .12s ease;
-}
-.cap-chip:hover::after { opacity: 1; visibility: visible; }
-
-@media (prefers-reduced-motion: reduce) { .cap-chip::after { transition: none; } }
 
 .caps { list-style: none; margin: 0 0 1.2em; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .caps li {
