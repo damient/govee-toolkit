@@ -48,7 +48,7 @@ async fn rig(device: &BleDevice, options: Options) -> Govee {
     let govee = Govee::attach(config, catalog(), [Arc::new(ble.clone()) as Arc<_>])
         .expect("the configuration applies");
 
-    govee.scan().await.expect("the scan runs");
+    govee.scan(None).await.expect("the scan runs");
     // An advertisement carries the Bluetooth handle, and this crate identifies
     // a device by its Wi-Fi MAC. Nothing infers one from the other.
     ble.bind(&id(), ENDPOINT).expect("the scan heard it");
@@ -226,7 +226,7 @@ async fn rig_two(devices: [&BleDevice; 2], connect_delay: Duration) -> Govee {
     let govee = Govee::attach(config, catalog(), [Arc::new(ble.clone()) as Arc<_>])
         .expect("the configuration applies");
 
-    govee.scan().await.expect("the scan runs");
+    govee.scan(None).await.expect("the scan runs");
     ble.bind(&id(), ENDPOINT).expect("the scan heard it");
     ble.bind(&other_id(), OTHER_ENDPOINT)
         .expect("the scan heard it");

@@ -72,4 +72,4 @@ async def test_an_unnamed_rate_is_refused(handle):
 
 async def test_an_unnamed_mode_is_refused(govee):
     with pytest.raises(ValueError):
-        await call(govee.scan_on, ["radio"])
+        await call(govee.scan, ["radio"])

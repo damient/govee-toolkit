@@ -90,7 +90,7 @@ impl Rig {
         // ready as soon as one reply lands.
         let deadline = Instant::now() + Duration::from_secs(10);
         loop {
-            let found = govee.scan().await.expect("the scan goes out");
+            let found = govee.scan(None).await.expect("the scan goes out");
             if found.iter().any(|device| device.id == id()) {
                 break;
             }

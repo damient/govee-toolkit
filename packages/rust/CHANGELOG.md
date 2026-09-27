@@ -29,6 +29,11 @@ releases apart and keeps
 - `Support::ALL` — every support level. `Catalog::capabilities()` — every
   capability name that a device of the catalog declares.
 
+### Changed
+
+- **Breaking:** `Govee::scan()` takes `Option<&[Mode]>`, and `scan_on()` goes.
+  Write `scan(None)` for every mode and `scan(Some(&modes))` for a list.
+
 ## [0.14.0] — 2026-09-26
 
 ### Added

@@ -47,32 +47,23 @@ impl Govee {
         })
     }
 
-    /// Run a discovery scan on every mode and return what answered.
+    /// Run a discovery scan and return what answered. Without `modes`, it
+    /// scans every mode.
     ///
     /// The scans run at the same time, so the call takes the longest window
-    /// and not their sum. Nothing on the send path calls this.
+    /// and not their sum. A mode this build carries no transport for
+    /// contributes nothing and is not an error. Nothing on the send path calls
+    /// this.
     #[napi]
-    pub fn scan<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, Vec<Device>>> {
-        let govee = self.inner.clone();
-        promise(env, async move {
-            Ok(govee.scan().await?.into_iter().map(Device::from).collect())
-        })
-    }
-
-    /// Run a discovery scan on the modes named.
-    ///
-    /// A mode this build carries no transport for contributes nothing and is
-    /// not an error.
-    #[napi]
-    pub fn scan_on<'env>(
+    pub fn scan<'env>(
         &self,
         env: &'env Env,
-        modes: Vec<String>,
+        modes: Option<Vec<String>>,
     ) -> napi::Result<PromiseRaw<'env, Vec<Device>>> {
-        let wanted = conv::modes(env, modes)?;
+        let wanted = modes.map(|modes| conv::modes(env, modes)).transpose()?;
         let govee = self.inner.clone();
         promise(env, async move {
-            let found = govee.scan_on(&wanted).await?;
+            let found = govee.scan(wanted.as_deref()).await?;
             Ok(found.into_iter().map(Device::from).collect())
         })
     }

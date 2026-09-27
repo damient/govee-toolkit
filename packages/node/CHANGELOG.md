@@ -24,6 +24,8 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 
 ### Changed
 
+- **Breaking:** `Govee.scan()` takes an optional `modes` array, and `scanOn()`
+  goes. Replace `scanOn(modes)` with `scan(modes)`.
 - **Breaking:** `Govee.identify()` takes `wait` and `hold` in seconds, as
   Python does. Rename `waitMs` and `holdMs`, and divide the values by 1000.
 - The doc comment of each optional parameter names its default in an

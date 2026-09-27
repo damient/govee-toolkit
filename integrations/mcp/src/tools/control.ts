@@ -35,7 +35,7 @@ function scan(server: McpServer): void {
     },
     ({ modes }) =>
       attempt(async (govee) => {
-        const found = modes === undefined ? await govee.scan() : await govee.scanOn(modes);
+        const found = await govee.scan(modes);
         return ok({ devices: found.map((device) => deviceRow(device)) });
       }),
   );

@@ -9,7 +9,7 @@ pub(super) async fn scan(
     restrict: Option<Mode>,
 ) -> Result<(), Failure> {
     let modes = super::modes(govee, restrict);
-    let found = govee.scan_on(&modes).await?;
+    let found = govee.scan(Some(&modes)).await?;
     for device in &found {
         // A device that answered is on the air, whatever the configuration
         // says: `ble` reports a device under the handle the platform gives the
