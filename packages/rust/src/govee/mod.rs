@@ -1,7 +1,7 @@
 //! The facade: it holds the catalog, the configuration and the transports, and
 //! it is the one place that decides which mode serves a command.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::{Arc, Mutex};
 
 use futures_util::future::try_join_all;
@@ -9,7 +9,6 @@ use tokio::sync::broadcast;
 
 use crate::codec::{Args, Catalog, Mode};
 use crate::config::{Config, Problem};
-use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::{Device, Event};
 use crate::govee::events::Forwarder;
@@ -37,6 +36,8 @@ pub(crate) struct Inner {
     status_requests: Mutex<HashMap<Mode, HashMap<String, Arc<crate::codec::Encoded>>>>,
     /// The segment channels armed right now. See [`Govee::stream_armed`].
     streams: ArmedStreams,
+    /// The modes a scan has covered, so that a resolution scans once.
+    pub(crate) scanned: tokio::sync::Mutex<BTreeSet<Mode>>,
 }
 
 /// The SDK. Cheap to clone; every clone shares one catalog, one configuration
@@ -51,7 +52,7 @@ impl std::fmt::Debug for Govee {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Govee")
             .field("modes", &self.inner.transports.keys().collect::<Vec<_>>())
-            .field("devices", &self.devices().len())
+            .field("devices", &self.known_skus().len())
             .finish_non_exhaustive()
     }
 }
@@ -98,6 +99,16 @@ impl Govee {
     /// fails the call: a scan covering fewer modes than asked would read as a
     /// device that is not there.
     pub async fn scan(&self, modes: Option<&[Mode]>) -> Result<Vec<Device>> {
+        let found = self.scan_windows(modes).await?;
+        let covered = self
+            .modes()
+            .into_iter()
+            .filter(|mode| modes.is_none_or(|modes| modes.contains(mode)));
+        self.inner.scanned.lock().await.extend(covered);
+        Ok(found)
+    }
+
+    pub(crate) async fn scan_windows(&self, modes: Option<&[Mode]>) -> Result<Vec<Device>> {
         let windows = self
             .inner
             .transports
@@ -115,22 +126,6 @@ impl Govee {
             .into_iter()
             .map(|(id, sku)| self.describe(&id, &sku))
             .collect())
-    }
-
-    /// Every device known, across every mode. One reachable over two modes
-    /// appears once: the identity is the MAC.
-    #[must_use]
-    pub fn devices(&self) -> Vec<Device> {
-        let mut known: BTreeMap<DeviceId, String> = BTreeMap::new();
-        for transport in self.inner.transports.values() {
-            for device in transport.devices() {
-                known.insert(device.id, device.sku);
-            }
-        }
-        known
-            .into_iter()
-            .map(|(id, sku)| self.describe(&id, &sku))
-            .collect()
     }
 
     /// Release what every transport holds. Call it before the program ends,
@@ -151,33 +146,6 @@ impl Govee {
             }
         }
         first
-    }
-
-    /// A handle for one device.
-    #[must_use]
-    pub fn device(&self, id: &DeviceId) -> DeviceHandle<'_> {
-        DeviceHandle::new(self, id.clone())
-    }
-
-    /// A handle that drives the device over one mode alone.
-    ///
-    /// Every call on it goes over `mode` or fails. Use it where the caller
-    /// serves one mode by design, such as a bridge that reaches a device over
-    /// `lan`: a handle from [`Govee::device`] would move to the next enabled
-    /// mode when that one stops answering.
-    #[must_use]
-    pub fn device_on(&self, id: &DeviceId, mode: Mode) -> DeviceHandle<'_> {
-        DeviceHandle::on(self, id.clone(), mode)
-    }
-
-    /// A handle for one device, pinned to `mode` where the caller names one.
-    ///
-    /// `None` gives what [`Govee::device`] gives, and `Some(mode)` what
-    /// [`Govee::device_on`] gives. Use it where the caller holds the mode as a
-    /// value, such as a binding that stores what the user asked for.
-    #[must_use]
-    pub fn device_maybe_on(&self, id: &DeviceId, mode: Option<Mode>) -> DeviceHandle<'_> {
-        DeviceHandle::maybe_on(self, id.clone(), mode)
     }
 
     /// Everything wrong with the configuration, including what could only be
@@ -235,7 +203,7 @@ impl Govee {
     /// says the hardware supports.
     pub(crate) fn check_devices(&self) -> Vec<Problem> {
         let mut problems = Vec::new();
-        for device in self.devices() {
+        for device in self.known() {
             let Ok(file) = self.inner.catalog.device(&device.sku) else {
                 problems.push(Problem {
                     device: Some(device.id.clone()),

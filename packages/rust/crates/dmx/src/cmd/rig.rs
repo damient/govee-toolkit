@@ -6,7 +6,7 @@ use std::path::Path;
 
 use govee_toolkit::codec::Device;
 use govee_toolkit::exit::Failure;
-use govee_toolkit::{Config, DeviceId, Govee, Mode};
+use govee_toolkit::{Config, DeviceId, Filter, Govee, Mode};
 use govee_toolkit_dmx::patch::{Patch, Rig};
 
 /// Discover the rig, over `lan` alone.
@@ -27,16 +27,21 @@ pub(crate) async fn scan(govee: &Govee) -> Result<Vec<govee_toolkit::Device>, Fa
 
 /// The patch, joined to every device the SDK knows.
 ///
-/// A device the cache carries counts here, and a device that misses one scan
-/// therefore starts the run. The backoff of the send path is what reports it
-/// where it stays silent — `docs/dmx.md`.
+/// It reads what [`scan`] found and scans again only where no `lan` scan
+/// ran. A device the cache carries counts here, and a device that misses one
+/// scan therefore starts the run. The backoff of the send path is what reports
+/// it where it stays silent — `docs/dmx.md`.
 ///
 /// # Errors
 ///
 /// [`Failure::config`] for every fault of the patch, and
 /// [`Failure::unreachable`] where a patched device enables no `lan` mode.
-pub(crate) fn resolve(govee: &Govee, patch: &Patch) -> Result<Rig, Failure> {
-    let found = govee.devices();
+pub(crate) async fn resolve(govee: &Govee, patch: &Patch) -> Result<Rig, Failure> {
+    let found = govee
+        .devices(Filter::all(), Some(Mode::Lan))
+        .await
+        .map_err(|e| Failure::unreachable(e.to_string()))?
+        .list();
     let mut known: BTreeMap<DeviceId, &Device> = BTreeMap::new();
     for device in &found {
         if let Ok(file) = govee.catalog().device(&device.sku) {
@@ -58,7 +63,7 @@ fn lan_enabled(govee: &Govee, rig: &Rig) -> Result<(), Failure> {
         .fixtures()
         .iter()
         .map(|fixture| &fixture.entry.device)
-        .filter(|id| !govee.device(id).modes().contains(&Mode::Lan))
+        .filter(|id| !govee.config().modes_for(id).contains(&Mode::Lan))
         .map(ToString::to_string)
         .collect();
     if without.is_empty() {

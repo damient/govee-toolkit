@@ -13,7 +13,7 @@ use govee_toolkit_sim::Simulator;
 
 mod common;
 
-use common::{Rig, SKU, id, wait_for};
+use common::{One, Rig, SKU, wait_for};
 
 const TEST_HZ: f64 = 20.0;
 
@@ -44,7 +44,7 @@ fn status_requests(simulator: &Simulator) -> usize {
 
 async fn brightness(rig: &Rig) {
     rig.govee
-        .device(&id())
+        .one()
         .send("brightness", &Args::new().int("level", 50))
         .await
         .expect("brightness reaches the device");
@@ -55,7 +55,7 @@ async fn a_command_sent_while_the_channel_is_armed_asks_for_no_status() {
     let rig = rig().await;
     let stream = rig
         .govee
-        .device(&id())
+        .one()
         .open_stream(options())
         .await
         .expect("the stream opens");
@@ -74,7 +74,7 @@ async fn a_command_sent_after_the_disarm_is_verified_again() {
     let rig = rig().await;
     let stream = rig
         .govee
-        .device(&id())
+        .one()
         .open_stream(options())
         .await
         .expect("the stream opens");

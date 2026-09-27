@@ -73,7 +73,7 @@ impl Feeder {
         let Some(last) = self.last_sent else {
             return Ok(());
         };
-        if let Some(left) = self.device().command_gap()?.checked_sub(last.elapsed()) {
+        if let Some(left) = self.device()?.command_gap()?.checked_sub(last.elapsed()) {
             tokio::time::sleep(left).await;
         }
         Ok(())
@@ -104,7 +104,7 @@ impl Feeder {
             && self.sent.brightness != Some(level)
         {
             self.space().await?;
-            self.device().brightness(level).await?;
+            self.device()?.brightness(level).await?;
             self.mark();
             self.sent.brightness = Some(level);
             self.counts.frames_sent += 1;
@@ -133,7 +133,7 @@ impl Feeder {
             return Ok(false);
         }
         self.space().await?;
-        self.device().color(rgb).await?;
+        self.device()?.color(rgb).await?;
         self.mark();
         self.sent.paint = Some(Paint::Color(rgb));
         self.counts.frames_sent += 1;
@@ -145,7 +145,7 @@ impl Feeder {
             return Ok(false);
         }
         self.space().await?;
-        self.device().color_temp(kelvin).await?;
+        self.device()?.color_temp(kelvin).await?;
         self.mark();
         self.sent.paint = Some(Paint::White(kelvin));
         self.counts.frames_sent += 1;
@@ -163,7 +163,7 @@ impl Feeder {
             return Ok(false);
         }
         self.space().await?;
-        self.device().power(true).await?;
+        self.device()?.power(true).await?;
         self.mark();
         self.sent.on = Some(true);
         self.counts.frames_sent += 1;
@@ -179,7 +179,7 @@ impl Feeder {
             return Ok(());
         }
         self.space().await?;
-        let stream = self.device().open_stream(options).await?;
+        let stream = self.device()?.open_stream(options).await?;
         self.mark();
         self.stream = Some(stream);
         Ok(())
@@ -241,7 +241,7 @@ impl Feeder {
         }
         self.close().await;
         self.space().await?;
-        self.device().power(false).await?;
+        self.device()?.power(false).await?;
         self.mark();
         self.sent = Sent {
             on: Some(false),

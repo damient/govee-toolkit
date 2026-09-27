@@ -7,19 +7,17 @@
 
 use govee_toolkit::codec::{self, Supplied};
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{DeviceId, Error, Govee, Invoked};
+use govee_toolkit::{DeviceHandle, Error, Invoked};
 use serde_json::json;
 
 use crate::run::verbs::report;
 
 pub(super) async fn run(
-    govee: &Govee,
     writer: Writer,
-    id: &DeviceId,
+    handle: &DeviceHandle<'_>,
     command: &str,
     pairs: &[String],
 ) -> Result<(), Failure> {
-    let handle = govee.device(id);
     let call = handle.resolve()?;
     let mode = call.mode();
     let values = call.args(command, supplied(pairs)?).map_err(usage)?;

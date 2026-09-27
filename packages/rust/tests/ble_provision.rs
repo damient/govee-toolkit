@@ -15,7 +15,7 @@ use govee_toolkit::ble::{Options, Transport};
 use govee_toolkit::{Config, Govee, Provisioned, WifiCredentials};
 use govee_toolkit_sim::ble::{BleAdapter, BleDevice, BleFaults, BleOptions};
 
-use self::ble_fake::{ENDPOINT, SKU, catalog, enabling_ble, id};
+use self::ble_fake::{ENDPOINT, One, SKU, catalog, enabling_ble, id};
 use self::ble_wire::Radio;
 
 /// The `aa ab` read the transfer runs first. Type 0 names no endpoint, so the
@@ -73,7 +73,7 @@ async fn a_transfer_the_device_acknowledges_is_reported_as_accepted() {
     let govee = rig(&device).await;
 
     let outcome = govee
-        .device(&id())
+        .one()
         .provision_wifi(&credentials())
         .await
         .expect("the device acknowledges the transfer");
@@ -88,7 +88,7 @@ async fn a_transfer_the_device_refuses_fails_and_says_what_it_answered() {
     let govee = rig(&device).await;
 
     let error = govee
-        .device(&id())
+        .one()
         .provision_wifi(&credentials())
         .await
         .expect_err("the device refuses the transfer");
@@ -104,7 +104,7 @@ async fn every_frame_of_the_transfer_reaches_the_device() {
     let govee = rig(&device).await;
 
     govee
-        .device(&id())
+        .one()
         .provision_wifi(&credentials())
         .await
         .expect("the device acknowledges the transfer");
