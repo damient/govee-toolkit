@@ -11,7 +11,9 @@ use std::process;
 use govee_toolkit::codec::Role;
 use serde_json::{Value, json};
 
+mod agree;
 mod dispatch;
+mod params;
 mod rust;
 mod text;
 
@@ -23,31 +25,59 @@ const SURFACES: [&str; 4] = ["cli", "rust", "node", "python"];
 /// Exits 1 when a role has no method on a surface.
 pub(crate) fn api(root: &Path, check: bool) {
     let rust_root = root.join("packages/rust");
+    let binding = crate::read(&root.join("packages/node/binding.d.cts"));
+    let stub = crate::read(&root.join("packages/python/govee_toolkit/_govee_toolkit.pyi"));
+    let (rust_methods, node_methods, python_methods) = (
+        rust::methods(&rust_root.join("src")),
+        text::node(&binding),
+        text::python(&stub),
+    );
+
+    let mut cli = params::Params::new();
+    for binary in ["cli", "dmx"] {
+        let path = rust_root.join(format!("crates/{binary}/args.json"));
+        let args: Value = serde_json::from_str(&crate::read(&path))
+            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        cli.extend(params::cli(&args));
+    }
+    let rust_params = params::rust(&rust_methods);
+    let python_params = params::python(&python_methods);
+    let node_params = params::node(&node_methods, &text::node_defaults(&binding));
+
     let methods: BTreeMap<&str, Vec<String>> = BTreeMap::from([
         ("cli", rust::cli(&rust_root.join("crates/cli/src/cli"))),
-        ("rust", rust::methods(&rust_root.join("src"))),
-        (
-            "node",
-            text::node(&crate::read(&root.join("packages/node/binding.d.cts"))),
-        ),
-        (
-            "python",
-            text::python(&crate::read(
-                &root.join("packages/python/govee_toolkit/_govee_toolkit.pyi"),
-            )),
-        ),
+        ("rust", rust_methods),
+        ("node", node_methods),
+        ("python", python_methods),
     ]);
 
     let serves = rust::serves(&rust_root.join("src"));
     let verbs = dispatch::verbs(&rust_root.join("crates/cli/src/run"));
     let (joined, errors) = join(&serves, &verbs, &methods);
+
+    let others = [
+        ("cli", &cli),
+        ("python", &python_params),
+        ("node", &node_params),
+    ];
+    let disagree = agree::defaults(&rust_params, &others, &verbs);
+    for error in &errors {
+        eprintln!("api: {error}");
+    }
     if !errors.is_empty() {
-        for error in &errors {
-            eprintln!("api: {error}");
-        }
         eprintln!(
             "Link the role in the `Serves` line of its method, or name it in `OMITTED` in crates/xtask/src/api."
         );
+    }
+    for error in &disagree {
+        eprintln!("api: {error}");
+    }
+    if !disagree.is_empty() {
+        eprintln!(
+            "Write one default on every surface: the stub, the `@param` of the JSDoc and the clap attribute."
+        );
+    }
+    if !errors.is_empty() || !disagree.is_empty() {
         process::exit(1);
     }
     if check {
@@ -60,6 +90,13 @@ pub(crate) fn api(root: &Path, check: bool) {
         "generator": "packages/rust/crates/xtask",
         "roles": joined,
         "methods": methods,
+        "surfaces": surfaces(&rust_params, &verbs, &methods),
+        "params": {
+            "cli": params::to_json(&cli),
+            "rust": params::to_json(&rust_params),
+            "python": params::to_json(&python_params),
+            "node": params::to_json(&node_params),
+        },
     });
     let out = root.join("dist/api.json");
     crate::write_json(&out, &document);
@@ -165,4 +202,31 @@ fn head(method: &str) -> &str {
         None => method.find('(').unwrap_or(method.len()),
     };
     &method[..end]
+}
+
+/// Each Rust method, and the method or the verb that carries it on every
+/// other surface.
+fn surfaces(
+    rust: &params::Params,
+    verbs: &BTreeMap<String, Vec<String>>,
+    methods: &BTreeMap<&str, Vec<String>>,
+) -> Value {
+    rust.keys()
+        .map(|key| {
+            let row: serde_json::Map<String, Value> = SURFACES
+                .iter()
+                .map(|surface| {
+                    let mut found: Vec<String> = on_surface(key, verbs, surface, &methods[surface])
+                        .iter()
+                        .map(|method| head(method).to_owned())
+                        .collect();
+                    found.sort_unstable();
+                    found.dedup();
+                    ((*surface).to_owned(), json!(found))
+                })
+                .collect();
+            (key.clone(), Value::Object(row))
+        })
+        .collect::<serde_json::Map<_, _>>()
+        .into()
 }

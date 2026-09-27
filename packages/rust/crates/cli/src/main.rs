@@ -10,6 +10,8 @@
 
 use clap::Parser;
 
+#[cfg(all(test, feature = "lan", feature = "ble", feature = "cloud"))]
+mod args;
 mod cli;
 mod run;
 
