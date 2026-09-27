@@ -1,4 +1,4 @@
-//! `DeviceHandle.invoke()` and `GroupHandle.apply()`.
+//! `DeviceHandle.invoke()` and `Devices.apply()`.
 
 use govee_toolkit::codec::{Mode, Supplied};
 use govee_toolkit::{Applied as CoreApplied, DeviceId, Govee, Invoked as CoreInvoked, Verb};
@@ -6,8 +6,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 use crate::conv::{self, to_py};
+use crate::devices::Outcome;
 use crate::errors::{map, value_error};
-use crate::group::Outcome;
 use crate::types::Served;
 
 /// What `DeviceHandle.invoke()` did with a command.
@@ -71,7 +71,7 @@ pub(crate) async fn invoke(
     supplied: Vec<(String, Supplied)>,
     refuse_secrets: bool,
 ) -> PyResult<Invoked> {
-    let handle = govee.device_maybe_on(&id, pinned);
+    let handle = map(govee.device(&id, pinned))?;
     let call = map(handle.resolve())?;
     if refuse_secrets {
         map(call.refuse_secret(&command))?;
@@ -94,7 +94,7 @@ pub(crate) async fn invoke(
     })
 }
 
-/// What one verb of `GroupHandle.apply()` answered.
+/// What one verb of `Devices.apply()` answered.
 #[pyclass(
     frozen,
     skip_from_py_object,
@@ -126,7 +126,7 @@ impl AppliedStep {
     }
 }
 
-/// What `GroupHandle.apply()` answered.
+/// What `Devices.apply()` answered.
 #[pyclass(
     frozen,
     skip_from_py_object,
@@ -171,7 +171,8 @@ pub(crate) async fn apply(
     members: Vec<DeviceId>,
     verbs: Vec<Verb>,
 ) -> PyResult<Applied> {
-    let applied: CoreApplied = govee.group_maybe_on(&members, pinned).apply(verbs).await;
+    let devices = map(crate::devices::core(&govee, &members, pinned))?;
+    let applied: CoreApplied = devices.apply(verbs).await;
     let ok = applied.is_clean();
     let reached: Vec<Outcome> = applied
         .reached
@@ -228,7 +229,7 @@ fn known_keys(dict: &Bound<'_, PyDict>, what: &str, keys: &[&str]) -> PyResult<(
     Ok(())
 }
 
-/// The keyword arguments of `GroupHandle.apply()`.
+/// The keyword arguments of `Devices.apply()`.
 pub(crate) struct Verbs<'a, 'py> {
     pub(crate) power: Option<bool>,
     pub(crate) brightness: Option<i64>,

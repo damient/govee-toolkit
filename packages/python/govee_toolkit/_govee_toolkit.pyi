@@ -1,7 +1,8 @@
 """Type stubs for the extension module."""
 
+import builtins
 import os
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from types import TracebackType
 from typing import Any, Self, final
 
@@ -21,10 +22,10 @@ __all__ = [
     "Device",
     "DeviceHandle",
     "DeviceStatus",
+    "Devices",
     "EventStream",
     "Govee",
     "GoveeError",
-    "GroupHandle",
     "Health",
     "Invoked",
     "Outcome",
@@ -300,6 +301,11 @@ class DeviceHandle:
     def id(self) -> str:
         """The MAC the device reports, uppercased."""
     @property
+    def pinned(self) -> str | None:
+        """The one mode every call on this handle goes over, or `None` where each call
+        takes the first enabled mode that answers.
+        """
+    @property
     def modes(self) -> list[str]:
         """The modes enabled for it, in preference order."""
     def health(self, mode: str) -> Health | None:
@@ -327,7 +333,8 @@ class DeviceHandle:
         """Scan for the device if no mode knows it yet, then answer the mode a command
         would go over.
 
-        The scan covers every enabled mode, whatever this handle is pinned to.
+        The enabled modes scan at the same time. A handle pinned to a mode scans over
+        that mode alone. Call it before the first command: the send path does not scan.
         """
 
     async def send(self, command: str, **args: Arg) -> Served:
@@ -478,7 +485,7 @@ class Invoked:
 
 @final
 class AppliedStep:
-    """What one verb of `GroupHandle.apply()` answered."""
+    """What one verb of `Devices.apply()` answered."""
 
     @property
     def step(self) -> str:
@@ -489,7 +496,7 @@ class AppliedStep:
 
 @final
 class Applied:
-    """What `GroupHandle.apply()` answered."""
+    """What `Devices.apply()` answered."""
 
     @property
     def reached(self) -> list[Outcome]:
@@ -519,21 +526,35 @@ class WalkReport:
         """Whether every device took every step."""
 
 @final
-class GroupHandle:
-    """A handle on the members of a group. It holds no state of its own."""
+class Devices:
+    """The devices that `Govee.devices()` selects. Every verb on it runs on every member
+    at once, answers one `Outcome` per member in member order, and raises for nothing a
+    member does.
+    """
 
     @property
-    def members(self) -> list[str]:
-        """The identities of the members, in the order of every outcome list."""
-    async def ensure_known(self) -> list[Outcome]:
-        """Scan for every member that no mode knows. Each outcome carries its mode."""
-    async def power(self, on: bool) -> list[Outcome]:
+    def members(self) -> list[DeviceHandle]:
+        """One handle per member, in the order of every outcome list. Each handle is
+        pinned as the members are.
+        """
+    def list(self) -> list[Device]:
+        """What the SDK holds for each member: the SKU, the name, the groups, the modes
+        and the health. Reads no hardware.
+
+        A member that no transport knows and that the configuration pins no SKU for is
+        not in the list. `members` holds every member.
+        """
+    async def ensure_known(self) -> builtins.list[Outcome]:
+        """Scan for every member that no mode knows. Each outcome carries its mode. A
+        pinned member scans over its mode alone.
+        """
+    async def power(self, on: bool) -> builtins.list[Outcome]:
         """Turn every member on or off."""
-    async def brightness(self, level: int) -> list[Outcome]:
+    async def brightness(self, level: int) -> builtins.list[Outcome]:
         """Set the level on every member, against its own range."""
-    async def color(self, rgb: Color) -> list[Outcome]:
+    async def color(self, rgb: Color) -> builtins.list[Outcome]:
         """Set one color on every member."""
-    async def color_temp(self, kelvin: int) -> list[Outcome]:
+    async def color_temp(self, kelvin: int) -> builtins.list[Outcome]:
         """Set the white temperature on every member, in kelvin."""
     async def music(
         self,
@@ -541,7 +562,7 @@ class GroupHandle:
         sensitivity: int = 50,
         soft: bool = False,
         color: Color | None = None,
-    ) -> list[Outcome]:
+    ) -> builtins.list[Outcome]:
         """`DeviceHandle.music()` on every member."""
     async def segment(
         self,
@@ -549,9 +570,9 @@ class GroupHandle:
         zones: Sequence[int] | None = None,
         resolution: Resolution = "app",
         gradient: bool = False,
-    ) -> list[Outcome]:
+    ) -> builtins.list[Outcome]:
         """`DeviceHandle.segment()` on every member, against its own zones."""
-    async def gradient(self, on: bool) -> list[Outcome]:
+    async def gradient(self, on: bool) -> builtins.list[Outcome]:
         """Set the interpolation between zones on every member."""
     async def apply(
         self,
@@ -568,6 +589,8 @@ class GroupHandle:
         `segment` and `music` take the keys of `segment()` and `music()`. A member that
         fails takes no later step.
         """
+    def __len__(self) -> int: ...
+    def __iter__(self) -> Iterator[DeviceHandle]: ...
 
 @final
 class Govee:
@@ -592,21 +615,6 @@ class Govee:
         not an error. Nothing on the send path calls this.
         """
 
-    def devices(self) -> list[Device]:
-        """Every device known, across every mode. One reachable over two modes appears
-        once.
-        """
-    def select(self, targets: Sequence[str], mode: str | None = None) -> list[str]:
-        """The devices the targets name, in the order they were written.
-
-        A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name the configuration
-        gives a device (`name:kitchen`), or a group it gives (`group:ambient`). `id:`,
-        `sku:`, `name:` and `group:` state the kind where the target alone does not. A
-        SKU, a name and a group select among the devices the SDK knows, so scan first.
-
-        `mode` is the one mode the caller will drive. A SKU, a name and a group then
-        match among the devices that enable it. An identity selects itself either way.
-        """
     def modes(self) -> list[str]:
         """The modes this build carries a transport for. Not a preference order: that is
         each device's own configuration.
@@ -619,30 +627,42 @@ class Govee:
     @property
     def catalog(self) -> Catalog:
         """The device catalog in force."""
-    def device(self, target: str) -> DeviceHandle:
-        """A handle for one device, by its identity or by the name the configuration
-        gives it. It reads the configuration and no scan.
+    def device(self, target: str, *, mode: str | None = None) -> DeviceHandle:
+        """A handle for one device, by its identity or by the name that the
+        configuration gives it. It reads the configuration and scans nothing.
 
         A bare target is a name where the configuration gives one, and an identity where
-        it reads as one. `id:` and `name:` state the kind.
-        """
-    def device_on(self, target: str, mode: str) -> DeviceHandle:
-        """A handle that drives the device over one mode alone.
+        it reads as one. `id:` and `name:` state the kind. A SKU or a group raises
+        `ConfigError` with `target_not_understood`: use `devices()` for them.
 
-        Every call on it goes over `mode` or raises. Use it where the caller serves one
-        mode by design, such as a bridge that reaches a device over `lan`: a handle from
-        `device()` would move to the next enabled mode when that one stops answering.
+        `mode` pins every call on the handle to that mode: each call goes over it or
+        raises. Without it, each call goes over the first enabled mode that answers.
+        """
+    async def devices(
+        self,
+        targets: Sequence[str] | None = None,
+        *,
+        enables: str | None = None,
+        mode: str | None = None,
+    ) -> Devices:
+        """The devices that the targets name, in the order written, as one `Devices`. A
+        device that two targets name appears once.
 
-        `target` reads as it does for `device()`.
-        """
-    def targets(self, target: str) -> list[str]:
-        """The identities that one target names, from the configuration and with no
-        scan: one device, or every member of a group in identity order.
-        """
-    def group(self, target: str, mode: str | None = None) -> GroupHandle:
-        """A handle for the devices `targets()` reads. Every verb on it answers one
-        `Outcome` per member and raises for nothing a member does. `mode` pins every
-        member, as `device_on()` does.
+        A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name that the
+        configuration gives a device (`name:kitchen`), or a group that it gives
+        (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind where the
+        target alone does not. An identity selects itself, and a name or a group reads
+        the configuration. A SKU reads the devices that a scan found. Without `targets`,
+        it selects every device that a scan finds.
+
+        The first call that reads a SKU, or that has no `targets`, scans once: over
+        `enables`, else over `mode`, else over every mode. A `scan()` counts as that
+        scan.
+
+        `enables` keeps the devices that enable that mode. A SKU, a name or a group that
+        keeps no device then raises `ConfigError`. An identity is kept whatever it
+        enables. `mode` pins every member, as it does for `device()`, and filters
+        nothing: a member that does not enable it fails alone in its `Outcome`.
         """
     async def identify(
         self,
@@ -654,7 +674,7 @@ class Govee:
         keep: bool = False,
         mode: str = "lan",
     ) -> WalkReport:
-        """Run the walk `govee identify` runs. `targets` reads as `select()` reads it;
+        """Run the walk `govee identify` runs. `targets` reads as `devices()` reads it;
         `None` walks every device that a scan finds. `wait` is the time between two
         steps and `hold` the time on the last device, in seconds.
 
