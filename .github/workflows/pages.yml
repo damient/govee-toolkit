@@ -2,7 +2,8 @@ name: Website
 
 # Builds site/ and publishes it to GitHub Pages. The devices page is generated
 # from devices/*.yaml through `xtask catalog`, so the site cannot disagree with
-# the device files. The LAN Control page reads docs/lan-supported-devices.json.
+# the device files. The LAN Control page reads docs/lan-supported-devices.json,
+# and the reference page reads the parameters that `xtask api` extracts.
 
 on:
   push:
@@ -11,6 +12,11 @@ on:
       - "site/**"
       - "devices/**"
       - "docs/lan-supported-devices.json"
+      # The reference page reads the signatures of each language.
+      - "packages/rust/src/**"
+      - "packages/rust/crates/*/args.json"
+      - "packages/node/binding.d.cts"
+      - "packages/python/govee_toolkit/_govee_toolkit.pyi"
       - ".github/workflows/pages.yml"
   # A draft pull request does not build the site: the build job is gated on
   # draft == false, and ready_for_review is what starts it.
@@ -20,6 +26,11 @@ on:
       - "site/**"
       - "devices/**"
       - "docs/lan-supported-devices.json"
+      # The reference page reads the signatures of each language.
+      - "packages/rust/src/**"
+      - "packages/rust/crates/*/args.json"
+      - "packages/node/binding.d.cts"
+      - "packages/python/govee_toolkit/_govee_toolkit.pyi"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -54,6 +65,10 @@ jobs:
       - name: Generate the device catalog
         working-directory: packages/rust
         run: cargo run -p xtask -- catalog
+
+      - name: Generate the API of each language
+        working-directory: packages/rust
+        run: cargo run -p xtask -- api
 
       - name: Build the site
         working-directory: site

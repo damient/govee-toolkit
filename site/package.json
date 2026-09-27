@@ -10,6 +10,7 @@
   },
   "scripts": {
     "catalog": "cargo run --manifest-path ../packages/rust/Cargo.toml -p xtask -- catalog",
+    "api": "cargo run --manifest-path ../packages/rust/Cargo.toml -p xtask -- api",
     "build": "node build.ts",
     "dev": "node --watch --watch-preserve-output build.ts --dev",
     "serve": "node build.ts --serve",

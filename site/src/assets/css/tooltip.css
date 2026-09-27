@@ -1,0 +1,25 @@
+/* The tooltip component. `data-tip` holds one line of text over its host. A
+   `.tip-box` inside a `.tip` holds markup under it. Both open on hover and on
+   focus, so a keyboard and a tap on a phone reach them too. */
+[data-tip], .tip { position: relative; }
+[data-tip]::after, .tip-box {
+  position: absolute; left: 50%; translate: -50% 0; z-index: 5;
+  border-radius: 8px; background: var(--panel-2); color: var(--text);
+  box-shadow:
+    0 14px 36px light-dark(rgb(0 0 0 / 18%), rgb(0 0 0 / 60%)),
+    0 2px 8px light-dark(rgb(0 0 0 / 10%), rgb(0 0 0 / 45%));
+  opacity: 0; visibility: hidden; transition: opacity .12s ease;
+}
+[data-tip]::after {
+  content: attr(data-tip); bottom: calc(100% + 7px); padding: 6px 9px;
+  font: 400 11px/1 var(--mono); white-space: nowrap; pointer-events: none;
+}
+.tip-box {
+  top: calc(100% + 8px); width: max-content; max-width: min(420px, 80vw);
+  padding: 10px 12px; font: 400 .88rem/1.5 var(--sans); color: var(--prose);
+  text-align: left; cursor: auto;
+}
+[data-tip]:hover::after, [data-tip]:focus-visible::after,
+.tip:hover > .tip-box, .tip:focus-within > .tip-box { opacity: 1; visibility: visible; }
+
+@media (prefers-reduced-motion: reduce) { [data-tip]::after, .tip-box { transition: none; } }
