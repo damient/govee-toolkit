@@ -1,5 +1,5 @@
 {
-  "intro": "Every command the toolkit carries, with the same action in each language. Python and Node.js bind to the same core.",
+  "intro": "Every action, from the govee CLI, Rust, Python, Node.js or a DMX console.",
   "groups": [
     {
       "id": "find",
