@@ -47,13 +47,18 @@ function listKnown(server: McpServer): void {
     {
       title: "List the devices the SDK knows",
       description:
-        "List every device that a scan found or that the configuration names, with its health per mode. " +
-        "It sends nothing. A device that no scan found yet has no health: call `scan` first.",
+        "List every device that a scan found, with its health per mode. " +
+        "The first call scans each mode that no scan covered yet. A later call reads what the scans found and sends nothing: " +
+        "call `scan` to find a device that answered since.",
       inputSchema: z.object({}),
       outputSchema: z.object({ devices: z.array(deviceShape) }),
       annotations: { ...CONTROL, readOnlyHint: true },
     },
-    () => attempt((govee) => ok({ devices: govee.devices().map((device) => deviceRow(device)) })),
+    () =>
+      attempt(async (govee) => {
+        const known = await govee.devices();
+        return ok({ devices: known.list().map((device) => deviceRow(device)) });
+      }),
   );
 }
 

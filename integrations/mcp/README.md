@@ -117,9 +117,9 @@ closes, or on `SIGINT` and `SIGTERM`.
 | Tool | Does |
 | ---- | ---- |
 | `scan({ modes? })` | Runs a discovery scan and lists the devices that answered |
-| `list_known()` | Lists the devices that the SDK knows, with the health of each mode |
+| `list_known()` | Lists the devices that a scan found, with the health of each mode. The first call scans each mode that no scan covered |
 | `status({ target, mode? })` | Asks a device for its state |
-| `set({ target, mode?, power?, brightness?, color?, color_temp?, segment?, music?, gradient? })` | Sets the state of a device or of a group |
+| `set({ target, mode?, power?, brightness?, color?, color_temp?, segment?, music?, gradient? })` | Sets the state of a device, of a group, or of every device of one SKU |
 | `send({ target, mode?, command, args? })` | Sends one command that the device file declares |
 | `identify({ targets?, mode? })` | Lights the devices one by one, so that a person can find each one |
 | `doctor()` | Lists the problems in the configuration |
