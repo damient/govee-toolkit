@@ -603,7 +603,7 @@ exports[`the tools and their schemas match the snapshot 1`] = `
       "properties": {
         "target": {
           "type": "string",
-          "description": "An identity (\`AA:BB:CC:DD:EE:FF\`), a name that the configuration gives a device (\`name:kitchen\`), or a group that it gives (\`group:ambient\`)."
+          "description": "A SKU, which selects every device of that model that a scan found, or else: An identity (\`AA:BB:CC:DD:EE:FF\`), a name that the configuration gives a device (\`name:kitchen\`), or a group that it gives (\`group:ambient\`)."
         },
         "mode": {
           "description": "Pins the call to one mode, which the device must enable. Without it, the preference order of the device applies. A mode that does not answer fails the call: nothing moves to another mode.",
