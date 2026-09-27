@@ -41,7 +41,7 @@ export async function attempt(
 
 /** The device handle, pinned when `mode` is given, and the mode that serves it. */
 export async function reach(govee: Govee, target: string, mode?: string): Promise<[DeviceHandle, string]> {
-  const handle = mode === undefined ? govee.device(target) : govee.deviceOn(target, mode);
+  const handle = govee.device(target, mode === undefined ? {} : { mode });
   return [handle, await handle.ensureKnown()];
 }
 

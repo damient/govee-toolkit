@@ -20,7 +20,8 @@ policy is [`../../docs/versioning.md`](../../docs/versioning.md).
   with no retry on another mode.
 - `send` refuses a command that takes a secret, such as a network password,
   with `secret_arg`.
-- `set` sends its steps in the order the core fixes. A member that fails a
-  step takes no later step.
+- `set` takes a device, a group or a SKU, and sends its steps in the order the
+  core fixes. A member that fails a step takes no later step.
+- `list_known` scans once, over each mode that no scan covered yet.
 - Resources: each docs page at `gtk://docs/<topic>`, and each device record
   at `gtk://devices/{sku}`.
