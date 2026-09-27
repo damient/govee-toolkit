@@ -3,8 +3,8 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { relative } from "node:path";
-import { CATALOG_SCHEMA, catalogPath, repo } from "./config.ts";
-import type { Catalog, LanList, Reference } from "./types.ts";
+import { CATALOG_SCHEMA, apiPath, catalogPath, repo } from "./config.ts";
+import type { Api, Catalog, LanList, Reference } from "./types.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -23,6 +23,19 @@ export function isCatalog(value: unknown): value is Catalog {
 
 export function isReference(value: unknown): value is Reference {
   return isRecord(value) && typeof value.intro === "string" && Array.isArray(value.groups);
+}
+
+export function isApi(value: unknown): value is Api {
+  return isRecord(value) && isRecord(value.surfaces) && isRecord(value.params);
+}
+
+/** Exits where `dist/api.json` is missing. */
+export function readApi(): Promise<Api> {
+  if (!existsSync(apiPath)) {
+    console.error(`missing ${relative(repo, apiPath)}.\nGenerate it first: cargo run -p xtask -- api`);
+    process.exit(1);
+  }
+  return readJson(apiPath, isApi);
 }
 
 export function isLanList(value: unknown): value is LanList {

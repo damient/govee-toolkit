@@ -1,6 +1,6 @@
 # Versioning and compatibility
 
-Four packages release independently off one shared core. This page is the rule
+Six packages release independently off one shared core. This page is the rule
 they follow, written before the first release rather than after the second one
 breaks.
 
@@ -10,9 +10,11 @@ Each package keeps its own —
 [`rust`](../packages/rust/CHANGELOG.md),
 [`cli`](../packages/rust/crates/cli/CHANGELOG.md),
 [`python`](../packages/python/CHANGELOG.md),
-[`node`](../packages/node/CHANGELOG.md). The root
+[`node`](../packages/node/CHANGELOG.md),
+[`dmx`](../packages/rust/crates/dmx/CHANGELOG.md),
+[`mcp`](../integrations/mcp/CHANGELOG.md). The root
 [`CHANGELOG.md`](../CHANGELOG.md) carries what belongs to no package — the
-device catalog, the documentation, the tooling and CI — and indexes the four.
+device catalog, the documentation, the tooling and CI — and indexes the six.
 
 ## Semver, and what pre-1.0 means
 
@@ -37,8 +39,9 @@ have survived `ble` and `cloud` landing — not on a date.
 | `dmx-vX.Y.Z` | `govee-toolkit-dmx` | crates.io |
 | `python-vX.Y.Z` | `govee-toolkit` | PyPI |
 | `node-vX.Y.Z` | `govee-toolkit` | npm |
+| `mcp-vX.Y.Z` | `govee-toolkit-mcp` | npm |
 
-Versions are **not** kept in lockstep. Five packages that move at different
+Versions are **not** kept in lockstep. Six packages that move at different
 speeds and share a version number would mean publishing four no-op releases
 every time one of them changed.
 
@@ -75,6 +78,22 @@ Node, Python and the facade are built from the same workspace commit: a binding
 release embeds the core it was built against, so there is no version pair to
 match. The core version a binding was built from is recorded in its metadata and
 reported at runtime.
+
+## Which binding the MCP server wraps
+
+`govee-toolkit-mcp` depends on the Node binding at an exact version. It ships
+`dist/api.json` and `docs/` from its tagged commit, so these files must
+describe the binding that it installs:
+
+- The `govee-toolkit` version in `integrations/mcp/package.json` must equal
+  the version in `packages/node/package.json`. The release fails otherwise.
+- Push `node-vX.Y.Z` first. Push `mcp-vX.Y.Z` when the binding is on npm.
+- The release tests the package against the binding on npm, not against the
+  binding of the checkout.
+
+The public surface of the MCP server is its tool names, the input schemas and
+the output schemas. A tool that is removed or renamed, or a schema field that
+is removed, is breaking.
 
 ## What counts as public API
 
@@ -117,12 +136,16 @@ The changelog is the source, and the release is derived from it:
    entries that have accumulated at the top of the changelog, and bumps the
    version in the package manifest. Both are reviewed there.
 2. A signed tag names the package and the version — `git tag -s rust-v0.3.0 -m
-   rust-v0.3.0 && git push --tags`.
-3. The tag starts the package's release workflow. Its first step runs
-   `tools/release-notes.sh <pkg> <tag>`, which compares the tag, the manifest
-   version and the changelog heading, and prints that section. Three numbers
-   that disagree fail the run before anything is built.
-4. The section becomes the body of the GitHub release, and the workflow
+   rust-v0.3.0 && git push origin rust-v0.3.0`. Push each tag alone: GitHub
+   starts no workflow for a push of more than three tags. Push `rust-v…`
+   before `cli-v…` and `dmx-v…`, which need the core on crates.io.
+3. The tag starts the package's release workflow. Its first step,
+   `tools/ci-passed.sh`, waits for CI on the tagged commit and fails the run
+   unless CI passed. After a CI rerun that passes, rerun the release job.
+4. The next step runs `tools/release-notes.sh <pkg> <tag>`, which compares the
+   tag, the manifest version and the changelog heading, and prints that
+   section. Three numbers that disagree fail the run before anything is built.
+5. The section becomes the body of the GitHub release, and the workflow
    publishes to the registry.
 
 No registry token is stored in the repository: each workflow publishes through

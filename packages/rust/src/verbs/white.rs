@@ -21,6 +21,8 @@ impl DeviceHandle<'_> {
     /// curve. To send another rendering, name the entry through
     /// [`DeviceHandle::send`] and pass the components.
     ///
+    /// Serves [`Role::ColorTemp`].
+    ///
     /// # Errors
     ///
     /// As for [`DeviceHandle::power`], for the command marked

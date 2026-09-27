@@ -36,18 +36,14 @@
 //! Every command reports which mode served it — `docs/modes.md`.
 //!
 //! ```no_run
-//! use govee_toolkit::{Args, Config, Govee};
+//! use govee_toolkit::{Args, Config, Filter, Govee};
 //!
 //! # async fn example() -> Result<(), govee_toolkit::Error> {
 //! let govee = Govee::start(Config::load()?).await?;
-//! govee.scan().await?;
 //!
-//! for device in govee.devices() {
-//!     let served = govee
-//!         .device(&device.id)
-//!         .send("power", &Args::new().int("on", 1))
-//!         .await?;
-//!     println!("{} served by {}", device.id, served.mode);
+//! for device in &govee.devices(Filter::all(), None).await? {
+//!     let served = device.send("power", &Args::new().int("on", 1)).await?;
+//!     println!("{} served by {}", device.id(), served.mode);
 //! }
 //! # Ok(())
 //! # }
@@ -98,11 +94,13 @@ pub mod summary;
 pub mod transport;
 
 #[cfg(feature = "transport")]
+mod apply;
+#[cfg(feature = "transport")]
 mod describe;
 #[cfg(feature = "transport")]
 mod device;
 #[cfg(feature = "transport")]
-mod group;
+mod devices;
 
 #[cfg(feature = "transport")]
 mod event;
@@ -117,13 +115,17 @@ pub mod select;
 #[cfg(feature = "transport")]
 mod verbs;
 
+#[cfg(feature = "transport")]
+pub use apply::{Applied, AppliedStep, Verb};
 pub use codec::{Args, Catalog, Mode};
 #[cfg(feature = "transport")]
 pub use config::{CloudConfig, Config, DeviceConfig, LanConfig, Problem, StreamConfig};
 #[cfg(feature = "transport")]
-pub use describe::describe;
+pub use describe::{describe, describe_sku};
 #[cfg(feature = "transport")]
 pub use device::DeviceHandle;
+#[cfg(feature = "transport")]
+pub use devices::{Devices, Outcome};
 #[cfg(feature = "transport")]
 pub use env::Env;
 #[cfg(feature = "transport")]
@@ -132,14 +134,12 @@ pub use error::{Category, Error, Result};
 pub use event::{Device, Event, Served};
 #[cfg(feature = "transport")]
 pub use govee::{Govee, Walk, WalkObserver, WalkReport};
-#[cfg(feature = "transport")]
-pub use group::{GroupHandle, Outcome};
 #[cfg(feature = "ble")]
 pub use provision::{Provisioned, WifiCredentials};
 #[cfg(feature = "transport")]
-pub use resolved::Resolved;
+pub use resolved::{Invoked, Resolved};
 #[cfg(feature = "transport")]
-pub use select::Selector;
+pub use select::{Filter, Selector, Target};
 #[cfg(feature = "transport")]
 pub use stream::{ParseError, Rate, Reach, Resolution, SegmentStream, StreamOptions};
 #[cfg(feature = "transport")]

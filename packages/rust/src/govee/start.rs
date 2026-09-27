@@ -111,6 +111,7 @@ impl Govee {
             events: events.clone(),
             status_requests: Mutex::new(HashMap::new()),
             streams: crate::govee::ArmedStreams::default(),
+            scanned: tokio::sync::Mutex::default(),
         });
 
         let forwarder = Forwarder(

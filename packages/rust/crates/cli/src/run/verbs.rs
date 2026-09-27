@@ -4,75 +4,25 @@
 //! A member that fails stops no other one: its line goes to stderr, and the
 //! run exits with the code of the first failure.
 
-use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::stream::Resolution;
-use govee_toolkit::{DeviceId, Govee, GroupHandle, Music, Outcome, Paint, Served};
+use govee_toolkit::{DeviceId, Devices, Served, Verb};
 use serde_json::json;
 
-pub(super) enum Verb {
-    Power(bool),
-    Brightness(i64),
-    Color([u8; 3]),
-    ColorTemp(i64),
-    Segment {
-        zones: Option<Vec<u16>>,
-        colors: Vec<[u8; 3]>,
-        resolution: Resolution,
-        gradient: bool,
-    },
-    Gradient(bool),
-    Music(Music),
-}
-
-pub(super) async fn run(
-    govee: &Govee,
-    writer: Writer,
-    members: &[DeviceId],
-    restrict: Option<Mode>,
-    verb: Verb,
-) -> Result<(), Failure> {
+pub(super) async fn run(writer: Writer, members: &Devices<'_>, verb: Verb) -> Result<(), Failure> {
+    let applied = members.apply(vec![verb]).await;
     let mut failures: Vec<(DeviceId, Failure)> = Vec::new();
-    let mut reached = Vec::new();
-    for outcome in govee.group_maybe_on(members, restrict).ensure_known().await {
-        match outcome.result {
-            Ok(_) => reached.push(outcome.id),
-            Err(error) => failures.push((outcome.id, Failure::from(error))),
+    for outcome in applied.reached {
+        if let Err(error) = outcome.result {
+            failures.push((outcome.id, Failure::from(error)));
         }
     }
-    for outcome in play(&govee.group_maybe_on(&reached, restrict), verb).await {
+    for outcome in applied.steps.into_iter().flat_map(|step| step.outcomes) {
         match outcome.result {
             Ok(served) => report(writer, &served),
             Err(error) => failures.push((outcome.id, Failure::from(error))),
         }
     }
     verdict(writer, members.len(), failures)
-}
-
-async fn play(group: &GroupHandle<'_>, verb: Verb) -> Vec<Outcome> {
-    match verb {
-        Verb::Power(on) => group.power(on).await,
-        Verb::Brightness(level) => group.brightness(level).await,
-        Verb::Color(rgb) => group.color(rgb).await,
-        Verb::ColorTemp(kelvin) => group.color_temp(kelvin).await,
-        Verb::Segment {
-            zones,
-            colors,
-            resolution,
-            gradient,
-        } => {
-            group
-                .segment(&Paint {
-                    zones: zones.as_deref(),
-                    colors: &colors,
-                    resolution,
-                    gradient,
-                })
-                .await
-        }
-        Verb::Gradient(on) => group.gradient(on).await,
-        Verb::Music(music) => group.music(&music).await,
-    }
 }
 
 /// One device fails with its own failure, as a command on one device does.

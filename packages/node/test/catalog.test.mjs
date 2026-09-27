@@ -53,3 +53,39 @@ test("an unknown SKU is refused", () => {
     return true;
   });
 });
+
+test("a SKU describes as govee describe --json prints it", () => {
+  const sku = catalog.skus()[0];
+  const record = catalog.describe(sku);
+  assert.equal(record.sku, catalog.device(sku).sku);
+  for (const key of ["modes", "commands"]) {
+    assert.ok(key in record, key);
+  }
+});
+
+test("a SKU gives its DMX channel tables", () => {
+  for (const sku of catalog.skus()) {
+    const entry = catalog.dmx(sku);
+    assert.ok(Array.isArray(entry.personalities), sku);
+  }
+});
+
+test("describe and dmx refuse an unknown SKU", () => {
+  for (const method of ["describe", "dmx"]) {
+    assert.throws(() => catalog[method]("H0000"), (error) => {
+      assert.equal(error.code, "unknown_sku");
+      assert.equal(error.name, "CodecError");
+      return true;
+    }, method);
+  }
+});
+
+test("the capability list holds what every device declares, sorted", () => {
+  const names = catalog.capabilities();
+  assert.deepEqual(names, [...names].sort());
+  for (const sku of catalog.skus()) {
+    for (const name of catalog.describe(sku).capabilities) {
+      assert.ok(names.includes(name), `${sku}: ${name}`);
+    }
+  }
+});

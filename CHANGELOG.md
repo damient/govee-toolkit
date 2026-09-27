@@ -9,11 +9,12 @@ shipped.
 
 | Package | Changelog | Version |
 | ------- | --------- | ------- |
-| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.14.0 |
+| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 0.15.0 |
 | `govee-toolkit-cli` (Rust) | [`packages/rust/crates/cli/CHANGELOG.md`](packages/rust/crates/cli/CHANGELOG.md) | 0.9.0 |
 | `govee-toolkit-dmx` (Rust) | [`packages/rust/crates/dmx/CHANGELOG.md`](packages/rust/crates/dmx/CHANGELOG.md) | 0.3.0 |
-| `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 0.6.0 |
-| `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 0.5.0 |
+| `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 0.7.0 |
+| `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 0.6.0 |
+| `govee-toolkit-mcp` (MCP server) | [`integrations/mcp/CHANGELOG.md`](integrations/mcp/CHANGELOG.md) | 0.1.0 |
 
 ## Catalog
 
@@ -21,6 +22,22 @@ The catalog has no version of its own. A package embeds the catalog at
 build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
+
+### 2026-09-27
+
+#### Added
+
+- `dist/api.json` lists the parameters of every method on every surface. `xtask
+  api` fails when two surfaces give one parameter two defaults.
+
+### 2026-09-26
+
+#### Added
+
+- `cargo run -p xtask -- api` writes `dist/api.json`. The file joins each role
+  to the method that serves it on the CLI, Rust, Node and Python, and lists
+  the public surface of each one. `api --check` fails when a role has no
+  method on a surface.
 
 ### 2026-09-25
 

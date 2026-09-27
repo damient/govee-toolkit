@@ -16,18 +16,27 @@ test("start and close", async () => {
   await govee.close();
 });
 
-test("no device is known before a scan", async () => {
-  await withGovee(sdk, (govee) => {
-    assert.deepEqual(govee.devices(), []);
+test("an identity selects itself with no scan, and a name nothing gives selects nothing", async () => {
+  await withGovee(sdk, async (govee) => {
+    const devices = await govee.devices(["aa:bb:cc:dd:ee:ff:00:11", "AA:BB:CC:DD:EE:FF:00:11"]);
+    assert.deepEqual(
+      devices.members.map((member) => member.id),
+      ["AA:BB:CC:DD:EE:FF:00:11"],
+    );
+    assert.equal(devices.length, 1);
+    assert.deepEqual(devices.list(), []);
+    await assert.rejects(() => govee.devices(["name:attic"]), { code: "no_such_target" });
+    assert.equal((await govee.devices([])).length, 0);
   });
 });
 
-test("an identity selects itself, and a model nothing found selects nothing", async () => {
-  await withGovee(sdk, (govee) => {
-    assert.deepEqual(govee.select(["aa:bb:cc:dd:ee:ff:00:11"]), [
-      "AA:BB:CC:DD:EE:FF:00:11",
-    ]);
-    assert.throws(() => govee.select(["H6008"]), { code: "no_such_target" });
+test("an unknown devices option is refused", async () => {
+  await withGovee(sdk, async (govee) => {
+    await refusesValue(() => govee.devices([], { pin: "lan" }));
+    await refusesValue(() => govee.devices([], { mode: "radio" }));
+    assert.throws(() => govee.device("AA:BB:CC:DD:EE:FF", { pin: "lan" }), {
+      code: "invalid_argument",
+    });
   });
 });
 
@@ -78,7 +87,11 @@ test("a handle takes a name the configuration gives", async () => {
   const govee = await Govee.start(Config.loadFrom(path));
   try {
     assert.equal(govee.device("kitchen").id, "AA:BB:CC:DD:EE:FF");
-    assert.equal(govee.deviceOn("name:KITCHEN", "lan").id, "AA:BB:CC:DD:EE:FF");
+    assert.equal(govee.device("name:KITCHEN", { mode: "lan" }).id, "AA:BB:CC:DD:EE:FF");
+    assert.equal(govee.device("kitchen", { mode: "lan" }).pinned, "lan");
+    assert.equal(govee.device("kitchen").pinned, null);
+    const [member] = (await govee.devices(["kitchen"], { mode: "lan" })).members;
+    assert.equal(member.pinned, "lan");
     assert.equal(govee.device("id:AA:BB:CC:DD:EE:FF").id, "AA:BB:CC:DD:EE:FF");
     for (const [target, code] of [
       ["name:attic", "no_such_target"],
@@ -107,10 +120,14 @@ test("a group names its members, and each member answers alone", async () => {
   const govee = await Govee.start(Config.loadFrom(path));
   try {
     const members = ["AA:00:00:00:00:01", "BB:00:00:00:00:02"];
-    assert.deepEqual(govee.targets("ambient"), members);
-    assert.deepEqual(govee.targets("hall"), ["BB:00:00:00:00:02"]);
-    const group = govee.group("group:ambient", "lan");
-    assert.deepEqual(group.members, members);
+    const ids = (devices) => devices.members.map((member) => member.id);
+    assert.deepEqual(ids(await govee.devices(["ambient"])), members);
+    assert.deepEqual(ids(await govee.devices(["hall"])), ["BB:00:00:00:00:02"]);
+    assert.deepEqual(ids(await govee.devices(["ambient"], { enables: "lan" })), [
+      "BB:00:00:00:00:02",
+    ]);
+    const group = await govee.devices(["group:ambient"], { mode: "lan" });
+    assert.deepEqual(ids(group), members);
 
     const outcomes = await group.power(true);
     assert.deepEqual(
@@ -129,6 +146,25 @@ test("a group names its members, and each member answers alone", async () => {
   }
 });
 
+test("apply sends no step to a group whose members the scan misses", async () => {
+  const path = join(mkdtempSync(join(tmpdir(), "govee-")), "config.yaml");
+  writeFileSync(path, GROUPED);
+  const govee = await Govee.start(Config.loadFrom(path));
+  try {
+    const group = await govee.devices(["group:ambient"], { mode: "lan" });
+    const applied = await group.apply({ power: true, brightness: 50 });
+    assert.equal(applied.ok, false);
+    assert.deepEqual(applied.steps, []);
+    assert.deepEqual(
+      applied.reached.map((outcome) => outcome.ok),
+      [false, false],
+    );
+    assert.throws(() => group.apply({ brightnes: 50 }), { code: "invalid_argument" });
+  } finally {
+    await govee.close();
+  }
+});
+
 test("an identify walk over an empty list walks no device", async () => {
   await withGovee(sdk, async (govee) => {
     const report = await govee.identify([]);
@@ -141,9 +177,9 @@ test("an identify walk over an empty list walks no device", async () => {
 
 test("an identify option the list does not name is refused", async () => {
   await withGovee(sdk, async (govee) => {
-    await refusesValue(() => govee.identify([], { holdMS: 0 }));
-    await refusesValue(() => govee.identify([], { holdMs: -1 }));
-    await refusesValue(() => govee.identify([], { waitMs: 0.5 }));
+    await refusesValue(() => govee.identify([], { holdMs: 0 }));
+    await refusesValue(() => govee.identify([], { hold: -1 }));
+    await refusesValue(() => govee.identify([], { wait: Infinity }));
     await refusesValue(() => govee.identify([], { color: [256, 0, 0] }));
     await refusesValue(() => govee.identify([], { mode: "radio" }));
   });
@@ -155,7 +191,7 @@ test("an identify walk over a mode the device does not enable is refused before 
   const govee = await Govee.start(Config.loadFrom(path));
   try {
     await assert.rejects(
-      () => govee.identify("AA:00:00:00:00:01", { waitMs: 0, holdMs: 0 }),
+      () => govee.identify("AA:00:00:00:00:01", { wait: 0, hold: 0 }),
       { code: "mode_not_enabled" },
     );
   } finally {

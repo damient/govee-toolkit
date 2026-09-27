@@ -11,7 +11,7 @@ use govee_toolkit_sim::Simulator;
 
 mod common;
 
-use common::{Rig, SKU, hex, id, wait_for};
+use common::{One, Rig, SKU, hex, wait_for};
 
 const TEST_HZ: f64 = 20.0;
 
@@ -27,7 +27,7 @@ async fn rig_with(catalog: Catalog, sku: &str) -> Rig {
 async fn open(rig: &Rig, options: StreamOptions) -> govee_toolkit::SegmentStream {
     let stream = rig
         .govee
-        .device(&id())
+        .one()
         .open_stream(options)
         .await
         .expect("the stream opens");
@@ -124,7 +124,7 @@ async fn native_resolution_nobody_measured_is_refused() {
 
     let error = rig
         .govee
-        .device(&id())
+        .one()
         .open_stream(options(Resolution::Native))
         .await
         .expect_err("an unmeasured unit has no native resolution");

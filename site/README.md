@@ -27,12 +27,15 @@ pages so that the header, the footer and the device tables exist once.
 ## Build
 
 The build needs Node 26 or later. The devices page reads
-`../dist/catalog.json`, which `xtask` generates from `devices/*.yaml`. The LAN
-Control page reads `../docs/lan-supported-devices.json`, which is committed.
-Generate it first:
+`../dist/catalog.json`, which `xtask` generates from `devices/*.yaml`. The
+reference page reads `../dist/api.json`, which `xtask api` extracts from the
+code of each language. The LAN Control page reads
+`../docs/lan-supported-devices.json`, which is committed. Generate the two
+files first:
 
 ```bash
 npm run catalog
+npm run api
 npm install
 npm run build
 ```
@@ -44,7 +47,8 @@ npm run dev     # http://localhost:8787
 ```
 
 It serves `dist/` and rebuilds on every change under `src/` and `content/`,
-and on a new `../dist/catalog.json` or `../docs/lan-supported-devices.json`.
+and on a new `../dist/catalog.json`, `../dist/api.json` or
+`../docs/lan-supported-devices.json`.
 An open page follows the rebuild: a
 change to a stylesheet replaces the styles in place, and any other change
 reloads the page. A change to `build.ts` or `lib/` restarts the process,
@@ -87,14 +91,16 @@ the menu.
 ## Add a reference entry
 
 `content/reference.json` holds the groups, and each group holds the entries.
-One entry carries a title, a summary, an optional detail and one example per
-language:
+One entry carries a title, a summary, an optional detail, the methods it
+shows and one example per language:
 
 ```json
 {
   "id": "power",
   "title": "power",
   "summary": "Turn the device on or off.",
+  "api": ["DeviceHandle::power"],
+  "cli": ["govee on", "govee off"],
   "examples": {
     "cli": "govee on DEVICE",
     "rust": "device.power(true).await?;",
@@ -103,6 +109,12 @@ language:
   }
 }
 ```
+
+`api` names the Rust methods of the entry, and `cli` the commands, as
+`dist/api.json` names them. Each language tab then carries one table for each
+method that takes a parameter: the name, the type, required or optional, and
+the default. Python and Node.js take the methods that carry the Rust ones. A
+name that `dist/api.json` does not hold fails the build.
 
 The menu, the anchors and the language tabs are generated. A language the
 build marks as planned carries a dot and a note, so a reader never takes a

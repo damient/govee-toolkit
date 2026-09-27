@@ -8,8 +8,7 @@ use futures_util::future::join_all;
 use crate::codec::Mode;
 use crate::device::DeviceHandle;
 use crate::error::Result;
-use crate::event::Served;
-use crate::govee::Govee;
+use crate::event::{Device, Served};
 use crate::transport::DeviceId;
 use crate::verbs::{Music, Paint};
 
@@ -22,49 +21,56 @@ pub struct Outcome<T = Served> {
     pub result: Result<T>,
 }
 
-/// A handle for several devices. It holds no state of its own.
+/// The devices that [`Govee::devices`](crate::Govee::devices) selects. Each
+/// call here runs on every member at once, and answers one [`Outcome`] per
+/// member, in member order.
 #[derive(Debug, Clone)]
-pub struct GroupHandle<'a> {
-    govee: &'a Govee,
-    members: &'a [DeviceId],
-    pinned: Option<Mode>,
+pub struct Devices<'a> {
+    members: Vec<DeviceHandle<'a>>,
 }
 
-impl Govee {
-    /// A handle for several devices. [`Govee::targets`] turns a group name
-    /// into its members.
-    #[must_use]
-    pub fn group<'a>(&'a self, members: &'a [DeviceId]) -> GroupHandle<'a> {
-        self.group_maybe_on(members, None)
+impl<'a> Devices<'a> {
+    pub(crate) fn new(members: Vec<DeviceHandle<'a>>) -> Self {
+        Self { members }
     }
 
-    /// A handle for several devices, each one driven over `mode` alone. A
-    /// member that does not enable `mode` fails alone.
+    /// The members, in the order that each [`Outcome`] list follows.
     #[must_use]
-    pub fn group_on<'a>(&'a self, members: &'a [DeviceId], mode: Mode) -> GroupHandle<'a> {
-        self.group_maybe_on(members, Some(mode))
+    pub fn members(&self) -> &[DeviceHandle<'a>] {
+        &self.members
     }
 
-    /// [`Govee::group`], or [`Govee::group_on`] where `mode` is `Some`.
-    #[must_use]
-    pub fn group_maybe_on<'a>(
-        &'a self,
-        members: &'a [DeviceId],
-        mode: Option<Mode>,
-    ) -> GroupHandle<'a> {
-        GroupHandle {
-            govee: self,
-            members,
-            pinned: mode,
-        }
+    /// The members, in order.
+    pub fn iter(&self) -> std::slice::Iter<'_, DeviceHandle<'a>> {
+        self.members.iter()
     }
-}
 
-impl<'a> GroupHandle<'a> {
-    /// The members, in the order each [`Outcome`] list follows.
+    /// The number of members.
     #[must_use]
-    pub fn members(&self) -> &[DeviceId] {
+    pub fn len(&self) -> usize {
+        self.members.len()
+    }
+
+    /// Whether the filter selected no device.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.members.is_empty()
+    }
+
+    /// What the SDK holds for each member: the SKU, the name, the groups, the
+    /// modes and the health. Reads no hardware.
+    ///
+    /// A member that no transport knows and that the configuration pins no
+    /// SKU for is not in the list. [`Devices::members`] holds every member.
+    #[must_use]
+    pub fn list(&self) -> Vec<Device> {
         self.members
+            .iter()
+            .filter_map(|handle| {
+                let sku = handle.govee.sku(handle.id()).ok()?;
+                Some(handle.govee.describe(handle.id(), &sku))
+            })
+            .collect()
     }
 
     /// Run `verb` on every member at once.
@@ -73,11 +79,11 @@ impl<'a> GroupHandle<'a> {
         F: Fn(DeviceHandle<'a>) -> Fut,
         Fut: Future<Output = Result<T>>,
     {
-        let calls = self.members.iter().map(|id| {
-            let call = verb(self.govee.device_maybe_on(id, self.pinned));
+        let calls = self.members.iter().map(|handle| {
+            let call = verb(handle.clone());
             async move {
                 Outcome {
-                    id: id.clone(),
+                    id: handle.id().clone(),
                     result: call.await,
                 }
             }
@@ -85,20 +91,11 @@ impl<'a> GroupHandle<'a> {
         join_all(calls).await
     }
 
-    /// [`Govee::ensure_known`] on every member at once, so absent members cost
-    /// one scan window between them. A pinned group scans over its mode alone.
+    /// [`DeviceHandle::ensure_known`] on every member at once, so absent
+    /// members cost one scan window between them.
     pub async fn ensure_known(&self) -> Vec<Outcome<Mode>> {
-        let calls = self.members.iter().map(|id| async move {
-            let result = match self.pinned {
-                Some(mode) => self.govee.ensure_known_on(id, mode).await,
-                None => self.govee.ensure_known(id).await,
-            };
-            Outcome {
-                id: id.clone(),
-                result,
-            }
-        });
-        join_all(calls).await
+        self.each(|handle| async move { handle.ensure_known().await })
+            .await
     }
 
     /// [`DeviceHandle::power`] on every member.
@@ -141,5 +138,31 @@ impl<'a> GroupHandle<'a> {
     pub async fn music(&self, music: &Music) -> Vec<Outcome> {
         self.each(|handle| async move { handle.music(music).await })
             .await
+    }
+}
+
+/// Handles from [`Govee::device`](crate::Govee::device) make a set with no
+/// resolution and no scan, each member with its own pin.
+impl<'a> FromIterator<DeviceHandle<'a>> for Devices<'a> {
+    fn from_iter<I: IntoIterator<Item = DeviceHandle<'a>>>(handles: I) -> Self {
+        Self::new(handles.into_iter().collect())
+    }
+}
+
+impl<'s, 'a> IntoIterator for &'s Devices<'a> {
+    type IntoIter = std::slice::Iter<'s, DeviceHandle<'a>>;
+    type Item = &'s DeviceHandle<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.members.iter()
+    }
+}
+
+impl<'a> IntoIterator for Devices<'a> {
+    type IntoIter = std::vec::IntoIter<DeviceHandle<'a>>;
+    type Item = DeviceHandle<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.members.into_iter()
     }
 }

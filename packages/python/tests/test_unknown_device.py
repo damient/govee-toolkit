@@ -29,6 +29,10 @@ async def test_a_verb_refuses_an_unknown_device(handle):
     await refuses_unknown(handle.power, True)
 
 
+async def test_invoke_refuses_an_unknown_device(handle):
+    await refuses_unknown(handle.invoke, "power", True)
+
+
 async def test_read_refuses_an_unknown_device(handle):
     await refuses_unknown(handle.read, "status")
 

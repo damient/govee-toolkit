@@ -21,7 +21,7 @@ use govee_toolkit_sim::Simulator;
 
 mod common;
 
-use common::{Rig, SKU, hex, id, wait_for};
+use common::{One, Rig, SKU, hex, wait_for};
 
 /// Fast enough that a test does not wait on the measured rate, slow enough that
 /// several writes land inside one interval.
@@ -44,7 +44,7 @@ async fn rig_with(catalog: Catalog, sku: &str) -> Rig {
 async fn open(rig: &Rig, options: StreamOptions) -> govee_toolkit::SegmentStream {
     let stream = rig
         .govee
-        .device(&id())
+        .one()
         .open_stream(options)
         .await
         .expect("the stream opens");
@@ -76,7 +76,7 @@ async fn opening_arms_the_channel() {
     let rig = rig().await;
     let _stream = rig
         .govee
-        .device(&id())
+        .one()
         .open_stream(options(Resolution::App))
         .await
         .expect("the stream opens");
@@ -222,7 +222,7 @@ async fn a_gradient_no_frame_can_carry_is_refused_rather_than_dropped() {
 
     let error = rig
         .govee
-        .device(&id())
+        .one()
         .open_stream(StreamOptions {
             resolution: Resolution::App,
             rate: Rate::Fixed(TEST_HZ),
@@ -243,7 +243,7 @@ async fn a_file_naming_no_segment_command_is_refused() {
 
     let error = rig
         .govee
-        .device(&id())
+        .one()
         .open_stream(options(Resolution::App))
         .await
         .expect_err("nothing claims the role");
@@ -301,7 +301,8 @@ async fn a_stream_is_only_opened_for_a_device_a_mode_can_reach() {
     let rig = rig().await;
     let error = rig
         .govee
-        .device(&govee_toolkit::DeviceId::new("11:22:33:44:55:66"))
+        .device(&govee_toolkit::DeviceId::new("11:22:33:44:55:66"), None)
+        .expect("an identity names one device")
         .open_stream(options(Resolution::App))
         .await
         .expect_err("nothing was ever discovered under that identity");
@@ -313,7 +314,7 @@ async fn a_stream_does_not_power_the_device_on() {
     let rig = rig().await;
     let _stream = rig
         .govee
-        .device(&id())
+        .one()
         .open_stream(options(Resolution::App))
         .await
         .expect("the stream opens");
@@ -330,7 +331,7 @@ async fn a_stream_does_not_power_the_device_on() {
 
     // The caller's own power command still goes out as usual.
     rig.govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("power reaches the device");

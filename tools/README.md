@@ -7,13 +7,15 @@
 | Local CI mirror, site only | [`qa-site.sh`](qa-site.sh) |
 | Local CI mirror, Python only | [`qa-python.sh`](qa-python.sh) |
 | Local CI mirror, Node only | [`qa-node.sh`](qa-node.sh) |
-| Pass/fail reporter the four share | [`lib/qa.sh`](lib/qa.sh) |
+| Local CI mirror, MCP server only | [`qa-mcp.sh`](qa-mcp.sh) |
+| Pass/fail reporter the five share | [`lib/qa.sh`](lib/qa.sh) |
 | Build artifact sweep | [`clean-target.sh`](clean-target.sh) |
 | Redaction check | [`check-captures.sh`](check-captures.sh) |
 | Art-Net capture recorder | [`record-artnet.py`](record-artnet.py) |
 | File length, per language | [`check-file-length.sh`](check-file-length.sh) |
 | Codec layering | [`check-no-io.sh`](check-no-io.sh) |
 | Release notes from the changelog | [`release-notes.sh`](release-notes.sh) |
+| CI gate of a release | [`ci-passed.sh`](ci-passed.sh) |
 | Stub prose from the binding | [`sync-stubs.py`](sync-stubs.py) |
 | Govee's list of LAN Control models | [`fetch-lan-list.py`](fetch-lan-list.py) |
 | Generated catalog and tables | [`packages/rust/crates/xtask`](../packages/rust/crates/xtask) |
@@ -130,7 +132,12 @@ tools/qa-node.sh clippy     # the checks whose name holds "clippy"
 It needs Node.js 20 or newer and `packages/node/node_modules`, which
 `cd packages/node && npm ci` writes, and reports a missing one as skipped.
 
-`lib/qa.sh` holds what the four scripts share: the check runner, the skip rule
+`qa-mcp.sh` mirrors the `mcp` job of `ci.yml`: `xtask api`, the simulator,
+then the build, the types, the lint and the tests of `integrations/mcp`. It
+needs `npm ci && npm run link:binding` in `integrations/mcp`, and reports a
+missing install as skipped.
+
+`lib/qa.sh` holds what the five scripts share: the check runner, the skip rule
 and the summary. Each script sources it and declares its own checks, so the
 report reads the same either way. It carries no shebang, so it names its shell
 with a `# shellcheck shell=bash` directive.
@@ -184,19 +191,40 @@ tools/release-notes.sh rust rust-v0.3.0
 
 It fails when the tag, the version in the package manifest and the changelog
 heading are not the same number, or when the section exists with no entries
-under it. The release workflows run it as their first step, so a tag pushed
-past a manifest nobody bumped stops there instead of publishing.
+under it. The release workflows run it before any build, so a tag pushed past
+a manifest nobody bumped stops there instead of publishing.
+
+`ci-passed.sh` takes a commit and waits for the CI run of its push to main.
+It fails when that run does not pass, or when no run completes in 45 minutes.
+The release workflows run it first, so a tag pushed right after a merge waits
+for CI. After a CI rerun that passes, rerun the release job:
+
+```bash
+gh run rerun <release run id> --failed
+```
 
 `xtask` generates what is derived from `devices/*.yaml`:
 
 ```bash
 cd packages/rust
 cargo run -p xtask                    # dist/catalog.json, the release artifact
+cargo run -p xtask -- api             # dist/api.json, the methods and their parameters
+cargo run -p xtask -- api --check     # fails when a role has no method, or when
+                                      # two surfaces give one parameter two defaults
 cargo run -p xtask -- compat          # the tables in docs/compatibility.md
 cargo run -p xtask -- compat --check  # fails when they have drifted
 cargo run -p xtask -- lan             # the table in docs/lan-supported-devices.md
 cargo run -p xtask -- dupes           # fails on a layout two device files
                                       # declare and no family carries
+```
+
+`xtask api` reads the parameters of the CLI from `crates/cli/args.json` and
+`crates/dmx/args.json`. A test of each binary writes the file from clap, and
+fails when the file is stale:
+
+```bash
+GOVEE_BLESS=1 cargo test -p govee-toolkit-cli args_json   # rewrite args.json
+GOVEE_BLESS=1 cargo test -p govee-toolkit-dmx args_json
 ```
 
 No script supplies the local credentials: the SDK reads the repository's

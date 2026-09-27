@@ -1,6 +1,6 @@
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{Device, Govee};
+use govee_toolkit::{Device, Filter, Govee};
 use serde_json::{Value, json};
 
 pub(super) async fn scan(
@@ -9,7 +9,7 @@ pub(super) async fn scan(
     restrict: Option<Mode>,
 ) -> Result<(), Failure> {
     let modes = super::modes(govee, restrict);
-    let found = govee.scan_on(&modes).await?;
+    let found = govee.scan(Some(&modes)).await?;
     for device in &found {
         // A device that answered is on the air, whatever the configuration
         // says: `ble` reports a device under the handle the platform gives the
@@ -46,26 +46,27 @@ fn heard_text(device: &Device, scanned: &[Mode], restrict: Option<Mode>, enabled
     )
 }
 
-/// List what the targets name, or every known device where they name
-/// nothing. It touches no network, so a target matches what the cache and the
-/// scans of this run hold.
-pub(super) fn list(
+/// List what the targets name, or every device where they name nothing.
+///
+/// It scans once where it lists every device or reads a SKU, over the mode
+/// `--mode` names or else over every mode. An identity, a name and a group
+/// read the configuration and scan nothing.
+pub(super) async fn list(
     govee: &Govee,
     writer: Writer,
     targets: &[String],
     restrict: Option<Mode>,
 ) -> Result<(), Failure> {
-    let devices = govee.devices();
-    if targets.is_empty() {
-        report(&devices, writer, restrict);
-        return Ok(());
-    }
-    let chosen = govee.select(targets, restrict)?;
-    let named: Vec<Device> = devices
-        .into_iter()
-        .filter(|device| chosen.contains(&device.id))
-        .collect();
-    report(&named, writer, restrict);
+    let filter = if targets.is_empty() {
+        Filter::all()
+    } else {
+        Filter::targets(targets)
+    };
+    let filter = match restrict {
+        Some(mode) => filter.enables(mode),
+        None => filter,
+    };
+    report(&govee.devices(filter, None).await?.list(), writer, restrict);
     Ok(())
 }
 

@@ -12,7 +12,7 @@ use govee_toolkit::{Args, Catalog, Config, DeviceId, Govee, Mode, State};
 
 mod common;
 
-use common::{Rig, SKU, id};
+use common::{One, Rig, SKU, id};
 
 async fn rig(yaml: &str) -> Rig {
     rig_with(yaml, Catalog::embedded().expect("catalog")).await
@@ -36,7 +36,7 @@ async fn an_enabled_mode_with_no_transport_is_not_implemented() {
     )
     .expect("no transport is not a startup error");
     let error = govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect_err("no lan transport, so no send");
@@ -50,7 +50,7 @@ async fn a_command_reports_the_mode_that_served_it() {
 
     let served = rig
         .govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("the command goes out");
@@ -69,7 +69,7 @@ async fn an_out_of_range_argument_is_refused_rather_than_clamped() {
     // and report success for a value it did not apply.
     let error = rig
         .govee
-        .device(&id())
+        .one()
         .send("brightness", &Args::new().int("level", 0))
         .await
         .expect_err("0 is outside the declared range");
@@ -85,7 +85,7 @@ async fn a_single_mode_fails_rather_than_switching() {
     rig.simulator.set_silent(true);
 
     // One unanswered status is enough to degrade this configuration.
-    let device = rig.govee.device(&id());
+    let device = rig.govee.one();
     let _ = device.status().await;
     assert_eq!(
         device.health(Mode::Lan).expect("known").state,
@@ -111,7 +111,7 @@ async fn a_second_mode_is_reported_rather_than_silently_skipped() {
             .await;
     rig.simulator.set_silent(true);
 
-    let device = rig.govee.device(&id());
+    let device = rig.govee.one();
     let _ = device.status().await;
     assert_eq!(
         device.health(Mode::Lan).expect("known").state,
@@ -135,10 +135,10 @@ async fn a_pinned_mode_is_not_left_for_the_next_enabled_one() {
             .await;
     rig.simulator.set_silent(true);
 
-    let _ = rig.govee.device(&id()).status().await;
+    let _ = rig.govee.one().status().await;
     let error = rig
         .govee
-        .device_on(&id(), Mode::Lan)
+        .one_on(Mode::Lan)
         .send("power", &Args::new().int("on", 1))
         .await
         .expect_err("lan is degraded, and the handle leaves it for no other mode");
@@ -157,7 +157,7 @@ async fn a_pinned_mode_the_configuration_does_not_enable_is_refused() {
 
     let error = rig
         .govee
-        .device_on(&id(), Mode::Cloud)
+        .one_on(Mode::Cloud)
         .send("power", &Args::new().int("on", 1))
         .await
         .expect_err("the configuration enables lan alone");
@@ -173,7 +173,8 @@ async fn a_device_that_was_never_discovered_is_not_scanned_for() {
 
     let error = rig
         .govee
-        .device(&DeviceId::new("11:22:33:44:55:66"))
+        .device(&DeviceId::new("11:22:33:44:55:66"), None)
+        .expect("an identity names one device")
         .send("power", &Args::new().int("on", 1))
         .await
         .expect_err("nothing is known about it");
@@ -189,12 +190,7 @@ async fn the_status_a_device_reports_reaches_the_caller() {
         "colorTemInKelvin": 7200
     }));
 
-    let status = rig
-        .govee
-        .device(&id())
-        .status()
-        .await
-        .expect("the device answers");
+    let status = rig.govee.one().status().await.expect("the device answers");
     assert_eq!(status.brightness, Some(75));
     assert!(status.is_white(), "a non-zero temperature means white mode");
 }
@@ -257,7 +253,7 @@ async fn enabling_a_mode_nobody_probed_is_not_a_configuration_error() {
 
     let error = rig
         .govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect_err("no ble transport exists");
@@ -270,10 +266,10 @@ async fn status_recorded_over_lan_is_not_handed_back_under_another_mode() {
 
     // The scan found the device, so the lan transport holds a status the
     // accessors could return under `ble`. They must still refuse.
-    assert!(rig.govee.device(&id()).health(Mode::Lan).is_some());
+    assert!(rig.govee.one().health(Mode::Lan).is_some());
 
-    assert!(rig.govee.device(&id()).last_status().is_none());
-    assert!(rig.govee.device(&id()).watch_status().is_none());
+    assert!(rig.govee.one().last_status().is_none());
+    assert!(rig.govee.one().watch_status().is_none());
 }
 
 #[tokio::test]
@@ -291,7 +287,12 @@ async fn the_devices_listing_carries_the_configured_view() {
         rig("defaults:\n  modes: [lan]\ndevices:\n  \"aa:bb:cc:dd:ee:ff\":\n    name: \"desk\"\n")
             .await;
 
-    let devices = rig.govee.devices();
+    let devices = rig
+        .govee
+        .devices(govee_toolkit::Filter::all(), None)
+        .await
+        .expect("the scan runs")
+        .list();
     assert_eq!(devices.len(), 1);
     assert_eq!(devices[0].id, id());
     assert_eq!(devices[0].sku, SKU);
@@ -322,14 +323,14 @@ async fn a_file_that_names_no_status_command_still_sends() {
     rig.simulator.clear();
 
     rig.govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("the command goes out");
 
     let error = rig
         .govee
-        .device(&id())
+        .one()
         .status()
         .await
         .expect_err("nothing names a status command");
@@ -337,13 +338,13 @@ async fn a_file_that_names_no_status_command_still_sends() {
 }
 
 #[tokio::test]
-async fn a_scan_on_another_mode_touches_no_wire_of_this_one() {
+async fn a_scan_of_another_mode_touches_no_wire_of_this_one() {
     let rig = rig("defaults:\n  modes: [lan, cloud]\n").await;
     rig.simulator.clear();
 
     let found = rig
         .govee
-        .scan_on(&[Mode::Cloud])
+        .scan(Some(&[Mode::Cloud]))
         .await
         .expect("a mode with no transport contributes nothing");
     assert!(found.is_empty(), "{found:?}");
@@ -368,7 +369,8 @@ async fn ensuring_a_device_is_known_names_the_transport_the_build_lacks() {
     .expect("no transport is not a startup error");
 
     let error = govee
-        .ensure_known(&id())
+        .one()
+        .ensure_known()
         .await
         .expect_err("no lan transport, so no scan");
 

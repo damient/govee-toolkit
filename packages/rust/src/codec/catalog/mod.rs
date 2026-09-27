@@ -26,6 +26,14 @@ pub use mode::{Mode, UnknownMode};
 pub use overrides::{ArgOverride, Override, Overrides, apply as apply_overrides};
 pub use spec::{ArgRole, ArgSpec, Role};
 
+impl ArgRole {
+    /// Whether the role is a secret: [`ArgRole::Password`].
+    #[must_use]
+    pub fn is_secret(self) -> bool {
+        matches!(self, Self::Password)
+    }
+}
+
 /// How much of a device's capability set a mode reaches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -48,6 +56,17 @@ pub enum Support {
     /// probed.
     #[default]
     Unknown,
+}
+
+impl Support {
+    /// Every level.
+    pub const ALL: [Self; 5] = [
+        Self::Full,
+        Self::Capped,
+        Self::Partial,
+        Self::None,
+        Self::Unknown,
+    ];
 }
 
 impl fmt::Display for Support {
@@ -170,6 +189,15 @@ impl Command {
                 .chunk
                 .as_ref()
                 .is_some_and(|chunk| chunk.reply.is_some())
+    }
+
+    /// The first argument that carries a secret, such as a network password.
+    #[must_use]
+    pub fn secret_arg(&self) -> Option<&str> {
+        self.args
+            .iter()
+            .find(|(_, arg)| arg.role().is_some_and(ArgRole::is_secret))
+            .map(|(name, _)| name.as_str())
     }
 
     /// The arguments this entry declares, comma-separated, or `none`. What an

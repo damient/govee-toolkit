@@ -83,4 +83,4 @@ test("an unnamed rate is refused", () =>
   onHandle((handle) => refusesValue(() => handle.openStream(null, "fast"))));
 
 test("an unnamed mode is refused", () =>
-  withGovee(sdk, (govee) => refusesValue(() => govee.scanOn(["radio"]))));
+  withGovee(sdk, (govee) => refusesValue(() => govee.scan(["radio"]))));

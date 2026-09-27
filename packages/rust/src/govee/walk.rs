@@ -12,9 +12,10 @@ use std::time::Duration;
 use futures_util::future::try_join_all;
 
 use crate::codec::Mode;
+use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::govee::Govee;
-use crate::select::Selector;
+use crate::select::Filter;
 use crate::transport::DeviceId;
 use crate::verbs::{IDENTIFY_HOLD, IDENTIFY_WAIT, Identify};
 
@@ -173,7 +174,10 @@ impl Govee {
         tokio::time::sleep(walk.wait).await;
         for id in lit.iter().filter(|id| !dark.contains(id)) {
             observer.lighting(id);
-            if let Err(error) = self.device_on(id, walk.mode).identify(&walk.pass).await {
+            if let Err(error) = DeviceHandle::new(self, id.clone(), Some(walk.mode))
+                .identify(&walk.pass)
+                .await
+            {
                 observer.refused(id, &error.to_string());
                 failed.push(id.clone());
             }
@@ -196,38 +200,30 @@ impl Govee {
         })
     }
 
-    /// The devices that `named` selects as for [`Govee::select`], in the
+    /// The devices that `named` selects as for [`Govee::devices`], in the
     /// order written, or with `named` empty, every device that a scan over
     /// `mode` finds and that enables `mode`. Identities alone cost no scan.
     ///
     /// # Errors
     ///
     /// [`Error::ModeNotEnabled`] where a selected device does not enable
-    /// `mode`, and what [`Govee::select`], [`Govee::scan_on`] and
-    /// [`Govee::ensure_known`] report.
+    /// `mode`, and what [`Govee::devices`] and
+    /// [`DeviceHandle::ensure_known`] report.
     pub async fn walk_targets<T: AsRef<str>>(
         &self,
         named: &[T],
         mode: Mode,
     ) -> Result<Vec<DeviceId>> {
         if named.is_empty() {
-            let found = self.scan_on(&[mode]).await?;
+            let found = self.scan(Some(&[mode])).await?;
             return Ok(found
                 .into_iter()
                 .map(|device| device.id)
-                .filter(|id| self.device(id).modes().contains(&mode))
+                .filter(|id| self.inner.config.modes_for(id).contains(&mode))
                 .collect());
         }
-        let identity = |target: &T| {
-            matches!(
-                Selector::parse(target.as_ref(), self.catalog()),
-                Ok(Selector::Id(_))
-            )
-        };
-        if !named.iter().all(identity) {
-            self.scan_on(&[mode]).await?;
-        }
-        let ids = self.select(named, Some(mode))?;
+        let filter = Filter::targets(named.iter().map(AsRef::as_ref)).enables(mode);
+        let ids = self.select(&filter, Some(mode)).await?;
         self.enabled_for(&ids, mode)?;
         try_join_all(ids.iter().map(|id| self.ensure_known_on(id, mode))).await?;
         Ok(ids)
@@ -260,7 +256,9 @@ impl Govee {
         for id in ids {
             let (govee, id) = (self.clone(), id.clone());
             passes.push(tokio::spawn(async move {
-                let outcome = govee.device_on(&id, mode).power(false).await;
+                let outcome = DeviceHandle::new(&govee, id.clone(), Some(mode))
+                    .power(false)
+                    .await;
                 (id, outcome)
             }));
         }

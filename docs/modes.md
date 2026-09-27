@@ -155,12 +155,12 @@ A command never scans. A scan costs a window, and the send path must not pay it
 — that is what makes the `lan` fast path fast. A device no mode knows fails with
 `UnknownDevice` instead.
 
-`Govee::ensure_known` is where an application pays that cost, once, before the
-first command. It scans only where a scan is needed, and only over the modes
+`DeviceHandle::ensure_known` is where an application pays that cost, once,
+before the first command. It scans only where a scan is needed, and only over the modes
 that device enables. The modes look at the same time, and the answer is the
 first enabled mode in the list, and not the one that answers first: the list is
-the user's preference. The `govee` CLI calls it for every subcommand that names
-a device.
+the user's preference. A handle pinned to one mode scans over that mode alone.
+The `govee` CLI calls it for every subcommand that names a device.
 
 A `ble` scan that looks for one device listens a second time when the first
 window hears nothing from that device. The device can be silent because it has

@@ -19,7 +19,7 @@ impl DeviceHandle {
     #[napi]
     pub fn power<'env>(&self, env: &'env Env, on: bool) -> napi::Result<PromiseRaw<'env, Served>> {
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).power(on).await
+            govee.device(&id, pinned)?.power(on).await
         })
     }
 
@@ -32,7 +32,7 @@ impl DeviceHandle {
         level: i64,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).brightness(level).await
+            govee.device(&id, pinned)?.brightness(level).await
         })
     }
 
@@ -45,7 +45,7 @@ impl DeviceHandle {
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let rgb = conv::rgb(env, &rgb)?;
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).color(rgb).await
+            govee.device(&id, pinned)?.color(rgb).await
         })
     }
 
@@ -55,8 +55,11 @@ impl DeviceHandle {
     /// One pass: the device stays on and lit, and loses the look it held.
     /// `Govee.identify()` runs the whole walk.
     ///
-    /// `null` takes the core's defaults: green, and the top of the
-    /// brightness range the device file declares.
+    /// `fullBrightness` sets the top of the brightness range the device
+    /// file declares.
+    ///
+    /// @param [color=[0, 255, 0]]
+    /// @param [fullBrightness=true]
     #[napi]
     pub fn identify<'env>(
         &self,
@@ -76,10 +79,7 @@ impl DeviceHandle {
         };
         let (govee, pinned, id) = self.parts();
         promise(env, async move {
-            govee
-                .device_maybe_on(&id, pinned)
-                .identify(&options)
-                .await?;
+            govee.device(&id, pinned)?.identify(&options).await?;
             Ok(())
         })
     }
@@ -92,7 +92,7 @@ impl DeviceHandle {
         kelvin: i64,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).color_temp(kelvin).await
+            govee.device(&id, pinned)?.color_temp(kelvin).await
         })
     }
 
@@ -102,7 +102,8 @@ impl DeviceHandle {
     /// the device renders. `color` imposes a color, and `null` leaves the
     /// colors to the firmware.
     ///
-    /// `null` takes the core's default for `sensitivity` and for `soft`.
+    /// @param [sensitivity=50]
+    /// @param [soft=false]
     #[napi]
     pub fn music<'env>(
         &self,
@@ -116,7 +117,7 @@ impl DeviceHandle {
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let music = conv::music(env, effect, sensitivity, soft, color.as_ref())?;
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).music(&music).await
+            govee.device(&id, pinned)?.music(&music).await
         })
     }
 
@@ -124,7 +125,9 @@ impl DeviceHandle {
     ///
     /// One color fills every zone. An array of colors, or a `Uint8Array` of
     /// three bytes per zone, states them all. A zone list takes one color.
-    /// `resolution` takes `"app"` when it is `null`.
+    ///
+    /// @param [resolution='app']
+    /// @param [gradient=false]
     #[napi]
     pub fn segment<'env>(
         &self,
@@ -149,7 +152,7 @@ impl DeviceHandle {
                 resolution,
                 gradient,
             };
-            govee.device_maybe_on(&id, pinned).segment(&paint).await
+            govee.device(&id, pinned)?.segment(&paint).await
         })
     }
 
@@ -162,7 +165,7 @@ impl DeviceHandle {
         on: bool,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         self.served(env, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).gradient(on).await
+            govee.device(&id, pinned)?.gradient(on).await
         })
     }
 }

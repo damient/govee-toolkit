@@ -1,7 +1,8 @@
 """Type stubs for the extension module."""
 
+import builtins
 import os
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from types import TracebackType
 from typing import Any, Self, final
 
@@ -10,6 +11,10 @@ from ._types import Arg, Color, Rate, Resolution
 __all__ = [
     "CORE_VERSION",
     "MODES",
+    "PERSONALITIES",
+    "SUPPORT",
+    "Applied",
+    "AppliedStep",
     "Catalog",
     "CodecError",
     "Config",
@@ -17,11 +22,12 @@ __all__ = [
     "Device",
     "DeviceHandle",
     "DeviceStatus",
+    "Devices",
     "EventStream",
     "Govee",
     "GoveeError",
-    "GroupHandle",
     "Health",
+    "Invoked",
     "Outcome",
     "Reply",
     "SegmentStream",
@@ -35,6 +41,10 @@ __all__ = [
 __version__: str
 CORE_VERSION: str
 MODES: tuple[str, ...]
+SUPPORT: tuple[str, ...]
+"""Every support level a device file gives a mode."""
+PERSONALITIES: tuple[str, ...]
+"""Every DMX personality the bridge knows."""
 
 class GoveeError(Exception):
     """Anything that went wrong between a call and the bytes on the wire."""
@@ -197,6 +207,16 @@ class Catalog:
 
         Raises `CodecError` with the code `unknown_sku` when nothing declares it.
         """
+    def describe(self, sku: str) -> dict[str, Any]:
+        """The record that `govee describe --json` prints for a SKU. Raises `CodecError`
+        `unknown_sku` when nothing declares it.
+        """
+    def dmx(self, sku: str) -> dict[str, Any]:
+        """The DMX channel tables of a SKU, as `dist/catalog.json` carries them. Raises
+        `CodecError` `unknown_sku` when nothing declares it.
+        """
+    def capabilities(self) -> list[str]:
+        """Every capability name that a device of the catalog declares, sorted."""
     def __len__(self) -> int:
         """How many device files the catalog holds."""
 
@@ -281,6 +301,11 @@ class DeviceHandle:
     def id(self) -> str:
         """The MAC the device reports, uppercased."""
     @property
+    def pinned(self) -> str | None:
+        """The one mode every call on this handle goes over, or `None` where each call
+        takes the first enabled mode that answers.
+        """
+    @property
     def modes(self) -> list[str]:
         """The modes enabled for it, in preference order."""
     def health(self, mode: str) -> Health | None:
@@ -308,7 +333,8 @@ class DeviceHandle:
         """Scan for the device if no mode knows it yet, then answer the mode a command
         would go over.
 
-        The scan covers every enabled mode, whatever this handle is pinned to.
+        The enabled modes scan at the same time. A handle pinned to a mode scans over
+        that mode alone. Call it before the first command: the send path does not scan.
         """
 
     async def send(self, command: str, **args: Arg) -> Served:
@@ -321,6 +347,13 @@ class DeviceHandle:
 
     async def read(self, command: str, **args: Arg) -> Reply:
         """Run a command's exchanges and return what its `reply:` layouts captured."""
+
+    async def invoke(
+        self, command: str, refuse_secrets: bool = False, **args: Arg
+    ) -> Invoked:
+        """Read a command whose entry declares an answer, and send any other one. With
+        `refuse_secrets`, a command that takes a secret raises `secret_arg`.
+        """
 
     async def status(self) -> DeviceStatus:
         """Ask the device for its state and wait for the answer."""
@@ -336,7 +369,7 @@ class DeviceHandle:
     async def color(self, rgb: Color) -> Served:
         """Set one color, as three channels."""
     async def identify(
-        self, color: Color | None = None, full_brightness: bool | None = None
+        self, color: Color = (0, 255, 0), full_brightness: bool = True
     ) -> None:
         """Power the device on and paint one color, so a person sees which fixture this
         identity drives.
@@ -344,8 +377,7 @@ class DeviceHandle:
         One pass: the device stays on and lit, and loses the look it held.
         `Govee.identify()` runs the whole walk.
 
-        `None` takes the core's defaults: green, and the top of the brightness range the
-        device file declares.
+        `full_brightness` sets the top of the brightness range the device file declares.
         """
 
     async def color_temp(self, kelvin: int) -> Served:
@@ -354,29 +386,27 @@ class DeviceHandle:
     async def music(
         self,
         effect: int,
-        sensitivity: int | None = None,
-        soft: bool | None = None,
+        sensitivity: int = 50,
+        soft: bool = False,
         color: Color | None = None,
     ) -> Served:
         """Play an effect the device renders from its own microphone.
 
         The identifiers are the mode's own: one the entry accepts is not one the device
         renders. `color` imposes a color, and `None` leaves the colors to the firmware.
-
-        `None` takes the core's default for `sensitivity` and for `soft`.
         """
 
     async def segment(
         self,
         colors: Sequence[Color],
         zones: Sequence[int] | None = None,
-        resolution: Resolution | None = None,
+        resolution: Resolution = "app",
         gradient: bool = False,
     ) -> Served:
         """Paint the segments once.
 
         One color fills every zone, and a list states them all. A zone list takes one
-        color. `resolution` takes `"app"` when it is `None`.
+        color.
         """
 
     async def gradient(self, on: bool) -> Served:
@@ -403,8 +433,8 @@ class DeviceHandle:
 
     async def open_stream(
         self,
-        resolution: Resolution | None = None,
-        rate: Rate | None = None,
+        resolution: Resolution = "app",
+        rate: Rate = "measured",
         gradient: bool = False,
     ) -> SegmentStream:
         """Open the raw segment channel and paint it frame by frame.
@@ -412,8 +442,6 @@ class DeviceHandle:
         Power the device on first: arming a dark strip paints nothing. The channel holds
         the colors only while it is armed, and the device goes back to the color it
         showed before once the stream closes.
-
-        `resolution` takes `"app"` when it is `None`, and `rate` takes `"measured"`.
         """
 
 @final
@@ -437,6 +465,50 @@ class Outcome:
         """What the call on one device raises. `None` where it succeeded."""
 
 @final
+class Invoked:
+    """What `DeviceHandle.invoke()` did with a command."""
+
+    @property
+    def id(self) -> str:
+        """The device."""
+    @property
+    def mode(self) -> str:
+        """The mode that served the command."""
+    @property
+    def command(self) -> str:
+        """The command, as the device file names it."""
+    @property
+    def fields(self) -> dict[str, Any] | None:
+        """What the `reply:` layouts captured, or `None` for a command that was sent and
+        not read.
+        """
+
+@final
+class AppliedStep:
+    """What one verb of `Devices.apply()` answered."""
+
+    @property
+    def step(self) -> str:
+        """The verb, in snake case: `color_temp`."""
+    @property
+    def outcomes(self) -> list[Outcome]:
+        """One per member that the step reached, in member order."""
+
+@final
+class Applied:
+    """What `Devices.apply()` answered."""
+
+    @property
+    def reached(self) -> list[Outcome]:
+        """The scan of every member, run before the verbs."""
+    @property
+    def steps(self) -> list[AppliedStep]:
+        """One per verb, in the order sent."""
+    @property
+    def ok(self) -> bool:
+        """Whether every member took every step."""
+
+@final
 class WalkReport:
     """What one identify walk covered, and what it failed at."""
 
@@ -454,40 +526,71 @@ class WalkReport:
         """Whether every device took every step."""
 
 @final
-class GroupHandle:
-    """A handle on the members of a group. It holds no state of its own."""
+class Devices:
+    """The devices that `Govee.devices()` selects. Every verb on it runs on every member
+    at once, answers one `Outcome` per member in member order, and raises for nothing a
+    member does.
+    """
 
     @property
-    def members(self) -> list[str]:
-        """The identities of the members, in the order of every outcome list."""
-    async def ensure_known(self) -> list[Outcome]:
-        """Scan for every member that no mode knows. Each outcome carries its mode."""
-    async def power(self, on: bool) -> list[Outcome]:
+    def members(self) -> list[DeviceHandle]:
+        """One handle per member, in the order of every outcome list. Each handle is
+        pinned as the members are.
+        """
+    def list(self) -> list[Device]:
+        """What the SDK holds for each member: the SKU, the name, the groups, the modes
+        and the health. Reads no hardware.
+
+        A member that no transport knows and that the configuration pins no SKU for is
+        not in the list. `members` holds every member.
+        """
+    async def ensure_known(self) -> builtins.list[Outcome]:
+        """Scan for every member that no mode knows. Each outcome carries its mode. A
+        pinned member scans over its mode alone.
+        """
+    async def power(self, on: bool) -> builtins.list[Outcome]:
         """Turn every member on or off."""
-    async def brightness(self, level: int) -> list[Outcome]:
+    async def brightness(self, level: int) -> builtins.list[Outcome]:
         """Set the level on every member, against its own range."""
-    async def color(self, rgb: Color) -> list[Outcome]:
+    async def color(self, rgb: Color) -> builtins.list[Outcome]:
         """Set one color on every member."""
-    async def color_temp(self, kelvin: int) -> list[Outcome]:
+    async def color_temp(self, kelvin: int) -> builtins.list[Outcome]:
         """Set the white temperature on every member, in kelvin."""
     async def music(
         self,
         effect: int,
-        sensitivity: int | None = None,
-        soft: bool | None = None,
+        sensitivity: int = 50,
+        soft: bool = False,
         color: Color | None = None,
-    ) -> list[Outcome]:
+    ) -> builtins.list[Outcome]:
         """`DeviceHandle.music()` on every member."""
     async def segment(
         self,
         colors: Sequence[Color],
         zones: Sequence[int] | None = None,
-        resolution: Resolution | None = None,
+        resolution: Resolution = "app",
         gradient: bool = False,
-    ) -> list[Outcome]:
+    ) -> builtins.list[Outcome]:
         """`DeviceHandle.segment()` on every member, against its own zones."""
-    async def gradient(self, on: bool) -> list[Outcome]:
+    async def gradient(self, on: bool) -> builtins.list[Outcome]:
         """Set the interpolation between zones on every member."""
+    async def apply(
+        self,
+        *,
+        power: bool | None = None,
+        brightness: int | None = None,
+        color: Color | None = None,
+        color_temp: int | None = None,
+        segment: dict[str, Any] | None = None,
+        music: dict[str, Any] | None = None,
+        gradient: bool | None = None,
+    ) -> Applied:
+        """Scan for the members, then send the verbs, power on first and power off last.
+        `segment` and `music` take the keys of `segment()` and `music()`. A member that
+        fails takes no later step.
+        """
+    def __len__(self) -> int: ...
+    def __iter__(self) -> Iterator[DeviceHandle]: ...
 
 @final
 class Govee:
@@ -503,34 +606,15 @@ class Govee:
         it reads the one the wheel carries.
         """
 
-    async def scan(self) -> list[Device]:
-        """Run a discovery scan on every mode and return what answered.
+    async def scan(self, modes: Sequence[str] | None = None) -> list[Device]:
+        """Run a discovery scan and return what answered. Without `modes`, it scans
+        every mode.
 
         The scans run at the same time, so the call takes the longest window and not
-        their sum. Nothing on the send path calls this.
-        """
-    async def scan_on(self, modes: Sequence[str]) -> list[Device]:
-        """Run a discovery scan on the modes named.
-
-        A mode this build carries no transport for contributes nothing and is not an
-        error.
+        their sum. A mode this build carries no transport for contributes nothing and is
+        not an error. Nothing on the send path calls this.
         """
 
-    def devices(self) -> list[Device]:
-        """Every device known, across every mode. One reachable over two modes appears
-        once.
-        """
-    def select(self, targets: Sequence[str], mode: str | None = None) -> list[str]:
-        """The devices the targets name, in the order they were written.
-
-        A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name the configuration
-        gives a device (`name:kitchen`), or a group it gives (`group:ambient`). `id:`,
-        `sku:`, `name:` and `group:` state the kind where the target alone does not. A
-        SKU, a name and a group select among the devices the SDK knows, so scan first.
-
-        `mode` is the one mode the caller will drive. A SKU, a name and a group then
-        match among the devices that enable it. An identity selects itself either way.
-        """
     def modes(self) -> list[str]:
         """The modes this build carries a transport for. Not a preference order: that is
         each device's own configuration.
@@ -543,45 +627,56 @@ class Govee:
     @property
     def catalog(self) -> Catalog:
         """The device catalog in force."""
-    def device(self, target: str) -> DeviceHandle:
-        """A handle for one device, by its identity or by the name the configuration
-        gives it. It reads the configuration and no scan.
+    def device(self, target: str, *, mode: str | None = None) -> DeviceHandle:
+        """A handle for one device, by its identity or by the name that the
+        configuration gives it. It reads the configuration and scans nothing.
 
         A bare target is a name where the configuration gives one, and an identity where
-        it reads as one. `id:` and `name:` state the kind.
-        """
-    def device_on(self, target: str, mode: str) -> DeviceHandle:
-        """A handle that drives the device over one mode alone.
+        it reads as one. `id:` and `name:` state the kind. A SKU or a group raises
+        `ConfigError` with `target_not_understood`: use `devices()` for them.
 
-        Every call on it goes over `mode` or raises. Use it where the caller serves one
-        mode by design, such as a bridge that reaches a device over `lan`: a handle from
-        `device()` would move to the next enabled mode when that one stops answering.
+        `mode` pins every call on the handle to that mode: each call goes over it or
+        raises. Without it, each call goes over the first enabled mode that answers.
+        """
+    async def devices(
+        self,
+        targets: Sequence[str] | None = None,
+        *,
+        enables: str | None = None,
+        mode: str | None = None,
+    ) -> Devices:
+        """The devices that the targets name, in the order written, as one `Devices`. A
+        device that two targets name appears once.
 
-        `target` reads as it does for `device()`.
-        """
-    def targets(self, target: str) -> list[str]:
-        """The identities that one target names, from the configuration and with no
-        scan: one device, or every member of a group in identity order.
-        """
-    def group(self, target: str, mode: str | None = None) -> GroupHandle:
-        """A handle for the devices `targets()` reads. Every verb on it answers one
-        `Outcome` per member and raises for nothing a member does. `mode` pins every
-        member, as `device_on()` does.
+        A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name that the
+        configuration gives a device (`name:kitchen`), or a group that it gives
+        (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind where the
+        target alone does not. An identity selects itself, and a name or a group reads
+        the configuration. A SKU reads the devices that a scan found. Without `targets`,
+        it selects every device that a scan finds.
+
+        The first call that reads a SKU, or that has no `targets`, scans once: over
+        `enables`, else over `mode`, else over every mode. A `scan()` counts as that
+        scan.
+
+        `enables` keeps the devices that enable that mode. A SKU, a name or a group that
+        keeps no device then raises `ConfigError`. An identity is kept whatever it
+        enables. `mode` pins every member, as it does for `device()`, and filters
+        nothing: a member that does not enable it fails alone in its `Outcome`.
         """
     async def identify(
         self,
         targets: str | Sequence[str] | None = None,
         *,
-        color: Color | None = None,
-        wait: float | None = None,
-        hold: float | None = None,
-        keep: bool | None = None,
-        mode: str | None = None,
+        color: Color = (0, 255, 0),
+        wait: float = 1.0,
+        hold: float = 5.0,
+        keep: bool = False,
+        mode: str = "lan",
     ) -> WalkReport:
-        """Run the walk `govee identify` runs. `targets` reads as `select()` reads it;
-        `None` walks every device that a scan finds. Defaults, in seconds: `color`
-        green, `wait` 1 between steps, `hold` 5 on the last device, `keep` False,
-        `mode` `"lan"`.
+        """Run the walk `govee identify` runs. `targets` reads as `devices()` reads it;
+        `None` walks every device that a scan finds. `wait` is the time between two
+        steps and `hold` the time on the last device, in seconds.
 
         Raises `ConfigError` with `mode_not_enabled` before it sends a command where a
         device does not enable the mode. A device that fails is in the report.

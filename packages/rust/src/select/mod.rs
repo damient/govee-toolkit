@@ -19,6 +19,7 @@
 //! operator who types one model does not mean the other.
 
 mod error;
+mod filter;
 mod one;
 #[cfg(test)]
 mod tests;
@@ -26,10 +27,10 @@ mod tests;
 use std::fmt;
 
 pub use self::error::Error;
+pub use self::filter::{Filter, Target};
 use crate::codec::{Catalog, Mode};
 use crate::config::{carries, gives};
 use crate::event::Device;
-use crate::govee::Govee;
 use crate::transport::DeviceId;
 
 const ID: &str = "id";
@@ -56,7 +57,7 @@ impl Selector {
     ///
     /// It does not report the ambiguity between a SKU and a device named like
     /// one: that needs the devices to see, so [`Selector::resolve`] and
-    /// [`Govee::select`] report it.
+    /// [`Govee::devices`](crate::Govee::devices) report it.
     ///
     /// # Errors
     ///
@@ -235,44 +236,6 @@ fn is_sku(target: &str, catalog: &Catalog) -> bool {
         .any(|device| device.sku.eq_ignore_ascii_case(target))
 }
 
-impl Govee {
-    /// The devices the targets name, in the order they were written.
-    ///
-    /// `mode` is the one mode the caller will drive, and `None` where it
-    /// drives none and lists instead. A SKU, a name and a group then match
-    /// among the devices that enable `mode`. An identity selects itself, found
-    /// or not.
-    ///
-    /// A device two targets name appears once, at the first place it was
-    /// named. A SKU, a name and a group select among the devices the SDK
-    /// knows, so scan first where nothing has been discovered yet.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::Ambiguous`] where a bare target reads as two kinds,
-    /// [`Error::NoMatch`] where a SKU, a name or a group matches no known
-    /// device, and
-    /// [`Error::NotOnMode`] where the devices it matches enable no `mode`.
-    /// Every [`Error`] [`Selector::parse`] reports travels out of here too.
-    pub fn select<I, T>(&self, targets: I, mode: Option<Mode>) -> Result<Vec<DeviceId>, Error>
-    where
-        I: IntoIterator<Item = T>,
-        T: AsRef<str>,
-    {
-        let known = self.devices();
-        let mut chosen: Vec<DeviceId> = Vec::new();
-        for target in targets {
-            let selector = resolve(target.as_ref(), Some(self.catalog()), known.as_slice())?;
-            for id in matches(&selector, &known, mode)? {
-                if !chosen.contains(&id) {
-                    chosen.push(id);
-                }
-            }
-        }
-        Ok(chosen)
-    }
-}
-
 fn settle<N>(written: &str, selector: Selector, source: &N) -> Result<Selector, Error>
 where
     N: Names + ?Sized,
@@ -288,13 +251,13 @@ where
     Err(Error::ambiguous(written, selector.kind(), other))
 }
 
-/// The mode narrows the match and never turns an empty match into a mode
+/// `enables` narrows the match and never turns an empty match into a mode
 /// fault: nothing matched is [`Error::NoMatch`], matched but on another mode
 /// is [`Error::NotOnMode`].
 fn matches(
     selector: &Selector,
     known: &[Device],
-    mode: Option<Mode>,
+    enables: Option<Mode>,
 ) -> Result<Vec<DeviceId>, Error> {
     let found: Vec<&Device> = match selector {
         Selector::Id(id) => return Ok(vec![id.clone()]),
@@ -312,10 +275,10 @@ fn matches(
     }
     let driven: Vec<DeviceId> = found
         .iter()
-        .filter(|device| mode.is_none_or(|mode| device.modes.contains(&mode)))
+        .filter(|device| enables.is_none_or(|mode| device.modes.contains(&mode)))
         .map(|device| device.id.clone())
         .collect();
-    match (driven.is_empty(), mode) {
+    match (driven.is_empty(), enables) {
         (true, Some(mode)) => Err(Error::NotOnMode {
             target: selector.to_string(),
             mode,

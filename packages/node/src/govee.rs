@@ -1,6 +1,6 @@
 //! The facade: what starts the SDK, what it knows, and what it reaches.
 
-use govee_toolkit::{DeviceId, Govee as CoreGovee};
+use govee_toolkit::{Filter, Govee as CoreGovee};
 use napi::Env;
 use napi::bindgen_prelude::{Either, Object, PromiseRaw};
 use napi_derive::napi;
@@ -9,9 +9,9 @@ use crate::catalog::Catalog;
 use crate::config::Config;
 use crate::conv;
 use crate::device::DeviceHandle;
+use crate::devices::Devices;
 use crate::errors::map;
 use crate::events::EventStream;
-use crate::group::GroupHandle;
 use crate::promise::promise;
 use crate::types::{Device, WalkReport};
 
@@ -47,64 +47,25 @@ impl Govee {
         })
     }
 
-    /// Run a discovery scan on every mode and return what answered.
+    /// Run a discovery scan and return what answered. Without `modes`, it
+    /// scans every mode.
     ///
     /// The scans run at the same time, so the call takes the longest window
-    /// and not their sum. Nothing on the send path calls this.
+    /// and not their sum. A mode this build carries no transport for
+    /// contributes nothing and is not an error. Nothing on the send path calls
+    /// this.
     #[napi]
-    pub fn scan<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, Vec<Device>>> {
-        let govee = self.inner.clone();
-        promise(env, async move {
-            Ok(govee.scan().await?.into_iter().map(Device::from).collect())
-        })
-    }
-
-    /// Run a discovery scan on the modes named.
-    ///
-    /// A mode this build carries no transport for contributes nothing and is
-    /// not an error.
-    #[napi]
-    pub fn scan_on<'env>(
+    pub fn scan<'env>(
         &self,
         env: &'env Env,
-        modes: Vec<String>,
+        modes: Option<Vec<String>>,
     ) -> napi::Result<PromiseRaw<'env, Vec<Device>>> {
-        let wanted = conv::modes(env, modes)?;
+        let wanted = modes.map(|modes| conv::modes(env, modes)).transpose()?;
         let govee = self.inner.clone();
         promise(env, async move {
-            let found = govee.scan_on(&wanted).await?;
+            let found = govee.scan(wanted.as_deref()).await?;
             Ok(found.into_iter().map(Device::from).collect())
         })
-    }
-
-    /// Every device known, across every mode. One reachable over two modes
-    /// appears once.
-    #[napi]
-    pub fn devices(&self) -> Vec<Device> {
-        self.inner.devices().into_iter().map(Device::from).collect()
-    }
-
-    /// The devices the targets name, in the order they were written.
-    ///
-    /// A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name the
-    /// configuration gives a device (`name:kitchen`), or a group it gives
-    /// (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind
-    /// where the target alone does not. A SKU, a name and a group select
-    /// among the devices the SDK knows, so scan first.
-    ///
-    /// `mode` is the one mode the caller will drive. A SKU, a name and a group
-    /// then match among the devices that enable it. An identity selects itself
-    /// either way.
-    #[napi]
-    pub fn select(
-        &self,
-        env: &Env,
-        targets: Vec<String>,
-        mode: Option<String>,
-    ) -> napi::Result<Vec<String>> {
-        let only = mode.map(|name| conv::mode(env, &name)).transpose()?;
-        let chosen = map(env, self.inner.select(targets, only).map_err(Into::into))?;
-        Ok(chosen.iter().map(ToString::to_string).collect())
     }
 
     /// The modes this build carries a transport for. Not a preference order:
@@ -145,73 +106,91 @@ impl Govee {
     }
 
     /// A handle for one device, by its identity or by the name the
-    /// configuration gives it. It reads the configuration and no scan.
+    /// configuration gives it. It reads the configuration and no scan, and
+    /// throws for a SKU or a group.
     ///
     /// A bare target is a name where the configuration gives one, and an
     /// identity where it reads as one. `id:` and `name:` state the kind.
-    #[napi]
-    pub fn device(&self, env: &Env, target: String) -> napi::Result<DeviceHandle> {
-        Ok(DeviceHandle {
-            govee: self.inner.clone(),
-            pinned: None,
-            id: self.target(env, &target)?,
-        })
-    }
-
-    /// A handle that drives the device over one mode alone.
     ///
-    /// Every call on it goes over `mode` or throws. Use it where the caller
-    /// serves one mode by design, such as a bridge that reaches a device over
-    /// `lan`: a handle from `device()` would move to the next enabled mode
-    /// when that one stops answering.
-    ///
-    /// `target` reads as it does for `device()`.
-    #[napi]
-    pub fn device_on(&self, env: &Env, target: String, mode: String) -> napi::Result<DeviceHandle> {
-        Ok(DeviceHandle {
-            govee: self.inner.clone(),
-            pinned: Some(conv::mode(env, &mode)?),
-            id: self.target(env, &target)?,
-        })
-    }
-
-    /// The identities that one target names, from the configuration and with
-    /// no scan: one device, or every member of a group in identity order.
-    #[napi]
-    pub fn targets(&self, env: &Env, target: String) -> napi::Result<Vec<String>> {
-        Ok(self
-            .members(env, &target)?
-            .iter()
-            .map(ToString::to_string)
-            .collect())
-    }
-
-    /// A handle for the devices `targets()` reads. Every verb on it answers
-    /// one `Outcome` per member and rejects for nothing a member does. `mode`
-    /// pins every member, as `deviceOn()` does.
-    #[napi]
-    pub fn group(
+    /// `mode` pins every call on the handle to that mode: a call goes over
+    /// it or throws. Without it, each call goes over the first enabled mode
+    /// that answers. Pin a mode where the caller serves one mode by design,
+    /// such as a bridge that reaches a device over `lan`.
+    #[napi(ts_args_type = "target: string, options?: { mode?: string }")]
+    pub fn device(
         &self,
         env: &Env,
         target: String,
-        mode: Option<String>,
-    ) -> napi::Result<GroupHandle> {
-        Ok(GroupHandle {
+        options: Option<Object<'_>>,
+    ) -> napi::Result<DeviceHandle> {
+        let [pinned] = conv::option_modes(env, options.as_ref(), ["mode"])?;
+        let handle = map(env, self.inner.device(&target, pinned))?;
+        Ok(DeviceHandle {
             govee: self.inner.clone(),
-            pinned: mode.map(|name| conv::mode(env, &name)).transpose()?,
-            members: self.members(env, &target)?,
+            pinned,
+            id: handle.id().clone(),
         })
     }
 
-    /// Run the walk `govee identify` runs. `targets` reads as `select()`
-    /// reads it; `null` walks every device that a scan finds. Defaults:
-    /// `color` green, `waitMs` 1000 between steps, `holdMs` 5000 on the last
-    /// device, `keep` false, `mode` `"lan"`. An unknown option is refused.
+    /// The devices that the targets name, in the order written. A device
+    /// that two targets name appears once, where it was named first.
+    ///
+    /// A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name that the
+    /// configuration gives a device (`name:kitchen`), or a group that it
+    /// gives (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the
+    /// kind where the target alone does not. `null` selects every device that
+    /// a scan finds.
+    ///
+    /// A SKU, and `null`, read the devices that a scan found: the first call
+    /// that needs a scan runs one, and `scan()` counts as that scan. An
+    /// identity, a name and a group read the configuration and scan nothing.
+    ///
+    /// `enables` keeps the devices that enable that mode, and rejects with
+    /// `no_such_target` where a SKU, a name or a group then keeps none. An
+    /// identity is kept either way. `mode` pins every member, as for
+    /// `device()`: a member that does not enable it fails alone, in its
+    /// outcome.
+    #[napi(
+        ts_args_type = "targets?: Array<string> | null, options?: { enables?: string; mode?: string }"
+    )]
+    pub fn devices<'env>(
+        &self,
+        env: &'env Env,
+        targets: Option<Vec<String>>,
+        options: Option<Object<'_>>,
+    ) -> napi::Result<PromiseRaw<'env, Devices>> {
+        let [enables, pinned] = conv::option_modes(env, options.as_ref(), ["enables", "mode"])?;
+        let mut filter = targets.map_or_else(Filter::all, Filter::targets);
+        if let Some(mode) = enables {
+            filter = filter.enables(mode);
+        }
+        let govee = self.inner.clone();
+        promise(env, async move {
+            let ids = govee
+                .devices(filter, pinned)
+                .await?
+                .iter()
+                .map(|handle| handle.id().clone())
+                .collect();
+            Ok(Devices { govee, pinned, ids })
+        })
+    }
+
+    /// Run the walk `govee identify` runs. `targets` reads as `devices()`
+    /// reads it; `null` walks every device that a scan finds. `wait` is the
+    /// time between two steps and `hold` the time on the last device, in
+    /// seconds. An unknown option is refused.
     ///
     /// Rejects with `mode_not_enabled` before it sends a command where a
     /// device does not enable the mode. A device that fails is in the report.
+    ///
+    /// @param [options.color=[0, 255, 0]]
+    /// @param [options.wait=1]
+    /// @param [options.hold=5]
+    /// @param [options.keep=false]
+    /// @param [options.mode='lan']
     #[napi(
-        ts_args_type = "targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; waitMs?: number; holdMs?: number; keep?: boolean; mode?: string }"
+        ts_args_type = "targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; wait?: number; hold?: number; keep?: boolean; mode?: string }"
     )]
     pub fn identify<'env>(
         &self,
@@ -247,20 +226,6 @@ impl Govee {
 
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
-        format!(
-            "Govee(modes={:?}, devices={})",
-            self.modes(),
-            self.inner.devices().len()
-        )
-    }
-}
-
-impl Govee {
-    fn members(&self, env: &Env, target: &str) -> napi::Result<Vec<DeviceId>> {
-        map(env, self.inner.targets(target).map_err(Into::into))
-    }
-
-    fn target(&self, env: &Env, target: &str) -> napi::Result<DeviceId> {
-        map(env, self.inner.target(target).map_err(Into::into))
+        format!("Govee(modes={:?})", self.modes())
     }
 }

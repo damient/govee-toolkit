@@ -1,0 +1,27 @@
+# Changelog
+
+Changes to `govee-toolkit-mcp`, the MCP server in `integrations/mcp`. It
+versions apart from the binding it wraps and releases under `mcp-vX.Y.Z`. The
+policy is [`../../docs/versioning.md`](../../docs/versioning.md).
+
+## [0.1.0] — 2026-09-27
+
+### Added
+
+- A local MCP server over stdio, with the bin `govee-toolkit-mcp`.
+- Read tools over the embedded catalog: `list_devices`, `describe_device`,
+  `get_dmx_profile`, `get_api` and `read_doc`. None of them starts the SDK
+  or reaches the network.
+- Control tools over the Node binding: `scan`, `list_known`, `status`,
+  `set`, `send`, `identify` and `doctor`.
+- The SDK starts on the first control call, reads the configuration that the
+  CLI reads, and closes when stdin closes or on `SIGINT` and `SIGTERM`.
+- `mode` pins a control call to one mode. A binding error returns its code,
+  with no retry on another mode.
+- `send` refuses a command that takes a secret, such as a network password,
+  with `secret_arg`.
+- `set` takes a device, a group or a SKU, and sends its steps in the order the
+  core fixes. A member that fails a step takes no later step.
+- `list_known` scans once, over each mode that no scan covered yet.
+- Resources: each docs page at `gtk://docs/<topic>`, and each device record
+  at `gtk://devices/{sku}`.

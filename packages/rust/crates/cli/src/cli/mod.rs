@@ -64,10 +64,14 @@ pub(crate) enum Command {
         timeout_ms: u64,
     },
 
-    /// List the devices already known, without touching the network.
+    /// List the devices that the targets name, with their modes and health.
+    ///
+    /// A SKU, or no target, scans once. An identity, a name and a group read
+    /// the configuration alone.
     Devices {
         /// The devices to list: an identity, a SKU, a name, or a group. Every
-        /// known device when absent. See `identify` for the whole grammar.
+        /// device a scan finds when absent. See `identify` for the whole
+        /// grammar.
         #[arg(value_name = "TARGET")]
         targets: Vec<String>,
     },
@@ -213,14 +217,6 @@ impl Command {
             | Self::Doctor
             | Self::Describe { .. }
             | Self::Watch { .. } => None,
-        }
-    }
-
-    /// The target of a command that drives one device or one group.
-    pub(crate) fn members(&self) -> Option<&str> {
-        match self {
-            Self::Verb(verb) => Some(verb.device()),
-            _ => None,
         }
     }
 }

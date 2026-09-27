@@ -9,6 +9,24 @@
  */
 export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
 
+/** What `Devices.apply()` answered. */
+export declare class Applied {
+  /** The scan of every member, run before the verbs. */
+  get reached(): Array<Outcome>
+  /** One per verb, in the order sent. */
+  get steps(): Array<AppliedStep>
+  /** Whether every member took every step. */
+  get ok(): boolean
+}
+
+/** What one verb of `Devices.apply()` answered. */
+export declare class AppliedStep {
+  /** The verb, in snake case: `color_temp`. */
+  get step(): string
+  /** One per member that the step reached, in member order. */
+  get outcomes(): Array<Outcome>
+}
+
 /** Every device the build knows. Reads no hardware. */
 export declare class Catalog {
   /** The catalog compiled into this build. */
@@ -23,6 +41,18 @@ export declare class Catalog {
    * Throws with the code `unknown_sku` when nothing declares it.
    */
   device(sku: string): any
+  /**
+   * The record that `govee describe --json` prints for a SKU. Throws
+   * `unknown_sku` when nothing declares it.
+   */
+  describe(sku: string): any
+  /**
+   * The DMX channel tables of a SKU, as `dist/catalog.json` carries them.
+   * Throws `unknown_sku` when nothing declares it.
+   */
+  dmx(sku: string): any
+  /** Every capability name that a device of the catalog declares, sorted. */
+  capabilities(): Array<string>
   /** How many device files the build carries. */
   get size(): number
   toString(): string
@@ -83,8 +113,20 @@ export declare class Device {
  * from the SDK it was made by.
  */
 export declare class DeviceHandle {
+  /**
+   * Read a command whose entry declares an answer, and send any other one.
+   * With `refuseSecrets`, a command that takes a secret throws `secret_arg`.
+   *
+   * @param [refuseSecrets=false]
+   */
+  invoke(command: string, args?: Record<string, boolean | number | string | Uint8Array | Array<number> | Array<[number, number, number]>>, refuseSecrets?: boolean | undefined | null): Promise<Invoked>
   /** The MAC the device reports, uppercased. */
   get id(): string
+  /**
+   * The one mode every call on this handle goes over, or `null` where each
+   * call takes the first enabled mode that answers.
+   */
+  get pinned(): string | null
   /** The modes enabled for it, in preference order. */
   get modes(): Array<string>
   /**
@@ -116,7 +158,9 @@ export declare class DeviceHandle {
    * Scan for the device if no mode knows it yet, then answer the mode a
    * command would go over.
    *
-   * The scan covers every enabled mode, whatever this handle is pinned to.
+   * Call it once before the first command: the send path does not scan.
+   * The enabled modes scan at the same time, and a pinned handle scans
+   * over its mode alone.
    */
   ensureKnown(): Promise<string>
   /**
@@ -143,6 +187,9 @@ export declare class DeviceHandle {
    *
    * Answers `"accepted"` where the device acknowledged the transfer, and
    * `"sent"` where its device file declares no acknowledgement.
+   *
+   * @param [utcOffsetHours=0]
+   * @param [utcOffsetMinutes=0]
    */
   provisionWifi(network: string, password: string, utcOffsetHours?: number | undefined | null, utcOffsetMinutes?: number | undefined | null): Promise<string>
   /**
@@ -152,8 +199,9 @@ export declare class DeviceHandle {
    * channel holds the colors only while it is armed, and the device goes
    * back to the color it showed before once the stream closes.
    *
-   * `resolution` takes `"app"` when it is `null`, and `rate` takes
-   * `"measured"`.
+   * @param [resolution='app']
+   * @param [rate='measured']
+   * @param [gradient=false]
    */
   openStream(resolution?: number | 'app' | 'native' | 'groups', rate?: number | 'measured', gradient?: boolean | undefined | null): Promise<SegmentStream>
   toString(): string
@@ -173,8 +221,11 @@ export declare class DeviceHandle {
    * One pass: the device stays on and lit, and loses the look it held.
    * `Govee.identify()` runs the whole walk.
    *
-   * `null` takes the core's defaults: green, and the top of the
-   * brightness range the device file declares.
+   * `fullBrightness` sets the top of the brightness range the device
+   * file declares.
+   *
+   * @param [color=[0, 255, 0]]
+   * @param [fullBrightness=true]
    */
   identify(color?: [number, number, number] | Uint8Array, fullBrightness?: boolean | undefined | null): Promise<undefined>
   /** Set the white temperature, in kelvin. It ends color mode. */
@@ -186,7 +237,8 @@ export declare class DeviceHandle {
    * the device renders. `color` imposes a color, and `null` leaves the
    * colors to the firmware.
    *
-   * `null` takes the core's default for `sensitivity` and for `soft`.
+   * @param [sensitivity=50]
+   * @param [soft=false]
    */
   music(effect: number, sensitivity?: number | undefined | null, soft?: boolean | undefined | null, color?: [number, number, number] | Uint8Array): Promise<Served>
   /**
@@ -194,7 +246,9 @@ export declare class DeviceHandle {
    *
    * One color fills every zone. An array of colors, or a `Uint8Array` of
    * three bytes per zone, states them all. A zone list takes one color.
-   * `resolution` takes `"app"` when it is `null`.
+   *
+   * @param [resolution='app']
+   * @param [gradient=false]
    */
   segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean | undefined | null): Promise<Served>
   /**
@@ -202,6 +256,61 @@ export declare class DeviceHandle {
    * last zone back to the first.
    */
   gradient(on: boolean): Promise<Served>
+}
+
+/**
+ * The devices that `Govee.devices()` selects. Every verb on it runs on
+ * every member at once, answers one `Outcome` per member in member order,
+ * and rejects for nothing a member does.
+ */
+export declare class Devices {
+  /**
+   * Scan for the members, then send the verbs, power on first and power
+   * off last. A member that fails takes no later step.
+   */
+  apply(verbs: { power?: boolean, brightness?: number, color?: [number, number, number] | Uint8Array, colorTemp?: number, segment?: { colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number>, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean }, music?: { effect: number, sensitivity?: number, soft?: boolean, color?: [number, number, number] | Uint8Array }, gradient?: boolean }): Promise<Applied>
+  /**
+   * One handle per member, in the order of every outcome list. Each one
+   * carries the mode that `Govee.devices()` pins.
+   */
+  get members(): Array<DeviceHandle>
+  /** The number of members. */
+  get length(): number
+  /**
+   * What the SDK holds for each member: the SKU, the name, the groups, the
+   * modes and the health. Reads no hardware.
+   *
+   * A member that no transport knows and that the configuration pins no
+   * SKU for is not in the list. `members` holds every member.
+   */
+  list(): Array<Device>
+  /** Scan for every member that no mode knows. Each outcome carries its mode. */
+  ensureKnown(): Promise<Array<Outcome>>
+  /** Turn every member on or off. */
+  power(on: boolean): Promise<Array<Outcome>>
+  /** Set the level on every member, against its own range. */
+  brightness(level: number): Promise<Array<Outcome>>
+  /** Set one color on every member. */
+  color(rgb: [number, number, number] | Uint8Array): Promise<Array<Outcome>>
+  /** Set the white temperature on every member, in kelvin. */
+  colorTemp(kelvin: number): Promise<Array<Outcome>>
+  /**
+   * `DeviceHandle.music()` on every member.
+   *
+   * @param [sensitivity=50]
+   * @param [soft=false]
+   */
+  music(effect: number, sensitivity?: number | undefined | null, soft?: boolean | undefined | null, color?: [number, number, number] | Uint8Array): Promise<Array<Outcome>>
+  /**
+   * `DeviceHandle.segment()` on every member, against its own zones.
+   *
+   * @param [resolution='app']
+   * @param [gradient=false]
+   */
+  segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean | undefined | null): Promise<Array<Outcome>>
+  /** Set the interpolation between zones on every member. */
+  gradient(on: boolean): Promise<Array<Outcome>>
+  toString(): string
 }
 
 /** What a device reported about itself. No firmware fills every field. */
@@ -250,38 +359,15 @@ export declare class Govee {
    */
   static start(config?: Config | undefined | null, catalog?: Catalog | undefined | null): Promise<Govee>
   /**
-   * Run a discovery scan on every mode and return what answered.
+   * Run a discovery scan and return what answered. Without `modes`, it
+   * scans every mode.
    *
    * The scans run at the same time, so the call takes the longest window
-   * and not their sum. Nothing on the send path calls this.
+   * and not their sum. A mode this build carries no transport for
+   * contributes nothing and is not an error. Nothing on the send path calls
+   * this.
    */
-  scan(): Promise<Array<Device>>
-  /**
-   * Run a discovery scan on the modes named.
-   *
-   * A mode this build carries no transport for contributes nothing and is
-   * not an error.
-   */
-  scanOn(modes: Array<string>): Promise<Array<Device>>
-  /**
-   * Every device known, across every mode. One reachable over two modes
-   * appears once.
-   */
-  devices(): Array<Device>
-  /**
-   * The devices the targets name, in the order they were written.
-   *
-   * A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name the
-   * configuration gives a device (`name:kitchen`), or a group it gives
-   * (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind
-   * where the target alone does not. A SKU, a name and a group select
-   * among the devices the SDK knows, so scan first.
-   *
-   * `mode` is the one mode the caller will drive. A SKU, a name and a group
-   * then match among the devices that enable it. An identity selects itself
-   * either way.
-   */
-  select(targets: Array<string>, mode?: string | undefined | null): Array<string>
+  scan(modes?: Array<string> | undefined | null): Promise<Array<Device>>
   /**
    * The modes this build carries a transport for. Not a preference order:
    * that is each device's own configuration.
@@ -295,44 +381,55 @@ export declare class Govee {
   get catalog(): Catalog
   /**
    * A handle for one device, by its identity or by the name the
-   * configuration gives it. It reads the configuration and no scan.
+   * configuration gives it. It reads the configuration and no scan, and
+   * throws for a SKU or a group.
    *
    * A bare target is a name where the configuration gives one, and an
    * identity where it reads as one. `id:` and `name:` state the kind.
-   */
-  device(target: string): DeviceHandle
-  /**
-   * A handle that drives the device over one mode alone.
    *
-   * Every call on it goes over `mode` or throws. Use it where the caller
-   * serves one mode by design, such as a bridge that reaches a device over
-   * `lan`: a handle from `device()` would move to the next enabled mode
-   * when that one stops answering.
+   * `mode` pins every call on the handle to that mode: a call goes over
+   * it or throws. Without it, each call goes over the first enabled mode
+   * that answers. Pin a mode where the caller serves one mode by design,
+   * such as a bridge that reaches a device over `lan`.
+   */
+  device(target: string, options?: { mode?: string }): DeviceHandle
+  /**
+   * The devices that the targets name, in the order written. A device
+   * that two targets name appears once, where it was named first.
    *
-   * `target` reads as it does for `device()`.
+   * A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name that the
+   * configuration gives a device (`name:kitchen`), or a group that it
+   * gives (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the
+   * kind where the target alone does not. `null` selects every device that
+   * a scan finds.
+   *
+   * A SKU, and `null`, read the devices that a scan found: the first call
+   * that needs a scan runs one, and `scan()` counts as that scan. An
+   * identity, a name and a group read the configuration and scan nothing.
+   *
+   * `enables` keeps the devices that enable that mode, and rejects with
+   * `no_such_target` where a SKU, a name or a group then keeps none. An
+   * identity is kept either way. `mode` pins every member, as for
+   * `device()`: a member that does not enable it fails alone, in its
+   * outcome.
    */
-  deviceOn(target: string, mode: string): DeviceHandle
+  devices(targets?: Array<string> | null, options?: { enables?: string; mode?: string }): Promise<Devices>
   /**
-   * The identities that one target names, from the configuration and with
-   * no scan: one device, or every member of a group in identity order.
-   */
-  targets(target: string): Array<string>
-  /**
-   * A handle for the devices `targets()` reads. Every verb on it answers
-   * one `Outcome` per member and rejects for nothing a member does. `mode`
-   * pins every member, as `deviceOn()` does.
-   */
-  group(target: string, mode?: string | undefined | null): GroupHandle
-  /**
-   * Run the walk `govee identify` runs. `targets` reads as `select()`
-   * reads it; `null` walks every device that a scan finds. Defaults:
-   * `color` green, `waitMs` 1000 between steps, `holdMs` 5000 on the last
-   * device, `keep` false, `mode` `"lan"`. An unknown option is refused.
+   * Run the walk `govee identify` runs. `targets` reads as `devices()`
+   * reads it; `null` walks every device that a scan finds. `wait` is the
+   * time between two steps and `hold` the time on the last device, in
+   * seconds. An unknown option is refused.
    *
    * Rejects with `mode_not_enabled` before it sends a command where a
    * device does not enable the mode. A device that fails is in the report.
+   *
+   * @param [options.color=[0, 255, 0]]
+   * @param [options.wait=1]
+   * @param [options.hold=5]
+   * @param [options.keep=false]
+   * @param [options.mode='lan']
    */
-  identify(targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; waitMs?: number; holdMs?: number; keep?: boolean; mode?: string }): Promise<WalkReport>
+  identify(targets?: string | Array<string> | null, options?: { color?: [number, number, number] | Uint8Array; wait?: number; hold?: number; keep?: boolean; mode?: string }): Promise<WalkReport>
   /** Subscribe to what the SDK reports. Iterate it with `for await`. */
   events(): EventStream
   /**
@@ -340,29 +437,6 @@ export declare class Govee {
    * or `ble` loses the last frame it wrote.
    */
   close(): Promise<undefined>
-  toString(): string
-}
-
-/** A handle on the members of a group. It holds no state of its own. */
-export declare class GroupHandle {
-  /** The identities of the members, in the order of every outcome list. */
-  get members(): Array<string>
-  /** Scan for every member that no mode knows. Each outcome carries its mode. */
-  ensureKnown(): Promise<Array<Outcome>>
-  /** Turn every member on or off. */
-  power(on: boolean): Promise<Array<Outcome>>
-  /** Set the level on every member, against its own range. */
-  brightness(level: number): Promise<Array<Outcome>>
-  /** Set one color on every member. */
-  color(rgb: [number, number, number] | Uint8Array): Promise<Array<Outcome>>
-  /** Set the white temperature on every member, in kelvin. */
-  colorTemp(kelvin: number): Promise<Array<Outcome>>
-  /** `DeviceHandle.music()` on every member. */
-  music(effect: number, sensitivity?: number | undefined | null, soft?: boolean | undefined | null, color?: [number, number, number] | Uint8Array): Promise<Array<Outcome>>
-  /** `DeviceHandle.segment()` on every member, against its own zones. */
-  segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean | undefined | null): Promise<Array<Outcome>>
-  /** Set the interpolation between zones on every member. */
-  gradient(on: boolean): Promise<Array<Outcome>>
   toString(): string
 }
 
@@ -375,6 +449,21 @@ export declare class Health {
   /** Whether a command would be sent right now. */
   get available(): boolean
   toString(): string
+}
+
+/** What `DeviceHandle.invoke()` did with a command. */
+export declare class Invoked {
+  /** The device. */
+  get id(): string
+  /** The mode that served the command. */
+  get mode(): string
+  /** The command, as the device file names it. */
+  get command(): string
+  /**
+   * What the `reply:` layouts captured, or `null` for a command that was
+   * sent and not read.
+   */
+  get fields(): any | null
 }
 
 /** What one member answered. */
@@ -500,6 +589,12 @@ export declare const CORE_VERSION: string
  * features name — `Govee.modes()` answers which.
  */
 export declare function modes(): Array<string>
+
+/** Every DMX personality the bridge knows. */
+export declare function personalities(): Array<string>
+
+/** Every support level a device file gives a mode. */
+export declare function supportLevels(): Array<string>
 
 /** The version of this binding. */
 export declare const VERSION: string

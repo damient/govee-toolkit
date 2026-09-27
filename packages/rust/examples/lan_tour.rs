@@ -44,13 +44,13 @@ async fn main() -> Result<(), Error> {
 
     println!("scanning...");
     let matches = |d: &Device| wanted.as_ref().map_or(d.sku == sku, |id| &d.id == id);
-    let Some(found) = govee.scan().await?.into_iter().find(matches) else {
+    let Some(found) = govee.scan(None).await?.into_iter().find(matches) else {
         let target = wanted.map_or(sku, |id| id.to_string());
         println!("no {target} answered discovery");
         return Ok(());
     };
     println!("{} — {} — modes {:?}", found.id, found.sku, found.modes);
-    let device = govee.device(&found.id);
+    let device = govee.device(&found.id, None)?;
 
     device.send("power", &Args::new().int("on", 1)).await?;
     device

@@ -1,6 +1,6 @@
 //! What `devices/*.yaml` declares, as the SDK reads it.
 
-use govee_toolkit::Catalog as CoreCatalog;
+use govee_toolkit::{Catalog as CoreCatalog, describe_sku, profile};
 use pyo3::prelude::*;
 
 use crate::conv::to_py;
@@ -40,6 +40,29 @@ impl Catalog {
     fn device(&self, py: Python<'_>, sku: &str) -> PyResult<Py<PyAny>> {
         let device = map(self.inner.device(sku).map_err(Into::into))?;
         to_py(py, device)
+    }
+
+    /// The record that `govee describe --json` prints for a SKU. Raises
+    /// `CodecError` `unknown_sku` when nothing declares it.
+    fn describe(&self, py: Python<'_>, sku: &str) -> PyResult<Py<PyAny>> {
+        let record = map(describe_sku(&self.inner, sku).map_err(Into::into))?;
+        to_py(py, &record)
+    }
+
+    /// The DMX channel tables of a SKU, as `dist/catalog.json` carries them.
+    /// Raises `CodecError` `unknown_sku` when nothing declares it.
+    fn dmx(&self, py: Python<'_>, sku: &str) -> PyResult<Py<PyAny>> {
+        let device = map(self.inner.device(sku).map_err(Into::into))?;
+        to_py(py, &profile::report::entry(device))
+    }
+
+    /// Every capability name that a device of the catalog declares, sorted.
+    fn capabilities(&self) -> Vec<String> {
+        self.inner
+            .capabilities()
+            .into_iter()
+            .map(ToOwned::to_owned)
+            .collect()
     }
 
     fn __len__(&self) -> usize {

@@ -6,37 +6,45 @@
  * the asynchronous iterators, and the disposer a segment stream closes on.
  */
 import {
+  Applied,
+  AppliedStep,
   Catalog,
   Config,
   CORE_VERSION,
   Device,
   DeviceHandle,
+  Devices,
   DeviceStatus,
   EventStream,
   Govee,
-  GroupHandle,
   Health,
+  Invoked,
   modes,
   Outcome,
+  personalities,
   Reply,
   SegmentStream,
   Served,
   StatusStream,
+  supportLevels,
   VERSION,
   WalkReport,
 } from "../binding.cjs";
 
 export {
+  Applied,
+  AppliedStep,
   Catalog,
   Config,
   CORE_VERSION,
   Device,
   DeviceHandle,
+  Devices,
   DeviceStatus,
   EventStream,
   Govee,
-  GroupHandle,
   Health,
+  Invoked,
   Outcome,
   Reply,
   SegmentStream,
@@ -72,6 +80,12 @@ export type GoveeEvent = { event: string; [field: string]: unknown };
 
 /** Every mode name the core knows, in the order the core lists them. */
 export const MODES: readonly string[] = Object.freeze(modes());
+
+/** Every support level a device file gives a mode, in the order the core lists them. */
+export const SUPPORT: readonly string[] = Object.freeze(supportLevels());
+
+/** Every DMX personality the bridge knows, in the order the core lists them. */
+export const PERSONALITIES: readonly string[] = Object.freeze(personalities());
 
 /**
  * `Symbol.asyncDispose` reached Node after the floor this package supports,

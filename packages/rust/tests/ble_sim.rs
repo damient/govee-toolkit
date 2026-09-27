@@ -22,7 +22,7 @@ use govee_toolkit::ble::{Options, Transport};
 use govee_toolkit::{Args, Config, Govee, Mode, State};
 use govee_toolkit_sim::ble::{BleAdapter, BleDevice, BleFaults, BleOptions, Stall};
 
-use self::ble_fake::{ENDPOINT, MAC, POWER_ON, SKU, catalog, enabling_ble, id};
+use self::ble_fake::{ENDPOINT, MAC, One, POWER_ON, SKU, catalog, enabling_ble, id};
 use self::ble_wire::Radio;
 
 /// Short enough that a test does not wait on a window, long enough for a task
@@ -48,7 +48,7 @@ async fn rig(device: &BleDevice, options: Options) -> Govee {
     let govee = Govee::attach(config, catalog(), [Arc::new(ble.clone()) as Arc<_>])
         .expect("the configuration applies");
 
-    govee.scan().await.expect("the scan runs");
+    govee.scan(None).await.expect("the scan runs");
     // An advertisement carries the Bluetooth handle, and this crate identifies
     // a device by its Wi-Fi MAC. Nothing infers one from the other.
     ble.bind(&id(), ENDPOINT).expect("the scan heard it");
@@ -68,7 +68,7 @@ async fn the_frames_the_codec_built_reach_the_device() {
     let govee = rig(&device, options()).await;
 
     govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("the command goes out");
@@ -83,7 +83,7 @@ async fn a_status_request_reads_both_exchanges_back() {
     device.set_read_answer(0x04, &[42]);
     let govee = rig(&device, options()).await;
 
-    let status = govee.device(&id()).status().await.expect("it answers");
+    let status = govee.one().status().await.expect("it answers");
 
     assert_eq!(status.on, Some(true));
     assert_eq!(status.brightness, Some(42));
@@ -99,20 +99,13 @@ async fn a_silent_device_is_unreachable_and_the_breaker_records_it() {
     device.set_read_answer(0x01, &[1]);
     let govee = rig(&device, options()).await;
 
-    let error = govee
-        .device(&id())
-        .status()
-        .await
-        .expect_err("nothing answers");
+    let error = govee.one().status().await.expect_err("nothing answers");
     assert_eq!(error.code(), "unreachable");
 
     // The frames still went out: this wire acknowledges nothing, so silence is
     // all there is to go on.
     assert_eq!(device.received_count(), 1);
-    let health = govee
-        .device(&id())
-        .health(Mode::Ble)
-        .expect("the device is known");
+    let health = govee.one().health(Mode::Ble).expect("the device is known");
     assert!(health.failures > 0);
 }
 
@@ -125,7 +118,7 @@ async fn a_device_of_another_family_carries_nothing_to_write_to() {
     let govee = rig(&device, options()).await;
 
     let error = govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect_err("there is no characteristic to write to");
@@ -143,18 +136,12 @@ async fn a_refused_connection_degrades_the_mode() {
     let govee = rig(&device, options()).await;
 
     for _ in 0..8 {
-        let _ = govee
-            .device(&id())
-            .send("power", &Args::new().int("on", 1))
-            .await;
+        let _ = govee.one().send("power", &Args::new().int("on", 1)).await;
     }
 
     // Three refusals degrade the mode, and the cooldown then refuses the rest
     // without reaching for the radio at all.
-    let health = govee
-        .device(&id())
-        .health(Mode::Ble)
-        .expect("the device is known");
+    let health = govee.one().health(Mode::Ble).expect("the device is known");
     assert_eq!(health.state, State::Degraded);
     assert!(!health.available);
     assert_eq!(health.failures, 3);
@@ -184,7 +171,7 @@ async fn the_write_budget_keeps_the_firmware_under_its_burst() {
 
     for _ in 0..20 {
         govee
-            .device(&id())
+            .one()
             .send("power", &Args::new().int("on", 1))
             .await
             .expect("the command goes out");
@@ -226,7 +213,7 @@ async fn rig_two(devices: [&BleDevice; 2], connect_delay: Duration) -> Govee {
     let govee = Govee::attach(config, catalog(), [Arc::new(ble.clone()) as Arc<_>])
         .expect("the configuration applies");
 
-    govee.scan().await.expect("the scan runs");
+    govee.scan(None).await.expect("the scan runs");
     ble.bind(&id(), ENDPOINT).expect("the scan heard it");
     ble.bind(&other_id(), OTHER_ENDPOINT)
         .expect("the scan heard it");
@@ -243,19 +230,15 @@ async fn a_slow_connection_holds_up_only_its_own_device() {
 
     let connecting = {
         let govee = govee.clone();
-        tokio::spawn(async move {
-            govee
-                .device(&id())
-                .send("power", &Args::new().int("on", 1))
-                .await
-        })
+        tokio::spawn(async move { govee.one().send("power", &Args::new().int("on", 1)).await })
     };
     // Long enough for the spawned command to reach the connection it waits on.
     tokio::time::sleep(Duration::from_millis(50)).await;
 
     let started = std::time::Instant::now();
     govee
-        .device(&other_id())
+        .device(&other_id(), None)
+        .expect("an identity names one device")
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("the second device answers");
@@ -278,7 +261,7 @@ async fn a_slow_connection_holds_up_only_its_own_device() {
 async fn a_dropped_connection_fails_one_command_and_the_next_reconnects() {
     let device = device(BleFaults::default());
     let govee = rig(&device, options()).await;
-    let handle = govee.device(&id());
+    let handle = govee.one();
 
     handle
         .send("power", &Args::new().int("on", 1))
@@ -315,7 +298,7 @@ async fn a_close_holds_the_link_open_for_the_drain_and_the_next_command_reconnec
     )
     .await;
     govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("the command goes out");
@@ -331,7 +314,7 @@ async fn a_close_holds_the_link_open_for_the_drain_and_the_next_command_reconnec
     // The transport still serves commands; it opens another connection for
     // them.
     govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("the command goes out");

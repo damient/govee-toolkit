@@ -19,7 +19,7 @@ export function modeBadge(mode: Mode): string {
 /** The same badge with the icon alone, for a row that already carries a word.
  * The name stays in the markup, for a screen reader and for a pointer. */
 export function modeMark(mode: Mode): string {
-  return `<span class="mbadge mbadge-${mode} mbadge-mini" title="${mode}">${modeIcon(mode)}`
+  return `<span class="mbadge mbadge-${mode} mbadge-mini" data-tip="${mode}">${modeIcon(mode)}`
     + `<span class="visually-hidden">${mode}</span></span>`;
 }
 

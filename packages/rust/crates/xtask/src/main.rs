@@ -1,6 +1,8 @@
 //! Repository tasks, each of them generating something from a data file.
 //!
 //! - `xtask catalog [path]` — the distributable catalog.
+//! - `xtask api [--check]` — `dist/api.json`, the methods that serve each role
+//!   and the parameters of every method.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //! - `xtask dmx [--check]` — the tables in `docs/dmx-profiles.md`.
 //! - `xtask lan [--check]` — the tables in `docs/lan-supported-devices.md`.
@@ -26,7 +28,9 @@ use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
 use govee_toolkit::codec::{Catalog, Device, SCHEMA_VERSION};
+use govee_toolkit::profile;
 
+mod api;
 mod dmx;
 mod dupes;
 mod lan;
@@ -36,6 +40,7 @@ fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let check = args.iter().any(|a| a == "--check");
     match args.first().map(String::as_str) {
+        Some("api") => api::api(&root, check),
         Some("compat") => compat(&root, check),
         Some("dmx") => dmx(&root, check),
         Some("lan") => lan(&root, check),
@@ -46,7 +51,7 @@ fn main() {
         Some("catalog") | None => catalog(&root, args.get(1).map(PathBuf::from)),
         Some(other) => {
             eprintln!(
-                "unknown task `{other}`; expected `catalog`, `compat`, `dmx`, `lan` or `dupes`"
+                "unknown task `{other}`; expected `catalog`, `api`, `compat`, `dmx`, `lan` or `dupes`"
             );
             process::exit(2);
         }
@@ -71,12 +76,7 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
         "devices": entries,
     });
 
-    if let Some(parent) = out.parent() {
-        fs::create_dir_all(parent).unwrap_or_else(|e| panic!("{}: {e}", parent.display()));
-    }
-    let mut text = serde_json::to_string_pretty(&document).expect("serialize the catalog");
-    text.push('\n');
-    fs::write(&out, text).unwrap_or_else(|e| panic!("{}: {e}", out.display()));
+    write_json(&out, &document);
     println!("{} devices -> {}", entries.len(), out.display());
 }
 
@@ -84,7 +84,7 @@ fn catalog(root: &Path, out: Option<PathBuf>) {
 fn device_json(device: &Device) -> serde_json::Value {
     let mut value = serde_json::to_value(device).expect("serialize the device");
     if let Some(object) = value.as_object_mut() {
-        object.insert("dmx".to_owned(), dmx::catalog_entry(device));
+        object.insert("dmx".to_owned(), profile::report::entry(device));
     }
     value
 }
@@ -116,8 +116,7 @@ fn dmx(root: &Path, check: bool) {
 
 fn lan(root: &Path, check: bool) {
     let path = root.join("docs/lan-supported-devices.json");
-    let text =
-        fs::read_to_string(&path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+    let text = read(&path);
     let list: serde_json::Value =
         serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     generate(
@@ -136,8 +135,7 @@ fn lan(root: &Path, check: bool) {
 /// `--check` exits 1 on a difference and names the task that repairs it. The
 /// prose around a block is written by hand and is never touched.
 fn generate(page: &Path, task: &str, blocks: &[(&str, String)], check: bool) {
-    let text =
-        fs::read_to_string(page).unwrap_or_else(|e| panic!("cannot read {}: {e}", page.display()));
+    let text = read(page);
     let updated = blocks.iter().fold(text.clone(), |text, (name, body)| {
         replace_block(page, &text, name, body)
     });
@@ -182,8 +180,7 @@ fn compat(root: &Path, check: bool) {
 fn load_families(devices: &Path) -> BTreeMap<String, serde_json::Value> {
     let mut families = BTreeMap::new();
     for path in yaml_files(&devices.join("families")) {
-        let text = fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+        let text = read(&path);
         let value: serde_json::Value =
             serde_norway::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
         let name = value
@@ -201,8 +198,7 @@ fn load(dir: &Path) -> Vec<(PathBuf, serde_json::Value)> {
     yaml_files(dir)
         .into_iter()
         .map(|path| {
-            let text = fs::read_to_string(&path)
-                .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+            let text = read(&path);
             let value =
                 serde_norway::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
             (path, value)
@@ -228,8 +224,7 @@ fn read_all(paths: &[PathBuf]) -> Vec<(String, String)> {
     paths
         .iter()
         .map(|path| {
-            let text = fs::read_to_string(path)
-                .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+            let text = read(path);
             (path.display().to_string(), text)
         })
         .collect()
@@ -354,4 +349,17 @@ fn repository_root() -> PathBuf {
         .nth(4)
         .unwrap_or_else(|| Path::new("."))
         .to_path_buf()
+}
+
+fn read(path: &Path) -> String {
+    fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()))
+}
+
+fn write_json(out: &Path, document: &serde_json::Value) {
+    if let Some(parent) = out.parent() {
+        fs::create_dir_all(parent).unwrap_or_else(|e| panic!("{}: {e}", parent.display()));
+    }
+    let mut text = serde_json::to_string_pretty(document).expect("serialize the document");
+    text.push('\n');
+    fs::write(out, text).unwrap_or_else(|e| panic!("{}: {e}", out.display()));
 }

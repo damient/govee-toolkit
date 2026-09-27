@@ -316,3 +316,15 @@ fn groups_over_no_measured_pixels_serve_no_coarse_table() {
         })
     );
 }
+
+#[test]
+fn the_catalog_entry_lists_every_served_table() {
+    for device in catalog().devices() {
+        let entry = super::report::entry(device);
+        let tables = entry
+            .get("personalities")
+            .and_then(serde_json::Value::as_array)
+            .expect("the entry holds an array");
+        assert_eq!(tables.len(), super::served(device).len(), "{}", device.sku);
+    }
+}

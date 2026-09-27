@@ -45,64 +45,71 @@ impl DeviceHandle {
         self.id.to_string()
     }
 
+    /// The one mode every call on this handle goes over, or `None` where each
+    /// call takes the first enabled mode that answers.
+    #[getter]
+    fn pinned(&self) -> Option<String> {
+        self.pinned.map(|mode| mode.to_string())
+    }
+
     /// The modes enabled for it, in preference order.
     #[getter]
-    fn modes(&self) -> Vec<String> {
-        self.core()
+    fn modes(&self) -> PyResult<Vec<String>> {
+        Ok(self
+            .core()?
             .modes()
             .iter()
             .map(ToString::to_string)
-            .collect()
+            .collect())
     }
 
     /// Its health in one mode. `None` when the transport that serves that
     /// mode has never heard from it.
     fn health(&self, mode: &str) -> PyResult<Option<Health>> {
-        Ok(self
-            .govee
-            .device(&self.id)
-            .health(conv::mode(mode)?)
-            .map(Health::from))
+        Ok(self.core()?.health(conv::mode(mode)?).map(Health::from))
     }
 
     /// The mode a command sent now would go over. Read from recorded state,
     /// so the answer can change before the next call.
     fn serving_mode(&self) -> PyResult<String> {
-        Ok(map(self.core().serving_mode())?.to_string())
+        Ok(map(self.core()?.serving_mode())?.to_string())
     }
 
     /// What `devices/<SKU>.yaml` declares for it. Reads no hardware.
     fn spec(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
-        to_py(py, map(self.core().spec())?)
+        to_py(py, map(self.core()?.spec())?)
     }
 
     /// What `devices/<SKU>.yaml` declares, as the record `govee describe`
     /// prints: the modes in one place, the commands under the mode that
     /// carries them, and each argument's type, role and bound.
     fn describe(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
-        to_py(py, &describe(map(self.core().spec())?))
+        to_py(py, &describe(map(self.core()?.spec())?))
     }
 
     /// The last status heard, without asking for a new one.
-    fn last_status(&self) -> Option<DeviceStatus> {
-        self.core().last_status().map(DeviceStatus::from)
+    fn last_status(&self) -> PyResult<Option<DeviceStatus>> {
+        Ok(self.core()?.last_status().map(DeviceStatus::from))
     }
 
     /// Watch its status as answers arrive, over the mode that would serve a
     /// command now. `None` when no enabled mode can, or when that transport
     /// has heard nothing.
-    fn watch_status(&self) -> Option<StatusStream> {
-        self.core().watch_status().map(StatusStream::new)
+    fn watch_status(&self) -> PyResult<Option<StatusStream>> {
+        Ok(self.core()?.watch_status().map(StatusStream::new))
     }
 
     /// Scan for the device if no mode knows it yet, then answer the mode a
     /// command would go over.
     ///
-    /// The scan covers every enabled mode, whatever this handle is pinned to.
+    /// The enabled modes scan at the same time. A handle pinned to a mode
+    /// scans over that mode alone. Call it before the first command: the send
+    /// path does not scan.
     fn ensure_known<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let (govee, _, id) = self.parts();
+        let (govee, pinned, id) = self.parts();
         future_into_py(py, async move {
-            Ok(map(govee.ensure_known(&id).await)?.to_string())
+            let handle = map(govee.device(&id, pinned))?;
+            Ok(map(handle.ensure_known().await)?.to_string())
         })
     }
 
@@ -120,7 +127,7 @@ impl DeviceHandle {
     ) -> PyResult<Bound<'py, PyAny>> {
         let supplied = conv::args(args)?;
         self.served(py, |govee, pinned, id| async move {
-            let handle = govee.device_maybe_on(&id, pinned);
+            let handle = govee.device(&id, pinned)?;
             let call = handle.resolve()?;
             let values = call.args(&command, supplied)?;
             call.send(&command, &values).await
@@ -139,7 +146,7 @@ impl DeviceHandle {
         let supplied = conv::args(args)?;
         let (govee, pinned, id) = self.parts();
         future_into_py(py, async move {
-            let handle = govee.device_maybe_on(&id, pinned);
+            let handle = map(govee.device(&id, pinned))?;
             let call = map(handle.resolve())?;
             let values = map(call.args(&command, supplied))?;
             let reply = map(call.read(&command, &values).await)?;
@@ -147,11 +154,29 @@ impl DeviceHandle {
         })
     }
 
+    /// Read a command whose entry declares an answer, and send any other one.
+    /// With `refuse_secrets`, a command that takes a secret raises
+    /// `secret_arg`.
+    #[pyo3(signature = (command, refuse_secrets=false, **args))]
+    fn invoke<'py>(
+        &self,
+        py: Python<'py>,
+        command: String,
+        refuse_secrets: bool,
+        args: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let supplied = conv::args(args)?;
+        let (govee, pinned, id) = self.parts();
+        let call = crate::apply::invoke(govee, pinned, id, command, supplied, refuse_secrets);
+        future_into_py(py, call)
+    }
+
     /// Ask the device for its state and wait for the answer.
     fn status<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let (govee, pinned, id) = self.parts();
         future_into_py(py, async move {
-            let status = map(govee.device_maybe_on(&id, pinned).status().await)?;
+            let handle = map(govee.device(&id, pinned))?;
+            let status = map(handle.status().await)?;
             Ok(DeviceStatus::from(status))
         })
     }
@@ -159,7 +184,7 @@ impl DeviceHandle {
     /// Turn the device on or off.
     fn power<'py>(&self, py: Python<'py>, on: bool) -> PyResult<Bound<'py, PyAny>> {
         self.served(py, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).power(on).await
+            govee.device(&id, pinned)?.power(on).await
         })
     }
 
@@ -167,7 +192,7 @@ impl DeviceHandle {
     /// that range is an error, never a clamp.
     fn brightness<'py>(&self, py: Python<'py>, level: i64) -> PyResult<Bound<'py, PyAny>> {
         self.served(py, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).brightness(level).await
+            govee.device(&id, pinned)?.brightness(level).await
         })
     }
 
@@ -175,7 +200,7 @@ impl DeviceHandle {
     fn color<'py>(&self, py: Python<'py>, rgb: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let rgb = conv::rgb(rgb)?;
         self.served(py, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).color(rgb).await
+            govee.device(&id, pinned)?.color(rgb).await
         })
     }
 
@@ -185,9 +210,12 @@ impl DeviceHandle {
     /// One pass: the device stays on and lit, and loses the look it held.
     /// `Govee.identify()` runs the whole walk.
     ///
-    /// `None` takes the core's defaults: green, and the top of the
-    /// brightness range the device file declares.
-    #[pyo3(signature = (color=None, full_brightness=None))]
+    /// `full_brightness` sets the top of the brightness range the device
+    /// file declares.
+    #[pyo3(
+        signature = (color=None, full_brightness=None),
+        text_signature = "($self, color=(0, 255, 0), full_brightness=True)"
+    )]
     fn identify<'py>(
         &self,
         py: Python<'py>,
@@ -201,7 +229,8 @@ impl DeviceHandle {
         };
         let (govee, pinned, id) = self.parts();
         future_into_py(py, async move {
-            map(govee.device_maybe_on(&id, pinned).identify(&options).await)?;
+            let handle = map(govee.device(&id, pinned))?;
+            map(handle.identify(&options).await)?;
             Ok(())
         })
     }
@@ -209,7 +238,7 @@ impl DeviceHandle {
     /// Set the white temperature, in kelvin. It ends color mode.
     fn color_temp<'py>(&self, py: Python<'py>, kelvin: i64) -> PyResult<Bound<'py, PyAny>> {
         self.served(py, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).color_temp(kelvin).await
+            govee.device(&id, pinned)?.color_temp(kelvin).await
         })
     }
 
@@ -218,9 +247,10 @@ impl DeviceHandle {
     /// The identifiers are the mode's own: one the entry accepts is not one
     /// the device renders. `color` imposes a color, and `None` leaves the
     /// colors to the firmware.
-    ///
-    /// `None` takes the core's default for `sensitivity` and for `soft`.
-    #[pyo3(signature = (effect, sensitivity=None, soft=None, color=None))]
+    #[pyo3(
+        signature = (effect, sensitivity=None, soft=None, color=None),
+        text_signature = "($self, effect, sensitivity=50, soft=False, color=None)"
+    )]
     fn music<'py>(
         &self,
         py: Python<'py>,
@@ -231,15 +261,18 @@ impl DeviceHandle {
     ) -> PyResult<Bound<'py, PyAny>> {
         let music = conv::music(effect, sensitivity, soft, color)?;
         self.served(py, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).music(&music).await
+            govee.device(&id, pinned)?.music(&music).await
         })
     }
 
     /// Paint the segments once.
     ///
     /// One color fills every zone, and a list states them all. A zone list
-    /// takes one color. `resolution` takes `"app"` when it is `None`.
-    #[pyo3(signature = (colors, zones=None, resolution=None, gradient=false))]
+    /// takes one color.
+    #[pyo3(
+        signature = (colors, zones=None, resolution=None, gradient=false),
+        text_signature = "($self, colors, zones=None, resolution='app', gradient=False)"
+    )]
     fn segment<'py>(
         &self,
         py: Python<'py>,
@@ -257,7 +290,7 @@ impl DeviceHandle {
                 resolution,
                 gradient,
             };
-            govee.device_maybe_on(&id, pinned).segment(&paint).await
+            govee.device(&id, pinned)?.segment(&paint).await
         })
     }
 
@@ -265,7 +298,7 @@ impl DeviceHandle {
     /// last zone back to the first.
     fn gradient<'py>(&self, py: Python<'py>, on: bool) -> PyResult<Bound<'py, PyAny>> {
         self.served(py, |govee, pinned, id| async move {
-            govee.device_maybe_on(&id, pinned).gradient(on).await
+            govee.device(&id, pinned)?.gradient(on).await
         })
     }
 
@@ -294,10 +327,8 @@ impl DeviceHandle {
         };
         let (govee, pinned, id) = self.parts();
         future_into_py(py, async move {
-            let done = map(govee
-                .device_maybe_on(&id, pinned)
-                .provision_wifi(&credentials)
-                .await)?;
+            let handle = map(govee.device(&id, pinned))?;
+            let done = map(handle.provision_wifi(&credentials).await)?;
             Ok(done.as_str())
         })
     }
@@ -307,10 +338,10 @@ impl DeviceHandle {
     /// Power the device on first: arming a dark strip paints nothing. The
     /// channel holds the colors only while it is armed, and the device goes
     /// back to the color it showed before once the stream closes.
-    ///
-    /// `resolution` takes `"app"` when it is `None`, and `rate` takes
-    /// `"measured"`.
-    #[pyo3(signature = (resolution=None, rate=None, gradient=false))]
+    #[pyo3(
+        signature = (resolution=None, rate=None, gradient=false),
+        text_signature = "($self, resolution='app', rate='measured', gradient=False)"
+    )]
     fn open_stream<'py>(
         &self,
         py: Python<'py>,
@@ -325,10 +356,8 @@ impl DeviceHandle {
         };
         let (govee, pinned, id) = self.parts();
         future_into_py(py, async move {
-            let stream = map(govee
-                .device_maybe_on(&id, pinned)
-                .open_stream(options)
-                .await)?;
+            let handle = map(govee.device(&id, pinned))?;
+            let stream = map(handle.open_stream(options).await)?;
             Ok(SegmentStream::new(stream))
         })
     }
@@ -339,8 +368,8 @@ impl DeviceHandle {
 }
 
 impl DeviceHandle {
-    fn core(&self) -> CoreHandle<'_> {
-        self.govee.device_maybe_on(&self.id, self.pinned)
+    fn core(&self) -> PyResult<CoreHandle<'_>> {
+        map(self.govee.device(&self.id, self.pinned))
     }
 
     fn parts(&self) -> (Govee, Option<Mode>, DeviceId) {
@@ -362,5 +391,6 @@ impl DeviceHandle {
 }
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
-    module.add_class::<DeviceHandle>()
+    module.add_class::<DeviceHandle>()?;
+    module.add_class::<crate::apply::Invoked>()
 }
