@@ -22,6 +22,13 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
   personality the core knows. `Catalog.capabilities()` — every capability
   name that a device of the catalog declares.
 
+### Changed
+
+- **Breaking:** `Govee.identify()` takes `wait` and `hold` in seconds, as
+  Python does. Rename `waitMs` and `holdMs`, and divide the values by 1000.
+- The doc comment of each optional parameter names its default in an
+  `@param [name=value]` line, which an editor shows.
+
 ## [0.5.0] — 2026-09-26
 
 ### Added

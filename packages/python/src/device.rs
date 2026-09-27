@@ -202,9 +202,12 @@ impl DeviceHandle {
     /// One pass: the device stays on and lit, and loses the look it held.
     /// `Govee.identify()` runs the whole walk.
     ///
-    /// `None` takes the core's defaults: green, and the top of the
-    /// brightness range the device file declares.
-    #[pyo3(signature = (color=None, full_brightness=None))]
+    /// `full_brightness` sets the top of the brightness range the device
+    /// file declares.
+    #[pyo3(
+        signature = (color=None, full_brightness=None),
+        text_signature = "($self, color=(0, 255, 0), full_brightness=True)"
+    )]
     fn identify<'py>(
         &self,
         py: Python<'py>,
@@ -235,9 +238,10 @@ impl DeviceHandle {
     /// The identifiers are the mode's own: one the entry accepts is not one
     /// the device renders. `color` imposes a color, and `None` leaves the
     /// colors to the firmware.
-    ///
-    /// `None` takes the core's default for `sensitivity` and for `soft`.
-    #[pyo3(signature = (effect, sensitivity=None, soft=None, color=None))]
+    #[pyo3(
+        signature = (effect, sensitivity=None, soft=None, color=None),
+        text_signature = "($self, effect, sensitivity=50, soft=False, color=None)"
+    )]
     fn music<'py>(
         &self,
         py: Python<'py>,
@@ -255,8 +259,11 @@ impl DeviceHandle {
     /// Paint the segments once.
     ///
     /// One color fills every zone, and a list states them all. A zone list
-    /// takes one color. `resolution` takes `"app"` when it is `None`.
-    #[pyo3(signature = (colors, zones=None, resolution=None, gradient=false))]
+    /// takes one color.
+    #[pyo3(
+        signature = (colors, zones=None, resolution=None, gradient=false),
+        text_signature = "($self, colors, zones=None, resolution='app', gradient=False)"
+    )]
     fn segment<'py>(
         &self,
         py: Python<'py>,
@@ -324,10 +331,10 @@ impl DeviceHandle {
     /// Power the device on first: arming a dark strip paints nothing. The
     /// channel holds the colors only while it is armed, and the device goes
     /// back to the color it showed before once the stream closes.
-    ///
-    /// `resolution` takes `"app"` when it is `None`, and `rate` takes
-    /// `"measured"`.
-    #[pyo3(signature = (resolution=None, rate=None, gradient=false))]
+    #[pyo3(
+        signature = (resolution=None, rate=None, gradient=false),
+        text_signature = "($self, resolution='app', rate='measured', gradient=False)"
+    )]
     fn open_stream<'py>(
         &self,
         py: Python<'py>,

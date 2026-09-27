@@ -162,7 +162,10 @@ impl GroupHandle {
     }
 
     /// `DeviceHandle.music()` on every member.
-    #[pyo3(signature = (effect, sensitivity=None, soft=None, color=None))]
+    #[pyo3(
+        signature = (effect, sensitivity=None, soft=None, color=None),
+        text_signature = "($self, effect, sensitivity=50, soft=False, color=None)"
+    )]
     fn music<'py>(
         &self,
         py: Python<'py>,
@@ -178,7 +181,10 @@ impl GroupHandle {
     }
 
     /// `DeviceHandle.segment()` on every member, against its own zones.
-    #[pyo3(signature = (colors, zones=None, resolution=None, gradient=false))]
+    #[pyo3(
+        signature = (colors, zones=None, resolution=None, gradient=false),
+        text_signature = "($self, colors, zones=None, resolution='app', gradient=False)"
+    )]
     fn segment<'py>(
         &self,
         py: Python<'py>,

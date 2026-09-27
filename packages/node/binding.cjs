@@ -90,7 +90,7 @@ function requireNative() {
         const binding = require('govee-toolkit-android-arm64')
         const bindingPackageVersion = require('govee-toolkit-android-arm64/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -106,7 +106,7 @@ function requireNative() {
         const binding = require('govee-toolkit-android-arm-eabi')
         const bindingPackageVersion = require('govee-toolkit-android-arm-eabi/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -127,7 +127,7 @@ function requireNative() {
           const binding = require('govee-toolkit-win32-x64-gnu')
           const bindingPackageVersion = require('govee-toolkit-win32-x64-gnu/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -143,7 +143,7 @@ function requireNative() {
           const binding = require('govee-toolkit-win32-x64-msvc')
           const bindingPackageVersion = require('govee-toolkit-win32-x64-msvc/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -160,7 +160,7 @@ function requireNative() {
         const binding = require('govee-toolkit-win32-ia32-msvc')
         const bindingPackageVersion = require('govee-toolkit-win32-ia32-msvc/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -176,7 +176,7 @@ function requireNative() {
         const binding = require('govee-toolkit-win32-arm64-msvc')
         const bindingPackageVersion = require('govee-toolkit-win32-arm64-msvc/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -195,7 +195,7 @@ function requireNative() {
       const binding = require('govee-toolkit-darwin-universal')
       const bindingPackageVersion = require('govee-toolkit-darwin-universal/package.json').version
       if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-        throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
       }
       return binding
     } catch (e) {
@@ -211,7 +211,7 @@ function requireNative() {
         const binding = require('govee-toolkit-darwin-x64')
         const bindingPackageVersion = require('govee-toolkit-darwin-x64/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -227,7 +227,7 @@ function requireNative() {
         const binding = require('govee-toolkit-darwin-arm64')
         const bindingPackageVersion = require('govee-toolkit-darwin-arm64/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -247,7 +247,7 @@ function requireNative() {
         const binding = require('govee-toolkit-freebsd-x64')
         const bindingPackageVersion = require('govee-toolkit-freebsd-x64/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -263,7 +263,7 @@ function requireNative() {
         const binding = require('govee-toolkit-freebsd-arm64')
         const bindingPackageVersion = require('govee-toolkit-freebsd-arm64/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -284,7 +284,7 @@ function requireNative() {
           const binding = require('govee-toolkit-linux-x64-musl')
           const bindingPackageVersion = require('govee-toolkit-linux-x64-musl/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -300,7 +300,7 @@ function requireNative() {
           const binding = require('govee-toolkit-linux-x64-gnu')
           const bindingPackageVersion = require('govee-toolkit-linux-x64-gnu/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -318,7 +318,7 @@ function requireNative() {
           const binding = require('govee-toolkit-linux-arm64-musl')
           const bindingPackageVersion = require('govee-toolkit-linux-arm64-musl/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -334,7 +334,7 @@ function requireNative() {
           const binding = require('govee-toolkit-linux-arm64-gnu')
           const bindingPackageVersion = require('govee-toolkit-linux-arm64-gnu/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -352,7 +352,7 @@ function requireNative() {
           const binding = require('govee-toolkit-linux-arm-musleabihf')
           const bindingPackageVersion = require('govee-toolkit-linux-arm-musleabihf/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -368,7 +368,7 @@ function requireNative() {
           const binding = require('govee-toolkit-linux-arm-gnueabihf')
           const bindingPackageVersion = require('govee-toolkit-linux-arm-gnueabihf/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -386,7 +386,7 @@ function requireNative() {
           const binding = require('govee-toolkit-linux-loong64-musl')
           const bindingPackageVersion = require('govee-toolkit-linux-loong64-musl/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -402,7 +402,7 @@ function requireNative() {
           const binding = require('govee-toolkit-linux-loong64-gnu')
           const bindingPackageVersion = require('govee-toolkit-linux-loong64-gnu/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -420,7 +420,7 @@ function requireNative() {
           const binding = require('govee-toolkit-linux-riscv64-musl')
           const bindingPackageVersion = require('govee-toolkit-linux-riscv64-musl/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -436,7 +436,7 @@ function requireNative() {
           const binding = require('govee-toolkit-linux-riscv64-gnu')
           const bindingPackageVersion = require('govee-toolkit-linux-riscv64-gnu/package.json').version
           if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -453,7 +453,7 @@ function requireNative() {
         const binding = require('govee-toolkit-linux-ppc64-gnu')
         const bindingPackageVersion = require('govee-toolkit-linux-ppc64-gnu/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -469,7 +469,7 @@ function requireNative() {
         const binding = require('govee-toolkit-linux-s390x-gnu')
         const bindingPackageVersion = require('govee-toolkit-linux-s390x-gnu/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -489,7 +489,7 @@ function requireNative() {
         const binding = require('govee-toolkit-openharmony-arm64')
         const bindingPackageVersion = require('govee-toolkit-openharmony-arm64/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -505,7 +505,7 @@ function requireNative() {
         const binding = require('govee-toolkit-openharmony-x64')
         const bindingPackageVersion = require('govee-toolkit-openharmony-x64/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -521,7 +521,7 @@ function requireNative() {
         const binding = require('govee-toolkit-openharmony-arm')
         const bindingPackageVersion = require('govee-toolkit-openharmony-arm/package.json').version
         if (bindingPackageVersion !== '0.6.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          throw new Error(`Native binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -662,7 +662,7 @@ if (!nativeBinding || forceWasi) {
         if (process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           const bindingPackageVersion = require('govee-toolkit-wasm32-wasi/package.json').version
           if (bindingPackageVersion !== '0.6.0') {
-            throw new Error(`WASI binding package version mismatch, expected 0.5.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+            throw new Error(`WASI binding package version mismatch, expected 0.6.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
         }
         wasiBinding = require('govee-toolkit-wasm32-wasi')

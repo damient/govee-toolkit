@@ -55,8 +55,11 @@ impl DeviceHandle {
     /// One pass: the device stays on and lit, and loses the look it held.
     /// `Govee.identify()` runs the whole walk.
     ///
-    /// `null` takes the core's defaults: green, and the top of the
-    /// brightness range the device file declares.
+    /// `fullBrightness` sets the top of the brightness range the device
+    /// file declares.
+    ///
+    /// @param [color=[0, 255, 0]]
+    /// @param [fullBrightness=true]
     #[napi]
     pub fn identify<'env>(
         &self,
@@ -102,7 +105,8 @@ impl DeviceHandle {
     /// the device renders. `color` imposes a color, and `null` leaves the
     /// colors to the firmware.
     ///
-    /// `null` takes the core's default for `sensitivity` and for `soft`.
+    /// @param [sensitivity=50]
+    /// @param [soft=false]
     #[napi]
     pub fn music<'env>(
         &self,
@@ -124,7 +128,9 @@ impl DeviceHandle {
     ///
     /// One color fills every zone. An array of colors, or a `Uint8Array` of
     /// three bytes per zone, states them all. A zone list takes one color.
-    /// `resolution` takes `"app"` when it is `null`.
+    ///
+    /// @param [resolution='app']
+    /// @param [gradient=false]
     #[napi]
     pub fn segment<'env>(
         &self,
