@@ -1,15 +1,16 @@
-use std::future::Future;
+//! Several devices driven as one.
 
 use govee_toolkit::codec::Mode;
 use govee_toolkit::{DeviceId, Govee, Outcome as CoreOutcome, Paint, Served as CoreServed};
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyIterator, PyList};
 use pyo3_async_runtimes::tokio::future_into_py;
 
 use crate::apply::{self, Verbs};
 use crate::conv;
-use crate::errors::to_py;
-use crate::types::Served;
+use crate::device::DeviceHandle;
+use crate::errors::{map, to_py};
+use crate::types::{Device, Served};
 
 /// What one member answered.
 #[pyclass(
@@ -92,34 +93,62 @@ impl Outcome {
     }
 }
 
-/// A handle on the members of a group. It holds no state of its own.
+/// The devices that `Govee.devices()` selects. Every verb on it runs on every
+/// member at once, answers one `Outcome` per member in member order, and
+/// raises for nothing a member does.
 #[pyclass(
     frozen,
     skip_from_py_object,
     module = "govee_toolkit",
-    name = "GroupHandle"
+    name = "Devices"
 )]
 #[derive(Debug, Clone)]
-pub(crate) struct GroupHandle {
+pub(crate) struct Devices {
     pub(crate) govee: Govee,
     pub(crate) pinned: Option<Mode>,
     pub(crate) members: Vec<DeviceId>,
 }
 
+/// Rebuild the core `Devices` from the stored identities, then run `$call` on
+/// it and read each outcome as a `Served`.
+macro_rules! each {
+    ($self:ident, $py:ident, |$devices:ident| $call:expr) => {{
+        let (govee, pinned, members) = $self.parts();
+        future_into_py($py, async move {
+            let $devices = map(core(&govee, &members, pinned))?;
+            Ok(served($call))
+        })
+    }};
+}
+
 #[pymethods]
-impl GroupHandle {
-    /// The identities of the members, in the order of every outcome list.
+impl Devices {
+    /// One handle per member, in the order of every outcome list. Each handle
+    /// is pinned as the members are.
     #[getter]
-    fn members(&self) -> Vec<String> {
-        self.members.iter().map(ToString::to_string).collect()
+    fn members(&self) -> Vec<DeviceHandle> {
+        self.handles()
     }
 
-    /// Scan for every member that no mode knows. Each outcome carries its mode.
+    /// What the SDK holds for each member: the SKU, the name, the groups, the
+    /// modes and the health. Reads no hardware.
+    ///
+    /// A member that no transport knows and that the configuration pins no
+    /// SKU for is not in the list. `members` holds every member.
+    fn list(&self) -> PyResult<Vec<Device>> {
+        let listed = core(&self.govee, &self.members, self.pinned).map(|devices| devices.list());
+        Ok(map(listed)?.into_iter().map(Device::from).collect())
+    }
+
+    /// Scan for every member that no mode knows. Each outcome carries its
+    /// mode. A pinned member scans over its mode alone.
     fn ensure_known<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let (govee, pinned, members) = self.parts();
         future_into_py(py, async move {
-            let known = govee.group_maybe_on(&members, pinned).ensure_known().await;
-            Ok(known
+            let devices = map(core(&govee, &members, pinned))?;
+            Ok(devices
+                .ensure_known()
+                .await
                 .into_iter()
                 .map(|outcome| Outcome::new(outcome, |mode| (mode, None)))
                 .collect::<Vec<_>>())
@@ -128,37 +157,23 @@ impl GroupHandle {
 
     /// Turn every member on or off.
     fn power<'py>(&self, py: Python<'py>, on: bool) -> PyResult<Bound<'py, PyAny>> {
-        self.served(py, move |govee, pinned, members| async move {
-            govee.group_maybe_on(&members, pinned).power(on).await
-        })
+        each!(self, py, |devices| devices.power(on).await)
     }
 
     /// Set the level on every member, against its own range.
     fn brightness<'py>(&self, py: Python<'py>, level: i64) -> PyResult<Bound<'py, PyAny>> {
-        self.served(py, move |govee, pinned, members| async move {
-            govee
-                .group_maybe_on(&members, pinned)
-                .brightness(level)
-                .await
-        })
+        each!(self, py, |devices| devices.brightness(level).await)
     }
 
     /// Set one color on every member.
     fn color<'py>(&self, py: Python<'py>, rgb: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let rgb = conv::rgb(rgb)?;
-        self.served(py, move |govee, pinned, members| async move {
-            govee.group_maybe_on(&members, pinned).color(rgb).await
-        })
+        each!(self, py, |devices| devices.color(rgb).await)
     }
 
     /// Set the white temperature on every member, in kelvin.
     fn color_temp<'py>(&self, py: Python<'py>, kelvin: i64) -> PyResult<Bound<'py, PyAny>> {
-        self.served(py, move |govee, pinned, members| async move {
-            govee
-                .group_maybe_on(&members, pinned)
-                .color_temp(kelvin)
-                .await
-        })
+        each!(self, py, |devices| devices.color_temp(kelvin).await)
     }
 
     /// `DeviceHandle.music()` on every member.
@@ -175,9 +190,7 @@ impl GroupHandle {
         color: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let music = conv::music(effect, sensitivity, soft, color)?;
-        self.served(py, move |govee, pinned, members| async move {
-            govee.group_maybe_on(&members, pinned).music(&music).await
-        })
+        each!(self, py, |devices| devices.music(&music).await)
     }
 
     /// `DeviceHandle.segment()` on every member, against its own zones.
@@ -195,22 +208,20 @@ impl GroupHandle {
     ) -> PyResult<Bound<'py, PyAny>> {
         let colors = conv::colors(colors)?;
         let resolution = conv::resolution_or_default(resolution)?;
-        self.served(py, move |govee, pinned, members| async move {
+        each!(self, py, |devices| {
             let paint = Paint {
                 zones: zones.as_deref(),
                 colors: &colors,
                 resolution,
                 gradient,
             };
-            govee.group_maybe_on(&members, pinned).segment(&paint).await
+            devices.segment(&paint).await
         })
     }
 
     /// Set the interpolation between zones on every member.
     fn gradient<'py>(&self, py: Python<'py>, on: bool) -> PyResult<Bound<'py, PyAny>> {
-        self.served(py, move |govee, pinned, members| async move {
-            govee.group_maybe_on(&members, pinned).gradient(on).await
-        })
+        each!(self, py, |devices| devices.gradient(on).await)
     }
 
     /// Scan for the members, then send the verbs, power on first and power
@@ -243,41 +254,57 @@ impl GroupHandle {
         future_into_py(py, apply::apply(govee, pinned, members, verbs))
     }
 
+    fn __len__(&self) -> usize {
+        self.members.len()
+    }
+
+    fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
+        PyList::new(py, self.handles())?.try_iter()
+    }
+
     fn __repr__(&self) -> String {
-        format!("GroupHandle(members={:?})", self.members())
+        let ids: Vec<String> = self.members.iter().map(ToString::to_string).collect();
+        format!("Devices(members={ids:?})")
     }
 }
 
-impl GroupHandle {
+impl Devices {
     fn parts(&self) -> (Govee, Option<Mode>, Vec<DeviceId>) {
         (self.govee.clone(), self.pinned, self.members.clone())
     }
 
-    fn served<'py, Fut>(
-        &self,
-        py: Python<'py>,
-        verb: impl FnOnce(Govee, Option<Mode>, Vec<DeviceId>) -> Fut,
-    ) -> PyResult<Bound<'py, PyAny>>
-    where
-        Fut: Future<Output = Vec<CoreOutcome<CoreServed>>> + Send + 'static,
-    {
-        let (govee, pinned, members) = self.parts();
-        let call = verb(govee, pinned, members);
-        future_into_py(py, async move {
-            Ok(call
-                .await
-                .into_iter()
-                .map(|outcome| {
-                    Outcome::new(outcome, |served| (served.mode, Some(Served::from(served))))
-                })
-                .collect::<Vec<_>>())
-        })
+    fn handles(&self) -> Vec<DeviceHandle> {
+        self.members
+            .iter()
+            .map(|id| DeviceHandle {
+                govee: self.govee.clone(),
+                pinned: self.pinned,
+                id: id.clone(),
+            })
+            .collect()
     }
 }
 
+fn served(outcomes: Vec<CoreOutcome<CoreServed>>) -> Vec<Outcome> {
+    outcomes
+        .into_iter()
+        .map(|outcome| Outcome::new(outcome, |served| (served.mode, Some(Served::from(served)))))
+        .collect()
+}
+
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
-    module.add_class::<GroupHandle>()?;
+    module.add_class::<Devices>()?;
     module.add_class::<Outcome>()?;
     module.add_class::<apply::Applied>()?;
     module.add_class::<apply::AppliedStep>()
+}
+
+/// The core set of the stored identities. It parses nothing and scans
+/// nothing.
+pub(crate) fn core<'a>(
+    govee: &'a Govee,
+    ids: &[DeviceId],
+    pinned: Option<Mode>,
+) -> govee_toolkit::Result<govee_toolkit::Devices<'a>> {
+    ids.iter().map(|id| govee.device(id, pinned)).collect()
 }

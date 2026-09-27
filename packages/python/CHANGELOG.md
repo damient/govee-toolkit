@@ -17,7 +17,7 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
   and sends any other one. It answers an `Invoked`.
 - `DeviceHandle.invoke()` with `refuse_secrets=True` raises `CodecError`
   with the code `secret_arg` for a command that takes a secret.
-- `GroupHandle.apply()` — several verbs as keyword arguments, power on first
+- `Devices.apply()` — several verbs as keyword arguments, power on first
   and power off last. It answers an `Applied`, one `AppliedStep` per verb.
 - `SUPPORT` and `PERSONALITIES` — every support level and every DMX
   personality the core knows. `Catalog.capabilities()` — every capability
@@ -29,6 +29,15 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
   goes. Replace `scan_on(modes)` with `scan(modes)`.
 - The signatures of `identify()`, `music()`, `segment()` and `open_stream()`
   carry the defaults the core applies, as `help()` and the stub show them.
+- **Breaking:** `Govee.device(target, *, mode=None)` replaces `device_on()`.
+  It raises `target_not_understood` for a SKU or a group.
+- **Breaking:** `await Govee.devices(targets, *, enables, mode)` returns
+  `Devices`. It replaces `devices()`, `select()`, `targets()` and `group()`.
+- **Breaking:** `GroupHandle` is `Devices`: `members` holds `DeviceHandle`s,
+  `list()` the `Device` records, and `len()` and iteration work on it.
+- `DeviceHandle.ensure_known()` scans over the pinned mode alone where the
+  handle pins one.
+- `DeviceHandle.pinned` — the mode the handle pins, or `None`.
 
 ## [0.6.0] — 2026-09-26
 
