@@ -243,7 +243,7 @@ devices:
 }
 
 fn one(target: &str) -> Result<DeviceId, Error> {
-    Selector::one(target, &named_config())
+    Selector::one(target, &catalog(), &named_config())
 }
 
 #[test]
@@ -271,44 +271,6 @@ fn one_refuses_what_is_not_one_device() {
         one("33:44:55:66:77:88:99:AA"),
         Err(Error::Ambiguous { .. })
     ));
-}
-
-fn many(target: &str) -> Result<Vec<DeviceId>, Error> {
-    Selector::many(target, &named_config())
-}
-
-#[test]
-fn many_reads_a_group_in_identity_order() {
-    let members = vec![
-        DeviceId::new("22:33:44:55:66:77:88:99"),
-        DeviceId::new("33:44:55:66:77:88:99:00"),
-    ];
-    assert_eq!(many("ambient"), Ok(members.clone()));
-    assert_eq!(many("group:AMBIENT"), Ok(members));
-    assert_eq!(
-        many("name:kitchen"),
-        Ok(vec![DeviceId::new("1C:8B:C4:A2:C0:46:64:6E")])
-    );
-}
-
-#[test]
-fn many_refuses_what_the_configuration_cannot_resolve() {
-    assert!(matches!(many("group:attic"), Err(Error::NoMatch { .. })));
-    assert!(matches!(many("attic"), Err(Error::NoMatch { .. })));
-    assert!(matches!(many("sku:H6008"), Err(Error::Model { .. })));
-    assert_eq!(
-        many("hall").err(),
-        Some(Error::Ambiguous {
-            target: "hall".to_owned(),
-            kind: "name".to_owned(),
-            other: "group".to_owned(),
-        })
-    );
-    assert_eq!(
-        many("group:hall").map(|ids| ids.len()),
-        Ok(1),
-        "the prefix states the kind"
-    );
 }
 
 #[test]

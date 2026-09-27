@@ -22,10 +22,12 @@ releases apart and keeps
   (`secret_arg`) when the entry takes a secret argument.
 - `Command::secret_arg()` and `ArgRole::is_secret()` name the argument that
   carries a secret: `password`.
-- `GroupHandle::apply()` sends several `Verb`s, power on first and power off
+- `Devices::apply()` sends several `Verb`s, power on first and power off
   last. A member that fails a step takes no later step, and stops no other.
 - `Verb`, and `Applied` with one `AppliedStep` per verb sent.
-  `GroupHandle::play()` sends one `Verb`.
+  `Devices::play()` sends one `Verb`.
+- `DeviceHandle::ensure_known()` makes the device reachable, over the pinned
+  mode alone where the handle pins one. `DeviceHandle::pinned()` names it.
 - `Support::ALL` — every support level. `Catalog::capabilities()` — every
   capability name that a device of the catalog declares.
 
@@ -33,6 +35,16 @@ releases apart and keeps
 
 - **Breaking:** `Govee::scan()` takes `Option<&[Mode]>`, and `scan_on()` goes.
   Write `scan(None)` for every mode and `scan(Some(&modes))` for a list.
+- **Breaking:** `Govee::device(target, mode)` takes an identity or a name, and
+  returns a `Result`. It replaces `target()` and `device_on()`.
+- **Breaking:** `Govee::devices(filter, mode)` returns `Devices`, the handle for
+  any number of devices. It replaces `select()`, `targets()` and `group*()`.
+- `Filter` selects: `all()`, `targets()`, `ids()`, and `enables()` to keep one
+  mode. A SKU or `all()` scans once, on the first call that reads one.
+- **Breaking:** `GroupHandle` is `Devices`: `members()` gives `DeviceHandle`s
+  and `list()` the `Device` records. `Govee::ensure_known()` is private.
+- `DeviceHandle::provision_wifi()` fails with `no_mode_available` on a handle
+  pinned to a mode other than `ble`.
 
 ## [0.14.0] — 2026-09-26
 

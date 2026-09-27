@@ -6,20 +6,24 @@
 use govee_toolkit::codec::{ArgBound, ArgSpec, Command, Device, Geometry, Mode};
 use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::stream::reach;
-use govee_toolkit::{DeviceId, Govee, describe};
+use govee_toolkit::{DeviceId, Filter, Govee, describe};
 
-pub(super) fn run(govee: &Govee, writer: Writer, target: &str) -> Result<(), Failure> {
-    let device = resolve(govee, target)?;
+pub(super) async fn run(govee: &Govee, writer: Writer, target: &str) -> Result<(), Failure> {
+    let device = resolve(govee, target).await?;
     writer.emit(&describe(device), &as_text(device));
     Ok(())
 }
 
-fn resolve<'a>(govee: &'a Govee, target: &str) -> Result<&'a Device, Failure> {
-    let id = DeviceId::new(target);
-    let sku = govee
-        .devices()
+/// An identity reads as the SKU the SDK holds for it, and scans nothing.
+/// Any other target reads as a SKU.
+async fn resolve<'a>(govee: &'a Govee, target: &str) -> Result<&'a Device, Failure> {
+    let known = govee
+        .devices(Filter::ids([DeviceId::new(target)]), None)
+        .await?
+        .list();
+    let sku = known
         .into_iter()
-        .find(|device| device.id == id)
+        .next()
         .map_or_else(|| target.to_owned(), |device| device.sku);
     Ok(govee.catalog().device(&sku)?)
 }

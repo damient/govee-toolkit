@@ -16,7 +16,7 @@ use govee_toolkit_sim::Simulator;
 
 mod common;
 
-use common::{Rig, SKU, hex, id, wait_for};
+use common::{One, Rig, SKU, hex, wait_for};
 
 /// The arming frame every paint sends first, as `H61A0` declares it.
 const ARM: &str = "bb0001b1010a";
@@ -64,7 +64,7 @@ fn paint(colors: &[[u8; 3]], resolution: Resolution) -> Paint<'_> {
 async fn one_color_fills_every_zone_the_resolution_names() {
     let rig = rig().await;
     rig.govee
-        .device(&id())
+        .one()
         .segment(&paint(&[[255, 0, 0]], Resolution::Exact(2)))
         .await
         .expect("the paint goes out");
@@ -84,7 +84,7 @@ async fn setting_the_gradient_alone_is_refused_where_only_a_paint_carries_it() {
 
     let refused = rig
         .govee
-        .device(&id())
+        .one()
         .gradient(true)
         .await
         .expect_err("lan carries the setting in the painting frame");
@@ -105,7 +105,7 @@ async fn the_first_paint_waits_for_the_channel_to_arm() {
     let start = std::time::Instant::now();
 
     rig.govee
-        .device(&id())
+        .one()
         .segment(&paint(&[[255, 0, 0]], Resolution::Exact(2)))
         .await
         .expect("the paint goes out");
@@ -117,7 +117,7 @@ async fn the_first_paint_waits_for_the_channel_to_arm() {
 async fn a_color_list_states_one_zone_each() {
     let rig = rig().await;
     rig.govee
-        .device(&id())
+        .one()
         .segment(&paint(&[[255, 0, 0], [0, 255, 0]], Resolution::Exact(2)))
         .await
         .expect("the paint goes out");
@@ -135,7 +135,7 @@ async fn native_resolution_states_every_addressable_led() {
     colors[0] = [255, 0, 0];
 
     rig.govee
-        .device(&id())
+        .one()
         .segment(&paint(&colors, Resolution::Native))
         .await
         .expect("the paint goes out");
@@ -157,7 +157,7 @@ async fn a_list_that_states_another_count_than_the_resolution_is_refused() {
     let rig = rig().await;
     let error = rig
         .govee
-        .device(&id())
+        .one()
         .segment(&paint(&[[255, 0, 0], [0, 255, 0]], Resolution::Native))
         .await
         .expect_err("42 zones, 2 colors");
@@ -171,7 +171,7 @@ async fn a_resolution_the_unit_renders_as_a_smaller_one_is_refused() {
     let rig = rig().await;
     let error = rig
         .govee
-        .device(&id())
+        .one()
         .segment(&paint(&[[255, 0, 0]], Resolution::Exact(30)))
         .await
         .expect_err("this unit refines at 21, then at 42");
@@ -185,7 +185,7 @@ async fn a_zone_list_takes_one_color() {
     let rig = rig().await;
     let error = rig
         .govee
-        .device(&id())
+        .one()
         .segment(&Paint {
             zones: Some(&[0, 1]),
             colors: &[[255, 0, 0], [0, 255, 0]],

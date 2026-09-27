@@ -71,7 +71,7 @@ async fn run(
     }
     let patch = Patch::load(file).map_err(|e| Failure::config(e.to_string()))?;
     let patch = &patch;
-    let rig = resolve(&govee, patch)?;
+    let rig = resolve(&govee, patch).await?;
 
     let address = SocketAddr::new(patch.node.bind, PORT);
     let listener = Listener::bind(address).map_err(|e| Failure::internal(e.to_string()))?;
@@ -115,7 +115,10 @@ async fn reset(govee: &Govee, rig: &Rig, printer: &mut Printer) {
     for fixture in rig.fixtures() {
         let (govee, id) = (govee.clone(), fixture.entry.device.clone());
         passes.push(tokio::spawn(async move {
-            let outcome = blackout(&govee.device_on(&id, Mode::Lan)).await;
+            let outcome = match govee.device(&id, Some(Mode::Lan)) {
+                Ok(handle) => blackout(&handle).await,
+                Err(error) => Err(error),
+            };
             (id, outcome)
         }));
     }

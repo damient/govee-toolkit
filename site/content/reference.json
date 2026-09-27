@@ -26,8 +26,8 @@
         {
           "id": "devices",
           "title": "devices",
-          "summary": "List the devices already known. It touches no network.",
-          "detail": "The `lan` cache answers from disk, so a device found once needs no new scan.",
+          "summary": "Name several devices at once, then list them or send them one command.",
+          "detail": "A target is an identity (`1C:8B:\u2026`), a SKU (`H6159`), a configured name (`kitchen`) or a group (`ambient`). Prefix it with `id:`, `sku:`, `name:` or `group:` where the kind is ambiguous. With no target, it selects every device a scan finds. The first call that reads a SKU, or every device, scans once. Each member answers its own outcome, and a member that fails stops no other one.",
           "api": [
             "Govee::devices"
           ],
@@ -35,42 +35,25 @@
             "govee devices"
           ],
           "examples": {
-            "cli": "govee devices",
-            "rust": "for device in govee.devices() {\n    println!(\"{}\", device.id());\n}",
-            "python": "for device in govee.devices():\n    print(device.id)",
-            "node": "for (const device of govee.devices()) {\n  console.log(device.id)\n}"
+            "cli": "govee devices\ngovee devices H6159 kitchen\ngovee on ambient\ngovee brightness group:ambient 40",
+            "rust": "for device in govee.devices(Filter::all(), None).await?.list() {\n    println!(\"{}\", device.id);\n}\nlet ambient = govee.devices(Filter::targets([\"ambient\"]), None).await?;\nfor outcome in ambient.brightness(40).await {\n    if let Err(error) = outcome.result {\n        eprintln!(\"{}: {error}\", outcome.id);\n    }\n}",
+            "python": "for device in (await govee.devices()).list():\n    print(device.id)\nambient = await govee.devices([\"ambient\"])\nawait ambient.brightness(40)",
+            "node": "for (const device of (await govee.devices()).list()) {\n  console.log(device.id)\n}\nconst ambient = await govee.devices(['ambient'])\nawait ambient.brightness(40)"
           }
         },
         {
-          "id": "select",
-          "title": "select",
-          "summary": "Name devices by identity, by SKU, by name or by group.",
-          "detail": "A target is an identity (`1C:8B:\u2026`), a SKU (`H6159`), a configured name (`kitchen`) or a group (`ambient`). Prefix it with `id:`, `sku:`, `name:` or `group:` where the kind is ambiguous. `select` reads the devices already known, so scan first.",
+          "id": "device",
+          "title": "device",
+          "summary": "Get a handle for one device, by identity or by name.",
+          "detail": "It reads the configuration and scans nothing. A mode pins every call on the handle to that mode. A SKU or a group can name more than one device: use `devices` for those.",
           "api": [
-            "Govee::select",
             "Govee::device"
           ],
-          "cli": [
-            "govee devices"
-          ],
           "examples": {
-            "cli": "govee devices H6159\ngovee devices kitchen ambient\ngovee on kitchen",
-            "rust": "let chosen = govee.select([\"H6159\", \"kitchen\"], None)?;\nlet kitchen = govee.device(&govee.target(\"kitchen\")?);",
-            "python": "chosen = govee.select([\"H6159\", \"kitchen\"])\nkitchen = govee.device(\"kitchen\")",
-            "node": "const chosen = govee.select(['H6159', 'kitchen'])\nconst kitchen = govee.device('kitchen')"
-          }
-        },
-        {
-          "id": "group",
-          "title": "group",
-          "summary": "Send one command to every device of a group at once.",
-          "detail": "`groups:` in the configuration declares the members. Each member answers its own outcome, and a member that fails stops no other one.",
-          "api": [
-            "Govee::group"
-          ],
-          "examples": {
-            "cli": "govee on ambient\ngovee brightness group:ambient 40",
-            "rust": "let ambient = govee.group(&govee.targets(\"ambient\")?);\nfor outcome in ambient.brightness(40).await {\n    if let Err(error) = outcome.result {\n        eprintln!(\"{}: {error}\", outcome.id);\n    }\n}"
+            "cli": "govee on kitchen\ngovee status 1C:8B:C4:A2:C0:46:64:6E",
+            "rust": "let kitchen = govee.device(\"kitchen\", None)?;\nlet over_lan = govee.device(\"kitchen\", Some(Mode::Lan))?;",
+            "python": "kitchen = govee.device(\"kitchen\")\nover_lan = govee.device(\"kitchen\", mode=\"lan\")",
+            "node": "const kitchen = govee.device('kitchen')\nconst overLan = govee.device('kitchen', { mode: 'lan' })"
           }
         },
         {
@@ -105,7 +88,7 @@
           ],
           "examples": {
             "cli": "govee describe DEVICE",
-            "rust": "let spec = govee.device(&id).spec()?;",
+            "rust": "let spec = govee.device(&id, None)?.spec()?;",
             "python": "spec = govee.device(id).spec()",
             "node": "const spec = govee.device(id).spec()"
           }
