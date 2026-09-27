@@ -38,8 +38,13 @@ def doc_comments() -> dict[tuple[str, str], str]:
         lines = path.read_text().splitlines()
         current: str | None = None
         block: list[str] = []
+        # An attribute can span lines: its inner lines do not end the block.
+        depth = 0
         for i, line in enumerate(lines):
             text = line.strip()
+            if depth:
+                depth += text.count("[") - text.count("]")
+                continue
             if text.startswith("///"):
                 block.append(text[3:].lstrip())
                 continue
@@ -51,6 +56,9 @@ def doc_comments() -> dict[tuple[str, str], str]:
                     if block:
                         found[current, "__doc__"] = "\n".join(block).strip()
                 block = []
+                continue
+            if text.startswith("#["):
+                depth = text.count("[") - text.count("]")
                 continue
             member = re.match(r"(?:pub(?:\(crate\))? )?fn (\w+)", text)
             if member and block:
