@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use quote::ToTokens;
 use syn::{Attribute, Fields, FnArg, ImplItem, ImplItemFn, Item, Type, Visibility};
 
-const HANDLES: [&str; 4] = ["Govee", "DeviceHandle", "GroupHandle", "SegmentStream"];
+const HANDLES: [&str; 4] = ["Govee", "DeviceHandle", "Devices", "SegmentStream"];
 
 /// `Type::name(arg: Type, …)`.
 pub(super) fn methods(src: &Path) -> Vec<String> {

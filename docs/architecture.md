@@ -94,8 +94,16 @@ the user's explicit list; the trait only removes the repetition. See
 Discovery is two questions, so the trait asks two. `Transport::scan` enumerates
 what is there and spends the whole window. `Transport::scan_for` looks for one
 device and returns at its answer. The facade builds one precondition on the
-second — `Govee::ensure_known` — so the CLI and every binding get it from the
-crate rather than write it again.
+second — `DeviceHandle::ensure_known` — so the CLI and every binding get it
+from the crate rather than write it again.
+
+One resolver turns targets into handles. `Govee::device` gives the handle of
+one device: an identity, or a name that the configuration gives. It reads the
+configuration and scans nothing. `Govee::devices` gives a `Devices` handle for
+any number of devices. Its members are `DeviceHandle`s, and each call on it
+runs on every member at once. A SKU, and the list of every device, read the
+devices that a scan found. The first resolution that reads them scans once,
+and later resolutions read that result.
 
 A sequence over several devices is the facade's work too, and not a binary's.
 `Govee::identify_walk` takes the rig off, lights one device at a time and

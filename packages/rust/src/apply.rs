@@ -1,13 +1,14 @@
-//! Several role verbs on a group, sent in one fixed order.
+//! Several role verbs on several devices, sent in one fixed order.
 
 use crate::codec::Mode;
+use crate::device::DeviceHandle;
+use crate::devices::{Devices, Outcome};
 use crate::error::Error;
-use crate::group::{GroupHandle, Outcome};
 use crate::stream::Resolution;
 use crate::transport::DeviceId;
 use crate::verbs::{Music, Paint};
 
-/// One role verb, for [`GroupHandle::apply`].
+/// One role verb, for [`Devices::apply`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Verb {
     /// [`crate::DeviceHandle::power`].
@@ -65,7 +66,7 @@ impl Verb {
     }
 }
 
-/// What one verb of [`GroupHandle::apply`] answered.
+/// What one verb of [`Devices::apply`] answered.
 #[derive(Debug)]
 pub struct AppliedStep {
     /// [`Verb::name`].
@@ -74,10 +75,10 @@ pub struct AppliedStep {
     pub outcomes: Vec<Outcome>,
 }
 
-/// What [`GroupHandle::apply`] answered.
+/// What [`Devices::apply`] answered.
 #[derive(Debug)]
 pub struct Applied {
-    /// [`GroupHandle::ensure_known`], run before the verbs.
+    /// [`Devices::ensure_known`], run before the verbs.
     pub reached: Vec<Outcome<Mode>>,
     /// One per verb, in the order sent.
     pub steps: Vec<AppliedStep>,
@@ -109,7 +110,7 @@ fn failed<T>(outcome: &Outcome<T>) -> Option<(&DeviceId, &Error)> {
         .map(|error| (&outcome.id, error))
 }
 
-impl GroupHandle<'_> {
+impl Devices<'_> {
     /// Send one verb to every member.
     pub async fn play(&self, verb: &Verb) -> Vec<Outcome> {
         match verb {
@@ -142,18 +143,14 @@ impl GroupHandle<'_> {
     pub async fn apply(&self, mut verbs: Vec<Verb>) -> Applied {
         verbs.sort_by_key(Verb::rank);
         let reached = self.ensure_known().await;
-        let mut live: Vec<DeviceId> = passed(&reached);
+        let mut live = passed(self.members(), &reached);
         let mut steps = Vec::with_capacity(verbs.len());
         for verb in &verbs {
             if live.is_empty() {
                 break;
             }
-            let outcomes = self
-                .govee
-                .group_maybe_on(&live, self.pinned)
-                .play(verb)
-                .await;
-            live = passed(&outcomes);
+            let outcomes = Devices::new(live.clone()).play(verb).await;
+            live = passed(&live, &outcomes);
             steps.push(AppliedStep {
                 name: verb.name(),
                 outcomes,
@@ -163,10 +160,12 @@ impl GroupHandle<'_> {
     }
 }
 
-fn passed<T>(outcomes: &[Outcome<T>]) -> Vec<DeviceId> {
-    outcomes
+/// Each outcome answers the member at its place.
+fn passed<'a, T>(members: &[DeviceHandle<'a>], outcomes: &[Outcome<T>]) -> Vec<DeviceHandle<'a>> {
+    members
         .iter()
-        .filter(|outcome| outcome.result.is_ok())
-        .map(|outcome| outcome.id.clone())
+        .zip(outcomes)
+        .filter(|(_, outcome)| outcome.result.is_ok())
+        .map(|(handle, _)| handle.clone())
         .collect()
 }

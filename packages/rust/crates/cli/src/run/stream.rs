@@ -4,9 +4,9 @@
 
 use std::time::Duration;
 
+use govee_toolkit::DeviceHandle;
 use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::stream::{Rate, StreamOptions};
-use govee_toolkit::{DeviceId, Govee};
 use serde_json::json;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
@@ -17,9 +17,8 @@ use crate::run::args;
 const MARGIN: Duration = Duration::from_millis(20);
 
 pub(super) async fn run(
-    govee: &Govee,
     writer: Writer,
-    id: &DeviceId,
+    handle: &DeviceHandle<'_>,
     resolution: &str,
     rate: Option<f64>,
     gradient: bool,
@@ -29,7 +28,8 @@ pub(super) async fn run(
         rate: rate.map_or_else(Rate::default, Rate::Fixed),
         gradient,
     };
-    let stream = govee.device(id).open_stream(options).await?;
+    let id = handle.id();
+    let stream = handle.open_stream(options).await?;
 
     let mut lines = BufReader::new(tokio::io::stdin()).lines();
     let mut wrote = false;

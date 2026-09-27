@@ -56,8 +56,8 @@ pub(crate) fn start(
             .map_err(|e| Failure::config(e.to_string()))?;
         scan(&govee).await?;
         let outcome = async {
-            let rig = resolve(&govee, &patch)?;
-            let fixtures = lit(&govee, &rig, chosen)?;
+            let rig = resolve(&govee, &patch).await?;
+            let fixtures = lit(&govee, &rig, chosen).await?;
             run(&govee, &rig, &fixtures, walk, writer).await
         }
         .await;
@@ -133,7 +133,11 @@ impl WalkObserver for Spans<'_> {
 /// every fixture either one names. A target or an address that names no
 /// driven fixture is a fault: an operator who typed one means to see it
 /// light.
-fn lit<'a>(govee: &Govee, rig: &'a Rig, chosen: &Chosen) -> Result<Vec<&'a Fixture>, Failure> {
+async fn lit<'a>(
+    govee: &Govee,
+    rig: &'a Rig,
+    chosen: &Chosen,
+) -> Result<Vec<&'a Fixture>, Failure> {
     let fixtures = rig.fixtures();
     if fixtures.is_empty() {
         return Err(Failure::config(
@@ -145,7 +149,7 @@ fn lit<'a>(govee: &Govee, rig: &'a Rig, chosen: &Chosen) -> Result<Vec<&'a Fixtu
     }
     let mut named: Vec<&Fixture> = Vec::new();
     if !chosen.targets.is_empty() {
-        let ids = super::target::select(govee, rig, &chosen.targets)?;
+        let ids = super::target::select(govee, rig, &chosen.targets).await?;
         for id in &ids {
             let Some(fixture) = fixtures.iter().find(|f| &f.entry.device == id) else {
                 return Err(Failure::config(format!(

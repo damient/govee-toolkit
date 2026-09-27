@@ -5,7 +5,7 @@
 //! it joined the network.
 
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{DeviceId, Env, Govee, Provisioned, WifiCredentials};
+use govee_toolkit::{DeviceHandle, Env, Govee, Provisioned, WifiCredentials};
 use serde_json::json;
 
 const PASSWORD_VAR: &str = "GOVEE_WIFI_PASSWORD";
@@ -20,11 +20,12 @@ pub(super) struct Secret<'a> {
 pub(super) async fn run(
     govee: &Govee,
     writer: Writer,
-    id: &DeviceId,
+    handle: &DeviceHandle<'_>,
     ssid: Option<&str>,
     secret: &Secret<'_>,
     utc_offset: (u8, u8),
 ) -> Result<(), Failure> {
+    let id = handle.id();
     let env = &govee.config().env;
     let ssid = network(env, ssid)?;
     let credentials = WifiCredentials {
@@ -34,7 +35,7 @@ pub(super) async fn run(
         utc_offset_minutes: utc_offset.1,
     };
 
-    let outcome = govee.device(id).provision_wifi(&credentials).await?;
+    let outcome = handle.provision_wifi(&credentials).await?;
 
     let report = match outcome {
         Provisioned::Accepted => format!(

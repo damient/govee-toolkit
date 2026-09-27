@@ -36,7 +36,7 @@
 //! use govee_toolkit::stream::{StreamOptions, Resolution};
 //!
 //! # async fn example(govee: Govee, id: govee_toolkit::DeviceId) -> Result<(), govee_toolkit::Error> {
-//! let device = govee.device(&id);
+//! let device = govee.device(&id, None)?;
 //! device.send("power", &Args::new().int("on", 1)).await?;
 //!
 //! let stream = device

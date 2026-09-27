@@ -12,25 +12,9 @@ use crate::govee::Govee;
 use crate::transport::DeviceId;
 
 impl Govee {
-    /// Make one device reachable, with a scan where a scan is needed.
-    ///
-    /// Call it once per device before the first command, and never between
-    /// commands: it is the precondition the send path refuses to pay for.
-    ///
-    /// The modes the configuration enables for this device scan at the same
-    /// time, and the answer is the one that comes first in the configuration,
-    /// not the one that answers first: that order is the user's preference.
-    ///
-    /// A device a mode already knows costs nothing here, whatever its health.
-    ///
-    /// # Errors
-    ///
-    /// [`Error::Transport`] with
-    /// [`UnknownDevice`](crate::transport::Error::UnknownDevice)
-    /// if no enabled mode finds the device, or whatever a scan fails with.
-    /// [`Error::ModeNotImplemented`] or [`Error::MissingCredential`] where no
-    /// enabled mode has a transport in this build.
-    pub async fn ensure_known(&self, id: &DeviceId) -> Result<Mode> {
+    /// [`DeviceHandle::ensure_known`](crate::DeviceHandle::ensure_known)
+    /// over every mode the configuration enables for `id`.
+    pub(crate) async fn ensure_known(&self, id: &DeviceId) -> Result<Mode> {
         self.known_over(id, self.inner.config.modes_for(id)).await
     }
 

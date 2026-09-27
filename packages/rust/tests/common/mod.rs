@@ -102,3 +102,22 @@ impl Rig {
         Self { govee, simulator }
     }
 }
+
+/// The handle of the one simulated device.
+pub(crate) trait One {
+    fn one(&self) -> govee_toolkit::DeviceHandle<'_>;
+
+    fn one_on(&self, mode: govee_toolkit::Mode) -> govee_toolkit::DeviceHandle<'_>;
+}
+
+impl One for Govee {
+    fn one(&self) -> govee_toolkit::DeviceHandle<'_> {
+        self.device(&id(), None)
+            .expect("an identity names one device")
+    }
+
+    fn one_on(&self, mode: govee_toolkit::Mode) -> govee_toolkit::DeviceHandle<'_> {
+        self.device(&id(), Some(mode))
+            .expect("an identity names one device")
+    }
+}

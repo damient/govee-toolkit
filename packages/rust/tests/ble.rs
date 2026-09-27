@@ -18,7 +18,7 @@ use govee_toolkit::transport::Transport;
 use govee_toolkit::{Args, Mode};
 use tokio::time::Instant;
 
-use self::ble_fake::{Fake, MAC, POWER_ON, SCAN_WINDOW, SKU, attach, enabling_ble, govee, id};
+use self::ble_fake::{Fake, MAC, One, POWER_ON, SCAN_WINDOW, SKU, attach, enabling_ble, govee, id};
 /// The two frames of the entry the fixture marks `role: status`.
 const POWER_READ: [u8; 20] = [
     0xaa, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xab,
@@ -33,7 +33,7 @@ async fn a_command_is_served_by_the_transport_claiming_the_enabled_mode() {
     let govee = govee(&ble, &enabling_ble());
 
     let served = govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("the command goes out");
@@ -50,7 +50,7 @@ async fn what_reaches_the_transport_is_the_frames_and_nothing_around_them() {
     let govee = govee(&ble, &enabling_ble());
 
     govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("the command goes out");
@@ -64,7 +64,7 @@ async fn a_command_carries_the_verification_the_device_file_names() {
     let govee = govee(&ble, &enabling_ble());
 
     govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("the command goes out");
@@ -80,7 +80,7 @@ async fn a_status_request_is_the_entry_marked_with_the_role() {
     let ble = Fake::knowing(&id());
     let govee = govee(&ble, &enabling_ble());
 
-    let status = govee.device(&id()).status().await.expect("it answers");
+    let status = govee.one().status().await.expect("it answers");
 
     // One entry, two exchanges: the file names both, and neither name is here.
     assert_eq!(
@@ -97,7 +97,7 @@ async fn a_read_returns_the_fields_the_device_file_names() {
     let govee = govee(&ble, &enabling_ble());
 
     let reply = govee
-        .device(&id())
+        .one()
         .read("software", &Args::new())
         .await
         .expect("it answers");
@@ -114,7 +114,7 @@ async fn a_command_that_declares_no_reply_has_nothing_to_read() {
     let govee = govee(&ble, &enabling_ble());
 
     let error = govee
-        .device(&id())
+        .one()
         .read("power", &Args::new().int("on", 1))
         .await
         .expect_err("the fixture declares no reply for it");
@@ -128,7 +128,7 @@ async fn an_argument_out_of_range_is_refused_before_anything_is_written() {
     let govee = govee(&ble, &enabling_ble());
 
     let error = govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 2))
         .await
         .expect_err("2 is outside the declared range");
@@ -143,7 +143,7 @@ async fn a_device_the_transport_has_not_heard_of_is_not_reached_another_way() {
     let govee = govee(&ble, &enabling_ble());
 
     let error = govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect_err("nothing knows this device");
@@ -161,7 +161,7 @@ async fn a_mode_no_transport_serves_says_so_rather_than_choosing_another() {
     );
 
     let error = govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect_err("this build attached no lan transport");
@@ -231,7 +231,7 @@ async fn provisioning_wakes_the_module_transfers_and_releases_it_in_that_order()
     let govee = govee(&ble, &enabling_ble());
 
     govee
-        .device(&id())
+        .one()
         .provision_wifi(&credentials())
         .await
         .expect("every write goes out");
@@ -257,7 +257,7 @@ async fn provisioning_sends_the_endpoint_the_device_asked_for() {
     let govee = govee(&ble, &enabling_ble());
 
     govee
-        .device(&id())
+        .one()
         .provision_wifi(&credentials())
         .await
         .expect("every write goes out");
@@ -284,7 +284,7 @@ async fn provisioning_refuses_a_device_that_does_not_enable_ble() {
     let govee = govee(&ble, &lan_only);
 
     let error = govee
-        .device(&id())
+        .one()
         .provision_wifi(&credentials())
         .await
         .expect_err("ble is not enabled for it");
@@ -307,7 +307,7 @@ async fn a_white_temperature_carries_its_rendering_and_every_zone_the_mask_names
     let govee = govee(&ble, &enabling_ble());
 
     govee
-        .device(&id())
+        .one()
         .color_temp(4000)
         .await
         .expect("the command goes out");
@@ -330,7 +330,7 @@ async fn a_white_temperature_over_an_unbounded_mask_is_refused() {
     let govee = ble_fake::govee_reading(&ble, &enabling_ble(), &unbounded);
 
     let error = govee
-        .device(&id())
+        .one()
         .color_temp(4000)
         .await
         .expect_err("nothing says how far the mask reaches");
@@ -345,7 +345,7 @@ async fn a_white_temperature_out_of_range_is_refused_rather_than_clamped() {
     let govee = govee(&ble, &enabling_ble());
 
     let error = govee
-        .device(&id())
+        .one()
         .color_temp(1200)
         .await
         .expect_err("1200 K is outside the declared range");
@@ -367,7 +367,7 @@ async fn painting_every_zone_covers_what_the_mask_reaches() {
     let govee = govee(&ble, &enabling_ble());
 
     govee
-        .device(&id())
+        .one()
         .segment(&govee_toolkit::Paint {
             zones: None,
             colors: &[[255, 0, 0]],

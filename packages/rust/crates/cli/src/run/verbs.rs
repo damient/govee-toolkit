@@ -4,22 +4,12 @@
 //! A member that fails stops no other one: its line goes to stderr, and the
 //! run exits with the code of the first failure.
 
-use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{DeviceId, Govee, Served, Verb};
+use govee_toolkit::{DeviceId, Devices, Served, Verb};
 use serde_json::json;
 
-pub(super) async fn run(
-    govee: &Govee,
-    writer: Writer,
-    members: &[DeviceId],
-    restrict: Option<Mode>,
-    verb: Verb,
-) -> Result<(), Failure> {
-    let applied = govee
-        .group_maybe_on(members, restrict)
-        .apply(vec![verb])
-        .await;
+pub(super) async fn run(writer: Writer, members: &Devices<'_>, verb: Verb) -> Result<(), Failure> {
+    let applied = members.apply(vec![verb]).await;
     let mut failures: Vec<(DeviceId, Failure)> = Vec::new();
     for outcome in applied.reached {
         if let Err(error) = outcome.result {

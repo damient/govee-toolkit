@@ -50,7 +50,7 @@ async fn main() -> Result<(), Error> {
         return Ok(());
     };
     println!("{} — {} — modes {:?}", found.id, found.sku, found.modes);
-    let device = govee.device(&found.id);
+    let device = govee.device(&found.id, None)?;
 
     device.send("power", &Args::new().int("on", 1)).await?;
     device

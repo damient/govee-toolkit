@@ -23,12 +23,11 @@ opt-in.
 </div>
 
 ```rust
-use govee_toolkit::{Config, Govee};
+use govee_toolkit::{Config, Filter, Govee};
 
 let govee = Govee::start(Config::load()?).await?;
-for device in govee.scan(None).await? {
-    govee.device(device.id()).power(true).await?;
-}
+let devices = govee.devices(Filter::all(), None).await?;
+devices.power(true).await;
 ```
 
 On Linux the `ble` feature reaches the radio through BlueZ over D-Bus, so the
@@ -65,8 +64,8 @@ toolchain.
 from govee_toolkit import Govee
 
 govee = await Govee.start()
-for device in await govee.scan():
-    await govee.device(device.id).power(True)
+devices = await govee.devices()
+await devices.power(True)
 await govee.close()
 ```
 
@@ -90,9 +89,8 @@ toolchain.
 import { Govee } from "govee-toolkit"
 
 const govee = await Govee.start()
-for (const device of await govee.scan()) {
-  await govee.device(device.id).power(true)
-}
+const devices = await govee.devices()
+await devices.power(true)
 await govee.close()
 ```
 

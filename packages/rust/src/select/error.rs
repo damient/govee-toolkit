@@ -55,13 +55,6 @@ pub enum Error {
         target: String,
     },
 
-    /// A command that reads the configuration alone got a SKU.
-    #[error("`{target}` names a model; this command takes an identity, a name or a group")]
-    Model {
-        /// The target, in its prefixed form.
-        target: String,
-    },
-
     /// A command that drives one device got a name that two devices carry.
     #[error("`{target}` names more than one device in the configuration")]
     Several {
@@ -84,9 +77,7 @@ impl Error {
     #[must_use]
     pub fn code(&self) -> &'static str {
         match self {
-            Self::Empty | Self::EmptyValue { .. } | Self::NotOne { .. } | Self::Model { .. } => {
-                "target_not_understood"
-            }
+            Self::Empty | Self::EmptyValue { .. } | Self::NotOne { .. } => "target_not_understood",
             Self::Ambiguous { .. } | Self::Several { .. } => "ambiguous_target",
             Self::NoMatch { .. } | Self::NotOnMode { .. } => "no_such_target",
         }

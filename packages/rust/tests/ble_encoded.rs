@@ -20,7 +20,7 @@ use govee_toolkit::ble::{Options, Transport};
 use govee_toolkit::{Args, Config, Govee};
 use govee_toolkit_sim::ble::{BleAdapter, BleDevice, BleFaults, BleOptions};
 
-use self::ble_fake::{ENDPOINT, POWER_ON, SKU, catalog, enabling_ble, id};
+use self::ble_fake::{ENDPOINT, One, POWER_ON, SKU, catalog, enabling_ble, id};
 use self::ble_wire::Radio;
 
 /// Short enough not to wait on a window, long enough for a task to run.
@@ -63,7 +63,7 @@ async fn an_encoded_device_gets_the_handshake_and_encoded_frames() {
     let govee = rig(&device, options()).await;
 
     govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect("the command goes out");
@@ -81,7 +81,7 @@ async fn an_encoded_device_answers_a_status_request_under_the_session_seed() {
     device.set_read_answer(0x04, &[42]);
     let govee = rig(&device, options()).await;
 
-    let status = govee.device(&id()).status().await.expect("it answers");
+    let status = govee.one().status().await.expect("it answers");
 
     assert_eq!(status.on, Some(true));
     assert_eq!(status.brightness, Some(42));
@@ -108,7 +108,7 @@ async fn an_encoded_device_that_does_not_answer_the_handshake_is_reported() {
     .await;
 
     let error = govee
-        .device(&id())
+        .one()
         .send("power", &Args::new().int("on", 1))
         .await
         .expect_err("the handshake gets no answer");
