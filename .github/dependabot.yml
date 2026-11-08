@@ -99,3 +99,12 @@ updates:
       security:
         applies-to: security-updates
         patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /integrations/mcp
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
