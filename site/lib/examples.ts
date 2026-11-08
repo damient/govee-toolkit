@@ -9,7 +9,7 @@ import type { Examples, RefEntry, Values } from "./types.ts";
 const PLACEHOLDER = /\{(\w+)\}/gu;
 
 const fill = (source: string, values: Values): string =>
-  source.replace(PLACEHOLDER, (all, name: string) => (name in values ? String(values[name]) : all));
+  source.replaceAll(PLACEHOLDER, (all, name: string) => (name in values ? String(values[name]) : all));
 
 /**
  * The examples of one entry, in every language it carries. `values` fills the
