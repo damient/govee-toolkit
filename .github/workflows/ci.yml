@@ -147,11 +147,13 @@ jobs:
       # -x follows `# shellcheck source=`, which is how tools/lib/qa.sh is read.
       - name: Lint the shell scripts
         run: shellcheck -x tools/*.sh tools/lib/*.sh
-      # The shfmt version is pinned as well as the action: a later one that
-      # formats a line differently would fail the job on code nobody touched.
-      - uses: mfinelli/setup-shfmt@a25fda4c1fe115aec0f85e04126610841bc3141d # v4.0.1
-        with:
-          shfmt-version: 3.14.1
+      # The shfmt version is pinned: a later one that formats a line
+      # differently would fail the job on code nobody touched. The Go module
+      # proxy serves it, and the Go checksum database verifies it.
+      - name: Install shfmt
+        run: |
+          go install mvdan.cc/sh/v3/cmd/shfmt@v3.14.1
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       # No -ci: a case branch is not indented in this repository.
       - name: Check the shell formatting
         run: shfmt -d -i 2 tools/*.sh tools/lib/*.sh
