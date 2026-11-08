@@ -110,7 +110,7 @@ fn a_patched_device_is_never_added_twice() {
         Layout::Fixed(Personality::Full),
         &[(id("01"), PLAIN)],
     );
-    assert!(plan.added.is_empty());
+    assert_eq!(plan.added, []);
 }
 
 /// `widest` takes the zone table where the device serves one.
@@ -133,7 +133,7 @@ fn a_device_that_serves_no_such_table_is_skipped() {
         Layout::Fixed(Personality::Pixel),
         &[(id("01"), PLAIN)],
     );
-    assert!(plan.added.is_empty());
+    assert_eq!(plan.added, []);
     assert_eq!(plan.skipped.len(), 1);
 }
 

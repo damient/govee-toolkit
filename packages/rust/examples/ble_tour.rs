@@ -202,8 +202,8 @@ async fn read_everything(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(),
 async fn paint_zones(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(), Error> {
     let stream = device
         .open_stream(StreamOptions {
-            // `Resolution::Native` is refused here: a mask names zones and reaches
-            // no pixel behind them.
+            // `Resolution::Native` is refused here: a mask names zones and
+            // reaches no pixel behind them.
             resolution: Resolution::Exact(15),
             rate: Rate::Measured,
             gradient: false,

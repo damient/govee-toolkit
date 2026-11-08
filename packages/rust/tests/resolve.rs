@@ -27,7 +27,7 @@ async fn a_device_a_mode_already_knows_costs_no_scan() {
         .expect("the transport already holds it");
 
     assert_eq!(mode, Mode::Ble);
-    assert!(ble.scanned().is_empty());
+    assert_eq!(ble.scanned(), []);
 }
 
 #[tokio::test]

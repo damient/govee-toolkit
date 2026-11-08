@@ -76,5 +76,5 @@ async fn an_effect_outside_the_declared_range_is_refused_rather_than_clamped() {
         .expect_err("8 is outside the declared range");
 
     assert_eq!(error.code(), "out_of_range");
-    assert!(ble.written().is_empty());
+    assert!(ble.written().is_empty(), "{:?}", ble.written());
 }

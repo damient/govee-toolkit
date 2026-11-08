@@ -116,6 +116,6 @@ async fn an_encoded_device_that_does_not_answer_the_handshake_is_reported() {
     assert_eq!(error.code(), "io");
     assert!(error.to_string().contains("encoded link"));
     // No command frame went out: the link never opened.
-    assert!(device.received().is_empty());
+    assert!(device.received().is_empty(), "{:?}", device.received());
     assert!(device.session_seed().is_none());
 }

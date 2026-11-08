@@ -341,7 +341,11 @@ mod tests {
         let text = write("", &[grouped, placement("AA:BB:CC:DD:EE:02", 7)], &[]);
         let patch = Patch::parse(&text, "test").expect("the file parses");
         assert_eq!(patch.patch[0].groups, ["bar", "yes: no"]);
-        assert!(patch.patch[1].groups.is_empty());
+        assert!(
+            patch.patch[1].groups.is_empty(),
+            "{:?}",
+            patch.patch[1].groups
+        );
         assert!(!text.contains("groups: []"), "{text}");
     }
 

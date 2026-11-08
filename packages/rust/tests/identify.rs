@@ -118,7 +118,7 @@ async fn a_walk_that_keeps_the_look_sends_no_closing_blackout() {
         .await
         .expect("the configuration enables lan");
 
-    assert!(report.stayed.is_empty());
+    assert_eq!(report.stayed, []);
     let sent = writes(&rig, 4).await;
     assert_eq!(sent.len(), 4, "{sent:?}");
 }
@@ -289,7 +289,7 @@ async fn identify_over_an_empty_list_walks_no_device() {
         .await
         .expect("an empty list is no error");
 
-    assert!(report.lit.is_empty());
+    assert_eq!(report.lit, []);
     assert!(report.is_clean());
     assert_eq!(rig.simulator.received_count(), 0);
 }

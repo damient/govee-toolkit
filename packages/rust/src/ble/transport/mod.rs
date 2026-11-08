@@ -330,7 +330,7 @@ mod tests {
     fn a_device_nothing_has_heard_is_not_a_device() {
         let ble = transport();
         let id = DeviceId::new("aa:bb:cc:dd:ee:ff");
-        assert!(ble.devices().is_empty());
+        assert_eq!(ble.devices(), []);
         assert!(ble.sku(&id).is_none());
         assert!(ble.health(&id).is_none());
         assert!(ble.last_status(&id).is_none());

@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     fn one_capability_and_its_value_is_a_whole_entry() {
-        assert!(problems(POWER).is_empty());
+        assert_eq!(problems(POWER), Vec::<String>::new());
     }
 
     #[test]
