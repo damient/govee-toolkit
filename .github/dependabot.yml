@@ -1,87 +1,101 @@
 version: 2
 
-updates:
-  - package-ecosystem: cargo
-    directory: /packages/rust
+# One pull request per weekly run, for every ecosystem and directory.
+# A multi-ecosystem group does not take security updates: each entry
+# groups its own under `security`.
+multi-ecosystem-groups:
+  dependencies:
+    schedule:
+      interval: weekly
     commit-message:
       prefix: "build"
       include: scope
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+
+updates:
+  - package-ecosystem: cargo
+    directory: /packages/rust
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
     groups:
-      rust-minor:
-        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directory: /packages/python
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directory: /packages/node
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: pip
+    directory: /packages/python
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   # Actions are pinned to commit SHAs in .github/workflows/. Dependabot reads
   # the version from the trailing comment and rewrites both.
   - package-ecosystem: github-actions
     directory: /
-    commit-message:
-      prefix: "ci"
-      include: scope
-    schedule:
-      interval: weekly
-    groups:
-      actions:
-        patterns: ["*"]
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
 
   - package-ecosystem: npm
     directory: /packages/node
-    commit-message:
-      prefix: "build"
-      include: scope
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
     groups:
-      node-minor:
-        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /site
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /apps/desktop
-    commit-message:
-      prefix: "build"
-      include: scope
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
     groups:
-      desktop-minor:
-        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /apps/playground/server
-    commit-message:
-      prefix: "build"
-      include: scope
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
     groups:
-      playground-server-minor:
-        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /integrations/homebridge
-    commit-message:
-      prefix: "build"
-      include: scope
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
     groups:
-      homebridge-minor:
-        update-types: [minor, patch]
-
-  - package-ecosystem: pip
-    directory: /packages/python
-    commit-message:
-      prefix: "build"
-      include: scope
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      python-minor:
-        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
