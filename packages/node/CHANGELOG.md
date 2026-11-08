@@ -4,6 +4,42 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.6.0] — 2026-09-27
+
+### Added
+
+- `Catalog.describe()` — the record `govee describe --json` prints for a SKU,
+  with no started SDK. It throws `unknown_sku` when nothing declares the SKU.
+- `Catalog.dmx()` — the DMX channel tables of a SKU, as `dist/catalog.json`
+  carries them under `dmx`. It throws `unknown_sku` in the same way.
+- `DeviceHandle.invoke()` — reads a command whose entry declares an answer,
+  and sends any other one. It answers an `Invoked`.
+- `DeviceHandle.invoke()` with `refuseSecrets` throws `secret_arg` for a
+  command that takes a secret, and sends nothing.
+- `Devices.apply()` — several verbs in one call, power on first and
+  power off last. It answers an `Applied`, one `AppliedStep` per verb sent.
+- `SUPPORT` and `PERSONALITIES` — every support level and every DMX
+  personality the core knows. `Catalog.capabilities()` — every capability
+  name that a device of the catalog declares.
+
+### Changed
+
+- **Breaking:** `Govee.scan()` takes an optional `modes` array, and `scanOn()`
+  goes. Replace `scanOn(modes)` with `scan(modes)`.
+- **Breaking:** `Govee.identify()` takes `wait` and `hold` in seconds, as
+  Python does. Rename `waitMs` and `holdMs`, and divide the values by 1000.
+- **Breaking:** `Govee.device(target, { mode })` replaces `deviceOn()`. It
+  throws `target_not_understood` for a SKU or a group.
+- **Breaking:** `await Govee.devices(targets, { enables, mode })` returns a
+  `Devices`. It replaces `devices()`, `select()`, `targets()` and `group()`.
+- **Breaking:** `GroupHandle` is `Devices`: `members` holds `DeviceHandle`s
+  and `list()` the `Device` records. No `targets` selects every device found.
+- `DeviceHandle.ensureKnown()` scans over the pinned mode alone where the
+  handle pins one.
+- `DeviceHandle.pinned` — the mode the handle pins, or `null`.
+- The doc comment of each optional parameter names its default in an
+  `@param [name=value]` line, which an editor shows.
+
 ## [0.5.0] — 2026-09-26
 
 ### Added

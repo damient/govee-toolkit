@@ -26,7 +26,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **White temperature** (`color_temp()`) — one call sets the kelvin value and, where the frame carries it, the RGB rendering the firmware does not compute |
 | ✅ | **Music** (`music()`) — plays an effect the device renders from its own microphone, over `ble` and `cloud`. `lan` carries no music command |
 | ✅ | **Identify** (`identify()`) — powers one device on and paints one color, so a person maps an identity to a fixture in the room. `govee identify` and `govee-dmx identify` walk a whole rig, or the devices a target names: an identity, a SKU, a name, a group, and on the bridge a universe and a channel. |
-| ✅ | **Names and groups** — `name:` and `groups:` in `config.yaml` give targets in place of an identity. A verb on a group goes to every member at once, and a member that fails stops no other one (`Govee::group()`, `govee on <group>`) |
+| ✅ | **Names and groups** — `name:` and `groups:` in `config.yaml` give targets in place of an identity. `Govee::device()` gives the handle of one device, and `Govee::devices()` the handle of any number: every device, a SKU, a group or a list of targets. A verb on it goes to every member at once, and a member that fails stops no other one (`govee on <group>`). `Devices::apply()` sends several verbs in one fixed order, power on first and power off last. |
 | ✅ | **Wi-Fi provisioning** (`provision_wifi()`) — puts a device out of the box on a network over `ble`, which is what makes `lan` reachable |
 
 ## Modes
@@ -46,7 +46,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | ✅ | **Rust** (`packages/rust`) — the reference implementation and the only place protocol logic lives |
 | ✅ | **Python** (`packages/python`) — PyO3 binding, an `asyncio` API, `abi3` wheels for Linux, macOS and Windows on `x86_64` and `aarch64`, and Linux wheels for `armv7` and for musl |
 | ✅ | **Node.js / TypeScript** (`packages/node`) — napi-rs binding, a promise-based API and TypeScript types; prebuilt addons for Linux and Windows on `x86_64` and `aarch64` and for macOS on `aarch64` |
-| ✅ | Each package versioned and released independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `dmx-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) |
+| ✅ | Each package versioned and released independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `dmx-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`, `mcp-vX.Y.Z`) |
 
 ## Tools & apps
 
@@ -61,6 +61,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 
 | | Feature |
 | --- | ------- |
+| 🚧 | **MCP server** (`integrations/mcp`) — a local server over stdio. It describes the catalog, the DMX channel tables, the API of each language and the docs, and drives the devices over `lan`, `ble` and `cloud` through the Node binding. See [`../integrations/mcp/README.md`](../integrations/mcp/README.md) |
 | 🔜 | **Matter bridge** — one integration, reachable from any Matter controller |
 | 🔜 | **Home Assistant** — custom component distributable through HACS, carries the LAN segment channel Matter cannot express |
 | 🔜 | **Homebridge** — HomeKit plugin |

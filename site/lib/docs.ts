@@ -130,7 +130,8 @@ function pageToc(entries: TocEntry[], collapse: boolean): string {
 }
 
 /** The chevron a folded control carries. `details[open]` turns it. */
-const CHEVRON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg>`;
+/** The mark of a fold that opens downward. */
+export const CHEVRON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg>`;
 
 /**
  * `fold` folds each group behind its title, closed, and names the accordion:

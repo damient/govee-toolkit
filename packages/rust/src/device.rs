@@ -27,15 +27,7 @@ pub struct DeviceHandle<'a> {
 }
 
 impl<'a> DeviceHandle<'a> {
-    pub(crate) fn new(govee: &'a Govee, id: DeviceId) -> Self {
-        Self::maybe_on(govee, id, None)
-    }
-
-    pub(crate) fn on(govee: &'a Govee, id: DeviceId, mode: Mode) -> Self {
-        Self::maybe_on(govee, id, Some(mode))
-    }
-
-    pub(crate) fn maybe_on(govee: &'a Govee, id: DeviceId, pinned: Option<Mode>) -> Self {
+    pub(crate) fn new(govee: &'a Govee, id: DeviceId, pinned: Option<Mode>) -> Self {
         Self { govee, id, pinned }
     }
 
@@ -52,6 +44,37 @@ impl<'a> DeviceHandle<'a> {
     #[must_use]
     pub fn id(&self) -> &DeviceId {
         &self.id
+    }
+
+    /// The one mode every call on this handle goes over, or `None` where
+    /// each call takes the first enabled mode that answers.
+    #[must_use]
+    pub fn pinned(&self) -> Option<Mode> {
+        self.pinned
+    }
+
+    /// Make the device reachable, with a scan where a scan is needed, and
+    /// answer the mode that holds it.
+    ///
+    /// Call it once before the first command, and never between commands:
+    /// the send path does not scan. The enabled modes scan at the same time,
+    /// and the answer is the first one in the configuration's order. A pinned
+    /// handle scans over its mode alone. A device a mode already knows costs
+    /// nothing here.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Transport`] with
+    /// [`UnknownDevice`](crate::transport::Error::UnknownDevice) if no mode
+    /// finds the device, or whatever a scan fails with.
+    /// [`Error::ModeNotEnabled`] where the pinned mode is not enabled for it,
+    /// and [`Error::ModeNotImplemented`] or [`Error::MissingCredential`] where
+    /// no enabled mode has a transport in this build.
+    pub async fn ensure_known(&self) -> Result<Mode> {
+        match self.pinned {
+            Some(mode) => self.govee.ensure_known_on(&self.id, mode).await,
+            None => self.govee.ensure_known(&self.id).await,
+        }
     }
 
     /// The modes enabled for it, in preference order.
@@ -229,7 +252,8 @@ impl<'a> DeviceHandle<'a> {
         SegmentStream::open(self.govee, &self.id, self.mode()?, options).await
     }
 
-    /// Ask the device for its state and wait for the answer.
+    /// Ask the device for its state and wait for the answer. Serves
+    /// [`Role::Status`](crate::codec::Role::Status).
     ///
     /// # Errors
     ///

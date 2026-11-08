@@ -228,6 +228,15 @@ impl Catalog {
         self.0.devices.iter()
     }
 
+    /// Every capability name that a device of the catalog declares.
+    #[must_use]
+    pub fn capabilities(&self) -> std::collections::BTreeSet<&str> {
+        self.skus()
+            .filter_map(|sku| self.device(sku).ok())
+            .flat_map(|device| device.capabilities.names())
+            .collect()
+    }
+
     /// Every SKU that resolves, aliases included.
     pub fn skus(&self) -> impl Iterator<Item = &str> {
         self.0.index.keys().map(String::as_str)

@@ -7,6 +7,45 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.15.0] — 2026-09-27
+
+### Added
+
+- `describe_sku()` — the `describe()` record for a SKU of a `Catalog`, with no
+  started SDK. It returns `unknown_sku` when nothing declares the SKU.
+- `profile::report::entry()` — the DMX channel tables of one device, as
+  `dist/catalog.json` carries them under `dmx`.
+- `Role::CLAIMABLE` is public: every role, in declaration order.
+- `Resolved::invoke()` reads a command whose entry declares an answer, and
+  sends any other one. It answers `Invoked::Read` or `Invoked::Sent`.
+- `Resolved::refuse_secret()` fails with the new `codec::Error::SecretArg`
+  (`secret_arg`) when the entry takes a secret argument.
+- `Command::secret_arg()` and `ArgRole::is_secret()` name the argument that
+  carries a secret: `password`.
+- `Devices::apply()` sends several `Verb`s, power on first and power off
+  last. A member that fails a step takes no later step, and stops no other.
+- `Verb`, and `Applied` with one `AppliedStep` per verb sent.
+  `Devices::play()` sends one `Verb`.
+- `DeviceHandle::ensure_known()` makes the device reachable, over the pinned
+  mode alone where the handle pins one. `DeviceHandle::pinned()` names it.
+- `Support::ALL` — every support level. `Catalog::capabilities()` — every
+  capability name that a device of the catalog declares.
+
+### Changed
+
+- **Breaking:** `Govee::scan()` takes `Option<&[Mode]>`, and `scan_on()` goes.
+  Write `scan(None)` for every mode and `scan(Some(&modes))` for a list.
+- **Breaking:** `Govee::device(target, mode)` takes an identity or a name, and
+  returns a `Result`. It replaces `target()` and `device_on()`.
+- **Breaking:** `Govee::devices(filter, mode)` returns `Devices`, the handle for
+  any number of devices. It replaces `select()`, `targets()` and `group*()`.
+- `Filter` selects: `all()`, `targets()`, `ids()`, and `enables()` to keep one
+  mode. A SKU or `all()` scans once, on the first call that reads one.
+- **Breaking:** `GroupHandle` is `Devices`: `members()` gives `DeviceHandle`s
+  and `list()` the `Device` records. `Govee::ensure_known()` is private.
+- `DeviceHandle::provision_wifi()` fails with `no_mode_available` on a handle
+  pinned to a mode other than `ble`.
+
 ## [0.14.0] — 2026-09-26
 
 ### Added

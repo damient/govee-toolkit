@@ -1,28 +1,33 @@
 .ref-group { margin-bottom: 24px; }
 
-/* The text and the code sit side by side only when the column that holds them
-   is wide enough. The viewport says nothing useful here: two menus stand
-   between it and this column. */
-.prose.reference { container-type: inline-size; max-width: none; }
+/* The text sits over the code and the tables, which take the whole column. */
+.prose.reference { max-width: none; }
 
 /* A heading that opens the page carries no space over it. */
 .prose.reference .ref-group:first-of-type h2 { margin-top: 0; }
 
 .ref-entry {
-  display: grid; gap: 20px; align-items: start;
+  display: grid; gap: 16px;
   margin-top: 28px; padding-bottom: 28px;
 }
-
+/* A model page sets the text and the code side by side where its column is
+   wide enough. The reference page keeps them one over the other. */
 @container (min-width: 820px) {
-  .ref-entry { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 28px; }
+  .usage .ref-entry { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 28px; align-items: start; }
 }
 .ref-text { min-width: 0; }
 .ref-entry h3 { margin: 0 0 .5em; font-size: 1.05rem; }
+
+/* The name, the summary and its help mark read as one line, which wraps. */
+.ref-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; }
+.ref-head h3 { margin: 0; }
+.ref-head .ref-modes { margin-left: 0; }
 .ref-entry h3 code {
   background: var(--panel-2); border: 1px solid var(--line);
   padding: 4px 9px; border-radius: 7px; font-size: 1em;
 }
 .ref-entry .summary { color: var(--text); margin-bottom: .6em; }
+.ref-head .summary { margin: 0; }
 .ref-entry p { color: var(--prose); font-size: .95rem; margin-bottom: 0; }
 .ref-entry p + p { margin-top: .8em; }
 .ref-entry code { font-size: .9em; }
@@ -52,3 +57,47 @@
    mode reaches carries none, so the row is the exception. */
 .ref-modes { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: 10px; }
 .prose.reference h2, .ref-entry h3 { display: flex; flex-wrap: wrap; align-items: center; }
+
+/* The parameters of each method, under the example of its language. The frame
+   scrolls sideways on a narrow screen, and the table fills it. */
+.ref-params { margin-top: 18px; overflow-x: auto; }
+.ref-entry .ref-sig { margin: 0 0 6px; color: var(--text); }
+.prose .ref-params table.ref-table {
+  display: table; table-layout: fixed; width: 100%; min-width: 560px; margin: 0; font-size: .88rem;
+}
+/* One set of widths, so the tables of a page line up. */
+.ref-table th:nth-child(1) { width: 28%; }
+.ref-table th:nth-child(2) { width: 38%; }
+.ref-table th:nth-child(3) { width: 14%; }
+.ref-table td { overflow-wrap: anywhere; }
+.prose .ref-params .ref-table th, .prose .ref-params .ref-table td { padding: 8px 12px; }
+.prose .ref-params .ref-table td:nth-child(3) { color: var(--muted); white-space: nowrap; }
+
+/* The mark after a summary. Its detail opens in a `.tip-box`. */
+.ref-help {
+  display: inline-grid; place-items: center; vertical-align: 1px;
+  width: 18px; height: 18px; margin-left: 8px; padding: 0; background: none;
+  border: 1px solid var(--line-strong); border-radius: 50%;
+  font: 600 11px/1 var(--mono); color: var(--muted); cursor: help;
+}
+.ref-help:hover, .ref-help:focus-visible { color: var(--text); border-color: var(--text); }
+
+/* On a phone, the name, the summary and the mode badges take one line each.
+   The detail spans the head, since a box centred on the mark overflows the
+   screen and makes the page scroll sideways, even while it is hidden. */
+@media (max-width: 640px) {
+  .ref-head { flex-direction: column; align-items: flex-start; row-gap: 14px; position: relative; }
+  .ref-help.tip { position: static; }
+  .ref-help .tip-box { left: 0; right: 0; translate: none; width: auto; max-width: none; }
+}
+
+/* The parameters of a language, folded under its example. */
+.ref-fold { margin-top: 12px; }
+.ref-fold > summary {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none;
+  font: 500 12px/1 var(--mono); color: var(--muted); padding: 6px 0;
+}
+.ref-fold > summary::-webkit-details-marker { display: none; }
+.ref-fold > summary:hover { color: var(--text); }
+.ref-fold > summary svg { width: 15px; height: 15px; transition: transform .15s ease; }
+.ref-fold[open] > summary svg { transform: rotate(180deg); }

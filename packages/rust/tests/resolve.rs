@@ -14,7 +14,7 @@ use govee_toolkit::Mode;
 use govee_toolkit::transport::Transport;
 use tokio::time::Instant;
 
-use self::ble_fake::{Fake, attach_enabling, enabling_ble, govee, id};
+use self::ble_fake::{Fake, One, attach_enabling, enabling_ble, govee, id};
 
 #[tokio::test]
 async fn a_device_a_mode_already_knows_costs_no_scan() {
@@ -22,7 +22,8 @@ async fn a_device_a_mode_already_knows_costs_no_scan() {
     let govee = govee(&ble, &enabling_ble());
 
     let mode = govee
-        .ensure_known(&id())
+        .one()
+        .ensure_known()
         .await
         .expect("the transport already holds it");
 
@@ -36,7 +37,8 @@ async fn a_device_no_enabled_mode_finds_is_reported_before_any_command() {
     let govee = govee(&ble, &enabling_ble());
 
     let error = govee
-        .ensure_known(&id())
+        .one()
+        .ensure_known()
         .await
         .expect_err("the scan hears nothing");
 
@@ -59,7 +61,11 @@ async fn the_first_enabled_mode_wins_over_the_first_to_answer() {
     );
 
     let start = Instant::now();
-    let mode = govee.ensure_known(&id()).await.expect("both modes find it");
+    let mode = govee
+        .one()
+        .ensure_known()
+        .await
+        .expect("both modes find it");
 
     assert_eq!(mode, Mode::Lan);
     // Both looked at the same time: the wait is the slower window, not the sum.
@@ -79,7 +85,7 @@ async fn the_next_enabled_mode_answers_where_the_first_hears_nothing() {
         ],
     );
 
-    let mode = govee.ensure_known(&id()).await.expect("`ble` finds it");
+    let mode = govee.one().ensure_known().await.expect("`ble` finds it");
 
     assert_eq!(mode, Mode::Ble);
 }

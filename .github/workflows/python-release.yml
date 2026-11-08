@@ -22,8 +22,16 @@ jobs:
   agree:
     name: Tag, manifest and changelog agree
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read   # read the CI run of the tagged commit
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: CI passed on this commit
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci-passed.sh "$GITHUB_SHA"
       - if: github.event_name == 'push'
         run: tools/release-notes.sh python "$GITHUB_REF_NAME" > /dev/null
 
@@ -152,15 +160,6 @@ jobs:
           skip-existing: true
       - name: GitHub release
         if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # A tag moved to a new commit reruns this job against a release that
-          # already exists, which `create` reports as a validation failure.
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release edit "$GITHUB_REF_NAME" --verify-tag \
-              --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
-          else
-            gh release create "$GITHUB_REF_NAME" --verify-tag \
-              --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"
-          fi
+        uses: ./.github/actions/github-release
+        with:
+          notes: ${{ runner.temp }}/notes.md

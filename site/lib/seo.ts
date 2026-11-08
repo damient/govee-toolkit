@@ -90,6 +90,15 @@ export function robots(): string {
 
 // No `lastmod`: the build date is the date of the build and not the date the
 // page changed, and a wrong one is worse than none.
+/** A page that sends the reader on to `to`, and that no index keeps. */
+export function redirect(to: string): string {
+  const url = `${SITE_URL}${base}${to}`;
+  return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Moved</title>`
+    + `<meta name="robots" content="noindex"><link rel="canonical" href="${url}">`
+    + `<meta http-equiv="refresh" content="0; url=${base}${to}"></head>`
+    + `<body><p><a href="${base}${to}">${url}</a></p></body></html>\n`;
+}
+
 /** The sitemap, from the canonical address of every page that is indexed. */
 export function sitemapXml(sitemap: string[]): string {
   const urls = sitemap

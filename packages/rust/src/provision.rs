@@ -72,9 +72,13 @@ impl DeviceHandle<'_> {
     /// [`Provisioned::Accepted`] needs a file that declares the
     /// acknowledgement to read.
     ///
+    /// Serves [`Role::WifiLink`], [`Role::WifiApiType`],
+    /// [`Role::WifiProvision`] and [`Role::WifiProvisionWithApi`].
+    ///
     /// # Errors
     ///
-    /// [`Error::NoModeAvailable`] if `ble` is not enabled for this device,
+    /// [`Error::NoModeAvailable`] if `ble` is not enabled for this device or
+    /// the handle pins another mode,
     /// [`Error::NoRoleCommand`] if the device file claims no provisioning
     /// role, [`Error::ModeNotImplemented`] if this build carries no `ble`
     /// transport, [`Error::Codec`] if an argument is outside what the file
@@ -83,10 +87,13 @@ impl DeviceHandle<'_> {
     /// acknowledgement does not arrive.
     pub async fn provision_wifi(&self, credentials: &WifiCredentials) -> Result<Provisioned> {
         let modes = self.modes();
-        if !modes.contains(&MODE) {
+        let pinned_elsewhere = self.pinned().is_some_and(|mode| mode != MODE);
+        if pinned_elsewhere || !modes.contains(&MODE) {
             return Err(Error::NoModeAvailable {
                 id: self.id().clone(),
-                modes: modes.to_vec(),
+                modes: self
+                    .pinned()
+                    .map_or_else(|| modes.to_vec(), |mode| vec![mode]),
             });
         }
         let sku = self.govee.sku(self.id())?;

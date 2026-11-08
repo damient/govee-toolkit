@@ -1,0 +1,101 @@
+// One `Govee` for the process, started on the first control call. It reads the
+// configuration of the CLI, and the cloud key from the `env` of the MCP client.
+
+import type { CallToolResult } from "@modelcontextprotocol/server";
+import { Govee } from "govee-toolkit";
+import type { Device, DeviceHandle, DeviceStatus, Health, Outcome } from "govee-toolkit";
+import { z } from "zod";
+
+import { vocabulary } from "./catalog.ts";
+import { fail, failure, oneOf } from "./result.ts";
+
+let started: Promise<Govee> | undefined;
+
+/** The SDK, started on the first call. A start that fails is tried again on the next call. */
+export function sdk(): Promise<Govee> {
+  started ??= Govee.start().catch((error: unknown) => {
+    started = undefined;
+    throw error;
+  });
+  return started;
+}
+
+/** Releases every transport. Without it, `ble` loses the last frame it wrote. */
+export async function closeSdk(): Promise<void> {
+  const running = started;
+  started = undefined;
+  const govee = await running?.catch(() => null);
+  await govee?.close();
+}
+
+/** Starts the SDK, runs the call, and turns a thrown binding error into a tool failure. */
+export async function attempt(
+  answer: (govee: Govee) => CallToolResult | Promise<CallToolResult>,
+): Promise<CallToolResult> {
+  try {
+    return await answer(await sdk());
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/** The device handle, pinned when `mode` is given, and the mode that serves it. */
+export async function reach(govee: Govee, target: string, mode?: string): Promise<[DeviceHandle, string]> {
+  const handle = govee.device(target, mode === undefined ? {} : { mode });
+  return [handle, await handle.ensureKnown()];
+}
+
+export const CONTROL = { readOnlyHint: false, destructiveHint: false, openWorldHint: true } as const;
+
+export const TARGET =
+  "An identity (`AA:BB:CC:DD:EE:FF`), a name that the configuration gives a device (`name:kitchen`), " +
+  "or a group that it gives (`group:ambient`).";
+
+export const modeArg = oneOf(vocabulary.modes)
+  .optional()
+  .describe(
+    "Pins the call to one mode, which the device must enable. Without it, the preference order of the device applies. " +
+      "A mode that does not answer fails the call: nothing moves to another mode.",
+  );
+
+const byte = z.number().int().min(0).max(255);
+
+export const rgb = z.tuple([byte, byte, byte]).describe("Red, green and blue, 0-255 each.");
+
+function health(value: Health): Record<string, unknown> {
+  return { state: value.state, failures: value.failures, available: value.available };
+}
+
+export function deviceRow(device: Device): Record<string, unknown> {
+  return {
+    id: device.id,
+    sku: device.sku,
+    name: device.name,
+    groups: device.groups,
+    modes: device.modes,
+    health: Object.fromEntries(Object.entries(device.health).map(([mode, h]) => [mode, health(h)])),
+  };
+}
+
+export function outcomeRow(outcome: Outcome): Record<string, unknown> {
+  return {
+    id: outcome.id,
+    ok: outcome.ok,
+    mode: outcome.mode,
+    command: outcome.served?.command ?? null,
+    error: outcome.error === null ? null : failure(outcome.error),
+  };
+}
+
+export function statusRow(status: DeviceStatus, mode: string): Record<string, unknown> {
+  return {
+    id: status.id,
+    mode,
+    on: status.on,
+    brightness: status.brightness,
+    color: status.color,
+    color_temp_kelvin: status.colorTempKelvin,
+    white: status.isWhite,
+    raw: status.raw as unknown,
+  };
+}

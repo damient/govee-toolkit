@@ -9,7 +9,7 @@ mod ble_fake;
 
 use govee_toolkit::Music;
 
-use self::ble_fake::{Fake, enabling_ble, govee, id};
+use self::ble_fake::{Fake, One, enabling_ble, govee, id};
 
 /// The fixture's `role: music` entry, effect 3 at sensitivity 60, with the
 /// colors left to the firmware.
@@ -37,7 +37,7 @@ async fn an_effect_carries_the_sensitivity_and_leaves_the_colors_to_the_firmware
     let govee = govee(&ble, &enabling_ble());
 
     govee
-        .device(&id())
+        .one()
         .music(&playing(3, 60))
         .await
         .expect("the command goes out");
@@ -56,7 +56,7 @@ async fn a_color_the_caller_imposes_sets_the_switch_beside_it() {
     };
 
     govee
-        .device(&id())
+        .one()
         .music(&music)
         .await
         .expect("the command goes out");
@@ -70,7 +70,7 @@ async fn an_effect_outside_the_declared_range_is_refused_rather_than_clamped() {
     let govee = govee(&ble, &enabling_ble());
 
     let error = govee
-        .device(&id())
+        .one()
         .music(&playing(8, 0))
         .await
         .expect_err("8 is outside the declared range");

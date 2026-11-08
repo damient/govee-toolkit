@@ -1,0 +1,42 @@
+{
+  "name": "govee-toolkit-mcp",
+  "version": "0.1.0",
+  "description": "A local MCP server that describes the Govee device catalog and drives the devices over lan, ble and cloud.",
+  "license": "MIT",
+  "author": "damient",
+  "homepage": "https://gvetk.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damient/govee-toolkit.git",
+    "directory": "integrations/mcp"
+  },
+  "bugs": "https://github.com/damient/govee-toolkit/issues",
+  "keywords": ["govee", "mcp", "model-context-protocol", "smart-home"],
+  "type": "module",
+  "bin": { "govee-toolkit-mcp": "dist/main.js" },
+  "files": ["dist", "data"],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "data": "node scripts/copy-data.ts",
+    "link:binding": "npm install --no-save ../../packages/node",
+    "build": "npm run data && tsc -p tsconfig.build.json",
+    "lint": "npm run lint:types && npm run lint:js",
+    "lint:types": "tsc -p tsconfig.json",
+    "lint:js": "oxlint --type-aware",
+    "test": "node --test --test-concurrency=1 test/"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.1.0",
+    "govee-toolkit": "0.5.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.1.0",
+    "@types/node": "26.6.3",
+    "oxlint": "1.82.0",
+    "oxlint-tsgolint": "7.0.2002",
+    "typescript": "7.0.2"
+  }
+}

@@ -10,6 +10,15 @@ use crate::error::Result;
 use crate::event::Served;
 use crate::transport::{DeviceStatus, Reply};
 
+/// What [`Resolved::invoke`] did with a command.
+#[derive(Debug)]
+pub enum Invoked {
+    /// The entry declares no answer, so the command was sent.
+    Sent(Served),
+    /// The entry declares an answer, so the command was read.
+    Read(Reply),
+}
+
 /// A device handle whose mode, SKU and device file entry are resolved.
 ///
 /// It is a reading of recorded state at one instant, not a lease: the mode it
@@ -70,6 +79,23 @@ impl<'a> Resolved<'a> {
             .is_some_and(crate::codec::catalog::Command::answers)
     }
 
+    /// Refuse a command whose entry on this mode takes a secret.
+    ///
+    /// # Errors
+    ///
+    /// [`crate::codec::Error::SecretArg`] where the entry declares one.
+    pub fn refuse_secret(&self, command: &str) -> Result<()> {
+        let entry = self.device.commands.get(self.mode).get(command);
+        match entry.and_then(crate::codec::catalog::Command::secret_arg) {
+            Some(arg) => Err(CodecError::SecretArg {
+                command: command.to_owned(),
+                arg: arg.to_owned(),
+            }
+            .into()),
+            None => Ok(()),
+        }
+    }
+
     /// Read values a caller supplied under the types the device file
     /// declares.
     ///
@@ -117,6 +143,19 @@ impl<'a> Resolved<'a> {
         self.handle
             .send_resolved(self.mode, &self.sku, command, args)
             .await
+    }
+
+    /// [`Resolved::read`] where [`Resolved::answers`] holds for the command,
+    /// and [`Resolved::send`] otherwise.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Resolved::send`] and [`Resolved::read`].
+    pub async fn invoke(&self, command: &str, args: &Args) -> Result<Invoked> {
+        if self.answers(command) {
+            return Ok(Invoked::Read(self.read(command, args).await?));
+        }
+        Ok(Invoked::Sent(self.send(command, args).await?))
     }
 
     /// Ask the device for its state and wait for the answer.

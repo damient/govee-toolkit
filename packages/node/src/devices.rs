@@ -1,17 +1,25 @@
+//! Several devices, and the verbs each member answers alone.
+
 use std::future::Future;
 
 use govee_toolkit::codec::Mode;
-use govee_toolkit::{DeviceId, Govee, Outcome as CoreOutcome, Paint, Served as CoreServed};
+use govee_toolkit::{
+    DeviceId, Devices as CoreDevices, Error, Govee, Outcome as CoreOutcome, Paint,
+    Served as CoreServed,
+};
 use napi::Env;
 use napi::bindgen_prelude::{Object, PromiseRaw, Unknown};
 use napi_derive::napi;
 
 use crate::conv;
-use crate::errors::Parts;
-use crate::types::Served;
+use crate::device::DeviceHandle;
+use crate::errors::{Parts, map};
+use crate::promise::promise;
+use crate::types::{Device, Served};
 
 /// What one member answered.
 #[napi]
+#[derive(Clone)]
 pub struct Outcome {
     id: String,
     mode: Option<String>,
@@ -64,7 +72,10 @@ impl Outcome {
 }
 
 impl Outcome {
-    fn new<T>(outcome: CoreOutcome<T>, read: impl FnOnce(T) -> (Mode, Option<CoreServed>)) -> Self {
+    pub(crate) fn new<T>(
+        outcome: CoreOutcome<T>,
+        read: impl FnOnce(T) -> (Mode, Option<CoreServed>),
+    ) -> Self {
         let id = outcome.id.to_string();
         match outcome.result {
             Ok(value) => {
@@ -86,20 +97,50 @@ impl Outcome {
     }
 }
 
-/// A handle on the members of a group. It holds no state of its own.
+/// The devices that `Govee.devices()` selects. Every verb on it runs on
+/// every member at once, answers one `Outcome` per member in member order,
+/// and rejects for nothing a member does.
 #[napi]
-pub struct GroupHandle {
+pub struct Devices {
     pub(crate) govee: Govee,
     pub(crate) pinned: Option<Mode>,
-    pub(crate) members: Vec<DeviceId>,
+    pub(crate) ids: Vec<DeviceId>,
 }
 
 #[napi]
-impl GroupHandle {
-    /// The identities of the members, in the order of every outcome list.
+impl Devices {
+    /// One handle per member, in the order of every outcome list. Each one
+    /// carries the mode that `Govee.devices()` pins.
     #[napi(getter)]
-    pub fn members(&self) -> Vec<String> {
-        self.members.iter().map(ToString::to_string).collect()
+    pub fn members(&self) -> Vec<DeviceHandle> {
+        self.ids
+            .iter()
+            .map(|id| DeviceHandle {
+                govee: self.govee.clone(),
+                pinned: self.pinned,
+                id: id.clone(),
+            })
+            .collect()
+    }
+
+    /// The number of members.
+    #[napi(getter)]
+    pub fn length(&self) -> u32 {
+        u32::try_from(self.ids.len()).unwrap_or(u32::MAX)
+    }
+
+    /// What the SDK holds for each member: the SKU, the name, the groups, the
+    /// modes and the health. Reads no hardware.
+    ///
+    /// A member that no transport knows and that the configuration pins no
+    /// SKU for is not in the list. `members` holds every member.
+    #[napi]
+    pub fn list(&self, env: &Env) -> napi::Result<Vec<Device>> {
+        Ok(map(env, devices(&self.govee, &self.ids, self.pinned))?
+            .list()
+            .into_iter()
+            .map(Device::from)
+            .collect())
     }
 
     /// Scan for every member that no mode knows. Each outcome carries its mode.
@@ -108,9 +149,9 @@ impl GroupHandle {
         &self,
         env: &'env Env,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        let (govee, pinned, members) = self.parts();
-        env.spawn_future(async move {
-            let known = govee.group_maybe_on(&members, pinned).ensure_known().await;
+        let (govee, pinned, ids) = self.parts();
+        promise(env, async move {
+            let known = devices(&govee, &ids, pinned)?.ensure_known().await;
             Ok(known
                 .into_iter()
                 .map(|outcome| Outcome::new(outcome, |mode| (mode, None)))
@@ -125,8 +166,8 @@ impl GroupHandle {
         env: &'env Env,
         on: bool,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        self.served(env, move |govee, pinned, members| async move {
-            govee.group_maybe_on(&members, pinned).power(on).await
+        self.served(env, move |govee, pinned, ids| async move {
+            Ok(devices(&govee, &ids, pinned)?.power(on).await)
         })
     }
 
@@ -137,11 +178,8 @@ impl GroupHandle {
         env: &'env Env,
         level: i64,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        self.served(env, move |govee, pinned, members| async move {
-            govee
-                .group_maybe_on(&members, pinned)
-                .brightness(level)
-                .await
+        self.served(env, move |govee, pinned, ids| async move {
+            Ok(devices(&govee, &ids, pinned)?.brightness(level).await)
         })
     }
 
@@ -153,8 +191,8 @@ impl GroupHandle {
         #[napi(ts_arg_type = "[number, number, number] | Uint8Array")] rgb: conv::Channels<'_>,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
         let rgb = conv::rgb(env, &rgb)?;
-        self.served(env, move |govee, pinned, members| async move {
-            govee.group_maybe_on(&members, pinned).color(rgb).await
+        self.served(env, move |govee, pinned, ids| async move {
+            Ok(devices(&govee, &ids, pinned)?.color(rgb).await)
         })
     }
 
@@ -165,15 +203,15 @@ impl GroupHandle {
         env: &'env Env,
         kelvin: i64,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        self.served(env, move |govee, pinned, members| async move {
-            govee
-                .group_maybe_on(&members, pinned)
-                .color_temp(kelvin)
-                .await
+        self.served(env, move |govee, pinned, ids| async move {
+            Ok(devices(&govee, &ids, pinned)?.color_temp(kelvin).await)
         })
     }
 
     /// `DeviceHandle.music()` on every member.
+    ///
+    /// @param [sensitivity=50]
+    /// @param [soft=false]
     #[napi]
     pub fn music<'env>(
         &self,
@@ -186,12 +224,15 @@ impl GroupHandle {
         >,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
         let music = conv::music(env, effect, sensitivity, soft, color.as_ref())?;
-        self.served(env, move |govee, pinned, members| async move {
-            govee.group_maybe_on(&members, pinned).music(&music).await
+        self.served(env, move |govee, pinned, ids| async move {
+            Ok(devices(&govee, &ids, pinned)?.music(&music).await)
         })
     }
 
     /// `DeviceHandle.segment()` on every member, against its own zones.
+    ///
+    /// @param [resolution='app']
+    /// @param [gradient=false]
     #[napi]
     pub fn segment<'env>(
         &self,
@@ -209,14 +250,14 @@ impl GroupHandle {
         let colors = conv::colors(env, &colors)?;
         let resolution = conv::resolution_or_default(env, resolution.as_ref())?;
         let gradient = gradient.unwrap_or(false);
-        self.served(env, move |govee, pinned, members| async move {
+        self.served(env, move |govee, pinned, ids| async move {
             let paint = Paint {
                 zones: zones.as_deref(),
                 colors: &colors,
                 resolution,
                 gradient,
             };
-            govee.group_maybe_on(&members, pinned).segment(&paint).await
+            Ok(devices(&govee, &ids, pinned)?.segment(&paint).await)
         })
     }
 
@@ -227,20 +268,32 @@ impl GroupHandle {
         env: &'env Env,
         on: bool,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        self.served(env, move |govee, pinned, members| async move {
-            govee.group_maybe_on(&members, pinned).gradient(on).await
+        self.served(env, move |govee, pinned, ids| async move {
+            Ok(devices(&govee, &ids, pinned)?.gradient(on).await)
         })
     }
 
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
-        format!("GroupHandle(members={:?})", self.members())
+        let ids: Vec<String> = self.ids.iter().map(ToString::to_string).collect();
+        format!("Devices(members={ids:?})")
     }
 }
 
-impl GroupHandle {
-    fn parts(&self) -> (Govee, Option<Mode>, Vec<DeviceId>) {
-        (self.govee.clone(), self.pinned, self.members.clone())
+/// The core handle over `ids`. It parses nothing and scans nothing.
+/// The core set of the stored identities. It parses nothing and scans
+/// nothing.
+pub(crate) fn devices<'a>(
+    govee: &'a Govee,
+    ids: &[DeviceId],
+    pinned: Option<Mode>,
+) -> Result<CoreDevices<'a>, Error> {
+    ids.iter().map(|id| govee.device(id, pinned)).collect()
+}
+
+impl Devices {
+    pub(crate) fn parts(&self) -> (Govee, Option<Mode>, Vec<DeviceId>) {
+        (self.govee.clone(), self.pinned, self.ids.clone())
     }
 
     fn served<'env, Fut>(
@@ -249,13 +302,13 @@ impl GroupHandle {
         verb: impl FnOnce(Govee, Option<Mode>, Vec<DeviceId>) -> Fut,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>>
     where
-        Fut: Future<Output = Vec<CoreOutcome<CoreServed>>> + Send + 'static,
+        Fut: Future<Output = Result<Vec<CoreOutcome<CoreServed>>, Error>> + Send + 'static,
     {
-        let (govee, pinned, members) = self.parts();
-        let call = verb(govee, pinned, members);
-        env.spawn_future(async move {
+        let (govee, pinned, ids) = self.parts();
+        let call = verb(govee, pinned, ids);
+        promise(env, async move {
             Ok(call
-                .await
+                .await?
                 .into_iter()
                 .map(|outcome| Outcome::new(outcome, |served| (served.mode, Some(served))))
                 .collect())

@@ -303,3 +303,35 @@ fn an_argument_type_names_itself_as_the_serialized_form_does() {
 
     assert_eq!(serialized["type"], spec.kind());
 }
+
+#[test]
+fn a_provisioning_command_carries_a_secret_and_a_power_command_none() {
+    let catalog = Catalog::embedded().expect("embedded catalog");
+    let mut provisioning = 0;
+    for device in catalog.devices() {
+        for mode in Mode::ALL {
+            if let Some((name, entry)) = device.entry_for(mode, Role::WifiProvision) {
+                assert!(entry.secret_arg().is_some(), "{}: {name}", device.sku);
+                provisioning += 1;
+            }
+            if let Some((name, entry)) = device.entry_for(mode, Role::Power) {
+                assert_eq!(entry.secret_arg(), None, "{}: {name}", device.sku);
+            }
+        }
+    }
+    assert!(
+        provisioning > 0,
+        "no device file declares a provisioning command"
+    );
+}
+
+#[test]
+fn the_capability_list_holds_what_every_device_declares() {
+    let catalog = Catalog::embedded().expect("embedded catalog");
+    let names = catalog.capabilities();
+    for device in catalog.devices() {
+        for name in device.capabilities.names() {
+            assert!(names.contains(name), "{}: {name}", device.sku);
+        }
+    }
+}

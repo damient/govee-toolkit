@@ -94,8 +94,16 @@ the user's explicit list; the trait only removes the repetition. See
 Discovery is two questions, so the trait asks two. `Transport::scan` enumerates
 what is there and spends the whole window. `Transport::scan_for` looks for one
 device and returns at its answer. The facade builds one precondition on the
-second — `Govee::ensure_known` — so the CLI and every binding get it from the
-crate rather than write it again.
+second — `DeviceHandle::ensure_known` — so the CLI and every binding get it
+from the crate rather than write it again.
+
+One resolver turns targets into handles. `Govee::device` gives the handle of
+one device: an identity, or a name that the configuration gives. It reads the
+configuration and scans nothing. `Govee::devices` gives a `Devices` handle for
+any number of devices. Its members are `DeviceHandle`s, and each call on it
+runs on every member at once. A SKU, and the list of every device, read the
+devices that a scan found. The first resolution that reads them scans once,
+and later resolutions read that result.
 
 A sequence over several devices is the facade's work too, and not a binary's.
 `Govee::identify_walk` takes the rig off, lights one device at a time and
@@ -143,6 +151,32 @@ read once and the bytes go over the mode the values were read for.
   `x86_64` and `aarch64`; containers cross-build the Linux `armv7`, musl
   `x86_64`, musl `aarch64` and musl `armv7` wheels. It serves the Home Assistant
   component, which runs on the last four.
+
+Each surface states the default of an optional parameter in its own
+signature: the Python stub, an `@param [name=value]` line of the Node doc
+comment, and the clap attribute of the CLI. `xtask api` compares them and
+fails when two surfaces give one parameter two values. The reference page of
+the site reads the same extraction.
+
+## The MCP server
+
+`integrations/mcp` wraps the Node binding and holds no device data and no
+protocol logic. It reads three sources, and each one is generated:
+
+- the device data, from `Catalog.describe()` and `Catalog.dmx()`;
+- the API of each language, from `dist/api.json`, which `xtask api` writes;
+- the docs, from `docs/`, which the build copies into the package.
+
+A tool that filters by mode, capability or role reads the valid values from
+these sources. Its source holds no SKU name, no command name and no list
+written by hand.
+
+- The catalog is the one that the binding embeds. The server loads no remote
+  catalog, because `payload:` and `frame:` are executable
+  ([`security.md`](security.md)).
+- A control tool asks for no confirmation. It changes the state of a light and
+  destroys no data.
+- A method added to the Node `Catalog` is also added to the Python `Catalog`.
 
 ## The catalog as an artifact
 

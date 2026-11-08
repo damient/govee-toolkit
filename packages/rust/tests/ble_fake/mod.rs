@@ -305,3 +305,22 @@ pub(crate) fn attach_enabling(modes: &str, transports: &[Arc<dyn Transport>]) ->
 pub(crate) fn enabling_ble() -> String {
     format!("defaults:\n  modes: [ble]\ndevices:\n  \"{MAC}\":\n    sku: \"{SKU}\"\n")
 }
+
+/// The handle of the one simulated device.
+pub(crate) trait One {
+    fn one(&self) -> govee_toolkit::DeviceHandle<'_>;
+
+    fn one_on(&self, mode: govee_toolkit::Mode) -> govee_toolkit::DeviceHandle<'_>;
+}
+
+impl One for Govee {
+    fn one(&self) -> govee_toolkit::DeviceHandle<'_> {
+        self.device(&id(), None)
+            .expect("an identity names one device")
+    }
+
+    fn one_on(&self, mode: govee_toolkit::Mode) -> govee_toolkit::DeviceHandle<'_> {
+        self.device(&id(), Some(mode))
+            .expect("an identity names one device")
+    }
+}

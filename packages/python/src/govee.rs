@@ -1,6 +1,6 @@
 //! The facade: what starts the SDK, what it knows, and what it reaches.
 
-use govee_toolkit::{DeviceId, Govee as CoreGovee};
+use govee_toolkit::{Filter, Govee as CoreGovee};
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 use pyo3_async_runtimes::tokio::future_into_py;
@@ -9,9 +9,9 @@ use crate::catalog::Catalog;
 use crate::config::Config;
 use crate::conv;
 use crate::device::DeviceHandle;
+use crate::devices::Devices;
 use crate::errors::map;
 use crate::events::EventStream;
-use crate::group::GroupHandle;
 use crate::types::{Device, WalkReport};
 
 /// The SDK. Start one and keep it: it holds the catalog, the configuration
@@ -48,56 +48,25 @@ impl Govee {
         })
     }
 
-    /// Run a discovery scan on every mode and return what answered.
+    /// Run a discovery scan and return what answered. Without `modes`, it
+    /// scans every mode.
     ///
     /// The scans run at the same time, so the call takes the longest window
-    /// and not their sum. Nothing on the send path calls this.
-    fn scan<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+    /// and not their sum. A mode this build carries no transport for
+    /// contributes nothing and is not an error. Nothing on the send path calls
+    /// this.
+    #[pyo3(signature = (modes = None))]
+    fn scan<'py>(
+        &self,
+        py: Python<'py>,
+        modes: Option<Vec<String>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let wanted = modes.map(conv::modes).transpose()?;
         let govee = self.inner.clone();
         future_into_py(py, async move {
-            let found = map(govee.scan().await)?;
+            let found = map(govee.scan(wanted.as_deref()).await)?;
             Ok(found.into_iter().map(Device::from).collect::<Vec<_>>())
         })
-    }
-
-    /// Run a discovery scan on the modes named.
-    ///
-    /// A mode this build carries no transport for contributes nothing and is
-    /// not an error.
-    fn scan_on<'py>(&self, py: Python<'py>, modes: Vec<String>) -> PyResult<Bound<'py, PyAny>> {
-        let wanted = conv::modes(modes)?;
-        let govee = self.inner.clone();
-        future_into_py(py, async move {
-            let found = map(govee.scan_on(&wanted).await)?;
-            Ok(found.into_iter().map(Device::from).collect::<Vec<_>>())
-        })
-    }
-
-    /// Every device known, across every mode. One reachable over two modes
-    /// appears once.
-    fn devices(&self) -> Vec<Device> {
-        self.inner.devices().into_iter().map(Device::from).collect()
-    }
-
-    /// The devices the targets name, in the order they were written.
-    ///
-    /// A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name the
-    /// configuration gives a device (`name:kitchen`), or a group it gives
-    /// (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind
-    /// where the target alone does not. A SKU, a name and a group select
-    /// among the devices the SDK knows, so scan first.
-    ///
-    /// `mode` is the one mode the caller will drive. A SKU, a name and a group
-    /// then match among the devices that enable it. An identity selects itself
-    /// either way.
-    #[pyo3(signature = (targets, mode = None))]
-    fn select(&self, targets: Vec<String>, mode: Option<String>) -> PyResult<Vec<String>> {
-        let only = mode.map(|name| conv::mode(&name)).transpose()?;
-        let chosen = map(self
-            .inner
-            .select(targets, only)
-            .map_err(govee_toolkit::Error::from))?;
-        Ok(chosen.iter().map(ToString::to_string).collect())
     }
 
     /// The modes this build carries a transport for. Not a preference order:
@@ -135,61 +104,78 @@ impl Govee {
         }
     }
 
-    /// A handle for one device, by its identity or by the name the
-    /// configuration gives it. It reads the configuration and no scan.
+    /// A handle for one device, by its identity or by the name that the
+    /// configuration gives it. It reads the configuration and scans nothing.
     ///
     /// A bare target is a name where the configuration gives one, and an
-    /// identity where it reads as one. `id:` and `name:` state the kind.
-    fn device(&self, target: &str) -> PyResult<DeviceHandle> {
+    /// identity where it reads as one. `id:` and `name:` state the kind. A
+    /// SKU or a group raises `ConfigError` with `target_not_understood`: use
+    /// `devices()` for them.
+    ///
+    /// `mode` pins every call on the handle to that mode: each call goes over
+    /// it or raises. Without it, each call goes over the first enabled mode
+    /// that answers.
+    #[pyo3(signature = (target, *, mode = None))]
+    fn device(&self, target: &str, mode: Option<&str>) -> PyResult<DeviceHandle> {
+        let pinned = mode.map(conv::mode).transpose()?;
+        let id = map(self.inner.device(target, pinned))?.id().clone();
         Ok(DeviceHandle {
             govee: self.inner.clone(),
-            pinned: None,
-            id: self.target(target)?,
+            pinned,
+            id,
         })
     }
 
-    /// A handle that drives the device over one mode alone.
+    /// The devices that the targets name, in the order written, as one
+    /// `Devices`. A device that two targets name appears once.
     ///
-    /// Every call on it goes over `mode` or raises. Use it where the caller
-    /// serves one mode by design, such as a bridge that reaches a device over
-    /// `lan`: a handle from `device()` would move to the next enabled mode
-    /// when that one stops answering.
+    /// A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name that the
+    /// configuration gives a device (`name:kitchen`), or a group that it gives
+    /// (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind
+    /// where the target alone does not. An identity selects itself, and a name
+    /// or a group reads the configuration. A SKU reads the devices that a scan
+    /// found. Without `targets`, it selects every device that a scan finds.
     ///
-    /// `target` reads as it does for `device()`.
-    fn device_on(&self, target: &str, mode: &str) -> PyResult<DeviceHandle> {
-        Ok(DeviceHandle {
-            govee: self.inner.clone(),
-            pinned: Some(conv::mode(mode)?),
-            id: self.target(target)?,
+    /// The first call that reads a SKU, or that has no `targets`, scans once:
+    /// over `enables`, else over `mode`, else over every mode. A `scan()`
+    /// counts as that scan.
+    ///
+    /// `enables` keeps the devices that enable that mode. A SKU, a name or a
+    /// group that keeps no device then raises `ConfigError`. An identity is
+    /// kept whatever it enables. `mode` pins every member, as it does for
+    /// `device()`, and filters nothing: a member that does not enable it fails
+    /// alone in its `Outcome`.
+    #[pyo3(signature = (targets = None, *, enables = None, mode = None))]
+    fn devices<'py>(
+        &self,
+        py: Python<'py>,
+        targets: Option<Vec<String>>,
+        enables: Option<&str>,
+        mode: Option<&str>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let mut filter = targets.map_or_else(Filter::all, Filter::targets);
+        if let Some(enables) = enables {
+            filter = filter.enables(conv::mode(enables)?);
+        }
+        let pinned = mode.map(conv::mode).transpose()?;
+        let govee = self.inner.clone();
+        future_into_py(py, async move {
+            let members = map(govee.devices(filter, pinned).await)?
+                .iter()
+                .map(|handle| handle.id().clone())
+                .collect();
+            Ok(Devices {
+                govee: govee.clone(),
+                pinned,
+                members,
+            })
         })
     }
 
-    /// The identities that one target names, from the configuration and with
-    /// no scan: one device, or every member of a group in identity order.
-    fn targets(&self, target: &str) -> PyResult<Vec<String>> {
-        Ok(self
-            .members(target)?
-            .iter()
-            .map(ToString::to_string)
-            .collect())
-    }
-
-    /// A handle for the devices `targets()` reads. Every verb on it answers
-    /// one `Outcome` per member and raises for nothing a member does. `mode`
-    /// pins every member, as `device_on()` does.
-    #[pyo3(signature = (target, mode = None))]
-    fn group(&self, target: &str, mode: Option<String>) -> PyResult<GroupHandle> {
-        Ok(GroupHandle {
-            govee: self.inner.clone(),
-            pinned: mode.map(|name| conv::mode(&name)).transpose()?,
-            members: self.members(target)?,
-        })
-    }
-
-    /// Run the walk `govee identify` runs. `targets` reads as `select()`
-    /// reads it; `None` walks every device that a scan finds. Defaults, in
-    /// seconds: `color` green, `wait` 1 between steps, `hold` 5 on the last
-    /// device, `keep` False, `mode` `"lan"`.
+    /// Run the walk `govee identify` runs. `targets` reads as `devices()`
+    /// reads it; `None` walks every device that a scan finds. `wait` is the
+    /// time between two steps and `hold` the time on the last device, in
+    /// seconds.
     ///
     /// Raises `ConfigError` with `mode_not_enabled` before it sends a command
     /// where a device does not enable the mode. A device that fails is in the
@@ -198,7 +184,10 @@ impl Govee {
         clippy::too_many_arguments,
         reason = "each keyword is one Python argument"
     )]
-    #[pyo3(signature = (targets=None, *, color=None, wait=None, hold=None, keep=None, mode=None))]
+    #[pyo3(
+        signature = (targets=None, *, color=None, wait=None, hold=None, keep=None, mode=None),
+        text_signature = "($self, targets=None, *, color=(0, 255, 0), wait=1.0, hold=5.0, keep=False, mode='lan')"
+    )]
     fn identify<'py>(
         &self,
         py: Python<'py>,
@@ -238,27 +227,7 @@ impl Govee {
     }
 
     fn __repr__(&self) -> String {
-        format!(
-            "Govee(modes={:?}, devices={})",
-            self.modes(),
-            self.inner.devices().len()
-        )
-    }
-}
-
-impl Govee {
-    fn members(&self, target: &str) -> PyResult<Vec<DeviceId>> {
-        map(self
-            .inner
-            .targets(target)
-            .map_err(govee_toolkit::Error::from))
-    }
-
-    fn target(&self, target: &str) -> PyResult<DeviceId> {
-        map(self
-            .inner
-            .target(target)
-            .map_err(govee_toolkit::Error::from))
+        format!("Govee(modes={:?})", self.modes())
     }
 }
 

@@ -21,10 +21,14 @@ pub fn json(device: &Device, tables: &[Result<Profile, Error>]) -> Value {
     })
 }
 
+/// The tables that `device` serves, as `dist/catalog.json` carries them. A
+/// personality wider than a universe carries its error.
+#[must_use]
+pub fn entry(device: &Device) -> Value {
+    json!({ "personalities": personalities(&super::served(device)) })
+}
+
 /// The same tables, as the JSON array alone.
-///
-/// `dist/catalog.json` carries this beside each device, so the catalog, the
-/// site and the node read one channel table.
 #[must_use]
 pub fn personalities(tables: &[Result<Profile, Error>]) -> Value {
     Value::Array(tables.iter().map(personality_json).collect())
