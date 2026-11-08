@@ -93,7 +93,11 @@ async fn an_idle_stream_sends_nothing() {
     let _stream = open(&rig, options(Resolution::App)).await;
 
     tokio::time::sleep(Duration::from_secs_f64(4.0 / TEST_HZ)).await;
-    assert!(frames(&rig.simulator).is_empty());
+    assert!(
+        frames(&rig.simulator).is_empty(),
+        "{:?}",
+        frames(&rig.simulator)
+    );
 }
 
 #[tokio::test]

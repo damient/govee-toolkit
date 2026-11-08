@@ -146,7 +146,7 @@ mod tests {
         assert_eq!(device.ip, IpAddr::from([192, 168, 1, 42]));
         assert_eq!(device.sku, "H61A0");
         assert_eq!(device.wifi_software, "2.05.08");
-        assert!(device.ble_software.is_empty());
+        assert_eq!(device.ble_software, "");
     }
 
     #[test]

@@ -78,7 +78,7 @@ fn a_full_fixture_reads_its_six_channels() {
     assert_eq!(look.color, Some([10, 20, 30]));
     assert!(look.white_temp.is_some());
     assert!(!look.resend);
-    assert!(look.zones.is_empty());
+    assert!(look.zones.is_empty(), "{:?}", look.zones);
 }
 
 /// A blackout does not turn the rig white.

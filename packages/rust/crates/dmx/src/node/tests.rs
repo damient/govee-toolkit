@@ -157,7 +157,7 @@ async fn one_frame_reaches_every_fixture_of_its_universe() {
     assert_eq!(recorder.resolved[0].0, DeviceId::new("AA:BB:CC:DD:EE:01"));
     assert_eq!(recorder.resolved[0].1.zones.len(), 15);
     assert_eq!(recorder.resolved[2].1.brightness, Some(100));
-    assert!(recorder.refused.is_empty());
+    assert!(recorder.refused.is_empty(), "{:?}", recorder.refused);
 }
 
 /// A packet the protocol refuses drops, and the node keeps listening.
@@ -167,8 +167,8 @@ async fn a_refused_packet_reaches_no_fixture() {
     let recorder = drive(&packet(0, 1, &[255, 255, 255]), rig(&catalog)).await;
 
     assert_eq!(recorder.refused.len(), 1, "an odd length is refused");
-    assert!(recorder.resolved.is_empty());
-    assert!(recorder.received.is_empty());
+    assert_eq!(recorder.resolved, []);
+    assert!(recorder.received.is_empty(), "{:?}", recorder.received);
 }
 
 /// An opcode the node drives nothing with is reported and drives nothing.
@@ -181,7 +181,7 @@ async fn a_packet_that_is_no_artdmx_drives_nothing() {
     let recorder = drive(&reply, rig(&catalog)).await;
 
     assert_eq!(recorder.ignored, [0x2100]);
-    assert!(recorder.resolved.is_empty());
+    assert_eq!(recorder.resolved, []);
 }
 
 /// A desk that receives no reply lists the node nowhere, so a poll is

@@ -104,7 +104,10 @@ fn a_name_matches_the_whole_name_and_ignores_case() {
         chosen(&Selector::Name("KITCHEN".to_owned())),
         ["1C:8B:C4:A2:C0:46:64:6E"]
     );
-    assert!(chosen(&Selector::Name("kit".to_owned())).is_empty());
+    assert_eq!(
+        chosen(&Selector::Name("kit".to_owned())),
+        Vec::<String>::new()
+    );
 }
 
 #[test]

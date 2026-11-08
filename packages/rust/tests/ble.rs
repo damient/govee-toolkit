@@ -134,7 +134,7 @@ async fn an_argument_out_of_range_is_refused_before_anything_is_written() {
         .expect_err("2 is outside the declared range");
 
     assert_eq!(error.code(), "out_of_range");
-    assert!(ble.written().is_empty());
+    assert!(ble.written().is_empty(), "{:?}", ble.written());
 }
 
 #[tokio::test]
@@ -149,7 +149,7 @@ async fn a_device_the_transport_has_not_heard_of_is_not_reached_another_way() {
         .expect_err("nothing knows this device");
 
     assert_eq!(error.code(), "unknown_device");
-    assert!(ble.written().is_empty());
+    assert!(ble.written().is_empty(), "{:?}", ble.written());
 }
 
 #[tokio::test]
@@ -167,7 +167,7 @@ async fn a_mode_no_transport_serves_says_so_rather_than_choosing_another() {
         .expect_err("this build attached no lan transport");
 
     assert_eq!(error.code(), "mode_not_implemented");
-    assert!(ble.written().is_empty());
+    assert!(ble.written().is_empty(), "{:?}", ble.written());
 }
 
 #[tokio::test]
@@ -336,7 +336,7 @@ async fn a_white_temperature_over_an_unbounded_mask_is_refused() {
         .expect_err("nothing says how far the mask reaches");
 
     assert_eq!(error.code(), "zone_mask_unbounded");
-    assert!(ble.written().is_empty());
+    assert!(ble.written().is_empty(), "{:?}", ble.written());
 }
 
 #[tokio::test]
@@ -351,7 +351,7 @@ async fn a_white_temperature_out_of_range_is_refused_rather_than_clamped() {
         .expect_err("1200 K is outside the declared range");
 
     assert_eq!(error.code(), "out_of_range");
-    assert!(ble.written().is_empty());
+    assert!(ble.written().is_empty(), "{:?}", ble.written());
 }
 
 /// The `role: segment_color_masked` entry of the fixture, painting red over

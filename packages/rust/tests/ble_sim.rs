@@ -131,7 +131,7 @@ async fn a_device_of_another_family_carries_nothing_to_write_to() {
         .expect_err("there is no characteristic to write to");
 
     assert_eq!(error.code(), "io");
-    assert!(device.received().is_empty());
+    assert!(device.received().is_empty(), "{:?}", device.received());
 }
 
 #[tokio::test]

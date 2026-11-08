@@ -115,7 +115,7 @@ mod tests {
                 DeviceId::new("BB:00:00:00:00:02")
             ]
         );
-        assert!(rig().members("attic").is_empty());
+        assert_eq!(rig().members("attic"), []);
         assert!(rig().is_group("ambient"));
         assert!(!rig().is_group("desk"));
     }
@@ -145,6 +145,6 @@ mod tests {
         assert_eq!(messages.len(), 3, "{messages:?}");
         assert!(messages.iter().any(|m| m.contains("name:ambient")));
         assert!(messages.iter().any(|m| m.contains("listed twice")));
-        assert!(rig().group_problems().is_empty());
+        assert_eq!(rig().group_problems(), []);
     }
 }

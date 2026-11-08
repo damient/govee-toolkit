@@ -27,7 +27,7 @@ fn one_command_may_report_state() {
     let catalog = parse("    status:\n      cmd: devStatus\n      role: status\n");
     let device = catalog.device("HTEST").expect("the SKU resolves");
     assert_eq!(device.status_command(Mode::Lan), Some("status"));
-    assert!(super::device(device).is_empty());
+    assert_eq!(super::device(device), []);
 }
 
 #[test]
@@ -35,7 +35,7 @@ fn a_file_may_report_no_state_at_all() {
     let catalog = parse("    power:\n      cmd: turn\n");
     let device = catalog.device("HTEST").expect("the SKU resolves");
     assert_eq!(device.status_command(Mode::Lan), None);
-    assert!(super::device(device).is_empty());
+    assert_eq!(super::device(device), []);
 }
 
 /// A `segment_color` command whose `colors` is spelled the file's way. The
@@ -51,7 +51,7 @@ fn an_argument_the_sdk_fills_is_found_by_its_role() {
     let command = device.commands.lan.get("paint").expect("the entry parses");
     assert_eq!(command.arg_for(ArgRole::Colors), Some("pixels"));
     assert_eq!(command.arg_for(ArgRole::Gradient), None);
-    assert!(super::device(device).is_empty());
+    assert_eq!(super::device(device), []);
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn a_color_temp_command_may_carry_the_kelvin_value_alone() {
          \n        kelvin: { type: int, range: [2000, 9000], role: color_temp }\n",
     );
     let device = catalog.device("HTEST").expect("the SKU resolves");
-    assert!(super::device(device).is_empty());
+    assert_eq!(super::device(device), []);
 }
 
 #[test]
@@ -243,7 +243,7 @@ fn a_frame_on_its_own_wire_needs_no_envelope_to_name_it() {
          \n      frame: \"AA 01 <pad:20> <xor>\"\n      args: {}\n",
     );
     let device = catalog.device("HTEST").expect("the SKU resolves");
-    assert!(super::device(device).is_empty());
+    assert_eq!(super::device(device), []);
 }
 
 #[test]
@@ -360,7 +360,7 @@ fn a_write_budget_a_unit_held_is_well_formed() {
     let catalog = measured("    sustained_writes_hz: 130\n    write_budget_hz: 100\n");
     let device = catalog.device("HTEST").expect("the SKU resolves");
     assert_eq!(device.measurements.ble.write_budget_hz, Some(100.0));
-    assert!(super::device(device).is_empty());
+    assert_eq!(super::device(device), []);
 }
 
 #[test]

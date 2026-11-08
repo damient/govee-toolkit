@@ -291,7 +291,7 @@ commands:
         assert_eq!(encoded.message, None);
         assert_eq!(encoded.frames.len(), 3);
         assert!(encoded.frames.iter().all(|f| f.len() == 20));
-        assert!(encoded.reads().is_empty());
+        assert_eq!(encoded.reads(), []);
         assert_eq!(encoded.to_bytes().unwrap_err().code(), "no_envelope");
     }
 
