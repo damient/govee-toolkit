@@ -3,11 +3,11 @@
 
 import type { CallToolResult } from "@modelcontextprotocol/server";
 import { Govee } from "govee-toolkit";
-import type { Device, DeviceHandle, DeviceStatus, Health, Outcome } from "govee-toolkit";
+import type { Device, DeviceHandle, DeviceStatus, Outcome } from "govee-toolkit";
 import { z } from "zod";
 
 import { vocabulary } from "./catalog.ts";
-import { fail, failure, oneOf } from "./result.ts";
+import { fail, oneOf } from "./result.ts";
 
 let started: Promise<Govee> | undefined;
 
@@ -62,10 +62,6 @@ const byte = z.number().int().min(0).max(255);
 
 export const rgb = z.tuple([byte, byte, byte]).describe("Red, green and blue, 0-255 each.");
 
-function health(value: Health): Record<string, unknown> {
-  return { state: value.state, failures: value.failures, available: value.available };
-}
-
 export function deviceRow(device: Device): Record<string, unknown> {
   return {
     id: device.id,
@@ -73,18 +69,12 @@ export function deviceRow(device: Device): Record<string, unknown> {
     name: device.name,
     groups: device.groups,
     modes: device.modes,
-    health: Object.fromEntries(Object.entries(device.health).map(([mode, h]) => [mode, health(h)])),
+    health: Object.fromEntries(Object.entries(device.health).map(([mode, h]) => [mode, h.toJSON()])),
   };
 }
 
 export function outcomeRow(outcome: Outcome): Record<string, unknown> {
-  return {
-    id: outcome.id,
-    ok: outcome.ok,
-    mode: outcome.mode,
-    command: outcome.served?.command ?? null,
-    error: outcome.error === null ? null : failure(outcome.error),
-  };
+  return outcome.toJSON();
 }
 
 export function statusRow(status: DeviceStatus, mode: string): Record<string, unknown> {

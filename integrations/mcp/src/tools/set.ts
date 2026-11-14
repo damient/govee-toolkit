@@ -82,19 +82,16 @@ export function registerSet(server: McpServer): void {
   );
 }
 
-/** The scan as the `reach` step, then each verb. A failure names the first error and how many members failed. */
+/** The scan as the `reach` step, then each verb. A failure names the first error and the members that failed. */
 function answer(members: string[], applied: Applied): CallToolResult {
   const steps = [
     { step: "reach", outcomes: applied.reached.map((o) => outcomeRow(o)) },
     ...applied.steps.map(({ step, outcomes }) => ({ step, outcomes: outcomes.map((o) => outcomeRow(o)) })),
   ];
   if (applied.ok) return ok({ members, steps });
-  const failed = [applied.reached, ...applied.steps.map((s) => s.outcomes)].flat().filter((o) => !o.ok);
-  const first = failure(failed[0]?.error);
-  // One device fails with its own error, as a command on one device does.
-  const summary =
-    members.length === 1
-      ? `${first.code}: ${first.message}`
-      : `${first.code}: ${new Set(failed.map((o) => o.id)).size} of ${members.length} devices failed`;
+  const failed = [applied.reached, ...applied.steps.map((s) => s.outcomes)].flat().find((o) => !o.ok);
+  const first = failure(failed?.error);
+  // The verdict of one device is its own error, as a command on one device fails.
+  const summary = `${first.code}: ${applied.verdict ?? first.message}`;
   return { isError: true, content: [{ type: "text", text: `${summary}\n${JSON.stringify({ steps })}` }] };
 }

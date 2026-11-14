@@ -56,6 +56,18 @@ export function allSkus(): readonly string[] {
   return skus;
 }
 
+/** A filter of `list_devices`. A key left undefined filters nothing. */
+export interface Query {
+  mode?: string | undefined;
+  capability?: string | undefined;
+  support?: string | undefined;
+}
+
+/** The SKUs that match every filter given. Throws `invalid_argument` for `support` without `mode`. */
+export function query(filter: Query): string[] {
+  return catalog.query(filter);
+}
+
 export function row(sku: string): Row {
   const found = describe(sku);
   return {

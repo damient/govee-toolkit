@@ -22,6 +22,7 @@ policy is [`../../docs/versioning.md`](../../docs/versioning.md).
   with `secret_arg`.
 - `set` takes a device, a group or a SKU, and sends its steps in the order the
   core fixes. A member that fails a step takes no later step.
+- A failed `set` names the error code and the identities that failed.
 - `list_known` scans once, over each mode that no scan covered yet.
 - Resources: each docs page at `gtk://docs/<topic>`, and each device record
   at `gtk://devices/{sku}`.

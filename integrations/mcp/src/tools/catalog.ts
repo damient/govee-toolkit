@@ -3,7 +3,7 @@
 import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
-import { allSkus, describe, dmx, record, row, vocabulary } from "../catalog.ts";
+import { dmx, query, record, row, vocabulary } from "../catalog.ts";
 import { docTopics, readApi, readDoc } from "../data.ts";
 import { UNVERIFIED, codeError, fail, ok, oneOf } from "../result.ts";
 
@@ -17,20 +17,6 @@ export function registerCatalogTools(server: McpServer): void {
   getDmxProfile(server);
   getApi(server);
   readDocTool(server);
-}
-
-interface DeviceFilter {
-  mode?: string | undefined;
-  capability?: string | undefined;
-  support?: string | undefined;
-}
-
-function matches(sku: string, { mode, capability, support }: DeviceFilter): boolean {
-  const described = describe(sku);
-  const scoped = mode === undefined ? undefined : described.modes[mode];
-  if (support !== undefined && scoped?.support !== support) return false;
-  if (capability === undefined) return true;
-  return (scoped?.capabilities ?? described.capabilities).includes(capability);
 }
 
 function listDevices(server: McpServer): void {
@@ -62,15 +48,7 @@ function listDevices(server: McpServer): void {
       }),
       annotations: READ,
     },
-    (filter) => {
-      if (filter.support !== undefined && filter.mode === undefined) {
-        return fail(codeError("invalid_argument", "`support` needs `mode`"));
-      }
-      const devices = allSkus()
-        .filter((sku) => matches(sku, filter))
-        .map((sku) => row(sku));
-      return ok({ devices });
-    },
+    (filter) => attempt(() => ok({ devices: query(filter).map((sku) => row(sku)) })),
   );
 }
 
