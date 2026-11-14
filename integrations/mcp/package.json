@@ -25,7 +25,7 @@
     "lint": "npm run lint:types && npm run lint:js",
     "lint:types": "tsc -p tsconfig.json",
     "lint:js": "oxlint --type-aware",
-    "test": "node --test --test-concurrency=1 test/"
+    "test": "node --test --test-concurrency=1 \"test/*.test.ts\""
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.1.0",
