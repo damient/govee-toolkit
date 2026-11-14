@@ -31,6 +31,10 @@ impl Transport for LanTransport {
         Self::devices(self)
     }
 
+    fn answered(&self) -> Vec<KnownDevice> {
+        Self::answered(self)
+    }
+
     fn sku(&self, id: &DeviceId) -> Option<String> {
         Self::sku(self, id)
     }

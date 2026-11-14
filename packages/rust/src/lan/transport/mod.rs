@@ -16,7 +16,7 @@ mod shared;
 
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use tokio::sync::{broadcast, watch};
 use tokio::task::JoinHandle;
@@ -75,7 +75,9 @@ impl Transport {
     /// Bind the socket and start the receive loop.
     ///
     /// Devices already in the cache are usable immediately: no scan is issued
-    /// here, and none is needed before the first command.
+    /// here, and none is needed before the first command. A cached device
+    /// that has not answered a scan for [`Options::forget_after`] is dropped
+    /// first.
     ///
     /// # Errors
     ///
@@ -87,6 +89,10 @@ impl Transport {
         let socket = Socket::bind(&options.endpoints)?;
         let (events, _) = broadcast::channel(256);
         let (replies, _) = broadcast::channel(256);
+        let mut cache = options.cache;
+        // The refresh loop prunes only after its first scan, and a short
+        // process selects before that.
+        cache.prune(SystemTime::now(), options.forget_after);
 
         let shared = Arc::new(Shared {
             socket,
@@ -96,7 +102,7 @@ impl Transport {
             status_timeout: options.status_timeout,
             verify_interval: options.verify_interval,
             devices: Devices::new(),
-            cache: Mutex::new(options.cache),
+            cache: Mutex::new(cache),
             events,
             replies,
         });
@@ -187,6 +193,17 @@ impl Transport {
         self.shared
             .devices
             .known(|tracked| SocketAddr::new(tracked.ip, port).to_string())
+    }
+
+    /// Every device that answered a scan in this process. A device that only
+    /// the cache holds is left out.
+    #[must_use]
+    pub fn answered(&self) -> Vec<KnownDevice> {
+        let port = self.shared.endpoints.control_port;
+        self.shared.devices.known_if(
+            |tracked| SocketAddr::new(tracked.ip, port).to_string(),
+            |tracked| tracked.answered,
+        )
     }
 
     /// The SKU a device reports, if it is known.

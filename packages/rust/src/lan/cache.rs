@@ -188,8 +188,8 @@ impl Cache {
 
     /// Forget every device not seen for `age`. Returns what was dropped.
     ///
-    /// A stale entry says nothing about the device, which may be off. This
-    /// only stops the file growing across a lifetime of DHCP leases.
+    /// A stale entry says nothing about the device, which may be off. The
+    /// transport prunes when it starts and after each background scan.
     pub fn prune(&mut self, now: SystemTime, age: std::time::Duration) -> Vec<CachedDevice> {
         let cutoff = seconds(now).saturating_sub(age.as_secs());
         let stale: Vec<DeviceId> = self

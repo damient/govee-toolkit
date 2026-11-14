@@ -1,8 +1,11 @@
 //! The one resolver: targets in, device handles out.
 //!
 //! An identity selects itself. A name and a group read the configuration. A
-//! SKU, and [`Filter::all`], read the devices a scan found: the first call
-//! that needs one scans, and later calls read what that scan found.
+//! SKU, and [`Filter::all`], read the devices that answered a scan in this
+//! process: the first call that needs one scans, and later calls read what
+//! that scan found. A device that only the `lan` cache holds is not one of
+//! them. The cache serves a command sent by identity, and a selection that
+//! pays for a scan does not need it.
 
 use std::collections::BTreeMap;
 
@@ -15,7 +18,7 @@ use crate::devices::Devices;
 use crate::error::Result;
 use crate::event::Device;
 use crate::govee::Govee;
-use crate::transport::DeviceId;
+use crate::transport::{DeviceId, KnownDevice};
 
 /// What [`Govee::device`] takes: a target a person wrote, or an identity the
 /// caller holds.
@@ -163,7 +166,8 @@ impl Govee {
     ///
     /// The first call that reads a SKU, or [`Filter::all`], scans the modes it
     /// reads: the mode of [`Filter::enables`], else `mode`, else every mode.
-    /// [`Govee::scan`] counts as that scan.
+    /// [`Govee::scan`] counts as that scan. A device that only the `lan`
+    /// cache holds matches no SKU and is not in [`Filter::all`].
     ///
     /// # Errors
     ///
@@ -190,7 +194,7 @@ impl Govee {
         }
         let Some(targets) = &filter.targets else {
             return Ok(self
-                .known()
+                .answered()
                 .into_iter()
                 .filter(|device| {
                     filter
@@ -219,11 +223,11 @@ impl Govee {
         Ok(chosen)
     }
 
-    /// The devices a transport knows, and the devices the configuration
-    /// declares. A declared device that no transport knows carries the SKU
-    /// the configuration pins, or an empty one that no SKU matches.
+    /// The devices that answered a scan, and the devices the configuration
+    /// declares. A declared device that answered no scan carries the SKU the
+    /// configuration pins, or an empty one that no SKU matches.
     fn candidates(&self) -> Vec<Device> {
-        let mut all = self.known_skus();
+        let mut all = self.answered_skus();
         for id in self.inner.config.devices.keys() {
             all.entry(id.clone()).or_default();
         }
@@ -252,13 +256,11 @@ impl Govee {
     }
 
     pub(crate) fn known_skus(&self) -> BTreeMap<DeviceId, String> {
-        let mut known = BTreeMap::new();
-        for transport in self.inner.transports.values() {
-            for device in transport.devices() {
-                known.insert(device.id, device.sku);
-            }
-        }
-        known
+        skus(self.inner.transports.values().flat_map(|t| t.devices()))
+    }
+
+    fn answered_skus(&self) -> BTreeMap<DeviceId, String> {
+        skus(self.inner.transports.values().flat_map(|t| t.answered()))
     }
 
     /// Every device a transport knows. One that two modes reach appears once:
@@ -269,4 +271,15 @@ impl Govee {
             .map(|(id, sku)| self.describe(&id, &sku))
             .collect()
     }
+
+    fn answered(&self) -> Vec<Device> {
+        self.answered_skus()
+            .into_iter()
+            .map(|(id, sku)| self.describe(&id, &sku))
+            .collect()
+    }
+}
+
+fn skus(devices: impl Iterator<Item = KnownDevice>) -> BTreeMap<DeviceId, String> {
+    devices.map(|device| (device.id, device.sku)).collect()
 }

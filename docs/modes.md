@@ -151,6 +151,14 @@ cache, so a fresh process sends to a device the last scan found. `ble` relates a
 device to a handle through an advertisement, and `cloud` lists the account, so
 neither keeps anything between runs.
 
+The cache serves a command sent by identity, and nothing else:
+
+- An entry that answered no scan for `lan.forget_after_days` is dropped when
+  the process starts.
+- A SKU and the list of every device select only the devices that answered a
+  scan in this process. That selection pays for a scan, so a cached entry that
+  stayed silent is not selected.
+
 A command never scans. A scan costs a window, and the send path must not pay it
 — that is what makes the `lan` fast path fast. A device no mode knows fails with
 `UnknownDevice` instead.

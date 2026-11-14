@@ -30,6 +30,8 @@ releases apart and keeps
   mode alone where the handle pins one. `DeviceHandle::pinned()` names it.
 - `Support::ALL` — every support level. `Catalog::capabilities()` — every
   capability name that a device of the catalog declares.
+- `transport::Transport::answered()` and `lan::Transport::answered()` — the
+  devices that answered a scan in this process, less what a cache holds.
 
 - `input` reads a host value, `input::Value`, as a color, a paint, a zone
   list, a resolution, a rate, a duration or the verbs of an apply.
@@ -57,13 +59,18 @@ releases apart and keeps
 - **Breaking:** `Govee::devices(filter, mode)` returns `Devices`, the handle for
   any number of devices. It replaces `select()`, `targets()` and `group*()`.
 - `Filter` selects: `all()`, `targets()`, `ids()`, and `enables()` to keep one
-  mode. A SKU or `all()` scans once, on the first call that reads one.
+  mode. A SKU or `all()` scans once, and keeps the devices that answered.
 - **Breaking:** `GroupHandle` is `Devices`: `members()` gives `DeviceHandle`s
   and `list()` the `Device` records. `Govee::ensure_known()` is private.
 - `DeviceHandle::provision_wifi()` fails with `no_mode_available` on a handle
   pinned to a mode other than `ble`.
 - `SegmentStream::close()` takes `&self`. A second call does nothing, and the
   counters stay readable after it.
+
+### Fixed
+
+- `lan::Transport::start()` drops a cache entry that answered no scan for
+  `Options::forget_after`, before it makes the cached devices sendable.
 
 ## [0.14.0] — 2026-09-26
 

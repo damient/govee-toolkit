@@ -64,6 +64,15 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// Every device it knows, from a scan or from its cache.
     fn devices(&self) -> Vec<KnownDevice>;
 
+    /// Every device that answered a scan in this process: what
+    /// [`Transport::devices`] knows, less what only a cache holds.
+    ///
+    /// The default is [`Transport::devices`], which is right for a mode that
+    /// keeps nothing between runs.
+    fn answered(&self) -> Vec<KnownDevice> {
+        self.devices()
+    }
+
     /// The SKU a device reports, if it is known.
     fn sku(&self, id: &DeviceId) -> Option<String>;
 

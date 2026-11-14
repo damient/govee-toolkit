@@ -102,8 +102,9 @@ one device: an identity, or a name that the configuration gives. It reads the
 configuration and scans nothing. `Govee::devices` gives a `Devices` handle for
 any number of devices. Its members are `DeviceHandle`s, and each call on it
 runs on every member at once. A SKU, and the list of every device, read the
-devices that a scan found. The first resolution that reads them scans once,
-and later resolutions read that result.
+devices that answered a scan in this process. The first resolution that reads
+them scans once, and later resolutions read that result. A device that only
+the `lan` cache holds is not one of them.
 
 A sequence over several devices is the facade's work too, and not a binary's.
 `Govee::identify_walk` takes the rig off, lights one device at a time and
