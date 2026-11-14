@@ -10,8 +10,8 @@ mod ble_fake;
 use std::sync::Arc;
 use std::time::Duration;
 
-use govee_toolkit::Mode;
 use govee_toolkit::transport::Transport;
+use govee_toolkit::{Filter, Mode};
 use tokio::time::Instant;
 
 use self::ble_fake::{Fake, One, attach_enabling, enabling_ble, govee, id};
@@ -88,4 +88,27 @@ async fn the_next_enabled_mode_answers_where_the_first_hears_nothing() {
     let mode = govee.one().ensure_known().await.expect("`ble` finds it");
 
     assert_eq!(mode, Mode::Ble);
+}
+
+/// A mode that the build carries and the configuration leaves out is not
+/// scanned: a `ble` adapter that cannot start fails no `lan` selection.
+#[tokio::test(start_paused = true)]
+async fn a_selection_scans_only_the_enabled_modes() {
+    let lan = Fake::claiming(Mode::Lan, Duration::from_secs(1));
+    let ble = Fake::claiming(Mode::Ble, Duration::from_secs(1));
+    let govee = attach_enabling(
+        "lan",
+        &[
+            Arc::clone(&lan) as Arc<dyn Transport>,
+            Arc::clone(&ble) as Arc<dyn Transport>,
+        ],
+    );
+
+    govee
+        .devices(Filter::all(), None)
+        .await
+        .expect("the scan runs");
+
+    assert_eq!(lan.scanned().len(), 1);
+    assert_eq!(ble.scanned(), Vec::<Duration>::new());
 }

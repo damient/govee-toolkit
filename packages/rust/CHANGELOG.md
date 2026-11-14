@@ -58,7 +58,7 @@ releases apart and keeps
 - **Breaking:** `Govee::devices(filter, mode)` returns `Devices`, the handle for
   any number of devices. It replaces `select()`, `targets()` and `group*()`.
 - `Filter` selects: `all()`, `targets()`, `ids()`, and `enables()` to keep one
-  mode. A SKU or `all()` scans once, and keeps the devices that answered.
+  mode. A SKU or `all()` scans the enabled modes once, and keeps what answered.
 - **Breaking:** `GroupHandle` is `Devices`: `members()` gives `DeviceHandle`s
   and `list()` the `Device` records. `Govee::ensure_known()` is private.
 - `DeviceHandle::provision_wifi()` fails with `no_mode_available` on a handle

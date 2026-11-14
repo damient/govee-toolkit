@@ -148,9 +148,9 @@ impl Govee {
     /// a member that does not enable it fails alone, on each call.
     ///
     /// The first call that reads a SKU or [`Filter::all`] scans the mode of
-    /// [`Filter::enables`], else `mode`, else every mode. [`Govee::scan`]
-    /// counts as that scan. A device that only the `lan` cache holds matches
-    /// no SKU and is not in [`Filter::all`].
+    /// [`Filter::enables`], else `mode`, else every mode that the configuration
+    /// enables. [`Govee::scan`] counts as that scan. A device that only the
+    /// `lan` cache holds matches no SKU and is not in [`Filter::all`].
     ///
     /// # Errors
     ///
@@ -220,13 +220,12 @@ impl Govee {
     /// scan once.
     async fn scan_once(&self, mode: Option<Mode>) -> Result<()> {
         let mut scanned = self.inner.scanned.lock().await;
-        let missing: Vec<Mode> = match mode {
-            Some(mode) => vec![mode],
-            None => self.modes(),
-        }
-        .into_iter()
-        .filter(|mode| !scanned.contains(mode))
-        .collect();
+        let built = self.modes();
+        let missing: Vec<Mode> = mode
+            .map_or_else(|| self.config().enabled_modes(), |mode| vec![mode])
+            .into_iter()
+            .filter(|mode| built.contains(mode) && !scanned.contains(mode))
+            .collect();
         if missing.is_empty() {
             return Ok(());
         }
