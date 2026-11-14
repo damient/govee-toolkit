@@ -1,6 +1,3 @@
-//! The option maps: the verbs of `Devices.apply()` and the walk of
-//! `Govee.identify()`.
-
 use super::values::{colors, mode, painting, rgb, seconds, whole};
 use super::{Refused, Result, Value, key};
 use crate::apply::Verb;
@@ -42,13 +39,12 @@ fn known(value: &Value, what: &str, keys: &[&str], style: Style) -> Result<()> {
     value.known_keys(what, &spelled)
 }
 
-/// Read the verbs of `Devices.apply()`, keyed as the host spells them. The
-/// order is [`Devices::apply`](crate::Devices::apply)'s to set.
+/// Read the verbs that [`Devices::apply`](crate::Devices::apply) sorts and
+/// sends.
 ///
 /// # Errors
 ///
-/// [`Refused`] for an unknown key, a segment with no `colors`, a music verb
-/// with no `effect`, or a value of the wrong shape.
+/// [`Refused`] for an unknown key, a missing key or a bad shape.
 pub fn verbs(value: &Value, style: Style) -> Result<Vec<Verb>> {
     known(value, "verb", &VERBS, style)?;
     let at = |name: &str| value.get(&key(style, name));
@@ -104,8 +100,7 @@ fn music(value: &Value, style: Style) -> Result<Music> {
     ))
 }
 
-/// Read an options map whose every key carries a name, in the order of
-/// `keys`. `Null` reads as no key given.
+/// Read a map of names, in the order of `keys`. `Null` reads as no key.
 ///
 /// # Errors
 ///
@@ -151,8 +146,7 @@ pub fn modes<const N: usize>(
 ///
 /// # Errors
 ///
-/// [`Refused`] for an unknown key, a negative duration, an unknown mode, or a
-/// value of the wrong shape.
+/// [`Refused`] for an unknown key or mode, a negative duration or a bad shape.
 pub fn walk(value: &Value, style: Style) -> Result<Walk> {
     let mut walk = Walk::default();
     if matches!(value, Value::Null) {

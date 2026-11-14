@@ -103,8 +103,7 @@ impl Transport {
             replies,
         });
 
-        // The refresh loop forgets only after its first scan, and a short
-        // process selects before that.
+        // A short process selects before the first scan of the refresh loop.
         shared.forget_stale(options.forget_after);
         shared.adopt_cached_devices();
 

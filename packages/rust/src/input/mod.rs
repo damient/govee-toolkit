@@ -1,10 +1,6 @@
-//! What a binding hands the core, before the core reads it as a color, a
-//! verb or an argument.
-//!
-//! A binding turns a host value into a [`Value`] and stops there. Every
-//! shape rule, every default and every refusal lives here, so that each
-//! language accepts the same values and refuses the others with the same
-//! words.
+//! A binding turns a host value into a [`Value`] and stops there. Every shape
+//! rule, default and refusal lives here, so that each language refuses with
+//! the same words.
 
 mod options;
 mod values;
@@ -17,8 +13,7 @@ use crate::summary::Style;
 /// A host value, in the shapes that every host language shares.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
-    /// `null`, `undefined` or `None`. Reads as absent wherever a value is
-    /// optional.
+    /// `null`, `undefined` or `None`.
     Null,
     /// A boolean. Reads as `0` or `1` where a whole number is expected.
     Bool(bool),
@@ -38,10 +33,8 @@ pub enum Value {
     Other,
 }
 
-/// A value that the core refuses. Nothing was sent.
-///
-/// A binding raises it as its own argument error: `TypeError` in
-/// JavaScript, `ValueError` in Python.
+/// A value that the core refuses. Nothing was sent. A binding raises it as
+/// `TypeError` in JavaScript and `ValueError` in Python.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("{0}")]
 pub struct Refused(pub String);
@@ -69,8 +62,7 @@ impl Value {
             .filter(|value| !matches!(value, Self::Null))
     }
 
-    /// Refuse a key outside `keys`: ignored, a misspelled key reads as a
-    /// setting that failed.
+    /// Refuse a key outside `keys`.
     ///
     /// # Errors
     ///
@@ -94,8 +86,7 @@ impl Value {
     }
 }
 
-/// A key as the host spells it: `color_temp` in Python, `colorTemp` in
-/// JavaScript.
+/// `color_temp` in Python, `colorTemp` in JavaScript.
 pub(crate) fn key(style: Style, snake: &str) -> String {
     if style == Style::Python {
         return snake.to_owned();

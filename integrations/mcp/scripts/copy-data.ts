@@ -1,5 +1,3 @@
-// Copies `dist/api.json` and `docs/**/*.md` into `data/`, which the package ships.
-
 import { existsSync } from "node:fs";
 import { copyFile, mkdir, readdir, rm } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";

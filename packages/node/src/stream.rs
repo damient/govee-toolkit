@@ -14,9 +14,9 @@ use crate::promise::promise;
 /// An open segment channel. The writers never block: each one replaces what
 /// the next frame carries.
 ///
-/// Close it, or leave it with `await using`. A stream that is collected
-/// disarms the channel as well, and reports no failure. A write after
-/// `close()` throws `stream_closed`.
+/// Close it, or leave it with `await using`. Garbage collection also disarms
+/// the channel, and reports no failure. A write after `close()` throws
+/// `stream_closed`.
 #[napi]
 pub struct SegmentStream {
     inner: Arc<CoreStream>,

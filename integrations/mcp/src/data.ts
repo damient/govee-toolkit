@@ -20,7 +20,6 @@ export function readApi(): Api {
   return api.parse(JSON.parse(readFileSync(`${data}api.json`, "utf8")));
 }
 
-// `data/` does not change while the server runs.
 const docs = new Map(
   readdirSync(`${data}docs`, { recursive: true, encoding: "utf8" })
     .filter((path) => path.endsWith(".md"))

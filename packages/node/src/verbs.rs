@@ -51,8 +51,7 @@ impl DeviceHandle {
     /// One pass: the device stays on and lit, and loses the look it held.
     /// `Govee.identify()` runs the whole walk.
     ///
-    /// `fullBrightness` sets the top of the brightness range the device
-    /// file declares.
+    /// `fullBrightness` sets the top of the declared brightness range.
     ///
     /// @param [color=[0, 255, 0]]
     /// @param [fullBrightness=true]

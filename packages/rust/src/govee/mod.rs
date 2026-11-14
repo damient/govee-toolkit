@@ -93,8 +93,7 @@ impl Govee {
     /// Each transport listens for its own window, which is a property of the
     /// wire. The windows run at the same time, so the call takes the longest
     /// one and not their sum. A mode this build carries no transport for
-    /// contributes nothing, and `Some(&[])` scans nothing. Nothing on the send
-    /// path calls this.
+    /// contributes nothing, and `Some(&[])` scans nothing.
     ///
     /// # Errors
     ///

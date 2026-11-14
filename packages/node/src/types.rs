@@ -42,7 +42,7 @@ impl Health {
         self.inner.available
     }
 
-    /// The record every surface prints: `state`, `failures`, `available`.
+    /// The record that every surface prints.
     #[napi(
         js_name = "toJSON",
         ts_return_type = "{ state: string; failures: number; available: boolean }"
@@ -112,8 +112,7 @@ impl Device {
             .collect()
     }
 
-    /// The record every surface prints: `id`, `sku`, `name`, and one
-    /// `{ mode, health }` per enabled mode.
+    /// The record that every surface prints.
     #[napi(
         js_name = "toJSON",
         ts_return_type = "{ id: string; sku: string; name: string | null; modes: Array<{ mode: string; health: { state: string; failures: number; available: boolean } | null }> }"
@@ -166,7 +165,7 @@ impl Served {
         self.inner.cmd.clone()
     }
 
-    /// The record every surface prints: `id`, `mode`, `command`.
+    /// The record that every surface prints.
     #[napi(
         js_name = "toJSON",
         ts_return_type = "{ id: string; mode: string; command: string }"
@@ -238,8 +237,7 @@ impl DeviceStatus {
         self.inner.is_white()
     }
 
-    /// The record every surface prints. `color` is `#RRGGBB` there, and
-    /// `colorTempKelvin` is `color_temp_kelvin`.
+    /// The record that every surface prints, with `color` as `"#RRGGBB"`.
     #[napi(
         js_name = "toJSON",
         ts_return_type = "{ id: string; on: boolean | null; brightness: number | null; color: string | null; color_temp_kelvin: number | null; raw: unknown }"

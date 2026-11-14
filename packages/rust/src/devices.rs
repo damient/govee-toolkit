@@ -1,6 +1,3 @@
-//! Several devices driven as one. Each member answers its own [`Outcome`] over
-//! its own modes, and a member that fails stops no other one.
-
 use std::future::Future;
 
 use futures_util::future::join_all;
@@ -22,8 +19,7 @@ pub struct Outcome<T = Served> {
     pub result: Result<T>,
 }
 
-/// What a member answers on success: the mode that reached it, or the
-/// command that was served.
+/// What a member answers on success.
 pub trait Answer {
     /// The mode that served the call.
     fn mode(&self) -> Mode;
@@ -71,8 +67,7 @@ impl<T: Answer> Outcome<T> {
         self.result.as_ref().ok().and_then(Answer::served)
     }
 
-    /// This outcome as the record every surface prints. `mode` and `command`
-    /// are `null` where they do not apply, and `error` is `null` on success.
+    /// The record that every surface prints.
     #[must_use]
     pub fn to_json(&self) -> Value {
         json!({
@@ -88,9 +83,9 @@ impl<T: Answer> Outcome<T> {
     }
 }
 
-/// The devices that [`Govee::devices`](crate::Govee::devices) selects. Each
-/// call here runs on every member at once, and answers one [`Outcome`] per
-/// member, in member order.
+/// The devices that [`Govee::devices`](crate::Govee::devices) selects. A call
+/// runs on every member at once and answers one [`Outcome`] per member, in
+/// member order. A member that fails stops no other member.
 #[derive(Debug, Clone)]
 pub struct Devices<'a> {
     members: Vec<DeviceHandle<'a>>,
@@ -124,11 +119,8 @@ impl<'a> Devices<'a> {
         self.members.is_empty()
     }
 
-    /// What the SDK holds for each member: the SKU, the name, the groups, the
-    /// modes and the health. Reads no hardware.
-    ///
-    /// A member that no transport knows and that the configuration pins no
-    /// SKU for is not in the list. [`Devices::members`] holds every member.
+    /// What the SDK holds for each member. It reads no hardware. A member
+    /// with no known SKU is not in the list; [`Devices::members`] holds it.
     #[must_use]
     pub fn list(&self) -> Vec<Device> {
         self.members
@@ -158,8 +150,7 @@ impl<'a> Devices<'a> {
         join_all(calls).await
     }
 
-    /// [`DeviceHandle::ensure_known`] on every member at once, so absent
-    /// members cost one scan window between them.
+    /// [`DeviceHandle::ensure_known`] on every member, in one scan window.
     pub async fn ensure_known(&self) -> Vec<Outcome<Mode>> {
         self.each(|handle| async move { handle.ensure_known().await })
             .await
@@ -208,8 +199,7 @@ impl<'a> Devices<'a> {
     }
 }
 
-/// Handles from [`Govee::device`](crate::Govee::device) make a set with no
-/// resolution and no scan, each member with its own pin.
+/// Each handle keeps its own mode pin, and nothing scans.
 impl<'a> FromIterator<DeviceHandle<'a>> for Devices<'a> {
     fn from_iter<I: IntoIterator<Item = DeviceHandle<'a>>>(handles: I) -> Self {
         Self::new(handles.into_iter().collect())

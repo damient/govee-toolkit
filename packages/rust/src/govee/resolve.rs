@@ -12,8 +12,6 @@ use crate::govee::Govee;
 use crate::transport::DeviceId;
 
 impl Govee {
-    /// [`DeviceHandle::ensure_known`](crate::DeviceHandle::ensure_known)
-    /// over every mode the configuration enables for `id`.
     pub(crate) async fn ensure_known(&self, id: &DeviceId) -> Result<Mode> {
         self.known_over(id, self.inner.config.modes_for(id)).await
     }

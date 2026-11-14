@@ -1,6 +1,5 @@
-//! What the `lan` cache does not give a fresh process: an entry older than
-//! `forget_after`, and a match for a SKU or for `Filter::all`. The cache
-//! serving a command by identity is in `transport.rs`.
+//! The `lan` cache in a fresh process. `transport.rs` covers a command by
+//! identity.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 

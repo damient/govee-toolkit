@@ -25,9 +25,7 @@ check() {
   check_in "$site" "$name" "$@"
 }
 
-# The devices page reads the catalog and the reference page reads the API, so
-# the site build needs both before it runs. An existing file is left alone
-# when cargo is missing: it is the same artifact the workflow writes.
+# Without cargo, an existing file stays: the workflow writes the same artifact.
 if have cargo; then
   check "device catalog" cargo run -q --manifest-path "$root/packages/rust/Cargo.toml" -p xtask
   check "api" cargo run -q --manifest-path "$root/packages/rust/Cargo.toml" -p xtask -- api

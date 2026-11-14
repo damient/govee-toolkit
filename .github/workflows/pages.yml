@@ -3,7 +3,7 @@ name: Website
 # Builds site/ and publishes it to GitHub Pages. The devices page is generated
 # from devices/*.yaml through `xtask catalog`, so the site cannot disagree with
 # the device files. The LAN Control page reads docs/lan-supported-devices.json,
-# and the reference page reads the parameters that `xtask api` extracts.
+# and the reference page reads the signatures that `xtask api` extracts.
 
 on:
   push:
@@ -12,7 +12,6 @@ on:
       - "site/**"
       - "devices/**"
       - "docs/lan-supported-devices.json"
-      # The reference page reads the signatures of each language.
       - "packages/rust/src/**"
       - "packages/rust/crates/*/args.json"
       - "packages/node/binding.d.cts"
@@ -26,7 +25,6 @@ on:
       - "site/**"
       - "devices/**"
       - "docs/lan-supported-devices.json"
-      # The reference page reads the signatures of each language.
       - "packages/rust/src/**"
       - "packages/rust/crates/*/args.json"
       - "packages/node/binding.d.cts"

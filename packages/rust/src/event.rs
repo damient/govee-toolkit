@@ -198,9 +198,8 @@ pub struct Device {
 }
 
 impl Device {
-    /// This device as the record every surface prints: `id`, `sku`, `name`,
-    /// and one `{mode, health}` per enabled mode. `restrict` keeps that mode
-    /// alone, and never adds a mode the configuration leaves out.
+    /// This device as the record every surface prints. `restrict` keeps that
+    /// enabled mode alone, and never adds a mode.
     #[must_use]
     pub fn to_json(&self, restrict: Option<Mode>) -> Value {
         let modes: Vec<Value> = self

@@ -1,6 +1,3 @@
-//! One value read as a color, a zone list, a resolution, a rate, a duration
-//! or a command argument.
-
 use std::time::Duration;
 
 use super::{Refused, Result, Value};
@@ -10,8 +7,6 @@ use crate::stream::{Rate, Resolution};
 use crate::summary::Style;
 use crate::verbs::Painting;
 
-/// Read a whole number. A boolean reads as `0` or `1`, and a float with no
-/// fraction reads as the whole number it carries.
 pub(crate) fn whole(value: &Value) -> Result<i64> {
     match value {
         Value::Int(number) => Ok(*number),
@@ -40,8 +35,7 @@ fn triple(channels: &[i64]) -> Result<[u8; 3]> {
 ///
 /// # Errors
 ///
-/// [`Refused`] for any other shape, a count other than three, or a channel
-/// outside 0-255.
+/// [`Refused`] for any other shape or count, or a channel outside 0-255.
 pub fn rgb(value: &Value, style: Style) -> Result<[u8; 3]> {
     match value {
         Value::Bytes(bytes) => triple(&bytes.iter().copied().map(i64::from).collect::<Vec<_>>()),
@@ -61,8 +55,7 @@ fn is_number(value: &Value) -> bool {
     matches!(value, Value::Int(_) | Value::Float(_) | Value::Bool(_))
 }
 
-/// Read a paint: one color fills every zone, a list states one color per
-/// zone, and a byte run carries three bytes for every zone.
+/// Read a paint: one color for every zone, one color per zone, or a byte run.
 ///
 /// # Errors
 ///
@@ -81,8 +74,7 @@ pub fn colors(value: &Value, style: Style) -> Result<Vec<[u8; 3]>> {
     }
 }
 
-/// Read a paint from a byte run, three bytes for every zone. A binding that
-/// holds the bytes calls this and builds no [`Value`].
+/// Read a paint from a byte run, three bytes for every zone.
 ///
 /// # Errors
 ///
@@ -98,8 +90,8 @@ pub fn packed(bytes: &[u8]) -> Result<Vec<[u8; 3]>> {
     Ok(zones.to_vec())
 }
 
-/// Read the arguments of `segment()` around colors already read. `Null`
-/// reads as absent: every zone, the default resolution, no gradient.
+/// Read the arguments of `segment()`. `Null` reads as every zone, the default
+/// resolution and no gradient.
 ///
 /// # Errors
 ///
@@ -144,8 +136,7 @@ pub fn zones(value: &Value) -> Result<Vec<u16>> {
 ///
 /// # Errors
 ///
-/// [`Refused`] for an unknown name, a count outside 0-65535, or any other
-/// shape.
+/// [`Refused`] for an unknown name, a count outside 0-65535, or another shape.
 pub fn resolution(value: &Value) -> Result<Resolution> {
     match value {
         Value::Null => Ok(Resolution::default()),
@@ -165,11 +156,11 @@ pub fn resolution(value: &Value) -> Result<Resolution> {
 }
 
 /// Read a rate: `"measured"`, or a number of hertz. `Null` reads as the
-/// default. The range stays the stream's to refuse.
+/// default. The stream refuses a value out of range, not this function.
 ///
 /// # Errors
 ///
-/// [`Refused`] for an unknown name or any other shape. A boolean is no rate.
+/// [`Refused`] for an unknown name, a boolean or another shape.
 pub fn rate(value: &Value) -> Result<Rate> {
     match value {
         Value::Null => Ok(Rate::default()),
@@ -183,11 +174,6 @@ pub fn rate(value: &Value) -> Result<Rate> {
     }
 }
 
-/// Read a duration, in seconds. `key` names it in the refusal.
-///
-/// # Errors
-///
-/// [`Refused`] for a negative or non-finite number, or any other shape.
 pub(crate) fn seconds(key: &str, value: &Value) -> Result<Duration> {
     #[allow(clippy::cast_precision_loss)]
     let number = match value {
@@ -216,12 +202,8 @@ pub fn mode(name: &str) -> Result<Mode> {
         .map_err(|e: crate::codec::UnknownMode| Refused::new(e.to_string()))
 }
 
-/// Read the shape of one command argument, never its type: the device file
-/// declares the type, and [`coerce::read`] reads the value under it.
-///
-/// # Errors
-///
-/// [`Refused`] for a shape that no argument type takes.
+/// Read the shape of an argument only: [`coerce::read`] applies the type that
+/// the device file declares.
 pub(crate) fn supplied(value: &Value, style: Style) -> Result<Supplied> {
     match value {
         Value::Bool(_) | Value::Int(_) | Value::Float(_) => Ok(Supplied::Int(whole(value)?)),
@@ -247,13 +229,12 @@ pub(crate) fn supplied(value: &Value, style: Style) -> Result<Supplied> {
     }
 }
 
-/// Read the arguments of a command, by the names the device file gives
-/// them. `Null` reads as no argument.
+/// Read the arguments of a command, by name. `Null` reads as no argument.
 ///
 /// # Errors
 ///
-/// [`Refused`] for an argument of a shape that no argument type takes, or
-/// where the value is no map.
+/// [`Refused`] where the value is no map, or an argument has a shape that no
+/// argument type takes.
 pub fn args(values: &Value, style: Style) -> Result<Vec<(String, Supplied)>> {
     match values {
         Value::Null => Ok(Vec::new()),

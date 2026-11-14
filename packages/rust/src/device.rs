@@ -53,23 +53,20 @@ impl<'a> DeviceHandle<'a> {
         self.pinned
     }
 
-    /// Make the device reachable, with a scan where a scan is needed, and
-    /// answer the mode that holds it.
+    /// Scan where needed, and answer the mode that reaches the device. Call it
+    /// once before the first command: the send path does not scan.
     ///
-    /// Call it once before the first command, and never between commands:
-    /// the send path does not scan. The enabled modes scan at the same time,
-    /// and the answer is the first one in the configuration's order. A pinned
-    /// handle scans over its mode alone. A device a mode already knows costs
-    /// nothing here.
+    /// The enabled modes scan at the same time, and the answer is the first in
+    /// the configuration's order. A pinned handle scans its mode alone.
     ///
     /// # Errors
     ///
-    /// [`Error::Transport`] with
-    /// [`UnknownDevice`](crate::transport::Error::UnknownDevice) if no mode
-    /// finds the device, or whatever a scan fails with.
-    /// [`Error::ModeNotEnabled`] where the pinned mode is not enabled for it,
-    /// and [`Error::ModeNotImplemented`] or [`Error::MissingCredential`] where
-    /// no enabled mode has a transport in this build.
+    /// - [`Error::Transport`] with
+    ///   [`UnknownDevice`](crate::transport::Error::UnknownDevice) where no
+    ///   mode finds the device, or the error of a scan.
+    /// - [`Error::ModeNotEnabled`] where the device does not enable the pin.
+    /// - [`Error::ModeNotImplemented`] or [`Error::MissingCredential`] where no
+    ///   enabled mode has a transport in this build.
     pub async fn ensure_known(&self) -> Result<Mode> {
         match self.pinned {
             Some(mode) => self.govee.ensure_known_on(&self.id, mode).await,

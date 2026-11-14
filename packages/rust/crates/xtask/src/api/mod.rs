@@ -1,8 +1,6 @@
 //! `dist/api.json`: the method that serves each role on each surface.
-//!
 //! A Rust method serves the roles that the `Serves` line of its doc comment
-//! links. A CLI verb serves the roles of the methods that its dispatch arm
-//! reaches.
+//! links.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -195,7 +193,6 @@ fn on_surface(
         .collect()
 }
 
-/// `Type.name`, or `govee verb`.
 fn head(method: &str) -> &str {
     let end = match method.strip_prefix("govee ") {
         Some(rest) => rest.find(' ').map_or(method.len(), |i| i + "govee ".len()),
@@ -204,8 +201,6 @@ fn head(method: &str) -> &str {
     &method[..end]
 }
 
-/// Each Rust method, and the method or the verb that carries it on every
-/// other surface.
 fn surfaces(
     rust: &params::Params,
     verbs: &BTreeMap<String, Vec<String>>,

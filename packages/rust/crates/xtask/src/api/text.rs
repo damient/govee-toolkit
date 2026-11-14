@@ -1,9 +1,7 @@
-//! The Node and Python surfaces. napi writes `binding.d.cts`, and stubtest
-//! checks `_govee_toolkit.pyi` against the module.
+//! The Node and Python surfaces, read from `binding.d.cts` and the stub.
 
 use std::collections::BTreeMap;
 
-/// `Class.name(arg: type, …)`. A getter has no argument list.
 pub(super) fn node(text: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut class: Option<&str> = None;
@@ -41,8 +39,7 @@ pub(super) fn node(text: &str) -> Vec<String> {
     out
 }
 
-/// The `@param [name=value]` lines of each doc comment, by the `Class.name`
-/// that follows them.
+/// The `@param [name=value]` lines, by the `Class.name` that follows them.
 pub(super) fn node_defaults(text: &str) -> BTreeMap<String, BTreeMap<String, String>> {
     let mut out: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
     let mut class: Option<&str> = None;
@@ -78,8 +75,6 @@ pub(super) fn node_defaults(text: &str) -> BTreeMap<String, BTreeMap<String, Str
     out
 }
 
-/// `Class.name(arg: type, …)`, and a constructor as `Class(…)`. A property
-/// has no argument list.
 pub(super) fn python(text: &str) -> Vec<String> {
     let lines: Vec<&str> = text.lines().collect();
     let mut out = Vec::new();
@@ -134,7 +129,6 @@ pub(super) fn python(text: &str) -> Vec<String> {
     out
 }
 
-/// `name(args) -> ret` to `<prefix>name(args)`.
 fn signature(prefix: &str, text: &str) -> String {
     let open = text.find('(').unwrap_or(text.len());
     let name = &text[..open];
@@ -160,7 +154,6 @@ pub(super) fn split_top(text: &str) -> Vec<&str> {
     split_any(text, &[','])
 }
 
-/// `text` cut at each separator that stands outside brackets.
 pub(super) fn split_any<'a>(text: &'a str, separators: &[char]) -> Vec<&'a str> {
     let mut parts = Vec::new();
     let mut level = 0i32;

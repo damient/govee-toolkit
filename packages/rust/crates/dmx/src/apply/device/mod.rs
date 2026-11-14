@@ -47,10 +47,8 @@ pub(super) struct Feeder {
 
 impl Feeder {
     /// The device, over `lan` alone. A device that stops answering is
-    /// reported unreachable, and no other mode is substituted.
-    ///
-    /// The handle holds the identity and the mode alone, so a build per
-    /// datagram costs what a clone of the identity costs.
+    /// reported unreachable, and no other mode is substituted. A build per
+    /// datagram costs one clone of the identity.
     fn device(&self) -> govee_toolkit::Result<DeviceHandle<'_>> {
         self.govee.device(&self.id, Some(Mode::Lan))
     }

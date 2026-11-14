@@ -1,6 +1,4 @@
-// The parameter tables of a reference entry, one for each language. The rows
-// come from `dist/api.json`, which `xtask api` reads from the code, so a table
-// follows the signature it describes.
+// The rows come from `dist/api.json`, so a table follows the signature it describes.
 
 import { CHEVRON } from "./docs.ts";
 import { escapeHtml } from "./html.ts";
@@ -39,7 +37,6 @@ function table(rows: ApiParam[]): string {
 export function paramTables(entry: RefEntry, api: Api, langs: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const lang of langs) {
-    // A method that takes no parameter carries no block.
     const blocks = methods(entry, api, lang)
       .map((method) => [method, api.params[lang]?.[method] ?? []] as const)
       .filter(([, rows]) => rows.length > 0)

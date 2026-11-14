@@ -65,10 +65,8 @@ impl Catalog {
             .collect()
     }
 
-    /// The SKUs, verified aliases included, that match every filter given.
-    /// `capability` reads the capabilities of `mode` where it is given, and
-    /// those of the hardware otherwise.
-    ///
+    /// Every SKU, verified aliases included, that matches every filter given.
+    /// `capability` reads the capabilities of `mode`, else of the hardware.
     /// Raises `ValueError` for an unknown mode, and for `support` without
     /// `mode`.
     #[pyo3(signature = (mode=None, capability=None, support=None))]

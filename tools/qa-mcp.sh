@@ -14,7 +14,6 @@ export CARGO_TERM_COLOR=always
 . "$root/tools/lib/qa.sh"
 qa_init govee-qa-mcp "${1:-}"
 
-# check <name> <command...> — in integrations/mcp/.
 check() {
   local name=$1
   shift
@@ -23,7 +22,6 @@ check() {
 
 node_checks=("mcp types" "mcp lint" "mcp build" "mcp tests")
 
-# `xtask api` also checks the join, which `tools/qa.sh` does not check again.
 if have cargo; then
   check "mcp api join" cargo run -q --manifest-path "$rust/Cargo.toml" -p xtask -- api
   check "mcp simulator" cargo build -q --manifest-path "$rust/Cargo.toml" -p govee-toolkit-sim

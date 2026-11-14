@@ -1,4 +1,4 @@
-// One device is a group of one, as in the CLI, so both answer the same shape.
+// One device answers as a `Devices` of one, as in the CLI.
 
 import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import type { Applied, Devices } from "govee-toolkit";

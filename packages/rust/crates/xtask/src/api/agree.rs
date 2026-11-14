@@ -1,8 +1,5 @@
-//! Each surface writes its own defaults: the check that they state one value.
-//!
-//! A parameter is matched by its name in `snake_case`, with the object
-//! prefix of a Node option and the `--` of a flag removed. A flag that ends
-//! in `-ms` counts milliseconds where the bindings count seconds.
+//! The check that every surface states one default for each parameter.
+//! A flag that ends in `-ms` counts milliseconds, and a binding counts seconds.
 
 use std::collections::BTreeMap;
 
@@ -17,7 +14,6 @@ enum Value {
     Color([u8; 3]),
 }
 
-/// One error for each parameter that two surfaces give two defaults.
 pub(super) fn defaults(
     rust: &Params,
     surfaces: &[(&str, &Params)],
@@ -62,7 +58,6 @@ pub(super) fn defaults(
     errors
 }
 
-/// The shared name and the value, or `None` where the default is "absent".
 fn normal(param: &str, default: &str) -> Option<(String, Value)> {
     let last = param.rsplit('.').next().unwrap_or(param);
     let flag = last.strip_prefix("--");
@@ -92,7 +87,6 @@ fn normal(param: &str, default: &str) -> Option<(String, Value)> {
     Some((id, value))
 }
 
-/// `#RRGGBB`, `(r, g, b)` or `[r, g, b]`.
 fn color(text: &str) -> Option<[u8; 3]> {
     if let Some(hex) = text.strip_prefix('#') {
         let byte = |at: usize| u8::from_str_radix(hex.get(at..at + 2)?, 16).ok();

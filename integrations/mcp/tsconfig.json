@@ -1,5 +1,4 @@
 {
-  // The check covers every source; `tsconfig.build.json` emits `src/` alone.
   "compilerOptions": {
     "target": "es2023",
     "lib": ["es2023"],

@@ -48,13 +48,11 @@ pub fn describe_sku(catalog: &Catalog, sku: &str) -> codec::Result<Value> {
 }
 
 /// The SKUs of `catalog`, verified aliases included, that match every filter
-/// given. `capability` reads the capabilities of `mode` where it is given,
-/// and those of the hardware otherwise. `support` needs `mode`.
+/// given. `capability` reads the capabilities of `mode`, else of the hardware.
 ///
 /// # Errors
 ///
-/// [`Refused`](crate::input::Refused) where `support` is given without
-/// `mode`.
+/// [`Refused`](crate::input::Refused) for `support` without `mode`.
 pub fn query(
     catalog: &Catalog,
     mode: Option<Mode>,

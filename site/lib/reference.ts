@@ -47,8 +47,7 @@ ${entries}
         </section>`;
 }
 
-// The detail opens from a mark after the summary, on hover and on focus, so a
-// tap on a phone opens it too.
+// A button, so that a tap on a phone opens the detail too.
 function help(entry: RefEntry): string {
   if (!filled(entry.detail)) return "";
   const id = `tip-${entry.id}`;

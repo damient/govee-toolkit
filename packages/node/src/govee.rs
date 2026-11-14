@@ -43,12 +43,8 @@ impl Govee {
     }
 
     /// Run a discovery scan and return what answered. Without `modes`, it
-    /// scans every mode.
-    ///
-    /// The scans run at the same time, so the call takes the longest window
-    /// and not their sum. A mode this build carries no transport for
-    /// contributes nothing and is not an error. Nothing on the send path calls
-    /// this.
+    /// scans every mode. The modes scan at the same time. A mode that this
+    /// build carries no transport for adds nothing and is not an error.
     #[napi]
     pub fn scan<'env>(
         &self,
@@ -100,17 +96,12 @@ impl Govee {
         }
     }
 
-    /// A handle for one device, by its identity or by the name the
-    /// configuration gives it. It reads the configuration and no scan, and
-    /// throws for a SKU or a group.
+    /// A handle for one device, by its identity or by its configured name.
+    /// `id:` and `name:` state the kind. It scans nothing. A SKU or a group
+    /// throws `target_not_understood`: use `devices()` for them.
     ///
-    /// A bare target is a name where the configuration gives one, and an
-    /// identity where it reads as one. `id:` and `name:` state the kind.
-    ///
-    /// `mode` pins every call on the handle to that mode: a call goes over
-    /// it or throws. Without it, each call goes over the first enabled mode
-    /// that answers. Pin a mode where the caller serves one mode by design,
-    /// such as a bridge that reaches a device over `lan`.
+    /// `mode` pins every call on the handle to that mode. Without it, each
+    /// call goes over the first enabled mode that answers.
     #[napi(ts_args_type = "target: string, options?: { mode?: string }")]
     pub fn device(
         &self,
@@ -124,24 +115,16 @@ impl Govee {
         })
     }
 
-    /// The devices that the targets name, in the order written. A device
-    /// that two targets name appears once, where it was named first.
-    ///
-    /// A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name that the
-    /// configuration gives a device (`name:kitchen`), or a group that it
-    /// gives (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the
-    /// kind where the target alone does not. `null` selects every device that
-    /// a scan finds.
-    ///
-    /// A SKU, and `null`, read the devices that a scan found: the first call
-    /// that needs a scan runs one, and `scan()` counts as that scan. An
-    /// identity, a name and a group read the configuration and scan nothing.
+    /// The devices that the targets name, each once, in the order written. A
+    /// target is an identity, a SKU, a configured name or a group: `id:`,
+    /// `sku:`, `name:` and `group:` state the kind. `null` selects every device
+    /// that a scan finds. A SKU or `null` runs one scan on the first call, and
+    /// `scan()` counts as that scan.
     ///
     /// `enables` keeps the devices that enable that mode, and rejects with
-    /// `no_such_target` where a SKU, a name or a group then keeps none. An
-    /// identity is kept either way. `mode` pins every member, as for
-    /// `device()`: a member that does not enable it fails alone, in its
-    /// outcome.
+    /// `no_such_target` where a SKU, a name or a group keeps none. `mode` pins
+    /// every member as for `device()`: a member that does not enable it fails
+    /// alone, in its outcome.
     #[napi(
         ts_args_type = "targets?: Array<string> | null, options?: { enables?: string; mode?: string }"
     )]
@@ -161,10 +144,8 @@ impl Govee {
         })
     }
 
-    /// Run the walk `govee identify` runs. `targets` reads as `devices()`
-    /// reads it; `null` walks every device that a scan finds. `wait` is the
-    /// time between two steps and `hold` the time on the last device, in
-    /// seconds. An unknown option is refused.
+    /// Run the walk `govee identify` runs. `targets` reads as for `devices()`.
+    /// `wait` and `hold` are in seconds. An unknown option is refused.
     ///
     /// Rejects with `mode_not_enabled` before it sends a command where a
     /// device does not enable the mode. A device that fails is in the report.

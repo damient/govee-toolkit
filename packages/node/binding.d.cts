@@ -18,9 +18,8 @@ export declare class Applied {
   /** Whether every member took every step. */
   get ok(): boolean
   /**
-   * The line that reports the failures: `"2 of 3 devices failed: <ids>"`,
-   * or the error's own message where the set has one member. `null`
-   * where every member took every step.
+   * `"N of M devices failed: ids"`, or the error's own message for a set
+   * of one member. `null` where every member took every step.
    */
   get verdict(): string | null
 }
@@ -61,9 +60,8 @@ export declare class Catalog {
   capabilities(): Array<string>
   /**
    * Every SKU, verified aliases included, that matches every filter given.
-   * `capability` reads the capabilities of `mode` where it is given, and
-   * those of the hardware otherwise. `support` needs `mode`, and an
-   * unknown key is refused.
+   * `capability` reads the capabilities of `mode`, else of the hardware.
+   * `support` needs `mode`. An unknown key is refused.
    */
   query(filter?: { mode?: string | undefined; capability?: string | undefined; support?: string | undefined }): Array<string>
   /** How many device files the build carries. */
@@ -118,10 +116,7 @@ export declare class Device {
    * heard from it.
    */
   get health(): Record<string, Health>
-  /**
-   * The record every surface prints: `id`, `sku`, `name`, and one
-   * `{ mode, health }` per enabled mode.
-   */
+  /** The record that every surface prints. */
   toJSON(): { id: string; sku: string; name: string | null; modes: Array<{ mode: string; health: { state: string; failures: number; available: boolean } | null }> }
   toString(): string
 }
@@ -140,10 +135,7 @@ export declare class DeviceHandle {
   invoke(command: string, args?: Record<string, boolean | number | string | Uint8Array | Array<number> | Array<[number, number, number]>>, refuseSecrets?: boolean | undefined | null): Promise<Invoked>
   /** The MAC the device reports, uppercased. */
   get id(): string
-  /**
-   * The one mode every call on this handle goes over, or `null` where each
-   * call takes the first enabled mode that answers.
-   */
+  /** The one mode that every call goes over, or `null`. */
   get pinned(): string | null
   /** The modes enabled for it, in preference order. */
   get modes(): Array<string>
@@ -176,9 +168,7 @@ export declare class DeviceHandle {
    * Scan for the device if no mode knows it yet, then answer the mode a
    * command would go over.
    *
-   * Call it once before the first command: the send path does not scan.
-   * The enabled modes scan at the same time, and a pinned handle scans
-   * over its mode alone.
+   * Call it once before the first command: a command never scans.
    */
   ensureKnown(): Promise<string>
   /**
@@ -239,8 +229,7 @@ export declare class DeviceHandle {
    * One pass: the device stays on and lit, and loses the look it held.
    * `Govee.identify()` runs the whole walk.
    *
-   * `fullBrightness` sets the top of the brightness range the device
-   * file declares.
+   * `fullBrightness` sets the top of the declared brightness range.
    *
    * @param [color=[0, 255, 0]]
    * @param [fullBrightness=true]
@@ -277,9 +266,9 @@ export declare class DeviceHandle {
 }
 
 /**
- * The devices that `Govee.devices()` selects. Every verb on it runs on
- * every member at once, answers one `Outcome` per member in member order,
- * and rejects for nothing a member does.
+ * The devices that `Govee.devices()` selects. A verb runs on every member at
+ * once, answers one `Outcome` per member, and rejects for nothing a member
+ * does.
  */
 export declare class Devices {
   /**
@@ -288,21 +277,17 @@ export declare class Devices {
    */
   apply(verbs: { power?: boolean, brightness?: number, color?: [number, number, number] | Uint8Array, colorTemp?: number, segment?: { colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number>, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean }, music?: { effect: number, sensitivity?: number, soft?: boolean, color?: [number, number, number] | Uint8Array }, gradient?: boolean }): Promise<Applied>
   /**
-   * One handle per member, in the order of every outcome list. Each one
-   * carries the mode that `Govee.devices()` pins.
+   * One handle per member, in outcome order, with the mode that
+   * `Govee.devices()` pins.
    */
   get members(): Array<DeviceHandle>
-  /** The number of members. */
   get length(): number
   /**
-   * What the SDK holds for each member: the SKU, the name, the groups, the
-   * modes and the health. Reads no hardware.
-   *
-   * A member that no transport knows and that the configuration pins no
-   * SKU for is not in the list. `members` holds every member.
+   * What the SDK holds for each member. Reads no hardware. A member that no
+   * transport knows and that the configuration gives no SKU is left out.
    */
   list(): Array<Device>
-  /** Scan for every member that no mode knows. Each outcome carries its mode. */
+  /** Scan for every member that no mode knows. */
   ensureKnown(): Promise<Array<Outcome>>
   /** Turn every member on or off. */
   power(on: boolean): Promise<Array<Outcome>>
@@ -350,10 +335,7 @@ export declare class DeviceStatus {
   get raw(): any
   /** Whether the device is in white mode. Mutually exclusive with color. */
   get isWhite(): boolean
-  /**
-   * The record every surface prints. `color` is `#RRGGBB` there, and
-   * `colorTempKelvin` is `color_temp_kelvin`.
-   */
+  /** The record that every surface prints, with `color` as `"#RRGGBB"`. */
   toJSON(): { id: string; on: boolean | null; brightness: number | null; color: string | null; color_temp_kelvin: number | null; raw: unknown }
   toString(): string
 }
@@ -384,12 +366,8 @@ export declare class Govee {
   static start(config?: Config | undefined | null, catalog?: Catalog | undefined | null): Promise<Govee>
   /**
    * Run a discovery scan and return what answered. Without `modes`, it
-   * scans every mode.
-   *
-   * The scans run at the same time, so the call takes the longest window
-   * and not their sum. A mode this build carries no transport for
-   * contributes nothing and is not an error. Nothing on the send path calls
-   * this.
+   * scans every mode. The modes scan at the same time. A mode that this
+   * build carries no transport for adds nothing and is not an error.
    */
   scan(modes?: Array<string> | undefined | null): Promise<Array<Device>>
   /**
@@ -404,45 +382,30 @@ export declare class Govee {
   /** The device catalog in force. */
   get catalog(): Catalog
   /**
-   * A handle for one device, by its identity or by the name the
-   * configuration gives it. It reads the configuration and no scan, and
-   * throws for a SKU or a group.
+   * A handle for one device, by its identity or by its configured name.
+   * `id:` and `name:` state the kind. It scans nothing. A SKU or a group
+   * throws `target_not_understood`: use `devices()` for them.
    *
-   * A bare target is a name where the configuration gives one, and an
-   * identity where it reads as one. `id:` and `name:` state the kind.
-   *
-   * `mode` pins every call on the handle to that mode: a call goes over
-   * it or throws. Without it, each call goes over the first enabled mode
-   * that answers. Pin a mode where the caller serves one mode by design,
-   * such as a bridge that reaches a device over `lan`.
+   * `mode` pins every call on the handle to that mode. Without it, each
+   * call goes over the first enabled mode that answers.
    */
   device(target: string, options?: { mode?: string }): DeviceHandle
   /**
-   * The devices that the targets name, in the order written. A device
-   * that two targets name appears once, where it was named first.
-   *
-   * A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name that the
-   * configuration gives a device (`name:kitchen`), or a group that it
-   * gives (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the
-   * kind where the target alone does not. `null` selects every device that
-   * a scan finds.
-   *
-   * A SKU, and `null`, read the devices that a scan found: the first call
-   * that needs a scan runs one, and `scan()` counts as that scan. An
-   * identity, a name and a group read the configuration and scan nothing.
+   * The devices that the targets name, each once, in the order written. A
+   * target is an identity, a SKU, a configured name or a group: `id:`,
+   * `sku:`, `name:` and `group:` state the kind. `null` selects every device
+   * that a scan finds. A SKU or `null` runs one scan on the first call, and
+   * `scan()` counts as that scan.
    *
    * `enables` keeps the devices that enable that mode, and rejects with
-   * `no_such_target` where a SKU, a name or a group then keeps none. An
-   * identity is kept either way. `mode` pins every member, as for
-   * `device()`: a member that does not enable it fails alone, in its
-   * outcome.
+   * `no_such_target` where a SKU, a name or a group keeps none. `mode` pins
+   * every member as for `device()`: a member that does not enable it fails
+   * alone, in its outcome.
    */
   devices(targets?: Array<string> | null, options?: { enables?: string; mode?: string }): Promise<Devices>
   /**
-   * Run the walk `govee identify` runs. `targets` reads as `devices()`
-   * reads it; `null` walks every device that a scan finds. `wait` is the
-   * time between two steps and `hold` the time on the last device, in
-   * seconds. An unknown option is refused.
+   * Run the walk `govee identify` runs. `targets` reads as for `devices()`.
+   * `wait` and `hold` are in seconds. An unknown option is refused.
    *
    * Rejects with `mode_not_enabled` before it sends a command where a
    * device does not enable the mode. A device that fails is in the report.
@@ -472,7 +435,7 @@ export declare class Health {
   get failures(): number
   /** Whether a command would be sent right now. */
   get available(): boolean
-  /** The record every surface prints: `state`, `failures`, `available`. */
+  /** The record that every surface prints. */
   toJSON(): { state: string; failures: number; available: boolean }
   toString(): string
 }
@@ -487,7 +450,7 @@ export declare class Invoked {
   get command(): string
   /**
    * What the `reply:` layouts captured, or `null` for a command that was
-   * sent and not read.
+   * sent.
    */
   get fields(): any | null
 }
@@ -502,12 +465,9 @@ export declare class Outcome {
   get mode(): string | null
   /** The command served. `null` on a failure and for `ensureKnown()`. */
   get served(): Served | null
-  /** What the call on one device throws. `null` where it succeeded. */
+  /** What the call on this member throws. `null` where it succeeded. */
   get error(): Error | null
-  /**
-   * The record every surface prints: `id`, `ok`, `mode`, `command`, and
-   * `error` as `{ code, message }`.
-   */
+  /** The record that every surface prints. */
   toJSON(): { id: string; ok: boolean; mode: string | null; command: string | null; error: { code: string; message: string } | null }
   toString(): string
 }
@@ -528,9 +488,9 @@ export declare class Reply {
  * An open segment channel. The writers never block: each one replaces what
  * the next frame carries.
  *
- * Close it, or leave it with `await using`. A stream that is collected
- * disarms the channel as well, and reports no failure. A write after
- * `close()` throws `stream_closed`.
+ * Close it, or leave it with `await using`. Garbage collection also disarms
+ * the channel, and reports no failure. A write after `close()` throws
+ * `stream_closed`.
  */
 export declare class SegmentStream {
   /**
@@ -583,7 +543,7 @@ export declare class Served {
   get command(): string
   /** The name the wire carries, where it carries one. */
   get cmd(): string
-  /** The record every surface prints: `id`, `mode`, `command`. */
+  /** The record that every surface prints. */
   toJSON(): { id: string; mode: string; command: string }
   toString(): string
 }

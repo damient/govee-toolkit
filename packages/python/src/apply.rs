@@ -43,7 +43,7 @@ impl Invoked {
     }
 
     /// What the `reply:` layouts captured, or `None` for a command that was
-    /// sent and not read.
+    /// sent.
     #[getter]
     fn fields(&self, py: Python<'_>) -> PyResult<Option<Py<PyAny>>> {
         self.fields

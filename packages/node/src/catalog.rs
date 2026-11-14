@@ -72,9 +72,8 @@ impl Catalog {
     }
 
     /// Every SKU, verified aliases included, that matches every filter given.
-    /// `capability` reads the capabilities of `mode` where it is given, and
-    /// those of the hardware otherwise. `support` needs `mode`, and an
-    /// unknown key is refused.
+    /// `capability` reads the capabilities of `mode`, else of the hardware.
+    /// `support` needs `mode`. An unknown key is refused.
     #[napi(
         ts_args_type = "filter?: { mode?: string | undefined; capability?: string | undefined; support?: string | undefined }"
     )]

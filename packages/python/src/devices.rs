@@ -1,4 +1,4 @@
-//! Several devices driven as one.
+//! Several devices, and the verbs each member answers alone.
 
 use std::future::Future;
 
@@ -55,14 +55,14 @@ impl Outcome {
         self.served.clone()
     }
 
-    /// What the call on one device raises. `None` where it succeeded.
+    /// What the call on this member raises. `None` where it succeeded.
     #[getter]
     fn error(&self, py: Python<'_>) -> Option<Py<PyAny>> {
         self.error.as_ref().map(|error| error.clone_ref(py))
     }
 
-    /// The record every surface prints: `id`, `ok`, `mode`, `command`, and
-    /// `error` as a dict of `code` and `message`.
+    /// The record that every surface prints: `id`, `ok`, `mode`, `command`,
+    /// and `error` as a dict of `code` and `message`.
     fn to_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         conv::to_py(py, &self.record)
     }
@@ -93,9 +93,9 @@ pub(crate) fn outcomes<T: Answer>(outcomes: &[CoreOutcome<T>]) -> Vec<Outcome> {
     outcomes.iter().map(Outcome::new).collect()
 }
 
-/// The devices that `Govee.devices()` selects. Every verb on it runs on every
-/// member at once, answers one `Outcome` per member in member order, and
-/// raises for nothing a member does.
+/// The devices that `Govee.devices()` selects. A verb runs on every member at
+/// once, answers one `Outcome` per member, and raises for nothing a member
+/// does.
 #[pyclass(
     frozen,
     skip_from_py_object,
@@ -109,18 +109,15 @@ pub(crate) struct Devices {
 
 #[pymethods]
 impl Devices {
-    /// One handle per member, in the order of every outcome list. Each handle
-    /// is pinned as the members are.
+    /// One handle per member, in outcome order, with the mode that
+    /// `Govee.devices()` pins.
     #[getter]
     fn members(&self) -> Vec<DeviceHandle> {
         self.handles()
     }
 
-    /// What the SDK holds for each member: the SKU, the name, the groups, the
-    /// modes and the health. Reads no hardware.
-    ///
-    /// A member that no transport knows and that the configuration pins no
-    /// SKU for is not in the list. `members` holds every member.
+    /// What the SDK holds for each member. Reads no hardware. A member that no
+    /// transport knows and that the configuration gives no SKU is left out.
     fn list(&self) -> Vec<Device> {
         self.inner
             .devices()
@@ -130,8 +127,7 @@ impl Devices {
             .collect()
     }
 
-    /// Scan for every member that no mode knows. Each outcome carries its
-    /// mode. A pinned member scans over its mode alone.
+    /// Scan for every member that no mode knows.
     fn ensure_known<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         self.each(
             py,

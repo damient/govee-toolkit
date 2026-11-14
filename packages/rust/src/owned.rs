@@ -1,10 +1,3 @@
-//! Handles that own a clone of the SDK, for a caller that cannot hold a
-//! borrow: a binding object, or a future sent to another task.
-//!
-//! Each call borrows a [`DeviceHandle`] or a [`Devices`] from the owned
-//! value. That borrow scans nothing and reads no state, so it adds no work to
-//! the send path.
-
 use crate::codec::Mode;
 use crate::device::DeviceHandle;
 use crate::devices::Devices;
@@ -13,7 +6,8 @@ use crate::govee::Govee;
 use crate::select::{Filter, Target};
 use crate::transport::DeviceId;
 
-/// One identity on an SDK, with its pin.
+/// One identity on an SDK, with its pin, for a caller that cannot hold a
+/// borrow.
 #[derive(Debug, Clone)]
 pub struct OwnedDevice {
     govee: Govee,
@@ -75,7 +69,7 @@ impl OwnedDevices {
             .collect()
     }
 
-    /// The set for one call. It resolves nothing and scans nothing.
+    /// The set for one call. It scans nothing.
     #[must_use]
     pub fn devices(&self) -> Devices<'_> {
         self.ids

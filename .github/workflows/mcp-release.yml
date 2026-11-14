@@ -1,5 +1,4 @@
-# Publishes integrations/mcp. Triggered by an mcp-vX.Y.Z tag. Push node-vX.Y.Z
-# first: the package depends on the binding of this commit, from npm.
+# Push node-vX.Y.Z first: the package installs the binding from npm.
 name: MCP release
 
 on:
@@ -51,8 +50,7 @@ jobs:
         working-directory: integrations/mcp
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # Do not set `registry-url`: the job holds no token, so the option only
-      # writes an empty `_authToken`. npmjs.org is the default registry.
+      # No `registry-url`: with no token, it only writes an empty `_authToken`.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
@@ -74,7 +72,6 @@ jobs:
         run: |
           cargo run -q -p xtask -- api
           cargo build -q -p govee-toolkit-sim
-      # The binding from npm, as a user installs it.
       - run: npm ci
       - run: npm run build
       - name: Test against the published binding

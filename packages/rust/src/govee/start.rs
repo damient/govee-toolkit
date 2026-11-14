@@ -32,8 +32,8 @@ impl Govee {
         Self::start_with(config, catalog).await
     }
 
-    /// Start as a binding starts: the configuration file where `config` is
-    /// `None`, and [`Govee::start`]'s catalog where `catalog` is `None`.
+    /// [`Govee::start`], with the configuration file for a `None` `config` and
+    /// the catalog of [`Govee::start`] for a `None` `catalog`.
     ///
     /// # Errors
     ///

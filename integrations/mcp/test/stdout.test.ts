@@ -1,5 +1,3 @@
-// stdout carries the JSON-RPC stream: one byte of log there breaks the client.
-
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";

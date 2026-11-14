@@ -1,12 +1,3 @@
-//! The one resolver: targets in, device handles out.
-//!
-//! An identity selects itself. A name and a group read the configuration. A
-//! SKU, and [`Filter::all`], read the devices that answered a scan in this
-//! process: the first call that needs one scans, and later calls read what
-//! that scan found. A device that only the `lan` cache holds is not one of
-//! them. The cache serves a command sent by identity, and a selection that
-//! pays for a scan does not need it.
-
 use std::collections::BTreeMap;
 
 #[cfg(doc)]
@@ -51,7 +42,6 @@ impl<'t> From<&'t DeviceId> for Target<'t> {
 /// The devices that [`Govee::devices`] selects.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Filter {
-    /// `None` selects every device a scan finds.
     targets: Option<Vec<Wanted>>,
     enables: Option<Mode>,
 }
@@ -69,8 +59,7 @@ impl Filter {
         Self::default()
     }
 
-    /// The devices that the targets name, in the order written. An empty list
-    /// selects no device.
+    /// The devices that the targets name, in order. An empty list selects none.
     #[must_use]
     pub fn targets<I, T>(targets: I) -> Self
     where
@@ -88,8 +77,7 @@ impl Filter {
         }
     }
 
-    /// The targets where there are some, else every device, kept to the
-    /// devices that enable `enables` where it is set.
+    /// [`Filter::targets`], else [`Filter::all`], then [`Filter::enables`].
     #[must_use]
     pub fn from_parts<T: Into<String>>(targets: Option<Vec<T>>, enables: Option<Mode>) -> Self {
         let filter = targets.map_or_else(Self::all, Self::targets);
@@ -112,16 +100,15 @@ impl Filter {
     }
 
     /// Keep the devices that the configuration enables `mode` for. A SKU, a
-    /// name or a group that then keeps no device is
-    /// [`Error::NotOnMode`]. An identity is kept whatever it enables.
+    /// name or a group that keeps no device is [`Error::NotOnMode`]. An
+    /// identity is always kept.
     #[must_use]
     pub fn enables(mut self, mode: Mode) -> Self {
         self.enables = Some(mode);
         self
     }
 
-    /// A target that fails to parse fails later, in the resolver, so it
-    /// asks for no scan here.
+    /// A target that fails to parse asks for no scan: the resolver reports it.
     fn needs_scan(&self, catalog: &Catalog) -> bool {
         self.targets.as_ref().is_none_or(|targets| {
             targets.iter().any(|wanted| match wanted {
@@ -136,16 +123,14 @@ impl Filter {
 
 impl Govee {
     /// A handle for the one device that `target` names: an identity, or a
-    /// name that the configuration gives. It reads the configuration alone
-    /// and scans nothing.
-    ///
-    /// `mode` pins every call on the handle to that mode. With `None`, each
-    /// call goes over the first enabled mode that answers.
+    /// configured name. It scans nothing. `mode` pins every call on the
+    /// handle. With `None`, each call goes over the first enabled mode that
+    /// answers.
     ///
     /// # Errors
     ///
-    /// [`Error::NotOne`] for a SKU or a group, and every other
-    /// [`Error`] that [`Selector::resolve`] reports. An identity never fails.
+    /// [`Error::NotOne`] for a SKU or a group, and every other [`Error`] that
+    /// [`Selector::resolve`] reports. An identity never fails.
     pub fn device<'t>(
         &self,
         target: impl Into<Target<'t>>,
@@ -158,16 +143,14 @@ impl Govee {
         Ok(DeviceHandle::new(self, id, mode))
     }
 
-    /// The devices that `filter` selects, as one handle.
+    /// The devices that `filter` selects, as one handle, each one once in the
+    /// order first named. `mode` pins every member as for [`Govee::device`]:
+    /// a member that does not enable it fails alone, on each call.
     ///
-    /// A device that two targets name appears once, where it was named first.
-    /// `mode` pins every member as for [`Govee::device`]: a member that does
-    /// not enable it fails alone, on each call.
-    ///
-    /// The first call that reads a SKU, or [`Filter::all`], scans the modes it
-    /// reads: the mode of [`Filter::enables`], else `mode`, else every mode.
-    /// [`Govee::scan`] counts as that scan. A device that only the `lan`
-    /// cache holds matches no SKU and is not in [`Filter::all`].
+    /// The first call that reads a SKU or [`Filter::all`] scans the mode of
+    /// [`Filter::enables`], else `mode`, else every mode. [`Govee::scan`]
+    /// counts as that scan. A device that only the `lan` cache holds matches
+    /// no SKU and is not in [`Filter::all`].
     ///
     /// # Errors
     ///
@@ -223,9 +206,8 @@ impl Govee {
         Ok(chosen)
     }
 
-    /// The devices that answered a scan, and the devices the configuration
-    /// declares. A declared device that answered no scan carries the SKU the
-    /// configuration pins, or an empty one that no SKU matches.
+    /// A declared device that answered no scan carries the SKU that the
+    /// configuration pins, or an empty SKU that matches nothing.
     fn candidates(&self) -> Vec<Device> {
         let mut all = self.heard_skus();
         for id in self.inner.config.devices.keys() {
@@ -234,8 +216,8 @@ impl Govee {
         self.described(all)
     }
 
-    /// Scan once per mode and per SDK. The lock stays held over the scan,
-    /// so two calls at the same time scan once between them.
+    /// The lock stays held over the scan, so that two calls at the same time
+    /// scan once.
     async fn scan_once(&self, mode: Option<Mode>) -> Result<()> {
         let mut scanned = self.inner.scanned.lock().await;
         let missing: Vec<Mode> = match mode {
@@ -265,8 +247,7 @@ impl Govee {
         known
     }
 
-    /// Every device a transport knows. One that two modes reach appears once:
-    /// the identity is the MAC.
+    /// A device that two modes reach appears once: the identity is the MAC.
     pub(crate) fn known(&self) -> Vec<Device> {
         self.described(self.known_skus())
     }

@@ -46,9 +46,7 @@ export function tabs(): void {
   if (stored !== null) show(stored);
 }
 
-// The parameter folds of one block open and close together, so a reader who
-// opens one keeps it open in every language. A fold already in the wanted
-// state fires no toggle, which ends the loop.
+// A fold already in the wanted state fires no toggle, which ends the loop.
 function folds(el: HTMLElement): void {
   const all = [...el.querySelectorAll<HTMLDetailsElement>("details.ref-fold")];
   for (const fold of all) {

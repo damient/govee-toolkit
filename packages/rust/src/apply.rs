@@ -1,5 +1,3 @@
-//! Several role verbs on several devices, sent in one fixed order.
-
 use crate::codec::Mode;
 use crate::device::DeviceHandle;
 use crate::devices::{Devices, Outcome};
@@ -86,8 +84,7 @@ impl Applied {
     }
 
     /// The line that reports the failures, `None` when clean. A set of one
-    /// member reports the error's own message, so it fails as a command on
-    /// one device does.
+    /// member reports the error's own message.
     #[must_use]
     pub fn verdict(&self) -> Option<String> {
         let mut failures = self.failures();
@@ -140,8 +137,7 @@ impl Devices<'_> {
     }
 
     /// Scan for the members, then send the verbs, power on first and power off
-    /// last. A member that fails takes no later step, and stops no other
-    /// member.
+    /// last. A member that fails takes no later step.
     pub async fn apply(&self, mut verbs: Vec<Verb>) -> Applied {
         verbs.sort_by_key(Verb::rank);
         let reached = self.ensure_known().await;

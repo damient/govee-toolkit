@@ -1,7 +1,5 @@
-//! What crosses between a Python value and a core value.
-//!
-//! A Python value becomes an `input::Value` here, and the core reads it. Every
-//! shape rule, default and refusal is the core's.
+//! What crosses between a Python value and a core value. The shape rules live
+//! in `govee_toolkit::input`.
 
 use govee_toolkit::codec::Supplied;
 use govee_toolkit::input::{self, Refused, Value};
@@ -14,13 +12,11 @@ use serde::Serialize;
 
 use crate::errors::value_error;
 
-/// Raise a core refusal as `ValueError`.
 pub(crate) fn read<T>(result: input::Result<T>) -> PyResult<T> {
     result.map_err(|Refused(message)| value_error(message))
 }
 
-/// Read a Python value as the shapes every host shares. `bool` comes before
-/// `int`, since `bool` subclasses `int`.
+/// `bool` comes before `int`: `bool` subclasses `int`.
 pub(crate) fn value(object: &Bound<'_, PyAny>) -> PyResult<Value> {
     if object.is_none() {
         return Ok(Value::Null);
@@ -88,12 +84,11 @@ fn entries(dict: &Bound<'_, PyDict>) -> PyResult<Vec<(String, Value)>> {
         .collect()
 }
 
-/// Read an optional value. `None`, passed or left out, reads as `Null`.
 pub(crate) fn optional(object: Option<&Bound<'_, PyAny>>) -> PyResult<Value> {
     object.map_or(Ok(Value::Null), value)
 }
 
-/// A map of the keyword arguments a caller passed. A `None` is left out.
+/// A `None` keyword is left out.
 pub(crate) fn keywords(pairs: &[(&str, Option<&Bound<'_, PyAny>>)]) -> PyResult<Value> {
     let mut entries = Vec::new();
     for (key, object) in pairs {

@@ -52,7 +52,7 @@ impl Outcome {
         self.served.clone().map(Served::from)
     }
 
-    /// What the call on one device throws. `null` where it succeeded.
+    /// What the call on this member throws. `null` where it succeeded.
     #[napi(getter, ts_return_type = "Error | null")]
     pub fn error<'env>(&self, env: &'env Env) -> napi::Result<Option<Object<'env>>> {
         self.error
@@ -61,8 +61,7 @@ impl Outcome {
             .transpose()
     }
 
-    /// The record every surface prints: `id`, `ok`, `mode`, `command`, and
-    /// `error` as `{ code, message }`.
+    /// The record that every surface prints.
     #[napi(
         js_name = "toJSON",
         ts_return_type = "{ id: string; ok: boolean; mode: string | null; command: string | null; error: { code: string; message: string } | null }"
@@ -96,9 +95,9 @@ impl Outcome {
     }
 }
 
-/// The devices that `Govee.devices()` selects. Every verb on it runs on
-/// every member at once, answers one `Outcome` per member in member order,
-/// and rejects for nothing a member does.
+/// The devices that `Govee.devices()` selects. A verb runs on every member at
+/// once, answers one `Outcome` per member, and rejects for nothing a member
+/// does.
 #[napi]
 pub struct Devices {
     pub(crate) inner: OwnedDevices,
@@ -106,8 +105,8 @@ pub struct Devices {
 
 #[napi]
 impl Devices {
-    /// One handle per member, in the order of every outcome list. Each one
-    /// carries the mode that `Govee.devices()` pins.
+    /// One handle per member, in outcome order, with the mode that
+    /// `Govee.devices()` pins.
     #[napi(getter)]
     pub fn members(&self) -> Vec<DeviceHandle> {
         self.inner
@@ -117,17 +116,13 @@ impl Devices {
             .collect()
     }
 
-    /// The number of members.
     #[napi(getter)]
     pub fn length(&self) -> u32 {
         u32::try_from(self.inner.ids().len()).unwrap_or(u32::MAX)
     }
 
-    /// What the SDK holds for each member: the SKU, the name, the groups, the
-    /// modes and the health. Reads no hardware.
-    ///
-    /// A member that no transport knows and that the configuration pins no
-    /// SKU for is not in the list. `members` holds every member.
+    /// What the SDK holds for each member. Reads no hardware. A member that no
+    /// transport knows and that the configuration gives no SKU is left out.
     #[napi]
     pub fn list(&self) -> Vec<Device> {
         self.inner
@@ -138,7 +133,7 @@ impl Devices {
             .collect()
     }
 
-    /// Scan for every member that no mode knows. Each outcome carries its mode.
+    /// Scan for every member that no mode knows.
     #[napi]
     pub fn ensure_known<'env>(
         &self,

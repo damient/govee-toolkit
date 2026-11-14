@@ -31,11 +31,9 @@ pub(crate) async fn dispatch(cli: &Cli, writer: Writer) -> Result<(), Failure> {
 }
 
 async fn route(govee: &Govee, cli: &Cli, writer: Writer) -> Result<(), Failure> {
-    // `--mode` pins the handle, so every call on it goes over that mode or
-    // fails: it restricts the wire and not only what is printed.
+    // `--mode` restricts the wire, not only what is printed.
     let restrict = cli.global.mode;
-    // `crates/xtask` reads the first `match` of this function as the
-    // dispatch, so the target is read without one.
+    // `crates/xtask` reads the first `match` here as the dispatch.
     let mut target = None;
     if let Some(written) = cli.command.device() {
         target = Some(discover(govee, written, restrict).await?);
@@ -155,9 +153,8 @@ fn music(effect: i64, sensitivity: i64, soft: bool, color: Option<&str>) -> Resu
     })
 }
 
-/// The handle of the one device that `target` names, reachable before the
-/// subcommand sends anything. No mode keeps a record across runs, so a fresh
-/// process must find the device first.
+/// No mode keeps a record across runs, so a fresh process must find the
+/// device first.
 async fn discover<'a>(
     govee: &'a Govee,
     target: &str,

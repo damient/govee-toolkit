@@ -298,8 +298,7 @@ impl SegmentStream {
                 .unwrap_or(Err(Error::Transport(crate::transport::Error::ShutDown))),
             None => Ok(()),
         };
-        // The stream outlives `close`, so the mark goes here and not with the
-        // last handle.
+        // The stream outlives `close`, so the mark goes here.
         if let Ok(mut armed) = self.shared.armed.lock() {
             armed.take();
         }

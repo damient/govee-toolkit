@@ -42,8 +42,7 @@ impl DeviceHandle {
         self.inner.id().to_string()
     }
 
-    /// The one mode every call on this handle goes over, or `None` where each
-    /// call takes the first enabled mode that answers.
+    /// The one mode that every call goes over, or `None`.
     #[getter]
     fn pinned(&self) -> Option<String> {
         self.inner.pinned().map(|mode| mode.to_string())
@@ -98,9 +97,7 @@ impl DeviceHandle {
     /// Scan for the device if no mode knows it yet, then answer the mode a
     /// command would go over.
     ///
-    /// The enabled modes scan at the same time. A handle pinned to a mode
-    /// scans over that mode alone. Call it before the first command: the send
-    /// path does not scan.
+    /// Call it once before the first command: a command never scans.
     fn ensure_known<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let device = self.inner.clone();
         future_into_py(py, async move {
@@ -197,8 +194,7 @@ impl DeviceHandle {
     /// One pass: the device stays on and lit, and loses the look it held.
     /// `Govee.identify()` runs the whole walk.
     ///
-    /// `full_brightness` sets the top of the brightness range the device
-    /// file declares.
+    /// `full_brightness` sets the top of the declared brightness range.
     #[pyo3(
         signature = (color=None, full_brightness=None),
         text_signature = "($self, color=(0, 255, 0), full_brightness=True)"

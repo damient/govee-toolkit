@@ -1,6 +1,3 @@
-//! The parameters of each method on each surface: the name, the type, whether
-//! the caller must pass it, and the default that the surface declares.
-//!
 //! A Python default is the one in the stub, which `mypy.stubtest` checks
 //! against the module. A Node default is an `@param [name=value]` line of the
 //! doc comment. A CLI default is the one clap reports, in `args.json`.
@@ -32,14 +29,13 @@ pub(super) fn to_json(params: &Params) -> Value {
         .into()
 }
 
-/// The part before `(` and the arguments inside it. A getter has none.
 fn split(method: &str) -> Option<(&str, &str)> {
     let open = method.find('(')?;
     let inner = method.get(open + 1..method.len().checked_sub(1)?)?;
     Some((&method[..open], inner))
 }
 
-/// `name: Type`. `Option<T>` is the one form the caller can leave out.
+/// `Option<T>` is the one form that the caller can leave out.
 pub(super) fn rust(methods: &[String]) -> Params {
     let mut out = Params::new();
     for method in methods {
@@ -59,7 +55,6 @@ pub(super) fn rust(methods: &[String]) -> Params {
     out
 }
 
-/// `name: type = default`. A bare `*` only marks the keywords that follow.
 pub(super) fn python(methods: &[String]) -> Params {
     let mut out = Params::new();
     for method in methods {
@@ -85,8 +80,7 @@ pub(super) fn python(methods: &[String]) -> Params {
     out
 }
 
-/// `name?: type`. An object type gives one row for each key, as
-/// `name.key`, since the caller writes the keys and not the object.
+/// An object type gives one row for each key, as `name.key`.
 pub(super) fn node(
     methods: &[String],
     defaults: &BTreeMap<String, BTreeMap<String, String>>,
@@ -138,7 +132,6 @@ fn node_arg(arg: &str) -> (String, String, bool) {
     }
 }
 
-/// The first `needle` outside brackets.
 fn top_level(text: &str, needle: &str) -> Option<usize> {
     let mut level = 0i32;
     for (index, c) in text.char_indices() {
@@ -150,7 +143,6 @@ fn top_level(text: &str, needle: &str) -> Option<usize> {
     None
 }
 
-/// `args.json` of one binary: the command path to its arguments.
 pub(super) fn cli(args: &Value) -> Params {
     let mut out = Params::new();
     let Some(commands) = args.as_object() else {

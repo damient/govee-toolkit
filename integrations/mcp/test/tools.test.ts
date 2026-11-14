@@ -1,5 +1,4 @@
-// The tool list, compared to a snapshot. Update the snapshot with
-// `npm test -- --test-update-snapshots` when a tool changes on purpose.
+// Update the snapshot with `npm test -- --test-update-snapshots`.
 
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
@@ -18,8 +17,7 @@ before(async () => {
   ({ tools } = await client.listTools());
 });
 
-// An enum read at startup follows the catalog and the docs, so the snapshot
-// names its source. An enum that matches no source shows in the diff.
+// The snapshot names the source of each enum, so an enum that matches no source shows in the diff.
 const sources = new Map<string, string>(
   Object.entries({
     modes: vocabulary.modes,

@@ -8,7 +8,6 @@ use syn::{Attribute, Fields, FnArg, ImplItem, ImplItemFn, Item, Type, Visibility
 
 const HANDLES: [&str; 4] = ["Govee", "DeviceHandle", "Devices", "SegmentStream"];
 
-/// `Type::name(arg: Type, …)`.
 pub(super) fn methods(src: &Path) -> Vec<String> {
     let mut out = Vec::new();
     for path in rust_files(src) {
@@ -97,7 +96,6 @@ fn each_method(items: &[Item], visit: &mut impl FnMut(&str, &ImplItemFn)) {
     }
 }
 
-/// `govee <kebab-name> <ARGS>`.
 pub(super) fn cli(dir: &Path) -> Vec<String> {
     let items: Vec<Item> = rust_files(dir)
         .iter()
@@ -143,7 +141,6 @@ fn subcommands(items: &[Item], name: &str, out: &mut Vec<String>) {
     }
 }
 
-/// One field, as clap renders it in a usage line.
 fn argument(ident: &str, ty: &Type, attrs: &[Attribute]) -> String {
     let mut long = None;
     let mut value_name = None;
@@ -215,7 +212,6 @@ pub(super) fn kebab(camel: &str) -> String {
     out
 }
 
-/// A token stream as a person writes it: `&Paint<'_>`, not `& Paint < '_ >`.
 fn tidy(tokens: &str) -> String {
     [
         (" :: ", "::"),

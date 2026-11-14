@@ -1,5 +1,4 @@
-// What every test shares. `node --test` runs each file in a process of its
-// own, so the environment set here reaches the SDK before it starts.
+// `node --test` runs each file in its own process: this environment reaches the SDK before it starts.
 
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -23,7 +22,6 @@ export const isolated = {
   XDG_CONFIG_HOME: join(state, "config"),
   XDG_CACHE_HOME: join(state, "cache"),
   GOVEE_ENV_FILE: emptyEnv,
-  // A file that is not there is the default configuration, not an error.
   GOVEE_CONFIG: join(state, "config.yaml"),
 };
 Object.assign(process.env, isolated);

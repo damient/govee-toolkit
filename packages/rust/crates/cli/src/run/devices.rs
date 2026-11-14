@@ -46,11 +46,7 @@ fn heard_text(device: &Device, scanned: &[Mode], restrict: Option<Mode>, enabled
     )
 }
 
-/// List what the targets name, or every device where they name nothing.
-///
-/// It scans once where it lists every device or reads a SKU, over the mode
-/// `--mode` names or else over every mode. An identity, a name and a group
-/// read the configuration and scan nothing.
+/// A scan covers the mode that `--mode` names, or else every mode.
 pub(super) async fn list(
     govee: &Govee,
     writer: Writer,

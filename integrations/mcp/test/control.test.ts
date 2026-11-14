@@ -1,6 +1,5 @@
-// A real device answers the scan too: every call targets the simulator. The
-// test files run one at a time, because two SDKs that share port 4002 can take
-// the scan reply of each other.
+// A real device answers the scan too: every call targets the simulator. The test
+// files run one at a time: two SDKs on port 4002 can take the scan reply of each other.
 
 import assert from "node:assert/strict";
 import { type ChildProcess, spawn } from "node:child_process";
@@ -213,7 +212,7 @@ const sentShape = z.looseObject({
   command: z.string(),
 });
 
-// No lan entry declares a `reply:` layout, so the command is sent, and the answer carries no fields.
+// No lan entry declares a `reply:` layout.
 test(
   "send sends a command whose entry declares no answer",
   { skip, timeout: 30_000 },

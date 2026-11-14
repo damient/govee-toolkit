@@ -1,6 +1,3 @@
-// One `Govee` for the process, started on the first control call. It reads the
-// configuration of the CLI, and the cloud key from the `env` of the MCP client.
-
 import type { CallToolResult } from "@modelcontextprotocol/server";
 import { Govee } from "govee-toolkit";
 import type { Device, DeviceHandle, DeviceStatus, Outcome } from "govee-toolkit";

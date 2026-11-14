@@ -9,9 +9,6 @@ use syn::{Expr, ExprCall, ExprMatch, ExprMethodCall, ExprPath, ExprStruct, Item,
 
 use super::rust::{kebab, parse};
 
-/// An arm of `route` reaches the methods that its `<module>::<fn>` calls in
-/// `run/<module>.rs`. An arm of `play` reaches the method that its `Verb`
-/// variant names.
 pub(super) fn verbs(run: &Path) -> BTreeMap<String, Vec<String>> {
     let items = parse(&run.join("mod.rs")).items;
     let mut out: BTreeMap<String, Vec<String>> = BTreeMap::new();
@@ -93,13 +90,9 @@ impl<'a> Visit<'a> for FirstMatch<'a> {
 
 #[derive(Default)]
 struct Calls {
-    /// `module::name(…)`.
     paths: Vec<(String, String)>,
-    /// `name(…)`.
     functions: Vec<String>,
-    /// `x.name(…)`.
     methods: Vec<String>,
-    /// `Verb::Variant`.
     verbs: Vec<String>,
 }
 

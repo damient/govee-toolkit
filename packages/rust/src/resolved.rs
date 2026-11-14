@@ -79,11 +79,6 @@ impl<'a> Resolved<'a> {
             .is_some_and(crate::codec::catalog::Command::answers)
     }
 
-    /// Refuse a command whose entry on this mode takes a secret.
-    ///
-    /// # Errors
-    ///
-    /// [`crate::codec::Error::SecretArg`] where the entry declares one.
     pub(crate) fn refuse_secret(&self, command: &str) -> Result<()> {
         let entry = self.device.commands.get(self.mode).get(command);
         match entry.and_then(crate::codec::catalog::Command::secret_arg) {
@@ -145,8 +140,7 @@ impl<'a> Resolved<'a> {
             .await
     }
 
-    /// [`Resolved::read`] where [`Resolved::answers`] holds for the command,
-    /// and [`Resolved::send`] otherwise.
+    /// [`Resolved::read`] where [`Resolved::answers`], else [`Resolved::send`].
     ///
     /// # Errors
     ///
@@ -203,8 +197,7 @@ pub enum Secrets {
     /// Take it.
     #[default]
     Allow,
-    /// Refuse it with [`crate::codec::Error::SecretArg`], before anything is
-    /// sent.
+    /// Refuse it with [`crate::codec::Error::SecretArg`] before the send.
     Refuse,
 }
 
@@ -220,8 +213,7 @@ impl DeviceHandle<'_> {
     ///
     /// # Errors
     ///
-    /// As for [`DeviceHandle::resolve`], [`Resolved::args`] and
-    /// [`Resolved::send`].
+    /// As for [`Resolved::args`] and [`Resolved::send`].
     pub async fn send_supplied<I>(&self, command: &str, supplied: I) -> Result<Served>
     where
         I: IntoIterator<Item = (String, Supplied)>,
@@ -235,8 +227,7 @@ impl DeviceHandle<'_> {
     ///
     /// # Errors
     ///
-    /// As for [`DeviceHandle::resolve`], [`Resolved::args`] and
-    /// [`Resolved::read`].
+    /// As for [`Resolved::args`] and [`Resolved::read`].
     pub async fn read_supplied<I>(&self, command: &str, supplied: I) -> Result<Reply>
     where
         I: IntoIterator<Item = (String, Supplied)>,
@@ -251,8 +242,8 @@ impl DeviceHandle<'_> {
     ///
     /// # Errors
     ///
-    /// [`crate::codec::Error::SecretArg`] under [`Secrets::Refuse`] for a
-    /// command that takes a secret, and as for [`Resolved::invoke`].
+    /// [`crate::codec::Error::SecretArg`] under [`Secrets::Refuse`], and as
+    /// for [`Resolved::invoke`].
     pub async fn invoke<I>(
         &self,
         command: &str,

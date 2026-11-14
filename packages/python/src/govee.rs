@@ -25,8 +25,8 @@ pub(crate) struct Govee {
 #[pymethods]
 impl Govee {
     /// Start the SDK. Without a configuration, it reads the file. Without a
-    /// catalog, it reads the one the wheel carries, plus the user's own device
-    /// files where the configuration opts into them.
+    /// catalog, it reads the one the package carries, with the local device
+    /// files over it where the configuration opts in.
     #[staticmethod]
     #[pyo3(signature = (config=None, catalog=None))]
     fn start(
@@ -44,12 +44,8 @@ impl Govee {
     }
 
     /// Run a discovery scan and return what answered. Without `modes`, it
-    /// scans every mode.
-    ///
-    /// The scans run at the same time, so the call takes the longest window
-    /// and not their sum. A mode this build carries no transport for
-    /// contributes nothing and is not an error. Nothing on the send path calls
-    /// this.
+    /// scans every mode. The modes scan at the same time. A mode that this
+    /// build carries no transport for adds nothing and is not an error.
     #[pyo3(signature = (modes = None))]
     fn scan<'py>(
         &self,
@@ -99,17 +95,12 @@ impl Govee {
         }
     }
 
-    /// A handle for one device, by its identity or by the name that the
-    /// configuration gives it. It reads the configuration and scans nothing.
+    /// A handle for one device, by its identity or by its configured name.
+    /// `id:` and `name:` state the kind. It scans nothing. A SKU or a group
+    /// raises `ConfigError` `target_not_understood`: use `devices()` for them.
     ///
-    /// A bare target is a name where the configuration gives one, and an
-    /// identity where it reads as one. `id:` and `name:` state the kind. A
-    /// SKU or a group raises `ConfigError` with `target_not_understood`: use
-    /// `devices()` for them.
-    ///
-    /// `mode` pins every call on the handle to that mode: each call goes over
-    /// it or raises. Without it, each call goes over the first enabled mode
-    /// that answers.
+    /// `mode` pins every call on the handle to that mode. Without it, each
+    /// call goes over the first enabled mode that answers.
     #[pyo3(signature = (target, *, mode = None))]
     fn device(&self, target: &str, mode: Option<&str>) -> PyResult<DeviceHandle> {
         let pinned = mode.map(conv::mode).transpose()?;
@@ -118,25 +109,16 @@ impl Govee {
         })
     }
 
-    /// The devices that the targets name, in the order written, as one
-    /// `Devices`. A device that two targets name appears once.
+    /// The devices that the targets name, each once, in the order written. A
+    /// target is an identity, a SKU, a configured name or a group: `id:`,
+    /// `sku:`, `name:` and `group:` state the kind. `None` selects every device
+    /// that a scan finds. A SKU or `None` runs one scan on the first call, and
+    /// `scan()` counts as that scan.
     ///
-    /// A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name that the
-    /// configuration gives a device (`name:kitchen`), or a group that it gives
-    /// (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind
-    /// where the target alone does not. An identity selects itself, and a name
-    /// or a group reads the configuration. A SKU reads the devices that a scan
-    /// found. Without `targets`, it selects every device that a scan finds.
-    ///
-    /// The first call that reads a SKU, or that has no `targets`, scans once:
-    /// over `enables`, else over `mode`, else over every mode. A `scan()`
-    /// counts as that scan.
-    ///
-    /// `enables` keeps the devices that enable that mode. A SKU, a name or a
-    /// group that keeps no device then raises `ConfigError`. An identity is
-    /// kept whatever it enables. `mode` pins every member, as it does for
-    /// `device()`, and filters nothing: a member that does not enable it fails
-    /// alone in its `Outcome`.
+    /// `enables` keeps the devices that enable that mode, and raises
+    /// `ConfigError` `no_such_target` where a SKU, a name or a group keeps
+    /// none. `mode` pins every member as for `device()`: a member that does
+    /// not enable it fails alone, in its outcome.
     #[pyo3(signature = (targets = None, *, enables = None, mode = None))]
     fn devices<'py>(
         &self,
@@ -155,10 +137,8 @@ impl Govee {
         })
     }
 
-    /// Run the walk `govee identify` runs. `targets` reads as `devices()`
-    /// reads it; `None` walks every device that a scan finds. `wait` is the
-    /// time between two steps and `hold` the time on the last device, in
-    /// seconds.
+    /// Run the walk `govee identify` runs. `targets` reads as for `devices()`.
+    /// `wait` and `hold` are in seconds.
     ///
     /// Raises `ConfigError` with `mode_not_enabled` before it sends a command
     /// where a device does not enable the mode. A device that fails is in the

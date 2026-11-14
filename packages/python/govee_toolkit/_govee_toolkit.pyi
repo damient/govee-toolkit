@@ -77,7 +77,7 @@ class Health:
     def available(self) -> bool:
         """Whether a command would be sent right now."""
     def to_dict(self) -> dict[str, Any]:
-        """The record every surface prints: `state`, `failures`, `available`."""
+        """The record that every surface prints: `state`, `failures`, `available`."""
 
 @final
 class Device:
@@ -104,7 +104,7 @@ class Device:
         from it.
         """
     def to_dict(self) -> dict[str, Any]:
-        """The record every surface prints: `id`, `sku`, `name`, and one `{mode,
+        """The record that every surface prints: `id`, `sku`, `name`, and one `{mode,
         health}` per enabled mode.
         """
 
@@ -125,7 +125,7 @@ class Served:
     def cmd(self) -> str:
         """The name the wire carries, where it carries one."""
     def to_dict(self) -> dict[str, Any]:
-        """The record every surface prints: `id`, `mode`, `command`."""
+        """The record that every surface prints: `id`, `mode`, `command`."""
 
 @final
 class DeviceStatus:
@@ -155,8 +155,8 @@ class DeviceStatus:
     def is_white(self) -> bool:
         """Whether the device is in white mode. Mutually exclusive with color."""
     def to_dict(self) -> dict[str, Any]:
-        """The record every surface prints. A field the device did not report is `None`,
-        and `color` is `"#RRGGBB"`.
+        """The record that every surface prints. A field the device did not report is
+        `None`, and `color` is `"#RRGGBB"`.
         """
 
 @final
@@ -235,11 +235,9 @@ class Catalog:
         capability: str | None = None,
         support: str | None = None,
     ) -> list[str]:
-        """The SKUs, verified aliases included, that match every filter given.
-        `capability` reads the capabilities of `mode` where it is given, and those of
-        the hardware otherwise.
-
-        Raises `ValueError` for an unknown mode, and for `support` without `mode`.
+        """Every SKU, verified aliases included, that matches every filter given.
+        `capability` reads the capabilities of `mode`, else of the hardware. Raises
+        `ValueError` for an unknown mode, and for `support` without `mode`.
         """
     def __len__(self) -> int:
         """How many device files the catalog holds."""
@@ -331,9 +329,7 @@ class DeviceHandle:
         """The MAC the device reports, uppercased."""
     @property
     def pinned(self) -> str | None:
-        """The one mode every call on this handle goes over, or `None` where each call
-        takes the first enabled mode that answers.
-        """
+        """The one mode that every call goes over, or `None`."""
     @property
     def modes(self) -> list[str]:
         """The modes enabled for it, in preference order."""
@@ -362,8 +358,7 @@ class DeviceHandle:
         """Scan for the device if no mode knows it yet, then answer the mode a command
         would go over.
 
-        The enabled modes scan at the same time. A handle pinned to a mode scans over
-        that mode alone. Call it before the first command: the send path does not scan.
+        Call it once before the first command: a command never scans.
         """
 
     async def send(self, command: str, **args: Arg) -> Served:
@@ -406,7 +401,7 @@ class DeviceHandle:
         One pass: the device stays on and lit, and loses the look it held.
         `Govee.identify()` runs the whole walk.
 
-        `full_brightness` sets the top of the brightness range the device file declares.
+        `full_brightness` sets the top of the declared brightness range.
         """
 
     async def color_temp(self, kelvin: int) -> Served:
@@ -491,10 +486,10 @@ class Outcome:
         """The command served. `None` on a failure and for `ensure_known()`."""
     @property
     def error(self) -> GoveeError | None:
-        """What the call on one device raises. `None` where it succeeded."""
+        """What the call on this member raises. `None` where it succeeded."""
     def to_dict(self) -> dict[str, Any]:
-        """The record every surface prints: `id`, `ok`, `mode`, `command`, and `error`
-        as a dict of `code` and `message`.
+        """The record that every surface prints: `id`, `ok`, `mode`, `command`, and
+        `error` as a dict of `code` and `message`.
         """
 
 @final
@@ -512,9 +507,7 @@ class Invoked:
         """The command, as the device file names it."""
     @property
     def fields(self) -> dict[str, Any] | None:
-        """What the `reply:` layouts captured, or `None` for a command that was sent and
-        not read.
-        """
+        """What the `reply:` layouts captured, or `None` for a command that was sent."""
 
 @final
 class AppliedStep:
@@ -565,27 +558,21 @@ class WalkReport:
 
 @final
 class Devices:
-    """The devices that `Govee.devices()` selects. Every verb on it runs on every member
-    at once, answers one `Outcome` per member in member order, and raises for nothing a
-    member does.
+    """The devices that `Govee.devices()` selects. A verb runs on every member at once,
+    answers one `Outcome` per member, and raises for nothing a member does.
     """
 
     @property
     def members(self) -> list[DeviceHandle]:
-        """One handle per member, in the order of every outcome list. Each handle is
-        pinned as the members are.
+        """One handle per member, in outcome order, with the mode that `Govee.devices()`
+        pins.
         """
     def list(self) -> list[Device]:
-        """What the SDK holds for each member: the SKU, the name, the groups, the modes
-        and the health. Reads no hardware.
-
-        A member that no transport knows and that the configuration pins no SKU for is
-        not in the list. `members` holds every member.
+        """What the SDK holds for each member. Reads no hardware. A member that no
+        transport knows and that the configuration gives no SKU is left out.
         """
     async def ensure_known(self) -> builtins.list[Outcome]:
-        """Scan for every member that no mode knows. Each outcome carries its mode. A
-        pinned member scans over its mode alone.
-        """
+        """Scan for every member that no mode knows."""
     async def power(self, on: bool) -> builtins.list[Outcome]:
         """Turn every member on or off."""
     async def brightness(self, level: int) -> builtins.list[Outcome]:
@@ -641,17 +628,14 @@ class Govee:
         config: Config | None = None, catalog: Catalog | None = None
     ) -> Govee:
         """Start the SDK. Without a configuration, it reads the file. Without a catalog,
-        it reads the one the wheel carries, plus the user's own device files where the
-        configuration opts into them.
+        it reads the one the package carries, with the local device files over it where
+        the configuration opts in.
         """
 
     async def scan(self, modes: Sequence[str] | None = None) -> list[Device]:
         """Run a discovery scan and return what answered. Without `modes`, it scans
-        every mode.
-
-        The scans run at the same time, so the call takes the longest window and not
-        their sum. A mode this build carries no transport for contributes nothing and is
-        not an error. Nothing on the send path calls this.
+        every mode. The modes scan at the same time. A mode that this build carries no
+        transport for adds nothing and is not an error.
         """
 
     def modes(self) -> list[str]:
@@ -667,15 +651,12 @@ class Govee:
     def catalog(self) -> Catalog:
         """The device catalog in force."""
     def device(self, target: str, *, mode: str | None = None) -> DeviceHandle:
-        """A handle for one device, by its identity or by the name that the
-        configuration gives it. It reads the configuration and scans nothing.
+        """A handle for one device, by its identity or by its configured name. `id:` and
+        `name:` state the kind. It scans nothing. A SKU or a group raises `ConfigError`
+        `target_not_understood`: use `devices()` for them.
 
-        A bare target is a name where the configuration gives one, and an identity where
-        it reads as one. `id:` and `name:` state the kind. A SKU or a group raises
-        `ConfigError` with `target_not_understood`: use `devices()` for them.
-
-        `mode` pins every call on the handle to that mode: each call goes over it or
-        raises. Without it, each call goes over the first enabled mode that answers.
+        `mode` pins every call on the handle to that mode. Without it, each call goes
+        over the first enabled mode that answers.
         """
     async def devices(
         self,
@@ -684,24 +665,15 @@ class Govee:
         enables: str | None = None,
         mode: str | None = None,
     ) -> Devices:
-        """The devices that the targets name, in the order written, as one `Devices`. A
-        device that two targets name appears once.
+        """The devices that the targets name, each once, in the order written. A target
+        is an identity, a SKU, a configured name or a group: `id:`, `sku:`, `name:` and
+        `group:` state the kind. `None` selects every device that a scan finds. A SKU or
+        `None` runs one scan on the first call, and `scan()` counts as that scan.
 
-        A target is an identity (`1C:8B:…`), a SKU (`H6159`), a name that the
-        configuration gives a device (`name:kitchen`), or a group that it gives
-        (`group:ambient`). `id:`, `sku:`, `name:` and `group:` state the kind where the
-        target alone does not. An identity selects itself, and a name or a group reads
-        the configuration. A SKU reads the devices that a scan found. Without `targets`,
-        it selects every device that a scan finds.
-
-        The first call that reads a SKU, or that has no `targets`, scans once: over
-        `enables`, else over `mode`, else over every mode. A `scan()` counts as that
-        scan.
-
-        `enables` keeps the devices that enable that mode. A SKU, a name or a group that
-        keeps no device then raises `ConfigError`. An identity is kept whatever it
-        enables. `mode` pins every member, as it does for `device()`, and filters
-        nothing: a member that does not enable it fails alone in its `Outcome`.
+        `enables` keeps the devices that enable that mode, and raises `ConfigError`
+        `no_such_target` where a SKU, a name or a group keeps none. `mode` pins every
+        member as for `device()`: a member that does not enable it fails alone, in its
+        outcome.
         """
     async def identify(
         self,
@@ -713,9 +685,8 @@ class Govee:
         keep: bool = False,
         mode: str = "lan",
     ) -> WalkReport:
-        """Run the walk `govee identify` runs. `targets` reads as `devices()` reads it;
-        `None` walks every device that a scan finds. `wait` is the time between two
-        steps and `hold` the time on the last device, in seconds.
+        """Run the walk `govee identify` runs. `targets` reads as for `devices()`.
+        `wait` and `hold` are in seconds.
 
         Raises `ConfigError` with `mode_not_enabled` before it sends a command where a
         device does not enable the mode. A device that fails is in the report.

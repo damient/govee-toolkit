@@ -1,5 +1,3 @@
-// Every value a tool accepts comes from the embedded catalog, never from this source.
-
 import { Catalog, MODES, PERSONALITIES, SUPPORT } from "govee-toolkit";
 import { z } from "zod";
 
@@ -35,7 +33,7 @@ const skus: readonly string[] = catalog.skus();
 const records = new Map(skus.map((sku) => [sku, described.parse(catalog.describe(sku))]));
 const tables = new Map(skus.map((sku) => [sku, dmxEntry.parse(catalog.dmx(sku))]));
 
-// The maps hold every SKU. A miss calls the binding only for the `unknown_sku` error it throws.
+// A miss calls the binding only for its `unknown_sku` error.
 
 /** Throws the binding error, with its `code`, when nothing declares the SKU. */
 export function describe(sku: string): Described {

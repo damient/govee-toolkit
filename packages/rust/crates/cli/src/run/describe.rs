@@ -14,8 +14,7 @@ pub(super) async fn run(govee: &Govee, writer: Writer, target: &str) -> Result<(
     Ok(())
 }
 
-/// An identity reads as the SKU the SDK holds for it, and scans nothing.
-/// Any other target reads as a SKU.
+/// An identity scans nothing. Any other target reads as a SKU.
 async fn resolve<'a>(govee: &'a Govee, target: &str) -> Result<&'a Device, Failure> {
     let known = govee
         .devices(Filter::ids([DeviceId::new(target)]), None)

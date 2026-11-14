@@ -32,8 +32,7 @@ impl DeviceHandle {
         self.inner.id().to_string()
     }
 
-    /// The one mode every call on this handle goes over, or `null` where each
-    /// call takes the first enabled mode that answers.
+    /// The one mode that every call goes over, or `null`.
     #[napi(getter)]
     pub fn pinned(&self) -> Option<String> {
         self.inner.pinned().map(|mode| mode.to_string())
@@ -96,9 +95,7 @@ impl DeviceHandle {
     /// Scan for the device if no mode knows it yet, then answer the mode a
     /// command would go over.
     ///
-    /// Call it once before the first command: the send path does not scan.
-    /// The enabled modes scan at the same time, and a pinned handle scans
-    /// over its mode alone.
+    /// Call it once before the first command: a command never scans.
     #[napi]
     pub fn ensure_known<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, String>> {
         let owned = self.inner.clone();

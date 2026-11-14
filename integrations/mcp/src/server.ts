@@ -32,7 +32,7 @@ export function serve(): void {
     },
   });
   const shutdown = async (): Promise<never> => {
-    // One chain, so each hook starts after the one before, and a failure stops no other hook.
+    // Each hook waits for the one before it, and a failed hook stops no other.
     await [() => handle.close(), closeSdk].reduce(
       (previous, hook) =>
         previous.then(hook).catch((error: unknown) => {

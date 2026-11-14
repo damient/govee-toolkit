@@ -40,7 +40,7 @@ impl Invoked {
     }
 
     /// What the `reply:` layouts captured, or `null` for a command that was
-    /// sent and not read.
+    /// sent.
     #[napi(getter)]
     pub fn fields(&self) -> Option<serde_json::Value> {
         self.fields.clone()
@@ -139,9 +139,8 @@ impl Applied {
         self.verdict.is_none()
     }
 
-    /// The line that reports the failures: `"2 of 3 devices failed: <ids>"`,
-    /// or the error's own message where the set has one member. `null`
-    /// where every member took every step.
+    /// `"N of M devices failed: ids"`, or the error's own message for a set
+    /// of one member. `null` where every member took every step.
     #[napi(getter)]
     pub fn verdict(&self) -> Option<String> {
         self.verdict.clone()

@@ -1,5 +1,3 @@
-// No read tool starts the SDK, needs a configuration or reaches the network.
-
 import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 

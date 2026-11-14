@@ -1,4 +1,4 @@
-# The last step of every release workflow. The job needs `contents: write`.
+# The job needs `contents: write`.
 name: GitHub release
 description: Create the release of the pushed tag, with the given notes.
 inputs:

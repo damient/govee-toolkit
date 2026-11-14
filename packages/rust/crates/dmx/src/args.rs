@@ -1,5 +1,4 @@
 //! `args.json`: every argument that clap declares, as `xtask api` reads it.
-//! `crates/cli/src/args.rs` holds the same writer for `govee`.
 
 #![allow(clippy::expect_used)]
 

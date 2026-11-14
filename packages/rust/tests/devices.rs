@@ -1,4 +1,4 @@
-//! `Govee::device` and `Govee::devices`, against a simulated device.
+//! `Govee::devices` against a simulated device.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 

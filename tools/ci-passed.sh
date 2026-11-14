@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# Waits for the CI run of a commit to complete, and fails unless it passed.
-#
-#   tools/ci-passed.sh <sha>
-#
-# Needs `gh`, GH_TOKEN and GITHUB_REPOSITORY. The job needs `actions: read`.
+# Waits for the CI run of a commit, and fails unless it passed.
+# Needs `gh`, GH_TOKEN, GITHUB_REPOSITORY, and `actions: read` on the job.
 
 set -euo pipefail
 

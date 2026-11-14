@@ -1,5 +1,3 @@
-// A binding error is the answer: no control tool retries on another mode.
-
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
