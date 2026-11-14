@@ -84,7 +84,7 @@ impl<'a> Resolved<'a> {
     /// # Errors
     ///
     /// [`crate::codec::Error::SecretArg`] where the entry declares one.
-    pub fn refuse_secret(&self, command: &str) -> Result<()> {
+    pub(crate) fn refuse_secret(&self, command: &str) -> Result<()> {
         let entry = self.device.commands.get(self.mode).get(command);
         match entry.and_then(crate::codec::catalog::Command::secret_arg) {
             Some(arg) => Err(CodecError::SecretArg {
@@ -206,6 +206,13 @@ pub enum Secrets {
     /// Refuse it with [`crate::codec::Error::SecretArg`], before anything is
     /// sent.
     Refuse,
+}
+
+impl From<bool> for Secrets {
+    /// `true` refuses.
+    fn from(refuse: bool) -> Self {
+        if refuse { Self::Refuse } else { Self::Allow }
+    }
 }
 
 impl DeviceHandle<'_> {

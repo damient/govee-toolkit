@@ -2,9 +2,7 @@
 
 use std::future::Future;
 
-use govee_toolkit::{
-    Answer, Music, Outcome as CoreOutcome, OwnedDevices, Paint, Resolution, Style, input,
-};
+use govee_toolkit::{Answer, Music, Outcome as CoreOutcome, OwnedDevices, Style, input};
 use pyo3::prelude::*;
 use pyo3::types::{PyIterator, PyList};
 use pyo3_async_runtimes::tokio::future_into_py;
@@ -205,7 +203,7 @@ impl Devices {
         resolution: Option<&Bound<'py, PyAny>>,
         gradient: bool,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let painting = Painting::read(colors, zones, resolution, gradient)?;
+        let painting = conv::painting(colors, zones, resolution, gradient)?;
         self.each(py, move |owned| async move {
             owned.devices().segment(&painting.paint()).await
         })
@@ -250,7 +248,7 @@ impl Devices {
         let owned = self.inner.clone();
         future_into_py(py, async move {
             let applied = owned.devices().apply(verbs).await;
-            Applied::new(&applied, owned.ids().len())
+            Applied::new(&applied)
         })
     }
 
@@ -277,7 +275,6 @@ impl Devices {
             .collect()
     }
 
-    /// Run `call` on an owned copy of the set, and read each outcome.
     fn each<'py, T, Fut>(
         &self,
         py: Python<'py>,
@@ -289,43 +286,6 @@ impl Devices {
     {
         let call = call(self.inner.clone());
         future_into_py(py, async move { Ok(outcomes(&call.await)) })
-    }
-}
-
-/// The arguments of `segment()`, read as the core reads them.
-pub(crate) struct Painting {
-    colors: Vec<[u8; 3]>,
-    zones: Option<Vec<u16>>,
-    resolution: Resolution,
-    gradient: bool,
-}
-
-impl Painting {
-    pub(crate) fn read(
-        colors: &Bound<'_, PyAny>,
-        zones: Option<&Bound<'_, PyAny>>,
-        resolution: Option<&Bound<'_, PyAny>>,
-        gradient: bool,
-    ) -> PyResult<Self> {
-        let zones = match conv::optional(zones)? {
-            input::Value::Null => None,
-            zones => Some(read(input::zones(&zones))?),
-        };
-        Ok(Self {
-            colors: conv::colors(colors)?,
-            zones,
-            resolution: read(input::resolution(&conv::optional(resolution)?))?,
-            gradient,
-        })
-    }
-
-    pub(crate) fn paint(&self) -> Paint<'_> {
-        Paint {
-            zones: self.zones.as_deref(),
-            colors: &self.colors,
-            resolution: self.resolution,
-            gradient: self.gradient,
-        }
     }
 }
 

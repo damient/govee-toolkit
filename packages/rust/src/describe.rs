@@ -62,7 +62,7 @@ pub fn query(
     support: Option<&str>,
 ) -> crate::input::Result<Vec<String>> {
     if support.is_some() && mode.is_none() {
-        return Err(crate::input::Refused("`support` needs `mode`".to_owned()));
+        return Err(crate::input::Refused::new("`support` needs `mode`"));
     }
     Ok(catalog
         .skus()

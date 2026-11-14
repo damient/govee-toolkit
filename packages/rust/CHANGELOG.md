@@ -18,8 +18,8 @@ releases apart and keeps
 - `Role::CLAIMABLE` is public: every role, in declaration order.
 - `Resolved::invoke()` reads a command whose entry declares an answer, and
   sends any other one. It answers `Invoked::Read` or `Invoked::Sent`.
-- `Resolved::refuse_secret()` fails with the new `codec::Error::SecretArg`
-  (`secret_arg`) when the entry takes a secret argument.
+- `codec::Error::SecretArg` (`secret_arg`) refuses a command whose entry
+  takes a secret argument, under `Secrets::Refuse`.
 - `Command::secret_arg()` and `ArgRole::is_secret()` name the argument that
   carries a secret: `password`.
 - `Devices::apply()` sends several `Verb`s, power on first and power off
@@ -32,6 +32,9 @@ releases apart and keeps
   capability name that a device of the catalog declares.
 - `input` reads a host value, `input::Value`, as a color, a paint, a zone
   list, a resolution, a rate, a duration or the verbs of an apply.
+  `input::packed()` reads a paint straight from a byte run,
+  `input::painting()` the arguments of `segment()` into a `Painting`, and
+  `input::names()` and `input::modes()` an options map of names.
 - `OwnedDevice` and `OwnedDevices` hold a clone of `Govee`, for a binding:
   `Govee::device_owned()` and `Govee::devices_owned()` return them.
 - `query()` — the SKUs of a catalog that match a mode, a capability and a

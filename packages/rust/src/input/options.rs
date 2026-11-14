@@ -1,9 +1,10 @@
 //! The option maps: the verbs of `Devices.apply()` and the walk of
 //! `Govee.identify()`.
 
-use super::values::{colors, mode, resolution, rgb, seconds, whole, zones};
+use super::values::{colors, mode, painting, rgb, seconds, whole};
 use super::{Refused, Result, Value, key};
 use crate::apply::Verb;
+use crate::codec::Mode;
 use crate::govee::Walk;
 use crate::summary::Style;
 use crate::verbs::Music;
@@ -81,16 +82,13 @@ fn segment(value: &Value, style: Style) -> Result<Verb> {
     let Some(painted) = value.get("colors") else {
         return Err(Refused::new("a segment carries `colors`"));
     };
-    Ok(Verb::Segment {
-        zones: value.get("zones").map(zones).transpose()?,
-        colors: colors(painted, style)?,
-        resolution: resolution(value.get("resolution").unwrap_or(&Value::Null))?,
-        gradient: value
-            .get("gradient")
-            .map(flag)
-            .transpose()?
-            .unwrap_or(false),
-    })
+    let at = |name| value.get(name).unwrap_or(&Value::Null);
+    Ok(Verb::Segment(painting(
+        colors(painted, style)?,
+        at("zones"),
+        at("resolution"),
+        value.get("gradient").map(flag).transpose()?,
+    )?))
 }
 
 fn music(value: &Value, style: Style) -> Result<Music> {
@@ -104,6 +102,48 @@ fn music(value: &Value, style: Style) -> Result<Music> {
         value.get("soft").map(flag).transpose()?,
         value.get("color").map(|c| rgb(c, style)).transpose()?,
     ))
+}
+
+/// Read an options map whose every key carries a name, in the order of
+/// `keys`. `Null` reads as no key given.
+///
+/// # Errors
+///
+/// [`Refused`] for a key outside `keys`, or a value that is no text.
+pub fn names<'a, const N: usize>(
+    value: &'a Value,
+    what: &str,
+    keys: [&str; N],
+) -> Result<[Option<&'a str>; N]> {
+    let mut names = [None; N];
+    if matches!(value, Value::Null) {
+        return Ok(names);
+    }
+    value.known_keys(what, &keys)?;
+    for (slot, key) in names.iter_mut().zip(keys) {
+        *slot = value
+            .get(key)
+            .map(|name| text(name).map_err(|_| Refused::new(format!("`{key}` is a name"))))
+            .transpose()?;
+    }
+    Ok(names)
+}
+
+/// [`names`], where every name is a mode.
+///
+/// # Errors
+///
+/// [`Refused`] as [`names`] refuses, or for a name that is no mode.
+pub fn modes<const N: usize>(
+    value: &Value,
+    what: &str,
+    keys: [&str; N],
+) -> Result<[Option<Mode>; N]> {
+    let mut modes = [None; N];
+    for (slot, name) in modes.iter_mut().zip(names(value, what, keys)?) {
+        *slot = name.map(mode).transpose()?;
+    }
+    Ok(modes)
 }
 
 /// Read the options of `Govee.identify()`. `Null` reads as the defaults of

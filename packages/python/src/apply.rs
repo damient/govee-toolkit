@@ -118,7 +118,6 @@ impl AppliedStep {
 pub(crate) struct Applied {
     reached: Vec<Py<Outcome>>,
     steps: Vec<Py<AppliedStep>>,
-    ok: bool,
     verdict: Option<String>,
 }
 
@@ -139,7 +138,7 @@ impl Applied {
     /// Whether every member took every step.
     #[getter]
     fn ok(&self) -> bool {
-        self.ok
+        self.verdict.is_none()
     }
 
     /// `"N of M devices failed: ids"`, or the error's own message for a set
@@ -150,7 +149,7 @@ impl Applied {
     }
 
     fn __repr__(&self) -> String {
-        format!("Applied(steps={}, ok={})", self.steps.len(), self.ok)
+        format!("Applied(steps={}, ok={})", self.steps.len(), self.ok())
     }
 }
 
@@ -165,9 +164,8 @@ where
 }
 
 impl Applied {
-    pub(crate) fn new(applied: &CoreApplied, members: usize) -> PyResult<Self> {
-        let ok = applied.is_clean();
-        let verdict = applied.verdict(members).map(|(_, line)| line);
+    pub(crate) fn new(applied: &CoreApplied) -> PyResult<Self> {
+        let verdict = applied.verdict();
         Python::attach(|py| {
             let steps = applied
                 .steps
@@ -186,7 +184,6 @@ impl Applied {
             Ok(Self {
                 reached: shared(py, &applied.reached)?,
                 steps,
-                ok,
                 verdict,
             })
         })

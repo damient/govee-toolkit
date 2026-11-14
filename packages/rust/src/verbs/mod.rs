@@ -14,7 +14,7 @@ mod white;
 
 pub use identify::{IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify};
 pub use music::Music;
-pub use segment::Paint;
+pub use segment::{Paint, Painting};
 
 use crate::codec::catalog::{Command, Device};
 use crate::codec::{ArgBound, ArgRole, ArgValue, Args, Mode, Role};

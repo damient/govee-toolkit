@@ -9,8 +9,8 @@
 mod options;
 mod values;
 
-pub use options::{verbs, walk};
-pub use values::{args, colors, mode, rate, resolution, rgb, seconds, supplied, zones};
+pub use options::{modes, names, verbs, walk};
+pub use values::{args, colors, mode, packed, painting, rate, resolution, rgb, zones};
 
 use crate::summary::Style;
 
@@ -34,8 +34,8 @@ pub enum Value {
     List(Vec<Value>),
     /// An object or a dict, in the order the host gives the keys.
     Map(Vec<(String, Value)>),
-    /// A value of no shape above. The name is the host's name for its type.
-    Other(&'static str),
+    /// A value of no shape above.
+    Other,
 }
 
 /// A value that the core refuses. Nothing was sent.

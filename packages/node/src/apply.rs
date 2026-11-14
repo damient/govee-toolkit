@@ -65,11 +65,7 @@ impl DeviceHandle {
         refuse_secrets: Option<bool>,
     ) -> napi::Result<PromiseRaw<'env, Invoked>> {
         let supplied = conv::args(env, args.as_ref())?;
-        let secrets = if refuse_secrets.unwrap_or(false) {
-            Secrets::Refuse
-        } else {
-            Secrets::Allow
-        };
+        let secrets = Secrets::from(refuse_secrets.unwrap_or(false));
         let owned = self.inner.clone();
         promise(env, async move {
             let (mode, invoked) = owned.handle().invoke(&command, supplied, secrets).await?;
@@ -120,7 +116,6 @@ impl AppliedStep {
 pub struct Applied {
     reached: Vec<Outcome>,
     steps: Vec<AppliedStep>,
-    ok: bool,
     verdict: Option<String>,
 }
 
@@ -141,7 +136,7 @@ impl Applied {
     /// Whether every member took every step.
     #[napi(getter)]
     pub fn ok(&self) -> bool {
-        self.ok
+        self.verdict.is_none()
     }
 
     /// The line that reports the failures: `"2 of 3 devices failed: <ids>"`,
@@ -154,7 +149,7 @@ impl Applied {
 }
 
 impl Applied {
-    fn new(applied: &CoreApplied, members: usize) -> Self {
+    fn new(applied: &CoreApplied) -> Self {
         Self {
             reached: Outcome::all(&applied.reached),
             steps: applied
@@ -165,8 +160,7 @@ impl Applied {
                     outcomes: Outcome::all(&step.outcomes),
                 })
                 .collect(),
-            ok: applied.is_clean(),
-            verdict: applied.verdict(members).map(|(_, line)| line),
+            verdict: applied.verdict(),
         }
     }
 }
@@ -188,7 +182,7 @@ impl Devices {
         let set = self.inner.clone();
         promise(env, async move {
             let applied = set.devices().apply(verbs).await;
-            Ok(Applied::new(&applied, set.ids().len()))
+            Ok(Applied::new(&applied))
         })
     }
 }

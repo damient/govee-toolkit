@@ -33,6 +33,33 @@ pub struct Paint<'a> {
     pub gradient: bool,
 }
 
+/// A [`Paint`] that owns its zones and colors, for a call that outlives the
+/// values it was read from. [`crate::input::painting`] reads one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Painting {
+    /// [`Paint::zones`].
+    pub zones: Option<Vec<u16>>,
+    /// [`Paint::colors`].
+    pub colors: Vec<[u8; 3]>,
+    /// [`Paint::resolution`].
+    pub resolution: Resolution,
+    /// [`Paint::gradient`].
+    pub gradient: bool,
+}
+
+impl Painting {
+    /// The paint to send.
+    #[must_use]
+    pub fn paint(&self) -> Paint<'_> {
+        Paint {
+            zones: self.zones.as_deref(),
+            colors: &self.colors,
+            resolution: self.resolution,
+            gradient: self.gradient,
+        }
+    }
+}
+
 impl DeviceHandle<'_> {
     /// Paint zones.
     ///

@@ -8,6 +8,7 @@ use crate::codec::Mode;
 use crate::codec::coerce::{self, Supplied};
 use crate::stream::{Rate, Resolution};
 use crate::summary::Style;
+use crate::verbs::Painting;
 
 /// Read a whole number. A boolean reads as `0` or `1`, and a float with no
 /// fraction reads as the whole number it carries.
@@ -68,16 +69,7 @@ fn is_number(value: &Value) -> bool {
 /// [`Refused`] for any other shape, or a byte run that is no multiple of 3.
 pub fn colors(value: &Value, style: Style) -> Result<Vec<[u8; 3]>> {
     match value {
-        Value::Bytes(bytes) => {
-            let (zones, rest) = bytes.as_chunks::<3>();
-            if !rest.is_empty() {
-                return Err(Refused::new(format!(
-                    "a paint carries 3 bytes for every zone, and {} bytes is no multiple of 3",
-                    bytes.len()
-                )));
-            }
-            Ok(zones.to_vec())
-        }
+        Value::Bytes(bytes) => packed(bytes),
         Value::List(items) if items.first().is_some_and(is_number) => {
             Ok(vec![triple(&ints(items)?)?])
         }
@@ -87,6 +79,46 @@ pub fn colors(value: &Value, style: Style) -> Result<Vec<[u8; 3]>> {
             _ => "a paint is one color, an array of colors, or bytes",
         })),
     }
+}
+
+/// Read a paint from a byte run, three bytes for every zone. A binding that
+/// holds the bytes calls this and builds no [`Value`].
+///
+/// # Errors
+///
+/// [`Refused`] for a byte run that is no multiple of 3.
+pub fn packed(bytes: &[u8]) -> Result<Vec<[u8; 3]>> {
+    let (zones, rest) = bytes.as_chunks::<3>();
+    if !rest.is_empty() {
+        return Err(Refused::new(format!(
+            "a paint carries 3 bytes for every zone, and {} bytes is no multiple of 3",
+            bytes.len()
+        )));
+    }
+    Ok(zones.to_vec())
+}
+
+/// Read the arguments of `segment()` around colors already read. `Null`
+/// reads as absent: every zone, the default resolution, no gradient.
+///
+/// # Errors
+///
+/// [`Refused`] for zones or a resolution of the wrong shape.
+pub fn painting(
+    colors: Vec<[u8; 3]>,
+    zones: &Value,
+    resolution: &Value,
+    gradient: Option<bool>,
+) -> Result<Painting> {
+    Ok(Painting {
+        zones: match zones {
+            Value::Null => None,
+            zones => Some(self::zones(zones)?),
+        },
+        colors,
+        resolution: self::resolution(resolution)?,
+        gradient: gradient.unwrap_or(false),
+    })
 }
 
 /// Read zone indices, zero-based.
@@ -156,7 +188,7 @@ pub fn rate(value: &Value) -> Result<Rate> {
 /// # Errors
 ///
 /// [`Refused`] for a negative or non-finite number, or any other shape.
-pub fn seconds(key: &str, value: &Value) -> Result<Duration> {
+pub(crate) fn seconds(key: &str, value: &Value) -> Result<Duration> {
     #[allow(clippy::cast_precision_loss)]
     let number = match value {
         Value::Int(number) => *number as f64,
@@ -190,7 +222,7 @@ pub fn mode(name: &str) -> Result<Mode> {
 /// # Errors
 ///
 /// [`Refused`] for a shape that no argument type takes.
-pub fn supplied(value: &Value, style: Style) -> Result<Supplied> {
+pub(crate) fn supplied(value: &Value, style: Style) -> Result<Supplied> {
     match value {
         Value::Bool(_) | Value::Int(_) | Value::Float(_) => Ok(Supplied::Int(whole(value)?)),
         Value::Text(text) => Ok(Supplied::Text(text.clone())),
@@ -220,8 +252,8 @@ pub fn supplied(value: &Value, style: Style) -> Result<Supplied> {
 ///
 /// # Errors
 ///
-/// [`Refused`] for a value [`supplied`] refuses, or where the value is no
-/// map.
+/// [`Refused`] for an argument of a shape that no argument type takes, or
+/// where the value is no map.
 pub fn args(values: &Value, style: Style) -> Result<Vec<(String, Supplied)>> {
     match values {
         Value::Null => Ok(Vec::new()),

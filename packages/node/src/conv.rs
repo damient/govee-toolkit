@@ -47,16 +47,19 @@ fn number(env: &Env, number: f64) -> napi::Result<Value> {
 /// Read one value. A typed array read here crosses once per element: a
 /// `Uint8Array` crosses once where [`child`] reads it through its owner.
 pub(crate) fn value(env: &Env, value: &Unknown<'_>) -> napi::Result<Value> {
-    Ok(match value.get_type()? {
+    known(env, value.get_type()?, value)
+}
+
+/// [`value`], where the caller already asked for the type. Each question
+/// to the engine is one crossing, and a paint asks per zone and per channel.
+fn known(env: &Env, kind: ValueType, value: &Unknown<'_>) -> napi::Result<Value> {
+    Ok(match kind {
         ValueType::Undefined | ValueType::Null => Value::Null,
         ValueType::Boolean => Value::Bool(value.coerce_to_bool()?),
         ValueType::Number => number(env, value.coerce_to_number()?.get_double()?)?,
         ValueType::String => Value::Text(value.coerce_to_string()?.into_utf8()?.into_owned()?),
         ValueType::Object => object(env, &value.coerce_to_object()?)?,
-        ValueType::BigInt => Value::Other("bigint"),
-        ValueType::Symbol => Value::Other("symbol"),
-        ValueType::Function => Value::Other("function"),
-        _ => Value::Other("external"),
+        _ => Value::Other,
     })
 }
 
@@ -65,11 +68,17 @@ pub(crate) fn optional(env: &Env, from: Option<&Unknown<'_>>) -> napi::Result<Va
     from.map_or(Ok(Value::Null), |from| value(env, from))
 }
 
-/// Read an object: a typed array, an array, or a map of keys.
+/// Read an object: a typed array, an array, or a map of keys. A `Buffer` is a
+/// `Uint8Array`, so one question covers both.
 fn object(env: &Env, from: &Object<'_>) -> napi::Result<Value> {
-    if from.is_buffer()? || from.is_typedarray()? {
+    if from.is_typedarray()? {
         return elements(env, from).map(Value::Bytes);
     }
+    untyped(env, from)
+}
+
+/// [`object`], where the caller already knows that it is no typed array.
+fn untyped(env: &Env, from: &Object<'_>) -> napi::Result<Value> {
     if from.is_array()? {
         let length = from.get_array_length()?;
         return (0..length)
@@ -100,17 +109,18 @@ fn child<'a>(
     item: &Unknown<'_>,
     typed: impl FnOnce() -> Option<&'a [u8]>,
 ) -> napi::Result<Value> {
-    if item.get_type()? == ValueType::Object {
-        let from = item.coerce_to_object()?;
-        if from.is_buffer()? || from.is_typedarray()? {
-            return match typed() {
-                Some(bytes) => Ok(Value::Bytes(bytes.to_vec())),
-                None => elements(env, &from).map(Value::Bytes),
-            };
-        }
-        return object(env, &from);
+    let kind = item.get_type()?;
+    if kind != ValueType::Object {
+        return known(env, kind, item);
     }
-    value(env, item)
+    let from = item.coerce_to_object()?;
+    if from.is_typedarray()? {
+        return match typed() {
+            Some(bytes) => Ok(Value::Bytes(bytes.to_vec())),
+            None => elements(env, &from).map(Value::Bytes),
+        };
+    }
+    untyped(env, &from)
 }
 
 /// A typed array of another element type than `Uint8Array` is no byte run,
@@ -145,7 +155,10 @@ pub(crate) fn rgb(env: &Env, from: &Channels<'_>) -> napi::Result<[u8; 3]> {
 }
 
 pub(crate) fn colors(env: &Env, from: &Channels<'_>) -> napi::Result<Vec<[u8; 3]>> {
-    read(env, input::colors(&channels(env, from)?, STYLE))
+    match from {
+        Either::A(bytes) => read(env, input::packed(bytes)),
+        Either::B(other) => read(env, input::colors(&value(env, other)?, STYLE)),
+    }
 }
 
 /// The arguments of a command, by the names the device file gives them.
@@ -161,27 +174,15 @@ pub(crate) fn modes(env: &Env, names: Vec<String>) -> napi::Result<Vec<Mode>> {
     names.iter().map(|name| mode(env, name)).collect()
 }
 
-/// The mode that each key of `keys` names in `options`, in the order of
-/// `keys`. An unknown key is refused.
 pub(crate) fn option_modes<const N: usize>(
     env: &Env,
     options: Option<&Object<'_>>,
     keys: [&str; N],
 ) -> napi::Result<[Option<Mode>; N]> {
-    let mut modes = [None; N];
-    let options = self::options(env, options)?;
-    if options == Value::Null {
-        return Ok(modes);
-    }
-    read(env, options.known_keys("option", &keys))?;
-    for (slot, key) in modes.iter_mut().zip(keys) {
-        *slot = match options.get(key) {
-            Some(Value::Text(name)) => Some(mode(env, name)?),
-            Some(_) => return Err(value_error(env, format!("`{key}` is a mode name"))),
-            None => None,
-        };
-    }
-    Ok(modes)
+    read(
+        env,
+        input::modes(&self::options(env, options)?, "option", keys),
+    )
 }
 
 /// Hand a value the core serializes to JavaScript, as objects and arrays.

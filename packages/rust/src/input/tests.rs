@@ -1,3 +1,4 @@
+use super::values::supplied;
 use super::*;
 use crate::apply::Verb;
 use crate::codec::coerce::Supplied;
@@ -97,4 +98,31 @@ fn a_walk_keeps_its_defaults_and_refuses_a_negative_wait() {
     assert!(walk(&Value::Null, Style::Python).is_ok());
     assert!(walk(&map(vec![("wait", Value::Float(-1.0))]), Style::Python).is_err());
     assert!(walk(&map(vec![("speed", Value::Int(1))]), Style::Python).is_err());
+}
+
+#[test]
+fn a_segment_reads_null_as_absent_and_refuses_bad_zones() {
+    let colors = vec![[255, 0, 0]];
+    assert_eq!(
+        painting(colors.clone(), &Value::Null, &Value::Null, None),
+        Ok(crate::Painting {
+            zones: None,
+            colors: colors.clone(),
+            resolution: Resolution::default(),
+            gradient: false,
+        })
+    );
+    assert!(painting(colors, &Value::Text("0".into()), &Value::Null, None).is_err());
+}
+
+#[test]
+fn an_options_map_of_names_refuses_an_unknown_key_and_a_non_text_value() {
+    let options = map(vec![("mode", Value::Text("lan".into()))]);
+    assert_eq!(
+        modes(&options, "option", ["enables", "mode"]),
+        Ok([None, Some(crate::codec::Mode::Lan)])
+    );
+    assert_eq!(names(&Value::Null, "query", ["mode"]), Ok([None]));
+    assert!(names(&map(vec![("sku", Value::Null)]), "query", ["mode"]).is_err());
+    assert!(names(&map(vec![("mode", Value::Int(1))]), "query", ["mode"]).is_err());
 }

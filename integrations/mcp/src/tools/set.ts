@@ -91,7 +91,6 @@ function answer(members: string[], applied: Applied): CallToolResult {
   if (applied.ok) return ok({ members, steps });
   const failed = [applied.reached, ...applied.steps.map((s) => s.outcomes)].flat().find((o) => !o.ok);
   const first = failure(failed?.error);
-  // The verdict of one device is its own error, as a command on one device fails.
-  const summary = `${first.code}: ${applied.verdict ?? first.message}`;
+  const summary = `${first.code}: ${applied.verdict}`;
   return { isError: true, content: [{ type: "text", text: `${summary}\n${JSON.stringify({ steps })}` }] };
 }

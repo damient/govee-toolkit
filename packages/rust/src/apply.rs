@@ -4,9 +4,8 @@ use crate::codec::Mode;
 use crate::device::DeviceHandle;
 use crate::devices::{Devices, Outcome};
 use crate::error::Error;
-use crate::stream::Resolution;
 use crate::transport::DeviceId;
-use crate::verbs::{Music, Paint};
+use crate::verbs::{Music, Painting};
 
 /// One role verb, for [`Devices::apply`].
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,17 +18,8 @@ pub enum Verb {
     Color([u8; 3]),
     /// [`crate::DeviceHandle::color_temp`], in kelvin.
     ColorTemp(i64),
-    /// [`crate::DeviceHandle::segment`], with the fields of a [`Paint`].
-    Segment {
-        /// `None` paints every zone.
-        zones: Option<Vec<u16>>,
-        /// One color for every zone, or one per zone in order.
-        colors: Vec<[u8; 3]>,
-        /// The zone count the colors address.
-        resolution: Resolution,
-        /// Whether the firmware interpolates between zones.
-        gradient: bool,
-    },
+    /// [`crate::DeviceHandle::segment`].
+    Segment(Painting),
     /// [`crate::DeviceHandle::gradient`].
     Gradient(bool),
     /// [`crate::DeviceHandle::music`].
@@ -45,7 +35,7 @@ impl Verb {
             Self::Brightness(_) => "brightness",
             Self::Color(_) => "color",
             Self::ColorTemp(_) => "color_temp",
-            Self::Segment { .. } => "segment",
+            Self::Segment(_) => "segment",
             Self::Gradient(_) => "gradient",
             Self::Music(_) => "music",
         }
@@ -59,7 +49,7 @@ impl Verb {
             Self::Brightness(_) => 2,
             Self::ColorTemp(_) => 3,
             Self::Color(_) => 4,
-            Self::Segment { .. } => 5,
+            Self::Segment(_) => 5,
             Self::Music(_) => 6,
             Self::Power(false) => 7,
         }
@@ -95,30 +85,28 @@ impl Applied {
         reached.chain(steps)
     }
 
-    /// The line that reports the failures over `members` devices, with the
-    /// first error. One device reports that error's own message, so a group
-    /// of one fails as a command on one device does. `None` when clean.
+    /// The line that reports the failures, `None` when clean. A set of one
+    /// member reports the error's own message, so it fails as a command on
+    /// one device does.
     #[must_use]
-    pub fn verdict(&self, members: usize) -> Option<(&Error, String)> {
+    pub fn verdict(&self) -> Option<String> {
         let mut failures = self.failures();
-        let (_, first) = failures.next()?;
+        let (first_id, first) = failures.next()?;
+        let members = self.reached.len();
         if members == 1 {
-            return Some((first, first.to_string()));
+            return Some(first.to_string());
         }
-        let mut ids: Vec<String> = Vec::new();
-        for (id, _) in self.failures() {
-            let id = id.to_string();
+        let mut ids = vec![first_id];
+        for (id, _) in failures {
             if !ids.contains(&id) {
                 ids.push(id);
             }
         }
-        Some((
-            first,
-            format!(
-                "{} of {members} devices failed: {}",
-                ids.len(),
-                ids.join(", ")
-            ),
+        let ids: Vec<String> = ids.iter().map(ToString::to_string).collect();
+        Some(format!(
+            "{} of {members} devices failed: {}",
+            ids.len(),
+            ids.join(", ")
         ))
     }
 
@@ -145,20 +133,7 @@ impl Devices<'_> {
             Verb::Brightness(level) => self.brightness(*level).await,
             Verb::Color(rgb) => self.color(*rgb).await,
             Verb::ColorTemp(kelvin) => self.color_temp(*kelvin).await,
-            Verb::Segment {
-                zones,
-                colors,
-                resolution,
-                gradient,
-            } => {
-                self.segment(&Paint {
-                    zones: zones.as_deref(),
-                    colors,
-                    resolution: *resolution,
-                    gradient: *gradient,
-                })
-                .await
-            }
+            Verb::Segment(painting) => self.segment(&painting.paint()).await,
             Verb::Gradient(on) => self.gradient(*on).await,
             Verb::Music(music) => self.music(music).await,
         }

@@ -49,6 +49,8 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
   in Node and Python. `segment()` takes the resolution `'groups'`.
 - `SegmentStream.close()` can run twice. A paint after it throws
   `stream_closed`.
+- A paint given as an array of colors crosses into the engine fewer times per
+  zone. A `Uint8Array` stays the cheapest form.
 
 ## [0.5.0] — 2026-09-26
 

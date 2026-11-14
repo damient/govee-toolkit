@@ -1,13 +1,12 @@
 //! What `devices/*.yaml` declares, as the SDK reads it.
 
-use govee_toolkit::input::Value;
-use govee_toolkit::{Catalog as CoreCatalog, describe_sku, profile, query};
+use govee_toolkit::{Catalog as CoreCatalog, describe_sku, input, profile, query};
 use napi::Env;
 use napi::bindgen_prelude::Object;
 use napi_derive::napi;
 
 use crate::conv::{self, to_js};
-use crate::errors::{map, value_error};
+use crate::errors::map;
 
 /// Every device the build knows. Reads no hardware.
 #[napi]
@@ -81,24 +80,12 @@ impl Catalog {
     )]
     pub fn query(&self, env: &Env, filter: Option<Object<'_>>) -> napi::Result<Vec<String>> {
         let filter = conv::options(env, filter.as_ref())?;
-        if filter != Value::Null {
-            conv::read(
-                env,
-                filter.known_keys("query", &["mode", "capability", "support"]),
-            )?;
-        }
-        let text = |key: &str| match filter.get(key) {
-            Some(Value::Text(text)) => Ok(Some(text.as_str())),
-            Some(_) => Err(value_error(env, format!("`{key}` is a name"))),
-            None => Ok(None),
-        };
-        let mode = text("mode")?
-            .map(|name| conv::mode(env, name))
-            .transpose()?;
-        conv::read(
+        let [mode, capability, support] = conv::read(
             env,
-            query(&self.inner, mode, text("capability")?, text("support")?),
-        )
+            input::names(&filter, "query", ["mode", "capability", "support"]),
+        )?;
+        let mode = mode.map(|name| conv::mode(env, name)).transpose()?;
+        conv::read(env, query(&self.inner, mode, capability, support))
     }
 
     /// How many device files the build carries.

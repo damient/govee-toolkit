@@ -3,7 +3,7 @@
 use std::future::Future;
 
 use govee_toolkit::{
-    Answer, Music, Outcome as CoreOutcome, OwnedDevices, Paint, Served as CoreServed, input,
+    Answer, Music, Outcome as CoreOutcome, OwnedDevices, Served as CoreServed, input,
 };
 use napi::Env;
 use napi::bindgen_prelude::{Object, PromiseRaw, Unknown};
@@ -233,26 +233,23 @@ impl Devices {
             ts_arg_type = "[number, number, number] | Array<[number, number, number]> | Uint8Array"
         )]
         colors: conv::Channels<'_>,
-        zones: Option<Vec<u16>>,
+        #[napi(ts_arg_type = "Array<number> | undefined | null")] zones: Option<Unknown<'_>>,
         #[napi(ts_arg_type = "number | 'app' | 'native' | 'groups'")] resolution: Option<
             Unknown<'_>,
         >,
         gradient: Option<bool>,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        let colors = conv::colors(env, &colors)?;
-        let resolution = conv::read(
+        let painting = conv::read(
             env,
-            input::resolution(&conv::optional(env, resolution.as_ref())?),
-        )?;
-        let gradient = gradient.unwrap_or(false);
-        self.served(env, move |set| async move {
-            let paint = Paint {
-                zones: zones.as_deref(),
-                colors: &colors,
-                resolution,
+            input::painting(
+                conv::colors(env, &colors)?,
+                &conv::optional(env, zones.as_ref())?,
+                &conv::optional(env, resolution.as_ref())?,
                 gradient,
-            };
-            set.devices().segment(&paint).await
+            ),
+        )?;
+        self.served(env, move |set| async move {
+            set.devices().segment(&painting.paint()).await
         })
     }
 

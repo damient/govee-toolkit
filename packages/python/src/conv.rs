@@ -5,7 +5,7 @@
 
 use govee_toolkit::codec::Supplied;
 use govee_toolkit::input::{self, Refused, Value};
-use govee_toolkit::{Mode, Style};
+use govee_toolkit::{Mode, Painting, Style};
 use pyo3::prelude::*;
 use pyo3::types::{
     PyBool, PyByteArray, PyBytes, PyDict, PyFloat, PyInt, PyList, PySequence, PyString, PyTuple,
@@ -59,7 +59,7 @@ pub(crate) fn value(object: &Bound<'_, PyAny>) -> PyResult<Value> {
     if let Ok(number) = object.extract::<f64>() {
         return Ok(Value::Float(number));
     }
-    Ok(Value::Other("object"))
+    Ok(Value::Other)
 }
 
 fn whole(object: &Bound<'_, PyAny>) -> PyResult<Value> {
@@ -117,7 +117,24 @@ pub(crate) fn rgb(object: &Bound<'_, PyAny>) -> PyResult<[u8; 3]> {
 }
 
 pub(crate) fn colors(object: &Bound<'_, PyAny>) -> PyResult<Vec<[u8; 3]>> {
+    if let Ok(bytes) = object.cast::<PyBytes>() {
+        return read(input::packed(bytes.as_bytes()));
+    }
     read(input::colors(&value(object)?, Style::Python))
+}
+
+pub(crate) fn painting(
+    colors: &Bound<'_, PyAny>,
+    zones: Option<&Bound<'_, PyAny>>,
+    resolution: Option<&Bound<'_, PyAny>>,
+    gradient: bool,
+) -> PyResult<Painting> {
+    read(input::painting(
+        self::colors(colors)?,
+        &optional(zones)?,
+        &optional(resolution)?,
+        Some(gradient),
+    ))
 }
 
 pub(crate) fn args(values: Option<&Bound<'_, PyDict>>) -> PyResult<Vec<(String, Supplied)>> {

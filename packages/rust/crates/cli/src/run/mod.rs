@@ -5,7 +5,7 @@ use std::time::Duration;
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit::{
-    Config, DeviceHandle, Devices, Env, Filter, Govee, Identify, Music, Verb, Walk,
+    Config, DeviceHandle, Devices, Env, Filter, Govee, Identify, Music, Painting, Verb, Walk,
 };
 
 use crate::cli::{self, Cli, Command};
@@ -138,12 +138,12 @@ async fn segment(
     colors: &str,
     gradient: bool,
 ) -> Result<Verb, Failure> {
-    Ok(Verb::Segment {
+    Ok(Verb::Segment(Painting {
         zones: zones.map(args::zones).transpose()?,
         colors: args::colors_or_stdin(colors).await?,
         resolution: args::resolution(resolution)?,
         gradient,
-    })
+    }))
 }
 
 fn music(effect: i64, sensitivity: i64, soft: bool, color: Option<&str>) -> Result<Music, Failure> {

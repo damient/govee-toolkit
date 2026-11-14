@@ -57,7 +57,7 @@ pub enum Error {
         declared: String,
     },
 
-    /// The command takes a secret: [`crate::Resolved::refuse_secret`].
+    /// The command takes a secret: [`crate::Secrets::Refuse`].
     #[error("{command}: argument `{arg}` carries a secret, which this caller does not carry")]
     SecretArg {
         /// The command.

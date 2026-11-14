@@ -16,7 +16,6 @@ use pyo3_async_runtimes::tokio::future_into_py;
 
 use crate::apply::Invoked;
 use crate::conv::{self, read, to_py};
-use crate::devices::Painting;
 use crate::errors::map;
 use crate::events::StatusStream;
 use crate::stream::SegmentStream;
@@ -156,11 +155,7 @@ impl DeviceHandle {
         args: Option<&Bound<'py, PyDict>>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let supplied = conv::args(args)?;
-        let secrets = if refuse_secrets {
-            Secrets::Refuse
-        } else {
-            Secrets::Allow
-        };
+        let secrets = Secrets::from(refuse_secrets);
         let device = self.inner.clone();
         future_into_py(py, async move {
             let (mode, invoked) = map(device.handle().invoke(&command, supplied, secrets).await)?;
@@ -270,7 +265,7 @@ impl DeviceHandle {
         resolution: Option<&Bound<'py, PyAny>>,
         gradient: bool,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let painting = Painting::read(colors, zones, resolution, gradient)?;
+        let painting = conv::painting(colors, zones, resolution, gradient)?;
         self.served(py, |device| async move {
             device.handle().segment(&painting.paint()).await
         })

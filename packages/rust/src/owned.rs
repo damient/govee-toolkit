@@ -34,12 +34,6 @@ impl OwnedDevice {
         self.pinned
     }
 
-    /// The SDK the handle drives.
-    #[must_use]
-    pub fn govee(&self) -> &Govee {
-        &self.govee
-    }
-
     /// The handle for one call.
     #[must_use]
     pub fn handle(&self) -> DeviceHandle<'_> {
