@@ -50,22 +50,12 @@ impl<T: Tracked> Devices<T> {
     /// Every device, sorted by identity. The transport says how to spell an
     /// endpoint, because only it knows what one is.
     pub(crate) fn known(&self, endpoint_of: impl Fn(&T) -> String) -> Vec<KnownDevice> {
-        self.known_if(endpoint_of, |_| true)
-    }
-
-    /// [`Devices::known`], kept to the records `keep` accepts.
-    pub(crate) fn known_if(
-        &self,
-        endpoint_of: impl Fn(&T) -> String,
-        keep: impl Fn(&T) -> bool,
-    ) -> Vec<KnownDevice> {
         let now = Instant::now();
         let Ok(devices) = self.lock() else {
             return Vec::new();
         };
         let mut out: Vec<KnownDevice> = devices
             .iter()
-            .filter(|(_, tracked)| keep(tracked))
             .map(|(id, tracked)| KnownDevice {
                 id: id.clone(),
                 endpoint: endpoint_of(tracked),

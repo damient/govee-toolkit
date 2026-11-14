@@ -16,7 +16,7 @@ mod shared;
 
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 
 use tokio::sync::{broadcast, watch};
 use tokio::task::JoinHandle;
@@ -89,10 +89,6 @@ impl Transport {
         let socket = Socket::bind(&options.endpoints)?;
         let (events, _) = broadcast::channel(256);
         let (replies, _) = broadcast::channel(256);
-        let mut cache = options.cache;
-        // The refresh loop prunes only after its first scan, and a short
-        // process selects before that.
-        cache.prune(SystemTime::now(), options.forget_after);
 
         let shared = Arc::new(Shared {
             socket,
@@ -102,11 +98,14 @@ impl Transport {
             status_timeout: options.status_timeout,
             verify_interval: options.verify_interval,
             devices: Devices::new(),
-            cache: Mutex::new(cache),
+            cache: Mutex::new(options.cache),
             events,
             replies,
         });
 
+        // The refresh loop forgets only after its first scan, and a short
+        // process selects before that.
+        shared.forget_stale(options.forget_after);
         shared.adopt_cached_devices();
 
         let mut tasks = vec![tokio::spawn(receive_loop(Arc::clone(&shared)))];
@@ -193,17 +192,6 @@ impl Transport {
         self.shared
             .devices
             .known(|tracked| SocketAddr::new(tracked.ip, port).to_string())
-    }
-
-    /// Every device that answered a scan in this process. A device that only
-    /// the cache holds is left out.
-    #[must_use]
-    pub fn answered(&self) -> Vec<KnownDevice> {
-        let port = self.shared.endpoints.control_port;
-        self.shared.devices.known_if(
-            |tracked| SocketAddr::new(tracked.ip, port).to_string(),
-            |tracked| tracked.answered,
-        )
     }
 
     /// The SKU a device reports, if it is known.

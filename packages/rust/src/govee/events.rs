@@ -32,6 +32,9 @@ pub(super) async fn forward(
         match events.recv().await {
             Ok(event) => {
                 if let crate::transport::Event::Discovered { mode, device, .. } = &event {
+                    if let Ok(mut heard) = inner.heard.lock() {
+                        heard.insert(device.id.clone());
+                    }
                     let sku = inner
                         .config
                         .sku_for(&device.id)

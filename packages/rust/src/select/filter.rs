@@ -194,7 +194,7 @@ impl Govee {
         }
         let Some(targets) = &filter.targets else {
             return Ok(self
-                .answered()
+                .heard()
                 .into_iter()
                 .filter(|device| {
                     filter
@@ -227,13 +227,11 @@ impl Govee {
     /// declares. A declared device that answered no scan carries the SKU the
     /// configuration pins, or an empty one that no SKU matches.
     fn candidates(&self) -> Vec<Device> {
-        let mut all = self.answered_skus();
+        let mut all = self.heard_skus();
         for id in self.inner.config.devices.keys() {
             all.entry(id.clone()).or_default();
         }
-        all.into_iter()
-            .map(|(id, sku)| self.describe(&id, &sku))
-            .collect()
+        self.described(all)
     }
 
     /// Scan once per mode and per SDK. The lock stays held over the scan,
@@ -259,22 +257,26 @@ impl Govee {
         skus(self.inner.transports.values().flat_map(|t| t.devices()))
     }
 
-    fn answered_skus(&self) -> BTreeMap<DeviceId, String> {
-        skus(self.inner.transports.values().flat_map(|t| t.answered()))
+    fn heard_skus(&self) -> BTreeMap<DeviceId, String> {
+        let mut known = self.known_skus();
+        if let Ok(heard) = self.inner.heard.lock() {
+            known.retain(|id, _| heard.contains(id));
+        }
+        known
     }
 
     /// Every device a transport knows. One that two modes reach appears once:
     /// the identity is the MAC.
     pub(crate) fn known(&self) -> Vec<Device> {
-        self.known_skus()
-            .into_iter()
-            .map(|(id, sku)| self.describe(&id, &sku))
-            .collect()
+        self.described(self.known_skus())
     }
 
-    fn answered(&self) -> Vec<Device> {
-        self.answered_skus()
-            .into_iter()
+    fn heard(&self) -> Vec<Device> {
+        self.described(self.heard_skus())
+    }
+
+    fn described(&self, skus: BTreeMap<DeviceId, String>) -> Vec<Device> {
+        skus.into_iter()
             .map(|(id, sku)| self.describe(&id, &sku))
             .collect()
     }

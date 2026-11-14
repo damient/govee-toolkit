@@ -80,26 +80,18 @@ async fn an_entry_past_forget_after_is_not_loaded() {
 }
 
 #[tokio::test]
-async fn a_cached_entry_is_known_and_not_answered_until_a_scan_hears_it() {
+async fn a_cached_entry_is_known_before_a_scan() {
     let simulator = common::simulator(SKU).await;
-    let (directory, cache) = cache_with("answered", DAY);
+    let (directory, cache) = cache_with("known", DAY);
 
     let lan = transport(&simulator, cache).await;
     assert_eq!(ids(lan.devices()), [DeviceId::new(CACHED)]);
-    assert_eq!(ids(lan.answered()), Vec::<DeviceId>::new());
-
-    lan.scan_for(&id(), Duration::from_secs(2))
-        .await
-        .expect("the scan goes out")
-        .expect("the simulator answers");
-    assert_eq!(ids(lan.answered()), [id()]);
-    assert_eq!(lan.devices().len(), 2);
 
     let _ = std::fs::remove_dir_all(&directory);
 }
 
 #[tokio::test]
-async fn a_sku_and_every_device_leave_out_a_cached_device_that_did_not_answer() {
+async fn a_sku_and_every_device_leave_out_a_cached_device_that_no_scan_heard() {
     let simulator = common::simulator(SKU).await;
     let (directory, cache) = cache_with("selection", DAY);
     let lan = transport(&simulator, cache).await;

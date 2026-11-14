@@ -133,6 +133,7 @@ impl Govee {
             status_requests: Mutex::new(HashMap::new()),
             streams: crate::govee::ArmedStreams::default(),
             scanned: tokio::sync::Mutex::default(),
+            heard: Mutex::default(),
         });
 
         let forwarder = Forwarder(

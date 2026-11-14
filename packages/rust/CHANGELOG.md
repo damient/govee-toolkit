@@ -30,9 +30,6 @@ releases apart and keeps
   mode alone where the handle pins one. `DeviceHandle::pinned()` names it.
 - `Support::ALL` — every support level. `Catalog::capabilities()` — every
   capability name that a device of the catalog declares.
-- `transport::Transport::answered()` and `lan::Transport::answered()` — the
-  devices that answered a scan in this process, less what a cache holds.
-
 - `input` reads a host value, `input::Value`, as a color, a paint, a zone
   list, a resolution, a rate, a duration or the verbs of an apply.
 - `OwnedDevice` and `OwnedDevices` hold a clone of `Govee`, for a binding:
@@ -70,7 +67,8 @@ releases apart and keeps
 ### Fixed
 
 - `lan::Transport::start()` drops a cache entry that answered no scan for
-  `Options::forget_after`, before it makes the cached devices sendable.
+  `Options::forget_after`, before it makes the cached devices sendable, and
+  removes it from the cache file.
 
 ## [0.14.0] — 2026-09-26
 

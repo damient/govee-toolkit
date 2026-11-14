@@ -33,9 +33,6 @@ pub(super) struct Tracked {
     /// When verification last ran, so a burst of commands does not turn into a
     /// burst of probes.
     pub(super) verified_at: Option<Instant>,
-    /// A scan reply in this process recorded it. `false` for a device that
-    /// only the cache holds.
-    pub(super) answered: bool,
 }
 
 impl crate::transport::registry::Tracked for Tracked {
@@ -61,7 +58,7 @@ impl crate::transport::registry::Tracked for Tracked {
 }
 
 impl Tracked {
-    pub(super) fn new(ip: IpAddr, sku: String, policy: Policy, answered: bool) -> Self {
+    pub(super) fn new(ip: IpAddr, sku: String, policy: Policy) -> Self {
         Self {
             ip,
             sku,
@@ -69,7 +66,6 @@ impl Tracked {
             status: watch::Sender::new(None),
             probing: false,
             verified_at: None,
-            answered,
         }
     }
 }
@@ -99,7 +95,7 @@ impl Shared {
         for cached in cache.devices() {
             devices.insert(
                 cached.id.clone(),
-                Tracked::new(cached.ip, cached.sku.clone(), self.policy, false),
+                Tracked::new(cached.ip, cached.sku.clone(), self.policy),
             );
         }
     }

@@ -145,12 +145,11 @@ impl Shared {
                 Some(tracked) => {
                     tracked.ip = device.ip;
                     tracked.sku.clone_from(&device.sku);
-                    tracked.answered = true;
                 }
                 None => {
                     devices.insert(
                         device.id.clone(),
-                        Tracked::new(device.ip, device.sku.clone(), self.policy, true),
+                        Tracked::new(device.ip, device.sku.clone(), self.policy),
                     );
                 }
             }
@@ -167,7 +166,7 @@ impl Shared {
     }
 
     /// Drop cached devices that have stopped answering scans.
-    fn forget_stale(&self, older_than: Duration) {
+    pub(super) fn forget_stale(&self, older_than: Duration) {
         let dropped = {
             let Ok(mut cache) = self.cache.lock() else {
                 return;

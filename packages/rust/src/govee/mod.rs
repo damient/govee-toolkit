@@ -38,6 +38,9 @@ pub(crate) struct Inner {
     streams: ArmedStreams,
     /// The modes a scan has covered, so that a resolution scans once.
     pub(crate) scanned: tokio::sync::Mutex<BTreeSet<Mode>>,
+    /// The devices that a scan reply reached in this process, in any mode. A
+    /// device that only a cache holds is not one of them.
+    pub(crate) heard: Mutex<BTreeSet<DeviceId>>,
 }
 
 /// The SDK. Cheap to clone; every clone shares one catalog, one configuration
@@ -108,6 +111,12 @@ impl Govee {
         Ok(found)
     }
 
+    pub(crate) fn hear(&self, ids: impl IntoIterator<Item = DeviceId>) {
+        if let Ok(mut heard) = self.inner.heard.lock() {
+            heard.extend(ids);
+        }
+    }
+
     pub(crate) async fn scan_windows(&self, modes: Option<&[Mode]>) -> Result<Vec<Device>> {
         let windows = self
             .inner
@@ -122,6 +131,9 @@ impl Govee {
         for device in per_mode.into_iter().flatten() {
             found.insert(device.id, device.sku);
         }
+        // The forwarder also records each reply, but it can run after this
+        // call returns.
+        self.hear(found.keys().cloned());
         Ok(found
             .into_iter()
             .map(|(id, sku)| self.describe(&id, &sku))
