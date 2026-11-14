@@ -67,7 +67,7 @@ export type Arg =
   | Color[];
 
 /** A segment count, or the name of one the device file declares. */
-export type Resolution = number | "app" | "native";
+export type Resolution = number | "app" | "native" | "groups";
 
 /** Frames per second, or the name of a rate the device file declares. */
 export type Rate = number | "measured";

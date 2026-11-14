@@ -42,6 +42,15 @@ impl Health {
         self.inner.available
     }
 
+    /// The record every surface prints: `state`, `failures`, `available`.
+    #[napi(
+        js_name = "toJSON",
+        ts_return_type = "{ state: string; failures: number; available: boolean }"
+    )]
+    pub fn to_json(&self) -> serde_json::Value {
+        self.inner.to_json()
+    }
+
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
         self.inner.summary(Style::Javascript)
@@ -147,6 +156,15 @@ impl Served {
         self.inner.cmd.clone()
     }
 
+    /// The record every surface prints: `id`, `mode`, `command`.
+    #[napi(
+        js_name = "toJSON",
+        ts_return_type = "{ id: string; mode: string; command: string }"
+    )]
+    pub fn to_json(&self) -> serde_json::Value {
+        self.inner.to_json()
+    }
+
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
         self.inner.summary(Style::Javascript)
@@ -208,6 +226,16 @@ impl DeviceStatus {
     #[napi(getter)]
     pub fn is_white(&self) -> bool {
         self.inner.is_white()
+    }
+
+    /// The record every surface prints. `color` is `#RRGGBB` there, and
+    /// `colorTempKelvin` is `color_temp_kelvin`.
+    #[napi(
+        js_name = "toJSON",
+        ts_return_type = "{ id: string; on: boolean | null; brightness: number | null; color: string | null; color_temp_kelvin: number | null; raw: unknown }"
+    )]
+    pub fn to_json(&self) -> serde_json::Value {
+        self.inner.to_json()
     }
 
     #[napi(js_name = "toString")]

@@ -1,62 +1,37 @@
-//! What crosses between a JavaScript value and a core value.
+//! A JavaScript value, as the core's host-neutral [`Value`].
+//!
+//! The shape rules, the defaults and the refusals live in
+//! `govee_toolkit::input`. This module keeps the checks that only JavaScript
+//! needs: the safe integer range, and the bytes of a typed array.
 
-use std::time::Duration;
-
-use govee_toolkit::codec::{Supplied, UnknownMode, coerce};
-use govee_toolkit::{Mode, Music, ParseError, Rate, Resolution, Walk};
+use govee_toolkit::Style;
+use govee_toolkit::codec::{Mode, Supplied};
+use govee_toolkit::input::{self, Refused, Value};
 use napi::bindgen_prelude::{Either, JsObjectValue, Object, Unknown};
 use napi::{Env, JsValue, ValueType};
 use serde::Serialize;
 
 use crate::errors::value_error;
 
-pub(crate) fn mode(env: &Env, name: &str) -> napi::Result<Mode> {
-    name.parse()
-        .map_err(|e: UnknownMode| value_error(env, e.to_string()))
-}
+/// How the core spells a key and words a refusal for this binding.
+pub(crate) const STYLE: Style = Style::Javascript;
 
-pub(crate) fn modes(env: &Env, names: Vec<String>) -> napi::Result<Vec<Mode>> {
-    names.iter().map(|name| mode(env, name)).collect()
-}
-
-/// The mode that each key of `keys` names in `options`, in the order of
-/// `keys`. `undefined` and `null` read as absent.
-///
-/// A misspelled key is refused: ignored, it reads as a mode that holds no
-/// device.
-pub(crate) fn option_modes<const N: usize>(
-    env: &Env,
-    options: Option<&Object<'_>>,
-    keys: [&str; N],
-) -> napi::Result<[Option<Mode>; N]> {
-    let mut modes = [None; N];
-    let Some(options) = options else {
-        return Ok(modes);
-    };
-    for key in Object::keys(options)? {
-        if !keys.contains(&key.as_str()) {
-            return Err(value_error(
-                env,
-                format!("`{key}` is no option; the options are {}", keys.join(", ")),
-            ));
-        }
-    }
-    for (slot, key) in modes.iter_mut().zip(keys) {
-        if let Some(name) = options.get::<Option<String>>(key)?.flatten() {
-            *slot = Some(mode(env, &name)?);
-        }
-    }
-    Ok(modes)
-}
+/// The channels of a color, or of a paint: the bytes of a `Uint8Array`, or
+/// any other value.
+pub(crate) type Channels<'a> = Either<&'a [u8], Unknown<'a>>;
 
 /// The largest whole number a JavaScript `number` carries exactly. Past it
 /// the value the caller wrote and the value that arrives are two numbers.
 const MAX_SAFE_INTEGER: f64 = 9_007_199_254_740_991.0;
 
-fn whole(env: &Env, value: &Unknown<'_>) -> napi::Result<i64> {
-    let number = value.coerce_to_number()?.get_double()?;
+/// Hand a refusal of the core to JavaScript as a `TypeError`.
+pub(crate) fn read<T>(env: &Env, result: input::Result<T>) -> napi::Result<T> {
+    result.map_err(|Refused(message)| value_error(env, message))
+}
+
+fn number(env: &Env, number: f64) -> napi::Result<Value> {
     if !number.is_finite() || number.fract() != 0.0 {
-        return Err(value_error(env, format!("{number} is not a whole number")));
+        return Ok(Value::Float(number));
     }
     if number.abs() > MAX_SAFE_INTEGER {
         return Err(value_error(
@@ -66,282 +41,147 @@ fn whole(env: &Env, value: &Unknown<'_>) -> napi::Result<i64> {
     }
     // Checked above: no fraction, and under 2^53.
     #[allow(clippy::cast_possible_truncation)]
-    Ok(number as i64)
+    Ok(Value::Int(number as i64))
 }
 
-/// Anything that is not an array is refused by the caller, which states what
-/// it wanted.
-fn ints(env: &Env, array: &Object<'_>) -> napi::Result<Vec<i64>> {
-    let length = array.get_array_length()?;
-    (0..length)
-        .map(|index| whole(env, &array.get_element::<Unknown<'_>>(index)?))
-        .collect()
+/// Read one value. A typed array read here crosses once per element: a
+/// `Uint8Array` crosses once where [`child`] reads it through its owner.
+pub(crate) fn value(env: &Env, value: &Unknown<'_>) -> napi::Result<Value> {
+    Ok(match value.get_type()? {
+        ValueType::Undefined | ValueType::Null => Value::Null,
+        ValueType::Boolean => Value::Bool(value.coerce_to_bool()?),
+        ValueType::Number => number(env, value.coerce_to_number()?.get_double()?)?,
+        ValueType::String => Value::Text(value.coerce_to_string()?.into_utf8()?.into_owned()?),
+        ValueType::Object => object(env, &value.coerce_to_object()?)?,
+        ValueType::BigInt => Value::Other("bigint"),
+        ValueType::Symbol => Value::Other("symbol"),
+        ValueType::Function => Value::Other("function"),
+        _ => Value::Other("external"),
+    })
 }
 
-fn triple(env: &Env, channels: &[i64]) -> napi::Result<[u8; 3]> {
-    coerce::triple(channels).map_err(|refused| value_error(env, refused.to_string()))
+/// `None` reads as `Null`.
+pub(crate) fn optional(env: &Env, from: Option<&Unknown<'_>>) -> napi::Result<Value> {
+    from.map_or(Ok(Value::Null), |from| value(env, from))
 }
 
-/// The channels of a color, or of a paint: the bytes of a `Uint8Array`, or an
-/// array of numbers.
-pub(crate) type Channels<'a> = Either<&'a [u8], Unknown<'a>>;
-
-fn rgb_array(env: &Env, value: &Unknown<'_>) -> napi::Result<[u8; 3]> {
-    let refused = || {
-        value_error(
-            env,
-            "a color is three whole numbers from 0 to 255, such as [255, 0, 0], or three bytes",
-        )
-    };
-    if value.get_type()? != ValueType::Object {
-        return Err(refused());
+/// Read an object: a typed array, an array, or a map of keys.
+fn object(env: &Env, from: &Object<'_>) -> napi::Result<Value> {
+    if from.is_buffer()? || from.is_typedarray()? {
+        return elements(env, from).map(Value::Bytes);
     }
-    let array = value.coerce_to_object()?;
-    if !array.is_array()? {
-        return Err(refused());
+    if from.is_array()? {
+        let length = from.get_array_length()?;
+        return (0..length)
+            .map(|index| {
+                let item = from.get_element::<Unknown<'_>>(index)?;
+                child(env, &item, || from.get_element::<&[u8]>(index).ok())
+            })
+            .collect::<napi::Result<_>>()
+            .map(Value::List);
     }
-    triple(env, &ints(env, &array)?)
+    Object::keys(from)?
+        .into_iter()
+        .map(|key| {
+            let item = match from.get::<Unknown<'_>>(&key)? {
+                Some(item) => child(env, &item, || from.get::<&[u8]>(&key).ok().flatten())?,
+                None => Value::Null,
+            };
+            Ok((key, item))
+        })
+        .collect::<napi::Result<_>>()
+        .map(Value::Map)
 }
 
-pub(crate) fn music(
+/// `typed` reads a `Uint8Array` in one crossing. Only the owner of the value
+/// answers that read, so the caller passes it.
+fn child<'a>(
     env: &Env,
-    effect: i64,
-    sensitivity: Option<i64>,
-    soft: Option<bool>,
-    color: Option<&Channels<'_>>,
-) -> napi::Result<Music> {
-    let default = Music::default();
-    Ok(Music {
-        effect,
-        sensitivity: sensitivity.unwrap_or(default.sensitivity),
-        soft: soft.unwrap_or(default.soft),
-        color: color.map(|value| rgb(env, value)).transpose()?,
-    })
-}
-
-const WALK_OPTIONS: [&str; 5] = ["color", "wait", "hold", "keep", "mode"];
-
-fn seconds(env: &Env, key: &str, value: &Unknown<'_>) -> napi::Result<Duration> {
-    let number = value.coerce_to_number()?.get_double()?;
-    Duration::try_from_secs_f64(number).map_err(|_| {
-        value_error(
-            env,
-            format!("`{key}` is {number}, and a duration is a number of seconds, 0 or more"),
-        )
-    })
-}
-
-/// A misspelled key is refused: ignored, it reads as a setting that failed.
-pub(crate) fn walk(env: &Env, options: Option<Object<'_>>) -> napi::Result<Walk> {
-    let mut walk = Walk::default();
-    let Some(options) = options else {
-        return Ok(walk);
-    };
-    for key in Object::keys(&options)? {
-        if !WALK_OPTIONS.contains(&key.as_str()) {
-            return Err(value_error(
-                env,
-                format!(
-                    "`{key}` is no option; the options are {}",
-                    WALK_OPTIONS.join(", ")
-                ),
-            ));
+    item: &Unknown<'_>,
+    typed: impl FnOnce() -> Option<&'a [u8]>,
+) -> napi::Result<Value> {
+    if item.get_type()? == ValueType::Object {
+        let from = item.coerce_to_object()?;
+        if from.is_buffer()? || from.is_typedarray()? {
+            return match typed() {
+                Some(bytes) => Ok(Value::Bytes(bytes.to_vec())),
+                None => elements(env, &from).map(Value::Bytes),
+            };
         }
+        return object(env, &from);
     }
-    // `undefined` and `null` read as `None`: the default holds.
-    if let Some(color) = options.get::<Option<Channels<'_>>>("color")?.flatten() {
-        walk.pass.color = rgb(env, &color)?;
-    }
-    if let Some(value) = options.get::<Option<Unknown<'_>>>("wait")?.flatten() {
-        walk.wait = seconds(env, "wait", &value)?;
-    }
-    if let Some(value) = options.get::<Option<Unknown<'_>>>("hold")?.flatten() {
-        walk.hold = seconds(env, "hold", &value)?;
-    }
-    if let Some(keep) = options.get::<Option<bool>>("keep")?.flatten() {
-        walk.keep = keep;
-    }
-    if let Some(name) = options.get::<Option<String>>("mode")?.flatten() {
-        walk.mode = mode(env, &name)?;
-    }
-    Ok(walk)
+    value(env, item)
 }
 
-pub(crate) fn rgb(env: &Env, value: &Channels<'_>) -> napi::Result<[u8; 3]> {
-    match value {
-        // Through `triple`, so that both forms report one refusal.
-        Either::A(bytes) => triple(
-            env,
-            &bytes.iter().copied().map(i64::from).collect::<Vec<_>>(),
-        ),
-        Either::B(value) => rgb_array(env, value),
-    }
-}
-
-/// Red, green and blue for every zone, in the order the zones take them.
-fn packed(env: &Env, bytes: &[u8]) -> napi::Result<Vec<[u8; 3]>> {
-    let (zones, rest) = bytes.as_chunks::<3>();
-    if !rest.is_empty() {
-        return Err(value_error(
-            env,
-            format!(
-                "a paint carries 3 bytes for every zone, and {} bytes is no multiple of 3",
-                bytes.len()
-            ),
-        ));
-    }
-    Ok(zones.to_vec())
-}
-
-fn colors_array(env: &Env, value: &Unknown<'_>) -> napi::Result<Vec<[u8; 3]>> {
-    let refused = || value_error(env, "a paint is one color, an array of colors, or bytes");
-    if value.get_type()? != ValueType::Object {
-        return Err(refused());
-    }
-    let array = value.coerce_to_object()?;
-    if !array.is_array()? {
-        return Err(refused());
-    }
-    let length = array.get_array_length()?;
-    if length > 0 && array.get_element::<Unknown<'_>>(0)?.get_type()? == ValueType::Number {
-        return Ok(vec![triple(env, &ints(env, &array)?)?]);
-    }
-    (0..length)
-        .map(|index| rgb_array(env, &array.get_element::<Unknown<'_>>(index)?))
-        .collect()
-}
-
-/// Three numbers are one color, and anything else is an array of colors. A
-/// byte run is three bytes for every zone.
-pub(crate) fn colors(env: &Env, value: &Channels<'_>) -> napi::Result<Vec<[u8; 3]>> {
-    match value {
-        Either::A(bytes) => packed(env, bytes),
-        Either::B(value) => colors_array(env, value),
-    }
-}
-
-/// Read the bytes of a `Buffer` or a `Uint8Array` in one crossing.
-///
-/// `owner` and `name` are where the value came from: a typed read needs the
-/// name, and only the parent object answers by name. A typed array of
-/// another element type carries no byte run, so it falls to `bytes`.
-fn byte_run(
-    env: &Env,
-    owner: &Object<'_>,
-    name: &str,
-    array: &Object<'_>,
-) -> napi::Result<Vec<u8>> {
-    match owner.get::<&[u8]>(name) {
-        Ok(Some(bytes)) => Ok(bytes.to_vec()),
-        _ => bytes(env, array),
-    }
-}
-
-/// A typed array is no array, so the count comes off `length`.
-fn bytes(env: &Env, array: &Object<'_>) -> napi::Result<Vec<u8>> {
+/// A typed array of another element type than `Uint8Array` is no byte run,
+/// so each element must be a byte.
+fn elements(env: &Env, array: &Object<'_>) -> napi::Result<Vec<u8>> {
     let length = array.get::<u32>("length")?.unwrap_or(0);
     (0..length)
-        .map(|index| {
-            let value = whole(env, &array.get_element::<Unknown<'_>>(index)?)?;
-            u8::try_from(value)
-                .map_err(|_| value_error(env, format!("{value} is outside a byte's 0-255")))
-        })
-        .collect()
-}
-
-/// Read the shape of one argument value, never its type: the device file
-/// declares the type, and `codec::coerce` reads the value under it.
-fn supplied(
-    env: &Env,
-    owner: &Object<'_>,
-    name: &str,
-    value: &Unknown<'_>,
-) -> napi::Result<Supplied> {
-    let refused = || {
-        value_error(
-            env,
-            "an argument is a number, a boolean, a string, a Uint8Array, an array of colors or an array of whole numbers",
+        .map(
+            |index| match value(env, &array.get_element::<Unknown<'_>>(index)?)? {
+                Value::Int(byte) => u8::try_from(byte)
+                    .map_err(|_| value_error(env, format!("{byte} is outside a byte's 0-255"))),
+                _ => Err(value_error(env, "a typed array carries whole numbers")),
+            },
         )
-    };
-    match value.get_type()? {
-        ValueType::Boolean => Ok(Supplied::Int(i64::from(value.coerce_to_bool()?))),
-        ValueType::Number => Ok(Supplied::Int(whole(env, value)?)),
-        ValueType::String => Ok(Supplied::Text(
-            value.coerce_to_string()?.into_utf8()?.into_owned()?,
-        )),
-        ValueType::Object => {
-            let object = value.coerce_to_object()?;
-            if object.is_buffer()? || object.is_typedarray()? {
-                return Ok(Supplied::Bytes(byte_run(env, owner, name, &object)?));
-            }
-            if !object.is_array()? {
-                return Err(refused());
-            }
-            if object.get_array_length()? > 0
-                && object.get_element::<Unknown<'_>>(0)?.get_type()? == ValueType::Object
-            {
-                return Ok(Supplied::Colors(colors_array(env, value)?));
-            }
-            Ok(Supplied::Ints(ints(env, &object)?))
-        }
-        _ => Err(refused()),
-    }
-}
-
-/// The arguments, by the names the device file gives them.
-pub(crate) fn args(env: &Env, values: Option<Object<'_>>) -> napi::Result<Vec<(String, Supplied)>> {
-    let Some(values) = values else {
-        return Ok(Vec::new());
-    };
-    Object::keys(&values)?
-        .into_iter()
-        .map(|name| {
-            let Some(value) = values.get::<Unknown<'_>>(&name)? else {
-                return Err(value_error(env, format!("{name} carries no value")));
-            };
-            let shape = supplied(env, &values, &name, &value)?;
-            Ok((name, shape))
-        })
         .collect()
 }
 
-pub(crate) fn resolution(env: &Env, value: &Unknown<'_>) -> napi::Result<Resolution> {
-    if value.get_type()? == ValueType::String {
-        let name = value.coerce_to_string()?.into_utf8()?.into_owned()?;
-        return name
-            .parse()
-            .map_err(|e: ParseError| value_error(env, e.to_string()));
-    }
-    let count = whole(env, value)?;
-    Ok(Resolution::Exact(u16::try_from(count).map_err(|_| {
-        value_error(env, "a zone count is a whole number from 0 to 65535")
-    })?))
+/// Read an options object. `None` reads as `Null`.
+pub(crate) fn options(env: &Env, from: Option<&Object<'_>>) -> napi::Result<Value> {
+    from.map_or(Ok(Value::Null), |from| object(env, from))
 }
 
-pub(crate) fn rate(env: &Env, value: &Unknown<'_>) -> napi::Result<Rate> {
-    match value.get_type()? {
-        ValueType::String => {
-            let name = value.coerce_to_string()?.into_utf8()?.into_owned()?;
-            name.parse()
-                .map_err(|e: ParseError| value_error(env, e.to_string()))
-        }
-        ValueType::Number => Ok(Rate::Fixed(value.coerce_to_number()?.get_double()?)),
-        _ => Err(value_error(
-            env,
-            "a rate is \"measured\" or a number of hertz",
-        )),
+pub(crate) fn channels(env: &Env, from: &Channels<'_>) -> napi::Result<Value> {
+    match from {
+        Either::A(bytes) => Ok(Value::Bytes(bytes.to_vec())),
+        Either::B(other) => value(env, other),
     }
 }
 
-pub(crate) fn resolution_or_default(
+pub(crate) fn rgb(env: &Env, from: &Channels<'_>) -> napi::Result<[u8; 3]> {
+    read(env, input::rgb(&channels(env, from)?, STYLE))
+}
+
+pub(crate) fn colors(env: &Env, from: &Channels<'_>) -> napi::Result<Vec<[u8; 3]>> {
+    read(env, input::colors(&channels(env, from)?, STYLE))
+}
+
+/// The arguments of a command, by the names the device file gives them.
+pub(crate) fn args(env: &Env, from: Option<&Object<'_>>) -> napi::Result<Vec<(String, Supplied)>> {
+    read(env, input::args(&options(env, from)?, STYLE))
+}
+
+pub(crate) fn mode(env: &Env, name: &str) -> napi::Result<Mode> {
+    read(env, input::mode(name))
+}
+
+pub(crate) fn modes(env: &Env, names: Vec<String>) -> napi::Result<Vec<Mode>> {
+    names.iter().map(|name| mode(env, name)).collect()
+}
+
+/// The mode that each key of `keys` names in `options`, in the order of
+/// `keys`. An unknown key is refused.
+pub(crate) fn option_modes<const N: usize>(
     env: &Env,
-    value: Option<&Unknown<'_>>,
-) -> napi::Result<Resolution> {
-    value.map_or_else(|| Ok(Resolution::default()), |v| resolution(env, v))
-}
-
-pub(crate) fn rate_or_default(env: &Env, value: Option<&Unknown<'_>>) -> napi::Result<Rate> {
-    value.map_or_else(|| Ok(Rate::default()), |v| rate(env, v))
+    options: Option<&Object<'_>>,
+    keys: [&str; N],
+) -> napi::Result<[Option<Mode>; N]> {
+    let mut modes = [None; N];
+    let options = self::options(env, options)?;
+    if options == Value::Null {
+        return Ok(modes);
+    }
+    read(env, options.known_keys("option", &keys))?;
+    for (slot, key) in modes.iter_mut().zip(keys) {
+        *slot = match options.get(key) {
+            Some(Value::Text(name)) => Some(mode(env, name)?),
+            Some(_) => return Err(value_error(env, format!("`{key}` is a mode name"))),
+            None => None,
+        };
+    }
+    Ok(modes)
 }
 
 /// Hand a value the core serializes to JavaScript, as objects and arrays.

@@ -3,7 +3,7 @@
 //! Each one calls the matching method of the crate, which reads the entry the
 //! device file marks with that `role:`. No command name lives here.
 
-use govee_toolkit::{Identify, Paint};
+use govee_toolkit::{Identify, Music, Paint, input};
 use napi::Env;
 use napi::bindgen_prelude::{PromiseRaw, Unknown};
 use napi_derive::napi;
@@ -18,9 +18,7 @@ impl DeviceHandle {
     /// Turn the device on or off.
     #[napi]
     pub fn power<'env>(&self, env: &'env Env, on: bool) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(env, |govee, pinned, id| async move {
-            govee.device(&id, pinned)?.power(on).await
-        })
+        self.served(env, |owned| async move { owned.handle().power(on).await })
     }
 
     /// Set the level, in the unit the device file declares. A level outside
@@ -31,8 +29,8 @@ impl DeviceHandle {
         env: &'env Env,
         level: i64,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(env, |govee, pinned, id| async move {
-            govee.device(&id, pinned)?.brightness(level).await
+        self.served(env, |owned| async move {
+            owned.handle().brightness(level).await
         })
     }
 
@@ -44,9 +42,7 @@ impl DeviceHandle {
         #[napi(ts_arg_type = "[number, number, number] | Uint8Array")] rgb: conv::Channels<'_>,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let rgb = conv::rgb(env, &rgb)?;
-        self.served(env, |govee, pinned, id| async move {
-            govee.device(&id, pinned)?.color(rgb).await
-        })
+        self.served(env, |owned| async move { owned.handle().color(rgb).await })
     }
 
     /// Power the device on and paint one color, so a person sees which
@@ -69,17 +65,11 @@ impl DeviceHandle {
         >,
         full_brightness: Option<bool>,
     ) -> napi::Result<PromiseRaw<'env, ()>> {
-        let default = Identify::default();
-        let options = Identify {
-            color: match color {
-                Some(rgb) => conv::rgb(env, &rgb)?,
-                None => default.color,
-            },
-            full_brightness: full_brightness.unwrap_or(default.full_brightness),
-        };
-        let (govee, pinned, id) = self.parts();
+        let color = color.map(|color| conv::rgb(env, &color)).transpose()?;
+        let options = Identify::new(color, full_brightness);
+        let owned = self.inner.clone();
         promise(env, async move {
-            govee.device(&id, pinned)?.identify(&options).await?;
+            owned.handle().identify(&options).await?;
             Ok(())
         })
     }
@@ -91,8 +81,8 @@ impl DeviceHandle {
         env: &'env Env,
         kelvin: i64,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(env, |govee, pinned, id| async move {
-            govee.device(&id, pinned)?.color_temp(kelvin).await
+        self.served(env, |owned| async move {
+            owned.handle().color_temp(kelvin).await
         })
     }
 
@@ -115,10 +105,12 @@ impl DeviceHandle {
             conv::Channels<'_>,
         >,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
-        let music = conv::music(env, effect, sensitivity, soft, color.as_ref())?;
-        self.served(env, |govee, pinned, id| async move {
-            govee.device(&id, pinned)?.music(&music).await
-        })
+        let color = color.map(|color| conv::rgb(env, &color)).transpose()?;
+        let music = Music::new(effect, sensitivity, soft, color);
+        self.served(
+            env,
+            |owned| async move { owned.handle().music(&music).await },
+        )
     }
 
     /// Paint the segments once.
@@ -143,16 +135,19 @@ impl DeviceHandle {
         gradient: Option<bool>,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
         let colors = conv::colors(env, &colors)?;
-        let resolution = conv::resolution_or_default(env, resolution.as_ref())?;
+        let resolution = conv::read(
+            env,
+            input::resolution(&conv::optional(env, resolution.as_ref())?),
+        )?;
         let gradient = gradient.unwrap_or(false);
-        self.served(env, |govee, pinned, id| async move {
+        self.served(env, |owned| async move {
             let paint = Paint {
                 zones: zones.as_deref(),
                 colors: &colors,
                 resolution,
                 gradient,
             };
-            govee.device(&id, pinned)?.segment(&paint).await
+            owned.handle().segment(&paint).await
         })
     }
 
@@ -164,8 +159,9 @@ impl DeviceHandle {
         env: &'env Env,
         on: bool,
     ) -> napi::Result<PromiseRaw<'env, Served>> {
-        self.served(env, |govee, pinned, id| async move {
-            govee.device(&id, pinned)?.gradient(on).await
-        })
+        self.served(
+            env,
+            |owned| async move { owned.handle().gradient(on).await },
+        )
     }
 }

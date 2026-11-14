@@ -2,10 +2,8 @@
 
 use std::future::Future;
 
-use govee_toolkit::codec::Mode;
 use govee_toolkit::{
-    DeviceId, Devices as CoreDevices, Error, Govee, Outcome as CoreOutcome, Paint,
-    Served as CoreServed,
+    Answer, Music, Outcome as CoreOutcome, OwnedDevices, Paint, Served as CoreServed, input,
 };
 use napi::Env;
 use napi::bindgen_prelude::{Object, PromiseRaw, Unknown};
@@ -13,7 +11,7 @@ use napi_derive::napi;
 
 use crate::conv;
 use crate::device::DeviceHandle;
-use crate::errors::{Parts, map};
+use crate::errors::Parts;
 use crate::promise::promise;
 use crate::types::{Device, Served};
 
@@ -25,6 +23,7 @@ pub struct Outcome {
     mode: Option<String>,
     served: Option<CoreServed>,
     error: Option<Parts>,
+    record: serde_json::Value,
 }
 
 #[napi]
@@ -62,6 +61,16 @@ impl Outcome {
             .transpose()
     }
 
+    /// The record every surface prints: `id`, `ok`, `mode`, `command`, and
+    /// `error` as `{ code, message }`.
+    #[napi(
+        js_name = "toJSON",
+        ts_return_type = "{ id: string; ok: boolean; mode: string | null; command: string | null; error: { code: string; message: string } | null }"
+    )]
+    pub fn to_json(&self) -> serde_json::Value {
+        self.record.clone()
+    }
+
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
         match &self.mode {
@@ -72,28 +81,18 @@ impl Outcome {
 }
 
 impl Outcome {
-    pub(crate) fn new<T>(
-        outcome: CoreOutcome<T>,
-        read: impl FnOnce(T) -> (Mode, Option<CoreServed>),
-    ) -> Self {
-        let id = outcome.id.to_string();
-        match outcome.result {
-            Ok(value) => {
-                let (mode, served) = read(value);
-                Self {
-                    id,
-                    mode: Some(mode.to_string()),
-                    served,
-                    error: None,
-                }
-            }
-            Err(error) => Self {
-                id,
-                mode: None,
-                served: None,
-                error: Some(Parts::new(&error)),
-            },
+    pub(crate) fn new<T: Answer>(outcome: &CoreOutcome<T>) -> Self {
+        Self {
+            id: outcome.id.to_string(),
+            mode: outcome.mode().map(|mode| mode.to_string()),
+            served: outcome.served().cloned(),
+            error: outcome.error().map(Parts::new),
+            record: outcome.to_json(),
         }
+    }
+
+    pub(crate) fn all<T: Answer>(outcomes: &[CoreOutcome<T>]) -> Vec<Self> {
+        outcomes.iter().map(Self::new).collect()
     }
 }
 
@@ -102,9 +101,7 @@ impl Outcome {
 /// and rejects for nothing a member does.
 #[napi]
 pub struct Devices {
-    pub(crate) govee: Govee,
-    pub(crate) pinned: Option<Mode>,
-    pub(crate) ids: Vec<DeviceId>,
+    pub(crate) inner: OwnedDevices,
 }
 
 #[napi]
@@ -113,20 +110,17 @@ impl Devices {
     /// carries the mode that `Govee.devices()` pins.
     #[napi(getter)]
     pub fn members(&self) -> Vec<DeviceHandle> {
-        self.ids
-            .iter()
-            .map(|id| DeviceHandle {
-                govee: self.govee.clone(),
-                pinned: self.pinned,
-                id: id.clone(),
-            })
+        self.inner
+            .members()
+            .into_iter()
+            .map(|inner| DeviceHandle { inner })
             .collect()
     }
 
     /// The number of members.
     #[napi(getter)]
     pub fn length(&self) -> u32 {
-        u32::try_from(self.ids.len()).unwrap_or(u32::MAX)
+        u32::try_from(self.inner.ids().len()).unwrap_or(u32::MAX)
     }
 
     /// What the SDK holds for each member: the SKU, the name, the groups, the
@@ -135,12 +129,13 @@ impl Devices {
     /// A member that no transport knows and that the configuration pins no
     /// SKU for is not in the list. `members` holds every member.
     #[napi]
-    pub fn list(&self, env: &Env) -> napi::Result<Vec<Device>> {
-        Ok(map(env, devices(&self.govee, &self.ids, self.pinned))?
+    pub fn list(&self) -> Vec<Device> {
+        self.inner
+            .devices()
             .list()
             .into_iter()
             .map(Device::from)
-            .collect())
+            .collect()
     }
 
     /// Scan for every member that no mode knows. Each outcome carries its mode.
@@ -149,13 +144,9 @@ impl Devices {
         &self,
         env: &'env Env,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        let (govee, pinned, ids) = self.parts();
+        let set = self.inner.clone();
         promise(env, async move {
-            let known = devices(&govee, &ids, pinned)?.ensure_known().await;
-            Ok(known
-                .into_iter()
-                .map(|outcome| Outcome::new(outcome, |mode| (mode, None)))
-                .collect())
+            Ok(Outcome::all(&set.devices().ensure_known().await))
         })
     }
 
@@ -166,9 +157,7 @@ impl Devices {
         env: &'env Env,
         on: bool,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        self.served(env, move |govee, pinned, ids| async move {
-            Ok(devices(&govee, &ids, pinned)?.power(on).await)
-        })
+        self.served(env, move |set| async move { set.devices().power(on).await })
     }
 
     /// Set the level on every member, against its own range.
@@ -178,8 +167,8 @@ impl Devices {
         env: &'env Env,
         level: i64,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        self.served(env, move |govee, pinned, ids| async move {
-            Ok(devices(&govee, &ids, pinned)?.brightness(level).await)
+        self.served(env, move |set| async move {
+            set.devices().brightness(level).await
         })
     }
 
@@ -191,9 +180,10 @@ impl Devices {
         #[napi(ts_arg_type = "[number, number, number] | Uint8Array")] rgb: conv::Channels<'_>,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
         let rgb = conv::rgb(env, &rgb)?;
-        self.served(env, move |govee, pinned, ids| async move {
-            Ok(devices(&govee, &ids, pinned)?.color(rgb).await)
-        })
+        self.served(
+            env,
+            move |set| async move { set.devices().color(rgb).await },
+        )
     }
 
     /// Set the white temperature on every member, in kelvin.
@@ -203,8 +193,8 @@ impl Devices {
         env: &'env Env,
         kelvin: i64,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        self.served(env, move |govee, pinned, ids| async move {
-            Ok(devices(&govee, &ids, pinned)?.color_temp(kelvin).await)
+        self.served(env, move |set| async move {
+            set.devices().color_temp(kelvin).await
         })
     }
 
@@ -223,10 +213,12 @@ impl Devices {
             conv::Channels<'_>,
         >,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        let music = conv::music(env, effect, sensitivity, soft, color.as_ref())?;
-        self.served(env, move |govee, pinned, ids| async move {
-            Ok(devices(&govee, &ids, pinned)?.music(&music).await)
-        })
+        let color = color.map(|color| conv::rgb(env, &color)).transpose()?;
+        let music = Music::new(effect, sensitivity, soft, color);
+        self.served(
+            env,
+            move |set| async move { set.devices().music(&music).await },
+        )
     }
 
     /// `DeviceHandle.segment()` on every member, against its own zones.
@@ -248,16 +240,19 @@ impl Devices {
         gradient: Option<bool>,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
         let colors = conv::colors(env, &colors)?;
-        let resolution = conv::resolution_or_default(env, resolution.as_ref())?;
+        let resolution = conv::read(
+            env,
+            input::resolution(&conv::optional(env, resolution.as_ref())?),
+        )?;
         let gradient = gradient.unwrap_or(false);
-        self.served(env, move |govee, pinned, ids| async move {
+        self.served(env, move |set| async move {
             let paint = Paint {
                 zones: zones.as_deref(),
                 colors: &colors,
                 resolution,
                 gradient,
             };
-            Ok(devices(&govee, &ids, pinned)?.segment(&paint).await)
+            set.devices().segment(&paint).await
         })
     }
 
@@ -268,50 +263,29 @@ impl Devices {
         env: &'env Env,
         on: bool,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
-        self.served(env, move |govee, pinned, ids| async move {
-            Ok(devices(&govee, &ids, pinned)?.gradient(on).await)
-        })
+        self.served(
+            env,
+            move |set| async move { set.devices().gradient(on).await },
+        )
     }
 
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
-        let ids: Vec<String> = self.ids.iter().map(ToString::to_string).collect();
+        let ids: Vec<String> = self.inner.ids().iter().map(ToString::to_string).collect();
         format!("Devices(members={ids:?})")
     }
 }
 
-/// The core handle over `ids`. It parses nothing and scans nothing.
-/// The core set of the stored identities. It parses nothing and scans
-/// nothing.
-pub(crate) fn devices<'a>(
-    govee: &'a Govee,
-    ids: &[DeviceId],
-    pinned: Option<Mode>,
-) -> Result<CoreDevices<'a>, Error> {
-    ids.iter().map(|id| govee.device(id, pinned)).collect()
-}
-
 impl Devices {
-    pub(crate) fn parts(&self) -> (Govee, Option<Mode>, Vec<DeviceId>) {
-        (self.govee.clone(), self.pinned, self.ids.clone())
-    }
-
     fn served<'env, Fut>(
         &self,
         env: &'env Env,
-        verb: impl FnOnce(Govee, Option<Mode>, Vec<DeviceId>) -> Fut,
+        verb: impl FnOnce(OwnedDevices) -> Fut,
     ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>>
     where
-        Fut: Future<Output = Result<Vec<CoreOutcome<CoreServed>>, Error>> + Send + 'static,
+        Fut: Future<Output = Vec<CoreOutcome<CoreServed>>> + Send + 'static,
     {
-        let (govee, pinned, ids) = self.parts();
-        let call = verb(govee, pinned, ids);
-        promise(env, async move {
-            Ok(call
-                .await?
-                .into_iter()
-                .map(|outcome| Outcome::new(outcome, |served| (served.mode, Some(served))))
-                .collect())
-        })
+        let call = verb(self.inner.clone());
+        promise(env, async move { Ok(Outcome::all(&call.await)) })
     }
 }

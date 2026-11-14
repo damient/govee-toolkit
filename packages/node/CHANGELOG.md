@@ -22,6 +22,12 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
   personality the core knows. `Catalog.capabilities()` — every capability
   name that a device of the catalog declares.
 
+- `Applied.verdict` — one line for the failures of an apply, or `null`.
+- `Catalog.query()` — the SKUs that match `mode`, `capability` and
+  `support`. `support` without `mode` throws.
+- `toJSON()` on `Outcome`, `Served`, `Health` and `DeviceStatus` — the record
+  every surface prints.
+
 ### Changed
 
 - **Breaking:** `Govee.scan()` takes an optional `modes` array, and `scanOn()`
@@ -39,6 +45,10 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 - `DeviceHandle.pinned` — the mode the handle pins, or `null`.
 - The doc comment of each optional parameter names its default in an
   `@param [name=value]` line, which an editor shows.
+- The core reads every argument and every option, so a refusal reads the same
+  in Node and Python. `segment()` takes the resolution `'groups'`.
+- `SegmentStream.close()` can run twice. A paint after it throws
+  `stream_closed`.
 
 ## [0.5.0] — 2026-09-26
 

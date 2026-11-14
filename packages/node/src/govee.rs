@@ -1,13 +1,13 @@
 //! The facade: what starts the SDK, what it knows, and what it reaches.
 
-use govee_toolkit::{Filter, Govee as CoreGovee};
+use govee_toolkit::{Filter, Govee as CoreGovee, input};
 use napi::Env;
 use napi::bindgen_prelude::{Either, Object, PromiseRaw};
 use napi_derive::napi;
 
 use crate::catalog::Catalog;
 use crate::config::Config;
-use crate::conv;
+use crate::conv::{self, STYLE};
 use crate::device::DeviceHandle;
 use crate::devices::Devices;
 use crate::errors::map;
@@ -25,24 +25,19 @@ pub struct Govee {
 #[napi]
 impl Govee {
     /// Start the SDK. Without a configuration, it reads the file. Without a
-    /// catalog, it reads the one the package carries.
+    /// catalog, it reads the one the package carries, with the local device
+    /// files over it where the configuration opts in.
     #[napi]
     pub fn start<'env>(
         env: &'env Env,
         config: Option<&Config>,
         catalog: Option<&Catalog>,
     ) -> napi::Result<PromiseRaw<'env, Govee>> {
-        let config = match config {
-            Some(config) => config.inner.clone(),
-            None => map(env, govee_toolkit::Config::load())?,
-        };
-        let catalog = match catalog {
-            Some(catalog) => catalog.inner.clone(),
-            None => map(env, govee_toolkit::Catalog::embedded().map_err(Into::into))?,
-        };
+        let config = config.map(|config| config.inner.clone());
+        let catalog = catalog.map(|catalog| catalog.inner.clone());
         promise(env, async move {
             Ok(Govee {
-                inner: CoreGovee::start_with(config, catalog).await?,
+                inner: CoreGovee::start_or_defaults(config, catalog).await?,
             })
         })
     }
@@ -124,11 +119,8 @@ impl Govee {
         options: Option<Object<'_>>,
     ) -> napi::Result<DeviceHandle> {
         let [pinned] = conv::option_modes(env, options.as_ref(), ["mode"])?;
-        let handle = map(env, self.inner.device(&target, pinned))?;
         Ok(DeviceHandle {
-            govee: self.inner.clone(),
-            pinned,
-            id: handle.id().clone(),
+            inner: map(env, self.inner.device_owned(&target, pinned))?,
         })
     }
 
@@ -160,19 +152,12 @@ impl Govee {
         options: Option<Object<'_>>,
     ) -> napi::Result<PromiseRaw<'env, Devices>> {
         let [enables, pinned] = conv::option_modes(env, options.as_ref(), ["enables", "mode"])?;
-        let mut filter = targets.map_or_else(Filter::all, Filter::targets);
-        if let Some(mode) = enables {
-            filter = filter.enables(mode);
-        }
+        let filter = Filter::from_parts(targets, enables);
         let govee = self.inner.clone();
         promise(env, async move {
-            let ids = govee
-                .devices(filter, pinned)
-                .await?
-                .iter()
-                .map(|handle| handle.id().clone())
-                .collect();
-            Ok(Devices { govee, pinned, ids })
+            Ok(Devices {
+                inner: govee.devices_owned(filter, pinned).await?,
+            })
         })
     }
 
@@ -198,7 +183,10 @@ impl Govee {
         targets: Option<Either<String, Vec<String>>>,
         options: Option<Object<'_>>,
     ) -> napi::Result<PromiseRaw<'env, WalkReport>> {
-        let walk = conv::walk(env, options)?;
+        let walk = conv::read(
+            env,
+            input::walk(&conv::options(env, options.as_ref())?, STYLE),
+        )?;
         let named = targets.map(|targets| match targets {
             Either::A(one) => vec![one],
             Either::B(many) => many,
