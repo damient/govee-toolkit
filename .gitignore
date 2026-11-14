@@ -43,6 +43,8 @@ release/
 /.examples/
 # The music-to-light skill, kept local with its venv and its node_modules.
 /.claude/skills/music-sync/
+# The dev servers of the desktop app preview, per machine.
+/.claude/launch.json
 
 # Social media images, built by hand from the site's hero.
 /social/
