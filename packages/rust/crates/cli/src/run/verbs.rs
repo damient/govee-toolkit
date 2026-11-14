@@ -10,6 +10,7 @@ use serde_json::json;
 
 pub(super) async fn run(writer: Writer, members: &Devices<'_>, verb: Verb) -> Result<(), Failure> {
     let applied = members.apply(vec![verb]).await;
+    let line = applied.verdict(members.len()).map(|(_, line)| line);
     let mut failures: Vec<(DeviceId, Failure)> = Vec::new();
     for outcome in applied.reached {
         if let Err(error) = outcome.result {
@@ -22,17 +23,12 @@ pub(super) async fn run(writer: Writer, members: &Devices<'_>, verb: Verb) -> Re
             Err(error) => failures.push((outcome.id, Failure::from(error))),
         }
     }
-    verdict(writer, members.len(), failures)
-}
-
-/// One device fails with its own failure, as a command on one device does.
-fn verdict(
-    writer: Writer,
-    count: usize,
-    mut failures: Vec<(DeviceId, Failure)>,
-) -> Result<(), Failure> {
-    if count == 1 {
-        return failures.pop().map_or(Ok(()), |(_, failure)| Err(failure));
+    let Some(line) = line.filter(|_| !failures.is_empty()) else {
+        return Ok(());
+    };
+    // One device fails with its own failure, as a command on one device does.
+    if members.len() == 1 {
+        return Err(failures.remove(0).1);
     }
     for (id, failure) in &failures {
         writer.warn(
@@ -43,24 +39,12 @@ fn verdict(
             &format!("{id} failed: {}", failure.message()),
         );
     }
-    let names: Vec<String> = failures.iter().map(|(id, _)| id.to_string()).collect();
-    let failed = failures.len();
-    match failures.into_iter().next() {
-        None => Ok(()),
-        Some((_, first)) => Err(first.with_message(format!(
-            "{failed} of {count} devices failed: {}",
-            names.join(", ")
-        ))),
-    }
+    Err(failures.remove(0).1.with_message(line))
 }
 
 pub(super) fn report(writer: Writer, served: &Served) {
     writer.emit(
-        &json!({
-            "id": served.id.to_string(),
-            "mode": served.mode.to_string(),
-            "command": served.command,
-        }),
+        &served.to_json(),
         &format!("{} {} served by {}", served.id, served.command, served.mode),
     );
 }

@@ -11,6 +11,8 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   that a scan finds.
 - `govee devices` scans once where it lists every device or reads a SKU. An
   identity, a name or a group scans nothing.
+- A verb that fails on more than one member of a group prints one warning
+  per failure, and ends with the count and the identities that failed.
 
 ## [0.9.0] — 2026-09-26
 

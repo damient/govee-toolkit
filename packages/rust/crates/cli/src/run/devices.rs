@@ -1,6 +1,6 @@
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{Device, Filter, Govee};
+use govee_toolkit::{Device, Filter, Govee, Health};
 use serde_json::{Value, json};
 
 pub(super) async fn scan(
@@ -57,15 +57,8 @@ pub(super) async fn list(
     targets: &[String],
     restrict: Option<Mode>,
 ) -> Result<(), Failure> {
-    let filter = if targets.is_empty() {
-        Filter::all()
-    } else {
-        Filter::targets(targets)
-    };
-    let filter = match restrict {
-        Some(mode) => filter.enables(mode),
-        None => filter,
-    };
+    let named = (!targets.is_empty()).then(|| targets.to_vec());
+    let filter = Filter::from_parts(named, restrict);
     report(&govee.devices(filter, None).await?.list(), writer, restrict);
     Ok(())
 }
@@ -86,11 +79,7 @@ fn as_json(device: &Device, restrict: Option<Mode>) -> Value {
         .map(|mode| {
             json!({
                 "mode": mode.to_string(),
-                "health": device.health.get(&mode).map(|health| json!({
-                    "state": health.state.to_string(),
-                    "failures": health.failures,
-                    "available": health.available,
-                })),
+                "health": device.health.get(&mode).map(Health::to_json),
             })
         })
         .collect();
