@@ -41,8 +41,8 @@ releases apart and keeps
   support level. `support` without `mode` is refused.
 - `Applied::verdict()` — one line for the failures of an apply: the error of
   a single member, or the count and the identities that failed.
-- `to_json()` on `Outcome`, `Served` and `Health` — the record every surface
-  prints. The `Answer` trait gives `Outcome::mode()` and `served()`.
+- `to_json()` on `Device`, `Outcome`, `Served` and `Health` — the record
+  every surface prints. The `Answer` trait gives `Outcome::mode()` and `served()`.
 - `DeviceHandle::invoke()`, `send_supplied()` and `read_supplied()` take
   argument values as a binding reads them. `Secrets::Refuse` refuses a secret.
 - `Govee::start_or_defaults()`, `Filter::from_parts()`, `Music::new()` and

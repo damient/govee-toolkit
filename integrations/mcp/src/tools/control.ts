@@ -8,7 +8,12 @@ import { ok, oneOf } from "../result.ts";
 import { CONTROL, TARGET, attempt, deviceRow, modeArg, reach, rgb, statusRow } from "../sdk.ts";
 import { registerSet } from "./set.ts";
 
-const deviceShape = z.looseObject({ id: z.string(), sku: z.string(), modes: z.array(z.string()) });
+const deviceShape = z.looseObject({
+  id: z.string(),
+  sku: z.string(),
+  name: z.string().nullable(),
+  modes: z.array(z.object({ mode: z.string(), health: z.looseObject({ state: z.string() }).nullable() })),
+});
 
 export function registerControlTools(server: McpServer): void {
   scan(server);

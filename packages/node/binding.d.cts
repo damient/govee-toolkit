@@ -118,6 +118,11 @@ export declare class Device {
    * heard from it.
    */
   get health(): Record<string, Health>
+  /**
+   * The record every surface prints: `id`, `sku`, `name`, and one
+   * `{ mode, health }` per enabled mode.
+   */
+  toJSON(): { id: string; sku: string; name: string | null; modes: Array<{ mode: string; health: { state: string; failures: number; available: boolean } | null }> }
   toString(): string
 }
 

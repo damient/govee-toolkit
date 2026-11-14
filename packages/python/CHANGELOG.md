@@ -26,8 +26,8 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 - `Applied.verdict` — one line for the failures of an apply, or `None`.
 - `Catalog.query()` — the SKUs that match `mode`, `capability` and
   `support`. `support` without `mode` raises `ValueError`.
-- `to_dict()` on `Outcome`, `Served`, `Health` and `DeviceStatus` — the
-  record every surface prints.
+- `to_dict()` on `Device`, `Outcome`, `Served`, `Health` and `DeviceStatus` —
+  the record every surface prints.
 - `segment()` and `SegmentStream.set_all()` take `bytes`, three per zone.
 
 ### Changed

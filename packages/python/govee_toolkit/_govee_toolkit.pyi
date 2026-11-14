@@ -103,6 +103,10 @@ class Device:
         """Its health per enabled mode. A mode is absent when no transport has heard
         from it.
         """
+    def to_dict(self) -> dict[str, Any]:
+        """The record every surface prints: `id`, `sku`, `name`, and one `{mode,
+        health}` per enabled mode.
+        """
 
 @final
 class Served:

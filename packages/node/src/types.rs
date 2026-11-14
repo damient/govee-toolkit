@@ -112,6 +112,16 @@ impl Device {
             .collect()
     }
 
+    /// The record every surface prints: `id`, `sku`, `name`, and one
+    /// `{ mode, health }` per enabled mode.
+    #[napi(
+        js_name = "toJSON",
+        ts_return_type = "{ id: string; sku: string; name: string | null; modes: Array<{ mode: string; health: { state: string; failures: number; available: boolean } | null }> }"
+    )]
+    pub fn to_json(&self) -> serde_json::Value {
+        self.inner.to_json(None)
+    }
+
     #[napi(js_name = "toString")]
     pub fn to_js_string(&self) -> String {
         self.inner.summary(Style::Javascript)

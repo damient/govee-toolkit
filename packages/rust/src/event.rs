@@ -197,6 +197,32 @@ pub struct Device {
     pub health: BTreeMap<Mode, Health>,
 }
 
+impl Device {
+    /// This device as the record every surface prints: `id`, `sku`, `name`,
+    /// and one `{mode, health}` per enabled mode. `restrict` keeps that mode
+    /// alone, and never adds a mode the configuration leaves out.
+    #[must_use]
+    pub fn to_json(&self, restrict: Option<Mode>) -> Value {
+        let modes: Vec<Value> = self
+            .modes
+            .iter()
+            .filter(|mode| restrict.is_none_or(|only| only == **mode))
+            .map(|mode| {
+                json!({
+                    "mode": mode.to_string(),
+                    "health": self.health.get(mode).map(Health::to_json),
+                })
+            })
+            .collect();
+        json!({
+            "id": self.id.to_string(),
+            "sku": self.sku,
+            "name": self.name,
+            "modes": modes,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

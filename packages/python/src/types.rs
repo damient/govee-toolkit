@@ -108,6 +108,12 @@ impl Device {
             .collect()
     }
 
+    /// The record every surface prints: `id`, `sku`, `name`, and one
+    /// `{mode, health}` per enabled mode.
+    fn to_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.inner.to_json(None))
+    }
+
     fn __repr__(&self) -> String {
         self.inner.summary(Style::Python)
     }

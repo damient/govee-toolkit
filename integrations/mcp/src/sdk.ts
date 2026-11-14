@@ -63,14 +63,7 @@ const byte = z.number().int().min(0).max(255);
 export const rgb = z.tuple([byte, byte, byte]).describe("Red, green and blue, 0-255 each.");
 
 export function deviceRow(device: Device): Record<string, unknown> {
-  return {
-    id: device.id,
-    sku: device.sku,
-    name: device.name,
-    groups: device.groups,
-    modes: device.modes,
-    health: Object.fromEntries(Object.entries(device.health).map(([mode, h]) => [mode, h.toJSON()])),
-  };
+  return device.toJSON();
 }
 
 export function outcomeRow(outcome: Outcome): Record<string, unknown> {
@@ -78,14 +71,5 @@ export function outcomeRow(outcome: Outcome): Record<string, unknown> {
 }
 
 export function statusRow(status: DeviceStatus, mode: string): Record<string, unknown> {
-  return {
-    id: status.id,
-    mode,
-    on: status.on,
-    brightness: status.brightness,
-    color: status.color,
-    color_temp_kelvin: status.colorTempKelvin,
-    white: status.isWhite,
-    raw: status.raw as unknown,
-  };
+  return { ...status.toJSON(), mode };
 }

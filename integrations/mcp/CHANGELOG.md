@@ -23,6 +23,9 @@ policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 - `set` takes a device, a group or a SKU, and sends its steps in the order the
   core fixes. A member that fails a step takes no later step.
 - A failed `set` names the error code and the identities that failed.
+- `scan`, `list_known` and `status` answer the records that `govee --json`
+  prints: a device carries one `{mode, health}` per mode, and a status
+  carries `color` as `#RRGGBB`.
 - `list_known` scans once, over each mode that no scan covered yet.
 - Resources: each docs page at `gtk://docs/<topic>`, and each device record
   at `gtk://devices/{sku}`.

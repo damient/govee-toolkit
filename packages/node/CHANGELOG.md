@@ -25,8 +25,8 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 - `Applied.verdict` — one line for the failures of an apply, or `null`.
 - `Catalog.query()` — the SKUs that match `mode`, `capability` and
   `support`. `support` without `mode` throws.
-- `toJSON()` on `Outcome`, `Served`, `Health` and `DeviceStatus` — the record
-  every surface prints.
+- `toJSON()` on `Device`, `Outcome`, `Served`, `Health` and `DeviceStatus` —
+  the record every surface prints.
 
 ### Changed
 

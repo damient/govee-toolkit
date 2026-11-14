@@ -371,16 +371,52 @@ exports[`the tools and their schemas match the snapshot 1`] = `
               "sku": {
                 "type": "string"
               },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
               "modes": {
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string"
+                    },
+                    "health": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "state": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "state"
+                          ],
+                          "additionalProperties": {}
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "health"
+                  ],
+                  "additionalProperties": false
                 }
               }
             },
             "required": [
               "id",
               "sku",
+              "name",
               "modes"
             ],
             "additionalProperties": {}
@@ -465,16 +501,52 @@ exports[`the tools and their schemas match the snapshot 1`] = `
               "sku": {
                 "type": "string"
               },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
               "modes": {
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string"
+                    },
+                    "health": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "state": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "state"
+                          ],
+                          "additionalProperties": {}
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "health"
+                  ],
+                  "additionalProperties": false
                 }
               }
             },
             "required": [
               "id",
               "sku",
+              "name",
               "modes"
             ],
             "additionalProperties": {}

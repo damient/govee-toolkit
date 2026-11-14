@@ -1,6 +1,6 @@
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{Device, Filter, Govee, Health};
+use govee_toolkit::{Device, Filter, Govee};
 use serde_json::{Value, json};
 
 pub(super) async fn scan(
@@ -25,7 +25,7 @@ pub(super) async fn scan(
 }
 
 fn heard_json(device: &Device, restrict: Option<Mode>, enabled: bool) -> Value {
-    let mut json = as_json(device, restrict);
+    let mut json = device.to_json(restrict);
     if let Value::Object(fields) = &mut json {
         fields.insert("enabled".to_owned(), Value::Bool(enabled));
     }
@@ -70,25 +70,8 @@ fn report(devices: &[Device], writer: Writer, restrict: Option<Mode>) {
         if restrict.is_some_and(|only| !device.modes.contains(&only)) {
             continue;
         }
-        writer.emit(&as_json(device, restrict), &as_text(device, restrict));
+        writer.emit(&device.to_json(restrict), &as_text(device, restrict));
     }
-}
-
-fn as_json(device: &Device, restrict: Option<Mode>) -> Value {
-    let modes: Vec<Value> = modes(device, restrict)
-        .map(|mode| {
-            json!({
-                "mode": mode.to_string(),
-                "health": device.health.get(&mode).map(Health::to_json),
-            })
-        })
-        .collect();
-    json!({
-        "id": device.id.to_string(),
-        "sku": device.sku,
-        "name": device.name,
-        "modes": modes,
-    })
 }
 
 fn as_text(device: &Device, restrict: Option<Mode>) -> String {
