@@ -21,7 +21,7 @@ serde_json.workspace = true
 serde_norway = "0.9"
 # `xtask api` needs the default `printing` feature to print a parsed type.
 quote = "1"
-syn = { version = "2", features = ["full", "visit"] }
+syn = { version = "3", features = ["full", "visit"] }
 
 [lints]
 workspace = true

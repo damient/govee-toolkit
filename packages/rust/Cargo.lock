@@ -2585,7 +2585,7 @@ dependencies = [
  "quote",
  "serde_json",
  "serde_norway",
- "syn 2.0.119",
+ "syn 3.0.5",
 ]
 
 [[package]]
