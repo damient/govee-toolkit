@@ -37,6 +37,18 @@ pub struct Health {
     pub available: bool,
 }
 
+impl Health {
+    /// This health as the record every surface prints.
+    #[must_use]
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "state": self.state.to_string(),
+            "failures": self.failures,
+            "available": self.available,
+        })
+    }
+}
+
 /// A device a transport can reach.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KnownDevice {

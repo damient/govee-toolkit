@@ -17,6 +17,12 @@ export declare class Applied {
   get steps(): Array<AppliedStep>
   /** Whether every member took every step. */
   get ok(): boolean
+  /**
+   * The line that reports the failures: `"2 of 3 devices failed: <ids>"`,
+   * or the error's own message where the set has one member. `null`
+   * where every member took every step.
+   */
+  get verdict(): string | null
 }
 
 /** What one verb of `Devices.apply()` answered. */
@@ -53,6 +59,13 @@ export declare class Catalog {
   dmx(sku: string): any
   /** Every capability name that a device of the catalog declares, sorted. */
   capabilities(): Array<string>
+  /**
+   * Every SKU, verified aliases included, that matches every filter given.
+   * `capability` reads the capabilities of `mode` where it is given, and
+   * those of the hardware otherwise. `support` needs `mode`, and an
+   * unknown key is refused.
+   */
+  query(filter?: { mode?: string | undefined; capability?: string | undefined; support?: string | undefined }): Array<string>
   /** How many device files the build carries. */
   get size(): number
   toString(): string
@@ -332,6 +345,11 @@ export declare class DeviceStatus {
   get raw(): any
   /** Whether the device is in white mode. Mutually exclusive with color. */
   get isWhite(): boolean
+  /**
+   * The record every surface prints. `color` is `#RRGGBB` there, and
+   * `colorTempKelvin` is `color_temp_kelvin`.
+   */
+  toJSON(): { id: string; on: boolean | null; brightness: number | null; color: string | null; color_temp_kelvin: number | null; raw: unknown }
   toString(): string
 }
 
@@ -355,7 +373,8 @@ export declare class EventStream {
 export declare class Govee {
   /**
    * Start the SDK. Without a configuration, it reads the file. Without a
-   * catalog, it reads the one the package carries.
+   * catalog, it reads the one the package carries, with the local device
+   * files over it where the configuration opts in.
    */
   static start(config?: Config | undefined | null, catalog?: Catalog | undefined | null): Promise<Govee>
   /**
@@ -448,6 +467,8 @@ export declare class Health {
   get failures(): number
   /** Whether a command would be sent right now. */
   get available(): boolean
+  /** The record every surface prints: `state`, `failures`, `available`. */
+  toJSON(): { state: string; failures: number; available: boolean }
   toString(): string
 }
 
@@ -478,6 +499,11 @@ export declare class Outcome {
   get served(): Served | null
   /** What the call on one device throws. `null` where it succeeded. */
   get error(): Error | null
+  /**
+   * The record every surface prints: `id`, `ok`, `mode`, `command`, and
+   * `error` as `{ code, message }`.
+   */
+  toJSON(): { id: string; ok: boolean; mode: string | null; command: string | null; error: { code: string; message: string } | null }
   toString(): string
 }
 
@@ -498,7 +524,8 @@ export declare class Reply {
  * the next frame carries.
  *
  * Close it, or leave it with `await using`. A stream that is collected
- * disarms the channel as well, and reports no failure.
+ * disarms the channel as well, and reports no failure. A write after
+ * `close()` throws `stream_closed`.
  */
 export declare class SegmentStream {
   /**
@@ -551,6 +578,8 @@ export declare class Served {
   get command(): string
   /** The name the wire carries, where it carries one. */
   get cmd(): string
+  /** The record every surface prints: `id`, `mode`, `command`. */
+  toJSON(): { id: string; mode: string; command: string }
   toString(): string
 }
 

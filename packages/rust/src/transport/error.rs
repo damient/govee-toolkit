@@ -97,6 +97,10 @@ pub enum Error {
     #[error("the transport has been shut down")]
     ShutDown,
 
+    /// The segment stream was closed, so it paints nothing more.
+    #[error("this stream is closed")]
+    StreamClosed,
+
     /// An adapter or socket operation failed.
     #[error("{context}: {source}")]
     Io {
@@ -135,6 +139,7 @@ impl Error {
             Self::Api { .. } => "api",
             Self::RateLimited { .. } => "rate_limited",
             Self::ShutDown => "shut_down",
+            Self::StreamClosed => "stream_closed",
             Self::Io { .. } => "io",
             Self::Cache { .. } => "cache",
         }

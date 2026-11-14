@@ -47,6 +47,58 @@ pub fn describe_sku(catalog: &Catalog, sku: &str) -> codec::Result<Value> {
     catalog.device(sku).map(describe)
 }
 
+/// The SKUs of `catalog`, verified aliases included, that match every filter
+/// given. `capability` reads the capabilities of `mode` where it is given,
+/// and those of the hardware otherwise. `support` needs `mode`.
+///
+/// # Errors
+///
+/// [`Refused`](crate::input::Refused) where `support` is given without
+/// `mode`.
+pub fn query(
+    catalog: &Catalog,
+    mode: Option<Mode>,
+    capability: Option<&str>,
+    support: Option<&str>,
+) -> crate::input::Result<Vec<String>> {
+    if support.is_some() && mode.is_none() {
+        return Err(crate::input::Refused("`support` needs `mode`".to_owned()));
+    }
+    Ok(catalog
+        .skus()
+        .filter(|sku| {
+            catalog
+                .device(sku)
+                .is_ok_and(|device| matches(device, mode, capability, support))
+        })
+        .map(ToOwned::to_owned)
+        .collect())
+}
+
+fn matches(
+    device: &Device,
+    mode: Option<Mode>,
+    capability: Option<&str>,
+    support: Option<&str>,
+) -> bool {
+    let scoped = mode.map(|mode| device.modes.get(mode));
+    if let Some(wanted) = support
+        && scoped.is_none_or(|scoped| scoped.support.to_string() != wanted)
+    {
+        return false;
+    }
+    let Some(capability) = capability else {
+        return true;
+    };
+    match scoped {
+        Some(scoped) => scoped
+            .capabilities
+            .resolve(&device.capabilities)
+            .contains(&capability),
+        None => device.capabilities.names().any(|name| name == capability),
+    }
+}
+
 /// One entry per mode, so a reader finds every mode whether or not the file
 /// declares anything for it.
 fn by_mode(of: impl Fn(Mode) -> Value) -> Value {

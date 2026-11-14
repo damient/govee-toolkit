@@ -95,6 +95,33 @@ impl Applied {
         reached.chain(steps)
     }
 
+    /// The line that reports the failures over `members` devices, with the
+    /// first error. One device reports that error's own message, so a group
+    /// of one fails as a command on one device does. `None` when clean.
+    #[must_use]
+    pub fn verdict(&self, members: usize) -> Option<(&Error, String)> {
+        let mut failures = self.failures();
+        let (_, first) = failures.next()?;
+        if members == 1 {
+            return Some((first, first.to_string()));
+        }
+        let mut ids: Vec<String> = Vec::new();
+        for (id, _) in self.failures() {
+            let id = id.to_string();
+            if !ids.contains(&id) {
+                ids.push(id);
+            }
+        }
+        Some((
+            first,
+            format!(
+                "{} of {members} devices failed: {}",
+                ids.len(),
+                ids.join(", ")
+            ),
+        ))
+    }
+
     /// Whether every member took every step.
     #[must_use]
     pub fn is_clean(&self) -> bool {

@@ -85,6 +85,17 @@ impl Filter {
         }
     }
 
+    /// The targets where there are some, else every device, kept to the
+    /// devices that enable `enables` where it is set.
+    #[must_use]
+    pub fn from_parts<T: Into<String>>(targets: Option<Vec<T>>, enables: Option<Mode>) -> Self {
+        let filter = targets.map_or_else(Self::all, Self::targets);
+        match enables {
+            Some(mode) => filter.enables(mode),
+            None => filter,
+        }
+    }
+
     /// These identities, in this order. It parses nothing and scans nothing.
     #[must_use]
     pub fn ids<I>(ids: I) -> Self

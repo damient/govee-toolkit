@@ -196,3 +196,70 @@ impl<'a> Resolved<'a> {
             .await?)
     }
 }
+
+/// Whether [`DeviceHandle::invoke`] takes a command that declares a secret.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Secrets {
+    /// Take it.
+    #[default]
+    Allow,
+    /// Refuse it with [`crate::codec::Error::SecretArg`], before anything is
+    /// sent.
+    Refuse,
+}
+
+impl DeviceHandle<'_> {
+    /// Resolve once, read the supplied values, and send the command.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::resolve`], [`Resolved::args`] and
+    /// [`Resolved::send`].
+    pub async fn send_supplied<I>(&self, command: &str, supplied: I) -> Result<Served>
+    where
+        I: IntoIterator<Item = (String, Supplied)>,
+    {
+        let call = self.resolve()?;
+        let values = call.args(command, supplied)?;
+        call.send(command, &values).await
+    }
+
+    /// Resolve once, read the supplied values, and read the command.
+    ///
+    /// # Errors
+    ///
+    /// As for [`DeviceHandle::resolve`], [`Resolved::args`] and
+    /// [`Resolved::read`].
+    pub async fn read_supplied<I>(&self, command: &str, supplied: I) -> Result<Reply>
+    where
+        I: IntoIterator<Item = (String, Supplied)>,
+    {
+        let call = self.resolve()?;
+        let values = call.args(command, supplied)?;
+        call.read(command, &values).await
+    }
+
+    /// Resolve once, read the supplied values, and [`Resolved::invoke`] the
+    /// command. Answers the mode that served it.
+    ///
+    /// # Errors
+    ///
+    /// [`crate::codec::Error::SecretArg`] under [`Secrets::Refuse`] for a
+    /// command that takes a secret, and as for [`Resolved::invoke`].
+    pub async fn invoke<I>(
+        &self,
+        command: &str,
+        supplied: I,
+        secrets: Secrets,
+    ) -> Result<(Mode, Invoked)>
+    where
+        I: IntoIterator<Item = (String, Supplied)>,
+    {
+        let call = self.resolve()?;
+        if secrets == Secrets::Refuse {
+            call.refuse_secret(command)?;
+        }
+        let values = call.args(command, supplied)?;
+        Ok((call.mode(), call.invoke(command, &values).await?))
+    }
+}

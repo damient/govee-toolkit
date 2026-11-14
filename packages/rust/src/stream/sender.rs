@@ -57,9 +57,9 @@ pub(crate) struct Shared {
     /// Raised by the handle to end the stream. A signal rather than an abort,
     /// so the task can send the disarming frame itself.
     pub(crate) stop: Notify,
-    /// Marks the channel armed for the facade's send path. Dropped with the
-    /// last handle, which is the emitting task's, after the disarming frame.
-    pub(crate) _armed: ArmedGuard,
+    /// Marks the channel armed for the facade's send path. Taken by `close`
+    /// after the disarming frame, or dropped with the last handle.
+    pub(crate) armed: std::sync::Mutex<Option<ArmedGuard>>,
 }
 
 impl Shared {

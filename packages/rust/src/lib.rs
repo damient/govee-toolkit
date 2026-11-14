@@ -106,6 +106,11 @@ mod devices;
 mod event;
 #[cfg(feature = "transport")]
 mod govee;
+#[cfg(feature = "transport")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
+pub mod input;
+#[cfg(feature = "transport")]
+mod owned;
 #[cfg(feature = "ble")]
 mod provision;
 #[cfg(feature = "transport")]
@@ -121,11 +126,11 @@ pub use codec::{Args, Catalog, Mode};
 #[cfg(feature = "transport")]
 pub use config::{CloudConfig, Config, DeviceConfig, LanConfig, Problem, StreamConfig};
 #[cfg(feature = "transport")]
-pub use describe::{describe, describe_sku};
+pub use describe::{describe, describe_sku, query};
 #[cfg(feature = "transport")]
 pub use device::DeviceHandle;
 #[cfg(feature = "transport")]
-pub use devices::{Devices, Outcome};
+pub use devices::{Answer, Devices, Outcome};
 #[cfg(feature = "transport")]
 pub use env::Env;
 #[cfg(feature = "transport")]
@@ -134,10 +139,12 @@ pub use error::{Category, Error, Result};
 pub use event::{Device, Event, Served};
 #[cfg(feature = "transport")]
 pub use govee::{Govee, Walk, WalkObserver, WalkReport};
+#[cfg(feature = "transport")]
+pub use owned::{OwnedDevice, OwnedDevices};
 #[cfg(feature = "ble")]
 pub use provision::{Provisioned, WifiCredentials};
 #[cfg(feature = "transport")]
-pub use resolved::{Invoked, Resolved};
+pub use resolved::{Invoked, Resolved, Secrets};
 #[cfg(feature = "transport")]
 pub use select::{Filter, Selector, Target};
 #[cfg(feature = "transport")]

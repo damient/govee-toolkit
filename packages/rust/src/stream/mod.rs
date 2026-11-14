@@ -61,7 +61,7 @@ pub(crate) mod resolve;
 mod sender;
 mod zones;
 
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use tokio::sync::Notify;
@@ -88,7 +88,9 @@ pub const FALLBACK_HZ: f64 = 10.0;
 pub struct SegmentStream {
     shared: Arc<Shared>,
     /// Taken by `close`, which awaits the disarm the task sends.
-    task: Option<tokio::task::JoinHandle<Result<()>>>,
+    task: Mutex<Option<tokio::task::JoinHandle<Result<()>>>>,
+    /// Set by `close`. One load per paint, not per frame.
+    closed: AtomicBool,
 }
 
 impl SegmentStream {
@@ -148,7 +150,7 @@ impl SegmentStream {
             stop: Notify::new(),
             // Marked before the arming frame, so a command sent while the
             // channel arms verifies nothing either.
-            _armed: ArmedGuard::new(govee, id, mode),
+            armed: Mutex::new(Some(ArmedGuard::new(govee, id, mode))),
         });
 
         // Before arming, so the first frame is painted under the setting the
@@ -161,7 +163,8 @@ impl SegmentStream {
         let task = tokio::spawn(sender::run(Arc::clone(&shared)));
         Ok(Self {
             shared,
-            task: Some(task),
+            task: Mutex::new(Some(task)),
+            closed: AtomicBool::new(false),
         })
     }
 
@@ -283,18 +286,30 @@ impl SegmentStream {
     ///
     /// [`Error::Transport`] if the disarming frame cannot be sent, or if the
     /// emitting task is gone and never sent it. Emitting has stopped either
-    /// way.
-    pub async fn close(mut self) -> Result<()> {
+    /// way. A second call does nothing, and a paint after the first fails
+    /// with [`StreamClosed`](crate::transport::Error::StreamClosed).
+    pub async fn close(&self) -> Result<()> {
+        self.closed.store(true, Ordering::Release);
         self.shared.stop.notify_one();
-        match self.task.take() {
+        let task = self.task.lock().ok().and_then(|mut task| task.take());
+        let disarmed = match task {
             Some(task) => task
                 .await
-                .map_err(|_| Error::Transport(crate::transport::Error::ShutDown))?,
+                .unwrap_or(Err(Error::Transport(crate::transport::Error::ShutDown))),
             None => Ok(()),
+        };
+        // The stream outlives `close`, so the mark goes here and not with the
+        // last handle.
+        if let Ok(mut armed) = self.shared.armed.lock() {
+            armed.take();
         }
+        disarmed
     }
 
     fn paint(&self, edit: impl FnOnce(&mut Vec<[u8; 3]>) -> Result<()>) -> Result<()> {
+        if self.closed.load(Ordering::Acquire) {
+            return Err(Error::Transport(crate::transport::Error::StreamClosed));
+        }
         {
             let mut colors = self
                 .shared

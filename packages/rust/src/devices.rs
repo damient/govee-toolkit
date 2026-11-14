@@ -4,10 +4,11 @@
 use std::future::Future;
 
 use futures_util::future::join_all;
+use serde_json::{Value, json};
 
 use crate::codec::Mode;
 use crate::device::DeviceHandle;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::event::{Device, Served};
 use crate::transport::DeviceId;
 use crate::verbs::{Music, Paint};
@@ -19,6 +20,72 @@ pub struct Outcome<T = Served> {
     pub id: DeviceId,
     /// What the call on that member returned.
     pub result: Result<T>,
+}
+
+/// What a member answers on success: the mode that reached it, or the
+/// command that was served.
+pub trait Answer {
+    /// The mode that served the call.
+    fn mode(&self) -> Mode;
+
+    /// The command that was served, where the call sent one.
+    fn served(&self) -> Option<&Served> {
+        None
+    }
+}
+
+impl Answer for Mode {
+    fn mode(&self) -> Mode {
+        *self
+    }
+}
+
+impl Answer for Served {
+    fn mode(&self) -> Mode {
+        self.mode
+    }
+
+    fn served(&self) -> Option<&Served> {
+        Some(self)
+    }
+}
+
+impl<T> Outcome<T> {
+    /// The error, where the call failed on this member.
+    #[must_use]
+    pub fn error(&self) -> Option<&Error> {
+        self.result.as_ref().err()
+    }
+}
+
+impl<T: Answer> Outcome<T> {
+    /// The mode that served the call, or `None` where it failed.
+    #[must_use]
+    pub fn mode(&self) -> Option<Mode> {
+        self.result.as_ref().ok().map(Answer::mode)
+    }
+
+    /// The command that was served, or `None` where it failed or sent none.
+    #[must_use]
+    pub fn served(&self) -> Option<&Served> {
+        self.result.as_ref().ok().and_then(Answer::served)
+    }
+
+    /// This outcome as the record every surface prints. `mode` and `command`
+    /// are `null` where they do not apply, and `error` is `null` on success.
+    #[must_use]
+    pub fn to_json(&self) -> Value {
+        json!({
+            "id": self.id.to_string(),
+            "ok": self.result.is_ok(),
+            "mode": self.mode().map(|mode| mode.to_string()),
+            "command": self.served().map(|served| served.command.clone()),
+            "error": self.error().map(|error| json!({
+                "code": error.code(),
+                "message": error.to_string(),
+            })),
+        })
+    }
 }
 
 /// The devices that [`Govee::devices`](crate::Govee::devices) selects. Each

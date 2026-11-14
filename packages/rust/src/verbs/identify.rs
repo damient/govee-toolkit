@@ -45,6 +45,18 @@ impl Default for Identify {
     }
 }
 
+impl Identify {
+    /// The default of [`Identify::default`] for each field left `None`.
+    #[must_use]
+    pub fn new(color: Option<[u8; 3]>, full_brightness: Option<bool>) -> Self {
+        let default = Self::default();
+        Self {
+            color: color.unwrap_or(default.color),
+            full_brightness: full_brightness.unwrap_or(default.full_brightness),
+        }
+    }
+}
+
 impl DeviceHandle<'_> {
     /// Power the device on and paint one color.
     ///

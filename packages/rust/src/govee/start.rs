@@ -32,6 +32,27 @@ impl Govee {
         Self::start_with(config, catalog).await
     }
 
+    /// Start as a binding starts: the configuration file where `config` is
+    /// `None`, and [`Govee::start`]'s catalog where `catalog` is `None`.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Config`] if the configuration file cannot be read, and as for
+    /// [`Govee::start`].
+    pub async fn start_or_defaults(
+        config: Option<Config>,
+        catalog: Option<Catalog>,
+    ) -> Result<Self> {
+        let config = match config {
+            Some(config) => config,
+            None => Config::load()?,
+        };
+        match catalog {
+            Some(catalog) => Self::start_with(config, catalog).await,
+            None => Self::start(config).await,
+        }
+    }
+
     /// Start with a catalog the caller built.
     ///
     /// The SDK starts every transport this build carries, whether or not a

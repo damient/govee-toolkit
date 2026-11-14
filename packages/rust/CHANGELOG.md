@@ -31,6 +31,23 @@ releases apart and keeps
 - `Support::ALL` — every support level. `Catalog::capabilities()` — every
   capability name that a device of the catalog declares.
 
+- `input` reads a host value, `input::Value`, as a color, a paint, a zone
+  list, a resolution, a rate, a duration or the verbs of an apply.
+- `OwnedDevice` and `OwnedDevices` hold a clone of `Govee`, for a binding:
+  `Govee::device_owned()` and `Govee::devices_owned()` return them.
+- `query()` — the SKUs of a catalog that match a mode, a capability and a
+  support level. `support` without `mode` is refused.
+- `Applied::verdict()` — one line for the failures of an apply: the error of
+  a single member, or the count and the identities that failed.
+- `to_json()` on `Outcome`, `Served` and `Health` — the record every surface
+  prints. The `Answer` trait gives `Outcome::mode()` and `served()`.
+- `DeviceHandle::invoke()`, `send_supplied()` and `read_supplied()` take
+  argument values as a binding reads them. `Secrets::Refuse` refuses a secret.
+- `Govee::start_or_defaults()`, `Filter::from_parts()`, `Music::new()` and
+  `Identify::new()` apply the defaults the bindings share.
+- `transport::Error::StreamClosed` (`stream_closed`) — a paint on a
+  `SegmentStream` after `close()`.
+
 ### Changed
 
 - **Breaking:** `Govee::scan()` takes `Option<&[Mode]>`, and `scan_on()` goes.
@@ -45,6 +62,8 @@ releases apart and keeps
   and `list()` the `Device` records. `Govee::ensure_known()` is private.
 - `DeviceHandle::provision_wifi()` fails with `no_mode_available` on a handle
   pinned to a mode other than `ble`.
+- `SegmentStream::close()` takes `&self`. A second call does nothing, and the
+  counters stay readable after it.
 
 ## [0.14.0] — 2026-09-26
 

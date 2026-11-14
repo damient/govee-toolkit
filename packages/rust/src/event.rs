@@ -166,6 +166,18 @@ pub struct Served {
     pub cmd: String,
 }
 
+impl Served {
+    /// This command as the record every surface prints.
+    #[must_use]
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "id": self.id.to_string(),
+            "mode": self.mode.to_string(),
+            "command": self.command,
+        })
+    }
+}
+
 /// A device the facade knows about.
 #[derive(Debug, Clone)]
 pub struct Device {

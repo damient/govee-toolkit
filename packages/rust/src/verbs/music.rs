@@ -40,6 +40,26 @@ impl Default for Music {
     }
 }
 
+impl Music {
+    /// `effect`, with the default of [`Music::default`] for each field left
+    /// `None`.
+    #[must_use]
+    pub fn new(
+        effect: i64,
+        sensitivity: Option<i64>,
+        soft: Option<bool>,
+        color: Option<[u8; 3]>,
+    ) -> Self {
+        let default = Self::default();
+        Self {
+            effect,
+            sensitivity: sensitivity.unwrap_or(default.sensitivity),
+            soft: soft.unwrap_or(default.soft),
+            color,
+        }
+    }
+}
+
 impl DeviceHandle<'_> {
     /// Play a music effect.
     ///
