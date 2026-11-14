@@ -9,7 +9,7 @@ the light.
 
 [![status](https://img.shields.io/badge/status-beta-yellow)](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
-[![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml)
+[![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml?query=branch%3Amain)
 
 [![govee-toolkit on crates.io](https://img.shields.io/crates/v/govee-toolkit?logo=rust&logoColor=white&label=govee-toolkit)](https://crates.io/crates/govee-toolkit)
 [![govee-toolkit-cli on crates.io](https://img.shields.io/crates/v/govee-toolkit-cli?logo=rust&logoColor=white&label=govee-toolkit-cli)](https://crates.io/crates/govee-toolkit-cli)
