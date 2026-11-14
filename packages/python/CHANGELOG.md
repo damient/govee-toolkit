@@ -23,6 +23,13 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
   personality the core knows. `Catalog.capabilities()` — every capability
   name that a device of the catalog declares.
 
+- `Applied.verdict` — one line for the failures of an apply, or `None`.
+- `Catalog.query()` — the SKUs that match `mode`, `capability` and
+  `support`. `support` without `mode` raises `ValueError`.
+- `to_dict()` on `Outcome`, `Served`, `Health` and `DeviceStatus` — the
+  record every surface prints.
+- `segment()` and `SegmentStream.set_all()` take `bytes`, three per zone.
+
 ### Changed
 
 - **Breaking:** `Govee.scan()` takes an optional `modes` list, and `scan_on()`
@@ -38,6 +45,10 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 - `DeviceHandle.ensure_known()` scans over the pinned mode alone where the
   handle pins one.
 - `DeviceHandle.pinned` — the mode the handle pins, or `None`.
+- The core reads every argument and every option. A value of the wrong type
+  raises `ValueError`, and a float with no fraction reads as an `int`.
+- `SegmentStream.close()` can run twice. A paint after it raises
+  `TransportError` with the code `stream_closed`.
 
 ## [0.6.0] — 2026-09-26
 

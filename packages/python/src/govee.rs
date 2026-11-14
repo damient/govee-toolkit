@@ -1,13 +1,13 @@
 //! The facade: what starts the SDK, what it knows, and what it reaches.
 
-use govee_toolkit::{Filter, Govee as CoreGovee};
+use govee_toolkit::{Filter, Govee as CoreGovee, Style, input};
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 use pyo3_async_runtimes::tokio::future_into_py;
 
 use crate::catalog::Catalog;
 use crate::config::Config;
-use crate::conv;
+use crate::conv::{self, read};
 use crate::device::DeviceHandle;
 use crate::devices::Devices;
 use crate::errors::map;
@@ -25,7 +25,8 @@ pub(crate) struct Govee {
 #[pymethods]
 impl Govee {
     /// Start the SDK. Without a configuration, it reads the file. Without a
-    /// catalog, it reads the one the wheel carries.
+    /// catalog, it reads the one the wheel carries, plus the user's own device
+    /// files where the configuration opts into them.
     #[staticmethod]
     #[pyo3(signature = (config=None, catalog=None))]
     fn start(
@@ -33,17 +34,11 @@ impl Govee {
         config: Option<Config>,
         catalog: Option<Catalog>,
     ) -> PyResult<Bound<'_, PyAny>> {
-        let config = match config {
-            Some(config) => config.inner,
-            None => map(govee_toolkit::Config::load())?,
-        };
-        let catalog = match catalog {
-            Some(catalog) => catalog.inner,
-            None => map(govee_toolkit::Catalog::embedded().map_err(Into::into))?,
-        };
+        let config = config.map(|config| config.inner);
+        let catalog = catalog.map(|catalog| catalog.inner);
         future_into_py(py, async move {
             Ok(Govee {
-                inner: map(CoreGovee::start_with(config, catalog).await)?,
+                inner: map(CoreGovee::start_or_defaults(config, catalog).await)?,
             })
         })
     }
@@ -118,11 +113,8 @@ impl Govee {
     #[pyo3(signature = (target, *, mode = None))]
     fn device(&self, target: &str, mode: Option<&str>) -> PyResult<DeviceHandle> {
         let pinned = mode.map(conv::mode).transpose()?;
-        let id = map(self.inner.device(target, pinned))?.id().clone();
         Ok(DeviceHandle {
-            govee: self.inner.clone(),
-            pinned,
-            id,
+            inner: map(self.inner.device_owned(target, pinned))?,
         })
     }
 
@@ -153,21 +145,12 @@ impl Govee {
         enables: Option<&str>,
         mode: Option<&str>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let mut filter = targets.map_or_else(Filter::all, Filter::targets);
-        if let Some(enables) = enables {
-            filter = filter.enables(conv::mode(enables)?);
-        }
+        let filter = Filter::from_parts(targets, enables.map(conv::mode).transpose()?);
         let pinned = mode.map(conv::mode).transpose()?;
         let govee = self.inner.clone();
         future_into_py(py, async move {
-            let members = map(govee.devices(filter, pinned).await)?
-                .iter()
-                .map(|handle| handle.id().clone())
-                .collect();
             Ok(Devices {
-                govee: govee.clone(),
-                pinned,
-                members,
+                inner: map(govee.devices_owned(filter, pinned).await)?,
             })
         })
     }
@@ -193,12 +176,19 @@ impl Govee {
         py: Python<'py>,
         targets: Option<&Bound<'py, PyAny>>,
         color: Option<&Bound<'py, PyAny>>,
-        wait: Option<f64>,
-        hold: Option<f64>,
-        keep: Option<bool>,
-        mode: Option<&str>,
+        wait: Option<&Bound<'py, PyAny>>,
+        hold: Option<&Bound<'py, PyAny>>,
+        keep: Option<&Bound<'py, PyAny>>,
+        mode: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let walk = conv::walk(color, wait, hold, keep, mode)?;
+        let options = conv::keywords(&[
+            ("color", color),
+            ("wait", wait),
+            ("hold", hold),
+            ("keep", keep),
+            ("mode", mode),
+        ])?;
+        let walk = read(input::walk(&options, Style::Python))?;
         let named: Option<Vec<String>> = match targets {
             None => None,
             Some(one) if one.is_instance_of::<PyString>() => Some(vec![one.extract()?]),

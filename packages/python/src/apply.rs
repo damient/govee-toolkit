@@ -1,14 +1,11 @@
-//! `DeviceHandle.invoke()` and `Devices.apply()`.
+//! What `DeviceHandle.invoke()` and `Devices.apply()` answer.
 
-use govee_toolkit::codec::{Mode, Supplied};
-use govee_toolkit::{Applied as CoreApplied, DeviceId, Govee, Invoked as CoreInvoked, Verb};
+use govee_toolkit::codec::Mode;
+use govee_toolkit::{Applied as CoreApplied, Invoked as CoreInvoked, Outcome as CoreOutcome};
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 
-use crate::conv::{self, to_py};
-use crate::devices::Outcome;
-use crate::errors::{map, value_error};
-use crate::types::Served;
+use crate::conv::to_py;
+use crate::devices::{Outcome, outcomes};
 
 /// What `DeviceHandle.invoke()` did with a command.
 #[pyclass(
@@ -63,35 +60,19 @@ impl Invoked {
     }
 }
 
-pub(crate) async fn invoke(
-    govee: Govee,
-    pinned: Option<Mode>,
-    id: DeviceId,
-    command: String,
-    supplied: Vec<(String, Supplied)>,
-    refuse_secrets: bool,
-) -> PyResult<Invoked> {
-    let handle = map(govee.device(&id, pinned))?;
-    let call = map(handle.resolve())?;
-    if refuse_secrets {
-        map(call.refuse_secret(&command))?;
+impl Invoked {
+    pub(crate) fn new(mode: Mode, command: String, invoked: CoreInvoked) -> Self {
+        let (id, fields) = match invoked {
+            CoreInvoked::Sent(served) => (served.id.to_string(), None),
+            CoreInvoked::Read(reply) => (reply.id.to_string(), Some(reply.fields.to_json())),
+        };
+        Self {
+            id,
+            mode: mode.to_string(),
+            command,
+            fields,
+        }
     }
-    let values = map(call.args(&command, supplied))?;
-    let mode = call.mode().to_string();
-    Ok(match map(call.invoke(&command, &values).await)? {
-        CoreInvoked::Sent(served) => Invoked {
-            id: served.id.to_string(),
-            mode,
-            command,
-            fields: None,
-        },
-        CoreInvoked::Read(reply) => Invoked {
-            id: reply.id.to_string(),
-            mode,
-            command,
-            fields: Some(reply.fields.to_json()),
-        },
-    })
 }
 
 /// What one verb of `Devices.apply()` answered.
@@ -138,6 +119,7 @@ pub(crate) struct Applied {
     reached: Vec<Py<Outcome>>,
     steps: Vec<Py<AppliedStep>>,
     ok: bool,
+    verdict: Option<String>,
 }
 
 #[pymethods]
@@ -160,153 +142,53 @@ impl Applied {
         self.ok
     }
 
+    /// `"N of M devices failed: ids"`, or the error's own message for a set
+    /// of one member. `None` where every member took every step.
+    #[getter]
+    fn verdict(&self) -> Option<String> {
+        self.verdict.clone()
+    }
+
     fn __repr__(&self) -> String {
         format!("Applied(steps={}, ok={})", self.steps.len(), self.ok)
     }
 }
 
-pub(crate) async fn apply(
-    govee: Govee,
-    pinned: Option<Mode>,
-    members: Vec<DeviceId>,
-    verbs: Vec<Verb>,
-) -> PyResult<Applied> {
-    let devices = map(crate::devices::core(&govee, &members, pinned))?;
-    let applied: CoreApplied = devices.apply(verbs).await;
-    let ok = applied.is_clean();
-    let reached: Vec<Outcome> = applied
-        .reached
+fn shared<T>(py: Python<'_>, outcomes: &[CoreOutcome<T>]) -> PyResult<Vec<Py<Outcome>>>
+where
+    T: govee_toolkit::Answer,
+{
+    self::outcomes(outcomes)
         .into_iter()
-        .map(|outcome| Outcome::new(outcome, |mode| (mode, None)))
-        .collect();
-    let steps: Vec<(&'static str, Vec<Outcome>)> = applied
-        .steps
-        .into_iter()
-        .map(|step| {
-            let outcomes = step
-                .outcomes
-                .into_iter()
-                .map(|outcome| {
-                    Outcome::new(outcome, |served| (served.mode, Some(Served::from(served))))
+        .map(|outcome| Py::new(py, outcome))
+        .collect()
+}
+
+impl Applied {
+    pub(crate) fn new(applied: &CoreApplied, members: usize) -> PyResult<Self> {
+        let ok = applied.is_clean();
+        let verdict = applied.verdict(members).map(|(_, line)| line);
+        Python::attach(|py| {
+            let steps = applied
+                .steps
+                .iter()
+                .map(|step| {
+                    let outcomes = shared(py, &step.outcomes)?;
+                    Py::new(
+                        py,
+                        AppliedStep {
+                            step: step.name,
+                            outcomes,
+                        },
+                    )
                 })
-                .collect();
-            (step.name, outcomes)
-        })
-        .collect();
-    Python::attach(|py| {
-        let reached = reached
-            .into_iter()
-            .map(|outcome| Py::new(py, outcome))
-            .collect::<PyResult<_>>()?;
-        let steps = steps
-            .into_iter()
-            .map(|(step, outcomes)| {
-                let outcomes = outcomes
-                    .into_iter()
-                    .map(|outcome| Py::new(py, outcome))
-                    .collect::<PyResult<_>>()?;
-                Py::new(py, AppliedStep { step, outcomes })
+                .collect::<PyResult<_>>()?;
+            Ok(Self {
+                reached: shared(py, &applied.reached)?,
+                steps,
+                ok,
+                verdict,
             })
-            .collect::<PyResult<_>>()?;
-        Ok(Applied { reached, steps, ok })
-    })
-}
-
-const SEGMENT: [&str; 4] = ["colors", "zones", "resolution", "gradient"];
-const MUSIC: [&str; 4] = ["effect", "sensitivity", "soft", "color"];
-
-/// A misspelled key is refused: ignored, it reads as a setting that failed.
-fn known_keys(dict: &Bound<'_, PyDict>, what: &str, keys: &[&str]) -> PyResult<()> {
-    for key in dict.keys() {
-        let key: String = key.extract()?;
-        if !keys.contains(&key.as_str()) {
-            return Err(value_error(format!(
-                "`{key}` is no {what} key; the keys are {}",
-                keys.join(", ")
-            )));
-        }
+        })
     }
-    Ok(())
-}
-
-/// The keyword arguments of `Devices.apply()`.
-pub(crate) struct Verbs<'a, 'py> {
-    pub(crate) power: Option<bool>,
-    pub(crate) brightness: Option<i64>,
-    pub(crate) color: Option<&'a Bound<'py, PyAny>>,
-    pub(crate) color_temp: Option<i64>,
-    pub(crate) segment: Option<&'a Bound<'py, PyDict>>,
-    pub(crate) music: Option<&'a Bound<'py, PyDict>>,
-    pub(crate) gradient: Option<bool>,
-}
-
-impl Verbs<'_, '_> {
-    pub(crate) fn read(&self) -> PyResult<Vec<Verb>> {
-        let mut verbs = Vec::new();
-        if let Some(on) = self.power {
-            verbs.push(Verb::Power(on));
-        }
-        if let Some(level) = self.brightness {
-            verbs.push(Verb::Brightness(level));
-        }
-        if let Some(color) = self.color {
-            verbs.push(Verb::Color(conv::rgb(color)?));
-        }
-        if let Some(kelvin) = self.color_temp {
-            verbs.push(Verb::ColorTemp(kelvin));
-        }
-        if let Some(segment) = self.segment {
-            verbs.push(segment_verb(segment)?);
-        }
-        if let Some(music) = self.music {
-            verbs.push(music_verb(music)?);
-        }
-        if let Some(on) = self.gradient {
-            verbs.push(Verb::Gradient(on));
-        }
-        Ok(verbs)
-    }
-}
-
-fn segment_verb(segment: &Bound<'_, PyDict>) -> PyResult<Verb> {
-    known_keys(segment, "segment", &SEGMENT)?;
-    let Some(colors) = segment.get_item("colors")? else {
-        return Err(value_error("a segment carries `colors`"));
-    };
-    let zones = match segment.get_item("zones")? {
-        Some(zones) if !zones.is_none() => Some(zones.extract::<Vec<u16>>()?),
-        _ => None,
-    };
-    let resolution = segment.get_item("resolution")?.filter(|r| !r.is_none());
-    let gradient = match segment.get_item("gradient")? {
-        Some(gradient) if !gradient.is_none() => gradient.extract::<bool>()?,
-        _ => false,
-    };
-    Ok(Verb::Segment {
-        zones,
-        colors: conv::colors(&colors)?,
-        resolution: conv::resolution_or_default(resolution.as_ref())?,
-        gradient,
-    })
-}
-
-fn music_verb(music: &Bound<'_, PyDict>) -> PyResult<Verb> {
-    known_keys(music, "music", &MUSIC)?;
-    let Some(effect) = music.get_item("effect")? else {
-        return Err(value_error("a music verb carries `effect`"));
-    };
-    let optional = |key: &str| -> PyResult<Option<Bound<'_, PyAny>>> {
-        Ok(music.get_item(key)?.filter(|value| !value.is_none()))
-    };
-    let sensitivity = optional("sensitivity")?
-        .map(|v| v.extract::<i64>())
-        .transpose()?;
-    let soft = optional("soft")?.map(|v| v.extract::<bool>()).transpose()?;
-    let color = optional("color")?;
-    Ok(Verb::Music(conv::music(
-        effect.extract()?,
-        sensitivity,
-        soft,
-        color.as_ref(),
-    )?))
 }

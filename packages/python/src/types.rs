@@ -42,6 +42,11 @@ impl Health {
         self.inner.available
     }
 
+    /// The record every surface prints: `state`, `failures`, `available`.
+    fn to_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.inner.to_json())
+    }
+
     fn __repr__(&self) -> String {
         self.inner.summary(Style::Python)
     }
@@ -147,6 +152,11 @@ impl Served {
         self.inner.cmd.clone()
     }
 
+    /// The record every surface prints: `id`, `mode`, `command`.
+    fn to_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.inner.to_json())
+    }
+
     fn __repr__(&self) -> String {
         self.inner.summary(Style::Python)
     }
@@ -213,6 +223,12 @@ impl DeviceStatus {
     #[getter]
     fn is_white(&self) -> bool {
         self.inner.is_white()
+    }
+
+    /// The record every surface prints. A field the device did not report
+    /// is `None`, and `color` is `"#RRGGBB"`.
+    fn to_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.inner.to_json())
     }
 
     fn __repr__(&self) -> String {

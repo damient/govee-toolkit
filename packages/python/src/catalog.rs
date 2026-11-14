@@ -1,9 +1,9 @@
 //! What `devices/*.yaml` declares, as the SDK reads it.
 
-use govee_toolkit::{Catalog as CoreCatalog, describe_sku, profile};
+use govee_toolkit::{Catalog as CoreCatalog, describe_sku, profile, query};
 use pyo3::prelude::*;
 
-use crate::conv::to_py;
+use crate::conv::{self, read, to_py};
 use crate::errors::map;
 
 /// Every device the build knows. Reads no hardware.
@@ -63,6 +63,23 @@ impl Catalog {
             .into_iter()
             .map(ToOwned::to_owned)
             .collect()
+    }
+
+    /// The SKUs, verified aliases included, that match every filter given.
+    /// `capability` reads the capabilities of `mode` where it is given, and
+    /// those of the hardware otherwise.
+    ///
+    /// Raises `ValueError` for an unknown mode, and for `support` without
+    /// `mode`.
+    #[pyo3(signature = (mode=None, capability=None, support=None))]
+    fn query(
+        &self,
+        mode: Option<&str>,
+        capability: Option<&str>,
+        support: Option<&str>,
+    ) -> PyResult<Vec<String>> {
+        let mode = mode.map(conv::mode).transpose()?;
+        read(query(&self.inner, mode, capability, support))
     }
 
     fn __len__(&self) -> usize {

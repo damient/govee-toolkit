@@ -76,6 +76,8 @@ class Health:
     @property
     def available(self) -> bool:
         """Whether a command would be sent right now."""
+    def to_dict(self) -> dict[str, Any]:
+        """The record every surface prints: `state`, `failures`, `available`."""
 
 @final
 class Device:
@@ -118,6 +120,8 @@ class Served:
     @property
     def cmd(self) -> str:
         """The name the wire carries, where it carries one."""
+    def to_dict(self) -> dict[str, Any]:
+        """The record every surface prints: `id`, `mode`, `command`."""
 
 @final
 class DeviceStatus:
@@ -146,6 +150,10 @@ class DeviceStatus:
     @property
     def is_white(self) -> bool:
         """Whether the device is in white mode. Mutually exclusive with color."""
+    def to_dict(self) -> dict[str, Any]:
+        """The record every surface prints. A field the device did not report is `None`,
+        and `color` is `"#RRGGBB"`.
+        """
 
 @final
 class Reply:
@@ -217,6 +225,18 @@ class Catalog:
         """
     def capabilities(self) -> list[str]:
         """Every capability name that a device of the catalog declares, sorted."""
+    def query(
+        self,
+        mode: str | None = None,
+        capability: str | None = None,
+        support: str | None = None,
+    ) -> list[str]:
+        """The SKUs, verified aliases included, that match every filter given.
+        `capability` reads the capabilities of `mode` where it is given, and those of
+        the hardware otherwise.
+
+        Raises `ValueError` for an unknown mode, and for `support` without `mode`.
+        """
     def __len__(self) -> int:
         """How many device files the catalog holds."""
 
@@ -248,8 +268,10 @@ class SegmentStream:
         """What the emitting task failed with, if it failed. The stream stops sending,
         and the writers keep answering.
         """
-    def set_all(self, colors: Sequence[Color]) -> None:
-        """State every zone. The count must be the stream's own."""
+    def set_all(self, colors: Sequence[Color] | bytes) -> None:
+        """State every zone. The count must be the stream's own. `bytes` carries three
+        bytes for every zone.
+        """
     def set_zone(self, index: int, color: Color) -> None:
         """State one zone, by its zero-based index."""
     def fill(self, color: Color) -> None:
@@ -259,7 +281,10 @@ class SegmentStream:
     def buffer(self) -> list[Color]:
         """What the next frame carries."""
     async def close(self) -> None:
-        """Disarm the channel and wait for the last frame to leave."""
+        """Disarm the channel and wait for the last frame to leave. A second call does
+        nothing. A writer called after it raises `TransportError` with the code
+        `stream_closed`.
+        """
     async def __aenter__(self) -> Self: ...
     async def __aexit__(
         self,
@@ -398,15 +423,15 @@ class DeviceHandle:
 
     async def segment(
         self,
-        colors: Sequence[Color],
+        colors: Color | Sequence[Color] | bytes,
         zones: Sequence[int] | None = None,
         resolution: Resolution = "app",
         gradient: bool = False,
     ) -> Served:
         """Paint the segments once.
 
-        One color fills every zone, and a list states them all. A zone list takes one
-        color.
+        One color fills every zone, and a list states them all. `bytes` carries three
+        bytes for every zone. A zone list takes one color.
         """
 
     async def gradient(self, on: bool) -> Served:
@@ -463,6 +488,10 @@ class Outcome:
     @property
     def error(self) -> GoveeError | None:
         """What the call on one device raises. `None` where it succeeded."""
+    def to_dict(self) -> dict[str, Any]:
+        """The record every surface prints: `id`, `ok`, `mode`, `command`, and `error`
+        as a dict of `code` and `message`.
+        """
 
 @final
 class Invoked:
@@ -507,6 +536,11 @@ class Applied:
     @property
     def ok(self) -> bool:
         """Whether every member took every step."""
+    @property
+    def verdict(self) -> str | None:
+        """`"N of M devices failed: ids"`, or the error's own message for a set of one
+        member. `None` where every member took every step.
+        """
 
 @final
 class WalkReport:
@@ -566,7 +600,7 @@ class Devices:
         """`DeviceHandle.music()` on every member."""
     async def segment(
         self,
-        colors: Sequence[Color],
+        colors: Color | Sequence[Color] | bytes,
         zones: Sequence[int] | None = None,
         resolution: Resolution = "app",
         gradient: bool = False,
@@ -603,7 +637,8 @@ class Govee:
         config: Config | None = None, catalog: Catalog | None = None
     ) -> Govee:
         """Start the SDK. Without a configuration, it reads the file. Without a catalog,
-        it reads the one the wheel carries.
+        it reads the one the wheel carries, plus the user's own device files where the
+        configuration opts into them.
         """
 
     async def scan(self, modes: Sequence[str] | None = None) -> list[Device]:
