@@ -28,9 +28,8 @@ pub(crate) async fn scan(govee: &Govee) -> Result<Vec<govee_toolkit::Device>, Fa
 /// The patch, joined to every device the SDK knows.
 ///
 /// It reads what [`scan`] found and scans again only where no `lan` scan
-/// ran. A device the cache carries counts here, and a device that misses one
-/// scan therefore starts the run. The backoff of the send path is what reports
-/// it where it stays silent — `docs/dmx.md`.
+/// ran. Only a device that answered a scan counts: an enabled entry that the
+/// cache alone holds is a fault of the patch.
 ///
 /// # Errors
 ///

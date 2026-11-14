@@ -113,8 +113,9 @@ shows and one example per language:
 `api` names the Rust methods of the entry, and `cli` the commands, as
 `dist/api.json` names them. Each language tab then carries one table for each
 method that takes a parameter: the name, the type, required or optional, and
-the default. Python and Node.js take the methods that carry the Rust ones. A
-name that `dist/api.json` does not hold fails the build.
+the default. Python and Node.js show the methods that `dist/api.json` lists
+under `surfaces` for each Rust method. A name that `dist/api.json` does not
+hold fails the build.
 
 The menu, the anchors and the language tabs are generated. A language the
 build marks as planned carries a dot and a note, so a reader never takes a

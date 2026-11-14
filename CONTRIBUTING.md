@@ -365,6 +365,10 @@ for the binding, then the addon, the generated loader and type definition, and
 `node --test`. It needs `packages/node/node_modules`: run `cd packages/node &&
 npm ci` once. `qa.sh` runs it as one check too.
 
+`tools/qa-mcp.sh` mirrors the `mcp` job for `integrations/mcp`. It needs
+`npm ci && npm run link:binding` in that directory once. `qa.sh` runs it as one
+check too.
+
 ```bash
 tools/qa-python.sh            # every Python check
 tools/qa-python.sh lint       # one check, by substring

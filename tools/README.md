@@ -73,9 +73,9 @@ range, which does not exist locally. The workflow stays the authority; this is
 a mirror of it kept in step by hand.
 
 `qa-site.sh` does the same for the site: it mirrors
-`.github/workflows/pages.yml` — the device catalog, the build, the three
-linters and the file length. `qa.sh` runs it as one check, so a full run covers
-the site too, and it runs on its own for the site alone:
+`.github/workflows/pages.yml` — the device catalog, the API, the build, the
+three linters and the file length. `qa.sh` runs it as one check, so a full run
+covers the site too, and it runs on its own for the site alone:
 
 ```bash
 tools/qa-site.sh            # every site check
@@ -84,8 +84,9 @@ cd site && npm run qa       # the same script
 ```
 
 It needs `site/node_modules`, which `cd site && npm install` writes, and it
-regenerates `dist/catalog.json` when cargo is there. Both exit codes are the
-ones `qa.sh` uses: 1 for a failed check, 2 for a skipped one.
+regenerates `dist/catalog.json` and `dist/api.json` when cargo is there. Both
+exit codes are the ones `qa.sh` uses: 1 for a failed check, 2 for a skipped
+one.
 
 `qa-python.sh` does the same for the Python binding, which is a cargo
 workspace of its own. It mirrors the `python` job of `ci.yml`: ruff for the
@@ -208,9 +209,9 @@ gh run rerun <release run id> --failed
 ```bash
 cd packages/rust
 cargo run -p xtask                    # dist/catalog.json, the release artifact
-cargo run -p xtask -- api             # dist/api.json, the methods and their parameters
-cargo run -p xtask -- api --check     # fails when a role has no method, or when
-                                      # two surfaces give one parameter two defaults
+cargo run -p xtask -- api             # dist/api.json; fails when a role has no method
+                                      # on a surface, or one parameter has two defaults
+cargo run -p xtask -- api --check     # the same checks, and writes nothing
 cargo run -p xtask -- compat          # the tables in docs/compatibility.md
 cargo run -p xtask -- compat --check  # fails when they have drifted
 cargo run -p xtask -- lan             # the table in docs/lan-supported-devices.md

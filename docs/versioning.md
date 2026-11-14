@@ -42,7 +42,7 @@ have survived `ble` and `cloud` landing — not on a date.
 | `mcp-vX.Y.Z` | `govee-toolkit-mcp` | npm |
 
 Versions are **not** kept in lockstep. Six packages that move at different
-speeds and share a version number would mean publishing four no-op releases
+speeds and share a version number would mean publishing five no-op releases
 every time one of them changed.
 
 ## One crate, and what a feature means

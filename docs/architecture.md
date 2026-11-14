@@ -162,15 +162,16 @@ the site reads the same extraction.
 ## The MCP server
 
 `integrations/mcp` wraps the Node binding and holds no device data and no
-protocol logic. It reads three sources, and each one is generated:
+protocol logic. It reads three sources:
 
 - the device data, from `Catalog.describe()` and `Catalog.dmx()`;
 - the API of each language, from `dist/api.json`, which `xtask api` writes;
 - the docs, from `docs/`, which the build copies into the package.
 
 A tool that filters by mode, capability or role reads the valid values from
-these sources. Its source holds no SKU name, no command name and no list
-written by hand.
+these sources. Its source holds no SKU name and no command name. The input
+schema of a control tool spells the arguments of the SDK API, such as the
+verbs and the stream resolutions, as the binding types do.
 
 - The catalog is the one that the binding embeds. The server loads no remote
   catalog, because `payload:` and `frame:` are executable

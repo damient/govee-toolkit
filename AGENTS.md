@@ -27,12 +27,12 @@ chooses a transport.
 3. **`devices/*.yaml` is the single source of truth.** SDKs read it. They
    implement transports and generic parsing, never per-SKU protocol logic. No
    SKU name and no command name belongs in Rust code — if you are about to write
-   one, the device file is missing something instead. `crates/cli` is the one
-   exception: a verb such as `on` or `brightness` is a name a person types. A
-   verb reaches the device file through a `role:`, so the CLI names a role and
-   the device file names the command. No SKU name reaches the CLI either way.
-   `integrations/mcp` follows the same rule: a tool names a role, never a
-   command, and its source holds no SKU name.
+   one, the device file is missing something instead. A role verb is the one
+   exception: a verb such as `power` or `brightness` is a name a caller types.
+   The facade (`Verb`, `Devices::apply`), `crates/cli` and `integrations/mcp`
+   spell verbs. A verb reaches the device file through a `role:`, so the code
+   names a role and the device file names the command. No SKU name reaches a
+   verb either way.
 4. **Never invent verification.** Do not fill `verified`, a capability, a
    measurement or a compatibility row from inference. Unverified is `?` or a
    `TODO`, and that is a perfectly good answer.

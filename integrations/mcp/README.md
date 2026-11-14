@@ -147,6 +147,7 @@ call.
 ## Build from the repository
 
 The server needs the binding built from this checkout, and `dist/api.json`.
+The build and the tests need Node.js 24 or newer.
 
 ```sh
 (cd ../../packages/node && npm ci && npm run build:debug)

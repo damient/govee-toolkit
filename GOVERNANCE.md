@@ -51,6 +51,8 @@ regardless of how good the code is.
 3. **`devices/*.yaml` is the single source of truth.** SDKs implement transports
    and generic parsing. No SKU name and no command name belongs in Rust code —
    if you are about to write one, the device file is missing something instead.
+   A role verb, such as `power`, is not a command name: it reaches the device
+   file through a `role:`.
 4. **Never invent verification.** Unverified is `?` or a `TODO`, and that is a
    good answer.
 
