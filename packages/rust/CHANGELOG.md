@@ -7,7 +7,7 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
-## [0.15.0] — 2026-09-27
+## [0.15.0] — 2026-11-14
 
 ### Added
 
@@ -30,11 +30,10 @@ releases apart and keeps
   mode alone where the handle pins one. `DeviceHandle::pinned()` names it.
 - `Support::ALL` — every support level. `Catalog::capabilities()` — every
   capability name that a device of the catalog declares.
-- `input` reads a host value, `input::Value`, as a color, a paint, a zone
-  list, a resolution, a rate, a duration or the verbs of an apply.
-  `input::packed()` reads a paint straight from a byte run,
-  `input::painting()` the arguments of `segment()` into a `Painting`, and
-  `input::names()` and `input::modes()` an options map of names.
+- `input` reads a binding's `input::Value` as a color, a paint, a zone list,
+  a resolution, a rate, a duration or the verbs of an apply.
+- `input::packed()` reads a paint from a byte run, `input::painting()` the
+  `segment()` arguments, and `input::names()` and `input::modes()` options.
 - `OwnedDevice` and `OwnedDevices` hold a clone of `Govee`, for a binding:
   `Govee::device_owned()` and `Govee::devices_owned()` return them.
 - `query()` — the SKUs of a catalog that match a mode, a capability and a
@@ -42,7 +41,7 @@ releases apart and keeps
 - `Applied::verdict()` — one line for the failures of an apply: the error of
   a single member, or the count and the identities that failed.
 - `to_json()` on `Device`, `Outcome`, `Served` and `Health` — the record
-  every surface prints. The `Answer` trait gives `Outcome::mode()` and `served()`.
+  every surface prints. The `Answer` trait gives `mode()` and `served()`.
 - `DeviceHandle::invoke()`, `send_supplied()` and `read_supplied()` take
   argument values as a binding reads them. `Secrets::Refuse` refuses a secret.
 - `Govee::start_or_defaults()`, `Filter::from_parts()`, `Music::new()` and

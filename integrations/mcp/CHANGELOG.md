@@ -4,7 +4,7 @@ Changes to `govee-toolkit-mcp`, the MCP server in `integrations/mcp`. It
 versions apart from the binding it wraps and releases under `mcp-vX.Y.Z`. The
 policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 
-## [0.1.0] — 2026-09-27
+## [0.1.0] — 2026-11-14
 
 ### Added
 

@@ -4,7 +4,7 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
-## [0.7.0] — 2026-09-27
+## [0.7.0] — 2026-11-14
 
 ### Added
 
@@ -22,7 +22,6 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 - `SUPPORT` and `PERSONALITIES` — every support level and every DMX
   personality the core knows. `Catalog.capabilities()` — every capability
   name that a device of the catalog declares.
-
 - `Applied.verdict` — one line for the failures of an apply, or `None`.
 - `Catalog.query()` — the SKUs that match `mode`, `capability` and
   `support`. `support` without `mode` raises `ValueError`.

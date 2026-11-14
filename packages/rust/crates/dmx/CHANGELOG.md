@@ -6,6 +6,13 @@ releases under `dmx-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md). The design
 is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 
+## [0.4.0] — 2026-11-14
+
+### Changed
+
+- `govee-dmx run` and `identify` drive only the patched devices that answered
+  a scan. An enabled entry that only the cache holds is a fault of the patch.
+
 ## [0.3.0] — 2026-09-24
 
 ### Added
