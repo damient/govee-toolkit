@@ -19,7 +19,7 @@ async def test_an_identity_selects_itself_and_an_unknown_model_selects_nothing(g
     assert len(devices) == 1
     assert devices.list() == []
     with pytest.raises(ConfigError) as refused:
-        await govee.devices(["H6008"])
+        await govee.devices(["sku:H0000"])
     assert refused.value.code == "no_such_target"
 
 
