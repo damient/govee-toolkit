@@ -19,7 +19,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 
 #[pymodule]
-fn _govee_toolkit(module: &Bound<'_, PyModule>) -> PyResult<()> {
+#[pyo3(name = "_govee_toolkit")]
+fn govee_toolkit_module(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add("__version__", env!("CARGO_PKG_VERSION"))?;
     module.add("CORE_VERSION", govee_toolkit::VERSION)?;
     module.add(

@@ -214,7 +214,6 @@ impl Writer {
     }
 
     /// Write the failure to stderr, and answer the code to exit with.
-    #[must_use]
     pub fn failure(&self, failure: &Failure) -> ExitCode {
         if self.json {
             eprintln!(
