@@ -108,7 +108,7 @@ async function main(): Promise<void> {
   const devices = everyModel(catalog, categories);
   const all: Page[] = [
     ...(await sourcePages([...pages, ...categoryPages(devices, renderIndex)], devices)),
-    ...devices.map((device) => deviceEntry(device, reference)),
+    ...devices.map((device) => deviceEntry(device, reference, devices)),
     ...docPages(docs, nav, docsHome, reference, api),
     faq,
     NOT_FOUND,
@@ -176,8 +176,8 @@ function sourcePages(sources: Source[], devices: Device[]): Promise<Page[]> {
   }));
 }
 
-function deviceEntry(device: Device, reference: Reference): Page {
-  const page = devicePage(device, reference);
+function deviceEntry(device: Device, reference: Reference, devices: Device[]): Page {
+  const page = devicePage(device, reference, devices);
   return {
     url: page.url,
     nav: "devices",

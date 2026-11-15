@@ -8,7 +8,7 @@ import { usage } from "./device-usage.ts";
 import { DASH, escapeAttr, escapeHtml, fill, filled } from "./html.ts";
 import { icon, shapeIcon, sharesMark } from "./icons.ts";
 import { infoBadge, listedFile, listedVerification } from "./listed.ts";
-import { categoryBadge, dmxBadge, familyBadge, modeBadge } from "./mode-badge.ts";
+import { categoryBadge, deviceBadge, dmxBadge, familyBadge, modeBadge } from "./mode-badge.ts";
 import type { Capability, Crumb, Device, Mode, Reference, Support } from "./types.ts";
 
 // The order a reader looks for, not the order the catalog holds.
@@ -112,13 +112,13 @@ function row(d: Device): string {
  * Builds the page of one model. The caller emits it: this returns the URL, the
  * title, the description and the body, and never touches the file system.
  */
-export function devicePage(d: Device, reference: Reference) {
+export function devicePage(d: Device, reference: Reference, pages: Device[]) {
   const trail = deviceTrail(d);
   return {
     url: `devices/${d.sku}/`,
     title: `Govee ${d.sku} — ${d.name}`,
     description: describe(d),
-    body: pageBody(d, reference, trail),
+    body: pageBody(d, reference, trail, pages),
     breadcrumb: trail,
   };
 }
@@ -143,7 +143,7 @@ function joined(words: string[]): string {
   return words.length < 2 ? (words[0] ?? "") : `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`;
 }
 
-function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {
+function pageBody(d: Device, reference: Reference, trail: Crumb[], pages: Device[]): string {
   const title = d.name ? `${d.sku} — ${escapeHtml(d.name)}` : d.sku;
   const [family, check, file] = d.listing === undefined
     ? [familyBadge(d.family), verification(d), deviceFile(d)]
@@ -164,7 +164,7 @@ function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {
       ${modeSections(d)}
       ${usage(d, reference)}
       ${dmx(d)}
-      ${aliases(d)}
+      ${aliases(d, pages)}
       <div class="endgrid">
         <section>${check}</section>
         <section>${file}</section>
@@ -242,21 +242,30 @@ function modeSections(d: Device): string {
       </div>`;
 }
 
-function aliases(d: Device): string {
-  const same = d.aliases ?? [];
-  const candidates = d.candidate_aliases ?? [];
-  if (same.length === 0 && candidates.length === 0) return "";
-  const verified = same.length > 0
-    ? `<p><strong>The same device:</strong> ${same.map((s) => `<code>${escapeHtml(s)}</code>`).join(", ")}.
-      Each was verified to behave identically.</p>`
-    : "";
-  const maybe = candidates.length > 0
-    ? `<p><strong>Looks like the same product, not verified:</strong> ${candidates.map((s) => `<code>${escapeHtml(s)}</code>`).join(", ")}.
-      A different length has a different segment count, so these are candidates
-      and nothing more.</p>`
-    : "";
-  return `<h2 id="other-skus">Other SKUs</h2>
-      ${verified}${maybe}`;
+// A link goes both ways: a model also lists the file that names it, and the
+// other SKUs of that file.
+function related(d: Device, pages: Device[]): string[] {
+  const skus = new Set([...(d.aliases ?? []), ...(d.candidate_aliases ?? [])]);
+  for (const o of pages) {
+    const group = [o.sku, ...(o.aliases ?? []), ...(o.candidate_aliases ?? [])];
+    if (!group.includes(d.sku) || o.sku === d.sku) continue;
+    for (const s of group) skus.add(s);
+  }
+  skus.delete(d.sku);
+  return [...skus];
+}
+
+function aliases(d: Device, pages: Device[]): string {
+  const skus = related(d, pages);
+  if (skus.length === 0) return "";
+  const item = (sku: string): string => {
+    const page = pages.find((o) => o.sku === sku);
+    return page === undefined
+      ? deviceBadge(sku)
+      : deviceBadge(sku, page.name, page.shape ?? page.family, `{{base}}devices/${sku}/`);
+  };
+  return `<h2 id="similar-devices">Similar devices</h2>
+      <p class="similar">${skus.map((s) => item(s)).join("")}</p>`;
 }
 
 function verification(d: Device): string {

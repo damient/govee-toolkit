@@ -46,6 +46,13 @@ export function categoryBadge(category: string | undefined, shape: string | unde
     : badge("category", shapeIcon(shape), escapeHtml(category), `{{base}}${categoryUrl(category)}`);
 }
 
+/** One badge, naming another model by SKU and name, with the shape icon of
+ * the model. It links to the page of the model where the site has one. */
+export function deviceBadge(sku: string, name?: string, shape?: string, href?: string): string {
+  const text = `<span class="mbadge-sku">${escapeHtml(sku)}</span>${filled(name) ? escapeHtml(name) : ""}`;
+  return badge("device", shapeIcon(shape), text, href);
+}
+
 /** One `{{badge_<mode>}}` variable per mode, so a static page names a mode
  * with the same component the model pages use. For `fill()`. */
 export function modeBadges(): Record<string, string> {

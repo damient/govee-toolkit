@@ -113,6 +113,12 @@
 /* The category badge links to the page of its category. */
 .mbadge-category { --tint: var(--muted); text-decoration: none; }
 .mbadge-category:hover { --tint: var(--text); }
+/* The similar models of a device page. A link keeps the badge box and drops
+   the underline of the prose. */
+.similar { display: flex; flex-wrap: wrap; gap: 10px; }
+.mbadge-device { --tint: var(--muted); text-decoration: none; }
+a.mbadge-device:hover { --tint: var(--text); }
+.mbadge-sku { color: var(--text); }
 .mbadge .family-icon { width: 14px; height: 14px; color: inherit; }
 .badge-unknown { border-style: dashed; }
 
