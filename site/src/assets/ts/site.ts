@@ -1,5 +1,6 @@
 // Progressive enhancement only: every page works with this file blocked.
 
+import { choices } from "./choices.ts";
 import { copy } from "./copy.ts";
 import { personalities } from "./dmx.ts";
 import { filter, rowLink } from "./devices.ts";
@@ -32,3 +33,4 @@ wire("[data-spy]", HTMLElement, spy);
 wire("[data-dmx]", HTMLElement, personalities);
 wire("[data-video]", HTMLAnchorElement, video);
 tabs();
+choices();

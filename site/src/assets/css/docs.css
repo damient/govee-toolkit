@@ -141,6 +141,9 @@
    carries the space a `pre` would have of its own. */
 .prose .terminal { margin-block: 1.4em; }
 .prose .terminal pre { background: none; border: 0; border-radius: 0; padding: 0; }
+.prose .choice { margin-block: 1.4em; }
+.prose .tab-pane > :first-child { margin-top: 0; }
+.prose .tab-pane > :last-child { margin-bottom: 0; }
 /* A table a document writes in Markdown. One that carries `.matrix` is the
    table component of `devices.css` and keeps its own frame. */
 .prose table:not(.matrix) { width: 100%; border-collapse: collapse; margin: 1.6em 0; font-size: .95rem; display: block; overflow-x: auto; }

@@ -8,6 +8,7 @@ import { base, repoUrl, root } from "./config.ts";
 import { docShell } from "./docs.ts";
 import { escapeAttr, fill, slugify } from "./html.ts";
 import { modeBadges } from "./mode-badge.ts";
+import { tabsExtension } from "./tabs.ts";
 import type { NavEntry } from "./types.ts";
 import { versionChips } from "./versions.ts";
 
@@ -68,7 +69,7 @@ function renderDoc(file: string, raw: string): Doc {
   // contents id are one value.
   const headings: Heading[] = [];
   const md = new Marked({ async: false });
-  md.use({
+  md.use(tabsExtension(), {
     renderer: {
       code({ text, lang }: Tokens.Code) {
         const name = (lang ?? "").trim().split(/\s+/u)[0] ?? "";
