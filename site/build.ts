@@ -76,7 +76,7 @@ const pages: Source[] = [
     title: "Add a device",
     klass: "is-add",
     trail: [["Devices", "devices/"], ["Add a device", "devices/add/"]],
-    description: "Two ways to put your Govee light on this list: send it to us and we add it for free, or follow the guide and add it yourself.",
+    description: "Two ways to add your Govee light, or what it does, to this list: follow the guide and add it yourself, or send it to us and we add it.",
   },
 ];
 
