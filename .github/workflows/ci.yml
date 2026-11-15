@@ -82,8 +82,6 @@ jobs:
         # them through PowerShell.
         shell: bash
     steps:
-      - if: needs.changes.outputs.core != 'true'
-        run: echo "No change in the core zone. Every step is skipped."
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: needs.changes.outputs.core == 'true'
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
