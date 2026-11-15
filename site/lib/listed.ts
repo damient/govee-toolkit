@@ -12,6 +12,7 @@ const TIP = "Untested for this model";
 const SHAPE_WORDS: [RegExp[], string][] = [
   [[/\bstrip\b/iu, /\brgbic/iu], "rgbic-neon-rope"],
   [[/\bcone\b/iu], "tree"],
+  [[/\bcurtain\b/iu], "curtain"],
   [[/\bchristmas\b/iu], "snowflake"],
 ];
 const SHAPE_CATEGORIES = new Map([
@@ -21,6 +22,9 @@ const SHAPE_CATEGORIES = new Map([
   ["Ceiling Fan Light", "ceiling-light"],
   ["Wall Lights", "wall-light"],
   ["Projector Light", "projector-light"],
+  ["Landscape Lighting", "sprout"],
+  ["TV Backlights", "tv"],
+  ["Pixel Light", "pixel-light"],
 ]);
 
 // The icon of a listed model that no rule and no category draws.
