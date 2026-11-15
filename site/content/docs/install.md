@@ -116,3 +116,23 @@ Art-Net is the one input protocol the bridge carries. A light it drives must
 have `lan` enabled.
 
 [The DMX guide]({{base}}docs/dmx/)
+
+## MCP server {{version_mcp}} {{registry_mcp}}
+
+`govee-toolkit-mcp` lets an AI assistant read the device catalog and drive the
+lights. Add it to your assistant, and `npx` fetches it on the first start:
+
+::: tabs client
+@tab Claude Code
+<div class="terminal">
+<pre><code><span class="prompt">$</span> claude mcp add govee -- npx -y govee-toolkit-mcp@latest</code></pre>
+<button class="copy" type="button" data-copy="claude mcp add govee -- npx -y govee-toolkit-mcp@latest">Copy</button>
+</div>
+@tab Codex
+<div class="terminal">
+<pre><code><span class="prompt">$</span> codex mcp add govee -- npx -y govee-toolkit-mcp@latest</code></pre>
+<button class="copy" type="button" data-copy="codex mcp add govee -- npx -y govee-toolkit-mcp@latest">Copy</button>
+</div>
+:::
+
+[The MCP guide]({{base}}docs/mcp/)

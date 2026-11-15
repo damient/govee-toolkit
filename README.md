@@ -17,6 +17,7 @@ wire.
 [![govee-toolkit-dmx on crates.io](https://img.shields.io/crates/v/govee-toolkit-dmx?logo=rust&logoColor=white&label=govee-toolkit-dmx)](https://crates.io/crates/govee-toolkit-dmx)
 [![govee-toolkit on PyPI](https://img.shields.io/pypi/v/govee-toolkit?logo=python&logoColor=white&label=govee-toolkit)](https://pypi.org/project/govee-toolkit/)
 [![govee-toolkit on npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=govee-toolkit)](https://www.npmjs.com/package/govee-toolkit)
+[![govee-toolkit-mcp on npm](https://img.shields.io/npm/v/govee-toolkit-mcp?logo=npm&logoColor=white&label=govee-toolkit-mcp)](https://www.npmjs.com/package/govee-toolkit-mcp)
 
 <!-- TODO: demo GIF here — a strip running per-segment colors. -->
 
@@ -57,6 +58,10 @@ and from Node.js.
 A DMX bridge drives the same devices from a lighting desk:
 `govee-toolkit-dmx` receives DMX on the network. Art-Net carries the DMX in.
 See [`docs/dmx.md`](docs/dmx.md).
+
+An MCP server, `govee-toolkit-mcp`, lets an AI assistant on your machine read
+the device catalog and drive the lights. See
+[the MCP guide](https://gvetk.com/docs/mcp/).
 
 Next come a desktop app, then Home Assistant, Homebridge and Matter.
 [`docs/roadmap.md`](docs/roadmap.md) tracks the order.

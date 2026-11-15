@@ -61,7 +61,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 
 | | Feature |
 | --- | ------- |
-| 🚧 | **MCP server** (`integrations/mcp`) — a local server over stdio. It describes the catalog, the DMX channel tables, the API of each language and the docs, and drives the devices over `lan`, `ble` and `cloud` through the Node binding. See [`../integrations/mcp/README.md`](../integrations/mcp/README.md) |
+| ✅ | **MCP server** (`integrations/mcp`) — a local server over stdio. It describes the catalog, the DMX channel tables, the API of each language and the docs, and drives the devices over `lan`, `ble` and `cloud` through the Node binding. See [`../integrations/mcp/README.md`](../integrations/mcp/README.md) |
 | 🔜 | **Matter bridge** — one integration, reachable from any Matter controller |
 | 🔜 | **Home Assistant** — custom component distributable through HACS, carries the LAN segment channel Matter cannot express |
 | 🔜 | **Homebridge** — HomeKit plugin |

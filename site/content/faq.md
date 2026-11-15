@@ -95,6 +95,13 @@ Yes. The DMX bridge, `govee-dmx`, receives Art-Net from a lighting desk, a
 media server or a show application, and each light becomes a DMX fixture.
 [DMX]({{base}}docs/dmx/) explains the setup.
 
+## Can an AI assistant control my lights? <!-- menu: AI assistant -->
+
+Yes. The MCP server, `govee-toolkit-mcp`, runs on your machine and gives an
+assistant the device catalog and the controls: scan, status, power,
+brightness, color and segments. [MCP server]({{base}}docs/mcp/) explains the
+setup.
+
 ## Does it work with Home Assistant, Homebridge or Matter? <!-- menu: Home Assistant, Matter -->
 
 Not yet. A desktop app comes first, then Home Assistant, Homebridge and

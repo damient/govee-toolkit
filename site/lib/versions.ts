@@ -37,6 +37,11 @@ const PACKAGES = {
     registry: "npm",
     url: "https://www.npmjs.com/package/govee-toolkit",
   },
+  mcp: {
+    manifest: "integrations/mcp/package.json",
+    registry: "npm",
+    url: "https://www.npmjs.com/package/govee-toolkit-mcp",
+  },
 };
 
 // The first `version` at the head of a line, which is the one the `[package]`

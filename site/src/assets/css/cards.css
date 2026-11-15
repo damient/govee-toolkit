@@ -40,6 +40,8 @@
 .card:nth-child(2)::before { animation-delay: -1.1s; }
 .card:nth-child(3)::before { animation-delay: -2.2s; }
 .card:nth-child(4)::before { animation-delay: -3.3s; }
+.card:nth-child(5)::before { animation-delay: -4.4s; }
+.card:nth-child(6)::before { animation-delay: -5.5s; }
 .card:hover { background: var(--panel-2); }
 .card > h3 { margin: 0 0 .45em; }
 .card p { color: var(--muted); font-size: .95rem; margin: 0; }
