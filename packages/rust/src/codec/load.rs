@@ -9,7 +9,7 @@ use super::{Catalog, Inner, SCHEMA_VERSION};
 
 /// One `devices/listed/<name>.yaml` file: models that nobody verified, and the
 /// one definition that each of them resolves to.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Listing {
     /// The name every model of the list carries in [`Device::listing`].
     pub listing: String,
@@ -17,6 +17,8 @@ pub struct Listing {
     pub source: String,
     /// The models, in the order of the file.
     pub models: Vec<ListedModel>,
+    /// The shared definition, with an empty `sku` and `name`.
+    pub device: Device,
 }
 
 /// One model of a [`Listing`].
@@ -33,8 +35,9 @@ pub struct ListedModel {
 #[derive(Deserialize)]
 struct ListingFile {
     schema_version: u32,
-    #[serde(flatten)]
-    listing: Listing,
+    listing: String,
+    source: String,
+    models: Vec<ListedModel>,
     device: serde_norway::Mapping,
 }
 
@@ -58,13 +61,8 @@ impl Catalog {
 
 impl Inner {
     /// Parse a listing and give each model its own [`Device`], built from the
-    /// shared definition. A SKU in `claimed` stays with its device file.
-    pub(super) fn parse_listing(
-        &self,
-        file: &str,
-        yaml: &str,
-        claimed: &dyn Fn(&str) -> bool,
-    ) -> Result<(Listing, Vec<Device>)> {
+    /// shared definition. A SKU that a device file claims stays with the file.
+    pub(super) fn parse_listing(&self, file: &str, yaml: &str) -> Result<(Listing, Vec<Device>)> {
         let parsed: ListingFile = serde_norway::from_str(yaml).map_err(|e| device_file(file, e))?;
         check_version(file, parsed.schema_version)?;
 
@@ -75,20 +73,31 @@ impl Inner {
         let body = serde_norway::to_string(&body).map_err(|e| device_file(file, e))?;
         let template = self.parse_device(file, &body)?;
 
+        let claimed = |sku: &str| {
+            self.index
+                .get(&sku.to_uppercase())
+                .and_then(|at| self.devices.get(*at))
+                .is_some_and(|device| device.listing.is_none())
+        };
         let devices = parsed
-            .listing
             .models
             .iter()
-            .filter(|model| !claimed(&model.sku.to_uppercase()))
+            .filter(|model| !claimed(&model.sku))
             .map(|model| {
                 let mut device = template.clone();
                 device.sku.clone_from(&model.sku);
                 device.name.clone_from(&model.name);
-                device.listing = Some(parsed.listing.listing.clone());
+                device.listing = Some(parsed.listing.clone());
                 device
             })
             .collect();
-        Ok((parsed.listing, devices))
+        let listing = Listing {
+            listing: parsed.listing,
+            source: parsed.source,
+            models: parsed.models,
+            device: template,
+        };
+        Ok((listing, devices))
     }
 }
 

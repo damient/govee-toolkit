@@ -177,10 +177,8 @@ impl Catalog {
             let device = inner.parse_device(file, yaml)?;
             inner.push(device, file)?;
         }
-        let claimed = inner.index.clone();
         for (file, yaml) in listings {
-            let (listing, devices) =
-                inner.parse_listing(file, yaml, &|sku| claimed.contains_key(sku))?;
+            let (listing, devices) = inner.parse_listing(file, yaml)?;
             for device in devices {
                 inner.push(device, file)?;
             }

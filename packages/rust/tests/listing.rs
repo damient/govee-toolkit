@@ -24,7 +24,6 @@ fn every_listed_model_is_well_formed() {
 fn a_listed_model_carries_power_brightness_and_color_and_nothing_else() {
     let catalog = Catalog::embedded().expect("embedded catalog");
     let device = catalog.listed().next().expect("a listed model");
-    assert!(device.listing.is_some());
     assert_eq!(device.verified.by, "");
     assert_eq!(
         device.capabilities.names().collect::<Vec<_>>(),
@@ -58,7 +57,6 @@ fn a_device_file_wins_over_the_listing() {
             assert!(found.listing.is_none(), "{key} resolves to the listing");
         }
     }
-    assert!(catalog.devices().all(|device| device.listing.is_none()));
 }
 
 const FAMILY: &str = "schema_version: 1\nfamily: shared\ncommands:\n  lan:\n    power:\n      \

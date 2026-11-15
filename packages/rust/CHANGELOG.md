@@ -12,7 +12,8 @@ releases apart and keeps
 - `Catalog::from_parts()` loads `devices/listed/` beside the device files.
   `Catalog::embedded()` carries the listings that the build embeds.
 - `Catalog::listed()` and `Catalog::listings()` give the models of a listing
-  that resolve, and each listing with every model it names.
+  that resolve, and each listing with every model it names and its shared
+  definition (`Listing::device`).
 - `Device::listing` names the listing a model comes from. `describe()`
   carries it as `listing`, and it is absent for a device file.
 

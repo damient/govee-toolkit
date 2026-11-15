@@ -47,18 +47,20 @@ fn listings_json(catalog: &Catalog) -> Vec<serde_json::Value> {
         .listings()
         .iter()
         .map(|listing| {
-            let listed = || {
-                catalog
-                    .listed()
-                    .filter(|device| device.listing.as_ref() == Some(&listing.listing))
-            };
-            let mut definition = listed().next().map(device_json).unwrap_or_default();
+            let mut definition = device_json(&listing.device);
             if let Some(object) = definition.as_object_mut() {
                 object.remove("sku");
                 object.remove("name");
             }
-            let models: Vec<serde_json::Value> = listed()
-                .map(|device| serde_json::json!({ "sku": device.sku, "name": device.name }))
+            let models: Vec<serde_json::Value> = listing
+                .models
+                .iter()
+                .filter(|model| {
+                    catalog
+                        .device(&model.sku)
+                        .is_ok_and(|device| device.listing.as_ref() == Some(&listing.listing))
+                })
+                .map(|model| serde_json::json!({ "sku": model.sku, "name": model.name }))
                 .collect();
             serde_json::json!({
                 "listing": listing.listing,
