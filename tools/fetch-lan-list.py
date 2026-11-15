@@ -13,6 +13,10 @@ A model that the file already holds keeps its name and its category: those are
 cleaned by hand. A new model gets its name with the spaces collapsed and the
 full-width brackets replaced. A new category takes the spelling of an existing
 one that differs only in case.
+
+The list files a model that is no longer sold under "Discontinued", in place
+of its category. The script gives such a model the category that its name
+names, and keeps "Discontinued" when no rule matches.
 """
 
 import argparse
@@ -27,6 +31,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LIST = ROOT / "docs/lan-supported-devices.json"
 ENDPOINT = "https://app2.govee.com/bff-app/v1/user/guide/device/info?market={market}"
+DISCONTINUED = "Discontinued"
+
+# The first rule whose words all match the name gives the category. Each
+# category is one that the list uses for a model that is still sold.
+CATEGORY_WORDS: list[tuple[list[str], str]] = [
+    ([r"\bceiling\b"], "Ceiling Light"),
+    ([r"\bprojector\b"], "Projector Light"),
+    ([r"\bstring\b"], "String Lights"),
+    ([r"\bbulb\b"], "LED Bulbs"),
+    ([r"\bfloor lamp\b"], "Floor Lamps"),
+    ([r"\btable lamp\b"], "Table Lamps"),
+    ([r"\blight bars?\b"], "Table Lamps"),
+    ([r"\b(glide|panels?|wall)\b"], "Wall Lights"),
+    ([r"\b(flood|spot|path|ground)\s?lights?\b"], "Landscape Lighting"),
+    ([r"\brgbicw?\b", r"\b(strip|\d+m)\b"], "RGBIC Strip Lights"),
+    ([r"\bstrip\b"], "Strip Lights"),
+]
 
 
 def fetch(market: str) -> dict[str, dict[str, str]]:
@@ -55,11 +76,25 @@ def clean(text: str) -> str:
     return " ".join(text.split())
 
 
+def categorize(name: str, category: str) -> str:
+    """The category of a discontinued model, guessed from its name."""
+    if category != DISCONTINUED:
+        return category
+    for words, guess in CATEGORY_WORDS:
+        if all(re.search(w, name, re.IGNORECASE) for w in words):
+            return guess
+    return category
+
+
 def merge(
     old: list[dict[str, str]], fresh: dict[str, dict[str, str]]
 ) -> list[dict[str, str]]:
     known = {m["sku"]: m for m in old}
     spelling = {m["category"].lower(): m["category"] for m in old}
+    fresh = {
+        sku: {**m, "category": categorize(clean(m["name"]), clean(m["category"]))}
+        for sku, m in fresh.items()
+    }
     models = []
     for sku in sorted(fresh):
         if (

@@ -27,7 +27,7 @@ at.
 
 #### Added
 
-- `devices/listed/govee-lan.yaml` gives the 273 models of Govee's LAN list
+- `devices/listed/govee-lan.yaml` gives the 281 models of Govee's LAN list
   with no device file power, brightness and color, over `lan` and `cloud`.
 - The listed models come from the documented layout, with every mode
   `unknown`. See [`devices/README.md`](devices/README.md).

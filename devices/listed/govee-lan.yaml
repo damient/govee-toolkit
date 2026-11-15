@@ -50,11 +50,13 @@ device:
       colortemp: { drop: true }
 
 models:
+  - { sku: "H1141", name: "Linear Pendant Light" }
   - { sku: "H1232", name: "Ceiling Light Pro" }
   - { sku: "H1252", name: "Ceiling Light Pro" }
   - { sku: "H1270", name: "Ceiling Light Ultra" }
   - { sku: "H12D0", name: "Sky Ceiling Light" }
   - { sku: "H1310", name: "Ceiling Fan with Lights" }
+  - { sku: "H1311", name: "Ceiling Fan with Lights" }
   - { sku: "H1370", name: "Bladeless Ceiling Fan" }
   - { sku: "H1401", name: "Smart Bulb" }
   - { sku: "H14A1", name: "Smart Bulb" }
@@ -70,6 +72,8 @@ models:
   - { sku: "H1A43", name: "LED Strip Light 2" }
   - { sku: "H1A44", name: "LED Strip Light 2" }
   - { sku: "H1A45", name: "LED Strip Light 2" }
+  - { sku: "H1AA2", name: "COB Strip Light 2 Pro" }
+  - { sku: "H1AA5", name: "COB Strip Light 2 Pro" }
   - { sku: "H1AB1", name: "COB Strip Light 2" }
   - { sku: "H1AB2", name: "COB Strip Light 2" }
   - { sku: "H1AB3", name: "COB Strip Light 2" }
@@ -82,6 +86,7 @@ models:
   - { sku: "H30D0", name: "Outdoor Filament String Lights" }
   - { sku: "H30D1", name: "Outdoor Filament String Lights" }
   - { sku: "H3200", name: "Outdoor Spotlights Lite" }
+  - { sku: "H3270", name: "Outdoor TriBeam Spotlights" }
   - { sku: "H3401", name: "Outdoor Deck Lights 2" }
   - { sku: "H3500", name: "Outdoor Pathway Lights 2 Lite" }
   - { sku: "H3501", name: "Outdoor Pathway Lights 2 Lite" }
@@ -195,7 +200,9 @@ models:
   - { sku: "H61C2", name: "2m RGBIC Neon Rope Light for desks" }
   - { sku: "H61C3", name: "3m RGBIC Neon Rope Light for gaming desk" }
   - { sku: "H61C5", name: "5m RGBIC Neon Rope Light for desks" }
+  - { sku: "H61D2", name: "2m Neon Rope Light 2" }
   - { sku: "H61D3", name: "3m Neon Rope Light 2" }
+  - { sku: "H61D4", name: "4m Neon Rope Light 2" }
   - { sku: "H61D5", name: "5m Neon Rope Light 2" }
   - { sku: "H61D6", name: "10m Neon Rope Light 2" }
   - { sku: "H61E0", name: "LED Strip Light M1" }
@@ -317,6 +324,7 @@ models:
   - { sku: "H8841", name: "Cone Tree Lights" }
   - { sku: "R1250", name: "Ceiling Light Pro" }
   - { sku: "R1310", name: "Ceiling Fan with Lights" }
+  - { sku: "R1311", name: "Ceiling Fan with Lights" }
   - { sku: "R14B1", name: "Smart Bulb" }
   - { sku: "R14C2", name: "Edison Bulb" }
   - { sku: "R1501", name: "Smart Downlight" }

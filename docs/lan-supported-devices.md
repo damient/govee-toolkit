@@ -5,8 +5,8 @@ with the LAN API specification, in its WLAN guide:
 
 <!-- generated: lan-source -->
 **Source:** <https://app-h5.govee.com/user-manual/wlan-guide>
-**Retrieved:** 2026-09-22
-**Entries:** 276
+**Retrieved:** 2026-11-15
+**Entries:** 284
 <!-- /generated -->
 
 > ⚠️ This page is a **copy** of Govee's list, kept for offline reference and to
@@ -45,11 +45,13 @@ model in.
 <!-- generated: lan-models -->
 | SKU | Model | Category | Definition |
 | --- | ----- | -------- | ---------- |
+| `H1141` | Govee Linear Pendant Light | Pendant Light | listed, not verified |
 | `H1232` | Govee Ceiling Light Pro | Ceiling Light | listed, not verified |
 | `H1252` | Govee Ceiling Light Pro | Ceiling Light | listed, not verified |
 | `H1270` | Govee Ceiling Light Ultra | Ceiling Light | listed, not verified |
 | `H12D0` | Govee Sky Ceiling Light | Ceiling Light | listed, not verified |
 | `H1310` | Govee Ceiling Fan with Lights | Ceiling Fan Light | listed, not verified |
+| `H1311` | Govee Ceiling Fan with Lights | Ceiling Fan Light | listed, not verified |
 | `H1370` | Govee Bladeless Ceiling Fan | Ceiling Fan Light | listed, not verified |
 | `H1401` | Govee Smart Bulb | LED Bulbs | listed, not verified |
 | `H14A1` | Govee Smart Bulb | LED Bulbs | listed, not verified |
@@ -65,6 +67,8 @@ model in.
 | `H1A43` | Govee LED Strip Light 2 | RGBIC Strip Lights | listed, not verified |
 | `H1A44` | Govee LED Strip Light 2 | RGBIC Strip Lights | listed, not verified |
 | `H1A45` | Govee LED Strip Light 2 | RGBIC Strip Lights | listed, not verified |
+| `H1AA2` | Govee COB Strip Light 2 Pro | RGBIC Strip Lights | listed, not verified |
+| `H1AA5` | Govee COB Strip Light 2 Pro | RGBIC Strip Lights | listed, not verified |
 | `H1AB1` | Govee COB Strip Light 2 | RGBIC Strip Lights | listed, not verified |
 | `H1AB2` | Govee COB Strip Light 2 | RGBIC Strip Lights | listed, not verified |
 | `H1AB3` | Govee COB Strip Light 2 | RGBIC Strip Lights | listed, not verified |
@@ -77,6 +81,7 @@ model in.
 | `H30D0` | Govee Outdoor Filament String Lights | String Lights | listed, not verified |
 | `H30D1` | Govee Outdoor Filament String Lights | String Lights | listed, not verified |
 | `H3200` | Govee Outdoor Spotlights Lite | Landscape Lighting | listed, not verified |
+| `H3270` | Govee Outdoor TriBeam Spotlights | Landscape Lighting | listed, not verified |
 | `H3401` | Govee Outdoor Deck Lights 2 | Landscape Lighting | listed, not verified |
 | `H3500` | Govee Outdoor Pathway Lights 2 Lite | Landscape Lighting | listed, not verified |
 | `H3501` | Govee Outdoor Pathway Lights 2 Lite | Landscape Lighting | listed, not verified |
@@ -88,7 +93,7 @@ model in.
 | `H3A51` | 30m Permanent Outdoor Lights 2 Pro | Landscape Lighting | listed, not verified |
 | `H3A52` | 45m Permanent Outdoor Lights 2 Pro | Landscape Lighting | listed, not verified |
 | `H3A53` | 60m Permanent Outdoor Lights 2 Pro | Landscape Lighting | listed, not verified |
-| `H6003` | Wi-Fi RGBWW LED Bulb | Discontinued | listed, not verified |
+| `H6003` | Wi-Fi RGBWW LED Bulb | LED Bulbs | listed, not verified |
 | `H6004` | Wi-Fi+BLE RGBWW LED Bulb | LED Bulbs | listed, not verified |
 | `H6006` | Wi-Fi+BLE RGBWW LED Bulb | LED Bulbs | listed, not verified |
 | `H6008` | Wi-Fi+BLE RGBWW LED Bulb | LED Bulbs | [`H6008`](../devices/H6008.yaml) |
@@ -102,25 +107,25 @@ model in.
 | `H6022` | Govee Table Lamp 2 | Table Lamps | [`H6022`](../devices/H6022.yaml) |
 | `H6038` | Govee Wall Sconce | Wall Lights | listed, not verified |
 | `H6039` | Govee Wall Sconce | Wall Lights | listed, not verified |
-| `H6042` | Govee TV Light Bar 2 | Discontinued | listed, not verified |
-| `H6043` | Govee TV Light Bars 2 | Discontinued | listed, not verified |
+| `H6042` | Govee TV Light Bar 2 | Table Lamps | listed, not verified |
+| `H6043` | Govee TV Light Bars 2 | Table Lamps | listed, not verified |
 | `H6046` | Govee RGBIC TV Light Bars | Table Lamps | listed, not verified |
 | `H6047` | Govee RGBIC Gaming Light Bars | Table Lamps | listed, not verified |
 | `H6048` | Govee RGBIC Gaming Light Bars Pro | Table Lamps | listed, not verified |
-| `H6051` | Govee Table Lamp Lite | Discontinued | listed, not verified |
-| `H6052` | Govee RGBICWW Table Lamp | Discontinued | listed, not verified |
+| `H6051` | Govee Table Lamp Lite | Table Lamps | listed, not verified |
+| `H6052` | Govee RGBICWW Table Lamp | Table Lamps | listed, not verified |
 | `H6056` | Govee RGBICWW Light Bars | Table Lamps | listed, not verified |
 | `H6059` | Govee Night Light Mini | Discontinued | listed, not verified |
 | `H6061` | Govee Glide Hexa Light Panels | Wall Lights | listed, not verified |
-| `H6062` | Govee Glide Wall Light | Discontinued | listed, not verified |
+| `H6062` | Govee Glide Wall Light | Wall Lights | listed, not verified |
 | `H6063` | Govee Gaming Wall Light | Wall Lights | listed, not verified |
 | `H6065` | Govee Glide Y Lights | Wall Lights | listed, not verified |
-| `H6066` | Govee Glide Hexa Pro Light Panels | Discontinued | listed, not verified |
-| `H6067` | Govee Glide Tri Light Panels | Discontinued | listed, not verified |
+| `H6066` | Govee Glide Hexa Pro Light Panels | Wall Lights | listed, not verified |
+| `H6067` | Govee Glide Tri Light Panels | Wall Lights | listed, not verified |
 | `H6069` | Govee Mini Panel Lights | Wall Lights | listed, not verified |
 | `H606A` | Govee Glide Hexa Light Panel Ultra | Wall Lights | listed, not verified |
 | `H6072` | Govee RGBICWW Floor Lamp | Floor Lamps | listed, not verified |
-| `H6073` | Smart RGB LED Floor Lamp | Discontinued | listed, not verified |
+| `H6073` | Smart RGB LED Floor Lamp | Floor Lamps | listed, not verified |
 | `H6076` | Govee Floor Lamp (H6076A) | Floor Lamps | listed, not verified |
 | `H6078` | Govee RGBICWW Cylinder Floor Lamp | Floor Lamps | listed, not verified |
 | `H607C` | Govee RGBICWW Floor Lamp 2 | Floor Lamps | listed, not verified |
@@ -131,7 +136,7 @@ model in.
 | `H6094` | Star Light Projector (Ocean Wave) | Projector Light | listed, not verified |
 | `H6095` | Star Light Projector (Nebula) | Projector Light | listed, not verified |
 | `H609D` | Govee Galaxy Light Projector 2 Pro | Projector Light | listed, not verified |
-| `H60A0` | 12inch Ceiling Light | Discontinued | listed, not verified |
+| `H60A0` | 12inch Ceiling Light | Ceiling Light | listed, not verified |
 | `H60A1` | 12inch Ceiling Light | Ceiling Light | listed, not verified |
 | `H60A4` | Govee Square Ceiling Light | Ceiling Light | listed, not verified |
 | `H60A6` | Govee Ceiling Light Pro | Ceiling Light | listed, not verified |
@@ -141,19 +146,19 @@ model in.
 | `H60B3` | Govee Uplighter Floor Lamp | Floor Lamps | listed, not verified |
 | `H60C1` | Govee Pendant Light | Pendant Light | listed, not verified |
 | `H610A` | Govee Glide Lively Wall Light | Wall Lights | listed, not verified |
-| `H610B` | Govee Glide Music Wall Light | Discontinued | listed, not verified |
+| `H610B` | Govee Glide Music Wall Light | Wall Lights | listed, not verified |
 | `H6110` | 2*5m MultiColor with Alexa | RGB Strip Lights | listed, not verified |
 | `H6117` | 2*5m RGBIC with Alexa | RGBIC Strip Lights | listed, not verified |
-| `H6141` | 5m Smart MultiColor Strip Light | Discontinued | listed, not verified |
-| `H6143` | 5m RGBIC Strip Light | Discontinued | listed, not verified |
-| `H6144` | 2*5m RGBIC Strip Light | Discontinued | listed, not verified |
+| `H6141` | 5m Smart MultiColor Strip Light | Strip Lights | listed, not verified |
+| `H6143` | 5m RGBIC Strip Light | RGBIC Strip Lights | listed, not verified |
+| `H6144` | 2*5m RGBIC Strip Light | RGBIC Strip Lights | listed, not verified |
 | `H6159` | 5m MultiColor with Alexa | RGB Strip Lights | listed, not verified |
 | `H615A` | 5m RGB Strip Light with Alexa | RGB Strip Lights | listed, not verified |
 | `H615B` | 10m RGB Strip Light with Alexa | RGB Strip Lights | listed, not verified |
 | `H615C` | 15m RGB Strip Light with Alexa | RGB Strip Lights | listed, not verified |
 | `H615D` | 20m RGB Strip Light with Alexa | RGB Strip Lights | listed, not verified |
 | `H615E` | 30m RGB Strip Light with Alexa | RGB Strip Lights | listed, not verified |
-| `H6163` | 5m RGBIC with Alexa | Discontinued | listed, not verified |
+| `H6163` | 5m RGBIC with Alexa | RGBIC Strip Lights | listed, not verified |
 | `H6167` | 2.4m RGBIC TV Backlight | TV Backlights | listed, not verified |
 | `H616C` | 10m RGBIC Outdoor Strip Lights 2 | Strip Lights | listed, not verified |
 | `H616D` | 2*7.5m RGBIC Outdoor Strip Lights 2 | Strip Lights | listed, not verified |
@@ -184,13 +189,15 @@ model in.
 | `H61B6` | 10m RGBIC LED Strip Light with Cover | RGBIC Strip Lights | listed, not verified |
 | `H61B8` | Govee Strip Light with Skyline Kit | RGBIC Strip Lights | listed, not verified |
 | `H61B9` | Govee Strip Light with Skyline Kit | RGBIC Strip Lights | listed, not verified |
-| `H61BA` | 5m RGBICW LED Strip Light | Discontinued | listed, not verified |
-| `H61BC` | 10m RGBICW LED Strip Light | Discontinued | listed, not verified |
-| `H61BE` | 2*10m RGBICW LED Strip Light | Discontinued | listed, not verified |
+| `H61BA` | 5m RGBICW LED Strip Light | RGBIC Strip Lights | listed, not verified |
+| `H61BC` | 10m RGBICW LED Strip Light | RGBIC Strip Lights | listed, not verified |
+| `H61BE` | 2*10m RGBICW LED Strip Light | RGBIC Strip Lights | listed, not verified |
 | `H61C2` | 2m RGBIC Neon Rope Light for desks | Neon Rope Light | listed, not verified |
 | `H61C3` | 3m RGBIC Neon Rope Light for gaming desk | Neon Rope Light | listed, not verified |
 | `H61C5` | 5m RGBIC Neon Rope Light for desks | Neon Rope Light | listed, not verified |
+| `H61D2` | 2m Govee Neon Rope Light 2 | Neon Rope Light | listed, not verified |
 | `H61D3` | 3m Govee Neon Rope Light 2 | Neon Rope Light | listed, not verified |
+| `H61D4` | 4m Govee Neon Rope Light 2 | Neon Rope Light | listed, not verified |
 | `H61D5` | 5m Govee Neon Rope Light 2 | Neon Rope Light | listed, not verified |
 | `H61D6` | 10m Govee Neon Rope Light 2 | Neon Rope Light | listed, not verified |
 | `H61E0` | Govee LED Strip Light M1 | RGBIC Strip Lights | listed, not verified |
@@ -216,8 +223,8 @@ model in.
 | `H6861` | C9 String Lights | Holiday Lights | listed, not verified |
 | `H6870` | Govee Christmas Sparkle String Lights | Holiday Lights | listed, not verified |
 | `H6871` | Govee Christmas Sparkle String Lights | Holiday Lights | listed, not verified |
-| `H7012` | LED Bulb String Lights | Discontinued | listed, not verified |
-| `H7013` | LED Bulb String Lights | Discontinued | listed, not verified |
+| `H7012` | LED Bulb String Lights | String Lights | listed, not verified |
+| `H7013` | LED Bulb String Lights | String Lights | listed, not verified |
 | `H7021` | LED Bulb String Lights | String Lights | listed, not verified |
 | `H7025` | LED Bulb String Lights | String Lights | listed, not verified |
 | `H7026` | Govee Outdoor Clear Bulb String Lights | String Lights | listed, not verified |
@@ -227,19 +234,19 @@ model in.
 | `H702B` | Govee Outdoor S14 Bulb String Lights 2 | String Lights | listed, not verified |
 | `H702C` | Govee Outdoor S14 Bulb String Lights 2 | String Lights | listed, not verified |
 | `H7030` | LED Bulb String Lights | String Lights | listed, not verified |
-| `H7033` | LED Bulb String Lights | Discontinued | listed, not verified |
+| `H7033` | LED Bulb String Lights | String Lights | listed, not verified |
 | `H7037` | LED Bulb String Lights | String Lights | listed, not verified |
 | `H7038` | LED Bulb String Lights | String Lights | listed, not verified |
 | `H7039` | LED Bulb String Lights | String Lights | listed, not verified |
 | `H703A` | 15m Dots String Lights | Landscape Lighting | listed, not verified |
 | `H703B` | 30m Dots String Lights | Landscape Lighting | listed, not verified |
-| `H7041` | LED Bulb String Lights | Discontinued | listed, not verified |
-| `H7042` | LED Bulb String Lights | Discontinued | listed, not verified |
+| `H7041` | LED Bulb String Lights | String Lights | listed, not verified |
+| `H7042` | LED Bulb String Lights | String Lights | listed, not verified |
 | `H7045` | Govee Outdoor Chromatic String Lights | String Lights | listed, not verified |
 | `H7046` | Govee Outdoor Chromatic String Lights | String Lights | listed, not verified |
-| `H7050` | Smart Ground Lights | Discontinued | listed, not verified |
-| `H7051` | Smart Ground Lights | Discontinued | listed, not verified |
-| `H7055` | Govee RGBIC Path Lights | Discontinued | listed, not verified |
+| `H7050` | Smart Ground Lights | Landscape Lighting | listed, not verified |
+| `H7051` | Smart Ground Lights | Landscape Lighting | listed, not verified |
+| `H7055` | Govee RGBIC Path Lights | Landscape Lighting | listed, not verified |
 | `H7056` | Govee Outdoor Pathway Lights 2 | Landscape Lighting | listed, not verified |
 | `H7057` | Outdoor Flood Lights 2 | Landscape Lighting | listed, not verified |
 | `H7058` | Outdoor Flood Lights 2 | Landscape Lighting | listed, not verified |
@@ -248,16 +255,16 @@ model in.
 | `H705D` | 15m Permanent Outdoor Lights 2 | Landscape Lighting | listed, not verified |
 | `H705E` | 30m Permanent Outdoor Lights 2 | Landscape Lighting | listed, not verified |
 | `H705F` | 45m Permanent Outdoor Lights 2 | Landscape Lighting | listed, not verified |
-| `H7060` | Govee RGBIC Flood Lights | Discontinued | listed, not verified |
-| `H7061` | 2 Pack RGBIC Flood Lights | Discontinued | listed, not verified |
-| `H7062` | 6 Pack RGBIC Flood Lights | Discontinued | listed, not verified |
+| `H7060` | Govee RGBIC Flood Lights | Landscape Lighting | listed, not verified |
+| `H7061` | 2 Pack RGBIC Flood Lights | Landscape Lighting | listed, not verified |
+| `H7062` | 6 Pack RGBIC Flood Lights | Landscape Lighting | listed, not verified |
 | `H7063` | Govee Outdoor Flood Light | Landscape Lighting | listed, not verified |
-| `H7065` | Govee RGBIC Spotlights | Discontinued | listed, not verified |
-| `H7066` | Govee RGBIC Spotlights | Discontinued | listed, not verified |
+| `H7065` | Govee RGBIC Spotlights | Landscape Lighting | listed, not verified |
+| `H7066` | Govee RGBIC Spotlights | Landscape Lighting | listed, not verified |
 | `H706A` | 30m Permanent Outdoor Lights Pro | Landscape Lighting | listed, not verified |
 | `H706B` | 45m Permanent Outdoor Lights Pro | Landscape Lighting | listed, not verified |
 | `H706C` | 60m Permanent Outdoor Lights Pro | Landscape Lighting | listed, not verified |
-| `H7070` | Govee Outdoor Projector Light | Discontinued | listed, not verified |
+| `H7070` | Govee Outdoor Projector Light | Projector Light | listed, not verified |
 | `H7071` | Govee Outdoor Decoration Projector Light | Projector Light | listed, not verified |
 | `H7072` | Govee Outdoor Lamp Post Lights | Landscape Lighting | listed, not verified |
 | `H7073` | Govee Outdoor Projector Light | Projector Light | listed, not verified |
@@ -312,6 +319,7 @@ model in.
 | `H8841` | Cone Tree Lights | Holiday Lights | listed, not verified |
 | `R1250` | Govee Ceiling Light Pro | Ceiling Light | listed, not verified |
 | `R1310` | Govee Ceiling Fan with Lights | Ceiling Fan Light | listed, not verified |
+| `R1311` | Govee Ceiling Fan with Lights | Ceiling Fan Light | listed, not verified |
 | `R14B1` | Govee Smart Bulb | LED Bulbs | listed, not verified |
 | `R14C2` | Govee Edison Bulb | LED Bulbs | listed, not verified |
 | `R1501` | Govee Smart Downlight | Downlight | listed, not verified |
