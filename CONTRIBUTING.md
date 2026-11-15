@@ -421,7 +421,9 @@ number promises, and what counts as a breaking change, is in
 [`docs/versioning.md`](docs/versioning.md).
 
 `ci.yml` runs on push to `main` and on pull request, and skips every job while
-the pull request is a draft. A signed `<pkg>-vX.Y.Z` tag starts that package's
+the pull request is a draft. On a pull request, it also skips a job when no
+changed file is in its zone. [`tools/ci-changes.sh`](tools/ci-changes.sh) maps
+a path to its zones. A push to `main` runs every job. A signed `<pkg>-vX.Y.Z` tag starts that package's
 release workflow, which builds and publishes to the registry — no token is
 stored here, each registry trades the job's identity for a short-lived one.
 

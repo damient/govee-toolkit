@@ -292,6 +292,9 @@ repository. A bare name is a substring filter on the check names, so
 `tools/qa.sh clippy` runs that check alone. `ci.yml` runs on push to `main`
 and on pull request, skipping every job while the pull request is a draft, and
 tests on Linux, macOS and Windows because the multicast socket differs on each.
+On a pull request, a job runs only when a changed file is in its zone.
+`tools/ci-changes.sh` maps a path to its zones; give a new directory a rule
+there. A path with no rule runs every job.
 Every third-party action is pinned to a commit SHA; keep it that way. The
 release workflows publish through trusted publishing — the registry trades the
 job's OIDC identity for a short-lived token, so no registry token is stored in

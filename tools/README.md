@@ -16,6 +16,7 @@
 | Codec layering | [`check-no-io.sh`](check-no-io.sh) |
 | Release notes from the changelog | [`release-notes.sh`](release-notes.sh) |
 | CI gate of a release | [`ci-passed.sh`](ci-passed.sh) |
+| CI zones of a pull request | [`ci-changes.sh`](ci-changes.sh) |
 | Stub prose from the binding | [`sync-stubs.py`](sync-stubs.py) |
 | Govee's list of LAN Control models | [`fetch-lan-list.py`](fetch-lan-list.py) |
 | Generated catalog and tables | [`packages/rust/crates/xtask`](../packages/rust/crates/xtask) |

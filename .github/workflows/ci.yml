@@ -30,9 +30,42 @@ env:
 # action means adding a pattern under Settings > Actions before it will run.
 
 jobs:
+  # On a pull request, a job whose zone has no changed file is skipped. A push
+  # to main and a manual run take every job: a release tags a commit of main,
+  # and tools/ci-passed.sh waits for its run. tools/ci-changes.sh maps a path
+  # to its zones.
+  changes:
+    name: Changed zones
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    outputs:
+      core: ${{ steps.zones.outputs.core }}
+      python: ${{ steps.zones.outputs.python }}
+      node: ${{ steps.zones.outputs.node }}
+      mcp: ${{ steps.zones.outputs.mcp }}
+      docs: ${{ steps.zones.outputs.docs }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: zones
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            git diff --name-only "$BASE_SHA...$HEAD_SHA" | tools/ci-changes.sh
+          else
+            printf '%s\n' core=true python=true node=true mcp=true docs=true
+          fi | tee -a "$GITHUB_OUTPUT"
+
+  # Branch protection requires each `Rust core (<os>)` check by name, and a job
+  # skipped as a whole never expands its matrix into those names. The job runs
+  # and skips its steps instead.
   rust:
     name: Rust core (${{ matrix.os }})
-    if: github.event.pull_request.draft != true
+    needs: changes
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -49,17 +82,22 @@ jobs:
         # them through PowerShell.
         shell: bash
     steps:
+      - if: needs.changes.outputs.core != 'true'
+        run: echo "No change in the core zone. Every step is skipped."
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.changes.outputs.core == 'true'
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        if: needs.changes.outputs.core == 'true'
         with:
           toolchain: stable
           components: clippy
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
-        if: matrix.os == 'ubuntu-latest'
+        if: needs.changes.outputs.core == 'true' && matrix.os == 'ubuntu-latest'
         with:
           toolchain: nightly
           components: rustfmt
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        if: needs.changes.outputs.core == 'true'
         with:
           workspaces: packages/rust
       # fmt, clippy and doc are platform-independent — running them once on
@@ -68,7 +106,7 @@ jobs:
       # wrapping). RUSTUP_TOOLCHAIN overrides rust-toolchain.toml for this step
       # only.
       - name: Format
-        if: matrix.os == 'ubuntu-latest'
+        if: needs.changes.outputs.core == 'true' && matrix.os == 'ubuntu-latest'
         run: cargo fmt --all --check
         env:
           RUSTUP_TOOLCHAIN: nightly
@@ -76,22 +114,23 @@ jobs:
       # headers to compile here. macOS and Windows carry their radio stack in
       # the platform SDK and need nothing.
       - name: D-Bus headers
-        if: matrix.os == 'ubuntu-latest'
+        if: needs.changes.outputs.core == 'true' && matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
       - name: Clippy
-        if: matrix.os == 'ubuntu-latest'
+        if: needs.changes.outputs.core == 'true' && matrix.os == 'ubuntu-latest'
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       # Also validates devices/*.yaml and runs the conformance vectors in
       # tests/fixtures/golden/.
       - name: Test
+        if: needs.changes.outputs.core == 'true'
         run: cargo test --workspace --all-features
       # The codec has to keep building on its own: no socket, no async runtime.
       # `tools/check-no-io.sh` guards the imports, this guards the build.
       - name: Codec alone
-        if: matrix.os == 'ubuntu-latest'
+        if: needs.changes.outputs.core == 'true' && matrix.os == 'ubuntu-latest'
         run: cargo check --no-default-features
       - name: Documentation
-        if: matrix.os == 'ubuntu-latest'
+        if: needs.changes.outputs.core == 'true' && matrix.os == 'ubuntu-latest'
         run: cargo doc --workspace --no-deps --all-features
         env:
           RUSTDOCFLAGS: -D warnings
@@ -100,7 +139,7 @@ jobs:
       # `doc(cfg(...))` is nightly-only, so this step is where a broken
       # published build is caught, rather than the docs.rs log after a release.
       - name: docs.rs build
-        if: matrix.os == 'ubuntu-latest'
+        if: needs.changes.outputs.core == 'true' && matrix.os == 'ubuntu-latest'
         run: cargo doc --no-deps --all-features
         env:
           RUSTUP_TOOLCHAIN: nightly
@@ -108,7 +147,8 @@ jobs:
 
   msrv:
     name: MSRV
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -162,7 +202,8 @@ jobs:
 
   catalog:
     name: Device catalog artifact
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -309,7 +350,8 @@ jobs:
 
   semver:
     name: Semver
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -328,7 +370,8 @@ jobs:
 
   deny:
     name: Licenses and advisories
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -339,7 +382,8 @@ jobs:
 
   python:
     name: Python
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.core == 'true' || needs.changes.outputs.python == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -432,7 +476,8 @@ jobs:
 
   node:
     name: Node
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.core == 'true' || needs.changes.outputs.node == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -480,7 +525,8 @@ jobs:
 
   mcp:
     name: MCP server
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.core == 'true' || needs.changes.outputs.mcp == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -510,7 +556,8 @@ jobs:
 
   docs:
     name: Documentation
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.core == 'true' || needs.changes.outputs.docs == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
