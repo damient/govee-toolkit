@@ -63,20 +63,21 @@ test("describe_device fails with unknown_sku", async () => {
   assert.equal(await failureCode(client, "describe_device", { sku: "NOT-A-SKU" }), "unknown_sku");
 });
 
+async function eachPersonalityAlone(sku: string): Promise<void> {
+  const all = await structured(client, "get_dmx_profile", { sku }, personalities);
+  const alone = await Promise.all(
+    all.personalities.map(({ personality }) =>
+      structured(client, "get_dmx_profile", { sku, personality }, personalities),
+    ),
+  );
+  assert.deepEqual(
+    alone.map((one) => one.personalities.map((p) => p.personality)),
+    all.personalities.map((p) => [p.personality]),
+  );
+}
+
 test("get_dmx_profile answers every SKU, and each personality alone", async () => {
-  const each = async (sku: string): Promise<void> => {
-    const all = await structured(client, "get_dmx_profile", { sku }, personalities);
-    const alone = await Promise.all(
-      all.personalities.map(({ personality }) =>
-        structured(client, "get_dmx_profile", { sku, personality }, personalities),
-      ),
-    );
-    assert.deepEqual(
-      alone.map((one) => one.personalities.map((p) => p.personality)),
-      all.personalities.map((p) => [p.personality]),
-    );
-  };
-  await Promise.all(skus.map((sku) => each(sku)));
+  await Promise.all(skus.map((sku) => eachPersonalityAlone(sku)));
 });
 
 test("get_dmx_profile fails with unknown_sku", async () => {
