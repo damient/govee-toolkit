@@ -91,20 +91,12 @@ def merge(
 ) -> list[dict[str, str]]:
     known = {m["sku"]: m for m in old}
     spelling = {m["category"].lower(): m["category"] for m in old}
-    fresh = {
-        sku: {**m, "category": categorize(clean(m["name"]), clean(m["category"]))}
-        for sku, m in fresh.items()
-    }
     models = []
     for sku in sorted(fresh):
-        if (
-            sku in known
-            and clean(known[sku]["category"]).lower()
-            == clean(fresh[sku]["category"]).lower()
-        ):
+        category = categorize(clean(fresh[sku]["name"]), clean(fresh[sku]["category"]))
+        if sku in known and clean(known[sku]["category"]).lower() == category.lower():
             models.append(known[sku])
             continue
-        category = clean(fresh[sku]["category"])
         category = spelling.get(category.lower(), category)
         name = known[sku]["name"] if sku in known else clean(fresh[sku]["name"])
         models.append({"sku": sku, "name": name, "category": category})
