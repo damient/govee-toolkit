@@ -7,6 +7,20 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `Catalog::from_parts()` loads `devices/listed/` beside the device files.
+  `Catalog::embedded()` carries the listings that the build embeds.
+- `Catalog::listed()` and `Catalog::listings()` give the models of a listing
+  that resolve, and each listing with every model it names.
+- `Device::listing` names the listing a model comes from. `describe()`
+  carries it as `listing`, and it is absent for a device file.
+
+### Changed
+
+- `Catalog::device()` resolves a model of a listing that no device file
+  claims. `Catalog::devices()` yields device files only.
+
 ## [0.15.0] — 2026-11-14
 
 ### Added

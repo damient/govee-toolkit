@@ -5,6 +5,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Added
+
+- `govee describe` prints a `listed:` line for a model that resolves to a
+  listing: no device file describes it, and nobody verified it.
+
 ## [0.10.0] — 2026-11-14
 
 ### Changed

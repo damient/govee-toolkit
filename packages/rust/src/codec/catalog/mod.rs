@@ -348,6 +348,10 @@ pub struct Device {
     /// Verification record.
     #[serde(default)]
     pub verified: Verified,
+    /// The listing this entry comes from, for a model no device file claims.
+    /// Nobody verified such a model. A device file cannot set it.
+    #[serde(default, skip_deserializing, skip_serializing_if = "Option::is_none")]
+    pub listing: Option<String>,
 }
 
 impl Device {

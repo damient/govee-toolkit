@@ -43,6 +43,9 @@ fn as_text(device: &Device) -> String {
             )
         ),
     ];
+    if let Some(listing) = &device.listing {
+        lines.push(format!("listed: {listing}, not verified on this model"));
+    }
     match device.geometry {
         Some(Geometry::Line { length_m }) => lines.push(format!("geometry: {length_m} m long")),
         Some(Geometry::Surface { width_m, height_m }) => {

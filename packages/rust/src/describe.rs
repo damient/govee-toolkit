@@ -19,6 +19,7 @@ pub fn describe(device: &Device) -> Value {
         "family": device.family,
         "aliases": device.aliases,
         "candidate_aliases": device.candidate_aliases,
+        "listing": device.listing,
         "capabilities": device.capabilities.names().collect::<Vec<_>>(),
         "segments": {
             "count": device.capabilities.segment_count(),

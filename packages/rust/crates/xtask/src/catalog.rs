@@ -1,0 +1,71 @@
+//! `dist/catalog.json`: the device files and the listings, as the SDK loads
+//! them.
+
+use std::path::{Path, PathBuf};
+
+use govee_toolkit::codec::{Catalog, Device, SCHEMA_VERSION};
+use govee_toolkit::profile;
+
+use crate::{build_catalog, write_json};
+
+/// `devices/*.yaml` into one JSON document.
+///
+/// The crate loads the files, so the catalog says what the SDK reads. It is
+/// flat: an `include:` and an `overrides:` block are applied before this, and
+/// neither reaches the file.
+pub(crate) fn catalog(root: &Path, out: Option<PathBuf>) {
+    let devices = root.join("devices");
+    let out = out.unwrap_or_else(|| root.join("dist/catalog.json"));
+
+    let catalog = build_catalog(&devices);
+
+    let entries: Vec<serde_json::Value> = catalog.devices().map(device_json).collect();
+    let document = serde_json::json!({
+        "schema_version": SCHEMA_VERSION,
+        "generator": "packages/rust/crates/xtask",
+        "devices": entries,
+        "listings": listings_json(&catalog),
+    });
+
+    write_json(&out, &document);
+    println!("{} devices -> {}", entries.len(), out.display());
+}
+
+/// One device file, plus the `dmx` channel table derived from it.
+fn device_json(device: &Device) -> serde_json::Value {
+    let mut value = serde_json::to_value(device).expect("serialize the device");
+    if let Some(object) = value.as_object_mut() {
+        object.insert("dmx".to_owned(), profile::report::entry(device));
+    }
+    value
+}
+
+/// Each listing once: the shared definition, and the models that resolve to
+/// it. A model that a device file claims is left out.
+fn listings_json(catalog: &Catalog) -> Vec<serde_json::Value> {
+    catalog
+        .listings()
+        .iter()
+        .map(|listing| {
+            let listed = || {
+                catalog
+                    .listed()
+                    .filter(|device| device.listing.as_ref() == Some(&listing.listing))
+            };
+            let mut definition = listed().next().map(device_json).unwrap_or_default();
+            if let Some(object) = definition.as_object_mut() {
+                object.remove("sku");
+                object.remove("name");
+            }
+            let models: Vec<serde_json::Value> = listed()
+                .map(|device| serde_json::json!({ "sku": device.sku, "name": device.name }))
+                .collect();
+            serde_json::json!({
+                "listing": listing.listing,
+                "source": listing.source,
+                "device": definition,
+                "models": models,
+            })
+        })
+        .collect()
+}

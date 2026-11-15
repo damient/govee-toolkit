@@ -12,6 +12,8 @@ in the runtime configuration — see [`../docs/modes.md`](../docs/modes.md).
 - [`schema.yaml`](schema.yaml) — every field, with its rules
 - [`families/`](families/) — command tables several models share, pulled in by
   `include:`
+- [`listed/`](listed/) — models on Govee's LAN list that no device file
+  describes, and the one definition they resolve to
 - any `<SKU>.yaml` — a worked example. Start from the model closest to yours.
 - [`../docs/compatibility.md`](../docs/compatibility.md) — which devices work,
   generated from these files
@@ -84,3 +86,27 @@ Two mechanisms keep a family usable where one model differs:
   `notes:`, or `drop:` to remove the command. It reaches no local command: a
   file changes its own command where it writes it. Both are documented in
   [`schema.yaml`](schema.yaml).
+
+## Models nobody verified
+
+[`listed/govee-lan.yaml`](listed/govee-lan.yaml) holds every model on Govee's
+list of LAN-capable devices,
+[`../docs/lan-supported-devices.json`](../docs/lan-supported-devices.json).
+Each model resolves to one shared definition: power, brightness and color, over
+`lan` and `cloud`. These are the commands that Govee's documented protocols give
+every model. The white temperature is absent, because its range is a property
+of the model.
+
+The rules:
+
+- a device file wins. A SKU or a verified alias of a device file never resolves
+  to the listing;
+- every mode of the definition stays `unknown`, and `verified:` stays empty;
+- `describe` and `catalog.json` name the listing, so a caller can tell a listed
+  model from a verified one;
+- `cargo run -p xtask -- lan` writes the `models:` list from the JSON file. Do
+  not edit that list by hand.
+
+A `candidate_aliases` entry never resolves to the file that names it. Where the
+SKU is on the list, it resolves to the listing. To give a listed model more
+than the shared definition, write its own device file.

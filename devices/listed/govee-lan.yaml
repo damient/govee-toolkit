@@ -1,0 +1,328 @@
+# The models on Govee's own list of LAN-capable devices. Each model resolves to
+# the definition under `device:`, unless a device file of its own, or the
+# `aliases:` of one, claims the SKU. A device file always wins.
+#
+# Nobody verified a model here. The definition carries only what Govee's
+# documented LAN and HTTPS protocols give every model: power, brightness and
+# color. The white temperature is absent: its range is a property of the model,
+# and the firmware clamps a value outside it in silence.
+#
+# `models:` is generated from ../../docs/lan-supported-devices.json. Run
+# `cargo run -p xtask -- lan` after a change to that file; CI fails on drift.
+
+schema_version: 1
+
+listing: "govee-lan"
+source: "docs/lan-supported-devices.json"
+
+device:
+  family: "govee-lan-listed"
+  include:
+    - lan-documented
+    - cloud-openapi
+
+  capabilities:
+    power:
+    brightness:  { range: [1, 100] }
+    color:
+
+  modes:
+    lan:
+      support: unknown
+      capabilities: [power, brightness, color]
+      unreachable: {}
+      notes: >-
+        Govee lists the model as LAN-capable. Requires LAN Control enabled in
+        the Govee Home app. Nobody probed this model.
+    cloud:
+      support: unknown
+      capabilities: [power, brightness, color]
+      unreachable: {}
+      notes: >-
+        The documented HTTPS API. The API answers with an error for a
+        capability the model does not carry. Nobody probed this model.
+
+  overrides:
+    lan:
+      colortemp: { drop: true }
+      raw_status: { drop: true }
+    cloud:
+      colortemp: { drop: true }
+
+models:
+  - { sku: "H1232", name: "Ceiling Light Pro" }
+  - { sku: "H1252", name: "Ceiling Light Pro" }
+  - { sku: "H1270", name: "Ceiling Light Ultra" }
+  - { sku: "H12D0", name: "Sky Ceiling Light" }
+  - { sku: "H1310", name: "Ceiling Fan with Lights" }
+  - { sku: "H1370", name: "Bladeless Ceiling Fan" }
+  - { sku: "H1401", name: "Smart Bulb" }
+  - { sku: "H14A1", name: "Smart Bulb" }
+  - { sku: "H14B1", name: "Smart Bulb" }
+  - { sku: "H14C2", name: "Edison Bulb" }
+  - { sku: "H1630", name: "Lantern Floor Lamp" }
+  - { sku: "H16B0", name: "Floor Lamp 3" }
+  - { sku: "H16C0", name: "Floor Lamp 3 Lite" }
+  - { sku: "H1771", name: "Wallwash Table Lamp" }
+  - { sku: "H1811", name: "Bubble Projector Light" }
+  - { sku: "H1880", name: "Tri-Zone Galaxy Light Projector" }
+  - { sku: "H1A42", name: "LED Strip Light 2" }
+  - { sku: "H1A43", name: "LED Strip Light 2" }
+  - { sku: "H1A44", name: "LED Strip Light 2" }
+  - { sku: "H1A45", name: "LED Strip Light 2" }
+  - { sku: "H1AB1", name: "COB Strip Light 2" }
+  - { sku: "H1AB2", name: "COB Strip Light 2" }
+  - { sku: "H1AB3", name: "COB Strip Light 2" }
+  - { sku: "H1B6A", name: "Strip Light with Tower Kit" }
+  - { sku: "H2800", name: "Monitor Light Bar" }
+  - { sku: "H3010", name: "Outdoor String Lights 3" }
+  - { sku: "H3011", name: "Outdoor String Lights 3" }
+  - { sku: "H3012", name: "Outdoor String Lights 3" }
+  - { sku: "H3013", name: "Outdoor String Lights 3" }
+  - { sku: "H30D0", name: "Outdoor Filament String Lights" }
+  - { sku: "H30D1", name: "Outdoor Filament String Lights" }
+  - { sku: "H3200", name: "Outdoor Spotlights Lite" }
+  - { sku: "H3401", name: "Outdoor Deck Lights 2" }
+  - { sku: "H3500", name: "Outdoor Pathway Lights 2 Lite" }
+  - { sku: "H3501", name: "Outdoor Pathway Lights 2 Lite" }
+  - { sku: "H3510", name: "Outdoor Cylinder Pathway Lights" }
+  - { sku: "H3511", name: "Outdoor Cylinder Pathway Lights" }
+  - { sku: "H3700", name: "Outdoor Classic Wall Light" }
+  - { sku: "H3751", name: "Outdoor Wall Light Pro" }
+  - { sku: "H3860", name: "Holiday Pattern Projector Light" }
+  - { sku: "H3A51", name: "30m Permanent Outdoor Lights 2 Pro" }
+  - { sku: "H3A52", name: "45m Permanent Outdoor Lights 2 Pro" }
+  - { sku: "H3A53", name: "60m Permanent Outdoor Lights 2 Pro" }
+  - { sku: "H6003", name: "Wi-Fi RGBWW LED Bulb" }
+  - { sku: "H6004", name: "Wi-Fi+BLE RGBWW LED Bulb" }
+  - { sku: "H6006", name: "Wi-Fi+BLE RGBWW LED Bulb" }
+  - { sku: "H6008", name: "Wi-Fi+BLE RGBWW LED Bulb" }
+  - { sku: "H6009", name: "Wi-Fi+BLE RGBWW LED Bulb" }
+  - { sku: "H600A", name: "Wi-Fi+BLE RGBWW LED Bulb" }
+  - { sku: "H6010", name: "Wi-Fi+BLE RGBWW LED Bulb" }
+  - { sku: "H601A", name: "6inch Smart RGBWW LED Downlight" }
+  - { sku: "H601B", name: "4inch Smart RGBWW LED Downlight" }
+  - { sku: "H601C", name: "6inch Recessed Downlight (Can Light)" }
+  - { sku: "H6020", name: "Table Lamp 2 Pro x Sound by JBL" }
+  - { sku: "H6022", name: "Table Lamp 2" }
+  - { sku: "H6038", name: "Wall Sconce" }
+  - { sku: "H6039", name: "Wall Sconce" }
+  - { sku: "H6042", name: "TV Light Bar 2" }
+  - { sku: "H6043", name: "TV Light Bars 2" }
+  - { sku: "H6046", name: "RGBIC TV Light Bars" }
+  - { sku: "H6047", name: "RGBIC Gaming Light Bars" }
+  - { sku: "H6048", name: "RGBIC Gaming Light Bars Pro" }
+  - { sku: "H6051", name: "Table Lamp Lite" }
+  - { sku: "H6052", name: "RGBICWW Table Lamp" }
+  - { sku: "H6056", name: "RGBICWW Light Bars" }
+  - { sku: "H6059", name: "Night Light Mini" }
+  - { sku: "H6061", name: "Glide Hexa Light Panels" }
+  - { sku: "H6062", name: "Glide Wall Light" }
+  - { sku: "H6063", name: "Gaming Wall Light" }
+  - { sku: "H6065", name: "Glide Y Lights" }
+  - { sku: "H6066", name: "Glide Hexa Pro Light Panels" }
+  - { sku: "H6067", name: "Glide Tri Light Panels" }
+  - { sku: "H6069", name: "Mini Panel Lights" }
+  - { sku: "H606A", name: "Glide Hexa Light Panel Ultra" }
+  - { sku: "H6072", name: "RGBICWW Floor Lamp" }
+  - { sku: "H6073", name: "Smart RGB LED Floor Lamp" }
+  - { sku: "H6076", name: "Floor Lamp (H6076A)" }
+  - { sku: "H6078", name: "RGBICWW Cylinder Floor Lamp" }
+  - { sku: "H607C", name: "RGBICWW Floor Lamp 2" }
+  - { sku: "H6087", name: "RGBIC Fixture Lights" }
+  - { sku: "H6088", name: "RGBIC Cube Wall Sconces" }
+  - { sku: "H608A", name: "5m String Downlights" }
+  - { sku: "H6093", name: "Star Light Projector (Aurora)" }
+  - { sku: "H6094", name: "Star Light Projector (Ocean Wave)" }
+  - { sku: "H6095", name: "Star Light Projector (Nebula)" }
+  - { sku: "H609D", name: "Galaxy Light Projector 2 Pro" }
+  - { sku: "H60A0", name: "12inch Ceiling Light" }
+  - { sku: "H60A1", name: "12inch Ceiling Light" }
+  - { sku: "H60A4", name: "Square Ceiling Light" }
+  - { sku: "H60A6", name: "Ceiling Light Pro" }
+  - { sku: "H60B0", name: "Uplighter Floor Lamp" }
+  - { sku: "H60B1", name: "Torchiere Floor Lamp" }
+  - { sku: "H60B2", name: "Tree Floor Lamp" }
+  - { sku: "H60B3", name: "Uplighter Floor Lamp" }
+  - { sku: "H60C1", name: "Pendant Light" }
+  - { sku: "H610A", name: "Glide Lively Wall Light" }
+  - { sku: "H610B", name: "Glide Music Wall Light" }
+  - { sku: "H6110", name: "2*5m MultiColor with Alexa" }
+  - { sku: "H6117", name: "2*5m RGBIC with Alexa" }
+  - { sku: "H6141", name: "5m Smart MultiColor Strip Light" }
+  - { sku: "H6143", name: "5m RGBIC Strip Light" }
+  - { sku: "H6144", name: "2*5m RGBIC Strip Light" }
+  - { sku: "H6159", name: "5m MultiColor with Alexa" }
+  - { sku: "H615A", name: "5m RGB Strip Light with Alexa" }
+  - { sku: "H615B", name: "10m RGB Strip Light with Alexa" }
+  - { sku: "H615C", name: "15m RGB Strip Light with Alexa" }
+  - { sku: "H615D", name: "20m RGB Strip Light with Alexa" }
+  - { sku: "H615E", name: "30m RGB Strip Light with Alexa" }
+  - { sku: "H6163", name: "5m RGBIC with Alexa" }
+  - { sku: "H6167", name: "2.4m RGBIC TV Backlight" }
+  - { sku: "H616C", name: "10m RGBIC Outdoor Strip Lights 2" }
+  - { sku: "H616D", name: "2*7.5m RGBIC Outdoor Strip Lights 2" }
+  - { sku: "H616E", name: "2*10m RGBIC Outdoor Strip Lights 2" }
+  - { sku: "H6173", name: "2*10m Outdoor RGBIC LED Strip Lights" }
+  - { sku: "H6176", name: "30m RGBIC Outdoor Strip Lights" }
+  - { sku: "H6182", name: "Wi-Fi MultiColor TV Strip Light" }
+  - { sku: "H618A", name: "5m RGBIC Basic Strip Lights with Alexa" }
+  - { sku: "H618C", name: "10m RGBIC Basic Strip Lights with Alexa" }
+  - { sku: "H618E", name: "2*10m RGBIC Strip Lights with Alexa" }
+  - { sku: "H618F", name: "2*15m RGBIC LED Strip Light With Alexa" }
+  - { sku: "H618G", name: "2*20m RGBIC LED Strip Light with Alexa" }
+  - { sku: "H619A", name: "5m RGBIC Pro Strip Lights with Alexa" }
+  - { sku: "H619B", name: "7.5m RGBIC Pro Strip Lights with Alexa" }
+  - { sku: "H619C", name: "10m RGBIC Pro Strip Lights with Alexa" }
+  - { sku: "H619D", name: "2*7.5m RGBIC Pro Strip Lights with Alexa" }
+  - { sku: "H619E", name: "2*10m RGBIC Pro Strip Lights with Alexa" }
+  - { sku: "H619Z", name: "3m RGBIC Pro Strip Lights with Alexa" }
+  - { sku: "H61A0", name: "3m RGBIC LED Neon Rope Lights" }
+  - { sku: "H61A1", name: "2m RGBIC LED Neon Rope Lights" }
+  - { sku: "H61A2", name: "5m RGBIC LED Neon Rope Lights" }
+  - { sku: "H61A3", name: "4m RGBIC LED Neon Rope Lights" }
+  - { sku: "H61A5", name: "10m RGBIC LED Neon Rope Lights" }
+  - { sku: "H61A8", name: "10m RGBIC Outdoor Neon Rope Light" }
+  - { sku: "H61A9", name: "20m RGBIC Outdoor Neon Rope Light" }
+  - { sku: "H61B1", name: "5m RGBICW LED Strip Light with cover" }
+  - { sku: "H61B3", name: "5m RGBIC LED Strip Light with Cover" }
+  - { sku: "H61B6", name: "10m RGBIC LED Strip Light with Cover" }
+  - { sku: "H61B8", name: "Strip Light with Skyline Kit" }
+  - { sku: "H61B9", name: "Strip Light with Skyline Kit" }
+  - { sku: "H61BA", name: "5m RGBICW LED Strip Light" }
+  - { sku: "H61BC", name: "10m RGBICW LED Strip Light" }
+  - { sku: "H61BE", name: "2*10m RGBICW LED Strip Light" }
+  - { sku: "H61C2", name: "2m RGBIC Neon Rope Light for desks" }
+  - { sku: "H61C3", name: "3m RGBIC Neon Rope Light for gaming desk" }
+  - { sku: "H61C5", name: "5m RGBIC Neon Rope Light for desks" }
+  - { sku: "H61D3", name: "3m Neon Rope Light 2" }
+  - { sku: "H61D5", name: "5m Neon Rope Light 2" }
+  - { sku: "H61D6", name: "10m Neon Rope Light 2" }
+  - { sku: "H61E0", name: "LED Strip Light M1" }
+  - { sku: "H61E1", name: "LED Strip Light M1" }
+  - { sku: "H61F2", name: "Strip Light 2 Pro" }
+  - { sku: "H61F5", name: "Strip Light 2 Pro" }
+  - { sku: "H61F6", name: "Strip Light 2 Pro" }
+  - { sku: "H6350", name: "Sphere Net Lights" }
+  - { sku: "H6351", name: "Sphere Net Lights" }
+  - { sku: "H6630", name: "Gaming Pixel Light" }
+  - { sku: "H6631", name: "Gaming Pixel Light" }
+  - { sku: "H6671", name: "RGBWIC TV Backlight 2" }
+  - { sku: "H6672", name: "RGBWIC TV Backlight 2" }
+  - { sku: "H6800", name: "Christmas Tree Lights" }
+  - { sku: "H6810", name: "240LED Net Lights" }
+  - { sku: "H6811", name: "480LED Net Lights" }
+  - { sku: "H6840", name: "Cone Tree Lights" }
+  - { sku: "H6841", name: "Cone Tree Lights" }
+  - { sku: "H6842", name: "Cone Tree Lights" }
+  - { sku: "H6843", name: "Cone Tree Lights" }
+  - { sku: "H6850", name: "Ball Lights" }
+  - { sku: "H6860", name: "C9 String Lights" }
+  - { sku: "H6861", name: "C9 String Lights" }
+  - { sku: "H6870", name: "Christmas Sparkle String Lights" }
+  - { sku: "H6871", name: "Christmas Sparkle String Lights" }
+  - { sku: "H7012", name: "LED Bulb String Lights" }
+  - { sku: "H7013", name: "LED Bulb String Lights" }
+  - { sku: "H7021", name: "LED Bulb String Lights" }
+  - { sku: "H7025", name: "LED Bulb String Lights" }
+  - { sku: "H7026", name: "Outdoor Clear Bulb String Lights" }
+  - { sku: "H7027", name: "Outdoor Clear Bulb String Lights" }
+  - { sku: "H7028", name: "LED Bulb String Lights" }
+  - { sku: "H702A", name: "Outdoor S14 Bulb String Lights 2" }
+  - { sku: "H702B", name: "Outdoor S14 Bulb String Lights 2" }
+  - { sku: "H702C", name: "Outdoor S14 Bulb String Lights 2" }
+  - { sku: "H7030", name: "LED Bulb String Lights" }
+  - { sku: "H7033", name: "LED Bulb String Lights" }
+  - { sku: "H7037", name: "LED Bulb String Lights" }
+  - { sku: "H7038", name: "LED Bulb String Lights" }
+  - { sku: "H7039", name: "LED Bulb String Lights" }
+  - { sku: "H703A", name: "15m Dots String Lights" }
+  - { sku: "H703B", name: "30m Dots String Lights" }
+  - { sku: "H7041", name: "LED Bulb String Lights" }
+  - { sku: "H7042", name: "LED Bulb String Lights" }
+  - { sku: "H7045", name: "Outdoor Chromatic String Lights" }
+  - { sku: "H7046", name: "Outdoor Chromatic String Lights" }
+  - { sku: "H7050", name: "Smart Ground Lights" }
+  - { sku: "H7051", name: "Smart Ground Lights" }
+  - { sku: "H7055", name: "RGBIC Path Lights" }
+  - { sku: "H7056", name: "Outdoor Pathway Lights 2" }
+  - { sku: "H7057", name: "Outdoor Flood Lights 2" }
+  - { sku: "H7058", name: "Outdoor Flood Lights 2" }
+  - { sku: "H705A", name: "30m Permanent Outdoor Lights" }
+  - { sku: "H705B", name: "15m Permanent Outdoor Lights" }
+  - { sku: "H705D", name: "15m Permanent Outdoor Lights 2" }
+  - { sku: "H705E", name: "30m Permanent Outdoor Lights 2" }
+  - { sku: "H705F", name: "45m Permanent Outdoor Lights 2" }
+  - { sku: "H7060", name: "RGBIC Flood Lights" }
+  - { sku: "H7061", name: "2 Pack RGBIC Flood Lights" }
+  - { sku: "H7062", name: "6 Pack RGBIC Flood Lights" }
+  - { sku: "H7063", name: "Outdoor Flood Light" }
+  - { sku: "H7065", name: "RGBIC Spotlights" }
+  - { sku: "H7066", name: "RGBIC Spotlights" }
+  - { sku: "H706A", name: "30m Permanent Outdoor Lights Pro" }
+  - { sku: "H706B", name: "45m Permanent Outdoor Lights Pro" }
+  - { sku: "H706C", name: "60m Permanent Outdoor Lights Pro" }
+  - { sku: "H7070", name: "Outdoor Projector Light" }
+  - { sku: "H7071", name: "Outdoor Decoration Projector Light" }
+  - { sku: "H7072", name: "Outdoor Lamp Post Lights" }
+  - { sku: "H7073", name: "Outdoor Projector Light" }
+  - { sku: "H7076", name: "Outdoor UpDown Wall Light" }
+  - { sku: "H707A", name: "30m Permanent Outdoor Lights Prism" }
+  - { sku: "H707B", name: "45m Permanent Outdoor Lights Prism" }
+  - { sku: "H707C", name: "60m Permanent Outdoor Lights Prism" }
+  - { sku: "H7086", name: "Outdoor Garden Lights" }
+  - { sku: "H7087", name: "Outdoor Tree Lights" }
+  - { sku: "H7093", name: "Outdoor Spotlights 2" }
+  - { sku: "H7094", name: "Outdoor Spotlights 2" }
+  - { sku: "H70B1", name: "1.5*2m 520LED Curtain Lights" }
+  - { sku: "H70B6", name: "Curtain Lights Pro" }
+  - { sku: "H70B8", name: "Lightwall" }
+  - { sku: "H70BC", name: "400LED Curtain Lights" }
+  - { sku: "H70C1", name: "10m RGBIC String Light" }
+  - { sku: "H70C2", name: "20m RGBIC String Light" }
+  - { sku: "H70C4", name: "20m Christmas String Lights 2" }
+  - { sku: "H70C5", name: "30m Christmas String Lights 2" }
+  - { sku: "H70C7", name: "50m Christmas String Lights 2" }
+  - { sku: "H70C9", name: "100m Christmas String Lights 2" }
+  - { sku: "H70D1", name: "10m RGBIC Outdoor Icicle Lights" }
+  - { sku: "H70D2", name: "20m RGBIC Outdoor Icicle Lights" }
+  - { sku: "H70D3", name: "30m RGBIC Outdoor Icicle Lights" }
+  - { sku: "H8015", name: "Smart Bulb" }
+  - { sku: "H801A", name: "Recessed Downlight" }
+  - { sku: "H801B", name: "15m Permanent Outdoor Lights" }
+  - { sku: "H801D", name: "Recessed Downlight" }
+  - { sku: "H8022", name: "Table Lamp 2S" }
+  - { sku: "H8025", name: "Outdoor Clear Bulb String Lights" }
+  - { sku: "H8026", name: "Outdoor Clear Bulb String Lights" }
+  - { sku: "H802A", name: "5m RGBIC Basic Strip Lights with Alexa" }
+  - { sku: "H8048", name: "RGBIC Gaming Light Bars Pro" }
+  - { sku: "H8057", name: "Outdoor Flood Lights 2" }
+  - { sku: "H805A", name: "30m Permanent Outdoor Lights Elite" }
+  - { sku: "H805B", name: "15m Permanent Outdoor Lights Elite" }
+  - { sku: "H805C", name: "45m Permanent Outdoor Lights Elite" }
+  - { sku: "H8066", name: "Smart Outdoor Spotlight" }
+  - { sku: "H8067", name: "Smart Outdoor Spotlights" }
+  - { sku: "H8069", name: "Mini Panel Lights" }
+  - { sku: "H806C", name: "60m Permanent Outdoor Lights Pro" }
+  - { sku: "H8076", name: "Floor Lamp (H8076A)" }
+  - { sku: "H807C", name: "Corner Floor Lamp 2" }
+  - { sku: "H80A1", name: "12inch Ceiling Light" }
+  - { sku: "H80A4", name: "Square Ceiling Light" }
+  - { sku: "H80C4", name: "20m Christmas String Lights 2" }
+  - { sku: "H80C5", name: "30m Christmas String Lights 2" }
+  - { sku: "H80D1", name: "10m RGBIC Outdoor Icicle Lights" }
+  - { sku: "H8630", name: "Gaming Pixel Light" }
+  - { sku: "H8811", name: "480LED Net Lights" }
+  - { sku: "H8840", name: "Cone Tree Lights" }
+  - { sku: "H8841", name: "Cone Tree Lights" }
+  - { sku: "R1250", name: "Ceiling Light Pro" }
+  - { sku: "R1310", name: "Ceiling Fan with Lights" }
+  - { sku: "R14B1", name: "Smart Bulb" }
+  - { sku: "R14C2", name: "Edison Bulb" }
+  - { sku: "R1501", name: "Smart Downlight" }
+  - { sku: "R1810", name: "Star Light Projector (Cosmos)" }
+  - { sku: "R3A51", name: "30m Permanent Outdoor Lights Pro Dual" }
+  - { sku: "R60B3", name: "Uplighter Floor Lamp" }
+  - { sku: "R618D", name: "15m RGBIC LED Strip Light" }
+  - { sku: "R6842", name: "Cone Tree Lights" }
+  - { sku: "R6861", name: "C9 String Lights" }

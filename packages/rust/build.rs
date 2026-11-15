@@ -1,4 +1,5 @@
-//! Embeds `devices/*.yaml` and `devices/families/*.yaml` into the crate.
+//! Embeds `devices/*.yaml`, `devices/families/*.yaml` and
+//! `devices/listed/*.yaml` into the crate.
 //!
 //! The catalog is compiled in, so an SDK ships as a single artifact with no
 //! data directory to install. Adding a SKU therefore means rebuilding — the
@@ -32,16 +33,18 @@ fn main() {
     );
 
     let mut out = list("EMBEDDED", &entries);
-    out.push_str(&list("EMBEDDED_FAMILIES", &family_files(&devices)));
+    out.push_str(&list("EMBEDDED_FAMILIES", &sub_files(&devices, "families")));
+    out.push_str(&list("EMBEDDED_LISTINGS", &sub_files(&devices, "listed")));
 
     let dest = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR")).join("devices.rs");
     fs::write(&dest, out).expect("write devices.rs");
 }
 
-/// The shared command tables under `devices/families/`. An absent directory
-/// is not an error: a catalog whose files include nothing needs none.
-fn family_files(devices: &Path) -> Vec<PathBuf> {
-    let dir = devices.join("families");
+/// The YAML files of one subdirectory: the shared command tables under
+/// `families/`, or the model lists under `listed/`. An absent directory is not
+/// an error: a catalog can do without either.
+fn sub_files(devices: &Path, name: &str) -> Vec<PathBuf> {
+    let dir = devices.join(name);
     let Ok(entries) = fs::read_dir(&dir) else {
         return Vec::new();
     };

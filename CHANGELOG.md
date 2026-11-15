@@ -23,6 +23,22 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-11-15
+
+#### Added
+
+- `devices/listed/govee-lan.yaml` gives the 273 models of Govee's LAN list
+  with no device file power, brightness and color, over `lan` and `cloud`.
+- The listed models come from the documented layout, with every mode
+  `unknown`. See [`devices/README.md`](devices/README.md).
+- `dist/catalog.json` carries `listings`: the shared definition and the
+  models that resolve to it.
+
+#### Changed
+
+- A `candidate_aliases` entry on Govee's LAN list resolves to the listing,
+  never to the file that names it.
+
 ### 2026-09-27
 
 #### Added

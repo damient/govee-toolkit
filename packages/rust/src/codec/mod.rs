@@ -38,6 +38,7 @@ pub mod error;
 pub mod exchange;
 pub mod frame;
 pub mod geometry;
+mod load;
 pub mod measurements;
 pub mod reply;
 pub mod spread;
@@ -60,6 +61,7 @@ pub use error::{Error, Result};
 pub use exchange::{Exchange, Exchanges, Step};
 pub use frame::Frame;
 pub use geometry::Geometry;
+pub use load::{ListedModel, Listing};
 pub use measurements::{Ble as BleMeasurements, FrameRate, FrameRates, Measurements};
 pub use reply::Captured;
 pub use spread::Spread;
@@ -105,6 +107,8 @@ struct Inner {
     /// The shared command tables an `include:` resolves against, by name. An
     /// overlay resolves against these too.
     families: BTreeMap<String, Family>,
+    /// The listings the catalog was built with, every model included.
+    listings: Vec<Listing>,
 }
 
 impl Catalog {
@@ -117,7 +121,11 @@ impl Catalog {
     /// [`Error::DeviceFile`] if an embedded file does not parse, or
     /// [`Error::DuplicateSku`] if two of them claim the same SKU.
     pub fn embedded() -> Result<Self> {
-        Self::from_sources_with(EMBEDDED.iter().copied(), EMBEDDED_FAMILIES.iter().copied())
+        Self::from_parts(
+            EMBEDDED.iter().copied(),
+            EMBEDDED_FAMILIES.iter().copied(),
+            EMBEDDED_LISTINGS.iter().copied(),
+        )
     }
 
     /// Build a catalog from `(file name, YAML)` pairs.
@@ -144,14 +152,39 @@ impl Catalog {
         sources: impl IntoIterator<Item = (&'a str, &'a str)>,
         families: impl IntoIterator<Item = (&'b str, &'b str)>,
     ) -> Result<Self> {
+        Self::from_parts(sources, families, [])
+    }
+
+    /// [`Catalog::from_sources_with`], plus listings: `(file name, YAML)`
+    /// pairs of `devices/listed/`. A model of a listing resolves only where no
+    /// device file claims its SKU.
+    ///
+    /// # Errors
+    ///
+    /// See [`Catalog::from_sources_with`]. [`Error::DuplicateSku`] also covers
+    /// a SKU that two listings, or one listing twice, name.
+    pub fn from_parts<'a, 'b, 'c>(
+        sources: impl IntoIterator<Item = (&'a str, &'a str)>,
+        families: impl IntoIterator<Item = (&'b str, &'b str)>,
+        listings: impl IntoIterator<Item = (&'c str, &'c str)>,
+    ) -> Result<Self> {
         let mut inner = Inner::default();
         for (file, yaml) in families {
-            let family = parse_family(file, yaml)?;
+            let family = load::parse_family(file, yaml)?;
             inner.families.insert(family.family.clone(), family);
         }
         for (file, yaml) in sources {
             let device = inner.parse_device(file, yaml)?;
             inner.push(device, file)?;
+        }
+        let claimed = inner.index.clone();
+        for (file, yaml) in listings {
+            let (listing, devices) =
+                inner.parse_listing(file, yaml, &|sku| claimed.contains_key(sku))?;
+            for device in devices {
+                inner.push(device, file)?;
+            }
+            inner.listings.push(listing);
         }
         Ok(Self(Arc::new(inner)))
     }
@@ -223,9 +256,13 @@ impl Catalog {
         self.0.device(sku)
     }
 
-    /// Every device file in the catalog.
+    /// Every device file in the catalog. A model of a listing is not one: see
+    /// [`Catalog::listed`].
     pub fn devices(&self) -> impl Iterator<Item = &Device> {
-        self.0.devices.iter()
+        self.0
+            .devices
+            .iter()
+            .filter(|device| device.listing.is_none())
     }
 
     /// Every capability name that a device of the catalog declares.
@@ -255,7 +292,7 @@ impl Inner {
     /// Parse a device file, merge in every table it includes, then apply the
     /// patches the file declares against them.
     fn parse_device(&self, file: &str, yaml: &str) -> Result<Device> {
-        let mut device = parse(file, yaml)?;
+        let mut device = load::parse(file, yaml)?;
         // Read before the merge, so an `overrides:` entry that names a local
         // command is refused rather than applied.
         let local = Mode::ALL.map(|mode| {
@@ -311,14 +348,19 @@ impl Inner {
     /// Point every key a device answers to at `position`.
     ///
     /// `aliases` are SKUs verified to behave identically, so they resolve.
-    /// `candidate_aliases` deliberately do not: an unverified lookalike must
-    /// read as an unknown SKU, not as a supported device.
+    /// `candidate_aliases` do not: an unverified lookalike resolves only as
+    /// a model of a listing. A device file takes a key from a listed model.
     fn claim_keys(&mut self, device: &Device, position: usize, file: &str) -> Result<()> {
         let keys = std::iter::once(device.sku.clone()).chain(device.aliases.iter().cloned());
         for key in keys {
             let key = key.to_uppercase();
             if let Some(previous) = self.index.get(&key)
                 && *previous != position
+                && (device.listing.is_some()
+                    || self
+                        .devices
+                        .get(*previous)
+                        .is_none_or(|d| d.listing.is_none()))
             {
                 return Err(Error::DuplicateSku {
                     sku: key,
@@ -342,35 +384,6 @@ impl Inner {
                 sku: sku.to_owned(),
             })
     }
-}
-
-fn parse(file: &str, yaml: &str) -> Result<Device> {
-    let device: Device = serde_norway::from_str(yaml).map_err(|e| Error::DeviceFile {
-        file: file.to_owned(),
-        source: Box::new(e),
-    })?;
-    check_version(file, device.schema_version)?;
-    Ok(device)
-}
-
-fn parse_family(file: &str, yaml: &str) -> Result<Family> {
-    let family: Family = serde_norway::from_str(yaml).map_err(|e| Error::DeviceFile {
-        file: file.to_owned(),
-        source: Box::new(e),
-    })?;
-    check_version(file, family.schema_version)?;
-    Ok(family)
-}
-
-fn check_version(file: &str, found: u32) -> Result<()> {
-    if found == SCHEMA_VERSION {
-        return Ok(());
-    }
-    Err(Error::SchemaVersion {
-        file: file.to_owned(),
-        found,
-        supported: SCHEMA_VERSION,
-    })
 }
 
 /// A frame as lowercase hex, for a test that compares against a capture.

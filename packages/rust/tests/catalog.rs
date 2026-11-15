@@ -41,19 +41,20 @@ fn verified_aliases_resolve() {
     }
 }
 
-/// A lookalike that has not been verified must read as an unknown SKU. Silently
-/// serving it the neighbouring device's protocol is exactly the inference
-/// `devices/README.md` forbids.
+/// A lookalike that has not been verified must not receive the protocol of the
+/// file that names it. It resolves to a model of a listing, or to nothing.
 #[test]
-fn candidate_aliases_do_not_resolve() {
+fn candidate_aliases_never_resolve_to_the_file_that_names_them() {
     let catalog = Catalog::embedded().expect("embedded catalog");
     for device in catalog.devices() {
         for candidate in &device.candidate_aliases {
-            assert!(
-                catalog.device(candidate).is_err(),
-                "`{candidate}` is only a candidate alias of {} and must not resolve",
-                device.sku
-            );
+            if let Ok(found) = catalog.device(candidate) {
+                assert!(
+                    found.listing.is_some(),
+                    "`{candidate}` is only a candidate alias of {} and resolves to a device file",
+                    device.sku
+                );
+            }
         }
     }
 }

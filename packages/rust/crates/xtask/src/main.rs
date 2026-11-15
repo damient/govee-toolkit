@@ -1,10 +1,11 @@
 //! Repository tasks, each of them generating something from a data file.
 //!
-//! - `xtask catalog [path]` — the distributable catalog.
+//! - `xtask catalog [path]` — the distributable catalog, listings included.
 //! - `xtask api [--check]` — `dist/api.json`, the methods of each role.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //! - `xtask dmx [--check]` — the tables in `docs/dmx-profiles.md`.
-//! - `xtask lan [--check]` — the tables in `docs/lan-supported-devices.md`.
+//! - `xtask lan [--check]` — the tables in `docs/lan-supported-devices.md`, and
+//!   the `models:` list of `devices/listed/govee-lan.yaml`.
 //! - `xtask dupes` — command layouts two device files declare, and no shared
 //!   table carries.
 //!
@@ -26,10 +27,10 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
-use govee_toolkit::codec::{Catalog, Device, SCHEMA_VERSION};
-use govee_toolkit::profile;
+use govee_toolkit::codec::Catalog;
 
 mod api;
+mod catalog;
 mod dmx;
 mod dupes;
 mod lan;
@@ -47,7 +48,7 @@ fn main() {
             let devices = root.join("devices");
             dupes::dupes(&load(&devices), &load_families(&devices));
         }
-        Some("catalog") | None => catalog(&root, args.get(1).map(PathBuf::from)),
+        Some("catalog") | None => catalog::catalog(&root, args.get(1).map(PathBuf::from)),
         Some(other) => {
             eprintln!(
                 "unknown task `{other}`; expected `catalog`, `api`, `compat`, `dmx`, `lan` or `dupes`"
@@ -57,42 +58,13 @@ fn main() {
     }
 }
 
-/// `devices/*.yaml` into one JSON document.
-///
-/// The crate loads the files, so the catalog says what the SDK reads. It is
-/// flat: an `include:` and an `overrides:` block are applied before this, and
-/// neither reaches the file.
-fn catalog(root: &Path, out: Option<PathBuf>) {
-    let devices = root.join("devices");
-    let out = out.unwrap_or_else(|| root.join("dist/catalog.json"));
-
-    let catalog = build_catalog(&devices);
-
-    let entries: Vec<serde_json::Value> = catalog.devices().map(device_json).collect();
-    let document = serde_json::json!({
-        "schema_version": SCHEMA_VERSION,
-        "generator": "packages/rust/crates/xtask",
-        "devices": entries,
-    });
-
-    write_json(&out, &document);
-    println!("{} devices -> {}", entries.len(), out.display());
-}
-
-/// One device file, plus the `dmx` channel table derived from it.
-fn device_json(device: &Device) -> serde_json::Value {
-    let mut value = serde_json::to_value(device).expect("serialize the device");
-    if let Some(object) = value.as_object_mut() {
-        object.insert("dmx".to_owned(), profile::report::entry(device));
-    }
-    value
-}
-
-/// The catalog the SDK loads, built from `devices/*.yaml`.
-fn build_catalog(devices: &Path) -> Catalog {
+/// The catalog the SDK loads, built from `devices/*.yaml` and
+/// `devices/listed/*.yaml`.
+pub(crate) fn build_catalog(devices: &Path) -> Catalog {
     let sources = read_all(&yaml_files(devices));
     let families = read_all(&yaml_files(&devices.join("families")));
-    Catalog::from_sources_with(borrow(&sources), borrow(&families))
+    let listings = read_all(&yaml_files(&devices.join("listed")));
+    Catalog::from_parts(borrow(&sources), borrow(&families), borrow(&listings))
         .unwrap_or_else(|e| panic!("{e}"))
 }
 
@@ -118,12 +90,21 @@ fn lan(root: &Path, check: bool) {
     let text = read(&path);
     let list: serde_json::Value =
         serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let listing = root.join("devices/listed/govee-lan.yaml");
+    if !lan::listing(&listing, &list, check) {
+        eprintln!(
+            "{} is out of date with its data. Run `cargo run -p xtask -- lan`.",
+            listing.display()
+        );
+        process::exit(1);
+    }
+    let catalog = build_catalog(&root.join("devices"));
     generate(
         &root.join("docs/lan-supported-devices.md"),
         "lan",
         &[
             ("lan-source", lan::source_block(&list)),
-            ("lan-models", lan::model_table(&list)),
+            ("lan-models", lan::model_table(&list, &catalog)),
         ],
         check,
     );
@@ -354,7 +335,7 @@ fn read(path: &Path) -> String {
     fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()))
 }
 
-fn write_json(out: &Path, document: &serde_json::Value) {
+pub(crate) fn write_json(out: &Path, document: &serde_json::Value) {
     if let Some(parent) = out.parent() {
         fs::create_dir_all(parent).unwrap_or_else(|e| panic!("{}: {e}", parent.display()));
     }
