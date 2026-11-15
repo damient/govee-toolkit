@@ -1,5 +1,6 @@
 // Nothing here names a model or a command: the device files own them.
 
+import { categoryBadge, categoryOptions, deviceTrail } from "./categories.ts";
 import { MODES } from "./config.ts";
 import { crumbs } from "./crumbs.ts";
 import { dmx } from "./device-dmx.ts";
@@ -43,22 +44,18 @@ function label(key: string): string {
   return CAP_LABELS.get(key) ?? key.replaceAll("_", " ");
 }
 
-export function renderIndex(template: string, devices: Device[]): string {
+/** The device list. `current` names the category of a category page, which
+ * lists the rows of that category alone. */
+export function renderIndex(template: string, devices: Device[], current?: string): string {
+  const rows = current === undefined ? devices : devices.filter((d) => d.category === current);
   return fill(template, {
-    devices_rows: devices.map((d) => row(d)).join("\n"),
-    devices_categories: categories(devices),
-    caps_legend: capsLegend(devices),
+    devices_rows: rows.map((d) => row(d)).join("\n"),
+    devices_categories: categoryOptions(devices, current),
+    caps_legend: capsLegend(rows),
     check_mark: CHECK,
+    devices_heading: current === undefined ? "Which Govee lights work." : `Govee ${escapeHtml(current)}`,
+    devices_scope: current === undefined ? "in the catalog" : `in ${escapeAttr(current)}`,
   });
-}
-
-function categories(devices: Device[]): string {
-  const tally = new Map<string, number>();
-  for (const d of devices) if (d.category !== undefined) tally.set(d.category, (tally.get(d.category) ?? 0) + 1);
-  return [...tally]
-    .toSorted(([a], [b]) => a.localeCompare(b))
-    .map(([name, n]) => `<option value="${escapeAttr(name)}">${escapeHtml(name)} (${n})</option>`)
-    .join("\n          ");
 }
 
 // A mode that reaches no capability shows its state instead.
@@ -105,8 +102,7 @@ function row(d: Device): string {
     + `<td>${dmxCell(d)}</td>`;
   const names = [d.sku, d.name, ...(d.aliases ?? [])].join(" ").toLowerCase();
   const mark = d.listing === undefined ? "" : ` ${infoBadge()}`;
-  const category = d.category === undefined ? "" : ` data-category="${escapeAttr(d.category)}"`;
-  return `          <tr class="has-page" data-search="${escapeAttr(names)}"${category}>
+  return `          <tr class="has-page" data-search="${escapeAttr(names)}">
             <th scope="row"><a href="{{base}}devices/${escapeAttr(d.sku)}/">${escapeHtml(d.sku)}</a></th>
             <td class="shape">${shapeIcon(d.shape ?? d.family)}</td>
             <td>${escapeHtml(d.name)}${mark}</td>${cells}
@@ -118,7 +114,7 @@ function row(d: Device): string {
  * title, the description and the body, and never touches the file system.
  */
 export function devicePage(d: Device, reference: Reference) {
-  const trail: Crumb[] = [["Devices", "devices/"], [d.sku, `devices/${d.sku}/`]];
+  const trail = deviceTrail(d);
   return {
     url: `devices/${d.sku}/`,
     title: `Govee ${d.sku} — ${d.name}`,
@@ -157,7 +153,7 @@ function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {
   <div class="shell">
     ${crumbs(trail)}
     <h1>${title}</h1>
-    <p class="mode-line">${d.listing === undefined ? familyBadge(d.family) : ""}${reached(d).map((m) => modeBadge(m)).join("")}${hasDmx(d) ? dmxBadge() : ""}${badges(d)}</p>
+    <p class="mode-line">${categoryBadge(d)}${d.listing === undefined ? familyBadge(d.family) : ""}${reached(d).map((m) => modeBadge(m)).join("")}${hasDmx(d) ? dmxBadge() : ""}${badges(d)}</p>
   </div>
 </section>
 

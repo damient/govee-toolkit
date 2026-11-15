@@ -8,6 +8,7 @@ import { assets } from "./lib/assets.ts";
 import { DESCRIPTION, SITE_URL, base, dist, repo, repoUrl, root } from "./lib/config.ts";
 import { type Doc, docPage, readDocs } from "./lib/content.ts";
 import { sweepStaging, watchSources } from "./lib/dev.ts";
+import { categoryPages } from "./lib/categories.ts";
 import { crumbs } from "./lib/crumbs.ts";
 import { devicePage, renderIndex } from "./lib/devices.ts";
 import { everyModel } from "./lib/listed.ts";
@@ -107,6 +108,7 @@ async function main(): Promise<void> {
   const devices = everyModel(catalog, await readCategories());
   const all: Page[] = [
     ...(await sourcePages(devices)),
+    ...(await categoryPages(devices, renderIndex)),
     ...devices.map((device) => deviceEntry(device, reference)),
     ...docPages(docs, nav, docsHome, reference, api),
     faq,

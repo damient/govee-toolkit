@@ -67,6 +67,7 @@ export function deviceData(
     url: `${SITE_URL}${base}${page.url}`,
     inLanguage: "en",
     isPartOf: { "@type": "WebSite", name: "Govee Toolkit", url: `${SITE_URL}${base}` },
+    ...(device.category === undefined ? {} : { articleSection: device.category }),
     ...(filled(device.verified?.date) ? { dateModified: device.verified.date } : {}),
   };
 }

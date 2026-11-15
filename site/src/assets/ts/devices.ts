@@ -1,6 +1,7 @@
 import { toast } from "./toast.ts";
 
-// The category select ships `hidden`: without this script it filters nothing.
+// The category select ships `hidden`: without this script it navigates nowhere.
+// Each option is the URL of a category page, and the search carries over in `q`.
 export function filter(input: HTMLInputElement): void {
   const rows = [...document.querySelectorAll<HTMLTableRowElement>("[data-rows] tr")];
   const count = document.querySelector<HTMLElement>("[data-filter-count]");
@@ -9,25 +10,33 @@ export function filter(input: HTMLInputElement): void {
 
   const apply = () => {
     const needle = input.value.trim().toLowerCase();
-    const group = category?.value ?? "";
     let shown = 0;
     for (const row of rows) {
-      const match = (!needle || (row.dataset.search ?? "").includes(needle))
-        && (!group || row.dataset.category === group);
+      const match = !needle || (row.dataset.search ?? "").includes(needle);
       if (row.hidden === match) row.hidden = !match;
       if (match) shown += 1;
     }
     if (count) {
-      count.textContent = needle || group
+      count.textContent = needle
         ? `${shown} of ${total} models match.`
         : `${total} models ${count.dataset.filterScope ?? "in the catalog"}.`;
     }
   };
 
+  const query = new URLSearchParams(location.search).get("q");
+  if (query !== null) input.value = query;
   input.addEventListener("input", apply);
   if (category) {
     category.hidden = false;
-    category.addEventListener("change", apply);
+    category.addEventListener("change", () => {
+      const needle = input.value.trim();
+      location.assign(needle ? `${category.value}?q=${encodeURIComponent(needle)}` : category.value);
+    });
+    // A page restored from the history keeps the option the reader left it with.
+    addEventListener("pageshow", () => {
+      const own = [...category.options].find((o) => o.defaultSelected);
+      if (own) category.value = own.value;
+    });
   }
   apply();
 }

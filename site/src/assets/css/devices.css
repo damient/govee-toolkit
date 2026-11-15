@@ -79,6 +79,8 @@
   display: inline-flex; align-items: center; font: 500 12px/1 var(--mono);
   letter-spacing: .04em; padding: 5px 11px 5px 9px; border-radius: 999px;
   border: 1px solid var(--line-strong); color: var(--muted);
+  /* The height a 14px icon gives `.mbadge`, for a badge that carries none. */
+  min-height: 26px;
 }
 .badge-ok { color: var(--cyan); border-color: color-mix(in oklab, var(--cyan) 45%, transparent); }
 .badge-icon { width: 14px; height: 14px; flex: none; margin-right: 7px; }
@@ -108,6 +110,9 @@
    mode: it takes the neutral tint so that it reads as a label and not as a
    fourth mode. */
 .mbadge-family { --tint: var(--muted); }
+/* The category badge links to the page of its category. */
+.mbadge-category { --tint: var(--muted); text-decoration: none; }
+.mbadge-category:hover { --tint: var(--text); }
 .mbadge .family-icon { width: 14px; height: 14px; color: inherit; }
 .badge-unknown { border-style: dashed; }
 
