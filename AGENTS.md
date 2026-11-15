@@ -270,6 +270,9 @@ commit.
 reading the result off a pull request. `tools/qa-site.sh` does the same for the
 site, and `qa.sh` runs it as one of its checks.
 
+**A coding agent does not run these scripts.** Give the user the command
+from the table below, and let the user run it.
+
 Run the narrowest form that covers the change, and the full run before you
 push:
 
