@@ -54,6 +54,26 @@ export function breadcrumb(trail: Crumb[]): LinkedData {
   };
 }
 
+/** A page that lists `items`, as `[name, url]` pairs. */
+export function collectionData(name: string, url: string, items: Crumb[]): LinkedData {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name,
+    url: `${SITE_URL}${base}${url}`,
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: items.length,
+      itemListElement: items.map(([item, at], index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: item,
+        url: `${SITE_URL}${base}${at}`,
+      })),
+    },
+  };
+}
+
 /** One model page. `dateModified` is left out when nobody verified the model. */
 export function deviceData(
   device: Device,

@@ -4,12 +4,15 @@
 // file.
 
 import { MODES } from "./config.ts";
-import { escapeHtml, filled } from "./html.ts";
-import { badgeIcon, familyIcon, modeIcon } from "./icons.ts";
+import { categoryUrl } from "./categories.ts";
+import { escapeAttr, escapeHtml, filled } from "./html.ts";
+import { badgeIcon, familyIcon, modeIcon, shapeIcon } from "./icons.ts";
 import type { Mode } from "./types.ts";
 
-const badge = (kind: string, iconHtml: string, text: string): string =>
-  `<span class="mbadge mbadge-${kind}">${iconHtml}${text}</span>`;
+const badge = (kind: string, iconHtml: string, text: string, href?: string): string =>
+  href === undefined
+    ? `<span class="mbadge mbadge-${kind}">${iconHtml}${text}</span>`
+    : `<a class="mbadge mbadge-${kind}" href="${escapeAttr(href)}">${iconHtml}${text}</a>`;
 
 /** One badge, naming the mode. */
 export function modeBadge(mode: Mode): string {
@@ -33,6 +36,14 @@ export function dmxBadge(): string {
  * It takes the same box as a mode badge: the two sit on one line. */
 export function familyBadge(family: string | undefined): string {
   return filled(family) ? badge("family", familyIcon(family), escapeHtml(family)) : "";
+}
+
+/** One badge, naming the category of a model and linking to its page. Empty
+ * where the model has no category. */
+export function categoryBadge(category: string | undefined, shape: string | undefined): string {
+  return category === undefined
+    ? ""
+    : badge("category", shapeIcon(shape), escapeHtml(category), `{{base}}${categoryUrl(category)}`);
 }
 
 /** One `{{badge_<mode>}}` variable per mode, so a static page names a mode

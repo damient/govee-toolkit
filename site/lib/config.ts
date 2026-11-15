@@ -20,13 +20,13 @@ export const DESCRIPTION = "An unofficial toolkit that controls Govee lights fro
 
 /** The catalog `xtask` writes, and the schema the renderers read. */
 export const catalogPath = join(repo, "dist/catalog.json");
-
-/** Govee's list of LAN Control models. The device list reads its categories. */
-export const lanListPath = join(repo, "docs/lan-supported-devices.json");
 export const CATALOG_SCHEMA = 1;
 
 /** The parameters of every method, which `xtask api` writes. */
 export const apiPath = join(repo, "dist/api.json");
+
+/** Govee's list of LAN Control models. The device list reads its categories. */
+export const lanListPath = join(repo, "docs/lan-supported-devices.json");
 
 /** The modes a device file can declare, in the order a reader looks for. */
 export const MODES: readonly Mode[] = ["lan", "ble", "cloud"];

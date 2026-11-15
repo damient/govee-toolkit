@@ -28,7 +28,8 @@ pages so that the header, the footer and the device tables exist once.
 
 The build needs Node 26 or later. The devices page reads
 `../dist/catalog.json`, which `xtask` generates from `devices/*.yaml` and
-`devices/listed/*.yaml`. The reference page reads `../dist/api.json`, which
+`devices/listed/*.yaml`, and `../docs/lan-supported-devices.json` for the
+categories. The reference page reads `../dist/api.json`, which
 `xtask api` extracts from the code of each language. Generate the two files
 first:
 
@@ -46,7 +47,8 @@ npm run dev     # http://localhost:8787
 ```
 
 It serves `dist/` and rebuilds on every change under `src/` and `content/`,
-and on a new `../dist/catalog.json` or `../dist/api.json`. An open page
+and on a new `../dist/catalog.json`, `../dist/api.json` or
+`../docs/lan-supported-devices.json`. An open page
 follows the rebuild: a change to a stylesheet replaces the styles in place, and
 any other change reloads the page. A change to `build.ts` or `lib/` restarts the process,
 because Node keeps an imported module in memory. `PORT` selects another port.

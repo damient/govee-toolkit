@@ -32,6 +32,7 @@ interface Source {
   render?: (template: string, devices: Device[]) => string;
   trail?: Crumb[];
   description?: string;
+  jsonld?: Record<string, unknown>[];
 }
 
 /** One page, ready for the layout. */
@@ -82,8 +83,7 @@ const pages: Source[] = [
 const FOOT_SKIP = new Set(["docs/configure/", "docs/targets/", "docs/dmx/", "docs/mcp/", "docs/troubleshooting/"]);
 
 async function main(): Promise<void> {
-  const catalog = await readCatalog();
-  const api = await readApi();
+  const [catalog, api, categories] = await Promise.all([readCatalog(), readApi(), readCategories()]);
   await stage();
   const [, css, layout, docs, reference, faq] = await Promise.all([
     writeFile(join(out, ".nojekyll"), ""),
@@ -105,16 +105,16 @@ async function main(): Promise<void> {
     .join("\n          ");
   const ctx: Context = { css, docsHome, docNav, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
 
-  const devices = everyModel(catalog, await readCategories());
+  const devices = everyModel(catalog, categories);
   const all: Page[] = [
-    ...(await sourcePages(devices)),
-    ...(await categoryPages(devices, renderIndex)),
+    ...(await sourcePages([...pages, ...categoryPages(devices, renderIndex)], devices)),
     ...devices.map((device) => deviceEntry(device, reference)),
     ...docPages(docs, nav, docsHome, reference, api),
     faq,
     NOT_FOUND,
   ];
 
+  unique([...all.map((page) => page.url), ...Object.keys(MOVED)]);
   const written = await Promise.all(all.map((page) => emit(layout, page, ctx)));
   const sitemap = written.filter((url) => url !== null);
 
@@ -145,14 +145,36 @@ async function stage(): Promise<void> {
   }
 }
 
-function sourcePages(devices: Device[]): Promise<Page[]> {
-  return Promise.all(pages.map(async (page) => {
-    const source = await readFile(join(root, "src/pages", page.src), "utf8");
-    const jsonld = page.url === "" ? homeData() : page.trail ? [breadcrumb(page.trail)] : [];
+// Throws where two pages take one URL. A file system can ignore case, so the
+// check does too.
+function unique(urls: string[]): void {
+  const seen = new Set<string>();
+  for (const url of urls) {
+    const key = url.toLowerCase();
+    if (seen.has(key)) throw new Error(`two pages take ${url}`);
+    seen.add(key);
+  }
+}
+
+// Each template is read once: every category page shares the one of the
+// devices page.
+function sourcePages(sources: Source[], devices: Device[]): Promise<Page[]> {
+  const templates = new Map<string, Promise<string>>();
+  const read = (src: string): Promise<string> => {
+    const known = templates.get(src);
+    if (known !== undefined) return known;
+    const template = readFile(join(root, "src/pages", src), "utf8");
+    templates.set(src, template);
+    return template;
+  };
+  return Promise.all(sources.map(async (page) => {
+    const source = await read(page.src);
+    const trailData = page.trail ? [breadcrumb(page.trail)] : [];
+    const jsonld = page.url === "" ? homeData() : [...trailData, ...(page.jsonld ?? [])];
     const body = fill(page.render ? page.render(source, devices) : source, {
       crumbs: page.trail ? crumbs(page.trail) : "",
     });
-    return Object.assign({ jsonld, body }, page);
+    return Object.assign({}, page, { jsonld, body });
   }));
 }
 

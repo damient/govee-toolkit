@@ -1,6 +1,6 @@
 // Nothing here names a model or a command: the device files own them.
 
-import { categoryBadge, categoryOptions, deviceTrail } from "./categories.ts";
+import { categoryOptions, deviceTrail } from "./categories.ts";
 import { MODES } from "./config.ts";
 import { crumbs } from "./crumbs.ts";
 import { dmx } from "./device-dmx.ts";
@@ -8,7 +8,7 @@ import { usage } from "./device-usage.ts";
 import { DASH, escapeAttr, escapeHtml, fill, filled } from "./html.ts";
 import { icon, shapeIcon, sharesMark } from "./icons.ts";
 import { infoBadge, listedFile, listedVerification } from "./listed.ts";
-import { dmxBadge, familyBadge, modeBadge } from "./mode-badge.ts";
+import { categoryBadge, dmxBadge, familyBadge, modeBadge } from "./mode-badge.ts";
 import type { Capability, Crumb, Device, Mode, Reference, Support } from "./types.ts";
 
 // The order a reader looks for, not the order the catalog holds.
@@ -27,7 +27,6 @@ const CAP_ORDER = new Map(CAPS.map(([key], at) => [key, at]));
 
 /** Sort rank of a capability key. An unknown key sorts last. */
 const order = (key: string): number => CAP_ORDER.get(key) ?? CAPS.length;
-
 
 const support = (device: Device, mode: Mode): Support => device.modes?.[mode]?.support ?? "unknown";
 
@@ -126,9 +125,10 @@ export function devicePage(d: Device, reference: Reference) {
 
 const PATHS: Record<Mode, string> = { lan: "Wi-Fi", ble: "Bluetooth", cloud: "the cloud" };
 
-// A listed model reaches what its listing sends, and every mode stays `unknown`.
+// A mode reaches its capabilities while nobody has probed it: a listed model
+// declares them, and every mode of it stays `unknown`.
 const reached = (d: Device): Mode[] => MODES.filter((m) => REACHES.has(support(d, m))
-  || (d.listing !== undefined && (d.modes?.[m]?.capabilities?.length ?? 0) > 0));
+  || (support(d, m) === "unknown" && (d.modes?.[m]?.capabilities?.length ?? 0) > 0));
 
 function describe(d: Device): string {
   const paths = reached(d).map((m) => PATHS[m]);
@@ -136,10 +136,8 @@ function describe(d: Device): string {
   const what = paths.length > 0
     ? `Control ${head} from your own computer, over ${joined(paths)}${hasDmx(d) ? ", and from a DMX desk" : ""}.`
     : `What Govee Toolkit reaches on ${head} is still to probe.`;
-  const when = filled(d.verified?.date)
-    ? ` Verified on ${d.verified.date}.`
-    : d.listing === undefined ? "" : " Untested on this model.";
-  return what + when;
+  if (filled(d.verified?.date)) return `${what} Verified on ${d.verified.date}.`;
+  return d.listing === undefined ? what : `${what} Untested on this model.`;
 }
 
 function joined(words: string[]): string {
@@ -148,12 +146,15 @@ function joined(words: string[]): string {
 
 function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {
   const title = d.name ? `${d.sku} — ${escapeHtml(d.name)}` : d.sku;
+  const [family, check, file] = d.listing === undefined
+    ? [familyBadge(d.family), verification(d), deviceFile(d)]
+    : ["", listedVerification(), listedFile(d)];
 
   return `<section class="pagehead">
   <div class="shell">
     ${crumbs(trail)}
     <h1>${title}</h1>
-    <p class="mode-line">${categoryBadge(d)}${d.listing === undefined ? familyBadge(d.family) : ""}${reached(d).map((m) => modeBadge(m)).join("")}${hasDmx(d) ? dmxBadge() : ""}${badges(d)}</p>
+    <p class="mode-line">${categoryBadge(d.category, d.shape ?? d.family)}${family}${reached(d).map((m) => modeBadge(m)).join("")}${hasDmx(d) ? dmxBadge() : ""}${badges(d)}</p>
   </div>
 </section>
 
@@ -166,8 +167,8 @@ function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {
       ${dmx(d)}
       ${aliases(d)}
       <div class="endgrid">
-        <section>${d.listing === undefined ? verification(d) : listedVerification()}</section>
-        <section>${d.listing === undefined ? deviceFile(d) : listedFile(d)}</section>
+        <section>${check}</section>
+        <section>${file}</section>
       </div>
       <p class="endcta"><a class="btn" href="{{base}}devices/">Discover other devices</a></p>
     </article>

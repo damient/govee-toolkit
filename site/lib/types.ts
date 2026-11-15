@@ -15,6 +15,7 @@ export interface Catalog {
   listings?: Listing[];
 }
 
+/** `docs/lan-supported-devices.json`: the models that carry the LAN switch. */
 export interface LanList {
   models: { sku: string; category: string }[];
 }
@@ -154,5 +155,3 @@ export interface TocEntry {
 
 /** A `[label, url]` pair of a breadcrumb trail. */
 export type Crumb = [string, string];
-
-/** `docs/lan-supported-devices.json`: the models that carry the LAN switch. */
