@@ -4,6 +4,13 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.7.0] — 2026-11-15
+
+### Added
+
+- `Catalog.describe()` resolves a model of Govee's LAN list that no device
+  file describes. The record carries `listing`, `null` for a device file.
+
 ## [0.6.0] — 2026-11-14
 
 ### Added
