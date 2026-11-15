@@ -4,6 +4,13 @@ Changes to `govee-toolkit-mcp`, the MCP server in `integrations/mcp`. It
 versions apart from the binding it wraps and releases under `mcp-vX.Y.Z`. The
 policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.2.0] — 2026-11-15
+
+### Added
+
+- `list_devices` and `describe_device` cover the models of Govee's LAN list
+  that no device file describes. The record carries `listing`.
+
 ## [0.1.0] — 2026-11-14
 
 ### Added

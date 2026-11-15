@@ -1,6 +1,6 @@
 {
   "name": "govee-toolkit-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A local MCP server that describes the Govee device catalog and drives the devices over lan, ble and cloud.",
   "license": "MIT",
   "author": "damient",
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.4.0",
-    "govee-toolkit": "0.6.0",
+    "govee-toolkit": "0.7.0",
     "zod": "4.6.7"
   },
   "devDependencies": {
