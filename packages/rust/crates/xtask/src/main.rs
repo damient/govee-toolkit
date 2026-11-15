@@ -91,13 +91,9 @@ fn lan(root: &Path, check: bool) {
     let list: serde_json::Value =
         serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let listing = root.join("devices/listed/govee-lan.yaml");
-    if !lan::listing(&listing, &list, check) {
-        eprintln!(
-            "{} is out of date with its data. Run `cargo run -p xtask -- lan`.",
-            listing.display()
-        );
-        process::exit(1);
-    }
+    let file = read(&listing);
+    let updated = lan::listing(&listing, &file, &list);
+    write_or_check(&listing, "lan", &file, updated, check);
     let catalog = build_catalog(&root.join("devices"));
     generate(
         &root.join("docs/lan-supported-devices.md"),
@@ -110,16 +106,20 @@ fn lan(root: &Path, check: bool) {
     );
 }
 
-/// Replace each named block of `page`, then write it or check it.
-///
-/// `--check` exits 1 on a difference and names the task that repairs it. The
-/// prose around a block is written by hand and is never touched.
+/// Replace each named block of `page`, then write it or check it. The prose
+/// around a block is written by hand and is never touched.
 fn generate(page: &Path, task: &str, blocks: &[(&str, String)], check: bool) {
     let text = read(page);
     let updated = blocks.iter().fold(text.clone(), |text, (name, body)| {
         replace_block(page, &text, name, body)
     });
+    write_or_check(page, task, &text, updated, check);
+}
 
+/// Write `updated` to `page`, or check that it equals `text`.
+///
+/// `--check` exits 1 on a difference and names the task that repairs it.
+fn write_or_check(page: &Path, task: &str, text: &str, updated: String, check: bool) {
     if check {
         if updated != text {
             eprintln!(

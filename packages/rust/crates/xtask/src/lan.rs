@@ -1,7 +1,6 @@
 //! The tables in `docs/lan-supported-devices.md`, and the `models:` list of
 //! `devices/listed/govee-lan.yaml`.
 
-use std::fs;
 use std::path::Path;
 
 use govee_toolkit::codec::Catalog;
@@ -41,15 +40,13 @@ pub(crate) fn model_table(list: &Value, catalog: &Catalog) -> String {
     out
 }
 
-/// Rewrite the `models:` list of the listing file from `list`, or check it.
-/// Returns `false` where `check` finds a difference.
-pub(crate) fn listing(path: &Path, list: &Value, check: bool) -> bool {
-    let text_now = fs::read_to_string(path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    let start = text_now
+/// `file` with its `models:` list rebuilt from `list`.
+pub(crate) fn listing(path: &Path, file: &str, list: &Value) -> String {
+    let start = file
         .find(MODELS)
         .unwrap_or_else(|| panic!("{} has no `models:` line", path.display()))
         + MODELS.len();
-    let mut updated = text_now[..start].to_owned();
+    let mut updated = file[..start].to_owned();
     for model in sorted(list) {
         updated.push_str(&format!(
             "  - {{ sku: {}, name: {} }}\n",
@@ -57,12 +54,7 @@ pub(crate) fn listing(path: &Path, list: &Value, check: bool) -> bool {
             quoted(&model_name(text(model, "name"))),
         ));
     }
-    if check {
-        return updated == text_now;
-    }
-    fs::write(path, updated).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    println!("{} regenerated", path.display());
-    true
+    updated
 }
 
 /// Every model is a Govee device, so the list drops the word from the name.
@@ -76,9 +68,9 @@ fn sorted(list: &Value) -> Vec<&Value> {
     rows
 }
 
-/// A YAML double-quoted scalar.
+/// A YAML double-quoted scalar: a JSON string is one.
 fn quoted(value: &str) -> String {
-    format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
+    Value::from(value).to_string()
 }
 
 fn models(list: &Value) -> &[Value] {
