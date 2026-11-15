@@ -1,7 +1,3 @@
-// One page per category of Govee's LAN list, at `devices/<slug>/`. The device
-// list renders it from the template of the devices page, with the rows of that
-// category alone.
-
 import { escapeAttr, escapeHtml, slugify } from "./html.ts";
 import { collectionData } from "./seo.ts";
 import type { Crumb, Device } from "./types.ts";

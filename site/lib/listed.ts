@@ -1,14 +1,9 @@
-// A model of a listing has no device file: it shares the definition of
-// `devices/listed/<listing>.yaml`.
-
 import { escapeAttr } from "./html.ts";
 import type { Catalog, Device } from "./types.ts";
 
 const TIP = "Untested for this model";
 
-// The icon of a listed model with no candidate shape: the first rule whose
-// words all match the name, else the one of its category. The words and the
-// categories name a shape of product, never a model.
+// A rule and a category name a shape of product, never a model.
 const SHAPE_WORDS: [RegExp[], string][] = [
   [[/\bstrip\b/iu, /\brgbic/iu], "rgbic-neon-rope"],
   [[/\bcone\b/iu], "tree"],
@@ -27,7 +22,6 @@ const SHAPE_CATEGORIES = new Map([
   ["Pixel Light", "pixel-light"],
 ]);
 
-// The icon of a listed model that no rule and no category draws.
 const FALLBACK_WORDS: [RegExp, string][] = [[/\bstrip\b/iu, "rgb-car-strip"]];
 
 function shapeOf(name: string, category: string | undefined): string | undefined {

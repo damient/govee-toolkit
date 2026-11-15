@@ -16,7 +16,8 @@ Check these, in order:
 2. **One network.** Your computer and the light must be on the same network.
    Guest Wi-Fi and some mesh setups keep them apart, even in one house.
 3. **The model carries the switch.** Not every model does. Look for it on
-   [the devices page]({{base}}devices/), which lists Govee's own list of them.
+   [the devices page]({{base}}devices/), which lists every model that Govee
+   gives the switch.
 4. **Your firewall.** Discovery uses multicast on UDP. A firewall that drops it
    makes every device invisible.
 

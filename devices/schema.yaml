@@ -563,3 +563,18 @@ verified:
   firmware: ""          # wifi / ble firmware version tested against
   date: ""              # YYYY-MM-DD
   notes: ""             # what was actually exercised, and what was not
+
+# A listing, `listed/<name>.yaml`, is a different file. It gives one definition
+# to many models that nobody verified:
+#
+#   schema_version: 1
+#   listing: ""         # required — the name that `describe` and catalog.json
+#                       # give each of its models
+#   source: ""          # required — the repository path of the model list
+#   device: {}          # required — the body of a device file, with no `sku`
+#                       # and no `name`
+#   models:             # required — one entry per SKU
+#     - { sku: "", name: "" }
+#
+# A SKU or an `aliases:` entry of a device file wins over the listing. A SKU
+# that two listings name, or one listing twice, fails to load.

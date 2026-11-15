@@ -1,7 +1,6 @@
 import { toast } from "./toast.ts";
 
 // The category select ships `hidden`: without this script it navigates nowhere.
-// Each option is the URL of a category page, and the search carries over in `q`.
 export function filter(input: HTMLInputElement): void {
   const rows = [...document.querySelectorAll<HTMLTableRowElement>("[data-rows] tr")];
   const count = document.querySelector<HTMLElement>("[data-filter-count]");
@@ -32,7 +31,7 @@ export function filter(input: HTMLInputElement): void {
       const needle = input.value.trim();
       location.assign(needle ? `${category.value}?q=${encodeURIComponent(needle)}` : category.value);
     });
-    // A page restored from the history keeps the option the reader left it with.
+    // The back-forward cache restores the option that the reader chose.
     addEventListener("pageshow", () => {
       const own = [...category.options].find((o) => o.defaultSelected);
       if (own) category.value = own.value;

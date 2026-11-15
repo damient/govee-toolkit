@@ -1,5 +1,4 @@
-//! The tables in `docs/lan-supported-devices.md`, and the `models:` list of
-//! `devices/listed/govee-lan.yaml`.
+//! `docs/lan-supported-devices.md` and `devices/listed/govee-lan.yaml`.
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -7,7 +6,7 @@ use std::path::Path;
 use govee_toolkit::codec::Catalog;
 use serde_json::Value;
 
-/// The line after which `devices/listed/govee-lan.yaml` is generated.
+/// Everything after this line of `govee-lan.yaml` is generated.
 const MODELS: &str = "\nmodels:\n";
 
 pub(crate) fn source_block(list: &Value) -> String {
@@ -19,8 +18,6 @@ pub(crate) fn source_block(list: &Value) -> String {
     )
 }
 
-/// One row per model. `Definition` names the device file that claims the
-/// SKU, or says that the SKU resolves to the listing.
 pub(crate) fn model_table(list: &Value, catalog: &Catalog) -> String {
     let mut out = String::from(
         "| SKU | Model | Category | Definition |\n| --- | ----- | -------- | ---------- |\n",
@@ -41,8 +38,6 @@ pub(crate) fn model_table(list: &Value, catalog: &Catalog) -> String {
     out
 }
 
-/// `file` with its `models:` list rebuilt from `list`, less the SKUs in
-/// `elsewhere`.
 pub(crate) fn listing(
     path: &Path,
     file: &str,
@@ -67,7 +62,6 @@ pub(crate) fn listing(
     updated
 }
 
-/// Every model is a Govee device, so the list drops the word from the name.
 fn model_name(name: &str) -> String {
     name.replace("Govee ", "")
 }
@@ -78,7 +72,7 @@ fn sorted(list: &Value) -> Vec<&Value> {
     rows
 }
 
-/// A YAML double-quoted scalar: a JSON string is one.
+/// A JSON string is a valid YAML double-quoted scalar.
 fn quoted(value: &str) -> String {
     Value::from(value).to_string()
 }

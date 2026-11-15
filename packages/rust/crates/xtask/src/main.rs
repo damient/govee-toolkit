@@ -1,6 +1,6 @@
 //! Repository tasks, each of them generating something from a data file.
 //!
-//! - `xtask catalog [path]` — the distributable catalog, listings included.
+//! - `xtask catalog [path]` — the distributable catalog.
 //! - `xtask api [--check]` — `dist/api.json`, the methods of each role.
 //! - `xtask compat [--check]` — the tables in `docs/compatibility.md`.
 //! - `xtask dmx [--check]` — the tables in `docs/dmx-profiles.md`.
@@ -58,8 +58,6 @@ fn main() {
     }
 }
 
-/// The catalog the SDK loads, built from `devices/*.yaml` and
-/// `devices/listed/*.yaml`.
 pub(crate) fn build_catalog(devices: &Path) -> Catalog {
     let sources = read_all(&yaml_files(devices));
     let families = read_all(&yaml_files(&devices.join("families")));
@@ -106,8 +104,7 @@ fn lan(root: &Path, check: bool) {
     );
 }
 
-/// The SKUs that a listing other than `own` names. The two listings must not
-/// share a SKU, so `own` is left out of the catalog that reads them.
+/// `own` stays out: two listings that share a SKU fail to load.
 fn other_listings(root: &Path, own: &Path) -> BTreeSet<String> {
     let devices = root.join("devices");
     let families = read_all(&yaml_files(&devices.join("families")));
@@ -125,8 +122,6 @@ fn other_listings(root: &Path, own: &Path) -> BTreeSet<String> {
         .collect()
 }
 
-/// Replace each named block of `page`, then write it or check it. The prose
-/// around a block is written by hand and is never touched.
 fn generate(page: &Path, task: &str, blocks: &[(&str, String)], check: bool) {
     let text = read(page);
     let updated = blocks.iter().fold(text.clone(), |text, (name, body)| {
@@ -135,8 +130,6 @@ fn generate(page: &Path, task: &str, blocks: &[(&str, String)], check: bool) {
     write_or_check(page, task, &text, updated, check);
 }
 
-/// Write `updated` to `page`, or check that it equals `text`.
-///
 /// `--check` exits 1 on a difference and names the task that repairs it.
 fn write_or_check(page: &Path, task: &str, text: &str, updated: String, check: bool) {
     if check {

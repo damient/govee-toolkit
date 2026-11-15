@@ -145,8 +145,7 @@ async function stage(): Promise<void> {
   }
 }
 
-// Throws where two pages take one URL. A file system can ignore case, so the
-// check does too.
+// A file system can ignore case, so two URLs that differ in case collide.
 function unique(urls: string[]): void {
   const seen = new Set<string>();
   for (const url of urls) {
@@ -156,8 +155,7 @@ function unique(urls: string[]): void {
   }
 }
 
-// Each template is read once: every category page shares the one of the
-// devices page.
+// Every category page shares the template of the devices page.
 function sourcePages(sources: Source[], devices: Device[]): Promise<Page[]> {
   const templates = new Map<string, Promise<string>>();
   const read = (src: string): Promise<string> => {

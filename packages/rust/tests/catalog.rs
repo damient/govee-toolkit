@@ -41,8 +41,6 @@ fn verified_aliases_resolve() {
     }
 }
 
-/// A lookalike that has not been verified must not receive the protocol of the
-/// file that names it. It resolves to a model of a listing, or to nothing.
 #[test]
 fn candidate_aliases_never_resolve_to_the_file_that_names_them() {
     let catalog = Catalog::embedded().expect("embedded catalog");

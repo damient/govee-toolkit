@@ -1,15 +1,5 @@
-# The models on Govee's own list of LAN-capable devices. Each model resolves to
-# the definition under `device:`, unless a device file of its own, or the
-# `aliases:` of one, claims the SKU. A device file always wins.
-#
-# Nobody verified a model here. The definition carries only what Govee's
-# documented LAN and HTTPS protocols give every model: power, brightness and
-# color. The white temperature is absent: its range is a property of the model,
-# and the firmware clamps a value outside it in silence.
-#
-# `models:` is generated from ../../docs/lan-supported-devices.json, less the
-# SKUs that govee-lan-dimmable.yaml names. Run `cargo run -p xtask -- lan` after
-# a change to either file; CI fails on drift.
+# `cargo run -p xtask -- lan` writes `models:` from
+# ../../docs/lan-supported-devices.json, less the SKUs of govee-lan-dimmable.yaml.
 
 schema_version: 1
 

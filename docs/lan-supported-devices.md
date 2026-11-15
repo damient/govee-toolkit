@@ -12,7 +12,7 @@ with the LAN API specification, in its WLAN guide:
 > ⚠️ This page is a **copy** of Govee's list, kept for offline reference and to
 > make the SKUs searchable and linkable. The data is
 > [`lan-supported-devices.json`](lan-supported-devices.json), and the table
-> below and the model list of the site are generated from it. Govee updates its guide
+> below and the `models:` of `devices/listed/govee-lan.yaml` are generated from it. Govee updates its guide
 > without notice: the source above wins, and a model missing here may have
 > been added after the retrieval date. Re-check the source before concluding a
 > device is unsupported.
@@ -22,10 +22,10 @@ about which *undocumented* commands it accepts. What this project has actually
 verified is tracked separately in [`compatibility.md`](compatibility.md), and
 declared per SKU in [`../devices/`](../devices/).
 
-A model with no device file resolves to
-[`../devices/listed/govee-lan.yaml`](../devices/listed/govee-lan.yaml): power,
-brightness and color over `lan` and `cloud`, not verified on that model. The
-`Definition` column says which file describes each model.
+A model with no device file resolves to a shared definition in
+[`../devices/listed/`](../devices/README.md#models-nobody-verified), which
+nobody verified on that model. The `Definition` column names the device file of
+a model, or marks the model as listed.
 
 ## Enabling LAN control
 

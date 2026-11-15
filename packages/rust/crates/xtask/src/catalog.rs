@@ -1,5 +1,4 @@
-//! `dist/catalog.json`: the device files and the listings, as the SDK loads
-//! them.
+//! `dist/catalog.json`: the device files and the listings.
 
 use std::path::{Path, PathBuf};
 
@@ -8,11 +7,6 @@ use govee_toolkit::profile;
 
 use crate::{build_catalog, write_json};
 
-/// `devices/*.yaml` into one JSON document.
-///
-/// The crate loads the files, so the catalog says what the SDK reads. It is
-/// flat: an `include:` and an `overrides:` block are applied before this, and
-/// neither reaches the file.
 pub(crate) fn catalog(root: &Path, out: Option<PathBuf>) {
     let devices = root.join("devices");
     let out = out.unwrap_or_else(|| root.join("dist/catalog.json"));
@@ -31,7 +25,6 @@ pub(crate) fn catalog(root: &Path, out: Option<PathBuf>) {
     println!("{} devices -> {}", entries.len(), out.display());
 }
 
-/// One device file, plus the `dmx` channel table derived from it.
 fn device_json(device: &Device) -> serde_json::Value {
     let mut value = serde_json::to_value(device).expect("serialize the device");
     if let Some(object) = value.as_object_mut() {
@@ -40,8 +33,7 @@ fn device_json(device: &Device) -> serde_json::Value {
     value
 }
 
-/// Each listing once: the shared definition, and the models that resolve to
-/// it. A model that a device file claims is left out.
+/// A model that a device file claims is left out.
 fn listings_json(catalog: &Catalog) -> Vec<serde_json::Value> {
     catalog
         .listings()

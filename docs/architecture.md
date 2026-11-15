@@ -184,11 +184,13 @@ verbs and the stream resolutions, as the binding types do.
 
 `devices/*.yaml` is the source of truth, one file per SKU. `devices/listed/`
 adds the models of Govee's LAN list that no file describes: each one resolves to
-one shared definition, and the catalog marks it with the name of the listing.
+one shared definition, and its `Device::listing` names the listing.
 `cargo run -p xtask` generates the whole directory into a single
-`catalog.json`, carrying the schema revision it was generated at; CI builds it
-on every run and a release attaches it. A third-party tool reads that one file
-instead of walking a directory and parsing YAML. It is a build output, never committed.
+`catalog.json`, carrying the schema revision it was generated at. The file
+carries each listing once, under `listings`, with the models that resolve to it.
+CI builds it on every run and a release attaches it. A third-party tool reads
+that one file instead of walking a directory and parsing YAML. It is a build
+output, never committed.
 
 `xtask` loads the device files through the crate and serializes the entries it
 holds, so the catalog says what the SDK reads. It is flat: an `include:` and an

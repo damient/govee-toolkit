@@ -1,15 +1,5 @@
-# Models on Govee's list of LAN-capable devices that the phone controller
-# offers no solid color for: projectors, pixel panels, and white lights. Each
-# model resolves to the definition under `device:`, unless a device file of its
-# own, or the `aliases:` of one, claims the SKU. A device file always wins.
-#
-# Nobody verified a model here. The definition carries power and brightness,
-# the part of Govee's documented LAN and HTTPS protocols that these models
-# admit. The white temperature is absent: its range is a property of the model,
-# and the firmware clamps a value outside it in silence.
-#
-# Edit `models:` by hand. `cargo run -p xtask -- lan` leaves out of
-# govee-lan.yaml every SKU that this file names.
+# Write `models:` by hand: the models for which the phone controller offers no
+# solid color. `xtask lan` leaves these SKUs out of govee-lan.yaml.
 
 schema_version: 1
 

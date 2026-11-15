@@ -33,8 +33,7 @@ LIST = ROOT / "docs/lan-supported-devices.json"
 ENDPOINT = "https://app2.govee.com/bff-app/v1/user/guide/device/info?market={market}"
 DISCONTINUED = "Discontinued"
 
-# The first rule whose words all match the name gives the category. Each
-# category is one that the list uses for a model that is still sold.
+# Each category is one that the list uses for a model that is still sold.
 CATEGORY_WORDS: list[tuple[list[str], str]] = [
     ([r"\bceiling\b"], "Ceiling Light"),
     ([r"\bprojector\b"], "Projector Light"),

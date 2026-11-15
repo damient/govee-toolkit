@@ -1,5 +1,4 @@
-//! Embeds `devices/*.yaml`, `devices/families/*.yaml` and
-//! `devices/listed/*.yaml` into the crate.
+//! Embeds `devices/*.yaml`, `devices/families/` and `devices/listed/`.
 //!
 //! The catalog is compiled in, so an SDK ships as a single artifact with no
 //! data directory to install. Adding a SKU therefore means rebuilding — the
@@ -40,9 +39,6 @@ fn main() {
     fs::write(&dest, out).expect("write devices.rs");
 }
 
-/// The YAML files of one subdirectory: the shared command tables under
-/// `families/`, or the model lists under `listed/`. An absent directory is not
-/// an error: a catalog can do without either.
 fn sub_files(devices: &Path, name: &str) -> Vec<PathBuf> {
     let dir = devices.join(name);
     let Ok(entries) = fs::read_dir(&dir) else {

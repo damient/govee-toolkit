@@ -107,7 +107,6 @@ struct Inner {
     /// The shared command tables an `include:` resolves against, by name. An
     /// overlay resolves against these too.
     families: BTreeMap<String, Family>,
-    /// The listings the catalog was built with, every model included.
     listings: Vec<Listing>,
 }
 
@@ -155,14 +154,12 @@ impl Catalog {
         Self::from_parts(sources, families, [])
     }
 
-    /// [`Catalog::from_sources_with`], plus listings: `(file name, YAML)`
-    /// pairs of `devices/listed/`. A model of a listing resolves only where no
-    /// device file claims its SKU.
+    /// [`Catalog::from_sources_with`], plus the pairs of `devices/listed/`.
     ///
     /// # Errors
     ///
-    /// See [`Catalog::from_sources_with`]. [`Error::DuplicateSku`] also covers
-    /// a SKU that two listings, or one listing twice, name.
+    /// As [`Catalog::from_sources_with`], and [`Error::DuplicateSku`] for a SKU
+    /// that two listings, or one listing twice, name.
     pub fn from_parts<'a, 'b, 'c>(
         sources: impl IntoIterator<Item = (&'a str, &'a str)>,
         families: impl IntoIterator<Item = (&'b str, &'b str)>,
@@ -254,8 +251,7 @@ impl Catalog {
         self.0.device(sku)
     }
 
-    /// Every device file in the catalog. A model of a listing is not one: see
-    /// [`Catalog::listed`].
+    /// Every device file; [`Catalog::listed`] gives the listed models.
     pub fn devices(&self) -> impl Iterator<Item = &Device> {
         self.0
             .devices

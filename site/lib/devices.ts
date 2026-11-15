@@ -125,8 +125,7 @@ export function devicePage(d: Device, reference: Reference) {
 
 const PATHS: Record<Mode, string> = { lan: "Wi-Fi", ble: "Bluetooth", cloud: "the cloud" };
 
-// A mode reaches its capabilities while nobody has probed it: a listed model
-// declares them, and every mode of it stays `unknown`.
+// An `unknown` mode that declares capabilities counts: a listed model has no other.
 const reached = (d: Device): Mode[] => MODES.filter((m) => REACHES.has(support(d, m))
   || (support(d, m) === "unknown" && (d.modes?.[m]?.capabilities?.length ?? 0) > 0));
 

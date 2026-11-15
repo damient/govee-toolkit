@@ -1,5 +1,4 @@
-//! The models of `devices/listed/`: what resolves to a listing, and what a
-//! device file takes back.
+//! The models of `devices/listed/`.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
@@ -20,7 +19,6 @@ fn every_listed_model_is_well_formed() {
     );
 }
 
-/// The first model that resolves to `listing`.
 fn first_of<'a>(catalog: &'a Catalog, listing: &str) -> &'a govee_toolkit::codec::Device {
     catalog
         .listed()

@@ -13,10 +13,8 @@ SKU or SKU family. This page is the human-readable view of it — the YAML wins 
 any disagreement.
 
 Every other model on [Govee's LAN list](lan-supported-devices.md) resolves to
-[`../devices/listed/govee-lan.yaml`](../devices/listed/govee-lan.yaml). That
-definition sends power, brightness and color over `lan` and `cloud`, and nobody
-verified it on any of those models. The tables below list device files only.
-The `Definition` column of the LAN list says which file describes each model.
+a shared definition in [`../devices/listed/`](../devices/README.md#models-nobody-verified),
+which nobody verified on that model. The tables below list device files only.
 
 The two tables below are generated from the device files by
 `cargo run -p xtask -- compat`, and CI fails when they drift. Everything else on

@@ -94,8 +94,8 @@ list of LAN-capable devices,
 [`../docs/lan-supported-devices.json`](../docs/lan-supported-devices.json).
 Each model resolves to one shared definition: power, brightness and color, over
 `lan` and `cloud`. These are the commands that Govee's documented protocols give
-every model. The white temperature is absent, because its range is a property
-of the model.
+every model. The white temperature is absent: its range is a property of the
+model, and the firmware clamps a value outside it in silence.
 
 [`listed/govee-lan-dimmable.yaml`](listed/govee-lan-dimmable.yaml) takes the
 models of the same list for which the phone controller offers no solid color:

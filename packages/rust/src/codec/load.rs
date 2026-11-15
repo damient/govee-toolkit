@@ -1,5 +1,4 @@
-//! Parsing of the three kinds of catalog file: a device file, a shared command
-//! table, and a listing.
+//! Parse a device file, a family and a listing.
 
 use serde::{Deserialize, Serialize};
 
@@ -7,15 +6,14 @@ use super::catalog::{Device, Family};
 use super::error::{Error, Result};
 use super::{Catalog, Inner, SCHEMA_VERSION};
 
-/// One `devices/listed/<name>.yaml` file: models that nobody verified, and the
-/// one definition that each of them resolves to.
+/// One `devices/listed/*.yaml` file: unverified models and their definition.
 #[derive(Debug, Clone, Serialize)]
 pub struct Listing {
     /// The name every model of the list carries in [`Device::listing`].
     pub listing: String,
     /// Where the list of models comes from, as a repository path.
     pub source: String,
-    /// The models, in the order of the file.
+    /// Every model of the file, one that a device file claims included.
     pub models: Vec<ListedModel>,
     /// The shared definition, with an empty `sku` and `name`.
     pub device: Device,
@@ -30,8 +28,6 @@ pub struct ListedModel {
     pub name: String,
 }
 
-/// The file as written: a [`Listing`] plus the body of a device file, with no
-/// `sku` and no `name`.
 #[derive(Deserialize)]
 struct ListingFile {
     schema_version: u32,
@@ -60,8 +56,7 @@ impl Catalog {
 }
 
 impl Inner {
-    /// Parse a listing and give each model its own [`Device`], built from the
-    /// shared definition. A SKU that a device file claims stays with the file.
+    /// Call after every device file: a SKU that one claims is skipped.
     pub(super) fn parse_listing(&self, file: &str, yaml: &str) -> Result<(Listing, Vec<Device>)> {
         let parsed: ListingFile = serde_norway::from_str(yaml).map_err(|e| device_file(file, e))?;
         check_version(file, parsed.schema_version)?;
