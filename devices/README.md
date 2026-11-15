@@ -97,6 +97,13 @@ Each model resolves to one shared definition: power, brightness and color, over
 every model. The white temperature is absent, because its range is a property
 of the model.
 
+[`listed/govee-lan-dimmable.yaml`](listed/govee-lan-dimmable.yaml) takes the
+models of the same list for which the phone controller offers no solid color:
+projectors, pixel panels and white lights. They resolve to power and
+brightness, over `lan` and `cloud`. Its `models:` list is written by hand, from
+the per-model configuration of the phone controller. A SKU belongs to one
+listing only.
+
 The rules:
 
 - a device file wins. A SKU or a verified alias of a device file never resolves
@@ -104,8 +111,9 @@ The rules:
 - every mode of the definition stays `unknown`, and `verified:` stays empty;
 - `describe` and `catalog.json` name the listing, so a caller can tell a listed
   model from a verified one;
-- `cargo run -p xtask -- lan` writes the `models:` list from the JSON file. Do
-  not edit that list by hand.
+- `cargo run -p xtask -- lan` writes the `models:` list of `govee-lan.yaml`
+  from the JSON file, less the SKUs that another listing names. Do not edit
+  that list by hand.
 
 A `candidate_aliases` entry never resolves to the file that names it. Where the
 SKU is on the list, it resolves to the listing. To give a listed model more

@@ -20,10 +20,36 @@ fn every_listed_model_is_well_formed() {
     );
 }
 
+/// The first model that resolves to `listing`.
+fn first_of<'a>(catalog: &'a Catalog, listing: &str) -> &'a govee_toolkit::codec::Device {
+    catalog
+        .listed()
+        .find(|device| device.listing.as_deref() == Some(listing))
+        .expect("a listed model")
+}
+
+#[test]
+fn a_dimmable_model_carries_power_and_brightness_and_nothing_else() {
+    let catalog = Catalog::embedded().expect("embedded catalog");
+    let device = first_of(&catalog, "govee-lan-dimmable");
+    assert_eq!(
+        device.capabilities.names().collect::<Vec<_>>(),
+        ["brightness", "power"]
+    );
+    for mode in [Mode::Lan, Mode::Cloud] {
+        for role in [Role::Power, Role::Brightness] {
+            assert!(device.command_for(mode, role).is_some(), "{mode} {role:?}");
+        }
+        for role in [Role::Color, Role::ColorTemp] {
+            assert!(device.command_for(mode, role).is_none(), "{mode} {role:?}");
+        }
+    }
+}
+
 #[test]
 fn a_listed_model_carries_power_brightness_and_color_and_nothing_else() {
     let catalog = Catalog::embedded().expect("embedded catalog");
-    let device = catalog.listed().next().expect("a listed model");
+    let device = first_of(&catalog, "govee-lan");
     assert_eq!(device.verified.by, "");
     assert_eq!(
         device.capabilities.names().collect::<Vec<_>>(),

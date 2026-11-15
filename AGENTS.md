@@ -43,7 +43,7 @@ chooses a transport.
 | ------- | -------- |
 | How the protocol works, for any device | `docs/protocol/*.md` |
 | What a specific model does, and numbers measured on it | `devices/<SKU>.yaml` |
-| The models of Govee's LAN list that no device file describes | `devices/listed/govee-lan.yaml` (`models:` is generated from `docs/lan-supported-devices.json`) |
+| The models of Govee's LAN list that no device file describes | `devices/listed/govee-lan.yaml` (`models:` is generated from `docs/lan-supported-devices.json`), and `devices/listed/govee-lan-dimmable.yaml` for the models with no solid color |
 | Human-readable "does my device work" | `docs/compatibility.md` |
 | Govee's own list of LAN-capable models | `docs/lan-supported-devices.json` (the table in `docs/lan-supported-devices.md` and the `models:` of `devices/listed/govee-lan.yaml` are generated from it) |
 | Full feature list | `docs/features.md` |
@@ -145,6 +145,11 @@ SKU.
   brightness and color, over `lan` and `cloud`. Its modes stay `unknown`. Add
   nothing to it that one model answered: that belongs in a device file, which
   wins over the listing.
+- `devices/listed/govee-lan-dimmable.yaml` takes the models for which the
+  phone controller offers no solid color. They get power and brightness only.
+  Its `models:` is written by hand, and `xtask lan` leaves those SKUs out of
+  `govee-lan.yaml`. The list comes from the phone controller's per-model
+  configuration: describe the result, never commit the resource.
 - `modes:` declares what the hardware supports. What the user enables is runtime
   configuration and never lives here. `none` says somebody established the
   hardware cannot do it; a mode nobody probed stays `unknown`, which is the

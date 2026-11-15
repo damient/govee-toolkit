@@ -70,8 +70,8 @@ export function infoBadge(): string {
 export function listedVerification(): string {
   return `<h2 id="verification">Verification</h2>
       <p>This model is on Govee's list of LAN Control models. The toolkit sends
-      it the commands that Govee documents for every model on that list, and
-      nobody has tested them on this one yet.
+      it the commands that Govee documents for that list, and that the model's
+      own controls admit. Nobody has tested them on this one yet.
       <a href="{{repo}}/issues">Report what you observe</a>, and the model gets
       a device file of its own.</p>`;
 }
@@ -81,5 +81,5 @@ export function listedFile(d: Device): string {
   return `<h2 id="the-device-file">The device file</h2>
           <p>This model shares the definition in
           <a href="{{repo}}/blob/main/${escapeAttr(path)}"><code>${path}</code></a>
-          with every model of Govee's LAN list that has no file of its own.</p>`;
+          with the other models of Govee's LAN list that resolve to it.</p>`;
 }

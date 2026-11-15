@@ -27,8 +27,11 @@ at.
 
 #### Added
 
-- `devices/listed/govee-lan.yaml` gives the 281 models of Govee's LAN list
-  with no device file power, brightness and color, over `lan` and `cloud`.
+- `devices/listed/govee-lan.yaml` gives 261 models of Govee's LAN list with
+  no device file power, brightness and color, over `lan` and `cloud`.
+- `devices/listed/govee-lan-dimmable.yaml` gives power and brightness to the
+  20 models of the list that carry no solid color: projectors, pixel panels
+  and white lights.
 - The listed models come from the documented layout, with every mode
   `unknown`. See [`devices/README.md`](devices/README.md).
 - `dist/catalog.json` carries `listings`: the shared definition and the

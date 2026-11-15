@@ -23,7 +23,7 @@
     clippy::format_push_string
 )]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::{env, fs, process};
 
@@ -92,7 +92,7 @@ fn lan(root: &Path, check: bool) {
         serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let listing = root.join("devices/listed/govee-lan.yaml");
     let file = read(&listing);
-    let updated = lan::listing(&listing, &file, &list);
+    let updated = lan::listing(&listing, &file, &list, &other_listings(root, &listing));
     write_or_check(&listing, "lan", &file, updated, check);
     let catalog = build_catalog(&root.join("devices"));
     generate(
@@ -104,6 +104,25 @@ fn lan(root: &Path, check: bool) {
         ],
         check,
     );
+}
+
+/// The SKUs that a listing other than `own` names. The two listings must not
+/// share a SKU, so `own` is left out of the catalog that reads them.
+fn other_listings(root: &Path, own: &Path) -> BTreeSet<String> {
+    let devices = root.join("devices");
+    let families = read_all(&yaml_files(&devices.join("families")));
+    let paths: Vec<PathBuf> = yaml_files(&devices.join("listed"))
+        .into_iter()
+        .filter(|path| path != own)
+        .collect();
+    let listings = read_all(&paths);
+    let catalog = Catalog::from_parts([], borrow(&families), borrow(&listings))
+        .unwrap_or_else(|e| panic!("{e}"));
+    catalog
+        .listings()
+        .iter()
+        .flat_map(|listing| listing.models.iter().map(|model| model.sku.to_uppercase()))
+        .collect()
 }
 
 /// Replace each named block of `page`, then write it or check it. The prose

@@ -7,8 +7,9 @@
 # color. The white temperature is absent: its range is a property of the model,
 # and the firmware clamps a value outside it in silence.
 #
-# `models:` is generated from ../../docs/lan-supported-devices.json. Run
-# `cargo run -p xtask -- lan` after a change to that file; CI fails on drift.
+# `models:` is generated from ../../docs/lan-supported-devices.json, less the
+# SKUs that govee-lan-dimmable.yaml names. Run `cargo run -p xtask -- lan` after
+# a change to either file; CI fails on drift.
 
 schema_version: 1
 
@@ -66,8 +67,6 @@ models:
   - { sku: "H16B0", name: "Floor Lamp 3" }
   - { sku: "H16C0", name: "Floor Lamp 3 Lite" }
   - { sku: "H1771", name: "Wallwash Table Lamp" }
-  - { sku: "H1811", name: "Bubble Projector Light" }
-  - { sku: "H1880", name: "Tri-Zone Galaxy Light Projector" }
   - { sku: "H1A42", name: "LED Strip Light 2" }
   - { sku: "H1A43", name: "LED Strip Light 2" }
   - { sku: "H1A44", name: "LED Strip Light 2" }
@@ -94,7 +93,6 @@ models:
   - { sku: "H3511", name: "Outdoor Cylinder Pathway Lights" }
   - { sku: "H3700", name: "Outdoor Classic Wall Light" }
   - { sku: "H3751", name: "Outdoor Wall Light Pro" }
-  - { sku: "H3860", name: "Holiday Pattern Projector Light" }
   - { sku: "H3A51", name: "30m Permanent Outdoor Lights 2 Pro" }
   - { sku: "H3A52", name: "45m Permanent Outdoor Lights 2 Pro" }
   - { sku: "H3A53", name: "60m Permanent Outdoor Lights 2 Pro" }
@@ -137,18 +135,12 @@ models:
   - { sku: "H6087", name: "RGBIC Fixture Lights" }
   - { sku: "H6088", name: "RGBIC Cube Wall Sconces" }
   - { sku: "H608A", name: "5m String Downlights" }
-  - { sku: "H6093", name: "Star Light Projector (Aurora)" }
-  - { sku: "H6094", name: "Star Light Projector (Ocean Wave)" }
-  - { sku: "H6095", name: "Star Light Projector (Nebula)" }
-  - { sku: "H609D", name: "Galaxy Light Projector 2 Pro" }
   - { sku: "H60A0", name: "12inch Ceiling Light" }
   - { sku: "H60A1", name: "12inch Ceiling Light" }
   - { sku: "H60A4", name: "Square Ceiling Light" }
   - { sku: "H60A6", name: "Ceiling Light Pro" }
-  - { sku: "H60B0", name: "Uplighter Floor Lamp" }
   - { sku: "H60B1", name: "Torchiere Floor Lamp" }
   - { sku: "H60B2", name: "Tree Floor Lamp" }
-  - { sku: "H60B3", name: "Uplighter Floor Lamp" }
   - { sku: "H60C1", name: "Pendant Light" }
   - { sku: "H610A", name: "Glide Lively Wall Light" }
   - { sku: "H610B", name: "Glide Music Wall Light" }
@@ -212,8 +204,6 @@ models:
   - { sku: "H61F6", name: "Strip Light 2 Pro" }
   - { sku: "H6350", name: "Sphere Net Lights" }
   - { sku: "H6351", name: "Sphere Net Lights" }
-  - { sku: "H6630", name: "Gaming Pixel Light" }
-  - { sku: "H6631", name: "Gaming Pixel Light" }
   - { sku: "H6671", name: "RGBWIC TV Backlight 2" }
   - { sku: "H6672", name: "RGBWIC TV Backlight 2" }
   - { sku: "H6800", name: "Christmas Tree Lights" }
@@ -228,8 +218,6 @@ models:
   - { sku: "H6861", name: "C9 String Lights" }
   - { sku: "H6870", name: "Christmas Sparkle String Lights" }
   - { sku: "H6871", name: "Christmas Sparkle String Lights" }
-  - { sku: "H7012", name: "LED Bulb String Lights" }
-  - { sku: "H7013", name: "LED Bulb String Lights" }
   - { sku: "H7021", name: "LED Bulb String Lights" }
   - { sku: "H7025", name: "LED Bulb String Lights" }
   - { sku: "H7026", name: "Outdoor Clear Bulb String Lights" }
@@ -269,10 +257,7 @@ models:
   - { sku: "H706A", name: "30m Permanent Outdoor Lights Pro" }
   - { sku: "H706B", name: "45m Permanent Outdoor Lights Pro" }
   - { sku: "H706C", name: "60m Permanent Outdoor Lights Pro" }
-  - { sku: "H7070", name: "Outdoor Projector Light" }
-  - { sku: "H7071", name: "Outdoor Decoration Projector Light" }
   - { sku: "H7072", name: "Outdoor Lamp Post Lights" }
-  - { sku: "H7073", name: "Outdoor Projector Light" }
   - { sku: "H7076", name: "Outdoor UpDown Wall Light" }
   - { sku: "H707A", name: "30m Permanent Outdoor Lights Prism" }
   - { sku: "H707B", name: "45m Permanent Outdoor Lights Prism" }
@@ -294,7 +279,6 @@ models:
   - { sku: "H70D1", name: "10m RGBIC Outdoor Icicle Lights" }
   - { sku: "H70D2", name: "20m RGBIC Outdoor Icicle Lights" }
   - { sku: "H70D3", name: "30m RGBIC Outdoor Icicle Lights" }
-  - { sku: "H8015", name: "Smart Bulb" }
   - { sku: "H801A", name: "Recessed Downlight" }
   - { sku: "H801B", name: "15m Permanent Outdoor Lights" }
   - { sku: "H801D", name: "Recessed Downlight" }
@@ -318,7 +302,6 @@ models:
   - { sku: "H80C4", name: "20m Christmas String Lights 2" }
   - { sku: "H80C5", name: "30m Christmas String Lights 2" }
   - { sku: "H80D1", name: "10m RGBIC Outdoor Icicle Lights" }
-  - { sku: "H8630", name: "Gaming Pixel Light" }
   - { sku: "H8811", name: "480LED Net Lights" }
   - { sku: "H8840", name: "Cone Tree Lights" }
   - { sku: "H8841", name: "Cone Tree Lights" }
@@ -328,9 +311,7 @@ models:
   - { sku: "R14B1", name: "Smart Bulb" }
   - { sku: "R14C2", name: "Edison Bulb" }
   - { sku: "R1501", name: "Smart Downlight" }
-  - { sku: "R1810", name: "Star Light Projector (Cosmos)" }
   - { sku: "R3A51", name: "30m Permanent Outdoor Lights Pro Dual" }
-  - { sku: "R60B3", name: "Uplighter Floor Lamp" }
   - { sku: "R618D", name: "15m RGBIC LED Strip Light" }
   - { sku: "R6842", name: "Cone Tree Lights" }
   - { sku: "R6861", name: "C9 String Lights" }

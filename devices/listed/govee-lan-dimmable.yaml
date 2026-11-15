@@ -1,0 +1,74 @@
+# Models on Govee's list of LAN-capable devices that the phone controller
+# offers no solid color for: projectors, pixel panels, and white lights. Each
+# model resolves to the definition under `device:`, unless a device file of its
+# own, or the `aliases:` of one, claims the SKU. A device file always wins.
+#
+# Nobody verified a model here. The definition carries power and brightness,
+# the part of Govee's documented LAN and HTTPS protocols that these models
+# admit. The white temperature is absent: its range is a property of the model,
+# and the firmware clamps a value outside it in silence.
+#
+# Edit `models:` by hand. `cargo run -p xtask -- lan` leaves out of
+# govee-lan.yaml every SKU that this file names.
+
+schema_version: 1
+
+listing: "govee-lan-dimmable"
+source: "docs/lan-supported-devices.json"
+
+device:
+  family: "govee-lan-listed"
+  include:
+    - lan-documented
+    - cloud-openapi
+
+  capabilities:
+    power:
+    brightness:  { range: [1, 100] }
+
+  modes:
+    lan:
+      support: unknown
+      capabilities: [power, brightness]
+      unreachable: {}
+      notes: >-
+        Govee lists the model as LAN-capable. Requires LAN Control enabled in
+        the Govee Home app. Nobody probed this model.
+    cloud:
+      support: unknown
+      capabilities: [power, brightness]
+      unreachable: {}
+      notes: >-
+        The documented HTTPS API. The API answers with an error for a
+        capability the model does not carry. Nobody probed this model.
+
+  overrides:
+    lan:
+      color: { drop: true }
+      colortemp: { drop: true }
+      raw_status: { drop: true }
+    cloud:
+      color: { drop: true }
+      colortemp: { drop: true }
+
+models:
+  - { sku: "H1811", name: "Bubble Projector Light" }
+  - { sku: "H1880", name: "Tri-Zone Galaxy Light Projector" }
+  - { sku: "H3860", name: "Holiday Pattern Projector Light" }
+  - { sku: "H6093", name: "Star Light Projector (Aurora)" }
+  - { sku: "H6094", name: "Star Light Projector (Ocean Wave)" }
+  - { sku: "H6095", name: "Star Light Projector (Nebula)" }
+  - { sku: "H609D", name: "Galaxy Light Projector 2 Pro" }
+  - { sku: "H60B0", name: "Uplighter Floor Lamp" }
+  - { sku: "H60B3", name: "Uplighter Floor Lamp" }
+  - { sku: "H6630", name: "Gaming Pixel Light" }
+  - { sku: "H6631", name: "Gaming Pixel Light" }
+  - { sku: "H7012", name: "LED Bulb String Lights" }
+  - { sku: "H7013", name: "LED Bulb String Lights" }
+  - { sku: "H7070", name: "Outdoor Projector Light" }
+  - { sku: "H7071", name: "Outdoor Decoration Projector Light" }
+  - { sku: "H7073", name: "Outdoor Projector Light" }
+  - { sku: "H8015", name: "Smart Bulb" }
+  - { sku: "H8630", name: "Gaming Pixel Light" }
+  - { sku: "R1810", name: "Star Light Projector (Cosmos)" }
+  - { sku: "R60B3", name: "Uplighter Floor Lamp" }

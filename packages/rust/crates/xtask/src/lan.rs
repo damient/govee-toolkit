@@ -1,6 +1,7 @@
 //! The tables in `docs/lan-supported-devices.md`, and the `models:` list of
 //! `devices/listed/govee-lan.yaml`.
 
+use std::collections::BTreeSet;
 use std::path::Path;
 
 use govee_toolkit::codec::Catalog;
@@ -40,14 +41,23 @@ pub(crate) fn model_table(list: &Value, catalog: &Catalog) -> String {
     out
 }
 
-/// `file` with its `models:` list rebuilt from `list`.
-pub(crate) fn listing(path: &Path, file: &str, list: &Value) -> String {
+/// `file` with its `models:` list rebuilt from `list`, less the SKUs in
+/// `elsewhere`.
+pub(crate) fn listing(
+    path: &Path,
+    file: &str,
+    list: &Value,
+    elsewhere: &BTreeSet<String>,
+) -> String {
     let start = file
         .find(MODELS)
         .unwrap_or_else(|| panic!("{} has no `models:` line", path.display()))
         + MODELS.len();
     let mut updated = file[..start].to_owned();
-    for model in sorted(list) {
+    for model in sorted(list)
+        .into_iter()
+        .filter(|model| !elsewhere.contains(&text(model, "sku").to_uppercase()))
+    {
         updated.push_str(&format!(
             "  - {{ sku: {}, name: {} }}\n",
             quoted(text(model, "sku")),
