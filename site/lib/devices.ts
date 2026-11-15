@@ -5,7 +5,7 @@ import { crumbs } from "./crumbs.ts";
 import { dmx } from "./device-dmx.ts";
 import { usage } from "./device-usage.ts";
 import { DASH, escapeAttr, escapeHtml, fill, filled } from "./html.ts";
-import { familyIcon, icon, sharesMark } from "./icons.ts";
+import { icon, shapeIcon, sharesMark } from "./icons.ts";
 import { infoBadge, listedFile, listedVerification } from "./listed.ts";
 import { dmxBadge, familyBadge, modeBadge } from "./mode-badge.ts";
 import type { Capability, Crumb, Device, Mode, Reference, Support } from "./types.ts";
@@ -108,7 +108,7 @@ function row(d: Device): string {
   const category = d.category === undefined ? "" : ` data-category="${escapeAttr(d.category)}"`;
   return `          <tr class="has-page" data-search="${escapeAttr(names)}"${category}>
             <th scope="row"><a href="{{base}}devices/${escapeAttr(d.sku)}/">${escapeHtml(d.sku)}</a></th>
-            <td class="shape">${familyIcon(d.shape ?? d.family)}</td>
+            <td class="shape">${shapeIcon(d.shape ?? d.family)}</td>
             <td>${escapeHtml(d.name)}${mark}</td>${cells}
           </tr>`;
 }

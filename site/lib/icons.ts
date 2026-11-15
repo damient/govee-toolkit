@@ -81,3 +81,9 @@ export function badgeIcon(name: string): string {
 export function familyIcon(family: string | undefined): string {
   return svg(family === undefined ? undefined : FAMILIES.get(family), "family-icon");
 }
+
+/** The icon of one device family, or the circle of `other` when no file
+ * draws it. */
+export function shapeIcon(family: string | undefined): string {
+  return familyIcon(family) || familyIcon("other");
+}

@@ -9,15 +9,27 @@ const TIP = "Untested for this model";
 // The icon of a listed model with no candidate shape: the first rule whose
 // words all match the name, else the one of its category. The words and the
 // categories name a shape of product, never a model.
-const SHAPE_WORDS: [RegExp[], string][] = [[[/\bstrip\b/iu, /\brgbic/iu], "rgbic-neon-rope"]];
+const SHAPE_WORDS: [RegExp[], string][] = [
+  [[/\bstrip\b/iu, /\brgbic/iu], "rgbic-neon-rope"],
+  [[/\bcone\b/iu], "tree"],
+  [[/\bchristmas\b/iu], "snowflake"],
+];
 const SHAPE_CATEGORIES = new Map([
   ["RGBIC Strip Lights", "rgbic-neon-rope"],
   ["LED Bulbs", "rgbww-bulb"],
+  ["Ceiling Light", "ceiling-light"],
+  ["Ceiling Fan Light", "ceiling-light"],
+  ["Wall Lights", "wall-light"],
+  ["Projector Light", "projector-light"],
 ]);
+
+// The icon of a listed model that no rule and no category draws.
+const FALLBACK_WORDS: [RegExp, string][] = [[/\bstrip\b/iu, "rgb-car-strip"]];
 
 function shapeOf(name: string, category: string | undefined): string | undefined {
   return SHAPE_WORDS.find(([words]) => words.every((w) => w.test(name)))?.[1]
-    ?? (category === undefined ? undefined : SHAPE_CATEGORIES.get(category));
+    ?? (category === undefined ? undefined : SHAPE_CATEGORIES.get(category))
+    ?? FALLBACK_WORDS.find(([word]) => word.test(name))?.[1];
 }
 
 /**
