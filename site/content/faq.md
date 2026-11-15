@@ -53,8 +53,8 @@ each one needs.
 
 LAN Control is the switch that lets your own network reach the light over
 Wi-Fi. Open the Govee Home app, select your light, open its settings and turn
-on **LAN Control**. You do this once per light. Govee publishes
-[the list of models that carry the switch]({{base}}devices/lan/).
+on **LAN Control**. You do this once per light. [The devices page]({{base}}devices/) lists every model that Govee gives the
+switch.
 
 ## Do I need a Govee account or an API key? <!-- menu: Account and API key -->
 

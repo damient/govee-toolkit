@@ -6,8 +6,9 @@ import { dmx } from "./device-dmx.ts";
 import { usage } from "./device-usage.ts";
 import { DASH, escapeAttr, escapeHtml, fill, filled } from "./html.ts";
 import { familyIcon, icon, sharesMark } from "./icons.ts";
+import { infoBadge, listedFile, listedVerification } from "./listed.ts";
 import { dmxBadge, familyBadge, modeBadge } from "./mode-badge.ts";
-import type { Capability, Catalog, Crumb, Device, Mode, Reference, Support } from "./types.ts";
+import type { Capability, Crumb, Device, Mode, Reference, Support } from "./types.ts";
 
 // The order a reader looks for, not the order the catalog holds.
 const CAPS: [string, string][] = [
@@ -26,10 +27,6 @@ const CAP_ORDER = new Map(CAPS.map(([key], at) => [key, at]));
 /** Sort rank of a capability key. An unknown key sorts last. */
 const order = (key: string): number => CAP_ORDER.get(key) ?? CAPS.length;
 
-/** Sorts by SKU, so that two builds of one catalog give one page. */
-export function sorted(catalog: Catalog): Device[] {
-  return catalog.devices.toSorted((a, b) => a.sku.localeCompare(b.sku));
-}
 
 const support = (device: Device, mode: Mode): Support => device.modes?.[mode]?.support ?? "unknown";
 
@@ -49,9 +46,19 @@ function label(key: string): string {
 export function renderIndex(template: string, devices: Device[]): string {
   return fill(template, {
     devices_rows: devices.map((d) => row(d)).join("\n"),
+    devices_categories: categories(devices),
     caps_legend: capsLegend(devices),
     check_mark: CHECK,
   });
+}
+
+function categories(devices: Device[]): string {
+  const tally = new Map<string, number>();
+  for (const d of devices) if (d.category !== undefined) tally.set(d.category, (tally.get(d.category) ?? 0) + 1);
+  return [...tally]
+    .toSorted(([a], [b]) => a.localeCompare(b))
+    .map(([name, n]) => `<option value="${escapeAttr(name)}">${escapeHtml(name)} (${n})</option>`)
+    .join("\n          ");
 }
 
 // A mode that reaches no capability shows its state instead.
@@ -97,10 +104,12 @@ function row(d: Device): string {
   const cells = MODES.map((m) => `<td>${modeCell(d, m)}</td>`).join("")
     + `<td>${dmxCell(d)}</td>`;
   const names = [d.sku, d.name, ...(d.aliases ?? [])].join(" ").toLowerCase();
-  return `          <tr class="has-page" data-search="${escapeAttr(names)}">
+  const mark = d.listing === undefined ? "" : ` ${infoBadge()}`;
+  const category = d.category === undefined ? "" : ` data-category="${escapeAttr(d.category)}"`;
+  return `          <tr class="has-page" data-search="${escapeAttr(names)}"${category}>
             <th scope="row"><a href="{{base}}devices/${escapeAttr(d.sku)}/">${escapeHtml(d.sku)}</a></th>
-            <td class="shape">${familyIcon(d.family)}</td>
-            <td>${escapeHtml(d.name)}</td>${cells}
+            <td class="shape">${familyIcon(d.shape ?? d.family)}</td>
+            <td>${escapeHtml(d.name)}${mark}</td>${cells}
           </tr>`;
 }
 
@@ -121,7 +130,9 @@ export function devicePage(d: Device, reference: Reference) {
 
 const PATHS: Record<Mode, string> = { lan: "Wi-Fi", ble: "Bluetooth", cloud: "the cloud" };
 
-const reached = (d: Device): Mode[] => MODES.filter((m) => REACHES.has(support(d, m)));
+// A listed model reaches what its listing sends, and every mode stays `unknown`.
+const reached = (d: Device): Mode[] => MODES.filter((m) => REACHES.has(support(d, m))
+  || (d.listing !== undefined && (d.modes?.[m]?.capabilities?.length ?? 0) > 0));
 
 function describe(d: Device): string {
   const paths = reached(d).map((m) => PATHS[m]);
@@ -129,7 +140,9 @@ function describe(d: Device): string {
   const what = paths.length > 0
     ? `Control ${head} from your own computer, over ${joined(paths)}${hasDmx(d) ? ", and from a DMX desk" : ""}.`
     : `What Govee Toolkit reaches on ${head} is still to probe.`;
-  const when = filled(d.verified?.date) ? ` Verified on ${d.verified.date}.` : "";
+  const when = filled(d.verified?.date)
+    ? ` Verified on ${d.verified.date}.`
+    : d.listing === undefined ? "" : " Untested on this model.";
   return what + when;
 }
 
@@ -144,7 +157,7 @@ function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {
   <div class="shell">
     ${crumbs(trail)}
     <h1>${title}</h1>
-    <p class="mode-line">${familyBadge(d.family)}${reached(d).map((m) => modeBadge(m)).join("")}${hasDmx(d) ? dmxBadge() : ""}${badges(d)}</p>
+    <p class="mode-line">${d.listing === undefined ? familyBadge(d.family) : ""}${reached(d).map((m) => modeBadge(m)).join("")}${hasDmx(d) ? dmxBadge() : ""}${badges(d)}</p>
   </div>
 </section>
 
@@ -157,17 +170,19 @@ function pageBody(d: Device, reference: Reference, trail: Crumb[]): string {
       ${dmx(d)}
       ${aliases(d)}
       <div class="endgrid">
-        <section>${verification(d)}</section>
-        <section>
-          <h2 id="the-device-file">The device file</h2>
-          <p>This page states what <a href="{{repo}}/blob/main/devices/${d.sku}.yaml"><code>devices/${d.sku}.yaml</code></a>
-          holds.</p>
-        </section>
+        <section>${d.listing === undefined ? verification(d) : listedVerification()}</section>
+        <section>${d.listing === undefined ? deviceFile(d) : listedFile(d)}</section>
       </div>
       <p class="endcta"><a class="btn" href="{{base}}devices/">Discover other devices</a></p>
     </article>
   </div>
 </section>`;
+}
+
+function deviceFile(d: Device): string {
+  return `<h2 id="the-device-file">The device file</h2>
+          <p>This page states what <a href="{{repo}}/blob/main/devices/${d.sku}.yaml"><code>devices/${d.sku}.yaml</code></a>
+          holds.</p>`;
 }
 
 function badges(d: Device): string {

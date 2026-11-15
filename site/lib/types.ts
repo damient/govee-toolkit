@@ -12,6 +12,18 @@ export type Range = [number, number];
 export interface Catalog {
   schema_version: number;
   devices: Device[];
+  listings?: Listing[];
+}
+
+export interface LanList {
+  models: { sku: string; category: string }[];
+}
+
+/** Models that no device file describes, and the definition they share. */
+export interface Listing {
+  listing: string;
+  device: Omit<Device, "sku" | "name">;
+  models: { sku: string; name: string }[];
 }
 
 export interface Device {
@@ -26,6 +38,12 @@ export interface Device {
   measurements?: { segment_grid?: unknown } & Record<string, unknown>;
   verified?: Verified;
   dmx?: { personalities?: Personality[] };
+  /** Set on a model of a listing: no device file describes it. */
+  listing?: string;
+  /** The family whose icon a listed model takes, where a file names it. */
+  shape?: string;
+  /** The category of Govee's LAN list. */
+  category?: string;
 }
 
 /** The segment counts are the fields a model page shows. */
@@ -138,8 +156,3 @@ export interface TocEntry {
 export type Crumb = [string, string];
 
 /** `docs/lan-supported-devices.json`: the models that carry the LAN switch. */
-export interface LanList {
-  source: string;
-  retrieved: string;
-  models: { sku: string; name: string; category: string }[];
-}

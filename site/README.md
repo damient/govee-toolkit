@@ -27,11 +27,10 @@ pages so that the header, the footer and the device tables exist once.
 ## Build
 
 The build needs Node 26 or later. The devices page reads
-`../dist/catalog.json`, which `xtask` generates from `devices/*.yaml`. The
-reference page reads `../dist/api.json`, which `xtask api` extracts from the
-code of each language. The LAN Control page reads
-`../docs/lan-supported-devices.json`, which is committed. Generate the two
-files first:
+`../dist/catalog.json`, which `xtask` generates from `devices/*.yaml` and
+`devices/listed/*.yaml`. The reference page reads `../dist/api.json`, which
+`xtask api` extracts from the code of each language. Generate the two files
+first:
 
 ```bash
 npm run catalog
@@ -47,11 +46,9 @@ npm run dev     # http://localhost:8787
 ```
 
 It serves `dist/` and rebuilds on every change under `src/` and `content/`,
-and on a new `../dist/catalog.json`, `../dist/api.json` or
-`../docs/lan-supported-devices.json`.
-An open page follows the rebuild: a
-change to a stylesheet replaces the styles in place, and any other change
-reloads the page. A change to `build.ts` or `lib/` restarts the process,
+and on a new `../dist/catalog.json` or `../dist/api.json`. An open page
+follows the rebuild: a change to a stylesheet replaces the styles in place, and
+any other change reloads the page. A change to `build.ts` or `lib/` restarts the process,
 because Node keeps an imported module in memory. `PORT` selects another port.
 `npm run serve` serves without the watch.
 
@@ -275,7 +272,7 @@ file stays under 300 lines, which `tools/check-file-length.sh` enforces.
 
 - Nothing about a device is written here. The devices page is generated from
   the device files, and a fact the YAML does not carry does not reach the site.
-  The LAN Control page is generated from `docs/lan-supported-devices.json`.
+  A model of `devices/listed/` gets a page too, marked untested.
 - A mode that nobody probed shows `?`, never `none`.
 - The site states what works today. Planned work is marked as planned.
 - The copy writes for a reader, in the positive form. A limit of a mode

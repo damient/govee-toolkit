@@ -22,9 +22,9 @@ it. Every step is a setting or one command.
 then turn on **LAN Control**. This switch lets your own network reach the device. Without
 it, nothing on this site works over Wi-Fi.
 
-Not every model has the switch. Govee publishes
-[the list of models that do]({{base}}devices/lan/), and
-[the devices page]({{base}}devices/) tells you what is verified here.
+Not every model has the switch.
+[The devices page]({{base}}devices/) lists every model on Govee's own list of
+models that carry it, and says what is verified here.
 
 ## API for cloud (optional)
 

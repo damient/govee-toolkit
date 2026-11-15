@@ -15,8 +15,8 @@ Check these, in order:
    Control**. Every command over Wi-Fi needs that switch.
 2. **One network.** Your computer and the light must be on the same network.
    Guest Wi-Fi and some mesh setups keep them apart, even in one house.
-3. **The model carries the switch.** Not every model does. Check
-   [the models with LAN Control]({{base}}devices/lan/).
+3. **The model carries the switch.** Not every model does. Look for it on
+   [the devices page]({{base}}devices/), which lists Govee's own list of them.
 4. **Your firewall.** Discovery uses multicast on UDP. A firewall that drops it
    makes every device invisible.
 
@@ -24,9 +24,9 @@ Run `govee doctor`. It reports what it can see of your configuration.
 
 ## The LAN Control switch is missing
 
-First check that the model is on
-[the list of models with LAN Control]({{base}}devices/lan/). If it is and the
-switch does not show:
+First check that the model is on [the devices page]({{base}}devices/), which
+lists every model that Govee gives the switch. If it is and the switch does not
+show:
 
 1. Check that the light is on Wi-Fi in the Govee Home app.
 2. Unplug the light, then power it on again.

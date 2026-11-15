@@ -9,17 +9,17 @@ import { DESCRIPTION, SITE_URL, base, dist, repo, repoUrl, root } from "./lib/co
 import { type Doc, docPage, readDocs } from "./lib/content.ts";
 import { sweepStaging, watchSources } from "./lib/dev.ts";
 import { crumbs } from "./lib/crumbs.ts";
-import { devicePage, renderIndex, sorted } from "./lib/devices.ts";
+import { devicePage, renderIndex } from "./lib/devices.ts";
+import { everyModel } from "./lib/listed.ts";
 import { navItem } from "./lib/docs.ts";
 import { faqPage } from "./lib/faq.ts";
-import { readLanList, renderLanList } from "./lib/lan-list.ts";
 import { fill } from "./lib/html.ts";
-import { isReference, readApi, readCatalog, readJson } from "./lib/json.ts";
+import { isReference, readApi, readCatalog, readCategories, readJson } from "./lib/json.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
 import { REFERENCE, referencePage } from "./lib/reference.ts";
 import { breadcrumb, deviceData, homeData, jsonLd, redirect, robots, sitemapXml } from "./lib/seo.ts";
 import { type Change, notify, serve } from "./lib/serve.ts";
-import type { Api, Crumb, Device, LanList, NavEntry, Reference } from "./lib/types.ts";
+import type { Api, Crumb, Device, NavEntry, Reference } from "./lib/types.ts";
 
 /** A hand-written page under `src/pages/`. */
 interface Source {
@@ -28,7 +28,7 @@ interface Source {
   nav: string;
   title: string | null;
   klass?: string;
-  render?: (template: string, devices: Device[], lan: LanList) => string;
+  render?: (template: string, devices: Device[]) => string;
   trail?: Crumb[];
   description?: string;
 }
@@ -76,15 +76,6 @@ const pages: Source[] = [
     trail: [["Devices", "devices/"], ["Add a device", "devices/add/"]],
     description: "Two ways to put your Govee light on this list: send it to us and we add it for free, or follow the guide and add it yourself.",
   },
-  {
-    src: "lan-devices.html",
-    url: "devices/lan/",
-    nav: "devices",
-    title: "Models with LAN Control",
-    render: renderLanList,
-    trail: [["Devices", "devices/"], ["LAN Control", "devices/lan/"]],
-    description: "Every Govee model that carries the LAN Control switch, which lets your own network reach the light over Wi-Fi. Search by SKU or by name.",
-  },
 ];
 
 const FOOT_SKIP = new Set(["docs/configure/", "docs/targets/", "docs/dmx/", "docs/mcp/", "docs/troubleshooting/"]);
@@ -93,14 +84,13 @@ async function main(): Promise<void> {
   const catalog = await readCatalog();
   const api = await readApi();
   await stage();
-  const [, css, layout, docs, reference, faq, lan] = await Promise.all([
+  const [, css, layout, docs, reference, faq] = await Promise.all([
     writeFile(join(out, ".nojekyll"), ""),
     assets(out),
     readFile(join(root, "src/layout.html"), "utf8"),
     readDocs(),
     readJson(join(root, "content/reference.json"), isReference),
     faqPage(),
-    readLanList(),
   ]);
   const nav: NavEntry[] = [
     ...docs.map((d) => ({ url: `docs/${d.slug}/`, title: d.title, order: d.order })),
@@ -114,9 +104,9 @@ async function main(): Promise<void> {
     .join("\n          ");
   const ctx: Context = { css, docsHome, docNav, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
 
-  const devices = sorted(catalog);
+  const devices = everyModel(catalog, await readCategories());
   const all: Page[] = [
-    ...(await sourcePages(devices, lan)),
+    ...(await sourcePages(devices)),
     ...devices.map((device) => deviceEntry(device, reference)),
     ...docPages(docs, nav, docsHome, reference, api),
     faq,
@@ -153,11 +143,11 @@ async function stage(): Promise<void> {
   }
 }
 
-function sourcePages(devices: Device[], lan: LanList): Promise<Page[]> {
+function sourcePages(devices: Device[]): Promise<Page[]> {
   return Promise.all(pages.map(async (page) => {
     const source = await readFile(join(root, "src/pages", page.src), "utf8");
     const jsonld = page.url === "" ? homeData() : page.trail ? [breadcrumb(page.trail)] : [];
-    const body = fill(page.render ? page.render(source, devices, lan) : source, {
+    const body = fill(page.render ? page.render(source, devices) : source, {
       crumbs: page.trail ? crumbs(page.trail) : "",
     });
     return Object.assign({ jsonld, body }, page);
@@ -201,7 +191,7 @@ function docPages(docs: Doc[], nav: NavEntry[], docsHome: string, reference: Ref
 }
 
 // A page that moved keeps its old address, which a published README links to.
-const MOVED: Record<string, string> = { "reference/": REFERENCE.url };
+const MOVED: Record<string, string> = { "reference/": REFERENCE.url, "devices/lan/": "devices/" };
 
 const NOT_FOUND: Page = {
   url: "404.html",

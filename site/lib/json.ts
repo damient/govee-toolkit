@@ -3,7 +3,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { relative } from "node:path";
-import { CATALOG_SCHEMA, apiPath, catalogPath, repo } from "./config.ts";
+import { CATALOG_SCHEMA, apiPath, catalogPath, lanListPath, repo } from "./config.ts";
 import type { Api, Catalog, LanList, Reference } from "./types.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -39,7 +39,13 @@ export function readApi(): Promise<Api> {
 }
 
 export function isLanList(value: unknown): value is LanList {
-  return isRecord(value) && typeof value.source === "string" && Array.isArray(value.models);
+  return isRecord(value) && Array.isArray(value.models);
+}
+
+/** The category of each SKU on Govee's LAN list. */
+export async function readCategories(): Promise<Map<string, string>> {
+  const list = await readJson(lanListPath, isLanList);
+  return new Map(list.models.map((m) => [m.sku, m.category]));
 }
 
 /** The `version` field of a JSON manifest, or undefined when it has none. */

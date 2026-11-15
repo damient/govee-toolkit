@@ -20,7 +20,6 @@
    columns. */
 .matrix-list th:nth-child(n + 4), .matrix-list td:nth-child(n + 4) { text-align: center; }
 
-.matrix-lan { min-width: 560px; }
 .matrix-list td:nth-child(n + 4) .caps-row { justify-content: center; }
 .matrix-list thead th:nth-child(n + 4) .mbadge { display: inline-flex; }
 
@@ -268,4 +267,12 @@
   display: table; min-width: 6em; margin: 0 auto 8px; text-align: center; padding: 5px 9px;
   border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted);
   font: 500 11px/1 var(--mono); letter-spacing: .04em; white-space: nowrap;
+}
+
+/* The mark of a listed model: its tooltip says what the model answers. */
+.info-tip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; margin-left: 6px; vertical-align: 1px;
+  border-radius: 50%; border: 1px solid var(--line-strong); color: var(--muted);
+  font: 500 10px/1 var(--mono); cursor: help;
 }

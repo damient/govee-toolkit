@@ -3,7 +3,9 @@
     {{crumbs}}
     <h1>Which Govee lights work.</h1>
     <p class="lede">
-      Find your model and see what the toolkit reaches on it.
+      Find your model and see what the toolkit reaches on it. Every model on
+      <a href="{{repo}}/blob/main/docs/lan-supported-devices.md">Govee's LAN list</a> takes power,
+      brightness and color.
     </p>
   </div>
 </section>
@@ -14,6 +16,13 @@
       <label class="search">
         <span class="visually-hidden">Search a model</span>
         <input type="search" placeholder="Search a model, for example H61A0" data-filter autocomplete="off">
+      </label>
+      <label class="category">
+        <span class="visually-hidden">Category</span>
+        <select data-filter-category hidden>
+          <option value="">All categories</option>
+          {{devices_categories}}
+        </select>
       </label>
       <p class="note" data-filter-count aria-live="polite"></p>
     </div>
@@ -43,6 +52,7 @@
     </ul>
     <ul class="caps legend-caps">
         <li><span class="pill pill-unknown">?</span>Still to probe</li>
+        <li><span class="info-tip" aria-hidden="true">i</span>Untested for this model</li>
         <li><span class="dmx-yes">{{check_mark}}</span>Answers a DMX channel table</li>
         <li><span class="muted">—</span>Out of reach on this model</li>
     </ul>
