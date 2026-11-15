@@ -167,3 +167,4 @@ stdout carries the JSON-RPC stream. The server writes every log to stderr.
 
 The package releases under `mcp-vX.Y.Z`. Push `node-vX.Y.Z` first: see
 [`../../docs/versioning.md`](../../docs/versioning.md).
+
