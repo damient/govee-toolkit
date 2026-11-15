@@ -10,14 +10,14 @@ description: The config.yaml that names your devices, the .env file the toolkit 
 The toolkit reads two files. `config.yaml` names your devices and says which
 mode each one uses. `.env` carries the credentials.
 
-`lan` and `ble` need no credential to send a command. Read this page when you
-put a device on your Wi-Fi network, or when you enable `cloud`.
+`lan` and `ble` send commands as they are. Read this page when you put a device
+on your Wi-Fi network, or when you enable `cloud`.
 
 ## The `config.yaml` file
 
-The toolkit does not create this file. Without it, every device uses `lan`.
-Write it yourself at `~/.config/govee-toolkit/config.yaml`, or point
-`GOVEE_CONFIG` or `--config` at another path.
+Until you write this file, every device uses `lan`. Write it yourself at
+`~/.config/govee-toolkit/config.yaml`, or point `GOVEE_CONFIG` or `--config` at
+another path.
 
 Each device is keyed by the MAC address it reports. `govee scan` lists them:
 
@@ -58,9 +58,9 @@ one. The toolkit reads the first file it finds, in this order:
    directory, or at the root of the file system.
 3. `~/.config/govee-toolkit/.env`.
 
-Only `GOVEE_*` names are read, so a `.env` written for another project carries
-nothing into the toolkit. A variable already in your environment wins over the
-file, and `govee --no-env` reads no file at all.
+The toolkit reads only the `GOVEE_*` names of a `.env`, so one file can serve
+several projects. A variable already in your environment wins over the file,
+and `govee --no-env` skips the file.
 
 `govee doctor` says which file the variables came from:
 
@@ -89,8 +89,8 @@ GOVEE_WIFI_PASSWORD=the password
 </div>
 
 `--ssid` and `--password` take the same values on the command line, and
-`--open` joins a network that has no password. The command needs a build that
-carries Bluetooth: `cargo install govee-toolkit-cli --features ble`.
+`--open` joins an open network. The command needs a build that carries
+Bluetooth: `cargo install govee-toolkit-cli --features ble`.
 
 Four things to know before you run it:
 

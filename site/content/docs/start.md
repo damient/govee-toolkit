@@ -8,7 +8,7 @@ description: What you need before a Govee light answers your own computer, and t
 # Start here
 
 This page covers what a Govee light needs before your own computer can reach
-it. You do not have to write code to follow it.
+it. Every step is a setting or one command.
 
 ## What you need
 

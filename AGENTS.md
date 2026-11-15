@@ -85,11 +85,20 @@ SKU.
   reader who wants a light to work, so a heading can carry a contrast or a
   rhythm, and a sentence can run past the word count. The other rules hold:
   plain, concise, English, no company name, no invented verification.
-- **Site copy states what a thing does.** Write the positive form: name what a
-  mode reaches, not what it misses. The limit of a mode belongs on the
-  documentation page that owns it, so the landing pages carry none. Keep a
-  negation that the reader must act on: a legal line, a switch the user must
-  find, a value the firmware clamps in silence.
+- **Site copy states what a thing does.** This applies to every page under
+  `site/`, the documentation pages included. Write the positive form: name
+  what a mode reaches, not what it misses. The limit of a mode belongs on the
+  documentation page that owns it, so the landing pages carry none.
+  - Replace a negation that only reassures with the fact behind it. "Needs no
+    code" becomes "works straight from a terminal". "A member that fails stops
+    no other one" becomes "when a member fails, the others go ahead". "There
+    is no source build" becomes "another platform builds from the repository".
+  - Delete a negation that repeats the sentence before it.
+  - Keep a negation that the reader must act on: a legal line, a switch the
+    user must find, a value the firmware clamps in silence, a security trap.
+  - Keep a symptom as the reader sees it ("Nothing answers `govee scan`"), a
+    match rule ("`kit` finds nothing"), and the "No." that answers a closed
+    question.
 - **A comment earns its place or it goes.** It survives by carrying what the
   code cannot state: a constraint the compiler does not enforce, a measured
   value and what it was measured on, a trap, or a pointer that saves a search.

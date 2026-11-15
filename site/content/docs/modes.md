@@ -13,7 +13,7 @@ to allow, for each device.
 | Mode | Speed | It reaches the device from |
 | ---- | ----- | -------------------------- |
 | {{badge_lan}} | fastest | the same Wi-Fi |
-| {{badge_ble}} | fast | Bluetooth range, no Wi-Fi needed |
+| {{badge_ble}} | fast | Bluetooth range |
 | {{badge_cloud}} | slowest | anywhere with internet |
 
 ## What each mode needs
@@ -24,7 +24,7 @@ setups separate them.
 
 {{badge_ble}} — a Bluetooth adapter on your computer, and the device within range.
 One connection at a time: a connected device stops advertising, so a scan run
-while another app holds the link finds nothing.
+while another controller holds the link finds nothing.
 
 {{badge_cloud}} — a Govee API key, and the device registered to that account.
 The API is throttled, and it carries no animation.

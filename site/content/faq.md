@@ -43,7 +43,7 @@ you enable only if you want to reach your lights from anywhere.
 ## Wi-Fi, Bluetooth or cloud: which one do I pick? <!-- menu: Wi-Fi, Bluetooth or cloud -->
 
 - **Wi-Fi** is the fastest. The light and your computer share one network.
-- **Bluetooth** reaches a light in range, with no Wi-Fi at all.
+- **Bluetooth** reaches a light in range, straight from your computer.
 - **Cloud** reaches your lights from anywhere with internet access.
 
 You choose the modes for each light. [Modes]({{base}}docs/modes/) says what
@@ -58,8 +58,8 @@ on **LAN Control**. You do this once per light. Govee publishes
 
 ## Do I need a Govee account or an API key? <!-- menu: Account and API key -->
 
-Only for the cloud mode. Wi-Fi and Bluetooth need no account and no key. For
-the cloud, ask for a key in the Govee Home app: profile, then settings, then
+Only for the cloud mode. Wi-Fi and Bluetooth work as soon as the light is on.
+For the cloud, ask for a key in the Govee Home app: profile, then settings, then
 **Apply for API key**.
 
 ## Can I keep using the Govee Home app? <!-- menu: The Govee Home app -->
@@ -104,7 +104,7 @@ setup.
 
 ## Does it work with Home Assistant, Homebridge or Matter? <!-- menu: Home Assistant, Matter -->
 
-Not yet. A desktop app comes first, then Home Assistant, Homebridge and
+Next on the roadmap: a desktop app, then Home Assistant, Homebridge and
 Matter. [The roadmap]({{repo}}/blob/main/docs/roadmap.md) follows what
 people ask for.
 

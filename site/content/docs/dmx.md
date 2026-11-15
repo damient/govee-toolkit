@@ -65,8 +65,7 @@ there the way you patch any other node. Add `--scan` to look for the lights
 first, so one command takes a rig from nothing to a node the desk sees.
 
 `--dry-run` prints every packet and what each fixture reads out of it, and
-writes to no light. That is how you check a patch before the rig moves.
+leaves every light as it is. That is how you check a patch before the rig moves.
 
-The run takes every light off at the start, so the rig comes up dark. A light
-that drops off the network stops no other one: the run reports it and carries
-on.
+The run takes every light off at the start, so the rig comes up dark. When a
+light drops off the network, the others carry on and the run reports it.

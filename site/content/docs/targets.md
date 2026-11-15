@@ -28,9 +28,8 @@ devices:
     groups: [office]
 ```
 
-A group exists as soon as one device carries it. There is no list of groups to
-keep in step. A name and a group match whole and ignore case, so `Kitchen`
-finds `kitchen` and `kit` finds nothing.
+A group exists as soon as one device carries it. A name and a group match whole
+and ignore case, so `Kitchen` finds `kitchen` and `kit` finds nothing.
 
 ## Drive a group
 
@@ -44,8 +43,8 @@ A command sent to a group goes to every member at once:
 
 Each member answers on its own:
 
-- A member that fails stops no other one. Its line goes to stderr, and the
-  command exits with the code of the first member that failed.
+- When a member fails, the others go ahead. The failure goes to stderr, and
+  the command exits with the code of the first member that failed.
 - Each member uses its own modes. `--mode` restricts every member to that
   mode. A member that does not enable it fails, and the others go ahead.
 - Each member reads the value against its own range. One brightness can be in
@@ -67,7 +66,6 @@ A command that controls a light, such as `on` or `brightness`, takes an
 identity, a name or a group. `govee devices` and `govee identify` take any
 number of targets, a model included.
 
-A command that controls a light reads the name or the group from
-`config.yaml` alone, with no scan. `govee devices` lists what is already
-known, so scan first: a model, a name and a group match among the devices a
-scan found.
+A command that controls a light reads the name or the group straight from
+`config.yaml`. `govee devices` lists what is already known, so scan first: a
+model, a name and a group match among the devices a scan found.

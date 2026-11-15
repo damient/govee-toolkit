@@ -7,9 +7,9 @@ description: The Rust crate, the command line, the Python package, the Node.js p
 
 # Install
 
-The Rust crate is the reference implementation. The command line needs no
-code. Python and Node.js bind to that same core. The DMX bridge is a separate
-binary.
+The Rust crate is the reference implementation. The command line works straight
+from a terminal. Python and Node.js bind to that same core. The DMX bridge is a
+separate binary.
 
 ## Rust {{version_rust}} {{registry_rust}}
 
@@ -32,12 +32,11 @@ devices.power(true).await;
 
 On Linux the `ble` feature reaches the radio through BlueZ over D-Bus, so the
 build needs the dbus headers (`apt install libdbus-1-dev`). macOS and Windows
-need nothing.
+build as is.
 
 ## Command line {{version_cli}} {{registry_cli}}
 
-The binary is `govee`. It holds no protocol logic: it reads the device files
-through the crate.
+The binary is `govee`. It reads the device files through the crate.
 
 <div class="terminal">
 <pre><code><span class="prompt">$</span> cargo install govee-toolkit-cli
@@ -52,8 +51,7 @@ through the crate.
 ## Python {{version_python}} {{registry_python}}
 
 A PyO3 binding over the Rust core. The API is `asyncio` only, and the wheel
-carries the device catalog, so an install needs no data file and no Rust
-toolchain.
+carries the device catalog, so `pip install` is the whole install.
 
 <div class="terminal">
 <pre><code><span class="prompt">$</span> pip install govee-toolkit</code></pre>
@@ -71,14 +69,13 @@ await govee.close()
 
 The wheels are `abi3` for Python 3.11 and up: Linux, macOS and Windows on
 `x86_64` and `aarch64`, Linux on `armv7`, and musl on `x86_64`, `aarch64` and
-`armv7`. On a platform with no wheel, pip builds from the repository, which
+`armv7`. On any other platform, pip builds from the repository, which
 needs a Rust toolchain.
 
 ## Node.js {{version_node}} {{registry_node}}
 
 A napi-rs binding over the same core, with TypeScript types. The package
-carries the device catalog, so an install needs no data file and no Rust
-toolchain.
+carries the device catalog, so `npm install` is the whole install.
 
 <div class="terminal">
 <pre><code><span class="prompt">$</span> npm install govee-toolkit</code></pre>
@@ -94,11 +91,10 @@ await devices.power(true)
 await govee.close()
 ```
 
-The package needs Node.js 20 or later. The addon ships for Linux and Windows
-on `x86_64` and `aarch64`, and for macOS on `aarch64`. There is no source
-build: the device catalog is compiled into the addon from `devices/*.yaml`,
-which the package does not carry, so a platform with no addon needs the
-repository.
+The package needs Node.js 20 or later. The addon ships for Linux and Windows on
+`x86_64` and `aarch64`, and for macOS on `aarch64`. Another platform builds from
+the repository, because the addon compiles the device catalog from
+`devices/*.yaml`.
 
 ## DMX bridge {{version_dmx}} {{registry_dmx}}
 
