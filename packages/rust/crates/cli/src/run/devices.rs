@@ -21,6 +21,16 @@ pub(super) async fn scan(
             &heard_text(device, &modes, restrict, enabled),
         );
     }
+    if found.is_empty() {
+        // An empty scan is an answer, but one that a held reply port forges.
+        for problem in govee.problems() {
+            let message = problem.to_string();
+            writer.warn(
+                &json!({ "problem": message }),
+                &format!("warning: {message}"),
+            );
+        }
+    }
     Ok(())
 }
 

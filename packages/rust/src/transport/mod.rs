@@ -93,6 +93,12 @@ pub trait Transport: Debug + Send + Sync + 'static {
         Duration::ZERO
     }
 
+    /// What keeps this transport from reaching devices on this host, one
+    /// sentence each. The default is none.
+    fn problems(&self) -> Vec<String> {
+        Vec::new()
+    }
+
     /// Look for devices for `window`, and return what answered.
     ///
     /// Nothing on the send path calls this. [`Transport::scan_window`] is the

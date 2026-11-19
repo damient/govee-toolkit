@@ -22,6 +22,7 @@ pub(crate) const MAX_DATAGRAM: usize = 4096;
 #[derive(Debug, Clone)]
 pub(crate) struct Socket {
     inner: Arc<UdpSocket>,
+    held_elsewhere: bool,
 }
 
 impl Socket {
@@ -30,6 +31,7 @@ impl Socket {
     /// `SO_REUSEADDR`, and `SO_REUSEPORT` where it exists, because port 4002
     /// is fixed by the protocol: without them a second process cannot start.
     pub(crate) fn bind(endpoints: &Endpoints) -> Result<Self> {
+        let held_elsewhere = held_elsewhere(endpoints.reply_bind);
         let domain = Domain::for_address(endpoints.reply_bind);
         let socket = Socket2::new(domain, Type::DGRAM, Some(Protocol::UDP))
             .map_err(|e| Error::io("creating the UDP socket", e))?;
@@ -65,7 +67,15 @@ impl Socket {
         let inner = UdpSocket::from_std(socket.into()).map_err(|e| Error::io("tokio socket", e))?;
         Ok(Self {
             inner: Arc::new(inner),
+            held_elsewhere,
         })
+    }
+
+    /// Whether another socket held the reply port when this one bound it.
+    /// The kernel then gives a unicast reply to one of the two sockets only,
+    /// so a scan or a status request here can hear nothing.
+    pub(crate) const fn held_elsewhere(&self) -> bool {
+        self.held_elsewhere
     }
 
     /// Where this socket is bound. Its port is where replies come back.
@@ -91,6 +101,28 @@ impl Socket {
             .await
             .map_err(|e| Error::io("receiving", e))
     }
+}
+
+/// Whether another socket holds `addr`. A bind with no reuse option fails on
+/// a port that any socket holds, so the probe tells. Windows shares a port
+/// under other rules, and an ephemeral port is never shared.
+#[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
+fn held_elsewhere(addr: SocketAddr) -> bool {
+    if addr.port() == 0 {
+        return false;
+    }
+    let Ok(probe) = Socket2::new(Domain::for_address(addr), Type::DGRAM, Some(Protocol::UDP))
+    else {
+        return false;
+    };
+    probe
+        .bind(&addr.into())
+        .is_err_and(|e| e.kind() == std::io::ErrorKind::AddrInUse)
+}
+
+#[cfg(not(all(unix, not(any(target_os = "solaris", target_os = "illumos")))))]
+const fn held_elsewhere(_addr: SocketAddr) -> bool {
+    false
 }
 
 /// One parsed reply, before it is attributed to a device.
@@ -184,5 +216,25 @@ mod tests {
         };
         let socket = Socket::bind(&endpoints).expect("bind");
         assert_ne!(socket.local_addr().expect("local addr").port(), 0);
+        assert!(!socket.held_elsewhere());
+    }
+
+    #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
+    #[tokio::test]
+    async fn a_second_socket_on_the_port_sees_the_first() {
+        let first = Socket::bind(&Endpoints {
+            reply_bind: SocketAddr::from((Ipv4Addr::LOCALHOST, 0)),
+            multicast_group: None,
+            ..Endpoints::default()
+        })
+        .expect("bind");
+        let second = Socket::bind(&Endpoints {
+            reply_bind: first.local_addr().expect("local addr"),
+            multicast_group: None,
+            ..Endpoints::default()
+        })
+        .expect("a shared port still binds");
+        assert!(!first.held_elsewhere());
+        assert!(second.held_elsewhere());
     }
 }
