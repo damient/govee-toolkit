@@ -281,6 +281,10 @@ measurements:
   # are in `verified.notes`. See ../docs/protocol/lan.md 2.3.
   arm_settle_ms: 50
 
+  # How long `devStatus` reports the previous state after a command. See
+  # `verified.notes`.
+  status_settle_ms: { lan: 150 }
+
   frame_rate:
     # Measured on the razer segment channel.
     lan:
@@ -459,3 +463,7 @@ verified:
     10 ms after a write loses the frame, and one dropped 25 ms after it
     carries it, both twice out of twice. The file records 50, which one close
     pays once. The values between 10 and 25 ms were NOT bisected.
+
+    After a command over lan, `devStatus` reported the previous state for up
+    to 61 ms, and every read from 134 ms reported the new one. Exercised with
+    color, brightness and white temperature, 7 commands. The file records 150.

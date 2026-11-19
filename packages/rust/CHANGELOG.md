@@ -7,6 +7,14 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `DeviceHandle::status()` waits for `Measurements::status_settle_ms` after a
+  command from the same process, so it reports the new state.
+- `Measurements::status_settle()` gives that time for one mode.
+- **Breaking:** `Measurements` carries `status_settle_ms`. A struct literal takes
+  `..Measurements::default()`.
+
 ## [0.16.0] — 2026-11-15
 
 ### Added

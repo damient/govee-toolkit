@@ -132,6 +132,7 @@ impl Govee {
             events: events.clone(),
             status_requests: Mutex::new(HashMap::new()),
             streams: crate::govee::ArmedStreams::default(),
+            settling: crate::govee::settle::Settling::default(),
             scanned: tokio::sync::Mutex::default(),
             heard: Mutex::default(),
         });

@@ -17,6 +17,7 @@ use crate::transport::{DeviceId, Health, Transport};
 mod choose;
 mod events;
 mod resolve;
+mod settle;
 mod start;
 mod streams;
 mod walk;
@@ -36,6 +37,9 @@ pub(crate) struct Inner {
     status_requests: Mutex<HashMap<Mode, HashMap<String, Arc<crate::codec::Encoded>>>>,
     /// The segment channels armed right now. See [`Govee::stream_armed`].
     streams: ArmedStreams,
+    /// When each device reports the state of its last command. See
+    /// [`Govee::settled`].
+    settling: crate::govee::settle::Settling,
     /// The modes a scan has covered, so that a resolution scans once.
     pub(crate) scanned: tokio::sync::Mutex<BTreeSet<Mode>>,
     /// The devices that a scan reply reached in this process, in any mode. A

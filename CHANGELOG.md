@@ -23,6 +23,14 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-11-19
+
+#### Added
+
+- `measurements.status_settle_ms` records, per mode, how long a unit reports
+  its previous state after a command. See `devices/schema.yaml`.
+- `H6022` records 400 ms over `lan`, measured on two units, and `H61A0` 150 ms.
+
 ### 2026-11-15
 
 #### Added

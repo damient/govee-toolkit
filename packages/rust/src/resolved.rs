@@ -154,12 +154,17 @@ impl<'a> Resolved<'a> {
 
     /// Ask the device for its state and wait for the answer.
     ///
+    /// After a command from this process, the request waits for the
+    /// `status_settle_ms` that the device file records for the mode. Before
+    /// that time the unit reports its previous state.
+    ///
     /// # Errors
     ///
     /// As for [`Resolved::send`], plus
     /// [`crate::transport::Error::Unreachable`] if nothing answers in time.
     pub async fn status(&self) -> Result<DeviceStatus> {
         let request = self.handle.govee.status_request(&self.sku, self.mode)?;
+        self.handle.govee.settled(self.handle.id(), self.mode).await;
         Ok(self
             .handle
             .govee

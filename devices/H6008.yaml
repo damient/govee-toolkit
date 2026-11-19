@@ -247,3 +247,7 @@ verified:
     The four version reads answer two values: `aa 06` and `aa 21` both answer
     1.01.25, and `aa 20` and `aa 07 03` both answer 1.07.03. The file declares
     `aa 06` alone, and nothing establishes which module each read names.
+
+    After a command over lan, the first `devStatus`, at 65 ms, already
+    reported the new state. Exercised on one unit with color, brightness and
+    white temperature, 7 commands. The file records no `status_settle_ms`.

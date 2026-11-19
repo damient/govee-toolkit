@@ -209,6 +209,7 @@ impl<'a> DeviceHandle<'a> {
             .transport(&self.id, mode)?
             .send(&self.id, &encoded, verify)
             .await?;
+        self.govee.wrote(&self.id, sku, mode);
 
         Ok(Served {
             id: sent.id,

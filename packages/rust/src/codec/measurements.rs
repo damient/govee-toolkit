@@ -133,7 +133,8 @@ impl Ble {
 ///
 /// The SDK reads [`Measurements::frame_rate`],
 /// [`Measurements::resolution_changepoints`],
-/// [`Measurements::arm_settle_ms`], [`Ble::write_budget_hz`] and
+/// [`Measurements::arm_settle_ms`], [`Measurements::status_settle_ms`],
+/// [`Ble::write_budget_hz`] and
 /// [`Ble::write_drain_ms`].
 /// Everything else a device file records lands in [`Measurements::extra`],
 /// untouched.
@@ -160,6 +161,11 @@ pub struct Measurements {
     /// answers nothing, so a frame sent too early is lost in silence.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub arm_settle_ms: Option<u64>,
+    /// How long the unit reports its previous state after a command, in
+    /// milliseconds, per mode. A status request waits until this time is over.
+    /// Where nobody measured it, nothing waits.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub status_settle_ms: BTreeMap<Mode, u64>,
     /// What one unit did over `ble`.
     #[serde(skip_serializing_if = "Ble::is_empty")]
     pub ble: Ble,
@@ -193,6 +199,15 @@ impl Measurements {
     pub fn arm_settle(&self) -> Duration {
         self.arm_settle_ms
             .map_or(DEFAULT_ARM_SETTLE, Duration::from_millis)
+    }
+
+    /// How long a status request waits after a command over `mode`, from
+    /// [`Measurements::status_settle_ms`]. `None` where nobody measured it.
+    #[must_use]
+    pub fn status_settle(&self, mode: Mode) -> Option<Duration> {
+        self.status_settle_ms
+            .get(&mode)
+            .map(|ms| Duration::from_millis(*ms))
     }
 
     /// The largest count at or under `zones` that renders differently from the
@@ -287,6 +302,16 @@ frame_rate:
         assert_eq!(m.arm_settle_ms, None);
         assert_eq!(m.arm_settle(), DEFAULT_ARM_SETTLE);
         assert!(!m.arm_settle().is_zero());
+    }
+
+    #[test]
+    fn a_status_settle_answers_only_for_the_mode_it_was_measured_over() {
+        let m: Measurements =
+            serde_norway::from_str("status_settle_ms: { lan: 400 }").expect("parses");
+        assert_eq!(m.status_settle(Mode::Lan), Some(Duration::from_millis(400)));
+        assert_eq!(m.status_settle(Mode::Ble), None);
+        let unmeasured = Measurements::default();
+        assert_eq!(unmeasured.status_settle(Mode::Lan), None);
     }
 
     #[test]
