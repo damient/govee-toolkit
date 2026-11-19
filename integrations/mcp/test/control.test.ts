@@ -1,88 +1,24 @@
-// A real device answers the scan too: every call targets the simulator. The test
-// files run one at a time: two SDKs on port 4002 can take the scan reply of each other.
+// A real device answers the scan too: every call targets the simulator.
 
 import assert from "node:assert/strict";
-import { type ChildProcess, spawn } from "node:child_process";
-import { once } from "node:events";
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { after, before, test } from "node:test";
 
 import type { Client } from "@modelcontextprotocol/client";
 import { MODES } from "govee-toolkit";
 import { z } from "zod";
 
-import { connect, failureCode, structured } from "./helpers.ts";
-import { closeSdk } from "../src/sdk.ts";
+import { failureCode, structured } from "./helpers.ts";
+import { SIM_ID, devicesShape, scanForSim, skip, startSim, stopSim } from "./sim.ts";
 
-const binary =
-  process.env.GOVEE_SIM ??
-  fileURLToPath(
-    new URL(
-      "../../../packages/rust/target/debug/govee-toolkit-sim",
-      import.meta.url,
-    ),
-  );
-const present = existsSync(binary) || existsSync(`${binary}.exe`);
-if (process.env.GOVEE_SIM !== undefined && !present)
-  throw new Error(`GOVEE_SIM: no binary at ${binary}`);
-const skip = present
-  ? false
-  : "no simulator: run `cargo build -p govee-toolkit-sim`, or set GOVEE_SIM";
-
-// A locally administered address, so no real device carries it.
-const SIM_ID = "02:00:00:4D:43:50";
-
-let sim: ChildProcess | undefined;
 let client: Client;
 
 before(async () => {
-  if (skip !== false) return;
-  sim = spawn(binary, ["--id", SIM_ID], {
-    stdio: ["ignore", "pipe", "inherit"],
-  });
-  // The first line of stdout says that the sockets are bound.
-  await once(sim.stdout ?? sim, "data");
-  client = await connect();
+  if (skip === false) client = await startSim();
 });
 
 after(async () => {
-  if (skip !== false) return;
-  await client.close();
-  await closeSdk();
-  sim?.kill("SIGINT");
+  if (skip === false) await stopSim(client);
 });
-
-const deviceShape = z.looseObject({
-  id: z.string(),
-  sku: z.string(),
-  modes: z.array(z.looseObject({ mode: z.string() })),
-});
-const devicesShape = z.object({ devices: z.array(deviceShape) });
-type Found = z.infer<typeof deviceShape>;
-
-let scanned: Promise<Found> | undefined;
-
-/** Scans once for the file: a scan takes the whole scan window. */
-function scanForSim(): Promise<Found> {
-  scanned ??= scan();
-  return scanned;
-}
-
-async function scan(): Promise<Found> {
-  const { devices } = await structured(
-    client,
-    "scan",
-    { modes: ["lan"] },
-    devicesShape,
-  );
-  const device = devices.find((d) => d.id === SIM_ID);
-  assert.ok(
-    device,
-    `the scan did not find ${SIM_ID}: ${JSON.stringify(devices)}`,
-  );
-  return device;
-}
 
 const commandsShape = z.looseObject({
   commands: z.record(
@@ -139,7 +75,7 @@ test(
   "scan finds the simulator over lan",
   { skip, timeout: 30_000 },
   async () => {
-    const device = await scanForSim();
+    const device = await scanForSim(client);
     assert.ok(device.modes.some(({ mode }) => mode === "lan"));
     const { devices } = await structured(
       client,
@@ -155,7 +91,7 @@ test(
   "set with power and brightness names the mode that served each step",
   { skip, timeout: 30_000 },
   async () => {
-    const device = await scanForSim();
+    const device = await scanForSim(client);
     const brightness = await lowestFor(device.sku, "brightness");
     const answer = await structured(
       client,
@@ -182,7 +118,7 @@ test(
   "set sends power off after the other steps",
   { skip, timeout: 30_000 },
   async () => {
-    const device = await scanForSim();
+    const device = await scanForSim(client);
     const brightness = await lowestFor(device.sku, "brightness");
     const answer = await structured(
       client,
@@ -217,7 +153,7 @@ test(
   "send sends a command whose entry declares no answer",
   { skip, timeout: 30_000 },
   async () => {
-    const device = await scanForSim();
+    const device = await scanForSim(client);
     const record = await structured(
       client,
       "describe_device",
@@ -245,7 +181,7 @@ test(
   "status reads the simulator over lan",
   { skip, timeout: 30_000 },
   async () => {
-    await scanForSim();
+    await scanForSim(client);
     const answer = await structured(
       client,
       "status",
@@ -261,7 +197,7 @@ test(
   "a value out of range fails, and nothing is clamped",
   { skip, timeout: 30_000 },
   async () => {
-    const device = await scanForSim();
+    const device = await scanForSim(client);
     const brightness = (await lowestFor(device.sku, "brightness")) - 1;
     assert.equal(
       await failureCode(client, "set", {
@@ -278,7 +214,7 @@ test(
   "a mode that the configuration does not enable fails, and says so",
   { skip, timeout: 30_000 },
   async () => {
-    await scanForSim();
+    await scanForSim(client);
     const other = MODES.find((mode) => mode !== "lan");
     assert.equal(
       await failureCode(client, "set", {

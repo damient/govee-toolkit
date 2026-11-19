@@ -8,6 +8,23 @@ import { fail, oneOf } from "./result.ts";
 
 let started: Promise<Govee> | undefined;
 
+/**
+ * How long the SDK stays up after the last call, in milliseconds. The `lan`
+ * socket holds UDP port 4002 while the SDK is up, and the kernel then gives a
+ * reply to one of the processes on the port only: the `govee` command on the
+ * same host hears nothing. `GOVEE_MCP_IDLE_MS=0` keeps the SDK up.
+ */
+const idleMs = idleSetting(process.env.GOVEE_MCP_IDLE_MS);
+let active = 0;
+let idleTimer: NodeJS.Timeout | undefined;
+
+function idleSetting(value: string | undefined): number {
+  if (value === undefined || value === "") return 30_000;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) throw new Error(`GOVEE_MCP_IDLE_MS: not a whole number of milliseconds: ${value}`);
+  return parsed;
+}
+
 /** The SDK, started on the first call. A start that fails is tried again on the next call. */
 export function sdk(): Promise<Govee> {
   started ??= Govee.start().catch((error: unknown) => {
@@ -19,6 +36,7 @@ export function sdk(): Promise<Govee> {
 
 /** Releases every transport. Without it, `ble` loses the last frame it wrote. */
 export async function closeSdk(): Promise<void> {
+  clearTimeout(idleTimer);
   const running = started;
   started = undefined;
   const govee = await running?.catch(() => null);
@@ -29,10 +47,23 @@ export async function closeSdk(): Promise<void> {
 export async function attempt(
   answer: (govee: Govee) => CallToolResult | Promise<CallToolResult>,
 ): Promise<CallToolResult> {
+  clearTimeout(idleTimer);
+  active += 1;
   try {
     return await answer(await sdk());
   } catch (error) {
     return fail(error);
+  } finally {
+    active -= 1;
+    if (active === 0 && idleMs > 0) {
+      idleTimer = setTimeout(() => {
+        closeSdk().catch((error: unknown) => {
+          console.error("idle close:", error);
+        });
+      }, idleMs);
+      // A pending release keeps no process alive.
+      idleTimer.unref();
+    }
   }
 }
 

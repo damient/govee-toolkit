@@ -4,8 +4,17 @@ Changes to `govee-toolkit-mcp`, the MCP server in `integrations/mcp`. It
 versions apart from the binding it wraps and releases under `mcp-vX.Y.Z`. The
 policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `stream` plays frames on the segment channel of one or more devices in
+  step, for 120 s at most, then disarms. See the [README](README.md#tools).
+- `scan` that hears nothing answers `problems`, such as a reply port that
+  another process holds.
+
 ### Changed
 
+- The SDK closes 30 s after the last call and releases UDP port 4002, so the
+  `govee` command on the same host hears replies. `GOVEE_MCP_IDLE_MS` sets it.
 - `status` after a command from the server waits until the device reports
   the new state, for the time that the device file records.
 

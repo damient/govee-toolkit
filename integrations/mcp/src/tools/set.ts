@@ -60,6 +60,8 @@ export function registerSet(server: McpServer): void {
         "on one device, on every member of a group, or on every device of one SKU. The steps go out in a fixed order, power on first and power off last. " +
         "A member that fails a step takes no later step, and the other members go on. " +
         "Each outcome names the mode that served it. " +
+        "Over `lan`, `ok` says that the command left: the firmware acknowledges nothing, and a device can ignore a command in silence. " +
+        "Call `status` to read the state that the device applied. " +
         "A value outside the range that the device file declares fails with the codec error: nothing is clamped. " +
         "To send a command that no argument here names, call `send`.",
       inputSchema: setInput,

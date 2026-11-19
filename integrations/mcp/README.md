@@ -111,8 +111,8 @@ The values that a filter accepts come from the catalog and from `api.json`.
 | `get_api({ role?, language? })` | The methods that serve each role, per language |
 | `read_doc({ topic })` | One page of `docs/`, as Markdown |
 
-Control tools. The SDK starts on the first control call and closes when stdin
-closes, or on `SIGINT` and `SIGTERM`.
+Control tools. The SDK starts on the first control call. It closes 30 s after
+the last call, when stdin closes, or on `SIGINT` and `SIGTERM`.
 
 | Tool | Does |
 | ---- | ---- |
@@ -121,6 +121,7 @@ closes, or on `SIGINT` and `SIGTERM`.
 | `status({ target, mode? })` | Asks a device for its state |
 | `set({ target, mode?, power?, brightness?, color?, color_temp?, segment?, music?, gradient? })` | Sets the state of a device, of a group, or of every device of one SKU |
 | `send({ target, mode?, command, args? })` | Sends one command that the device file declares |
+| `stream({ targets, mode?, frames, hold_ms?, repeat?, resolution?, rate?, gradient? })` | Plays frames on the segment channel of one or more devices in step, then disarms |
 | `identify({ targets?, mode? })` | Lights the devices one by one, so that a person can find each one |
 | `doctor()` | Lists the problems in the configuration |
 
@@ -135,9 +136,21 @@ members go on. `send` reads a command whose entry declares an answer, and
 sends any other one. It refuses a command that takes a secret, such as a
 network password, with `secret_arg`.
 
+`stream` holds the call for the whole playback, 120 s at most. Each device
+gets each frame at the same time, so two devices side by side show which one
+lags. The answer counts the frames that reached the wire. The firmware
+acknowledges no frame, so a person watches what each device shows.
+
+Over `lan`, an `ok` outcome says that the command left. The firmware
+acknowledges nothing, so call `status` to read what the device applied.
+
+The `lan` socket holds UDP port 4002 while the SDK is up. The kernel then
+gives each reply to one process on the port only, so the `govee` command on
+the same host can hear nothing. The server releases the port after 30 s with
+no call. `GOVEE_MCP_IDLE_MS` sets that delay, and `0` keeps the SDK up.
+
 The server does not provision Wi-Fi, because the password goes through the
-model. It does not open a segment stream, because a stream does not fit a tool
-call.
+model.
 
 ## Resources
 

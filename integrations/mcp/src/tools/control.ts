@@ -5,6 +5,7 @@ import { vocabulary } from "../catalog.ts";
 import { ok, oneOf } from "../result.ts";
 import { CONTROL, TARGET, attempt, deviceRow, modeArg, reach, rgb, statusRow } from "../sdk.ts";
 import { registerSet } from "./set.ts";
+import { registerStream } from "./stream.ts";
 
 const deviceShape = z.looseObject({
   id: z.string(),
@@ -18,6 +19,7 @@ export function registerControlTools(server: McpServer): void {
   listKnown(server);
   status(server);
   registerSet(server);
+  registerStream(server);
   send(server);
   identify(server);
   doctor(server);
@@ -31,15 +33,18 @@ function scan(server: McpServer): void {
       description:
         "Run a discovery scan and list the devices that answered, with their health per mode. " +
         "Call it before a command to a device that `list_known` does not list. It takes the scan window of each mode. " +
-        "Without `modes`, it scans every mode that this build carries.",
+        "Without `modes`, it scans every mode that this build carries. " +
+        "When nothing answers, `problems` gives what can keep the replies away, such as a reply port that another process holds.",
       inputSchema: z.object({ modes: z.array(oneOf(vocabulary.modes)).optional() }),
-      outputSchema: z.object({ devices: z.array(deviceShape) }),
+      outputSchema: z.object({ devices: z.array(deviceShape), problems: z.array(z.string()).optional() }),
       annotations: CONTROL,
     },
     ({ modes }) =>
       attempt(async (govee) => {
         const found = await govee.scan(modes);
-        return ok({ devices: found.map((device) => deviceRow(device)) });
+        const devices = found.map((device) => deviceRow(device));
+        const problems = found.length === 0 ? govee.problems() : [];
+        return ok(problems.length === 0 ? { devices } : { devices, problems });
       }),
   );
 }
@@ -52,7 +57,8 @@ function listKnown(server: McpServer): void {
       description:
         "List every device that a scan found, with its health per mode. " +
         "The first call scans each mode that no scan covered yet. A later call reads what the scans found and sends nothing: " +
-        "call `scan` to find a device that answered since.",
+        "call `scan` to find a device that answered since. " +
+        "By default, the server releases the network after 30 s with no call, and the next call scans again.",
       inputSchema: z.object({}),
       outputSchema: z.object({ devices: z.array(deviceShape) }),
       annotations: { ...CONTROL, readOnlyHint: true },

@@ -551,6 +551,12 @@ exports[`the tools and their schemas match the snapshot 1`] = `
             ],
             "additionalProperties": {}
           }
+        },
+        "problems": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
@@ -973,6 +979,162 @@ exports[`the tools and their schemas match the snapshot 1`] = `
       ],
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": {}
+    }
+  },
+  {
+    "name": "stream",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "openWorldHint": true
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "targets": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The devices, each an identity (\`AA:BB:CC:DD:EE:FF\`) or a name that the configuration gives a device (\`name:kitchen\`). Every device takes the same frames at the same time."
+        },
+        "mode": {
+          "description": "Pins the call to one mode, which the device must enable. Without it, the preference order of the device applies. A mode that does not answer fails the call: nothing moves to another mode.",
+          "type": "string",
+          "enum": "<modes>"
+        },
+        "frames": {
+          "minItems": 1,
+          "maxItems": 1000,
+          "type": "array",
+          "items": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3,
+              "description": "Red, green and blue, 0-255 each."
+            },
+            "description": "One color fills every zone. More colors state each zone in order, one per zone of the stream."
+          }
+        },
+        "hold_ms": {
+          "default": 500,
+          "description": "How long each frame stays, in milliseconds.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "repeat": {
+          "default": 1,
+          "description": "How many times the frames play.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "resolution": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "string",
+              "enum": [
+                "app",
+                "native",
+                "groups"
+              ]
+            }
+          ]
+        },
+        "rate": {
+          "description": "Frames per second on the wire. Without it, the rate that the device file measured.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "gradient": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "targets",
+        "frames"
+      ],
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "played_ms": {
+          "type": "number"
+        },
+        "streams": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "zones": {
+                "type": "number"
+              },
+              "rate_hz": {
+                "type": "number"
+              },
+              "frames_sent": {
+                "type": "number"
+              },
+              "frames_superseded": {
+                "type": "number"
+              },
+              "error": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "zones",
+              "rate_hz",
+              "frames_sent",
+              "frames_superseded",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "played_ms",
+        "streams"
+      ],
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false
     }
   }
 ]
