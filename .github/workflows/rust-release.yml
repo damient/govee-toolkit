@@ -50,6 +50,17 @@ jobs:
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
+      # CI accepts a declared breaking change before the bump. Here the bumped
+      # manifest must account for it, since crates.io never takes a version
+      # back.
+      - name: D-Bus headers
+        if: steps.crate.outputs.published == 'false'
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
+      - uses: obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9
+        if: steps.crate.outputs.published == 'false'
+        with:
+          package: govee-toolkit
+          manifest-path: packages/rust/Cargo.toml
       # build.rs embeds devices/*.yaml, which sits above the manifest and so
       # cannot be packaged from there.
       - name: Vendor the device catalog

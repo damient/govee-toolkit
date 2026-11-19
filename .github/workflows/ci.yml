@@ -353,18 +353,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The range since the last rust-v* tag has to be walkable.
+          fetch-depth: 0
       # btleplug reaches BlueZ over D-Bus, so `--all-features` needs the dbus
       # headers to compile.
       - name: D-Bus headers
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
-      # The baseline is the crate on crates.io. A change to the public API that
-      # the version in Cargo.toml does not account for fails here rather than
-      # on a registry that never takes a version back. Pre-1.0, the breaking
-      # bump is the minor one — see docs/versioning.md.
+      # A breaking change can land before the release that bumps the manifest,
+      # if a commit since the last rust-v* tag declares it with `!` or
+      # `BREAKING CHANGE:`. The release workflow checks the bumped manifest.
+      - name: Breaking change declared since the last release
+        id: declared
+        run: |
+          last=$(git describe --tags --match 'rust-v*' --abbrev=0)
+          if git log --format='%s%n%b' "$last..HEAD" -- packages/rust \
+            | grep -qE '^[a-z]+(\([a-z0-9-]+\))?!: |^BREAKING[ -]CHANGE: '; then
+            echo "release-type=major" >> "$GITHUB_OUTPUT"
+          fi
+      # The baseline is the crate on crates.io. `release-type` takes semver
+      # terms: `minor` allows no break, even pre-1.0. The release itself bumps
+      # the minor number pre-1.0 — see docs/versioning.md.
       - uses: obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9
         with:
           package: govee-toolkit
           manifest-path: packages/rust/Cargo.toml
+          release-type: ${{ steps.declared.outputs.release-type }}
 
   deny:
     name: Licenses and advisories

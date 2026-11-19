@@ -27,6 +27,11 @@ are pre-1.0 today, and pre-1.0 has one specific meaning here:
 A breaking change still gets a changelog entry saying what broke and what to do
 about it. Pre-1.0 is permission to move, not permission to move quietly.
 
+A breaking change can merge before the release that bumps the version. Its
+commit declares the break with `!` or a `BREAKING CHANGE:` trailer. CI then
+accepts the change against the crate on crates.io. The release workflow checks
+the change again against the bumped manifest, before it publishes.
+
 1.0 arrives when the mode model, the `Transport` trait and the device schema
 have survived `ble` and `cloud` landing — not on a date.
 
