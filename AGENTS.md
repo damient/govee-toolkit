@@ -270,8 +270,15 @@ commit.
 reading the result off a pull request. `tools/qa-site.sh` does the same for the
 site, and `qa.sh` runs it as one of its checks.
 
-**A coding agent does not run these scripts.** Give the user the command
-from the table below, and let the user run it.
+**On macOS, run these scripts in a terminal that holds the Bluetooth
+permission.** A test or a command that reaches `ble` opens the Bluetooth
+stack. macOS kills a process whose responsible app declares no Bluetooth
+usage: the process exits with code 134 (SIGABRT), it loses its buffered
+output, and the crash report says `namespace: TCC`. The shell tool of the
+Claude desktop app runs under such a helper. Its Terminal panel does not, so
+run the scripts and every command that reaches `ble` in that panel. From
+the shell tool, restrict a command to `--mode lan`. Exit code 134 from
+`govee`, `python` or `node` is this fault, not an SDK fault.
 
 Run the narrowest form that covers the change, and the full run before you
 push:
