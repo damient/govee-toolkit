@@ -4,6 +4,11 @@ Changes to `govee-toolkit-mcp`, the MCP server in `integrations/mcp`. It
 versions apart from the binding it wraps and releases under `mcp-vX.Y.Z`. The
 policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Changed
+
+- `status` after a command from the server waits until the device reports
+  the new state, for the time that the device file records.
+
 ## [0.2.0] — 2026-11-15
 
 ### Added

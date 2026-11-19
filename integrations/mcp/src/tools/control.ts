@@ -73,7 +73,9 @@ function status(server: McpServer): void {
       description:
         "Ask one device for its state and wait for the answer: power, brightness, color and white temperature. " +
         "No firmware fills every field: `null` is a field that the device did not report. " +
-        "`raw` holds the whole answer. Fails with `unknown_device` when no scan finds the device.",
+        "`raw` holds the whole answer. " +
+        "After a command from this server, the read waits for the time that the device file records, so it reports the new state. " +
+        "Fails with `unknown_device` when no scan finds the device.",
       inputSchema: z.object({ target: z.string().describe(TARGET), mode: modeArg }),
       outputSchema: z.looseObject({ id: z.string(), mode: z.string() }),
       annotations: CONTROL,
