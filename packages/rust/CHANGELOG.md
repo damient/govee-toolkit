@@ -14,6 +14,10 @@ releases apart and keeps
 - `Measurements::status_settle()` gives that time for one mode.
 - **Breaking:** `Measurements` carries `status_settle_ms`. A struct literal takes
   `..Measurements::default()`.
+- `Transport::problems()` reports what keeps a transport from its devices on
+  this host. The default reports nothing.
+- `Govee::problems()` reports a `lan` reply port that another process holds:
+  the kernel can give the replies to that process.
 
 ## [0.16.0] — 2026-11-15
 

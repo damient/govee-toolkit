@@ -55,6 +55,10 @@ impl Transport for LanTransport {
         Self::command_gap(self)
     }
 
+    fn problems(&self) -> Vec<String> {
+        Self::problems(self)
+    }
+
     async fn scan(&self, window: Duration) -> Result<Vec<Discovered>> {
         let endpoints = self.endpoints();
         Ok(Self::scan(self, window)

@@ -4,6 +4,11 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Changed
+
+- `Govee.problems()` reports a `lan` reply port that another process holds:
+  the kernel can give the replies to that process.
+
 ## [0.8.0] — 2026-11-15
 
 ### Added

@@ -5,6 +5,11 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Changed
+
+- `govee scan` that hears nothing prints each problem of `govee doctor` as a
+  warning on stderr, such as a reply port that another process holds.
+
 ## [0.11.0] — 2026-11-15
 
 ### Added

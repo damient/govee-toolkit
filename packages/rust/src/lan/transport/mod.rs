@@ -144,6 +144,20 @@ impl Transport {
         self.shared.socket.local_addr()
     }
 
+    /// What keeps this transport from hearing replies, one sentence each.
+    #[must_use]
+    pub fn problems(&self) -> Vec<String> {
+        if !self.shared.socket.held_elsewhere() {
+            return Vec::new();
+        }
+        let port = self.shared.endpoints.reply_bind.port();
+        vec![format!(
+            "another process listens on UDP port {port}: the replies can reach it instead, \
+             so a scan or a status request can hear nothing. Stop that process, such as a \
+             running MCP server or `govee-dmx`, and try again"
+        )]
+    }
+
     /// How long a scan collects replies when the caller names no window.
     #[must_use]
     pub fn scan_window(&self) -> Duration {

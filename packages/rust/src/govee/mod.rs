@@ -169,7 +169,22 @@ impl Govee {
         problems.extend(self.missing_credentials());
         problems.extend(self.absent_transports());
         problems.extend(self.check_devices());
+        problems.extend(self.transport_problems());
         problems
+    }
+
+    /// What each transport reports about the host, such as a reply port that
+    /// another process holds.
+    fn transport_problems(&self) -> Vec<Problem> {
+        self.inner
+            .transports
+            .values()
+            .flat_map(|transport| transport.problems())
+            .map(|message| Problem {
+                device: None,
+                message,
+            })
+            .collect()
     }
 
     /// Every enabled mode this build carries no transport for.
