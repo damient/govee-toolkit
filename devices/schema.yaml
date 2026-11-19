@@ -529,7 +529,9 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         # until this time is over. Measure it: send a command,
                         # then read `devStatus` again and again, and record
                         # the first time from which every read reports the new
-                        # state. A mode with no value waits for nothing.
+                        # state. 0 records a unit that reports the new state
+                        # at once. A mode with no value was not measured, and
+                        # nothing waits.
                         #
                         # `ble.write_budget_hz` is the sustained rate the `ble`
                         # transport paces its writes to, at or under the

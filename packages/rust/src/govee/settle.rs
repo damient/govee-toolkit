@@ -42,12 +42,14 @@ impl Settling {
 
 impl Govee {
     /// Record a command sent to `id` over `mode`. A SKU whose file records no
-    /// `status_settle_ms` for the mode records nothing.
+    /// `status_settle_ms` for the mode, or 0, records nothing.
     pub(crate) fn wrote(&self, id: &DeviceId, sku: &str, mode: Mode) {
         let Ok(device) = self.inner.catalog.device(sku) else {
             return;
         };
-        if let Some(settle) = device.measurements.status_settle(mode) {
+        if let Some(settle) = device.measurements.status_settle(mode)
+            && !settle.is_zero()
+        {
             self.inner.settling.wrote(id, mode, settle);
         }
     }

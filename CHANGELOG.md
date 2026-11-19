@@ -29,7 +29,8 @@ at.
 
 - `measurements.status_settle_ms` records, per mode, how long a unit reports
   its previous state after a command. See `devices/schema.yaml`.
-- `H6022` records 400 ms over `lan`, measured on two units, and `H61A0` 150 ms.
+- `H6022` records 400 ms over `lan`, measured on two units, `H61A0` 150 ms,
+  and `H6008` 0: it reports the new state at once.
 
 ### 2026-11-15
 
