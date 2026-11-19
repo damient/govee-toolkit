@@ -239,8 +239,7 @@ measurements:
   zone_0_end: "base"        # zone 0 at the base, the last zone at the top
   segment_chain: "snake"    # the chain folds back at each ring: zone 12 is the
                             # LED above zone 11, not the one above zone 0
-  status_settle_ms: { lan: 400 }   # previous state reported before this, see
-                                   # `verified:`
+  status_settle_ms: { lan: 400 }
   frame_rate:
     # Measured on the razer segment channel, at the full 132 zones. Watched on
     # the unit: the round trip cannot answer here, because the lamp answers no
@@ -337,7 +336,7 @@ verified:
 
     Trap: after a command over lan, `devStatus` reports the previous state.
     On two units, with color, brightness and white temperature, reads up to
-    330 ms after the command reported the previous state, and every read from
+    330 ms after the command reported the previous state. Every read from
     400 ms reported the new one. A change of one step in red took as long as
     a change from red to blue. The value moved in one step, with no value in
     between. The command applied every time. The file records 400. At rest, 7

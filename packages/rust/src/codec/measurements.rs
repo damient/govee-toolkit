@@ -161,9 +161,8 @@ pub struct Measurements {
     /// answers nothing, so a frame sent too early is lost in silence.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub arm_settle_ms: Option<u64>,
-    /// How long the unit reports its previous state after a command, in
-    /// milliseconds, per mode. A status request waits until this time is over.
-    /// Where nobody measured it, nothing waits.
+    /// Per mode, in milliseconds: how long the unit reports its previous state
+    /// after a command. An unmeasured mode gets no wait.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub status_settle_ms: BTreeMap<Mode, u64>,
     /// What one unit did over `ble`.
@@ -201,8 +200,8 @@ impl Measurements {
             .map_or(DEFAULT_ARM_SETTLE, Duration::from_millis)
     }
 
-    /// How long a status request waits after a command over `mode`, from
-    /// [`Measurements::status_settle_ms`]. `None` where nobody measured it.
+    /// [`Measurements::status_settle_ms`] for `mode`. `None` where nobody
+    /// measured it.
     #[must_use]
     pub fn status_settle(&self, mode: Mode) -> Option<Duration> {
         self.status_settle_ms

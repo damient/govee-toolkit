@@ -156,8 +156,7 @@ measurements:
     write_drain_ms: 25            # host colour channel, the shortest wait that
                                   # rendered. 20 ms lost the frame. One trial
                                   # per step, so this is the edge, not a margin
-  status_settle_ms: { lan: 0 }    # devStatus reports the new state at once,
-                                  # see `verified:`
+  status_settle_ms: { lan: 0 }
 
 verified:
   by: "damient"
@@ -251,6 +250,6 @@ verified:
     `aa 06` alone, and nothing establishes which module each read names.
 
     After a command over lan, `devStatus` reports the new state at once. On
-    one unit, a request sent directly behind the command reported the new
+    one unit, a request sent directly after the command reported the new
     state 21 times of 21, over color, brightness and white temperature. The
     answers came 50 to 148 ms after the command. The file records 0.

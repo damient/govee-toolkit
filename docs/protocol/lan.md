@@ -119,11 +119,8 @@ The device applies the command, but its reply keeps the old state for a short
 time. The value then changes in one step. Do not count an old value in that
 time as a dropped command.
 
-The device file records that time as `measurements.status_settle_ms`. After a
-command, the SDK makes a status request to the same device wait until that
-time is over. The SDK records the command in its own process only. A caller
-in another process must wait before it reads, or read again until the value
-changes.
+The device file records that time as `measurements.status_settle_ms`. Wait
+that time before you read, or read again until the value changes.
 
 A `devStatus` request can also go unanswered. Send it again before you count
 the device as unreachable.

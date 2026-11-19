@@ -521,17 +521,14 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         # ../docs/protocol/lan.md 2.3.
                         #
                         # `status_settle_ms` is how long the unit reports its
-                        # previous state after a command, per mode:
+                        # previous state after a command, per mode, and how
+                        # long a status request waits after one:
                         #
                         #   status_settle_ms: { lan: 400 }
                         #
-                        # After a command, the SDK makes a status request wait
-                        # until this time is over. Measure it: send a command,
-                        # then read `devStatus` again and again, and record
-                        # the first time from which every read reports the new
-                        # state. 0 records a unit that reports the new state
-                        # at once. A mode with no value was not measured, and
-                        # nothing waits.
+                        # Record the first time from which every `devStatus`
+                        # read reports the new state. A mode with no value
+                        # gets no wait.
                         #
                         # `ble.write_budget_hz` is the sustained rate the `ble`
                         # transport paces its writes to, at or under the

@@ -1,9 +1,5 @@
-//! When a device reports the state that a command set.
-//!
-//! A unit can report its previous state for a short time after a command —
-//! `docs/protocol/lan.md` 1, "Read after a command". The send path records when
-//! that time ends, and a status request waits for it. The record lives in this
-//! process only.
+//! The settle time after a command: `docs/protocol/lan.md` 1, "Read after a
+//! command". The record lives in this process only.
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -15,7 +11,6 @@ use crate::codec::Mode;
 use crate::govee::Govee;
 use crate::transport::DeviceId;
 
-/// The end of the settle time, by device and mode.
 #[derive(Debug, Default)]
 pub(crate) struct Settling {
     until: Mutex<HashMap<(DeviceId, Mode), Instant>>,
@@ -41,8 +36,6 @@ impl Settling {
 }
 
 impl Govee {
-    /// Record a command sent to `id` over `mode`. A SKU whose file records no
-    /// `status_settle_ms` for the mode, or 0, records nothing.
     pub(crate) fn wrote(&self, id: &DeviceId, sku: &str, mode: Mode) {
         let Ok(device) = self.inner.catalog.device(sku) else {
             return;
@@ -54,8 +47,6 @@ impl Govee {
         }
     }
 
-    /// Wait until `id` reports the state that the last command over `mode`
-    /// set. Returns at once where no settle time runs.
     pub(crate) async fn settled(&self, id: &DeviceId, mode: Mode) {
         if let Some(deadline) = self.inner.settling.deadline(id, mode) {
             tokio::time::sleep_until(deadline).await;

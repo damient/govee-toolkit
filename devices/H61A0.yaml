@@ -281,8 +281,6 @@ measurements:
   # are in `verified.notes`. See ../docs/protocol/lan.md 2.3.
   arm_settle_ms: 50
 
-  # How long `devStatus` reports the previous state after a command. See
-  # `verified.notes`.
   status_settle_ms: { lan: 150 }
 
   frame_rate:
