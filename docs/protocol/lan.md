@@ -257,7 +257,11 @@ Which a model does is a per-SKU fact — record it in `devices/<SKU>.yaml`.
 
 **The `gradient` byte.** With `1` the firmware interpolates between zones and
 wraps from the last back to the first, so a single lit zone at one end also
-glows at the other. With `0` the zones are hard-edged. Which default a model
+glows at the other. With `0` the zones are hard-edged. The interpolation
+follows the zone order, not the shape of the unit. On a grid whose chain
+folds back at each row, the two ends of one row touch but are not
+neighbours in the zone order, so the firmware does not blend them. A
+pattern that turns around such a row jumps at that edge. Which default a model
 uses is a per-SKU fact — in the vendor's own desktop app it is a user setting
 overridden for a list of models.
 
@@ -317,8 +321,16 @@ Write commands never answer, so a device's headroom cannot be measured directly.
 Measure it indirectly: time `devStatus` round-trips at rest, then again **during**
 a stream of segment frames. A rising RTT or dropped replies mark saturation.
 This needs a unit that answers while the channel is armed, and some do not —
-see §2.3. Where it answers nothing, watch the unit and raise the rate until
-the render stutters or freezes.
+see §2.3. Where it answers nothing, watch the unit as the next paragraph
+says.
+
+**A frame sent is not a frame shown.** A unit can take frames from the wire
+faster than it renders them. It then shows the last frame it holds and drops
+the others in silence. The sender sees no loss, and the visible rate stays at
+the render ceiling whatever the send rate. An animation that changes little
+from one frame to the next hides the loss. To measure the ceiling, flip the
+whole unit between two colors and count the flips the eye sees. Repeat at
+each zone count.
 
 The ceiling drops as frames get larger, since payload size grows with the zone
 count. Two consequences for an implementation:
