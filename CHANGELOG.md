@@ -23,6 +23,13 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-11-20
+
+#### Fixed
+
+- `H6022` `frame_rate` over `lan` gives one row per zone count, from 25 Hz at
+  12 zones and 20 Hz at 33 to 3 Hz at 132, in place of 100 Hz at 132.
+
 ### 2026-11-19
 
 #### Added
