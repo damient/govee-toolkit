@@ -29,6 +29,8 @@ at.
 
 - `H6022` `frame_rate` over `lan` gives one row per zone count, from 25 Hz at
   12 zones and 20 Hz at 33 to 3 Hz at 132, in place of 100 Hz at 132.
+- `H6022` notes that `gradient` 1 adds small flashes to a fast rotation at 33
+  zones over `lan`.
 
 ### 2026-11-19
 
