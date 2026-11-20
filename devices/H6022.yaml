@@ -302,9 +302,10 @@ verified:
 
     Every frame above was sent with `gradient` 0. At 132 zones the diffuser
     blurs the edge between two zones, so the byte shows nothing to the eye. At
-    33 zones, which is 4 LEDs a zone and 3 zones a ring, a rotation reads
-    smoother with `gradient` 1. Trap: that rotation shows a small jump once a
-    turn, with `gradient` 1.
+    33 zones, which is 4 LEDs a zone and 3 zones a ring, a slow two-color
+    rotation reads smoother with `gradient` 1, with a small jump once a turn.
+    Trap: two beams that turn once per 2 beats at 128 BPM, at 20 Hz, show
+    small flashes with `gradient` 1 and none with `gradient` 0.
 
     A `colortemp` sent while the segment channel is armed applies the white
     and ends the channel: the frames that follow paint nothing. A disarm after
