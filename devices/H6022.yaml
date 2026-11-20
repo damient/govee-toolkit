@@ -241,11 +241,16 @@ measurements:
                             # LED above zone 11, not the one above zone 0
   status_settle_ms: { lan: 400 }
   frame_rate:
-    # Measured on the razer segment channel, at the full 132 zones. Watched on
-    # the unit: the round trip cannot answer here, because the lamp answers no
-    # `devStatus` while the channel is armed. See `verified:`.
+    # Watched on the unit, on the razer segment channel. The round trip cannot
+    # answer here, because the lamp answers no `devStatus` while the channel is
+    # armed. The wire takes more: the lamp shows the last frame it holds and
+    # drops the others. See `verified:`.
     lan:
-      - { zones: 132, payload_bytes: 398, clean_hz: 100, breaks_at_hz: 150 }
+      - { zones: 12,  payload_bytes: 38,  clean_hz: 25 }
+      - { zones: 33,  payload_bytes: 101, clean_hz: 20 }
+      - { zones: 44,  payload_bytes: 134, clean_hz: 8,  breaks_at_hz: 10 }
+      - { zones: 66,  payload_bytes: 200, clean_hz: 6,  breaks_at_hz: 10 }
+      - { zones: 132, payload_bytes: 398, clean_hz: 3,  breaks_at_hz: 10 }
   ble:
     addressable_zones: 15   # what AA 0F answers, against the 132 LEDs. One
                             # zone is 8.8 LEDs, so no zone covers a whole ring
@@ -295,9 +300,11 @@ verified:
     ring is reversed, and as a zigzag where every ring carries the same
     direction. A frame that paints a grid must reverse every second ring.
 
-    Trap: the diffuser blurs the edge between two zones, so this unit reports
-    nothing about the `gradient` byte to the eye. Every frame above was sent
-    with `gradient` 0.
+    Every frame above was sent with `gradient` 0. At 132 zones the diffuser
+    blurs the edge between two zones, so the byte shows nothing to the eye. At
+    33 zones, which is 4 LEDs a zone and 3 zones a ring, a rotation reads
+    smoother with `gradient` 1. Trap: that rotation shows a small jump once a
+    turn, with `gradient` 1.
 
     A `colortemp` sent while the segment channel is armed applies the white
     and ends the channel: the frames that follow paint nothing. A disarm after
@@ -316,9 +323,17 @@ verified:
     `brightness` sent while the channel is armed: it kept animating through
     both, and the brightness applied. See docs/protocol/lan.md 2.3.
 
-    The segment channel sustains 100 Hz at 132 zones, which is a 398-byte
-    payload. 150 Hz stutters. The rates between the two were not watched, and
-    no other zone count was measured.
+    The rate that the lamp shows falls as the frame grows. Whole-lamp flips
+    between red and blue at 10 Hz show every flip at 1, 12 and 33 zones. At 44
+    zones the lamp falls a little behind, at 66 more, and at 132 it shows
+    about 3 to 4 frames a second. At 12 zones, flips and a band that climbs
+    the lamp read as smooth at 25 Hz. A rotation over 33 zones at 20 Hz reads
+    as smooth. The `frame_rate` rows carry the rates.
+
+    Trap: the wire takes up to 100 Hz at 132 zones, but a frame sent is not a
+    frame shown. The lamp drops every frame except the last one it holds, and
+    shows a frame about 400 ms after it is sent. An animation
+    that moves less than one LED a frame hides the loss.
 
     Trap: the lamp answers no `devStatus` while the segment channel is armed.
     It stays silent from the arming frame to the disarm, and it does so with
@@ -401,8 +416,7 @@ verified:
 
     Gradient was NOT established. `33 A3` draws no acknowledgement, and the
     diffuser blurs the edge between two zones, so alternating red and blue
-    bands looked the same under both settings. The lan session reported the
-    same about its own `gradient` byte.
+    bands looked the same under both settings.
 
     Wi-Fi provisioning: `AA AB` answers type 2 and no hidden-network flag, so
     the transfer carries the endpoint block. The lamp accepted the transfer and
