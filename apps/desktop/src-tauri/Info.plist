@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Without it, macOS kills the app the first time the `ble` mode opens the Bluetooth stack. -->
+  <key>NSBluetoothAlwaysUsageDescription</key>
+  <string>govee-toolkit uses Bluetooth to control your lights in the ble mode.</string>
+</dict>
+</plist>

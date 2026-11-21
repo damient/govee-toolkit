@@ -136,7 +136,7 @@ Full text: <https://developercertificate.org/>.
 | `docs/` | Mode model (`modes.md`), architecture and per-protocol documentation |
 | `packages/rust/` | The protocol core, and the reference implementation |
 | `packages/` | SDKs (python, node) plus the DMX bridge |
-| `apps/` | Web playground and Electron app (not published) |
+| `apps/` | The web UI of the dashboard and the Tauri desktop app (not published) |
 | `integrations/` | Matter bridge, Home Assistant, Homebridge |
 | `tools/` | Local CI mirror and pointers to the development tools |
 | `tests/fixtures/` | Real UDP / BLE captures per SKU, and the conformance vectors |
@@ -191,8 +191,8 @@ Details: [`devices/README.md`](devices/README.md).
 
 ## Documenting an undocumented command
 
-1. Try the payload through the **raw payload field** in the playground
-   (`apps/playground/`).
+1. Try the payload through the **raw payload field** of the dashboard
+   (`apps/dashboard/`).
 2. Add the observed frame to `tests/fixtures/lan-captures/`, redacted:
    [checklist](tests/fixtures/README.md#redaction-checklist).
 3. Document it in `docs/protocol/lan.md`: payload structure, compatible SKUs,

@@ -13,7 +13,7 @@ other plugins cover one platform each. Starts once the core SDK
 - Matter endpoints for the capabilities every controller understands: power,
   brightness, color, color temperature.
 - The undocumented LAN segment channel is **not** expressible in the Matter
-  data model today. It stays reachable through the SDKs, the playground and the
+  data model today. It stays reachable through the SDKs, the dashboard and the
   first-party integrations; the bridge exposes what Matter can carry.
 - Devices are driven in the modes the user enabled for them — the bridge does
   not enable a mode on its own. See [`../../docs/modes.md`](../../docs/modes.md).

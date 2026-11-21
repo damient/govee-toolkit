@@ -38,10 +38,11 @@ case $package in
 rust | govee-toolkit) crate=govee-toolkit ;;
 cli) crate=govee-toolkit-cli ;;
 dmx) crate=govee-toolkit-dmx ;;
+server) crate=govee-toolkit-server ;;
 sim) crate=govee-toolkit-sim ;;
 xtask) crate=xtask ;;
 *)
-  echo "qa.sh: unknown package '$package'; one of rust, cli, dmx, sim, xtask" >&2
+  echo "qa.sh: unknown package '$package'; one of rust, cli, dmx, server, sim, xtask" >&2
   exit 2
   ;;
 esac

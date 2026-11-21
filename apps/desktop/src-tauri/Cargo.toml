@@ -1,0 +1,40 @@
+[package]
+name = "govee-toolkit-desktop"
+description = "The desktop app: the dashboard in a window, with its server in process. Unofficial."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+license = "MIT"
+repository = "https://github.com/damient/govee-toolkit"
+authors = ["damient"]
+publish = false
+
+# Outside the workspace of packages/rust on purpose: the webview links to the
+# system's WebKitGTK on Linux, and the workspace must build without it.
+[workspace]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+govee-toolkit-server = { path = "../../../packages/rust/crates/server" }
+tauri = { version = "2", features = [] }
+tokio = { version = "1", features = ["net"] }
+
+[features]
+# `tauri dev` builds without it, and `tauri build` turns it on: it makes the
+# binary read the bundled web UI and not the dev server.
+custom-protocol = ["tauri/custom-protocol"]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

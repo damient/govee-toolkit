@@ -1,0 +1,28 @@
+{
+  "name": "govee-toolkit-dashboard",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The web UI of the dashboard, served by govee-server and by the desktop app.",
+  "type": "module",
+  "license": "MIT",
+  "author": "damient",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damient/govee-toolkit.git",
+    "directory": "apps/dashboard"
+  },
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "build": "node build.ts",
+    "dev": "node build.ts --watch",
+    "serve": "npm run build && cargo run --manifest-path ../../packages/rust/Cargo.toml -p govee-toolkit-server -- --web dist",
+    "lint": "tsc -p tsconfig.json && tsc -p src/tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}
