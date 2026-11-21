@@ -695,5 +695,6 @@ class Govee:
         """Subscribe to what the SDK reports. Iterate it with `async for`."""
     async def close(self) -> None:
         """Release what every transport holds. Call it before the program ends, or `ble`
-        loses the last frame it wrote.
+        loses the last frame it wrote. `lan` frees its reply port before this call
+        returns and refuses every later command.
         """

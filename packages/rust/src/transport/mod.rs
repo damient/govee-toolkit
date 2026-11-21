@@ -160,9 +160,9 @@ pub trait Transport: Debug + Send + Sync + 'static {
     /// Release what this transport holds, before it is dropped.
     ///
     /// A mode whose wire takes no acknowledgement holds the link open here,
-    /// long enough for the last frame to leave. The default does nothing,
-    /// which is right for a socket the operating system owns. A transport
-    /// answers commands again after this call.
+    /// long enough for the last frame to leave. A mode that binds a port
+    /// frees it here. The default does nothing. Each mode states whether it
+    /// answers commands after this call.
     ///
     /// # Errors
     ///

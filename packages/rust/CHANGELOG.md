@@ -14,6 +14,8 @@ releases apart and keeps
 - `Measurements::status_settle()` gives the status settle time of one mode.
 - `Transport::problems()` reports what keeps a transport from its devices on
   this host. The default reports nothing.
+- `lan::Transport::close()` stops the background tasks and frees the reply
+  port before it returns. Every later command fails with `Error::Io`.
 
 ### Changed
 
@@ -21,10 +23,12 @@ releases apart and keeps
   See [`docs/versioning.md`](../../docs/versioning.md).
 - **Breaking:** `Measurements` carries `status_settle_ms`. A struct literal
   takes `..Measurements::default()`.
+- **Breaking:** `Govee::shutdown()` frees the `lan` reply port before it
+  returns, and `lan` then refuses every command. Start a new `Govee` instead.
 - `DeviceHandle::status()` waits for `Measurements::status_settle_ms` after a
   command from the same process, so it reports the new state.
-- `Govee::problems()` reports a `lan` reply port that another process holds:
-  the kernel can give the replies to that process.
+- `Govee::problems()` reports a `lan` reply port that another socket holds:
+  the kernel can give the replies to that socket.
 
 ## [0.16.0] — 2026-11-15
 

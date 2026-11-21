@@ -6,7 +6,7 @@
 //! same port, so the receive loop dispatches on `msg.cmd`.
 
 use std::net::{Ipv4Addr, SocketAddr};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use socket2::{Domain, Protocol, Socket as Socket2, Type};
 use tokio::net::UdpSocket;
@@ -19,9 +19,11 @@ use crate::transport::error::{Error, Result};
 pub(crate) const MAX_DATAGRAM: usize = 4096;
 
 /// A bound, shared UDP socket.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct Socket {
-    inner: Arc<UdpSocket>,
+    /// `None` after [`Socket::close`]. Hold the `Arc` for one send or receive
+    /// only: a clone kept longer keeps the port.
+    inner: RwLock<Option<Arc<UdpSocket>>>,
     held_elsewhere: bool,
 }
 
@@ -66,9 +68,29 @@ impl Socket {
 
         let inner = UdpSocket::from_std(socket.into()).map_err(|e| Error::io("tokio socket", e))?;
         Ok(Self {
-            inner: Arc::new(inner),
+            inner: RwLock::new(Some(Arc::new(inner))),
             held_elsewhere,
         })
+    }
+
+    fn open(&self) -> Result<Arc<UdpSocket>> {
+        self.inner
+            .read()
+            .ok()
+            .and_then(|inner| inner.clone())
+            .ok_or_else(|| {
+                Error::io(
+                    "the lan transport is closed",
+                    std::io::ErrorKind::NotConnected.into(),
+                )
+            })
+    }
+
+    /// Release the port. Every later call fails with [`Error::Io`].
+    pub(crate) fn close(&self) {
+        if let Ok(mut inner) = self.inner.write() {
+            inner.take();
+        }
     }
 
     pub(crate) const fn held_elsewhere(&self) -> bool {
@@ -77,14 +99,14 @@ impl Socket {
 
     /// Where this socket is bound. Its port is where replies come back.
     pub(crate) fn local_addr(&self) -> Result<SocketAddr> {
-        self.inner
+        self.open()?
             .local_addr()
             .map_err(|e| Error::io("reading the local address", e))
     }
 
     /// Send one datagram.
     pub(crate) async fn send_to(&self, bytes: &[u8], addr: SocketAddr) -> Result<()> {
-        self.inner
+        self.open()?
             .send_to(bytes, addr)
             .await
             .map_err(|e| Error::io(format!("sending to {addr}"), e))?;
@@ -93,7 +115,7 @@ impl Socket {
 
     /// Wait for one datagram.
     pub(crate) async fn recv_from(&self, buf: &mut [u8]) -> Result<(usize, SocketAddr)> {
-        self.inner
+        self.open()?
             .recv_from(buf)
             .await
             .map_err(|e| Error::io("receiving", e))
