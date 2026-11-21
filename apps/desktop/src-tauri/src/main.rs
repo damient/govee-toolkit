@@ -27,9 +27,46 @@ fn web() -> Web {
     }
 }
 
+/// `WKWebView` answers no reload shortcut, and the default menu of macOS has
+/// no reload item.
+#[cfg(target_os = "macos")]
+mod menu {
+    use tauri::menu::{Menu, MenuItem, MenuItemKind, PredefinedMenuItem};
+    use tauri::{App, Manager};
+
+    const RELOAD: &str = "reload";
+
+    /// The default menu, with View > Reload on Cmd+R.
+    pub(crate) fn install(app: &App) -> tauri::Result<()> {
+        let handle = app.handle();
+        let menu = Menu::default(handle)?;
+        let reload = MenuItem::with_id(handle, RELOAD, "Reload", true, Some("CmdOrCtrl+R"))?;
+        for item in menu.items()? {
+            if let MenuItemKind::Submenu(view) = item
+                && view.text()? == "View"
+            {
+                view.insert_items(&[&reload, &PredefinedMenuItem::separator(handle)?], 0)?;
+            }
+        }
+        app.set_menu(menu)?;
+        app.on_menu_event(|app, event| {
+            if event.id() == RELOAD
+                && let Some(window) = app.get_webview_window("main")
+                && let Err(e) = window.reload()
+            {
+                eprintln!("govee-toolkit-desktop: reload: {e}");
+            }
+        });
+        Ok(())
+    }
+}
+
 fn main() {
     let result = tauri::Builder::default()
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            menu::install(app)?;
+
             let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
             listener.set_nonblocking(true)?;
             let url = Url::parse(&format!("http://{}/", listener.local_addr()?))?;
