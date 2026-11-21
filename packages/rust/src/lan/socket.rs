@@ -105,10 +105,8 @@ impl Socket {
     }
 }
 
-/// `SO_REUSEADDR`, and `SO_REUSEPORT` where it exists, on a fixed port only:
-/// port 4002 is fixed by the protocol, and without them a second process
-/// cannot start. On Linux, an ephemeral bind with them can get a port that
-/// another reuse socket holds, and the two then take each other's replies.
+/// Port 4002 is fixed by the protocol: the reuse options let a second process
+/// bind it. Linux can give port 0 a port that a reuse socket holds.
 fn bind(endpoints: &Endpoints) -> Result<UdpSocket> {
     let domain = Domain::for_address(endpoints.reply_bind);
     let socket = Socket2::new(domain, Type::DGRAM, Some(Protocol::UDP))
@@ -259,9 +257,6 @@ mod tests {
         assert!(!socket.held_elsewhere());
     }
 
-    /// On Linux, an ephemeral bind with `SO_REUSEADDR` can get a port that
-    /// another reuse socket holds. Two test rigs then took each other's
-    /// status replies.
     #[tokio::test]
     async fn an_ephemeral_port_is_not_shared() {
         let endpoints = Endpoints {
