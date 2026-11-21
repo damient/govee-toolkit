@@ -12,13 +12,13 @@ import { categoryPages } from "./lib/categories.ts";
 import { crumbs } from "./lib/crumbs.ts";
 import { devicePage } from "./lib/device-page.ts";
 import { renderIndex } from "./lib/devices.ts";
-import { type Frame, type Page, address, emit } from "./lib/emit.ts";
+import { type Draft, type Frame, type Page, address, emit } from "./lib/emit.ts";
 import { everyModel } from "./lib/listed.ts";
 import { navItem } from "./lib/docs.ts";
 import { faqPage } from "./lib/faq.ts";
 import { fill } from "./lib/html.ts";
 import { isReference, readApi, readCatalog, readCategories, readJson } from "./lib/json.ts";
-import { EN, ENGLISH, LOCALES, type Locale, type T, forgetStrings, prefix, strings, translate } from "./lib/locales.ts";
+import { ENGLISH, LOCALES, type Locale, type T, forgetStrings, strings, translate } from "./lib/locales.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
 import { REFERENCE_URL, localReference, referenceNav, referencePage } from "./lib/reference.ts";
 import { breadcrumb, deviceData, homeData, redirect, robots, sitemapXml } from "./lib/seo.ts";
@@ -39,6 +39,7 @@ interface Source {
 }
 
 interface Shared {
+  layout: string;
   devices: Device[];
   reference: Reference;
   api: Api;
@@ -85,41 +86,39 @@ async function main(): Promise<void> {
     readFile(join(root, "src/layout.html"), "utf8"),
     readJson(join(root, "content/reference.json"), isReference),
   ]);
-  const shared: Shared = { devices: everyModel(catalog, categories), reference, api, css };
+  const shared: Shared = { layout, devices: everyModel(catalog, categories), reference, api, css };
   const built = await Promise.all(LOCALES.map((locale) => localePages(locale, shared)));
-  const frames = new Map(built.map(({ locale, frame }) => [locale.id, frame]));
-  const all: Page[] = [...built.flatMap((b) => b.pages), notFound()];
+  const missing = notFound();
+  const all: Page[] = [...built.flatMap((b) => b.pages), missing];
 
   unique([...all.map((page) => address(page)), ...Object.keys(MOVED)]);
-  // `routes` decides where a link goes, `site` what the sitemap and the
-  // `hreflang` links name: a page that no index keeps is in the first alone.
   const paths = (keep: (page: Page) => boolean) => new Map(LOCALES.map((locale) => [
     locale.id,
     new Set(all.filter((p) => p.locale.id === locale.id && keep(p)).map((p) => p.url)),
   ]));
-  const routes = paths((p) => p.url !== notFound().url);
-  const site = paths((p) => p.noindex !== true);
-  await Promise.all(all.map((page) => {
-    const frame = frames.get(page.locale.id);
-    if (!frame) throw new Error(`no frame for ${page.locale.id}`);
-    return emit(out, layout, page, frame, { routes, site });
-  }));
+  const maps = { routes: paths((p) => p !== missing), site: paths((p) => p.noindex !== true) };
+  const english = built[0]?.frame;
+  if (!english) throw new Error("no English frame");
+  await Promise.all([
+    ...built.flatMap(({ frame, pages }) => pages.map((page) => emit(out, page, frame, maps))),
+    emit(out, missing, english, maps),
+  ]);
 
   await Promise.all(Object.entries(MOVED).map(async ([from, to]) => {
     await mkdir(join(out, from), { recursive: true });
     await writeFile(join(out, from, "index.html"), redirect(to));
   }));
   await writeFile(join(out, "robots.txt"), robots());
-  await writeFile(join(out, "sitemap.xml"), sitemapXml(site));
+  await writeFile(join(out, "sitemap.xml"), sitemapXml(maps.site));
 
   await publish();
   const clock = new Date().toTimeString().slice(0, 8);
-  const indexed = [...site.values()].reduce((n, urls) => n + urls.size, 0);
+  const indexed = [...maps.site.values()].reduce((n, urls) => n + urls.size, 0);
   console.log(`${clock}  site -> ${relative(repo, dist)} (${indexed} pages, ${shared.devices.length} devices, ${LOCALES.length} languages)`);
 }
 
 /** Every page of one language that is not a model page. */
-async function localePages(locale: Locale, { devices, reference, api, css }: Shared) {
+async function localePages(locale: Locale, { layout, devices, reference, api, css }: Shared) {
   const t = strings(locale);
   const [docs, faq] = await Promise.all([readDocs(locale), faqPage(locale)]);
   const ref = localReference(reference, locale);
@@ -133,15 +132,15 @@ async function localePages(locale: Locale, { devices, reference, api, css }: Sha
     .filter((item) => !FOOT_SKIP.has(item.url))
     .map((item) => navItem(base, item, null))
     .join("\n          ");
-  const frame: Frame = { css, docsHome, docNav, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
-  const pages: Omit<Page, "locale">[] = [
+  const frame: Frame = { layout: translate(layout, t), css, docsHome, docNav, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
+  const pages: Draft[] = [
     ...(await sourcePages([...sources(t), ...categoryPages(devices, renderIndex, locale)], devices, locale)),
     ...docPages(docs, nav, docsHome, locale),
     ...(ref === null ? [] : [refPage(ref, api, nav, docsHome, locale)]),
     ...(faq === null ? [] : [faq]),
     ...devices.map((device) => deviceEntry(device, ref ?? reference, devices, locale)),
   ];
-  return { locale, frame, pages: pages.map((page): Page => Object.assign({}, page, { locale })) };
+  return { frame, pages: pages.map((page): Page => Object.assign({}, page, { locale })) };
 }
 
 // `assets()` bundles the stylesheet and the script: only the bundle is copied.
@@ -170,7 +169,7 @@ function unique(urls: string[]): void {
 }
 
 // Every category page shares the template of the devices page.
-function sourcePages(list: Source[], devices: Device[], locale: Locale): Promise<Omit<Page, "locale">[]> {
+function sourcePages(list: Source[], devices: Device[], locale: Locale): Promise<Draft[]> {
   const t = strings(locale);
   const templates = new Map<string, Promise<string>>();
   const read = (src: string): Promise<string> => {
@@ -182,8 +181,8 @@ function sourcePages(list: Source[], devices: Device[], locale: Locale): Promise
   };
   return Promise.all(list.map(async (page) => {
     const source = await read(page.src);
-    const trailData = page.trail ? [breadcrumb(page.trail, t, prefix(locale))] : [];
-    const jsonld = page.url === "" ? homeData(locale, t) : [...trailData, ...(page.jsonld ?? [])];
+    const trailData = page.trail ? [breadcrumb(page.trail, locale)] : [];
+    const jsonld = page.url === "" ? homeData(locale) : [...trailData, ...(page.jsonld ?? [])];
     const body = fill(page.render ? page.render(source, devices) : source, {
       crumbs: page.trail ? crumbs(page.trail, t) : "",
     });
@@ -193,9 +192,8 @@ function sourcePages(list: Source[], devices: Device[], locale: Locale): Promise
 
 // A model page in another language stays out of every index: its notes, its
 // names and its values come from the device file, in English.
-function deviceEntry(device: Device, reference: Reference, devices: Device[], locale: Locale): Omit<Page, "locale"> {
-  const t = strings(locale);
-  const page = devicePage(device, reference, devices, t);
+function deviceEntry(device: Device, reference: Reference, devices: Device[], locale: Locale): Draft {
+  const page = devicePage(device, reference, devices, strings(locale));
   return {
     url: page.url,
     nav: "devices",
@@ -203,12 +201,12 @@ function deviceEntry(device: Device, reference: Reference, devices: Device[], lo
     description: page.description,
     klass: "is-device",
     ...(locale.id === ENGLISH.id ? {} : { noindex: true }),
-    jsonld: [breadcrumb(page.breadcrumb, t, prefix(locale)), deviceData(device, page, locale)],
+    jsonld: [breadcrumb(page.breadcrumb, locale), deviceData(device, page, locale)],
     body: page.body,
   };
 }
 
-function docPages(docs: Doc[], nav: NavEntry[], docsHome: string, locale: Locale): Omit<Page, "locale">[] {
+function docPages(docs: Doc[], nav: NavEntry[], docsHome: string, locale: Locale): Draft[] {
   const t = strings(locale);
   return docs.map((doc) => ({
     url: `docs/${doc.slug}/`,
@@ -216,12 +214,12 @@ function docPages(docs: Doc[], nav: NavEntry[], docsHome: string, locale: Locale
     title: doc.title,
     description: doc.description,
     klass: "is-doc",
-    jsonld: [breadcrumb([[t("nav.docs"), docsHome], [doc.title, `docs/${doc.slug}/`]], t, prefix(locale))],
+    jsonld: [breadcrumb([[t("nav.docs"), docsHome], [doc.title, `docs/${doc.slug}/`]], locale)],
     body: docPage(doc, nav, t),
   }));
 }
 
-function refPage(reference: Reference, api: Api, nav: NavEntry[], docsHome: string, locale: Locale): Omit<Page, "locale"> {
+function refPage(reference: Reference, api: Api, nav: NavEntry[], docsHome: string, locale: Locale): Draft {
   const t = strings(locale);
   return {
     url: REFERENCE_URL,
@@ -229,7 +227,7 @@ function refPage(reference: Reference, api: Api, nav: NavEntry[], docsHome: stri
     title: t("ref.title"),
     description: reference.intro,
     klass: "is-doc",
-    jsonld: [breadcrumb([[t("nav.docs"), docsHome], [t("ref.title"), REFERENCE_URL]], t, prefix(locale))],
+    jsonld: [breadcrumb([[t("nav.docs"), docsHome], [t("ref.title"), REFERENCE_URL]], locale)],
     body: referencePage(reference, api, nav, t),
   };
 }
@@ -238,14 +236,17 @@ function refPage(reference: Reference, api: Api, nav: NavEntry[], docsHome: stri
 const MOVED: Record<string, string> = { "reference/": REFERENCE_URL, "devices/lan/": "devices/" };
 
 // One page serves every missing address, so it stays in English.
-const notFound = (): Page => ({
-  locale: ENGLISH,
-  url: "404.html",
-  nav: "",
-  title: EN("404.title"),
-  noindex: true,
-  body: `<section class="slab"><h1>${EN("404.title")}</h1><p class="lede">${EN("404.text")}</p></section>`,
-});
+function notFound(): Page {
+  const t = strings(ENGLISH);
+  return {
+    locale: ENGLISH,
+    url: "404.html",
+    nav: "",
+    title: t("404.title"),
+    noindex: true,
+    body: `<section class="slab"><h1>${t("404.title")}</h1><p class="lede">${t("404.text")}</p></section>`,
+  };
+}
 
 // Two renames: `dist/` is missing for microseconds, not for a whole build.
 async function publish(): Promise<void> {

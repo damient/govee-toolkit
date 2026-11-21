@@ -6,7 +6,7 @@ import { MODES } from "./config.ts";
 import { DASH, escapeAttr, escapeHtml, fill } from "./html.ts";
 import { icon, shapeIcon, sharesMark } from "./icons.ts";
 import { infoBadge } from "./listed.ts";
-import { EN, type T } from "./locales.ts";
+import type { T } from "./locales.ts";
 import type { Device, Mode, Support } from "./types.ts";
 
 // The order a reader looks for, not the order the catalog holds. `cap.<key>`
@@ -30,12 +30,10 @@ export const CHECK = '<svg class="badge-icon" viewBox="0 0 24 24" fill="none" st
   + ' stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
   + '<path d="M4.5 12.6 9.4 17.5 19.5 7"/></svg>';
 const pill = (value: Support, t: T): string =>
-  `<span class="pill pill-${value}">${value === "unknown" ? "?" : escapeHtml(t.has(`pill.${value}`) ? t(`pill.${value}`) : value)}</span>`;
+  `<span class="pill pill-${value}">${value === "unknown" ? "?" : escapeHtml(t.or(`pill.${value}`, value))}</span>`;
 
 /** A key such as `segment_brightness` as a reader reads it. */
-export function label(key: string, t: T = EN): string {
-  return t.has(`cap.${key}`) ? t(`cap.${key}`) : key.replaceAll("_", " ");
-}
+export const label = (key: string, t: T): string => t.or(`cap.${key}`, key.replaceAll("_", " "));
 
 /** The device list. `current` names the category of a category page, which
  * lists the rows of that category alone. */

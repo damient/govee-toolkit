@@ -2,7 +2,7 @@
 
 import { highlight } from "./code.ts";
 import { escapeAttr, escapeHtml, filled } from "./html.ts";
-import { EN, type T } from "./locales.ts";
+import type { T } from "./locales.ts";
 import type { Examples } from "./types.ts";
 
 export const LANGUAGES = [
@@ -22,7 +22,7 @@ const DEFAULT_LANGUAGE = "cli";
  * tells the reader which language it is. `after` holds the HTML that follows
  * the code in a pane.
  */
-export function langBlock(prefix: string, examples: Examples, after: Record<string, string> = {}, t: T = EN): string {
+export function langBlock(prefix: string, examples: Examples, t: T, after: Record<string, string> = {}): string {
   const available = LANGUAGES.filter((lang) => filled(examples[lang.id]));
   if (available.length === 0) return "";
   const selected = available.find((lang) => lang.id === DEFAULT_LANGUAGE)?.id ?? available[0]?.id;

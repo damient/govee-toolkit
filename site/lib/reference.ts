@@ -33,16 +33,15 @@ function isOverlay(value: unknown): value is Overlay {
 
 /**
  * The reference in one language, or `null` where the language does not carry
- * it. A text that the language lacks stays in English: `tools/translations.ts`
+ * it. A text that the language lacks stays in English: `translations.ts`
  * reports it.
  */
 export function localReference(reference: Reference, locale: Locale): Reference | null {
   if (locale.id === ENGLISH.id) return reference;
   const path = join(contentDir(locale), "reference.json");
   if (!existsSync(path)) return null;
-  const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-  if (!isOverlay(parsed)) throw new Error(`${path}: unexpected shape`);
-  const overlay = parsed;
+  const overlay: unknown = JSON.parse(readFileSync(path, "utf8"));
+  if (!isOverlay(overlay)) throw new Error(`${path}: unexpected shape`);
   return {
     ...reference,
     intro: overlay.intro ?? reference.intro,
@@ -118,6 +117,6 @@ function referenceEntry(entry: RefEntry, api: Api, t: T): string {
               <h3><a class="anchor" href="#${entry.id}"><code>${escapeHtml(entry.title)}</code></a></h3>
               <p class="summary">${escapeHtml(entry.summary)}${help(entry, t)}</p>${modeMarks(entry.modes)}
             </div>
-            ${langBlock(entry.id, examples(entry, {}, null), tables, t)}
+            ${langBlock(entry.id, examples(entry, {}, null), t, tables)}
           </article>`;
 }

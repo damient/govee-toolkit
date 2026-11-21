@@ -13,7 +13,8 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { root } from "./lib/config.ts";
 import { isRecord } from "./lib/json.ts";
-import { ENGLISH, LOCALES, type Locale, contentDir, readTable } from "./lib/locales.ts";
+import { frontMatter } from "./lib/content.ts";
+import { ENGLISH, type Locale, TRANSLATIONS, contentDir, readTable, tablePath } from "./lib/locales.ts";
 
 /** The id git gives the content of a file, so that `git diff <old> <new>` shows the change. */
 function blob(path: string): string {
@@ -27,7 +28,7 @@ const SOURCE_LINE = /^source:\s*(\S*)\s*$/mu;
 /** The English file that one translated file follows. */
 function english(locale: Locale, path: string): string {
   const rel = relative(contentDir(locale), path);
-  return rel.startsWith("..") ? join(root, "content/i18n/en.json") : join(contentDir(ENGLISH), rel);
+  return rel.startsWith("..") ? tablePath(ENGLISH.id) : join(contentDir(ENGLISH), rel);
 }
 
 function recorded(path: string): string | undefined {
@@ -36,12 +37,11 @@ function recorded(path: string): string | undefined {
     const value: unknown = JSON.parse(text);
     return isRecord(value) && typeof value["$source"] === "string" ? value["$source"] : undefined;
   }
-  return SOURCE_LINE.exec(FRONT.exec(text)?.[1] ?? "")?.[1];
+  return frontMatter(text).meta["source"];
 }
 
 function stamp(path: string): void {
-  const locale = LOCALES.find((l) => l.id !== ENGLISH.id
-    && (path.startsWith(`${contentDir(l)}/`) || path === join(root, "content/i18n", `${l.id}.json`)));
+  const locale = TRANSLATIONS.find((l) => path.startsWith(`${contentDir(l)}/`) || path === tablePath(l.id));
   if (!locale) throw new Error(`${path}: no language in the path`);
   const from = blob(english(locale, path));
   const text = readFileSync(path, "utf8");
@@ -68,7 +68,7 @@ function gaps(locale: Locale): string[] {
   const out: string[] = [];
   const dir = contentDir(locale);
   const pairs: [string, string][] = [
-    join(root, "content/i18n", `${locale.id}.json`),
+    tablePath(locale.id),
     join(dir, "faq.md"),
     join(dir, "reference.json"),
     ...markdown(join(contentDir(ENGLISH), "docs")).map((f) => join(dir, "docs", relative(join(contentDir(ENGLISH), "docs"), f))),
@@ -121,13 +121,13 @@ function referenceGaps(locale: Locale): string[] {
 
 const at = process.argv.indexOf("--stamp");
 if (at === -1) {
-  const found = LOCALES.filter((l) => l.id !== ENGLISH.id).flatMap((l) => gaps(l));
+  const found = TRANSLATIONS.flatMap((l) => gaps(l));
   for (const line of found) console.error(line);
   if (found.length > 0) {
     console.error(`\n${found.length} translation gaps. Translate the change, then: node translations.ts --stamp <file>`);
     process.exit(1);
   }
-  console.log(`translations: ${LOCALES.length - 1} languages follow the English text`);
+  console.log(`translations: ${TRANSLATIONS.length} languages follow the English text`);
 } else {
   for (const path of process.argv.slice(at + 1)) stamp(join(process.cwd(), path));
 }

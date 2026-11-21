@@ -143,7 +143,7 @@ function block(item: ActionEntry, entry: Served, device: Device, t: T): string {
               <h3><a class="anchor" href="#send-${escapeAttr(item.id)}">${escapeHtml(action.title)}</a>${marks}</h3>
               ${summary}${extra}${bounds(entry, item.args ?? {})}
             </div>
-            ${langBlock(`send-${item.id}`, examples(item, values, can), {}, t)}
+            ${langBlock(`send-${item.id}`, examples(item, values, can), t)}
           </article>`;
 }
 

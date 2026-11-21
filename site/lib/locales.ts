@@ -1,6 +1,6 @@
 // The languages of the site. English sits at the root, and every other language
 // sits under a prefix of its own. `content/i18n/<id>.json` holds the strings of
-// a language, and `content/<id>/` holds its pages. `tools/translations.ts`
+// a language, and `content/<id>/` holds its pages. `translations.ts`
 // reports a string or a page that is missing or older than the English one.
 
 import { existsSync, readFileSync } from "node:fs";
@@ -17,18 +17,24 @@ export interface Locale {
   og: string;
 }
 
+export const ENGLISH: Locale = { id: "en", name: "English", og: "en_US" };
+
 export const LOCALES: readonly Locale[] = [
-  { id: "en", name: "English", og: "en_US" },
+  ENGLISH,
   { id: "fr", name: "Français", og: "fr_FR" },
   { id: "de", name: "Deutsch", og: "de_DE" },
   { id: "es", name: "Español", og: "es_ES" },
   { id: "it", name: "Italiano", og: "it_IT" },
 ];
 
-export const ENGLISH: Locale = { id: "en", name: "English", og: "en_US" };
+/** Every language but English. */
+export const TRANSLATIONS: readonly Locale[] = LOCALES.slice(1);
 
 /** The path of a language under the site root: empty for English. */
 export const prefix = (locale: Locale): string => (locale.id === ENGLISH.id ? "" : `${locale.id}/`);
+
+/** The absolute URL of `path` in a language. */
+export const absolute = (locale: Locale, path: string): string => `${SITE_URL}${base}${prefix(locale)}${path}`;
 
 /** The directory that holds the Markdown pages and `reference.json` of a language. */
 export const contentDir = (locale: Locale): string =>
@@ -41,6 +47,8 @@ export const contentDir = (locale: Locale): string =>
 export interface T {
   (key: string, vars?: Record<string, string | number>): string;
   has(key: string): boolean;
+  /** The text of `key`, or `fallback` where no language has the key. */
+  or(key: string, fallback: string): string;
   /** The name of a category of Govee's LAN list. An untranslated name stays as it is. */
   category(name: string): string;
   /** The strings the browser script reads, as JSON for a `<script>` element. */
@@ -49,8 +57,11 @@ export interface T {
 
 type Table = Record<string, unknown>;
 
+/** The file that holds the strings of a language. */
+export const tablePath = (id: string): string => join(root, "content/i18n", `${id}.json`);
+
 export function readTable(id: string): Table {
-  const path = join(root, "content/i18n", `${id}.json`);
+  const path = tablePath(id);
   if (!existsSync(path)) throw new Error(`content/i18n/${id}.json is missing`);
   const table: unknown = JSON.parse(readFileSync(path, "utf8"));
   if (!isRecord(table)) throw new Error(`content/i18n/${id}.json: not an object`);
@@ -70,6 +81,7 @@ export function strings(locale: Locale): T {
     return typeof value === "string" ? value : undefined;
   };
   const categories = own["categories"];
+  let client: string | undefined;
   const lookup = (key: string, vars: Record<string, string | number> = {}): string => {
     const value = text(key);
     if (value === undefined) throw new Error(`content/i18n/en.json has no string \`${key}\``);
@@ -77,15 +89,18 @@ export function strings(locale: Locale): T {
   };
   const t: T = Object.assign(lookup, {
     has: (key: string) => text(key) !== undefined,
+    or: (key: string, fallback: string) => (text(key) === undefined ? fallback : lookup(key)),
     category: (name: string) => {
       const value = isRecord(categories) ? categories[name] : undefined;
       return typeof value === "string" ? value : name;
     },
     client: () => {
+      if (client !== undefined) return client;
       const keys = Object.keys(english).filter((key) => key.startsWith("client."));
       const pairs = Object.fromEntries(keys.map((key) => [key.slice("client.".length), lookup(key)]));
       // `<` cannot close the element from inside a string.
-      return JSON.stringify(pairs).replaceAll("<", "\\u003c");
+      client = JSON.stringify(pairs).replaceAll("<", "\\u003c");
+      return client;
     },
   });
   cache.set(locale.id, t);
@@ -96,16 +111,6 @@ export function strings(locale: Locale): T {
 export function forgetStrings(): void {
   cache.clear();
 }
-
-/** The English strings, the default of a renderer that every language shares. */
-export const EN: T = Object.assign(
-  (key: string, vars?: Record<string, string | number>) => strings(ENGLISH)(key, vars),
-  {
-    has: (key: string) => strings(ENGLISH).has(key),
-    category: (name: string) => strings(ENGLISH).category(name),
-    client: () => strings(ENGLISH).client(),
-  },
-);
 
 /** Replaces every `{{t:key}}` with its text. */
 export function translate(template: string, t: T): string {
@@ -127,16 +132,18 @@ export function localizeLinks(html: string, locale: Locale, pages: ReadonlySet<s
 /** The URLs of each language, without the prefix. */
 export type Sitemap = ReadonlyMap<string, ReadonlySet<string>>;
 
-/** The languages that carry `path`, in the order of `LOCALES`. */
-export const carriers = (path: string, site: Sitemap): Locale[] =>
-  LOCALES.filter((locale) => site.get(locale.id)?.has(path) === true);
+/** The languages that carry `path`, in the order of `LOCALES`. Empty where one language alone carries it. */
+export function carriers(path: string, site: Sitemap): Locale[] {
+  const langs = LOCALES.filter((locale) => site.get(locale.id)?.has(path) === true);
+  return langs.length < 2 ? [] : langs;
+}
 
 /** The `hreflang` links of a page. Empty where one language alone carries it. */
 export function alternates(path: string, site: Sitemap): string {
   const langs = carriers(path, site);
-  if (langs.length < 2) return "";
+  if (langs.length === 0) return "";
   const link = (lang: string, locale: Locale) =>
-    `<link rel="alternate" hreflang="${lang}" href="${SITE_URL}${base}${prefix(locale)}${path}">`;
+    `<link rel="alternate" hreflang="${lang}" href="${absolute(locale, path)}">`;
   return [...langs.map((locale) => link(locale.id, locale)), link("x-default", ENGLISH)].join("\n");
 }
 
@@ -171,7 +178,7 @@ const GLOBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
  * Search engines read the English page: their browser asks for English.
  */
 export function homeRedirect(): string {
-  const others = JSON.stringify(LOCALES.filter((l) => l.id !== ENGLISH.id).map((l) => l.id));
+  const others = JSON.stringify(TRANSLATIONS.map((l) => l.id));
   return `<script>try{(function(){var o=${others},r=document.referrer;` +
     `if(r&&new URL(r).host===location.host)return;var w=localStorage.getItem("lang");` +
     `if(!w){var n=navigator.languages||[navigator.language];` +

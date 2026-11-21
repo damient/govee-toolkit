@@ -2,7 +2,7 @@
 
 import { CHEVRON } from "./docs.ts";
 import { escapeHtml } from "./html.ts";
-import { EN, type T } from "./locales.ts";
+import type { T } from "./locales.ts";
 import type { Api, ApiParam, RefEntry } from "./types.ts";
 
 /**
@@ -35,7 +35,7 @@ function table(rows: ApiParam[], t: T): string {
 }
 
 /** The tables of each language, for the methods that take a parameter. */
-export function paramTables(entry: RefEntry, api: Api, langs: string[], t: T = EN): Record<string, string> {
+export function paramTables(entry: RefEntry, api: Api, langs: string[], t: T): Record<string, string> {
   const out: Record<string, string> = {};
   for (const lang of langs) {
     const blocks = methods(entry, api, lang)

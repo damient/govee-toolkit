@@ -1,5 +1,5 @@
 import { escapeAttr, escapeHtml } from "./html.ts";
-import { EN, type T } from "./locales.ts";
+import type { T } from "./locales.ts";
 import type { Catalog, Device } from "./types.ts";
 
 
@@ -57,7 +57,7 @@ export function everyModel(catalog: Catalog, categories: Map<string, string>): D
 }
 
 /** The mark beside the name of a listed model. */
-export function infoBadge(t: T = EN): string {
+export function infoBadge(t: T): string {
   const tip = t("list.untested");
   return `<span class="info-tip" tabindex="0" role="img" aria-label="${escapeAttr(tip)}" data-tip="${escapeAttr(tip)}">i</span>`;
 }

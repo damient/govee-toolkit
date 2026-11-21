@@ -1,5 +1,5 @@
 import { escapeAttr, escapeHtml, slugify } from "./html.ts";
-import { type Locale, type T, prefix, strings } from "./locales.ts";
+import { type Locale, type T, strings } from "./locales.ts";
 import { collectionData } from "./seo.ts";
 import type { Crumb, Device } from "./types.ts";
 
@@ -50,7 +50,7 @@ export function categoryPages(
       description: t("list.category_description", { count: members.length, name: shown }),
       render: (template: string, all: Device[]) => render(template, all, name, t),
       trail,
-      jsonld: [collectionData(title, `${prefix(locale)}${url}`, members.map((d): Crumb => [`${d.sku} — ${d.name}`, `devices/${d.sku}/`]))],
+      jsonld: [collectionData(title, locale, url, members.map((d): Crumb => [`${d.sku} — ${d.name}`, `devices/${d.sku}/`]))],
     };
   });
 }
