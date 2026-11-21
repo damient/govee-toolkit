@@ -359,6 +359,12 @@ jobs:
       - name: Breaking change declared since the last release
         id: declared
         run: |
+          # A fork can carry no rust-v* tag. The tags of this repository point
+          # at commits that the fork shares, so fetch them from here.
+          if ! git describe --tags --match 'rust-v*' --abbrev=0 >/dev/null 2>&1; then
+            git fetch --quiet https://github.com/damient/govee-toolkit.git \
+              'refs/tags/rust-v*:refs/tags/rust-v*'
+          fi
           last=$(git describe --tags --match 'rust-v*' --abbrev=0)
           if git log --format='%s%n%b' "$last..HEAD" -- packages/rust \
             | grep -qE '^[a-z]+(\([a-z0-9-]+\))?!: |^BREAKING[ -]CHANGE: '; then
