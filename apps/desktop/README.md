@@ -28,7 +28,7 @@ npm run dev
 
 `dev` builds the web UI once, then opens the window. After a change to
 `../studio/src`, run `npm run build` in `../studio` and reload the
-window.
+window: View > Reload, or Cmd+R on macOS.
 
 `npm run build` makes the installers of the current platform under
 `src-tauri/target/release/bundle/`.
