@@ -14,7 +14,7 @@ shipped.
 | `govee-toolkit-dmx` (Rust) | [`packages/rust/crates/dmx/CHANGELOG.md`](packages/rust/crates/dmx/CHANGELOG.md) | 1.4.0 |
 | `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 1.9.0 |
 | `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 1.8.0 |
-| `govee-toolkit-mcp` (MCP server) | [`integrations/mcp/CHANGELOG.md`](integrations/mcp/CHANGELOG.md) | 0.2.0 |
+| `govee-toolkit-mcp` (MCP server) | [`integrations/mcp/CHANGELOG.md`](integrations/mcp/CHANGELOG.md) | 0.3.0 |
 
 ## Catalog
 
