@@ -40,7 +40,7 @@ async function hello(): Promise<void> {
   }
 }
 
-function span(className: string, value: string, tag = "span"): HTMLElement {
+function el(tag: string, className: string, value: string): HTMLElement {
   const element = document.createElement(tag);
   element.className = className;
   element.textContent = value;
@@ -51,9 +51,9 @@ function row(device: Device): HTMLLIElement {
   const item = document.createElement("li");
   const what = document.createElement("div");
   what.className = "what";
-  what.append(span("title", device.name ?? device.sku), span("id", device.id, "code"));
+  what.append(el("span", "title", device.name ?? device.sku), el("code", "id", device.id));
   const state = device.modes.find((m) => m.mode === "lan")?.health?.state;
-  const badge = span("status", "lan");
+  const badge = el("span", "status", "lan");
   badge.dataset["state"] = state === "ok" ? "ok" : "pending";
   item.append(what, badge);
   return item;
