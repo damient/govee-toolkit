@@ -39,9 +39,7 @@ export function menu(button: HTMLButtonElement): void {
   });
 }
 
-// The language menu closes on a click outside it and on Escape, as a menu does.
-// A language picked here is stored: the English home page reads it before the
-// browser languages.
+// The English home page reads the stored `lang` before the browser languages.
 export function langMenu(box: HTMLDetailsElement): void {
   box.addEventListener("click", (event) => {
     const link = event.target instanceof Element ? event.target.closest("a[hreflang]") : null;

@@ -117,7 +117,6 @@ async function main(): Promise<void> {
   console.log(`${clock}  site -> ${relative(repo, dist)} (${indexed} pages, ${shared.devices.length} devices, ${LOCALES.length} languages)`);
 }
 
-/** Every page of one language that is not a model page. */
 async function localePages(locale: Locale, { layout, devices, reference, api, css }: Shared) {
   const t = strings(locale);
   const [docs, faq] = await Promise.all([readDocs(locale), faqPage(locale)]);
@@ -190,8 +189,7 @@ function sourcePages(list: Source[], devices: Device[], locale: Locale): Promise
   }));
 }
 
-// A model page in another language stays out of every index: its notes, its
-// names and its values come from the device file, in English.
+// Outside English, a model page is noindex: its text comes from the device file.
 function deviceEntry(device: Device, reference: Reference, devices: Device[], locale: Locale): Draft {
   const page = devicePage(device, reference, devices, strings(locale));
   return {

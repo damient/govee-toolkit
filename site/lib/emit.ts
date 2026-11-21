@@ -1,5 +1,3 @@
-// Writes one page into the layout, in the language of the page.
-
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { SITE_URL, base, repoUrl } from "./config.ts";

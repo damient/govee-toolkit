@@ -1,5 +1,4 @@
-// The page of one model, in one language. The text of the device file stays as
-// the file writes it: a name, a family, a note.
+// The text of the device file stays in English: a name, a family, a note.
 
 import { deviceTrail } from "./categories.ts";
 import { MODES } from "./config.ts";
@@ -142,8 +141,7 @@ function modeSections(d: Device, t: T): string {
       </div>`;
 }
 
-// A link goes both ways: a model also lists the file that names it, and the
-// other SKUs of that file.
+// A link goes both ways: a model also lists the file that names it and its other SKUs.
 function related(d: Device, pages: Device[]): string[] {
   const skus = new Set([...(d.aliases ?? []), ...(d.candidate_aliases ?? [])]);
   for (const o of pages) {

@@ -25,7 +25,7 @@ function mark(channel: Channel): string {
 /**
  * What one channel drives. A color names its component, and a channel this
  * model reaches through nothing says so: it holds its place in the table and
- * drives nothing. A slot or a component with no `dmx.*` text shows its own name.
+ * drives nothing.
  */
 function slotLabel(channel: Channel, t: T): string {
   const name = escapeHtml(
@@ -46,8 +46,6 @@ const valueList = (lines: string[]): string => `<ul class="dmx-values">
               ${lines.join("\n              ")}
             </ul>`;
 
-// `kind` names the meaning of a band, and `dmx.band.<kind>` its text. A band
-// with no kind, or a kind with no text, shows the English label.
 function bandLabel(band: { label: string; kind?: string }, channel: Channel, t: T): string {
   const key = `dmx.band.${band.kind ?? ""}`;
   if (band.kind === undefined || !t.has(key)) return band.label;
