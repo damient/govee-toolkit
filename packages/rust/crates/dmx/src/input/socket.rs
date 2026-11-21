@@ -70,12 +70,16 @@ impl Listener {
         )
         .map_err(open("creating the socket"))?;
         // Port 6454 is fixed by the protocol, so a second Art-Net application
-        // on the host must be able to bind it too.
-        socket
-            .set_reuse_address(true)
-            .map_err(open("SO_REUSEADDR"))?;
-        #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
-        socket.set_reuse_port(true).map_err(open("SO_REUSEPORT"))?;
+        // on the host must be able to bind it too. Share a fixed port only:
+        // on Linux, an ephemeral bind with SO_REUSEADDR can get a port that
+        // another reuse socket holds.
+        if address.port() != 0 {
+            socket
+                .set_reuse_address(true)
+                .map_err(open("SO_REUSEADDR"))?;
+            #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
+            socket.set_reuse_port(true).map_err(open("SO_REUSEPORT"))?;
+        }
         socket.set_broadcast(true).map_err(open("SO_BROADCAST"))?;
         socket.bind(&address.into()).map_err(|e| Error::Bind {
             address,
