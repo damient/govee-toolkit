@@ -173,8 +173,6 @@ impl Govee {
         problems
     }
 
-    /// What each transport reports about the host, such as a reply port that
-    /// another process holds.
     fn transport_problems(&self) -> Vec<Problem> {
         self.inner
             .transports

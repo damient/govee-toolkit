@@ -154,8 +154,7 @@ impl<'a> Resolved<'a> {
 
     /// Ask the device for its state and wait for the answer.
     ///
-    /// After a command from this process, waits for the `status_settle_ms` of
-    /// the mode. A command from another process gets no wait.
+    /// Waits the mode's `status_settle_ms` after a command from this process.
     ///
     /// # Errors
     ///

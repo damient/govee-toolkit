@@ -520,15 +520,10 @@ measurements: {}        # optional — numbers taken from a physical unit:
                         # conservative default, which is never zero. See
                         # ../docs/protocol/lan.md 2.3.
                         #
-                        # `status_settle_ms` is how long the unit reports its
-                        # previous state after a command, per mode, and how
-                        # long a status request waits after one:
-                        #
-                        #   status_settle_ms: { lan: 400 }
-                        #
-                        # Record the first time from which every `devStatus`
-                        # read reports the new state. A mode with no value
-                        # gets no wait.
+                        # `status_settle_ms` is, per mode, the first time after
+                        # a command from which every `devStatus` read reports
+                        # the new state. A status request waits that long. A
+                        # mode with no value gets no wait.
                         #
                         # `ble.write_budget_hz` is the sustained rate the `ble`
                         # transport paces its writes to, at or under the

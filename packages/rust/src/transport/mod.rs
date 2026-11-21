@@ -93,8 +93,7 @@ pub trait Transport: Debug + Send + Sync + 'static {
         Duration::ZERO
     }
 
-    /// What keeps this transport from reaching devices on this host, one
-    /// sentence each. The default is none.
+    /// Each sentence says what keeps this transport from reaching devices.
     fn problems(&self) -> Vec<String> {
         Vec::new()
     }

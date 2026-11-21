@@ -1,5 +1,3 @@
-// Every call targets the simulator, as in control.test.ts.
-
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 

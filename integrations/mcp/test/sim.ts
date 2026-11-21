@@ -25,7 +25,6 @@ export const SIM_ID = "02:00:00:4D:43:50";
 
 let sim: ChildProcess | undefined;
 
-/** Starts the simulator, and connects a client once its sockets are bound. */
 export async function startSim(): Promise<Client> {
   sim = spawn(binary, ["--id", SIM_ID], { stdio: ["ignore", "pipe", "inherit"] });
   // The first line of stdout says that the sockets are bound.

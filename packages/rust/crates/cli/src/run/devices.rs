@@ -22,7 +22,7 @@ pub(super) async fn scan(
         );
     }
     if found.is_empty() {
-        // An empty scan is an answer, but one that a held reply port forges.
+        // A held reply port makes a scan hear nothing: warn on an empty one.
         for problem in govee.problems() {
             let message = problem.to_string();
             writer.warn(

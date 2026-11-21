@@ -50,9 +50,7 @@ jobs:
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
-      # CI accepts a declared breaking change before the bump. Here the bumped
-      # manifest must account for it, since crates.io never takes a version
-      # back.
+      # The bumped manifest must account for every break: crates.io keeps a version.
       - name: D-Bus headers
         if: steps.crate.outputs.published == 'false'
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev

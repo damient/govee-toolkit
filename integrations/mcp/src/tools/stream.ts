@@ -5,7 +5,6 @@ import { z } from "zod";
 import { codeError, ok } from "../result.ts";
 import { CONTROL, attempt, modeArg, reach, rgb } from "../sdk.ts";
 
-/** The longest playback one call holds the server for. */
 const MAX_PLAY_MS = 120_000;
 
 const streamInput = z.object({
@@ -91,7 +90,6 @@ interface Opened {
   stream: SegmentStream;
 }
 
-/** Opens one stream per target. When one fails, the others are disarmed and the call fails. */
 async function openAll(govee: Govee, input: StreamInput): Promise<Opened[]> {
   const settled = await Promise.allSettled(
     input.targets.map(async (target) => {
@@ -107,7 +105,7 @@ async function openAll(govee: Govee, input: StreamInput): Promise<Opened[]> {
   throw refused.reason;
 }
 
-/** Writes each frame to every stream at once, one frame per `holdMs`, on a clock that does not drift. */
+/** `setInterval`, not chained timeouts: the clock does not drift. */
 function play(opened: Opened[], frames: Frame[], holdMs: number): Promise<void> {
   return new Promise((resolve) => {
     let next = 0;
@@ -132,7 +130,6 @@ function paint(stream: SegmentStream, frame: Frame): void {
   else stream.setAll(frame);
 }
 
-/** Disarms every stream. A close that fails stops no other close. */
 async function closeAll(opened: Opened[]): Promise<void> {
   await Promise.allSettled(opened.map(({ stream }) => stream.close()));
 }
