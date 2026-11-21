@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { SITE_URL, base, repoUrl } from "./config.ts";
 import { fill } from "./html.ts";
-import { ENGLISH, type Locale, type Sitemap, alternates, homeRedirect, localizeLinks, prefix, strings, switcher, translate } from "./locales.ts";
+import { ENGLISH, type Locale, type Sitemap, type T, alternates, homeRedirect, localizeLinks, prefix, strings, switcher } from "./locales.ts";
 import { jsonLd } from "./seo.ts";
 
 /** One page, ready for the layout. `url` is the path inside its language. */
@@ -20,8 +20,13 @@ export interface Page {
   body: string;
 }
 
+/** A page before its language is attached. */
+export type Draft = Omit<Page, "locale">;
+
 /** What every page of one language shares. */
 export interface Frame {
+  /** `src/layout.html`, with its strings in the language. */
+  layout: string;
   css: string;
   docsHome: string;
   docNav: string;
@@ -38,14 +43,13 @@ export const address = (page: Page): string => `${prefix(page.locale)}${page.url
  */
 export async function emit(
   out: string,
-  layout: string,
   page: Page,
   frame: Frame,
   { routes, site }: { routes: Sitemap; site: Sitemap },
 ): Promise<void> {
   const t = strings(page.locale);
   const at = address(page);
-  const filled = fill(translate(layout, t), {
+  const filled = fill(frame.layout, {
     base,
     site: SITE_URL,
     repo: repoUrl,
@@ -62,7 +66,7 @@ export async function emit(
     css: frame.css,
     redirect: page.locale.id === ENGLISH.id && page.url === "" ? homeRedirect() : "",
     jsonld: jsonLd(page.jsonld),
-    nav: topNav(page.nav, frame.docsHome, page.locale),
+    nav: topNav(page.nav, frame.docsHome, t),
     docnav: frame.docNav,
     content: fill(page.body, frame.vars),
     client_strings: t.client(),
@@ -77,8 +81,7 @@ export async function emit(
   await writeFile(file, html);
 }
 
-function topNav(current: string, docsHome: string, locale: Locale): string {
-  const t = strings(locale);
+function topNav(current: string, docsHome: string, t: T): string {
   const items = [
     { url: "", key: "home" },
     { url: docsHome, key: "docs" },

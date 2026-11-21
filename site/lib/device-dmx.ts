@@ -5,12 +5,6 @@ import { icon, slotIcon } from "./icons.ts";
 import type { T } from "./locales.ts";
 import type { Channel, Device, Personality, Range } from "./types.ts";
 
-// `dmx.slot.<kind>` and `dmx.component.<name>` in `content/i18n/` name a
-// channel. An unknown kind falls back to its own name.
-function named(t: T, key: string, fallback: string): string {
-  return t.has(key) ? t(key) : fallback;
-}
-
 const SLOT_CAPS = new Map([
   ["dimmer", "brightness"],
   ["zone", "segments"],
@@ -31,13 +25,13 @@ function mark(channel: Channel): string {
 /**
  * What one channel drives. A color names its component, and a channel this
  * model reaches through nothing says so: it holds its place in the table and
- * drives nothing.
+ * drives nothing. A slot or a component with no `dmx.*` text shows its own name.
  */
 function slotLabel(channel: Channel, t: T): string {
   const name = escapeHtml(
     channel.slot === "color"
-      ? named(t, `dmx.component.${channel.component ?? "color"}`, capitalize(channel.component ?? "color"))
-      : named(t, `dmx.slot.${channel.slot}`, channel.slot.replaceAll("_", " ")),
+      ? t.or(`dmx.component.${channel.component ?? "color"}`, capitalize(channel.component ?? "color"))
+      : t.or(`dmx.slot.${channel.slot}`, channel.slot.replaceAll("_", " ")),
   );
   if (channel.unreached !== true) return name;
   return `${name}
@@ -59,7 +53,7 @@ function bandLabel(band: { label: string; kind?: string }, channel: Channel, t: 
   if (band.kind === undefined || !t.has(key)) return band.label;
   const component = channel.component ?? "";
   return t(key, {
-    component: named(t, `dmx.color.${component}`, component),
+    component: t.or(`dmx.color.${component}`, component),
     min: channel.range?.[0] ?? "",
     max: channel.range?.[1] ?? "",
   });
@@ -92,7 +86,7 @@ function zoneColumn(run: [Channel, ...Channel[]], t: T): string {
   const last = run.at(-1) ?? first;
   const zones = new Set(run.map((c) => c.zone)).size;
   const components = [...new Set(run.map((c) => c.component ?? ""))]
-    .map((c) => named(t, `dmx.color.${c}`, c))
+    .map((c) => t.or(`dmx.color.${c}`, c))
     .join(", ");
   const head = `${first.offset} – ${last.offset}`;
   const cell = valueList([

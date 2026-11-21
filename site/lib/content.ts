@@ -148,7 +148,8 @@ function headingLabel(tokens: Token[] = []): string {
   return words.join("").trim();
 }
 
-function frontMatter(raw: string): { meta: Record<string, string>; body: string } {
+/** The `key: value` lines between the two `---` lines, and the text after them. */
+export function frontMatter(raw: string): { meta: Record<string, string>; body: string } {
   const match = raw.match(/^---\n([\s\S]*?)\n---\n?/u);
   if (!match) return { meta: {}, body: raw };
   const meta: Record<string, string> = {};
