@@ -69,10 +69,8 @@ impl Listener {
             Some(Protocol::UDP),
         )
         .map_err(open("creating the socket"))?;
-        // Port 6454 is fixed by the protocol, so a second Art-Net application
-        // on the host must be able to bind it too. Share a fixed port only:
-        // on Linux, an ephemeral bind with SO_REUSEADDR can get a port that
-        // another reuse socket holds.
+        // Port 6454 is fixed, so another Art-Net application must bind it too.
+        // Linux can give port 0 a port that a reuse socket holds.
         if address.port() != 0 {
             socket
                 .set_reuse_address(true)
@@ -177,10 +175,15 @@ mod tests {
         assert_eq!(source, from);
     }
 
+    // Port 0 sets no reuse option, so the test takes a fixed free port.
     #[tokio::test]
     async fn two_listeners_take_one_port() {
-        let first = Listener::bind(loopback()).expect("the socket binds");
-        let bound = first.local_addr().expect("a bound address");
-        Listener::bind(bound).expect("the second socket binds");
+        let port = std::net::UdpSocket::bind(loopback())
+            .and_then(|probe| probe.local_addr())
+            .expect("a free port")
+            .port();
+        let fixed = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port);
+        let _first = Listener::bind(fixed).expect("the socket binds");
+        Listener::bind(fixed).expect("the second socket binds");
     }
 }
