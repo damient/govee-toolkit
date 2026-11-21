@@ -13,16 +13,16 @@ export function registerResources(server: McpServer): void {
     }));
   }
 
-  const devices = new ResourceTemplate("gtk://devices/{sku}", {
+  const models = new ResourceTemplate("gtk://models/{sku}", {
     list: () => ({
-      resources: allSkus().map((sku) => ({ uri: `gtk://devices/${sku}`, name: sku, mimeType: "application/json" })),
+      resources: allSkus().map((sku) => ({ uri: `gtk://models/${sku}`, name: sku, mimeType: "application/json" })),
     }),
     complete: { sku: (value) => allSkus().filter((sku) => sku.startsWith(value.toUpperCase())) },
   });
   server.registerResource(
-    "device",
-    devices,
-    { title: "One device record, as `describe_device` returns it", mimeType: "application/json" },
+    "model",
+    models,
+    { title: "One device model record, as `describe_model` returns it", mimeType: "application/json" },
     (uri, { sku }) => {
       const text = JSON.stringify(record(String(sku)));
       return { contents: [{ uri: uri.href, mimeType: "application/json", text }] };

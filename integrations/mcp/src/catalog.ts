@@ -17,7 +17,7 @@ export type Described = z.infer<typeof described>;
 /** The DMX entry of one device, as `Catalog.dmx()` returns it. */
 export type DmxEntry = z.infer<typeof dmxEntry>;
 
-/** One short row of `list_devices`. */
+/** One short row of `list_models`. */
 export interface Row {
   sku: string;
   /** The SKU of the device file when `sku` is a verified alias, else null. */
@@ -45,7 +45,7 @@ export function dmx(sku: string): DmxEntry {
   return tables.get(sku) ?? dmxEntry.parse(catalog.dmx(sku));
 }
 
-/** The record that `describe_device` and the device resource return. */
+/** The record that `describe_model` and the model resource return. */
 export function record(sku: string): Described & { dmx: DmxEntry } {
   return { ...describe(sku), dmx: dmx(sku) };
 }
@@ -54,7 +54,7 @@ export function allSkus(): readonly string[] {
   return skus;
 }
 
-/** A filter of `list_devices`. A key left undefined filters nothing. */
+/** A filter of `list_models`. A key left undefined filters nothing. */
 export interface Query {
   mode?: string | undefined;
   capability?: string | undefined;

@@ -21,7 +21,7 @@ after(async () => {
 });
 
 const rowsShape = z.object({
-  devices: z.array(z.object({ sku: z.string(), support: z.record(z.string(), z.string()) })),
+  models: z.array(z.object({ sku: z.string(), support: z.record(z.string(), z.string()) })),
 });
 const personalities = z.object({ personalities: z.array(z.looseObject({ personality: z.string() })) });
 const apiShape = z.object({
@@ -29,16 +29,16 @@ const apiShape = z.object({
   methods: z.array(z.string()).optional(),
 });
 
-async function rows(filter: Record<string, unknown> = {}): Promise<z.infer<typeof rowsShape>["devices"]> {
-  return (await structured(client, "list_devices", filter, rowsShape)).devices;
+async function rows(filter: Record<string, unknown> = {}): Promise<z.infer<typeof rowsShape>["models"]> {
+  return (await structured(client, "list_models", filter, rowsShape)).models;
 }
 
-test("list_devices returns every SKU of the catalog, once", async () => {
+test("list_models returns every SKU of the catalog, once", async () => {
   const listed = (await rows()).map((row) => row.sku);
   assert.deepEqual(listed.toSorted(), skus.toSorted());
 });
 
-test("list_devices keeps the rows whose support on the mode matches", async () => {
+test("list_models keeps the rows whose support on the mode matches", async () => {
   const [first] = await rows();
   assert.ok(first);
   const [mode, support] = Object.entries(first.support)[0] ?? [];
@@ -48,19 +48,19 @@ test("list_devices keeps the rows whose support on the mode matches", async () =
   assert.ok(kept.every((row) => row.support[mode] === support));
 });
 
-test("list_devices refuses `support` without `mode`", async () => {
+test("list_models refuses `support` without `mode`", async () => {
   const [first] = await rows();
   const support = Object.values(first?.support ?? {})[0];
-  assert.equal(await failureCode(client, "list_devices", { support }), "invalid_argument");
+  assert.equal(await failureCode(client, "list_models", { support }), "invalid_argument");
 });
 
-test("describe_device answers every SKU, with its DMX tables", async () => {
+test("describe_model answers every SKU, with its DMX tables", async () => {
   const record = z.looseObject({ name: z.string(), dmx: personalities });
-  await Promise.all(skus.map((sku) => structured(client, "describe_device", { sku }, record)));
+  await Promise.all(skus.map((sku) => structured(client, "describe_model", { sku }, record)));
 });
 
-test("describe_device fails with unknown_sku", async () => {
-  assert.equal(await failureCode(client, "describe_device", { sku: "NOT-A-SKU" }), "unknown_sku");
+test("describe_model fails with unknown_sku", async () => {
+  assert.equal(await failureCode(client, "describe_model", { sku: "NOT-A-SKU" }), "unknown_sku");
 });
 
 async function eachPersonalityAlone(sku: string): Promise<void> {
@@ -110,14 +110,14 @@ test("read_doc returns every page that the build copied", async () => {
   );
 });
 
-test("each docs page and each device record is a resource", async () => {
+test("each docs page and each device model record is a resource", async () => {
   const { resources } = await client.listResources();
   const uris = new Set(resources.map((resource) => resource.uri));
   for (const topic of docTopics()) assert.ok(uris.has(`gtk://docs/${topic}`), topic);
-  for (const sku of skus) assert.ok(uris.has(`gtk://devices/${sku}`), sku);
+  for (const sku of skus) assert.ok(uris.has(`gtk://models/${sku}`), sku);
 
   const [sku] = skus;
-  const { contents } = await client.readResource({ uri: `gtk://devices/${sku}` });
+  const { contents } = await client.readResource({ uri: `gtk://models/${sku}` });
   const [content] = contents;
   assert.ok(content && "text" in content);
   z.looseObject({ sku: z.string(), dmx: personalities }).parse(JSON.parse(content.text));

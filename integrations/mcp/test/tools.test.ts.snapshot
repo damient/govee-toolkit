@@ -1,7 +1,7 @@
 exports[`the tools and their schemas match the snapshot 1`] = `
 [
   {
-    "name": "describe_device",
+    "name": "describe_model",
     "annotations": {
       "readOnlyHint": true,
       "openWorldHint": false
@@ -11,7 +11,7 @@ exports[`the tools and their schemas match the snapshot 1`] = `
       "properties": {
         "sku": {
           "type": "string",
-          "description": "A SKU, such as one that \`list_devices\` returns."
+          "description": "A SKU, such as one that \`list_models\` returns."
         }
       },
       "required": [
@@ -269,83 +269,6 @@ exports[`the tools and their schemas match the snapshot 1`] = `
     }
   },
   {
-    "name": "list_devices",
-    "annotations": {
-      "readOnlyHint": true,
-      "openWorldHint": false
-    },
-    "inputSchema": {
-      "type": "object",
-      "properties": {
-        "mode": {
-          "description": "The mode that \`capability\` and \`support\` read.",
-          "type": "string",
-          "enum": "<modes>"
-        },
-        "capability": {
-          "type": "string",
-          "enum": "<capabilities>"
-        },
-        "support": {
-          "type": "string",
-          "enum": "<support>"
-        }
-      },
-      "$schema": "https://json-schema.org/draft/2020-12/schema"
-    },
-    "outputSchema": {
-      "type": "object",
-      "properties": {
-        "devices": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "sku": {
-                "type": "string"
-              },
-              "alias_of": {
-                "description": "The SKU of the device file when \`sku\` is a verified alias.",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "name": {
-                "type": "string"
-              },
-              "family": {
-                "type": "string"
-              },
-              "support": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "type": "string"
-                }
-              }
-            },
-            "required": [
-              "sku",
-              "alias_of",
-              "name",
-              "family",
-              "support"
-            ],
-            "additionalProperties": false
-          }
-        }
-      },
-      "required": [
-        "devices"
-      ],
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": false
-    }
-  },
-  {
     "name": "list_known",
     "annotations": {
       "readOnlyHint": true,
@@ -425,6 +348,83 @@ exports[`the tools and their schemas match the snapshot 1`] = `
       },
       "required": [
         "devices"
+      ],
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "list_models",
+    "annotations": {
+      "readOnlyHint": true,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "description": "The mode that \`capability\` and \`support\` read.",
+          "type": "string",
+          "enum": "<modes>"
+        },
+        "capability": {
+          "type": "string",
+          "enum": "<capabilities>"
+        },
+        "support": {
+          "type": "string",
+          "enum": "<support>"
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sku": {
+                "type": "string"
+              },
+              "alias_of": {
+                "description": "The SKU of the device file when \`sku\` is a verified alias.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "family": {
+                "type": "string"
+              },
+              "support": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "sku",
+              "alias_of",
+              "name",
+              "family",
+              "support"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "models"
       ],
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false

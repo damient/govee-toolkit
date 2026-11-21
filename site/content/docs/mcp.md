@@ -156,8 +156,8 @@ Read tools answer from the catalog that ships with the server, on your machine.
 
 | Tool | Returns |
 | ---- | ------- |
-| `list_devices` | One row per model, with the support of each mode |
-| `describe_device` | The full record of one model, with its DMX tables |
+| `list_models` | One row per model, with the support of each mode |
+| `describe_model` | The full record of one model, with its DMX tables |
 | `get_dmx_profile` | The DMX channel tables of one model |
 | `get_api` | The methods that serve each role, in each language |
 | `read_doc` | One page of the documentation |
