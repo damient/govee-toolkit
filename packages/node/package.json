@@ -35,7 +35,7 @@
     "build:ts": "tsc -p tsconfig.json",
     "artifacts": "napi artifacts --output-dir ./artifacts",
     "prepublishOnly": "napi prepublish -t npm --no-gh-release",
-    "test": "node --test"
+    "test": "node --test --test-concurrency=1"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.10.3",
