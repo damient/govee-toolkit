@@ -22,8 +22,7 @@ pub(super) async fn scan(
         );
     }
     if found.is_empty() {
-        // A held reply port makes a scan hear nothing: warn on an empty one.
-        for problem in govee.problems() {
+        for problem in govee.transport_problems(Some(&modes)) {
             let message = problem.to_string();
             writer.warn(
                 &json!({ "problem": message }),

@@ -6,6 +6,11 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 
 ## [1.9.0] — 2026-11-21
 
+### Added
+
+- `Govee.transport_problems()` gives what keeps the transports of the modes
+  named from their devices, which a scan that hears nothing reports.
+
 ### Changed
 
 - The version moves to 1.x: a breaking change now raises the major number.

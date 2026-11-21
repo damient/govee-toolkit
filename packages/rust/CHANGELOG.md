@@ -14,6 +14,8 @@ releases apart and keeps
 - `Measurements::status_settle()` gives the status settle time of one mode.
 - `Transport::problems()` reports what keeps a transport from its devices on
   this host. The default reports nothing.
+- `Govee::transport_problems()` gives these problems for the modes named,
+  which a scan that hears nothing reports.
 - `lan::Transport::close()` stops the background tasks and frees the reply
   port before it returns. The next scan, command or status request binds the
   port again, and the known devices stay.

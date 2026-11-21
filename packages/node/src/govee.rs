@@ -80,6 +80,24 @@ impl Govee {
             .collect()
     }
 
+    /// What keeps the transports of `modes`, or of every mode, from their
+    /// devices on this host, as one sentence each. A scan that hears nothing
+    /// reports these, such as a reply port that another process holds.
+    #[napi]
+    pub fn transport_problems(
+        &self,
+        env: Env,
+        modes: Option<Vec<String>>,
+    ) -> napi::Result<Vec<String>> {
+        let wanted = modes.map(|modes| conv::modes(&env, modes)).transpose()?;
+        Ok(self
+            .inner
+            .transport_problems(wanted.as_deref())
+            .iter()
+            .map(ToString::to_string)
+            .collect())
+    }
+
     /// The configuration in force.
     #[napi(getter)]
     pub fn config(&self) -> Config {

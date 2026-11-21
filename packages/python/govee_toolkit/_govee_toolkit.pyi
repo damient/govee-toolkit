@@ -644,6 +644,11 @@ class Govee:
         """
     def problems(self) -> list[str]:
         """Everything wrong with the configuration, as one sentence each."""
+    def transport_problems(self, modes: Sequence[str] | None = None) -> list[str]:
+        """What keeps the transports of `modes`, or of every mode, from their devices on
+        this host, as one sentence each. A scan that hears nothing reports these, such
+        as a reply port that another process holds.
+        """
     @property
     def config(self) -> Config:
         """The configuration in force."""
