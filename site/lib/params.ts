@@ -2,6 +2,7 @@
 
 import { CHEVRON } from "./docs.ts";
 import { escapeHtml } from "./html.ts";
+import { EN, type T } from "./locales.ts";
 import type { Api, ApiParam, RefEntry } from "./types.ts";
 
 /**
@@ -26,22 +27,22 @@ function methods(entry: RefEntry, api: Api, lang: string): string[] {
 
 const cell = (text: string | null): string => (text === null ? "—" : `<code>${escapeHtml(text)}</code>`);
 
-function table(rows: ApiParam[]): string {
+function table(rows: ApiParam[], t: T): string {
   const body = rows
-    .map((row) => `<tr><td>${cell(row.name)}</td><td>${cell(row.type)}</td><td>${row.required ? "required" : "optional"}</td><td>${cell(row.default)}</td></tr>`)
+    .map((row) => `<tr><td>${cell(row.name)}</td><td>${cell(row.type)}</td><td>${t(row.required ? "ref.yes" : "ref.no")}</td><td>${cell(row.default)}</td></tr>`)
     .join("");
-  return `<table class="ref-table"><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Default</th></tr></thead><tbody>${body}</tbody></table>`;
+  return `<table class="ref-table"><thead><tr><th>${t("ref.name")}</th><th>${t("ref.type")}</th><th>${t("ref.required")}</th><th>${t("ref.default")}</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
 /** The tables of each language, for the methods that take a parameter. */
-export function paramTables(entry: RefEntry, api: Api, langs: string[]): Record<string, string> {
+export function paramTables(entry: RefEntry, api: Api, langs: string[], t: T = EN): Record<string, string> {
   const out: Record<string, string> = {};
   for (const lang of langs) {
     const blocks = methods(entry, api, lang)
       .map((method) => [method, api.params[lang]?.[method] ?? []] as const)
       .filter(([, rows]) => rows.length > 0)
-      .map(([method, rows]) => `<div class="ref-params"><p class="ref-sig"><code>${escapeHtml(method)}</code></p>${table(rows)}</div>`);
-    if (blocks.length > 0) out[lang] = `<details class="ref-fold"><summary>Parameters${CHEVRON}</summary>${blocks.join("")}</details>`;
+      .map(([method, rows]) => `<div class="ref-params"><p class="ref-sig"><code>${escapeHtml(method)}</code></p>${table(rows, t)}</div>`);
+    if (blocks.length > 0) out[lang] = `<details class="ref-fold"><summary>${t("ref.parameters")}${CHEVRON}</summary>${blocks.join("")}</details>`;
   }
   return out;
 }

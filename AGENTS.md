@@ -50,6 +50,7 @@ chooses a transport.
 | The DMX bridge: channels, patch, send policy | `docs/dmx.md` |
 | Ordering of the work | `docs/roadmap.md` |
 | The MCP server | `integrations/mcp/` |
+| The site in another language | `site/content/i18n/<lang>.json` (strings), `site/content/<lang>/` (pages) |
 | Why the code is shaped this way | `docs/architecture.md` |
 | Arguments in, exact bytes out | `tests/fixtures/golden/<mode>/<SKU>.json` |
 | What a package's release changed | `packages/<pkg>/CHANGELOG.md` |
@@ -111,7 +112,17 @@ SKU.
   errors, units, what it does not do — or one short line, never a paragraph.
 - **A kept comment states its fact and stops.** No preamble, no second sentence
   repeating the first, no re-describing the mechanism the reader is looking at.
-- **English throughout**, including code comments.
+- **English throughout**, including code comments. The translations of the
+  site are the one exception: `site/content/i18n/<lang>.json` and
+  `site/content/<lang>/`.
+- **A translation follows its English text.** The site carries `fr`, `de`,
+  `es` and `it` beside English. A model page in another language is `noindex`
+  and stays out of the sitemap: its notes come from the device file. The rules
+  of this section apply to a translation as they apply to the English text.
+  After a change to an English page or to `site/content/i18n/en.json`, update
+  each language and stamp it with `node translations.ts --stamp <file>` in
+  `site/`. The check fails on a page or a string that does not follow the
+  English text.
 - **Name no company and no app.** Do not write "company", "manufacturer",
   "vendor" or "app". The software a user drives these devices with is "the
   phone controller", or "another controller" where it competes for the link.

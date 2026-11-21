@@ -1,0 +1,143 @@
+{
+  "$source": "53c2af29c206fb239497a66aca386c9734d5a499",
+  "intro": "Ogni azione, dalla CLI govee, da Rust, Python, Node.js o da una console DMX.",
+  "groups": {
+    "find": "Trovare i dispositivi",
+    "control": "Controllare una luce",
+    "stream": "Animare i segmenti",
+    "dmx": "Comandare un impianto in DMX",
+    "raw": "Comandi grezzi e configurazione"
+  },
+  "entries": {
+    "scan": {
+      "summary": "Cerca i dispositivi e riporta chi risponde.",
+      "detail": "Con un elenco di modalità, la scansione copre solo quelle modalità. Non abilita mai una modalità che la configurazione esclude. Quando niente risponde, `govee scan` avvisa di cosa tiene lontane le risposte, come una porta di risposta occupata da un altro programma."
+    },
+    "devices": {
+      "summary": "Indica più dispositivi insieme, poi elencali o invia loro un comando.",
+      "detail": "Un target è un'identità (`1C:8B:…`), uno SKU (`H6159`), un nome configurato (`kitchen`) o un gruppo (`ambient`). Aggiungi il prefisso `id:`, `sku:`, `name:` o `group:` dove il tipo è ambiguo. Senza target, seleziona ogni dispositivo che una scansione trova. La prima chiamata che legge uno SKU, o tutti i dispositivi, esegue una scansione. Ogni membro restituisce il proprio esito, e quando un membro fallisce, gli altri vanno avanti."
+    },
+    "device": {
+      "summary": "Ottieni un handle per un dispositivo, per identità o per nome.",
+      "detail": "Legge la configurazione e non esegue scansioni. Una modalità vincola a quella modalità ogni chiamata sull'handle. Uno SKU o un gruppo può indicare più di un dispositivo: per quelli usa `devices`."
+    },
+    "identify": {
+      "summary": "Accendi ogni dispositivo a turno, così una persona associa un'identità a un apparecchio nella stanza.",
+      "detail": "Il giro spegne tutti i dispositivi, li accende uno alla volta, poi li spegne tutti. Restituisce i dispositivi che ha acceso, quelli che sono falliti e quelli che sono rimasti accesi."
+    },
+    "describe": {
+      "summary": "Riporta cosa dichiara il file del dispositivo per un modello.",
+      "detail": "Non legge nessun hardware. Usalo per vedere l'intervallo di ogni argomento prima di inviare un valore."
+    },
+    "status": {
+      "summary": "Chiedi al dispositivo il suo stato attuale.",
+      "detail": "`last_status` restituisce lo stato già noto e non invia niente.",
+      "action": {
+        "title": "Rileggi lo stato"
+      }
+    },
+    "watch": {
+      "summary": "Segui gli eventi: un dispositivo compare, lo stato di salute di una modalità cambia."
+    },
+    "doctor": {
+      "summary": "Riporta tutto ciò che è sbagliato nella configurazione.",
+      "detail": "Eseguilo per primo quando un dispositivo non risponde."
+    },
+    "power": {
+      "summary": "Accendi o spegni il dispositivo.",
+      "action": {
+        "title": "Accendilo e spegnilo"
+      }
+    },
+    "brightness": {
+      "summary": "Imposta la luminosità di tutto il dispositivo.",
+      "detail": "Il file del dispositivo contiene l'intervallo. Un valore fuori intervallo è un errore, mai un valore riportato nei limiti. Su un modello verificato il firmware limita `0` a `1`, e questo non spegne il dispositivo.",
+      "action": {
+        "title": "Imposta la luminosità"
+      }
+    },
+    "color": {
+      "summary": "Imposta un solo colore per tutto il dispositivo.",
+      "action": {
+        "title": "Imposta un colore"
+      }
+    },
+    "color-temp": {
+      "summary": "Imposta la temperatura del bianco, in kelvin.",
+      "detail": "Termina la modalità colore: bianco e colore si escludono a vicenda.",
+      "action": {
+        "title": "Imposta la temperatura del bianco",
+        "summary": "Bianco e colore si escludono a vicenda: questo termina il colore che il dispositivo mostra."
+      }
+    },
+    "segment": {
+      "summary": "Colora le zone.",
+      "detail": "Un colore riempie ogni zona, e un elenco dà un colore per zona. Con `zones`, cambiano solo le zone indicate, e questo richiede una modalità che colora per maschera. Un numero di zone che l'unità non visualizza viene rifiutato.",
+      "action": {
+        "title": "Colora le zone"
+      }
+    },
+    "gradient": {
+      "summary": "Imposta se il firmware interpola tra le zone, senza colorare.",
+      "detail": "L'interpolazione prosegue dall'ultima zona fino alla prima. Su una modalità che porta l'impostazione nel suo frame di colorazione, viene rifiutata: lì passa `gradient` a `segment`.",
+      "action": {
+        "title": "Interpola tra le zone",
+        "summary": "L'interpolazione prosegue dall'ultima zona fino alla prima."
+      }
+    },
+    "music": {
+      "summary": "Riproduci un effetto che il dispositivo genera dal proprio microfono.",
+      "detail": "Il dispositivo ascolta con il proprio microfono, e niente viene trasmesso dal tuo computer. I numeri degli effetti dipendono dalla modalità, e `lan` non ha nessun comando musica. Imposta un colore, una temperatura o l'accensione per terminare l'effetto.",
+      "action": {
+        "title": "Riproduci un effetto musicale",
+        "summary": "Il dispositivo ascolta con il proprio microfono."
+      }
+    },
+    "open-stream": {
+      "summary": "Apri il canale dei segmenti e tienilo armato.",
+      "detail": "Lo stream riporta il numero di zone e il frame rate misurati sull'unità. I colori terminano quando lo chiudi."
+    },
+    "set-zone": {
+      "summary": "Imposta una zona dello stream."
+    },
+    "set-all": {
+      "summary": "Imposta tutte le zone insieme.",
+      "detail": "`set_all` accetta un colore per zona. `fill` dà a ogni zona lo stesso colore. `clear` le imposta a nero."
+    },
+    "close": {
+      "summary": "Chiudi il canale.",
+      "detail": "Nient'altro disarma il canale. `frames_superseded` conta i frame che uno più recente ha sostituito prima che partissero."
+    },
+    "dmx-profile": {
+      "summary": "Stampa la tabella dei canali di un modello, per fare il patch di una console.",
+      "detail": "Ogni personality è una tabella: `full` occupa 6 canali, e `segment` e `pixel` occupano le zone che l'unità visualizza. Non legge nessun hardware."
+    },
+    "dmx-patch": {
+      "summary": "Scansiona la LAN e scrivi il patch con cui gira il nodo.",
+      "detail": "Dà i canali liberi più bassi a ogni dispositivo senza voce, e non sposta mai una voce che il file contiene già: anche la console usa quell'indirizzo nel suo patch."
+    },
+    "dmx-identify": {
+      "summary": "Accendi ogni apparecchio del patch a turno, così una persona legge l'impianto.",
+      "detail": "Il giro accende gli apparecchi nell'ordine del patch, via `lan`. `--address` accende l'apparecchio che risponde a quel canale, e non solo quello che parte da lì."
+    },
+    "dmx-run": {
+      "summary": "Ricevi Art-Net sulla porta 6454 e comanda i dispositivi del patch.",
+      "detail": "Il nodo risponde a ogni poll Art-Net, così una console lo elenca e ne fa il patch. `--dry-run` stampa cosa legge ogni apparecchio, e non scrive su nessun dispositivo."
+    },
+    "send": {
+      "summary": "Invia una voce del file del dispositivo, per nome.",
+      "detail": "Funziona anche per un modello che questa build non conosce: il file del dispositivo dichiara ogni argomento, e il nucleo ne controlla l'intervallo. `read` fa lo stesso per una voce che risponde."
+    },
+    "provision": {
+      "summary": "Collega un nuovo dispositivo a una rete Wi-Fi, via Bluetooth.",
+      "detail": "La password viaggia in chiaro: chiunque sia a portata Bluetooth durante il trasferimento la può leggere.",
+      "action": {
+        "title": "Collegalo a una rete Wi-Fi"
+      }
+    },
+    "modes": {
+      "summary": "Limita un comando a una modalità.",
+      "detail": "Non abilita mai una modalità che la configurazione esclude, e non ripiega mai su un'altra. Un dispositivo che nessuna modalità abilitata raggiunge è un errore."
+    }
+  }
+}

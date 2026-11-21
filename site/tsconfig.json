@@ -19,5 +19,5 @@
     "noUnusedParameters": true,
     "skipLibCheck": true
   },
-  "include": ["build.ts", "lib/**/*.ts"]
+  "include": ["build.ts", "translations.ts", "lib/**/*.ts"]
 }

@@ -3,22 +3,25 @@
 
 import { cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { join, relative } from "node:path";
 import { assets } from "./lib/assets.ts";
-import { DESCRIPTION, SITE_URL, base, dist, repo, repoUrl, root } from "./lib/config.ts";
+import { base, dist, repo, repoUrl, root } from "./lib/config.ts";
 import { type Doc, docPage, readDocs } from "./lib/content.ts";
 import { sweepStaging, watchSources } from "./lib/dev.ts";
 import { categoryPages } from "./lib/categories.ts";
 import { crumbs } from "./lib/crumbs.ts";
-import { devicePage, renderIndex } from "./lib/devices.ts";
+import { devicePage } from "./lib/device-page.ts";
+import { renderIndex } from "./lib/devices.ts";
+import { type Frame, type Page, address, emit } from "./lib/emit.ts";
 import { everyModel } from "./lib/listed.ts";
 import { navItem } from "./lib/docs.ts";
 import { faqPage } from "./lib/faq.ts";
 import { fill } from "./lib/html.ts";
 import { isReference, readApi, readCatalog, readCategories, readJson } from "./lib/json.ts";
+import { EN, ENGLISH, LOCALES, type Locale, type T, forgetStrings, prefix, strings, translate } from "./lib/locales.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
-import { REFERENCE, referencePage } from "./lib/reference.ts";
-import { breadcrumb, deviceData, homeData, jsonLd, redirect, robots, sitemapXml } from "./lib/seo.ts";
+import { REFERENCE_URL, localReference, referenceNav, referencePage } from "./lib/reference.ts";
+import { breadcrumb, deviceData, homeData, redirect, robots, sitemapXml } from "./lib/seo.ts";
 import { type Change, notify, serve } from "./lib/serve.ts";
 import type { Api, Crumb, Device, NavEntry, Reference } from "./lib/types.ts";
 
@@ -35,99 +38,110 @@ interface Source {
   jsonld?: Record<string, unknown>[];
 }
 
-/** One page, ready for the layout. */
-interface Page {
-  url: string;
-  nav: string;
-  title: string | null;
-  description?: string;
-  klass?: string;
-  noindex?: boolean;
-  jsonld?: Record<string, unknown>[];
-  body: string;
-}
-
-interface Context {
+interface Shared {
+  devices: Device[];
+  reference: Reference;
+  api: Api;
   css: string;
-  docsHome: string;
-  docNav: string;
-  vars: Record<string, string>;
 }
 
 // A reload during a rebuild reaches the old site or the new one, never half of
 // one. The process id keeps a manual build off the staging of `npm run dev`.
 const out = join(root, `.dist-build-${process.pid}`);
 
-const pages: Source[] = [
-  { src: "index.html", url: "", nav: "home", title: null, klass: "is-home" },
-  {
-    src: "devices.html",
-    url: "devices/",
-    nav: "devices",
-    title: "Devices",
-    render: renderIndex,
-    trail: [["Devices", "devices/"]],
-    description: "Which Govee lights work with Govee Toolkit: what each model answers over Wi-Fi, over Bluetooth, through the cloud and from a DMX desk.",
-  },
-  {
-    src: "add-device.html",
-    url: "devices/add/",
-    nav: "devices",
-    title: "Add a device",
-    klass: "is-add",
-    trail: [["Devices", "devices/"], ["Add a device", "devices/add/"]],
-    description: "Two ways to add your Govee light, or what it does, to this list: follow the guide and add it yourself, or send it to us and we add it.",
-  },
-];
+function sources(t: T): Source[] {
+  return [
+    { src: "index.html", url: "", nav: "home", title: null, klass: "is-home" },
+    {
+      src: "devices.html",
+      url: "devices/",
+      nav: "devices",
+      title: t("page.devices"),
+      render: (template, devices) => renderIndex(template, devices, undefined, t),
+      trail: [[t("page.devices"), "devices/"]],
+      description: t("page.devices_description"),
+    },
+    {
+      src: "add-device.html",
+      url: "devices/add/",
+      nav: "devices",
+      title: t("page.add"),
+      klass: "is-add",
+      trail: [[t("page.devices"), "devices/"], [t("page.add"), "devices/add/"]],
+      description: t("page.add_description"),
+    },
+  ];
+}
 
 const FOOT_SKIP = new Set(["docs/configure/", "docs/targets/", "docs/dmx/", "docs/mcp/", "docs/troubleshooting/"]);
 
 async function main(): Promise<void> {
+  forgetStrings();
   const [catalog, api, categories] = await Promise.all([readCatalog(), readApi(), readCategories()]);
   await stage();
-  const [, css, layout, docs, reference, faq] = await Promise.all([
+  const [, css, layout, reference] = await Promise.all([
     writeFile(join(out, ".nojekyll"), ""),
     assets(out),
     readFile(join(root, "src/layout.html"), "utf8"),
-    readDocs(),
     readJson(join(root, "content/reference.json"), isReference),
-    faqPage(),
   ]);
-  const nav: NavEntry[] = [
-    ...docs.map((d) => ({ url: `docs/${d.slug}/`, title: d.title, order: d.order })),
-    REFERENCE,
-  ].toSorted((a, b) => a.order - b.order);
-  const docsHome = nav[0]?.url ?? REFERENCE.url;
-  // The footer names a short list. The side menu keeps every page.
-  const docNav = nav
-    .filter((item) => !FOOT_SKIP.has(item.url))
-    .map((item) => navItem(base, item, null))
-    .join("\n          ");
-  const ctx: Context = { css, docsHome, docNav, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
+  const shared: Shared = { devices: everyModel(catalog, categories), reference, api, css };
+  const built = await Promise.all(LOCALES.map((locale) => localePages(locale, shared)));
+  const frames = new Map(built.map(({ locale, frame }) => [locale.id, frame]));
+  const all: Page[] = [...built.flatMap((b) => b.pages), notFound()];
 
-  const devices = everyModel(catalog, categories);
-  const all: Page[] = [
-    ...(await sourcePages([...pages, ...categoryPages(devices, renderIndex)], devices)),
-    ...devices.map((device) => deviceEntry(device, reference, devices)),
-    ...docPages(docs, nav, docsHome, reference, api),
-    faq,
-    NOT_FOUND,
-  ];
-
-  unique([...all.map((page) => page.url), ...Object.keys(MOVED)]);
-  const written = await Promise.all(all.map((page) => emit(layout, page, ctx)));
-  const sitemap = written.filter((url) => url !== null);
+  unique([...all.map((page) => address(page)), ...Object.keys(MOVED)]);
+  // `routes` decides where a link goes, `site` what the sitemap and the
+  // `hreflang` links name: a page that no index keeps is in the first alone.
+  const paths = (keep: (page: Page) => boolean) => new Map(LOCALES.map((locale) => [
+    locale.id,
+    new Set(all.filter((p) => p.locale.id === locale.id && keep(p)).map((p) => p.url)),
+  ]));
+  const routes = paths((p) => p.url !== notFound().url);
+  const site = paths((p) => p.noindex !== true);
+  await Promise.all(all.map((page) => {
+    const frame = frames.get(page.locale.id);
+    if (!frame) throw new Error(`no frame for ${page.locale.id}`);
+    return emit(out, layout, page, frame, { routes, site });
+  }));
 
   await Promise.all(Object.entries(MOVED).map(async ([from, to]) => {
     await mkdir(join(out, from), { recursive: true });
     await writeFile(join(out, from, "index.html"), redirect(to));
   }));
   await writeFile(join(out, "robots.txt"), robots());
-  await writeFile(join(out, "sitemap.xml"), sitemapXml(sitemap));
+  await writeFile(join(out, "sitemap.xml"), sitemapXml(site));
 
   await publish();
   const clock = new Date().toTimeString().slice(0, 8);
-  console.log(`${clock}  site -> ${relative(repo, dist)} (${sitemap.length} pages, ${devices.length} devices)`);
+  const indexed = [...site.values()].reduce((n, urls) => n + urls.size, 0);
+  console.log(`${clock}  site -> ${relative(repo, dist)} (${indexed} pages, ${shared.devices.length} devices, ${LOCALES.length} languages)`);
+}
+
+/** Every page of one language that is not a model page. */
+async function localePages(locale: Locale, { devices, reference, api, css }: Shared) {
+  const t = strings(locale);
+  const [docs, faq] = await Promise.all([readDocs(locale), faqPage(locale)]);
+  const ref = localReference(reference, locale);
+  const nav: NavEntry[] = [
+    ...docs.map((d) => ({ url: `docs/${d.slug}/`, title: d.title, order: d.order })),
+    ...(ref === null ? [] : [referenceNav(t)]),
+  ].toSorted((a, b) => a.order - b.order);
+  const docsHome = nav[0]?.url ?? REFERENCE_URL;
+  // The footer names a short list. The side menu keeps every page.
+  const docNav = nav
+    .filter((item) => !FOOT_SKIP.has(item.url))
+    .map((item) => navItem(base, item, null))
+    .join("\n          ");
+  const frame: Frame = { css, docsHome, docNav, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
+  const pages: Omit<Page, "locale">[] = [
+    ...(await sourcePages([...sources(t), ...categoryPages(devices, renderIndex, locale)], devices, locale)),
+    ...docPages(docs, nav, docsHome, locale),
+    ...(ref === null ? [] : [refPage(ref, api, nav, docsHome, locale)]),
+    ...(faq === null ? [] : [faq]),
+    ...devices.map((device) => deviceEntry(device, ref ?? reference, devices, locale)),
+  ];
+  return { locale, frame, pages: pages.map((page): Page => Object.assign({}, page, { locale })) };
 }
 
 // `assets()` bundles the stylesheet and the script: only the bundle is copied.
@@ -156,72 +170,82 @@ function unique(urls: string[]): void {
 }
 
 // Every category page shares the template of the devices page.
-function sourcePages(sources: Source[], devices: Device[]): Promise<Page[]> {
+function sourcePages(list: Source[], devices: Device[], locale: Locale): Promise<Omit<Page, "locale">[]> {
+  const t = strings(locale);
   const templates = new Map<string, Promise<string>>();
   const read = (src: string): Promise<string> => {
     const known = templates.get(src);
     if (known !== undefined) return known;
-    const template = readFile(join(root, "src/pages", src), "utf8");
+    const template = readFile(join(root, "src/pages", src), "utf8").then((text) => translate(text, t));
     templates.set(src, template);
     return template;
   };
-  return Promise.all(sources.map(async (page) => {
+  return Promise.all(list.map(async (page) => {
     const source = await read(page.src);
-    const trailData = page.trail ? [breadcrumb(page.trail)] : [];
-    const jsonld = page.url === "" ? homeData() : [...trailData, ...(page.jsonld ?? [])];
+    const trailData = page.trail ? [breadcrumb(page.trail, t, prefix(locale))] : [];
+    const jsonld = page.url === "" ? homeData(locale, t) : [...trailData, ...(page.jsonld ?? [])];
     const body = fill(page.render ? page.render(source, devices) : source, {
-      crumbs: page.trail ? crumbs(page.trail) : "",
+      crumbs: page.trail ? crumbs(page.trail, t) : "",
     });
     return Object.assign({}, page, { jsonld, body });
   }));
 }
 
-function deviceEntry(device: Device, reference: Reference, devices: Device[]): Page {
-  const page = devicePage(device, reference, devices);
+// A model page in another language stays out of every index: its notes, its
+// names and its values come from the device file, in English.
+function deviceEntry(device: Device, reference: Reference, devices: Device[], locale: Locale): Omit<Page, "locale"> {
+  const t = strings(locale);
+  const page = devicePage(device, reference, devices, t);
   return {
     url: page.url,
     nav: "devices",
     title: page.title,
     description: page.description,
     klass: "is-device",
-    jsonld: [breadcrumb(page.breadcrumb), deviceData(device, page)],
+    ...(locale.id === ENGLISH.id ? {} : { noindex: true }),
+    jsonld: [breadcrumb(page.breadcrumb, t, prefix(locale)), deviceData(device, page, locale)],
     body: page.body,
   };
 }
 
-function docPages(docs: Doc[], nav: NavEntry[], docsHome: string, reference: Reference, api: Api): Page[] {
-  return [
-    ...docs.map((doc) => ({
-      url: `docs/${doc.slug}/`,
-      nav: "docs",
-      title: doc.title,
-      description: doc.description,
-      klass: "is-doc",
-      jsonld: [breadcrumb([["Docs", docsHome], [doc.title, `docs/${doc.slug}/`]])],
-      body: docPage(doc, nav),
-    })),
-    {
-      url: REFERENCE.url,
-      nav: "docs",
-      title: REFERENCE.title,
-      description: reference.intro,
-      klass: "is-doc",
-      jsonld: [breadcrumb([["Docs", docsHome], ["Reference", REFERENCE.url]])],
-      body: referencePage(reference, api, nav),
-    },
-  ];
+function docPages(docs: Doc[], nav: NavEntry[], docsHome: string, locale: Locale): Omit<Page, "locale">[] {
+  const t = strings(locale);
+  return docs.map((doc) => ({
+    url: `docs/${doc.slug}/`,
+    nav: "docs",
+    title: doc.title,
+    description: doc.description,
+    klass: "is-doc",
+    jsonld: [breadcrumb([[t("nav.docs"), docsHome], [doc.title, `docs/${doc.slug}/`]], t, prefix(locale))],
+    body: docPage(doc, nav, t),
+  }));
+}
+
+function refPage(reference: Reference, api: Api, nav: NavEntry[], docsHome: string, locale: Locale): Omit<Page, "locale"> {
+  const t = strings(locale);
+  return {
+    url: REFERENCE_URL,
+    nav: "docs",
+    title: t("ref.title"),
+    description: reference.intro,
+    klass: "is-doc",
+    jsonld: [breadcrumb([[t("nav.docs"), docsHome], [t("ref.title"), REFERENCE_URL]], t, prefix(locale))],
+    body: referencePage(reference, api, nav, t),
+  };
 }
 
 // A page that moved keeps its old address, which a published README links to.
-const MOVED: Record<string, string> = { "reference/": REFERENCE.url, "devices/lan/": "devices/" };
+const MOVED: Record<string, string> = { "reference/": REFERENCE_URL, "devices/lan/": "devices/" };
 
-const NOT_FOUND: Page = {
+// One page serves every missing address, so it stays in English.
+const notFound = (): Page => ({
+  locale: ENGLISH,
   url: "404.html",
   nav: "",
-  title: "Page not found",
+  title: EN("404.title"),
   noindex: true,
-  body: `<section class="slab"><h1>Page not found</h1><p class="lede">That page does not exist. <a href="${base}">Go back to the start</a>.</p></section>`,
-};
+  body: `<section class="slab"><h1>${EN("404.title")}</h1><p class="lede">${EN("404.text")}</p></section>`,
+});
 
 // Two renames: `dist/` is missing for microseconds, not for a whole build.
 async function publish(): Promise<void> {
@@ -230,52 +254,6 @@ async function publish(): Promise<void> {
   if (existsSync(dist)) await rename(dist, previous);
   await rename(out, dist);
   await rm(previous, { recursive: true, force: true });
-}
-
-/** Writes one page and returns its canonical URL, or `null` when `noindex`. */
-async function emit(layout: string, page: Page, ctx: Context): Promise<string | null> {
-  const canonical = `${SITE_URL}${base}${page.url}`;
-  const html = fill(layout, {
-    base,
-    site: SITE_URL,
-    repo: repoUrl,
-    lang: "en",
-    title: page.title !== null && page.title !== "" ? `${page.title} — Govee Toolkit` : "Govee Toolkit — control your Govee lights locally",
-    description: page.description ?? DESCRIPTION,
-    bodyclass: page.klass ?? "",
-    canonical,
-    og_type: page.url === "" ? "website" : "article",
-    robots: page.noindex === true
-      ? '<meta name="robots" content="noindex, follow">'
-      : '<meta name="robots" content="index, follow, max-image-preview:large">',
-    css: ctx.css,
-    jsonld: jsonLd(page.jsonld),
-    nav: topNav(page.nav, ctx.docsHome),
-    docnav: ctx.docNav,
-    content: fill(page.body, ctx.vars),
-    year: String(new Date().getUTCFullYear()),
-  });
-  const file = page.url.endsWith(".html")
-    ? join(out, page.url)
-    : join(out, page.url, "index.html");
-  await mkdir(dirname(file), { recursive: true });
-  await writeFile(file, html);
-  return page.noindex === true ? null : canonical;
-}
-
-function topNav(current: string, docsHome: string): string {
-  const items = [
-    { url: "", key: "home", label: "Home" },
-    { url: docsHome, key: "docs", label: "Docs" },
-    { url: "devices/", key: "devices", label: "Devices" },
-    { url: "faq/", key: "faq", label: "FAQ" },
-  ];
-  return items
-    .map(({ url, key, label }) => {
-      const on = key === current ? ' aria-current="page"' : "";
-      return `<a href="${base}${url}"${on}>${label}</a>`;
-    })
-    .join("\n        ");
 }
 
 // `npm run dev`: a failed build leaves the server and the watch up.

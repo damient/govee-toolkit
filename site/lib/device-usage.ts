@@ -7,6 +7,7 @@ import { MODES } from "./config.ts";
 import { examples } from "./examples.ts";
 import { escapeAttr, escapeHtml, filled } from "./html.ts";
 import { langBlock } from "./languages.ts";
+import type { T } from "./locales.ts";
 import { modeBadge, modeMark } from "./mode-badge.ts";
 import type { Device, Mode, Range, RefEntry, Reference, Values } from "./types.ts";
 
@@ -128,7 +129,7 @@ function unit(item: RefEntry, entry: Served, device: Device): { values: Values; 
 }
 
 // A badge marks the exception: an action every mode serves carries none.
-function block(item: ActionEntry, entry: Served, device: Device): string {
+function block(item: ActionEntry, entry: Served, device: Device, t: T): string {
   const { action } = item;
   const served = MODES.filter((m) => entry.modes.has(m));
   const marks = served.length === MODES.length
@@ -142,7 +143,7 @@ function block(item: ActionEntry, entry: Served, device: Device): string {
               <h3><a class="anchor" href="#send-${escapeAttr(item.id)}">${escapeHtml(action.title)}</a>${marks}</h3>
               ${summary}${extra}${bounds(entry, item.args ?? {})}
             </div>
-            ${langBlock(`send-${item.id}`, examples(item, values, can))}
+            ${langBlock(`send-${item.id}`, examples(item, values, can), {}, t)}
           </article>`;
 }
 
@@ -151,7 +152,7 @@ function block(item: ActionEntry, entry: Served, device: Device): string {
  * caller places it: this returns markup and reads nothing but the catalog and
  * the reference content.
  */
-export function usage(device: Device, reference: Reference): string {
+export function usage(device: Device, reference: Reference, t: T): string {
   const roles = index(device);
   const actions = reference.groups
     .flatMap((group) => group.entries)
@@ -159,10 +160,10 @@ export function usage(device: Device, reference: Reference): string {
     .toSorted((a, b) => a.action.order - b.action.order);
   const blocks = actions.map((item) => {
     const entry = merge(roles, item.roles ?? []);
-    return entry ? block(item, entry, device) : "";
+    return entry ? block(item, entry, device, t) : "";
   }).filter(Boolean);
   if (blocks.length === 0) return "";
-  return `<h2 id="send">What you can send</h2>
+  return `<h2 id="send">${escapeHtml(t("model.send"))}</h2>
       <div class="usage">
           ${blocks.join("\n          ")}
       </div>`;

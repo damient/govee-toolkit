@@ -1,0 +1,143 @@
+{
+  "$source": "53c2af29c206fb239497a66aca386c9734d5a499",
+  "intro": "Chaque action, depuis la CLI govee, Rust, Python, Node.js ou une console DMX.",
+  "groups": {
+    "find": "Trouver les appareils",
+    "control": "Piloter une lumière",
+    "stream": "Animer les segments",
+    "dmx": "Piloter une installation en DMX",
+    "raw": "Commandes brutes et mise en place"
+  },
+  "entries": {
+    "scan": {
+      "summary": "Chercher les appareils et indiquer ce qui répond.",
+      "detail": "Avec une liste de modes, le scan ne couvre que ces modes. Il n'active jamais un mode que la configuration omet. Quand rien ne répond, `govee scan` signale ce qui bloque les réponses, par exemple un port de réponse qu'un autre programme occupe."
+    },
+    "devices": {
+      "summary": "Désigner plusieurs appareils à la fois, puis les lister ou leur envoyer une commande.",
+      "detail": "Une cible est une identité (`1C:8B:…`), un SKU (`H6159`), un nom configuré (`kitchen`) ou un groupe (`ambient`). Préfixez-la par `id:`, `sku:`, `name:` ou `group:` quand le type est ambigu. Sans cible, la sélection prend chaque appareil qu'un scan trouve. Le premier appel qui lit un SKU, ou tous les appareils, fait un scan une fois. Chaque membre renvoie son propre résultat, et quand un membre échoue, les autres continuent."
+    },
+    "device": {
+      "summary": "Obtenir un handle vers un appareil, par identité ou par nom.",
+      "detail": "Il lit la configuration et ne fait aucun scan. Un mode fixe chaque appel du handle sur ce mode. Un SKU ou un groupe peut désigner plusieurs appareils : utilisez `devices` dans ce cas."
+    },
+    "identify": {
+      "summary": "Allumer chaque appareil tour à tour, pour qu'une personne associe une identité à un projecteur de la pièce.",
+      "detail": "Le parcours éteint tous les appareils, les allume un par un, puis les éteint tous. Il renvoie les appareils qu'il a allumés, ceux qui ont échoué et ceux qui sont restés allumés."
+    },
+    "describe": {
+      "summary": "Indiquer ce que le fichier d'appareil déclare pour un modèle.",
+      "detail": "Il ne lit aucun matériel. Utilisez-le pour voir la plage de chaque argument avant d'envoyer une valeur."
+    },
+    "status": {
+      "summary": "Demander à l'appareil son état actuel.",
+      "detail": "`last_status` renvoie l'état déjà connu et n'envoie rien.",
+      "action": {
+        "title": "Relire l'état"
+      }
+    },
+    "watch": {
+      "summary": "Suivre les événements : un appareil apparaît, l'état de santé d'un mode change."
+    },
+    "doctor": {
+      "summary": "Signaler tout ce qui ne va pas dans la configuration.",
+      "detail": "Lancez-le en premier quand un appareil ne répond pas."
+    },
+    "power": {
+      "summary": "Allumer ou éteindre l'appareil.",
+      "action": {
+        "title": "Allumer et éteindre"
+      }
+    },
+    "brightness": {
+      "summary": "Régler la luminosité de tout l'appareil.",
+      "detail": "Le fichier d'appareil contient la plage. Une valeur hors plage est une erreur, jamais un plafonnement. Sur un modèle vérifié, le firmware ramène `0` à `1`, ce qui n'éteint pas l'appareil.",
+      "action": {
+        "title": "Régler la luminosité"
+      }
+    },
+    "color": {
+      "summary": "Régler une couleur pour tout l'appareil.",
+      "action": {
+        "title": "Régler une couleur"
+      }
+    },
+    "color-temp": {
+      "summary": "Régler la température de blanc, en kelvins.",
+      "detail": "Elle met fin au mode couleur : le blanc et la couleur s'excluent.",
+      "action": {
+        "title": "Régler la température de blanc",
+        "summary": "Le blanc et la couleur s'excluent : ce réglage met fin à la couleur affichée par l'appareil."
+      }
+    },
+    "segment": {
+      "summary": "Peindre les zones.",
+      "detail": "Une seule couleur remplit chaque zone, et une liste donne une couleur par zone. Avec `zones`, seules les zones nommées changent, ce qui demande un mode qui peint par masque. Un nombre de zones que l'unité n'affiche pas est refusé.",
+      "action": {
+        "title": "Peindre les zones"
+      }
+    },
+    "gradient": {
+      "summary": "Indiquer si le firmware interpole entre les zones, sans peindre.",
+      "detail": "L'interpolation reboucle de la dernière zone à la première. Sur un mode qui transmet ce réglage dans sa trame de peinture, elle est refusée : passez alors `gradient` à `segment`.",
+      "action": {
+        "title": "Interpoler entre les zones",
+        "summary": "L'interpolation reboucle de la dernière zone à la première."
+      }
+    },
+    "music": {
+      "summary": "Jouer un effet que l'appareil produit à partir de son propre micro.",
+      "detail": "L'appareil écoute avec son propre micro, et rien n'est envoyé en flux depuis votre machine. Les numéros d'effet dépendent du mode, et `lan` ne transmet aucune commande de musique. Réglez une couleur, une température ou l'alimentation pour arrêter l'effet.",
+      "action": {
+        "title": "Jouer un effet musical",
+        "summary": "L'appareil écoute avec son propre micro."
+      }
+    },
+    "open-stream": {
+      "summary": "Ouvrir le canal des segments et le garder armé.",
+      "detail": "Le flux indique le nombre de zones et la cadence de trames mesurée sur l'unité. Les couleurs s'arrêtent quand vous le fermez."
+    },
+    "set-zone": {
+      "summary": "Régler une zone du flux."
+    },
+    "set-all": {
+      "summary": "Régler toutes les zones à la fois.",
+      "detail": "`set_all` prend une couleur par zone. `fill` donne la même couleur à chaque zone. `clear` les met au noir."
+    },
+    "close": {
+      "summary": "Fermer le canal.",
+      "detail": "Rien d'autre ne désarme le canal. `frames_superseded` compte les trames qu'une trame plus récente a remplacées avant leur envoi."
+    },
+    "dmx-profile": {
+      "summary": "Afficher la table des canaux d'un modèle, pour patcher une console.",
+      "detail": "Chaque personnalité est une table : `full` prend 6 canaux, et `segment` et `pixel` prennent les zones que l'unité affiche. Il ne lit aucun matériel."
+    },
+    "dmx-patch": {
+      "summary": "Scanner le réseau local et écrire le patch à partir duquel le nœud tourne.",
+      "detail": "Il donne les canaux libres les plus bas à chaque appareil sans entrée, et ne déplace jamais une entrée que le fichier contient déjà : la console patche aussi cette adresse."
+    },
+    "dmx-identify": {
+      "summary": "Allumer chaque projecteur patché tour à tour, pour qu'une personne lise l'installation.",
+      "detail": "Le parcours allume les projecteurs dans l'ordre du patch, via `lan`. `--address` allume le projecteur qui répond à ce canal, et pas seulement celui qui y commence."
+    },
+    "dmx-run": {
+      "summary": "Recevoir l'Art-Net sur le port 6454 et piloter les appareils patchés.",
+      "detail": "Le nœud répond à chaque poll Art-Net : une console le liste donc et le patche. `--dry-run` affiche ce que lit chaque projecteur, et n'écrit vers aucun appareil."
+    },
+    "send": {
+      "summary": "Envoyer une entrée du fichier d'appareil, par son nom.",
+      "detail": "Cela fonctionne pour un modèle que cette version ne connaît pas : le fichier d'appareil déclare chaque argument, et le cœur vérifie sa plage. `read` fait de même pour une entrée qui répond."
+    },
+    "provision": {
+      "summary": "Connecter un nouvel appareil à un réseau Wi-Fi, en Bluetooth.",
+      "detail": "Le mot de passe circule en clair : tout ce qui est à portée Bluetooth pendant le transfert peut le lire.",
+      "action": {
+        "title": "Le connecter à un réseau Wi-Fi"
+      }
+    },
+    "modes": {
+      "summary": "Limiter une commande à un seul mode.",
+      "detail": "Elle n'active jamais un mode que la configuration omet, et elle ne se replie jamais sur un autre mode. Un appareil qu'aucun mode activé n'atteint est une erreur."
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { byId } from "./dom.ts";
+import { say } from "./strings.ts";
 
 // A link to a heading of the page you are on moves nothing else, so the close
 // is the only answer the reader gets.
@@ -19,7 +20,7 @@ export function menu(button: HTMLButtonElement): void {
   const set = (open: boolean) => {
     bar.dataset.menu = open ? "open" : "closed";
     button.setAttribute("aria-expanded", String(open));
-    button.setAttribute("aria-label", open ? "Close the menu" : "Open the menu");
+    button.setAttribute("aria-label", say(open ? "menu_close" : "menu_open"));
   };
 
   set(false);
@@ -35,5 +36,26 @@ export function menu(button: HTMLButtonElement): void {
   });
   wide.addEventListener("change", (event) => {
     if (event.matches) set(false);
+  });
+}
+
+// The language menu closes on a click outside it and on Escape, as a menu does.
+// A language picked here is stored: the English home page reads it before the
+// browser languages.
+export function langMenu(box: HTMLDetailsElement): void {
+  box.addEventListener("click", (event) => {
+    const link = event.target instanceof Element ? event.target.closest("a[hreflang]") : null;
+    if (!link) return;
+    try {
+      localStorage.setItem("lang", link.getAttribute("hreflang") ?? "");
+    } catch {
+      // Storage blocked: the choice holds for this visit only.
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (box.open && event.target instanceof Node && !box.contains(event.target)) box.open = false;
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") box.open = false;
   });
 }

@@ -31,9 +31,9 @@ const ALIAS: Record<string, string> = {
  * button `copy()` fills. `html` is the coloured block and `source` is what
  * the button writes to the clipboard.
  */
-export function codeBlock(html: string, source: string): string {
+export function codeBlock(html: string, source: string, label = "Copy"): string {
   return `<div class="terminal">\n<pre><code>${html}</code></pre>\n`
-    + `<button class="copy" type="button" data-copy="${escapeAttr(source)}">Copy</button>\n</div>\n`;
+    + `<button class="copy" type="button" data-copy="${escapeAttr(source)}">${escapeHtml(label)}</button>\n</div>\n`;
 }
 
 /**

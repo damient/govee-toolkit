@@ -1,0 +1,143 @@
+{
+  "$source": "53c2af29c206fb239497a66aca386c9734d5a499",
+  "intro": "Cada acción, desde la CLI govee, Rust, Python, Node.js o una consola DMX.",
+  "groups": {
+    "find": "Encontrar dispositivos",
+    "control": "Controlar una luz",
+    "stream": "Animar los segmentos",
+    "dmx": "Controlar una instalación por DMX",
+    "raw": "Comandos en bruto y configuración"
+  },
+  "entries": {
+    "scan": {
+      "summary": "Busca dispositivos e informa de lo que responde.",
+      "detail": "Con una lista de modos, el escaneo cubre solo esos modos. Nunca habilita un modo que la configuración deja fuera. Cuando nada responde, `govee scan` avisa de lo que impide que lleguen las respuestas, como un puerto de respuesta que ocupa otro programa."
+    },
+    "devices": {
+      "summary": "Designa varios dispositivos a la vez, y después lístalos o envíales un comando.",
+      "detail": "Un destino es una identidad (`1C:8B:…`), un SKU (`H6159`), un nombre configurado (`kitchen`) o un grupo (`ambient`). Añade el prefijo `id:`, `sku:`, `name:` o `group:` cuando el tipo sea ambiguo. Sin destino, selecciona todos los dispositivos que encuentra un escaneo. La primera llamada que lee un SKU, o todos los dispositivos, escanea una vez. Cada miembro responde con su propio resultado, y cuando un miembro falla, los demás siguen."
+    },
+    "device": {
+      "summary": "Obtén un handle para un dispositivo, por identidad o por nombre.",
+      "detail": "Lee la configuración y no escanea nada. Un modo fija todas las llamadas del handle a ese modo. Un SKU o un grupo puede designar más de un dispositivo: usa `devices` para esos casos."
+    },
+    "identify": {
+      "summary": "Enciende cada dispositivo por turno, para que una persona asocie una identidad a un aparato de la sala.",
+      "detail": "El recorrido apaga todos los dispositivos, los enciende uno a uno y después los apaga todos. Devuelve los dispositivos que encendió, los que fallaron y los que quedaron encendidos."
+    },
+    "describe": {
+      "summary": "Muestra lo que declara el archivo del dispositivo para un modelo.",
+      "detail": "No lee ningún hardware. Úsalo para ver el rango de cada argumento antes de enviar un valor."
+    },
+    "status": {
+      "summary": "Pide al dispositivo su estado actual.",
+      "detail": "`last_status` devuelve el estado ya conocido y no envía nada.",
+      "action": {
+        "title": "Leer el estado"
+      }
+    },
+    "watch": {
+      "summary": "Sigue los eventos: aparece un dispositivo, cambia el estado de un modo."
+    },
+    "doctor": {
+      "summary": "Indica todo lo que está mal en la configuración.",
+      "detail": "Ejecútalo primero cuando un dispositivo no responde."
+    },
+    "power": {
+      "summary": "Enciende o apaga el dispositivo.",
+      "action": {
+        "title": "Encenderlo y apagarlo"
+      }
+    },
+    "brightness": {
+      "summary": "Ajusta el brillo de todo el dispositivo.",
+      "detail": "El archivo del dispositivo indica el rango. Un valor fuera de él es un error, nunca se limita. En un modelo verificado, el firmware limita `0` a `1`, y no apaga el dispositivo.",
+      "action": {
+        "title": "Ajustar el brillo"
+      }
+    },
+    "color": {
+      "summary": "Pon un solo color en todo el dispositivo.",
+      "action": {
+        "title": "Poner un solo color"
+      }
+    },
+    "color-temp": {
+      "summary": "Ajusta la temperatura de blanco, en kelvin.",
+      "detail": "Termina el modo color: el blanco y el color se excluyen.",
+      "action": {
+        "title": "Ajustar la temperatura de blanco",
+        "summary": "El blanco y el color se excluyen: esto termina el color que muestra el dispositivo."
+      }
+    },
+    "segment": {
+      "summary": "Pinta las zonas.",
+      "detail": "Un color llena todas las zonas, y una lista da un color por zona. Con `zones`, solo cambian las zonas indicadas, lo que necesita un modo que pinte por máscara. Se rechaza un número de zonas que la unidad no representa.",
+      "action": {
+        "title": "Pintar las zonas"
+      }
+    },
+    "gradient": {
+      "summary": "Indica si el firmware interpola entre zonas, sin pintar.",
+      "detail": "La interpolación da la vuelta de la última zona a la primera. En un modo que lleva este ajuste en su trama de pintado, se rechaza: pasa `gradient` a `segment` en ese caso.",
+      "action": {
+        "title": "Interpolar entre las zonas",
+        "summary": "La interpolación da la vuelta de la última zona a la primera."
+      }
+    },
+    "music": {
+      "summary": "Reproduce un efecto que el dispositivo genera a partir de su propio micrófono.",
+      "detail": "El dispositivo escucha con su propio micrófono, y nada se transmite desde tu equipo. Los números de efecto dependen del modo, y `lan` no tiene comando de música. Ajusta un color, una temperatura o el encendido para terminar el efecto.",
+      "action": {
+        "title": "Reproducir un efecto de música",
+        "summary": "El dispositivo escucha con su propio micrófono."
+      }
+    },
+    "open-stream": {
+      "summary": "Abre el canal de segmentos y mantenlo armado.",
+      "detail": "El stream indica el número de zonas y la tasa de fotogramas medida en la unidad. Los colores terminan cuando lo cierras."
+    },
+    "set-zone": {
+      "summary": "Ajusta una zona del stream."
+    },
+    "set-all": {
+      "summary": "Ajusta todas las zonas a la vez.",
+      "detail": "`set_all` acepta un color por zona. `fill` da a todas las zonas el mismo color. `clear` las pone en negro."
+    },
+    "close": {
+      "summary": "Cierra el canal.",
+      "detail": "Nada más desarma el canal. `frames_superseded` cuenta los fotogramas que uno más reciente sustituyó antes de que salieran."
+    },
+    "dmx-profile": {
+      "summary": "Muestra la tabla de canales de un modelo, para hacer el patch en una consola.",
+      "detail": "Cada personalidad es una tabla: `full` ocupa 6 canales, y `segment` y `pixel` ocupan las zonas que representa la unidad. No lee ningún hardware."
+    },
+    "dmx-patch": {
+      "summary": "Escanea la LAN y escribe el patch con el que funciona el nodo.",
+      "detail": "Da los canales libres más bajos a cada dispositivo sin entrada, y nunca mueve una entrada que el archivo ya contiene: la consola también tiene el patch de esa dirección."
+    },
+    "dmx-identify": {
+      "summary": "Enciende cada aparato del patch por turno, para que una persona lea la instalación.",
+      "detail": "El recorrido enciende los aparatos en el orden del patch, por `lan`. `--address` enciende el aparato que responde a ese canal, y no solo el que empieza en él."
+    },
+    "dmx-run": {
+      "summary": "Recibe Art-Net en el puerto 6454 y controla los dispositivos del patch.",
+      "detail": "El nodo responde a cada poll de Art-Net, así una consola lo lista y hace su patch. `--dry-run` muestra lo que lee cada aparato, y no escribe en ningún dispositivo."
+    },
+    "send": {
+      "summary": "Envía una entrada del archivo del dispositivo, por su nombre.",
+      "detail": "Funciona con un modelo que esta compilación no conoce: el archivo del dispositivo declara cada argumento, y el núcleo comprueba su rango. `read` hace lo mismo con una entrada que responde."
+    },
+    "provision": {
+      "summary": "Conecta un dispositivo nuevo a una red Wi-Fi, por Bluetooth.",
+      "detail": "La contraseña viaja en texto plano: cualquier equipo al alcance del Bluetooth durante la transferencia puede leerla.",
+      "action": {
+        "title": "Conectarlo a una red Wi-Fi"
+      }
+    },
+    "modes": {
+      "summary": "Restringe un comando a un modo.",
+      "detail": "Nunca habilita un modo que la configuración deja fuera, y nunca recurre a otro modo. Un dispositivo al que no llega ningún modo habilitado es un error."
+    }
+  }
+}

@@ -6,7 +6,7 @@ import { relative } from "node:path";
 import { CATALOG_SCHEMA, apiPath, catalogPath, lanListPath, repo } from "./config.ts";
 import type { Api, Catalog, LanList, Reference } from "./types.ts";
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

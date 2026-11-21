@@ -1,7 +1,8 @@
 // What a machine reads: the JSON-LD blocks, `robots.txt` and the sitemap.
 
-import { DESCRIPTION, SITE_URL, base, repoUrl } from "./config.ts";
-import { escapeHtml, filled } from "./html.ts";
+import { SITE_URL, base, repoUrl } from "./config.ts";
+import { escapeAttr, escapeHtml, filled } from "./html.ts";
+import { EN, LOCALES, type Locale, type Sitemap, type T, carriers, prefix } from "./locales.ts";
 import type { Crumb, Device } from "./types.ts";
 import type { Section } from "./content.ts";
 
@@ -17,21 +18,21 @@ export function jsonLd(blocks: LinkedData[] | undefined): string {
 }
 
 /** The two blocks the home page carries: the site, and the source it documents. */
-export function homeData(): LinkedData[] {
+export function homeData(locale: Locale, t: T): LinkedData[] {
   return [
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: "Govee Toolkit",
-      url: `${SITE_URL}${base}`,
-      description: DESCRIPTION,
-      inLanguage: "en",
+      url: `${SITE_URL}${base}${prefix(locale)}`,
+      description: t("meta.description"),
+      inLanguage: locale.id,
     },
     {
       "@context": "https://schema.org",
       "@type": "SoftwareSourceCode",
       name: "govee-toolkit",
-      description: DESCRIPTION,
+      description: t("meta.description"),
       codeRepository: repoUrl,
       programmingLanguage: ["Rust", "Python", "JavaScript"],
       license: "https://opensource.org/licenses/MIT",
@@ -40,16 +41,19 @@ export function homeData(): LinkedData[] {
   ];
 }
 
-/** The trail, as `[name, url]` pairs. Home is added in front of it. */
-export function breadcrumb(trail: Crumb[]): LinkedData {
+/**
+ * The trail, as `[name, url]` pairs. Home is added in front of it. `pre` is
+ * the path of the language, which every URL of the trail takes.
+ */
+export function breadcrumb(trail: Crumb[], t: T = EN, pre = ""): LinkedData {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [["Home", ""] as Crumb, ...trail].map(([name, url], index) => ({
+    itemListElement: [[t("nav.home"), ""] as Crumb, ...trail].map(([name, url], index) => ({
       "@type": "ListItem",
       position: index + 1,
       name,
-      item: `${SITE_URL}${base}${url}`,
+      item: `${SITE_URL}${base}${pre}${url}`,
     })),
   };
 }
@@ -78,14 +82,15 @@ export function collectionData(name: string, url: string, items: Crumb[]): Linke
 export function deviceData(
   device: Device,
   page: { title: string; description: string; url: string },
+  locale: Locale,
 ): LinkedData {
   return {
     "@context": "https://schema.org",
     "@type": "TechArticle",
     headline: page.title,
     description: page.description,
-    url: `${SITE_URL}${base}${page.url}`,
-    inLanguage: "en",
+    url: `${SITE_URL}${base}${prefix(locale)}${page.url}`,
+    inLanguage: locale.id,
     isPartOf: { "@type": "WebSite", name: "Govee Toolkit", url: `${SITE_URL}${base}` },
     ...(device.category === undefined ? {} : { articleSection: device.category }),
     ...(filled(device.verified?.date) ? { dateModified: device.verified.date } : {}),
@@ -120,14 +125,23 @@ export function redirect(to: string): string {
     + `<body><p><a href="${base}${to}">${url}</a></p></body></html>\n`;
 }
 
-/** The sitemap, from the canonical address of every page that is indexed. */
-export function sitemapXml(sitemap: string[]): string {
-  const urls = sitemap
-    .map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`)
-    .join("\n");
+/**
+ * The sitemap, from the path of every page that is indexed in each language.
+ * A page that more than one language carries lists each of them.
+ */
+export function sitemapXml(site: Sitemap): string {
+  const urls = LOCALES.flatMap((locale) => [...(site.get(locale.id) ?? [])].map((path) => {
+    const langs = carriers(path, site);
+    const links = langs.length < 2
+      ? ""
+      : langs.map((other) => `\n    <xhtml:link rel="alternate" hreflang="${other.id}" href="${escapeAttr(address(other, path))}"/>`).join("");
+    return `  <url><loc>${escapeHtml(address(locale, path))}</loc>${links}\n  </url>`;
+  })).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${urls}
 </urlset>
 `;
 }
+
+const address = (locale: Locale, path: string): string => `${SITE_URL}${base}${prefix(locale)}${path}`;

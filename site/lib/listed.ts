@@ -1,7 +1,7 @@
-import { escapeAttr } from "./html.ts";
+import { escapeAttr, escapeHtml } from "./html.ts";
+import { EN, type T } from "./locales.ts";
 import type { Catalog, Device } from "./types.ts";
 
-const TIP = "Untested for this model";
 
 // A rule and a category name a shape of product, never a model.
 const SHAPE_WORDS: [RegExp[], string][] = [
@@ -57,23 +57,19 @@ export function everyModel(catalog: Catalog, categories: Map<string, string>): D
 }
 
 /** The mark beside the name of a listed model. */
-export function infoBadge(): string {
-  return `<span class="info-tip" tabindex="0" role="img" aria-label="${escapeAttr(TIP)}" data-tip="${escapeAttr(TIP)}">i</span>`;
+export function infoBadge(t: T = EN): string {
+  const tip = t("list.untested");
+  return `<span class="info-tip" tabindex="0" role="img" aria-label="${escapeAttr(tip)}" data-tip="${escapeAttr(tip)}">i</span>`;
 }
 
-export function listedVerification(): string {
-  return `<h2 id="verification">Verification</h2>
-      <p>This model is on Govee's list of LAN Control models. The toolkit sends
-      it the commands that Govee documents for that list, and that the model's
-      own controls admit. Nobody has tested them on this one yet.
-      <a href="{{repo}}/issues">Report what you observe</a>, and the model gets
-      a device file of its own.</p>`;
+export function listedVerification(t: T): string {
+  return `<h2 id="verification">${escapeHtml(t("model.verification"))}</h2>
+      <p>${t("listed.verification")}</p>`;
 }
 
-export function listedFile(d: Device): string {
+export function listedFile(d: Device, t: T): string {
   const path = `devices/listed/${d.listing ?? ""}.yaml`;
-  return `<h2 id="the-device-file">The device file</h2>
-          <p>This model shares the definition in
-          <a href="{{repo}}/blob/main/${escapeAttr(path)}"><code>${path}</code></a>
-          with the other models of Govee's LAN list that resolve to it.</p>`;
+  const link = `<a href="{{repo}}/blob/main/${escapeAttr(path)}"><code>${path}</code></a>`;
+  return `<h2 id="the-device-file">${escapeHtml(t("model.file_title"))}</h2>
+          <p>${t("listed.file", { file: link })}</p>`;
 }
