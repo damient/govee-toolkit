@@ -1,8 +1,8 @@
 //! What a binary writes to the process streams, and the code it exits with.
 //!
-//! `govee` and `govee-dmx` report through this module, so one exit code and
-//! one error record mean the same thing in both. The JSON form is the
-//! contract: one object per line on stdout, an error object on stderr, and
+//! `govee`, `govee-dmx` and `govee-server` report through this module, so one
+//! exit code and one error record mean the same thing in each. The JSON form is
+//! the contract: one object per line on stdout, an error object on stderr, and
 //! the exit codes below. The text form is for a person and its layout can
 //! change at any release.
 //!

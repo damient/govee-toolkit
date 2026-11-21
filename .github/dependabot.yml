@@ -83,7 +83,7 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: npm
-    directory: /apps/playground/server
+    directory: /apps/dashboard
     patterns: ["*"]
     multi-ecosystem-group: dependencies
     groups:

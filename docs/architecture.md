@@ -145,8 +145,7 @@ read once and the bytes go over the mode the values were read for.
   in one prebuilt addon per platform. The runners build Linux and Windows on
   `x86_64` and `aarch64`, and macOS on `aarch64`. A thin TypeScript layer over
   the addon carries the asynchronous iterators and the disposer, which an addon
-  cannot declare. It serves the playground, the Electron app and the Homebridge
-  plugin.
+  cannot declare. It serves the MCP server and the Homebridge plugin.
 - **Python** — `PyO3` / `maturin`, in `packages/python`: the facade as an
   `asyncio` API, in `abi3` wheels. The runners build Linux, macOS and Windows on
   `x86_64` and `aarch64`; containers cross-build the Linux `armv7`, musl
@@ -179,6 +178,38 @@ verbs and the stream resolutions, as the binding types do.
 - A control tool asks for no confirmation. It changes the state of a light and
   destroys no data.
 - A method added to the Node `Catalog` is also added to the Python `Catalog`.
+
+## The dashboard and the desktop app
+
+The dashboard is two parts:
+
+- `packages/rust/crates/server` is a local HTTP server on the crate. The
+  `govee-server` binary runs it. The routes are under `/api`, and any other
+  path is a file of the web UI. It listens on the loopback by default, because
+  the API has no authentication.
+- `build.rs` of the server compiles the build of `apps/dashboard` into the
+  binary, so `govee-server` ships as one file. In the repository it reads
+  `apps/dashboard/dist`. On crates.io it reads `web/`, which the release
+  workflow copies beside the manifest. A build with neither serves the API
+  alone.
+- `apps/dashboard` is the web UI, in TypeScript with no framework. It talks to
+  the server over HTTP alone, so one build serves a browser and the desktop
+  app.
+
+`apps/desktop` is a Tauri app. It runs the server in its own process, on a
+free loopback port, and opens the address of the server in the webview of the
+system. The page and the API thus share one origin. A page served by Tauri
+runs on `tauri://localhost`, and WKWebView refuses its requests to
+`http://127.0.0.1`.
+
+The server calls the crate directly, with no binding between the two. Like the
+CLI, it holds no protocol logic. The Tauri crate stays outside the workspace
+of `packages/rust`: on Linux it links to WebKitGTK, and the workspace must
+build without it.
+
+The webview is not the same engine on each platform: WebView2 (Chromium) on
+Windows, WebKit on macOS and WebKitGTK on Linux. The web UI uses only CSS and
+JavaScript that all three support.
 
 ## The catalog as an artifact
 

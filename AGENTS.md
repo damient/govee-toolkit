@@ -29,8 +29,8 @@ chooses a transport.
    SKU name and no command name belongs in Rust code — if you are about to write
    one, the device file is missing something instead. A role verb is the one
    exception: a verb such as `power` or `brightness` is a name a caller types.
-   The facade (`Verb`, `Devices::apply`), `crates/cli` and `integrations/mcp`
-   spell verbs. A verb reaches the device file through a `role:`, so the code
+   The facade (`Verb`, `Devices::apply`), `crates/cli`, `crates/server` and
+   `integrations/mcp` spell verbs. A verb reaches the device file through a `role:`, so the code
    names a role and the device file names the command. No SKU name reaches a
    verb either way.
 4. **Never invent verification.** Do not fill `verified`, a capability, a
@@ -51,6 +51,7 @@ chooses a transport.
 | Ordering of the work | `docs/roadmap.md` |
 | The MCP server | `integrations/mcp/` |
 | The site in another language | `site/content/i18n/<lang>.json` (strings), `site/content/<lang>/` (pages) |
+| The dashboard: server, web UI, desktop app | `packages/rust/crates/server/`, `apps/dashboard/`, `apps/desktop/` |
 | Why the code is shaped this way | `docs/architecture.md` |
 | Arguments in, exact bytes out | `tests/fixtures/golden/<mode>/<SKU>.json` |
 | What a package's release changed | `packages/<pkg>/CHANGELOG.md` |
@@ -229,12 +230,14 @@ logic exists. It is **one crate**, `govee-toolkit`, with the layers as modules:
 `src/codec/` (no I/O), `src/profile/` (the DMX channel table, no I/O),
 `src/transport/` (what every mode shares), `src/lan/`, `src/ble/`,
 `src/cloud/`, `src/stream/`, `src/exit.rs` and the facade at the crate root. `src/exit.rs` is the one module that writes to the process
-streams: both binaries report a fault through it, so the exit codes and the
+streams: every binary reports a fault through it, so the exit codes and the
 error record are declared once.
-`crates/cli` publishes the `govee` binary as `govee-toolkit-cli`, and
-`crates/dmx` publishes the `govee-dmx` binary as `govee-toolkit-dmx`. Neither
-holds protocol logic. `crates/sim` and `crates/xtask` carry `publish = false`. A
-transport is a cargo feature: the library defaults to `lan` alone, and the CLI
+`crates/cli` publishes the `govee` binary as `govee-toolkit-cli`,
+`crates/dmx` publishes the `govee-dmx` binary as `govee-toolkit-dmx`, and
+`crates/server` publishes the `govee-server` binary as `govee-toolkit-server`.
+None of them holds protocol logic. `govee-server` embeds the build of
+`apps/dashboard`, which `server-release.yml` vendors as `web/` before the
+upload. `crates/sim` and `crates/xtask` carry `publish = false`. A transport is a cargo feature: the library defaults to `lan` alone, and the CLI
 to all three.
 
 The codec keeps building on its own (`cargo check --no-default-features`), and
@@ -294,12 +297,14 @@ push:
 
 | What the change touched | Command |
 | ----------------------- | ------- |
-| `src/` of one crate | `tools/qa.sh -p rust`, `-p cli`, `-p dmx`, `-p sim` or `-p xtask` |
+| `src/` of one crate | `tools/qa.sh -p rust`, `-p cli`, `-p dmx`, `-p server`, `-p sim` or `-p xtask` |
 | `devices/*.yaml`, `docs/compatibility.md` | `tools/qa.sh` |
 | `site/` | `tools/qa-site.sh` |
 | `packages/python/` | `tools/qa-python.sh` |
 | `packages/node/` | `tools/qa-node.sh` |
 | `integrations/mcp/` | `tools/qa-mcp.sh` |
+| `apps/dashboard/` | `npm run lint --prefix apps/dashboard` |
+| `apps/desktop/` | `cargo clippy` in `apps/desktop/src-tauri` |
 | `tools/*.sh` | `tools/qa.sh "shell"` |
 
 `-p <crate>` narrows the cargo checks to one crate and skips the generated

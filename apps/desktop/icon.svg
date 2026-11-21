@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- The app icon grid of macOS: an 824 px body centered on a 1024 px canvas,
+       corner radius 185. The site favicon fills its canvas, and the Dock then
+       draws it larger than the other apps. -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#0a0d14"/>
+  <circle cx="306" cy="512" r="77" fill="#ff3d00"/>
+  <circle cx="512" cy="512" r="77" fill="#00c2b5"/>
+  <circle cx="718" cy="512" r="77" fill="#7c5cff"/>
+</svg>

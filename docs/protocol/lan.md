@@ -351,7 +351,7 @@ replies.
 
 ## 3. Discovery method
 
-1. Try a candidate payload through the playground's raw payload field.
+1. Try a candidate payload through the raw payload field of the dashboard.
 2. Capture the frame (`tcpdump`, Wireshark) → `tests/fixtures/lan-captures/`.
 3. Document the protocol above; record what the SKU supports in its device file.
 4. Formalize it in `devices/<sku>.yaml`.

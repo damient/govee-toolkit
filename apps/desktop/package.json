@@ -2,7 +2,7 @@
   "name": "govee-toolkit-desktop",
   "version": "0.0.0",
   "private": true,
-  "description": "Electron wrapper around the playground.",
+  "description": "The desktop app: the dashboard in a Tauri window, with its server in process.",
   "license": "MIT",
   "author": "damient",
   "repository": {
@@ -10,8 +10,15 @@
     "url": "git+https://github.com/damient/govee-toolkit.git",
     "directory": "apps/desktop"
   },
-  "main": "main.js",
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
-    "start": "electron ."
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icons": "tauri icon icon.svg -o src-tauri/icons"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.6"
   }
 }

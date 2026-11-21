@@ -52,8 +52,10 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 
 | | Feature |
 | --- | ------- |
-| 🔜 | **Web playground** — device list with per-mode state badges, power / brightness / color controls, latency log |
-| 🔜 | **Desktop app (Electron)** — same backend and UI as the playground, auto-discovery on launch, tray icon |
+| 🚧 | **Web dashboard** (`govee-server`, `apps/dashboard`) — a local Rust server and a web UI. Serves the version and the catalog today |
+| 🔜 | Dashboard controls — device list with per-mode state badges, power / brightness / color controls, raw payload field, latency log |
+| 🚧 | **Desktop app** (`apps/desktop`, Tauri) — the dashboard in a window on Windows, macOS and Linux, with its server in process |
+| 🔜 | Desktop app: auto-discovery on launch, tray icon |
 | ✅ | **Device simulator** (`packages/rust/crates/sim`) — a fake `lan` device on UDP and a fake `ble` peripheral on GATT, both with fault injection, so tests run without hardware or an adapter |
 | ✅ | **DMX bridge** (`packages/rust/crates/dmx`) — the `govee-dmx` node receives DMX on the network and drives devices and segments over `lan`. Art-Net carries the DMX in. See [`dmx.md`](dmx.md) |
 

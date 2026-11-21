@@ -1,0 +1,48 @@
+[package]
+name = "govee-toolkit-server"
+description = "Local HTTP server over govee-toolkit: the backend of the web dashboard and of the desktop app. Unofficial."
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["govee", "dashboard", "led", "smart-home", "iot"]
+categories = ["web-programming::http-server", "hardware-support"]
+# `web/` is the build of apps/dashboard, which the release workflow copies
+# beside the manifest: `cargo package` cannot reach above it.
+include = ["src/**", "build.rs", "web/**", "README.md"]
+
+[[bin]]
+name = "govee-server"
+path = "src/main.rs"
+
+[features]
+# Same set as the CLI: a person picks a mode in the dashboard and expects it
+# to answer. On Linux `ble` reaches BlueZ over D-Bus, so a build from source
+# needs `libdbus-1-dev`.
+default = ["lan", "ble", "cloud"]
+lan = ["govee-toolkit/lan"]
+ble = ["govee-toolkit/ble"]
+cloud = ["govee-toolkit/cloud"]
+
+[dependencies]
+axum = { version = "0.8", default-features = false, features = [
+  "http1",
+  "json",
+  "tokio",
+] }
+clap = { version = "4", features = ["derive"] }
+govee-toolkit = { path = "../..", version = "1.17", default-features = false }
+serde = { version = "1", features = ["derive"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
+tower-http = { version = "0.6", features = ["fs"] }
+
+[dev-dependencies]
+http-body-util = "0.1"
+serde_json.workspace = true
+tower = { version = "0.5", features = ["util"] }
+
+[lints]
+workspace = true

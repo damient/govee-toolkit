@@ -17,16 +17,14 @@ build/
 *.egg-info/
 .pytest_cache/
 
-# Electron
-out/
-release/
-
 # Cache runtime (discovery)
 .cache/
 *.local
 
 # Vendored at publish time only: the catalog lives in devices/ at the root.
 /packages/rust/devices/
+# Vendored at publish time only: the web UI builds in apps/dashboard/dist.
+/packages/rust/crates/server/web/
 
 # Generated build outputs (the device catalog artifact).
 /dist/

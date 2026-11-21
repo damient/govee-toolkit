@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>govee-toolkit dashboard</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="brand">
+      <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="name">govee-toolkit</span>
+    </header>
+
+    <h1>Hello, lights.</h1>
+    <p class="lede">The dashboard runs. Device controls come next.</p>
+
+    <section class="card" aria-live="polite">
+      <div class="row">
+        <span class="label">Server</span>
+        <span class="status" id="status" data-state="pending">connecting</span>
+      </div>
+      <div class="row">
+        <span class="label">Version</span>
+        <code id="version">—</code>
+      </div>
+      <div class="row">
+        <span class="label">Known models</span>
+        <code id="skus">—</code>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
