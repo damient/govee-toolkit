@@ -6,6 +6,11 @@ releases under `dmx-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md). The design
 is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 
+### Added
+
+- `govee-dmx profile --json` gives each band of a channel a `kind`, such as
+  `idle`, `off` or `color`, beside its English `label`.
+
 ## [1.4.0] — 2026-11-21
 
 ### Changed
