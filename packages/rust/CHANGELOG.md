@@ -14,11 +14,9 @@ releases apart and keeps
 - `Measurements::status_settle()` gives the status settle time of one mode.
 - `Transport::problems()` reports what keeps a transport from its devices on
   this host. The default reports nothing.
-- `Govee::transport_problems()` gives these problems for the modes named,
-  which a scan that hears nothing reports.
+- `Govee::transport_problems()` gives these problems for the modes named.
 - `lan::Transport::close()` stops the background tasks and frees the reply
-  port before it returns. The next scan, command or status request binds the
-  port again, and the known devices stay.
+  port before it returns. The next scan, command or status request binds it.
 
 ### Changed
 
@@ -26,12 +24,11 @@ releases apart and keeps
   See [`docs/versioning.md`](../../docs/versioning.md).
 - **Breaking:** `Measurements` carries `status_settle_ms`. A struct literal
   takes `..Measurements::default()`.
-- **Breaking:** `Govee::shutdown()` is renamed `Govee::close()`, like every
-  other `close()` of the crate. Rename each call.
-- **Breaking:** `LanConfig::cache_path()` is renamed
-  `LanConfig::device_cache_file()`, like `paths::device_cache_file()`.
+- **Breaking:** `Govee::shutdown()` is `Govee::close()`. Rename each call.
+- **Breaking:** `LanConfig::cache_path()` is
+  `LanConfig::device_cache_file()`. Rename each call.
 - `Govee::close()` frees the `lan` reply port before it returns. The next
-  call binds it again, as `ble` connects again.
+  call acquires each transport again.
 - `DeviceHandle::status()` waits for `Measurements::status_settle_ms` after a
   command from the same process, so it reports the new state.
 - `Govee::problems()` reports a `lan` reply port that another socket holds:
