@@ -304,7 +304,7 @@ async fn a_close_holds_the_link_open_for_the_drain_and_the_next_command_reconnec
         .expect("the command goes out");
 
     let started = std::time::Instant::now();
-    govee.shutdown().await.expect("it releases");
+    govee.close().await.expect("it releases");
     assert!(
         started.elapsed() >= drain,
         "a close returned in {:?}, before the frame could leave",
@@ -337,7 +337,7 @@ async fn a_close_with_no_link_open_waits_for_nothing() {
     .await;
 
     let started = std::time::Instant::now();
-    govee.shutdown().await.expect("it releases");
+    govee.close().await.expect("it releases");
 
     assert!(
         started.elapsed() < Duration::from_secs(1),

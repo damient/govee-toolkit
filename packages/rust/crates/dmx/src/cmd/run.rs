@@ -95,7 +95,7 @@ async fn run(
     let outcome = node.run(&listener, shutdown(), &mut printer).await;
     printer.ended(&node.close().await);
     let released = govee
-        .shutdown()
+        .close()
         .await
         .map_err(|e| Failure::internal(e.to_string()));
     outcome.map_err(|e| Failure::internal(e.to_string()))?;

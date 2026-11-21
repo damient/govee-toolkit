@@ -62,7 +62,7 @@ pub(crate) fn start(
         }
         .await;
         govee
-            .shutdown()
+            .close()
             .await
             .map_err(|e| Failure::internal(e.to_string()))?;
         outcome

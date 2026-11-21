@@ -192,7 +192,7 @@ impl Govee {
     fn close<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let govee = self.inner.clone();
         future_into_py(py, async move {
-            map(govee.shutdown().await)?;
+            map(govee.close().await)?;
             Ok(())
         })
     }

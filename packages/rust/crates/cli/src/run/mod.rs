@@ -26,7 +26,7 @@ pub(crate) async fn dispatch(cli: &Cli, writer: Writer) -> Result<(), Failure> {
     let govee = Govee::start(configure(cli, load(cli)?)).await?;
     let outcome = route(&govee, cli, writer).await;
     // `ble` loses the last frame it wrote when nothing releases the adapter.
-    let released = govee.shutdown().await.map_err(Failure::from);
+    let released = govee.close().await.map_err(Failure::from);
     outcome.and(released)
 }
 
