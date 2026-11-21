@@ -1,5 +1,4 @@
-# Publishes govee-toolkit-server from packages/rust/crates/server. Triggered
-# by a server-vX.Y.Z tag.
+# Publishes govee-toolkit-server on a server-vX.Y.Z tag.
 name: Server release
 
 on:
@@ -25,8 +24,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: tools/ci-passed.sh "$GITHUB_SHA"
-      # The tag, the manifest version and the changelog heading have to carry
-      # the same number before anything is built or published.
       - name: Tag, manifest and changelog agree
         if: github.event_name == 'push'
         working-directory: .
@@ -36,9 +33,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
-      # crates.io keeps a version forever, and a tag moved to a new commit
-      # reruns this job. A version already up is skipped rather than failing
-      # the run on an upload crates.io would refuse anyway.
+      # crates.io refuses a version twice, and a moved tag reruns this job.
       - name: Is this version already on crates.io?
         id: crate
         run: |
@@ -51,10 +46,7 @@ jobs:
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
-      # The dependency on `govee-toolkit` carries a path and a version. cargo
-      # uploads the version, so `cargo publish` fails on a core that is not up
-      # yet. Reading the registry first says which release is missing instead
-      # of failing inside the upload — publish `rust-vX.Y.Z` first.
+      # cargo uploads the version of the `govee-toolkit` dependency.
       - name: The core it needs is on crates.io
         if: steps.crate.outputs.published == 'false'
         run: |
@@ -67,8 +59,7 @@ jobs:
             echo "Publish rust-v$core before this tag." >&2
             exit 1
           fi
-      # build.rs embeds the web UI. The crate on crates.io reads it from `web/`,
-      # because `cargo package` cannot reach apps/studio above the manifest.
+      # `cargo package` cannot reach apps/studio: the crate carries it in `web/`.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.crate.outputs.published == 'false'
         with:
@@ -82,22 +73,16 @@ jobs:
       - name: Vendor the web UI
         if: steps.crate.outputs.published == 'false'
         run: cp -R ../../../../apps/studio/dist web
-      # A vendoring step that did nothing would ship a binary with no UI, so
-      # the file list is read before the upload.
       - name: The upload carries the web UI
         if: steps.crate.outputs.published == 'false'
         run: |
           cargo package --list --allow-dirty > "$RUNNER_TEMP/files.txt"
           grep -qx 'web/index.html' "$RUNNER_TEMP/files.txt"
           grep -qx 'web/app.js' "$RUNNER_TEMP/files.txt"
-      # The binary carries `ble` by default, and btleplug reaches BlueZ over
-      # D-Bus, so the verification build of `cargo publish` needs the dbus
-      # headers.
+      # `ble` reaches BlueZ over D-Bus, and `cargo publish` builds the crate.
       - name: D-Bus headers
         if: steps.crate.outputs.published == 'false'
         run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev
-      # Trusted publishing: crates.io trades this job's OIDC identity for a
-      # short-lived token, so no registry token lives in the repository.
       - uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
         id: auth
         if: steps.crate.outputs.published == 'false'
@@ -105,8 +90,7 @@ jobs:
         if: steps.crate.outputs.published == 'false'
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
-        # `web/` is vendored in and git-ignored, which cargo reads as a dirty
-        # tree.
+        # `web/` is git-ignored, which cargo reads as a dirty tree.
         run: cargo publish --allow-dirty
       - name: GitHub release
         if: github.event_name == 'push'

@@ -9,8 +9,7 @@ repository = "https://github.com/damient/govee-toolkit"
 authors = ["damient"]
 publish = false
 
-# Outside the workspace of packages/rust on purpose: the webview links to the
-# system's WebKitGTK on Linux, and the workspace must build without it.
+# Outside the packages/rust workspace: the webview links to WebKitGTK on Linux.
 [workspace]
 
 [build-dependencies]
@@ -21,8 +20,6 @@ govee-toolkit-server = { path = "../../../packages/rust/crates/server" }
 tauri = "2"
 
 [features]
-# `tauri dev` builds without it, and `tauri build` turns it on: it makes the
-# binary read the bundled web UI and not the dev server.
 custom-protocol = ["tauri/custom-protocol"]
 
 [lints.rust]

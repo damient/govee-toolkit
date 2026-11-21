@@ -1,7 +1,4 @@
-// Builds src/ into dist/. `--watch` rebuilds on every change.
-//
-// The fonts and the icon come from the site, so the two surfaces carry one
-// copy of each file.
+// The fonts and the icon come from the site: one copy of each file.
 
 import { cp, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -26,7 +23,6 @@ async function copyStatic(): Promise<void> {
   }
 }
 
-// The faces that style.css declares, and their license.
 const FONTS = ["ibm-plex-sans-latin.woff2", "ibm-plex-mono-500-latin.woff2", "OFL.txt"];
 
 const copyPlugin: esbuild.Plugin = {

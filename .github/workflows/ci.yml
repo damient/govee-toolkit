@@ -591,9 +591,7 @@ jobs:
         working-directory: packages/rust
         run: cargo run -p xtask -- lan --check
 
-  # The server crate embeds the build of apps/studio, and the desktop app
-  # builds on the server crate. macOS carries the webview, so the job needs no
-  # WebKitGTK.
+  # macOS carries the webview, so the job needs no WebKitGTK.
   apps:
     name: Studio and desktop app
     needs: changes

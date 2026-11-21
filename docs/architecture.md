@@ -181,7 +181,7 @@ verbs and the stream resolutions, as the binding types do.
 
 ## Studio and the desktop app
 
-Studio, the app that controls the lights, is two parts:
+Studio, the app that controls the lights, has these parts:
 
 - `packages/rust/crates/server` is a local HTTP server on the crate. The
   `govee-server` binary runs it. The routes are under `/api`, and any other
@@ -206,10 +206,6 @@ The server calls the crate directly, with no binding between the two. Like the
 CLI, it holds no protocol logic. The Tauri crate stays outside the workspace
 of `packages/rust`: on Linux it links to WebKitGTK, and the workspace must
 build without it.
-
-The webview is not the same engine on each platform: WebView2 (Chromium) on
-Windows, WebKit on macOS and WebKitGTK on Linux. The web UI uses only CSS and
-JavaScript that all three support.
 
 ## The catalog as an artifact
 

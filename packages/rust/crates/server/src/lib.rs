@@ -1,9 +1,5 @@
-//! The local HTTP server of Studio. The `govee-server` binary runs it
-//! on its own, and the desktop app runs it in its process.
-//!
-//! The server holds no protocol logic: every answer comes from
-//! `govee-toolkit`. The routes are under `/api`; any other path is a file of
-//! the web UI that [`Options::web`] selects.
+//! The local HTTP server of Studio. The routes are under `/api`, and any
+//! other path is a file of the web UI that [`Options::web`] selects.
 
 use std::io;
 use std::path::PathBuf;
@@ -19,14 +15,10 @@ use govee_toolkit::Catalog;
 use serde_json::json;
 use tower_http::services::ServeDir;
 
-/// The address that `govee-server` listens on when `--listen` is absent.
-///
-/// Loopback only: the API sends commands to the lights and carries no
-/// authentication.
+/// Loopback only: the API carries no authentication.
 pub const DEFAULT_LISTEN: &str = "127.0.0.1:4080";
 
-/// The directory that this build embeds as [`Web::Embedded`]. A debug build
-/// can serve it as [`Web::Dir`], so a rebuild of the UI shows on a reload.
+/// The directory that this build embeds. [`Web::Dir`] can serve it.
 pub const WEB_DIR: &str = env!("GOVEE_SERVER_WEB_DIR");
 
 /// What the server serves beside the API.
@@ -39,23 +31,20 @@ pub struct Options {
 /// The source of the web UI.
 #[derive(Debug, Clone, Default)]
 pub enum Web {
-    /// The build of `apps/studio` compiled into the binary. A build made
-    /// without it answers every path outside `/api` with 404 and a message.
+    /// The binary's copy. Without one, a path outside `/api` answers 404.
     #[default]
     Embedded,
-    /// The files of a directory, read on each request: a rebuild of the UI
-    /// shows on a reload.
+    /// The files of a directory, read on each request.
     Dir(PathBuf),
     /// No web UI: the API alone.
     None,
 }
 
-/// Build the routes.
+/// The routes.
 ///
 /// # Errors
 ///
-/// The error of [`Catalog::embedded`] when the compiled-in device files do
-/// not load.
+/// The error of [`Catalog::embedded`].
 pub fn router(options: &Options) -> govee_toolkit::codec::Result<Router> {
     let hello = Json(json!({
         "name": "govee-toolkit",
@@ -77,13 +66,11 @@ pub fn router(options: &Options) -> govee_toolkit::codec::Result<Router> {
     Ok(app)
 }
 
-/// Serve on `listener` until the future is dropped. Call it inside a Tokio
-/// runtime.
+/// Serve on `listener` until the future is dropped, inside a Tokio runtime.
 ///
 /// # Errors
 ///
-/// [`io::ErrorKind::InvalidData`] when the device files do not load, or the
-/// error of the listener.
+/// `InvalidData` when the device files do not load, or the listener error.
 pub async fn serve(listener: std::net::TcpListener, options: &Options) -> io::Result<()> {
     let app = router(options).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     listener.set_nonblocking(true)?;

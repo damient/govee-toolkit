@@ -9,9 +9,6 @@ Studio in a window, on Windows, macOS and Linux, built with Tauri 2.
 - A release build serves the UI that the server crate compiles in. A debug
   build reads `../studio/dist`.
 
-`src-tauri` is a Cargo project of its own, outside the workspace of
-`packages/rust`, because on Linux it links to WebKitGTK.
-
 ## Requirements
 
 - Rust and Node 26.
@@ -32,11 +29,6 @@ window: View > Reload, or Cmd+R on macOS.
 
 `npm run build` makes the installers of the current platform under
 `src-tauri/target/release/bundle/`.
-
-## macOS and Bluetooth
-
-`src-tauri/Info.plist` declares the Bluetooth usage. Without it, macOS kills
-the app the first time the `ble` mode opens the Bluetooth stack.
 
 ## Icons
 

@@ -1,6 +1,5 @@
 //! `govee-server` — Studio, served from this machine.
 
-// A binary reports and exits.
 #![allow(clippy::print_stdout)]
 
 use std::net::SocketAddr;
