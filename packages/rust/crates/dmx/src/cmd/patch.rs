@@ -64,7 +64,7 @@ pub(crate) fn start(
         let found = scan(&govee).await?;
         let outcome = update(&govee, &found, &path, options);
         govee
-            .shutdown()
+            .close()
             .await
             .map_err(|e| Failure::internal(e.to_string()))?;
         report(&outcome?, &path, writer);

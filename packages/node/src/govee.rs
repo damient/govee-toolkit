@@ -191,7 +191,7 @@ impl Govee {
     #[napi]
     pub fn close<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, ()>> {
         let govee = self.inner.clone();
-        promise(env, async move { govee.shutdown().await })
+        promise(env, async move { govee.close().await })
     }
 
     #[napi(js_name = "toString")]

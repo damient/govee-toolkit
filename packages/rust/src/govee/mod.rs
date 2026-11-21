@@ -151,7 +151,7 @@ impl Govee {
     ///
     /// [`Error::Transport`] if a transport reports a failure while it
     /// releases. Every transport is closed, whichever one fails.
-    pub async fn shutdown(&self) -> Result<()> {
+    pub async fn close(&self) -> Result<()> {
         let mut first = Ok(());
         for transport in self.inner.transports.values() {
             if let Err(e) = transport.close().await

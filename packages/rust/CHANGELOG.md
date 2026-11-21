@@ -23,8 +23,10 @@ releases apart and keeps
   See [`docs/versioning.md`](../../docs/versioning.md).
 - **Breaking:** `Measurements` carries `status_settle_ms`. A struct literal
   takes `..Measurements::default()`.
-- **Breaking:** `Govee::shutdown()` frees the `lan` reply port before it
-  returns, and `lan` then refuses every command. Start a new `Govee` instead.
+- **Breaking:** `Govee::shutdown()` is renamed `Govee::close()`, like every
+  other `close()` of the crate. Rename each call.
+- **Breaking:** `Govee::close()` frees the `lan` reply port before it returns,
+  and `lan` then refuses every command. Start a new `Govee` instead.
 - `DeviceHandle::status()` waits for `Measurements::status_settle_ms` after a
   command from the same process, so it reports the new state.
 - `Govee::problems()` reports a `lan` reply port that another socket holds:
