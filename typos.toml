@@ -3,6 +3,9 @@ extend-exclude = [
   "tests/fixtures/lan-captures/**",
   "packages/rust/Cargo.lock",
   "*.pcap",
+  # The dictionary is English: it reads every other language as typos.
+  "site/content/{de,es,fr,it}/**",
+  "site/content/i18n/{de,es,fr,it}.json",
 ]
 
 [default]
