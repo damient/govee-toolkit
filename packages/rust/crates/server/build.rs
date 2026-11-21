@@ -1,11 +1,4 @@
-//! Embeds the build of `apps/studio`, so `govee-server` ships as one file.
-//!
-//! In the repository the build reads `apps/studio/dist`. A crate from
-//! crates.io reads `web/`, which the release workflow copies beside the
-//! manifest. With neither, the binary carries no UI and serves the API alone.
-//!
-//! A build script fails the build loudly: the no-panic rule of the library
-//! does not apply here.
+//! Embeds `apps/studio/dist`, or `web/` in a crate from crates.io.
 #![allow(clippy::expect_used, clippy::panic)]
 
 use std::fmt::Write;
@@ -23,8 +16,7 @@ fn main() {
         Some(studio) if studio.is_dir() => studio.join("dist"),
         _ => manifest.join("web"),
     };
-    // A missing path reruns this script on every build, so the first build
-    // of the UI is picked up.
+    // A missing path reruns this script on every build.
     println!("cargo:rerun-if-changed={}", dir.display());
     println!("cargo:rustc-env=GOVEE_SERVER_WEB_DIR={}", dir.display());
     if !dir.is_dir() {

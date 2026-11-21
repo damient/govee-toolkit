@@ -1,13 +1,8 @@
-//! The desktop app: `govee-toolkit-server` in the same process, and a window
-//! on the address it serves.
-//!
-//! The window loads the page from the server, so the page and the API share
-//! one origin. A page served by Tauri runs on `tauri://localhost`, and
-//! `WKWebView` refuses its requests to `http://127.0.0.1`.
+//! `govee-toolkit-server` in this process, and a window on its address.
+//! `docs/architecture.md` says why Tauri does not serve the page.
 
 // No console window beside the app on Windows, in a release build.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-// A binary reports and exits.
 #![allow(clippy::print_stderr)]
 
 use std::net::{Ipv4Addr, TcpListener};
@@ -16,8 +11,6 @@ use std::path::PathBuf;
 use govee_toolkit_server::{Options, WEB_DIR, Web};
 use tauri::{Url, WebviewUrl, WebviewWindowBuilder};
 
-/// A release build serves the UI that `govee-toolkit-server` compiles in. A
-/// debug build reads the same files from disk.
 fn web() -> Web {
     if cfg!(debug_assertions) {
         Web::Dir(PathBuf::from(WEB_DIR))
@@ -26,8 +19,7 @@ fn web() -> Web {
     }
 }
 
-/// `WKWebView` answers no reload shortcut, and the default menu of macOS has
-/// no reload item.
+/// `WKWebView` has no reload shortcut, and the macOS menu has no Reload.
 #[cfg(target_os = "macos")]
 mod menu {
     use tauri::menu::{Menu, MenuItem, MenuItemKind, PredefinedMenuItem};
@@ -35,7 +27,6 @@ mod menu {
 
     const RELOAD: &str = "reload";
 
-    /// The default menu, with View > Reload on Cmd+R.
     pub(crate) fn install(app: &App) -> tauri::Result<()> {
         let handle = app.handle();
         let menu = Menu::default(handle)?;

@@ -8,8 +8,7 @@ use govee_toolkit::{Govee, Mode};
 use serde_json::{Value, json};
 use tokio::sync::OnceCell;
 
-/// The SDK, started on the first request: a server that only serves the UI
-/// opens no device socket.
+/// Started on the first request, so a UI-only server opens no device socket.
 #[derive(Debug, Default)]
 pub(crate) struct Sdk(OnceCell<Govee>);
 
@@ -21,7 +20,6 @@ impl Sdk {
     }
 }
 
-/// Each request runs a scan, so the answer takes one `lan` scan window.
 pub(crate) async fn list(State(sdk): State<std::sync::Arc<Sdk>>) -> Response {
     let found = async { sdk.get().await?.scan(Some(&[Mode::Lan])).await }.await;
     match found {

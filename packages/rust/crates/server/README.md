@@ -3,8 +3,6 @@
 The local HTTP server of Studio, the app that controls the lights. The `govee-server` binary runs it on
 its own, and the desktop app in `apps/desktop` runs it in its process.
 
-It holds no protocol logic: every answer comes from `govee-toolkit`.
-
 ## Install
 
 ```sh

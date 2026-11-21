@@ -10,8 +10,7 @@ repository.workspace = true
 authors.workspace = true
 keywords = ["govee", "dashboard", "led", "smart-home", "iot"]
 categories = ["web-programming::http-server", "hardware-support"]
-# `web/` is the build of apps/studio, which the release workflow copies
-# beside the manifest: `cargo package` cannot reach above it.
+# `web/` is the Studio build that the release workflow copies here.
 include = ["src/**", "build.rs", "web/**", "README.md"]
 
 [[bin]]
@@ -19,9 +18,6 @@ name = "govee-server"
 path = "src/main.rs"
 
 [features]
-# Same set as the CLI: a person picks a mode in Studio and expects it
-# to answer. On Linux `ble` reaches BlueZ over D-Bus, so a build from source
-# needs `libdbus-1-dev`.
 default = ["lan", "ble", "cloud"]
 lan = ["govee-toolkit/lan"]
 ble = ["govee-toolkit/ble"]
