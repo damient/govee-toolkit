@@ -25,6 +25,8 @@ releases apart and keeps
   takes `..Measurements::default()`.
 - **Breaking:** `Govee::shutdown()` is renamed `Govee::close()`, like every
   other `close()` of the crate. Rename each call.
+- **Breaking:** `LanConfig::cache_path()` is renamed
+  `LanConfig::device_cache_file()`, like `paths::device_cache_file()`.
 - **Breaking:** `Govee::close()` frees the `lan` reply port before it returns,
   and `lan` then refuses every command. Start a new `Govee` instead.
 - `DeviceHandle::status()` waits for `Measurements::status_settle_ms` after a
