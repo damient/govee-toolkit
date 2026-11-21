@@ -1,6 +1,6 @@
-//! Embeds the build of `apps/dashboard`, so `govee-server` ships as one file.
+//! Embeds the build of `apps/studio`, so `govee-server` ships as one file.
 //!
-//! In the repository the build reads `apps/dashboard/dist`. A crate from
+//! In the repository the build reads `apps/studio/dist`. A crate from
 //! crates.io reads `web/`, which the release workflow copies beside the
 //! manifest. With neither, the binary carries no UI and serves the API alone.
 //!
@@ -14,16 +14,16 @@ use std::{env, fs};
 fn main() {
     let manifest = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     // packages/rust/crates/server -> the repository root.
-    let dashboard = manifest
+    let studio = manifest
         .ancestors()
         .nth(4)
-        .map(|root| root.join("apps/dashboard"));
-    let dir = match dashboard {
+        .map(|root| root.join("apps/studio"));
+    let dir = match studio {
         // The whole folder is watched, so a first build of `dist/` reruns
         // this script. A missing path would rerun it on every build.
-        Some(dashboard) if dashboard.is_dir() => {
-            println!("cargo:rerun-if-changed={}", dashboard.display());
-            dashboard.join("dist")
+        Some(studio) if studio.is_dir() => {
+            println!("cargo:rerun-if-changed={}", studio.display());
+            studio.join("dist")
         }
         _ => {
             let vendored = manifest.join("web");

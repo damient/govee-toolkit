@@ -8,8 +8,8 @@ ask for. Open an issue if something matters to you.
 
 | # | Milestone | Status |
 | - | --------- | ------ |
-| 1 | Dashboard — Rust server, web UI, raw payload field | 🚧 In progress |
-| 2 | Desktop app (Tauri) around the dashboard | 🚧 In progress |
+| 1 | Studio — Rust server, web UI, raw payload field | 🚧 In progress |
+| 2 | Desktop app (Tauri) around Studio | 🚧 In progress |
 | 3 | Matter bridge — one integration, every controller | 🔜 Planned |
 | 4 | Home Assistant custom component (LAN power + brightness first) | 🔜 Planned |
 | 5 | Homebridge plugin | 🔜 Planned |

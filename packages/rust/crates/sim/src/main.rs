@@ -1,4 +1,4 @@
-//! Run a fake device on the real ports, for manual testing and the dashboard.
+//! Run a fake device on the real ports, for manual testing and Studio.
 //!
 //! ```text
 //! govee-toolkit-sim [--id <MAC>] [--sku <SKU>] [--ip <ADDR>] [--silent] [--latency-ms <N>]

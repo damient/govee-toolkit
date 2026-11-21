@@ -1,15 +1,15 @@
 {
-  "name": "govee-toolkit-dashboard",
+  "name": "govee-toolkit-studio",
   "version": "0.0.0",
   "private": true,
-  "description": "The web UI of the dashboard, served by govee-server and by the desktop app.",
+  "description": "Govee Toolkit Studio: control Govee lights from a browser or from the desktop app.",
   "type": "module",
   "license": "MIT",
   "author": "damient",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/damient/govee-toolkit.git",
-    "directory": "apps/dashboard"
+    "directory": "apps/studio"
   },
   "engines": {
     "node": ">=26"

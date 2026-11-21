@@ -179,20 +179,20 @@ verbs and the stream resolutions, as the binding types do.
   destroys no data.
 - A method added to the Node `Catalog` is also added to the Python `Catalog`.
 
-## The dashboard and the desktop app
+## Studio and the desktop app
 
-The dashboard is two parts:
+Studio, the app that controls the lights, is two parts:
 
 - `packages/rust/crates/server` is a local HTTP server on the crate. The
   `govee-server` binary runs it. The routes are under `/api`, and any other
   path is a file of the web UI. It listens on the loopback by default, because
   the API has no authentication.
-- `build.rs` of the server compiles the build of `apps/dashboard` into the
+- `build.rs` of the server compiles the build of `apps/studio` into the
   binary, so `govee-server` ships as one file. In the repository it reads
-  `apps/dashboard/dist`. On crates.io it reads `web/`, which the release
+  `apps/studio/dist`. On crates.io it reads `web/`, which the release
   workflow copies beside the manifest. A build with neither serves the API
   alone.
-- `apps/dashboard` is the web UI, in TypeScript with no framework. It talks to
+- `apps/studio` is the web UI, in TypeScript with no framework. It talks to
   the server over HTTP alone, so one build serves a browser and the desktop
   app.
 

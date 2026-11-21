@@ -23,7 +23,7 @@ pub(crate) fn respond(assets: Assets, uri: &Uri) -> Response {
         Some((name, body)) => ([(header::CONTENT_TYPE, content_type(name))], *body).into_response(),
         None if assets.is_empty() => (
             StatusCode::NOT_FOUND,
-            "This build of govee-server carries no web UI. Build apps/dashboard and build \
+            "This build of govee-server carries no web UI. Build apps/studio and build \
              again, or start with --web <directory>.",
         )
             .into_response(),

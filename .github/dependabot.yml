@@ -83,7 +83,7 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: npm
-    directory: /apps/dashboard
+    directory: /apps/studio
     patterns: ["*"]
     multi-ecosystem-group: dependencies
     groups:

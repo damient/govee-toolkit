@@ -51,7 +51,7 @@ chooses a transport.
 | Ordering of the work | `docs/roadmap.md` |
 | The MCP server | `integrations/mcp/` |
 | The site in another language | `site/content/i18n/<lang>.json` (strings), `site/content/<lang>/` (pages) |
-| The dashboard: server, web UI, desktop app | `packages/rust/crates/server/`, `apps/dashboard/`, `apps/desktop/` |
+| Studio, the app that controls the lights: server, web UI, desktop app | `packages/rust/crates/server/`, `apps/studio/`, `apps/desktop/` |
 | Why the code is shaped this way | `docs/architecture.md` |
 | Arguments in, exact bytes out | `tests/fixtures/golden/<mode>/<SKU>.json` |
 | What a package's release changed | `packages/<pkg>/CHANGELOG.md` |
@@ -236,7 +236,7 @@ error record are declared once.
 `crates/dmx` publishes the `govee-dmx` binary as `govee-toolkit-dmx`, and
 `crates/server` publishes the `govee-server` binary as `govee-toolkit-server`.
 None of them holds protocol logic. `govee-server` embeds the build of
-`apps/dashboard`, which `server-release.yml` vendors as `web/` before the
+`apps/studio`, which `server-release.yml` vendors as `web/` before the
 upload. `crates/sim` and `crates/xtask` carry `publish = false`. A transport is a cargo feature: the library defaults to `lan` alone, and the CLI
 to all three.
 
@@ -303,7 +303,7 @@ push:
 | `packages/python/` | `tools/qa-python.sh` |
 | `packages/node/` | `tools/qa-node.sh` |
 | `integrations/mcp/` | `tools/qa-mcp.sh` |
-| `apps/dashboard/` | `npm run lint --prefix apps/dashboard` |
+| `apps/studio/` | `npm run lint --prefix apps/studio` |
 | `apps/desktop/` | `cargo clippy` in `apps/desktop/src-tauri` |
 | `tools/*.sh` | `tools/qa.sh "shell"` |
 
