@@ -187,7 +187,8 @@ impl Govee {
 
     /// Release what every transport holds. Call it before the program ends,
     /// or `ble` loses the last frame it wrote. `lan` frees its reply port
-    /// before this call returns and refuses every later command.
+    /// before this call returns. The next call binds it again, and `ble`
+    /// connects again.
     #[napi]
     pub fn close<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, ()>> {
         let govee = self.inner.clone();

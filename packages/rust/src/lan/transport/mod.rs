@@ -19,7 +19,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use tokio::sync::{broadcast, watch};
-use tokio::task::JoinHandle;
+use tokio::task::JoinSet;
 
 use self::inbound::{receive_loop, refresh_loop};
 pub use self::options::Options;
@@ -42,42 +42,25 @@ use crate::transport::{DeviceId, Event, Health, KnownDevice, Sent, Verify};
 /// "Consecutive commands".
 pub const COMMAND_GAP: Duration = Duration::from_millis(5);
 
-struct Tasks(Mutex<Vec<JoinHandle<()>>>);
-
-impl Tasks {
-    /// Returns once every task has dropped its handle on the socket.
-    async fn stop(&self) {
-        let tasks = self
-            .0
-            .lock()
-            .map(|mut tasks| std::mem::take(&mut *tasks))
-            .unwrap_or_default();
-        for task in tasks {
-            task.abort();
-            let _ = task.await;
-        }
-    }
-}
-
-impl Drop for Tasks {
-    fn drop(&mut self) {
-        if let Ok(tasks) = self.0.get_mut() {
-            for task in tasks.iter() {
-                task.abort();
-            }
-        }
-    }
+/// What the refresh loop needs to start again after a close.
+#[derive(Clone, Copy)]
+struct Refresh {
+    interval: Duration,
+    window: Duration,
+    forget_after: Duration,
 }
 
 /// The `lan` transport.
 ///
 /// Cheap to clone; every clone shares one socket, one cache and one set of
 /// breakers. The background tasks stop at [`Transport::close`] or with the
-/// last clone.
+/// last clone: dropping the set aborts them.
 #[derive(Clone)]
 pub struct Transport {
     shared: Arc<Shared>,
-    tasks: Arc<Tasks>,
+    /// Also serializes a close against a reopen.
+    tasks: Arc<tokio::sync::Mutex<JoinSet<()>>>,
+    refresh: Option<Refresh>,
 }
 
 impl std::fmt::Debug for Transport {
@@ -124,20 +107,31 @@ impl Transport {
         shared.forget_stale(options.forget_after);
         shared.adopt_cached_devices();
 
-        let mut tasks = vec![tokio::spawn(receive_loop(Arc::clone(&shared)))];
-        if let Some(interval) = options.refresh_interval {
-            tasks.push(tokio::spawn(refresh_loop(
-                Arc::clone(&shared),
-                interval,
-                options.scan_window,
-                options.forget_after,
-            )));
-        }
+        let refresh = options.refresh_interval.map(|interval| Refresh {
+            interval,
+            window: options.scan_window,
+            forget_after: options.forget_after,
+        });
+        let mut tasks = JoinSet::new();
+        spawn_tasks(&shared, refresh, &mut tasks, true);
 
         Ok(Self {
             shared,
-            tasks: Arc::new(Tasks(Mutex::new(tasks))),
+            tasks: Arc::new(tokio::sync::Mutex::new(tasks)),
+            refresh,
         })
+    }
+
+    /// Bind again and restart the receive loop after [`Transport::close`].
+    async fn reopen(&self) -> Result<()> {
+        if self.shared.socket.is_open() {
+            return Ok(());
+        }
+        let mut tasks = self.tasks.lock().await;
+        if self.shared.socket.reopen(&self.shared.endpoints)? {
+            spawn_tasks(&self.shared, self.refresh, &mut tasks, false);
+        }
+        Ok(())
     }
 
     /// Subscribe to transport events.
@@ -156,7 +150,8 @@ impl Transport {
     ///
     /// # Errors
     ///
-    /// [`Error::Io`] if the socket cannot report it.
+    /// [`Error::Io`] if the socket cannot report it, or after
+    /// [`Transport::close`] until the next scan, command or status request.
     pub fn local_addr(&self) -> Result<SocketAddr> {
         self.shared.socket.local_addr()
     }
@@ -179,9 +174,11 @@ impl Transport {
     /// Stop the background tasks and free the reply port before this call
     /// returns.
     ///
-    /// Every later scan, command or status request fails with [`Error::Io`].
+    /// The next scan, command or status request binds the port again. The
+    /// known devices and the cache stay.
     pub async fn close(&self) {
-        self.tasks.stop().await;
+        let mut tasks = self.tasks.lock().await;
+        tasks.shutdown().await;
         self.shared.socket.close();
     }
 
@@ -206,6 +203,7 @@ impl Transport {
     ///
     /// [`Error::Io`] if the request cannot be sent.
     pub async fn scan(&self, window: Duration) -> Result<Vec<DiscoveredDevice>> {
+        self.reopen().await?;
         self.shared.scan(window).await
     }
 
@@ -222,6 +220,7 @@ impl Transport {
         id: &DeviceId,
         window: Duration,
     ) -> Result<Option<DiscoveredDevice>> {
+        self.reopen().await?;
         self.shared.scan_for(id, window).await
     }
 
@@ -281,6 +280,7 @@ impl Transport {
                 .route_and_claim(id, now, matches!(&verify, Verify::With(_)))?;
         let bytes = datagram(command)?;
 
+        self.reopen().await?;
         self.shared.socket.send_to(&bytes, addr).await?;
 
         let sent = Sent {
@@ -318,6 +318,7 @@ impl Transport {
     /// [`Transport::send`], and [`Error::Unreachable`] if nothing answers in
     /// time.
     pub async fn status(&self, id: &DeviceId, request: &Encoded) -> Result<DeviceStatus> {
+        self.reopen().await?;
         self.shared
             .request_status(id, request, self.shared.status_timeout)
             .await
@@ -336,5 +337,23 @@ impl Transport {
             cache.clone()
         };
         cache.save()
+    }
+}
+
+fn spawn_tasks(
+    shared: &Arc<Shared>,
+    refresh: Option<Refresh>,
+    tasks: &mut JoinSet<()>,
+    scan_now: bool,
+) {
+    tasks.spawn(receive_loop(Arc::clone(shared)));
+    if let Some(refresh) = refresh {
+        tasks.spawn(refresh_loop(
+            Arc::clone(shared),
+            refresh.interval,
+            refresh.window,
+            refresh.forget_after,
+            scan_now,
+        ));
     }
 }

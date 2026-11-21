@@ -346,7 +346,7 @@ async fn the_cache_makes_a_restart_free_of_scanning() {
 }
 
 #[tokio::test]
-async fn close_frees_the_reply_port_and_refuses_later_commands() {
+async fn close_frees_the_reply_port_and_the_next_command_binds_it_again() {
     let rig = Rig::with_options(Policy::default(), |options| Options {
         refresh_interval: Some(Duration::from_secs(60)),
         ..options
@@ -358,9 +358,13 @@ async fn close_frees_the_reply_port_and_refuses_later_commands() {
     rig.transport.close().await;
 
     // A bind with no reuse option fails while any socket holds the port.
-    std::net::UdpSocket::bind(bound).expect("the port is free once close returns");
+    drop(std::net::UdpSocket::bind(bound).expect("the port is free once close returns"));
     rig.transport
         .send(&id(), &rig.power_on(), Verify::None)
         .await
-        .expect_err("a closed transport refuses a command");
+        .expect("the next command binds the port again");
+    rig.transport
+        .status(&id(), &rig.status_request())
+        .await
+        .expect("the receive loop runs again");
 }
