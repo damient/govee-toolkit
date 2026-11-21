@@ -7,7 +7,7 @@ The node receives DMX on the network you already run, and it writes every frame
 straight to the device over Wi-Fi. No cloud, and no box between the desk and
 the light.
 
-[![status](https://img.shields.io/badge/status-beta-yellow)](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md)
+[![status](https://img.shields.io/badge/status-stable-green)](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml?query=branch%3Amain)
 

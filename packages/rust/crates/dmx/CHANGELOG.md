@@ -6,6 +6,14 @@ releases under `dmx-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md). The design
 is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 
+## [1.4.0] — 2026-11-21
+
+### Changed
+
+- The version moves to 1.x: a breaking change now raises the major number.
+  See [`docs/versioning.md`](../../../../docs/versioning.md).
+- `govee-dmx` builds on `govee-toolkit` 1.17.
+
 ## [0.4.0] — 2026-11-14
 
 ### Changed
