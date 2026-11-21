@@ -5,5 +5,8 @@
   <!-- Without it, macOS kills the app the first time the `ble` mode opens the Bluetooth stack. -->
   <key>NSBluetoothAlwaysUsageDescription</key>
   <string>govee-toolkit uses Bluetooth to control your lights in the ble mode.</string>
+  <!-- Without it, macOS blocks the multicast of the `lan` scan: "No route to host". -->
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>govee-toolkit finds and controls the lights on your local network.</string>
 </dict>
 </plist>

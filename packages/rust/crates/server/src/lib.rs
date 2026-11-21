@@ -9,6 +9,7 @@ use std::io;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+mod devices;
 mod web;
 
 use axum::extract::State;
@@ -74,7 +75,11 @@ pub fn router(options: &Options) -> govee_toolkit::codec::Result<Router> {
         skus: catalog.skus().count(),
     });
 
-    let api = Router::new().route("/hello", get(hello)).with_state(shared);
+    let api = Router::new()
+        .route("/hello", get(hello))
+        .with_state(shared)
+        .route("/devices", get(devices::list))
+        .with_state(Arc::new(devices::Sdk::default()));
     let mut app = Router::new().nest("/api", api);
     match &options.web {
         Web::Embedded => {
