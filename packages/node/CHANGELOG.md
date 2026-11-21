@@ -9,14 +9,14 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 ### Added
 
 - `Govee.transportProblems()` gives what keeps the transports of the modes
-  named from their devices, which a scan that hears nothing reports.
+  named from their devices, such as a reply port that another socket holds.
 
 ### Changed
 
 - The version moves to 1.x: a breaking change now raises the major number.
   See [`docs/versioning.md`](../../docs/versioning.md).
 - `Govee.close()` frees the `lan` reply port before it returns. The next
-  call binds it again, as `ble` connects again.
+  call acquires each transport again.
 - `DeviceHandle.status()` after a command from the same process waits for
   the status settle time that the device file records, then reports.
 - `Govee.problems()` reports a `lan` reply port that another socket holds:

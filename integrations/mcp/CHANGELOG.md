@@ -13,12 +13,10 @@ policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 
 ### Changed
 
-- `list_devices` is `list_models` and answers `models`, `describe_device` is
-  `describe_model`, and `gtk://devices/{sku}` is `gtk://models/{sku}`.
-- The server releases its transports 30 s after the last call, which frees
-  UDP port 4002, so the `govee` command on the same host hears replies. The
-  next call acquires them again and keeps the known devices.
-  `GOVEE_MCP_IDLE_MS` sets the delay, and 0 keeps them held.
+- **Breaking:** call `list_models`, which answers `models`, `describe_model`
+  and `gtk://models/{sku}` in place of the `device` names.
+- The server frees UDP port 4002 30 s after the last call, so `govee` on the
+  same host hears replies. `GOVEE_MCP_IDLE_MS` sets the delay; 0 disables it.
 - `status` after a command from the server waits until the device reports
   the new state, for the time that the device file records.
 
