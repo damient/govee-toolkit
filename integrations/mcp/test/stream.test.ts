@@ -73,3 +73,21 @@ test(
     );
   },
 );
+
+test(
+  "a frame that the stream refuses fails the call, and the server answers the next one",
+  { skip, timeout: 30_000 },
+  async () => {
+    await scanForSim(client);
+    assert.equal(
+      await failureCode(client, "stream", {
+        targets: [SIM_ID],
+        mode: "lan",
+        frames: [[[255, 0, 0]], [[1, 2, 3], [4, 5, 6]]],
+        hold_ms: 100,
+      }),
+      "zone_count_mismatch",
+    );
+    await structured(client, "list_known", {}, z.object({ devices: z.array(z.unknown()) }));
+  },
+);
