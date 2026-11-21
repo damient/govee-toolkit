@@ -42,13 +42,29 @@ use crate::transport::{DeviceId, Event, Health, KnownDevice, Sent, Verify};
 /// "Consecutive commands".
 pub const COMMAND_GAP: Duration = Duration::from_millis(5);
 
-/// Background tasks, stopped when the last [`Transport`] handle goes away.
-struct Tasks(Vec<JoinHandle<()>>);
+struct Tasks(Mutex<Vec<JoinHandle<()>>>);
+
+impl Tasks {
+    /// Returns once every task has dropped its handle on the socket.
+    async fn stop(&self) {
+        let tasks = self
+            .0
+            .lock()
+            .map(|mut tasks| std::mem::take(&mut *tasks))
+            .unwrap_or_default();
+        for task in tasks {
+            task.abort();
+            let _ = task.await;
+        }
+    }
+}
 
 impl Drop for Tasks {
     fn drop(&mut self) {
-        for task in &self.0 {
-            task.abort();
+        if let Ok(tasks) = self.0.get_mut() {
+            for task in tasks.iter() {
+                task.abort();
+            }
         }
     }
 }
@@ -56,11 +72,12 @@ impl Drop for Tasks {
 /// The `lan` transport.
 ///
 /// Cheap to clone; every clone shares one socket, one cache and one set of
-/// breakers. The background tasks stop when the last clone is dropped.
+/// breakers. The background tasks stop at [`Transport::close`] or with the
+/// last clone.
 #[derive(Clone)]
 pub struct Transport {
     shared: Arc<Shared>,
-    _tasks: Arc<Tasks>,
+    tasks: Arc<Tasks>,
 }
 
 impl std::fmt::Debug for Transport {
@@ -119,7 +136,7 @@ impl Transport {
 
         Ok(Self {
             shared,
-            _tasks: Arc::new(Tasks(tasks)),
+            tasks: Arc::new(Tasks(Mutex::new(tasks))),
         })
     }
 
@@ -152,10 +169,20 @@ impl Transport {
         }
         let port = self.shared.endpoints.reply_bind.port();
         vec![format!(
-            "another process listens on UDP port {port}: the replies can reach it instead, \
-             so a scan or a status request can hear nothing. Stop that process, such as a \
-             running MCP server or `govee-dmx`, and try again"
+            "another socket listens on UDP port {port}: the replies can reach it instead, \
+             so a scan or a status request can hear nothing. Stop the process that holds it, \
+             such as a running MCP server or `govee-dmx`, or close the other SDK of this \
+             process, and try again"
         )]
+    }
+
+    /// Stop the background tasks and free the reply port before this call
+    /// returns.
+    ///
+    /// Every later scan, command or status request fails with [`Error::Io`].
+    pub async fn close(&self) {
+        self.tasks.stop().await;
+        self.shared.socket.close();
     }
 
     /// How long a scan collects replies when the caller names no window.

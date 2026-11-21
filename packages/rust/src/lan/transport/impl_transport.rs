@@ -83,6 +83,11 @@ impl Transport for LanTransport {
         Self::status(self, id, request).await
     }
 
+    async fn close(&self) -> Result<()> {
+        Self::close(self).await;
+        Ok(())
+    }
+
     /// Always fails.
     ///
     /// This mode answers in JSON, so no command declares a `reply:` layout for

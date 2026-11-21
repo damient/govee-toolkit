@@ -10,10 +10,12 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 
 - The version moves to 1.x: a breaking change now raises the major number.
   See [`docs/versioning.md`](../../docs/versioning.md).
+- **Breaking:** `Govee.close()` frees the `lan` reply port before it
+  returns, and `lan` then refuses every command. Start a new `Govee` instead.
 - `DeviceHandle.status()` after a command from the same process waits for
   the status settle time that the device file records, then reports.
-- `Govee.problems()` reports a `lan` reply port that another process holds:
-  the kernel can give the replies to that process.
+- `Govee.problems()` reports a `lan` reply port that another socket holds:
+  the kernel can give the replies to that socket.
 
 ## [0.8.0] — 2026-11-15
 
