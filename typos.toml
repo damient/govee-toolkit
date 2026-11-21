@@ -4,8 +4,14 @@ extend-exclude = [
   "packages/rust/Cargo.lock",
   "*.pcap",
   # The dictionary is English: it reads every other language as typos.
-  "site/content/{de,es,fr,it}/**",
-  "site/content/i18n/{de,es,fr,it}.json",
+  "**/site/content/de/**",
+  "**/site/content/es/**",
+  "**/site/content/fr/**",
+  "**/site/content/it/**",
+  "**/site/content/i18n/de.json",
+  "**/site/content/i18n/es.json",
+  "**/site/content/i18n/fr.json",
+  "**/site/content/i18n/it.json",
 ]
 
 [default]
