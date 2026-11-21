@@ -1567,6 +1567,7 @@ dependencies = [
  "clap",
  "govee-toolkit",
  "serde",
+ "serde_json",
  "tokio",
  "tower-http",
 ]

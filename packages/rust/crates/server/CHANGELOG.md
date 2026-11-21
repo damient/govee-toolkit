@@ -13,3 +13,5 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   serves another copy. It listens on `127.0.0.1:4080` by default.
 - `GET /api/hello` answers the name and the version of `govee-toolkit`, and the
   number of SKUs in the embedded catalog.
+- `GET /api/devices` runs a `lan` scan and answers the devices that replied.
+  The SDK starts on the first call and reads the configuration file.

@@ -40,6 +40,7 @@ control the lights.
 | Route | Answer |
 | ----- | ------ |
 | `GET /api/hello` | `{ "name", "version", "skus" }`: the crate, its version and the number of SKUs in the embedded catalog |
+| `GET /api/devices` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`. The call takes one scan window, 2 s by default. An error answers 500 and `{ "error" }` |
 | any other path | a file of the web UI: the copy in the binary, or the directory that `--web` names |
 
 Unofficial and not affiliated with Govee.

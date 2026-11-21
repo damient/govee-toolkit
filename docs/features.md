@@ -52,7 +52,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 
 | | Feature |
 | --- | ------- |
-| 🚧 | **Studio**, the web app (`govee-server`, `apps/studio`) — a local Rust server and a web UI. Serves the version and the catalog today |
+| 🚧 | **Studio**, the web app (`govee-server`, `apps/studio`) — a local Rust server and a web UI. Serves the version, the catalog and the devices that answer a `lan` scan today |
 | 🔜 | Studio controls — device list with per-mode state badges, power / brightness / color controls, raw payload field, latency log |
 | 🚧 | **Desktop app** (`apps/desktop`, Tauri) — Studio in a window on Windows, macOS and Linux, with its server in process |
 | 🔜 | Desktop app: auto-discovery on launch, tray icon |

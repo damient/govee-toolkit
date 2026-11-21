@@ -16,9 +16,6 @@
       <span class="name">govee-toolkit</span>
     </header>
 
-    <h1>Hello, lights.</h1>
-    <p class="lede">Studio runs. Device controls come next.</p>
-
     <section class="card" aria-live="polite">
       <div class="row">
         <span class="label">Server</span>
@@ -32,6 +29,15 @@
         <span class="label">Known models</span>
         <code id="skus">—</code>
       </div>
+    </section>
+
+    <section class="devices" aria-live="polite">
+      <header class="devices-head">
+        <h2>On the network</h2>
+        <button type="button" id="scan">Scan</button>
+      </header>
+      <p class="hint" id="devices-hint">Scanning the LAN…</p>
+      <ul class="card list" id="devices" hidden></ul>
     </section>
   </main>
 </body>
