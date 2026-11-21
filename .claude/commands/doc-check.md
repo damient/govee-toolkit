@@ -13,7 +13,8 @@ argument, check everything the branch touched.
 
 `git diff --stat main...HEAD` for the files the branch changed, and
 `git diff main...HEAD` for what changed in them. Docs the branch did not touch
-are in scope too when the branch changed the code they describe.
+are in scope too when the branch changed the code they describe. This includes
+the site: `site/content/**` and `site/src/**`.
 
 ## Check
 
@@ -22,6 +23,14 @@ are in scope too when the branch changed the code they describe.
 true? Names, paths, feature flags, commands, exit codes, file layout, what is
 implemented and what is not. Verify against the code — never assume the doc is
 right because it reads well.
+
+The site states the same facts to a reader with no repository. Grep
+`site/content` and `site/src` for every name the branch added, changed or
+removed: a tool, a command, a flag, a mode, a verb. A list of tools, commands
+or modes on a page must match the code and `docs/`. A page that sends the
+reader elsewhere for a thing the branch now provides is drift too.
+`site/content/reference.json` is in scope: it holds one entry per command, by
+hand. `site/dist/` is generated: fix the source, not it.
 
 **2. Code with no doc.** Something the branch added that `AGENTS.md`'s "Where
 things go" table places in a doc, and which is not there: a new command, a new
@@ -186,6 +195,10 @@ Rewrite what breaks one:
 Cut first, rewrite second: a sentence that carries no fact is deleted under
 rule 3 and never rewritten into a shorter one.
 
+The site is the exception, as `AGENTS.md`, "Writing", says. Copy under `site/`
+can run past the word count and carry a rhythm. It still states the positive
+form, names no company, and invents no verification.
+
 **6. Device file `notes:`.** Every `notes:` the branch added or changed, on a
 command, on a mode and in `verified:`. These are read by somebody deciding
 whether to trust a command, so they carry evidence and nothing else:
@@ -223,7 +236,9 @@ Apply the fixes. Edit prose and comments freely; do not change code behavior to
 make a doc true — if a doc and the code disagree on what the code should do,
 stop and ask which one is right.
 
-After editing any device file, run `cargo run -p xtask -- compat`. Never fill a
+After editing any device file, run `cargo run -p xtask -- compat`. After
+editing the site, a device file or `docs/compatibility.md`, run
+`tools/qa-site.sh`. Never fill a
 `verified`, a capability or a measurement from inference — an unverified fact
 is `?` or a `TODO`.
 
