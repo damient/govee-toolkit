@@ -351,10 +351,10 @@ replies.
 
 ## 3. Discovery method
 
-1. Try a candidate payload through the raw payload field of Studio.
+1. Write a candidate payload as a device file entry, and send it with `govee send`.
 2. Capture the frame (`tcpdump`, Wireshark) → `tests/fixtures/lan-captures/`.
 3. Document the protocol above; record what the SKU supports in its device file.
-4. Formalize it in `devices/<sku>.yaml`.
+4. Add the entry to `devices/<sku>.yaml` of each SKU that answered it.
 
 A failed probe on this protocol is indistinguishable from an ignored one — no
 error is ever returned. Assume a malformed frame before assuming an unsupported
