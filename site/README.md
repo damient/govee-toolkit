@@ -65,9 +65,7 @@ English sits at the root of the site. `fr`, `de`, `es` and `it` sit under
 `/fr/`, `/de/`, `/es/` and `/it/`, and `LOCALES` in `lib/locales.ts` lists
 them. A model page exists in every language, but outside English it carries
 `noindex` and stays out of the sitemap and the `hreflang` links: its notes,
-names and values come from the device files, in English. The build keeps two
-maps for that: `routes` holds every page and decides where a link goes, and
-`site` holds the indexed pages.
+names and values come from the device files, in English.
 
 - A string of the layout, of a page under `src/pages/` or of a renderer lives
   in `content/i18n/en.json`. Each language holds the same keys. A key that a

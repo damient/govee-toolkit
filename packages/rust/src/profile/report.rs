@@ -117,11 +117,9 @@ fn channel_json(channel: &Channel) -> Value {
 /// desk. A band is inclusive on both ends, and the bands cover 0 to 255 in
 /// order.
 ///
-/// `label` is English text for a person. `kind` names the meaning for a
-/// machine, which renders its own text: `idle`, `reserved`, `resend`, `off`,
-/// `brightness`, `no_white`, `white`, `no_color` and `color`. The numbers of
-/// a `white` band are the `range` of the channel, and the color of a
-/// `no_color` or `color` band is its `component`.
+/// `label` is English text. `kind` names the meaning for a machine that writes
+/// its own text: a `white` band takes the channel `range`, a color band takes
+/// its `component`.
 ///
 /// A band that scales states the travel in percent: the pair a parameter
 /// takes is the device's own unit and travels in `range`. The white channel

@@ -1,6 +1,5 @@
 // The reference page: one entry per command, with an example in each language.
-// It sits inside the documentation and carries the same frame. Another language
-// translates the text of `content/reference.json` in `content/<id>/reference.json`.
+// It sits inside the documentation and carries the same frame.
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -26,7 +25,6 @@ interface Overlay {
   entries?: Record<string, { summary?: string; detail?: string; action?: { title?: string; summary?: string } }>;
 }
 
-// The guard checks the top level only, as the guards of `json.ts` do.
 function isOverlay(value: unknown): value is Overlay {
   return isRecord(value) && (value.entries === undefined || isRecord(value.entries));
 }

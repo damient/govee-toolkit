@@ -1,8 +1,3 @@
-// The languages of the site. English sits at the root, and every other language
-// sits under a prefix of its own. `content/i18n/<id>.json` holds the strings of
-// a language, and `content/<id>/` holds its pages. `translations.ts`
-// reports a string or a page that is missing or older than the English one.
-
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SITE_URL, base, root } from "./config.ts";
@@ -27,13 +22,11 @@ export const LOCALES: readonly Locale[] = [
   { id: "it", name: "Italiano", og: "it_IT" },
 ];
 
-/** Every language but English. */
 export const TRANSLATIONS: readonly Locale[] = LOCALES.slice(1);
 
 /** The path of a language under the site root: empty for English. */
 export const prefix = (locale: Locale): string => (locale.id === ENGLISH.id ? "" : `${locale.id}/`);
 
-/** The absolute URL of `path` in a language. */
 export const absolute = (locale: Locale, path: string): string => `${SITE_URL}${base}${prefix(locale)}${path}`;
 
 /** The directory that holds the Markdown pages and `reference.json` of a language. */
@@ -57,7 +50,6 @@ export interface T {
 
 type Table = Record<string, unknown>;
 
-/** The file that holds the strings of a language. */
 export const tablePath = (id: string): string => join(root, "content/i18n", `${id}.json`);
 
 export function readTable(id: string): Table {
@@ -70,7 +62,6 @@ export function readTable(id: string): Table {
 
 const cache = new Map<string, T>();
 
-/** The strings of one language. */
 export function strings(locale: Locale): T {
   const known = cache.get(locale.id);
   if (known) return known;
@@ -138,7 +129,7 @@ export function carriers(path: string, site: Sitemap): Locale[] {
   return langs.length < 2 ? [] : langs;
 }
 
-/** The `hreflang` links of a page. Empty where one language alone carries it. */
+/** The `hreflang` links of a page. */
 export function alternates(path: string, site: Sitemap): string {
   const langs = carriers(path, site);
   if (langs.length === 0) return "";
@@ -147,8 +138,7 @@ export function alternates(path: string, site: Sitemap): string {
   return [...langs.map((locale) => link(locale.id, locale)), link("x-default", ENGLISH)].join("\n");
 }
 
-// A language that lacks the page takes the closest page above it: a model page
-// leads to the device list of that language.
+// A language that lacks the page takes the closest page above it.
 function nearest(path: string, pages: ReadonlySet<string> | undefined): string {
   let at = path;
   while (at !== "" && pages?.has(at) !== true) at = at.replace(/[^/]*\/?$/u, "");

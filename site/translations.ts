@@ -1,12 +1,6 @@
-// Checks that every language carries each English text, translated from the
-// English text as it is now. A translated file names the English file it comes
-// from by the git blob id of that file: `source:` in the front matter of a
-// Markdown page, `$source` in a JSON file.
-//
+// Checks that each translation follows the current English file (site/README.md, "Languages").
 //   node translations.ts                 reports, and exits 1 on a gap
 //   node translations.ts --stamp <file>  records the current English blob in <file>
-//
-// Stamp a file after its translation follows the English text again.
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -63,7 +57,6 @@ function stamp(path: string): void {
 const markdown = (dir: string): string[] =>
   existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".md")).map((f) => join(dir, f)) : [];
 
-/** The gaps of one language, one line each. */
 function gaps(locale: Locale): string[] {
   const out: string[] = [];
   const dir = contentDir(locale);
@@ -97,8 +90,6 @@ function gaps(locale: Locale): string[] {
   return out;
 }
 
-// Every entry of the reference takes a summary, and a model page block where
-// the English entry draws one.
 function referenceGaps(locale: Locale): string[] {
   const path = join(contentDir(locale), "reference.json");
   if (!existsSync(path)) return [];

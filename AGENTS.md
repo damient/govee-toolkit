@@ -116,13 +116,11 @@ SKU.
   site are the one exception: `site/content/i18n/<lang>.json` and
   `site/content/<lang>/`.
 - **A translation follows its English text.** The site carries `fr`, `de`,
-  `es` and `it` beside English. A model page in another language is `noindex`
-  and stays out of the sitemap: its notes come from the device file. The rules
-  of this section apply to a translation as they apply to the English text.
-  After a change to an English page or to `site/content/i18n/en.json`, update
-  each language and stamp it with `node translations.ts --stamp <file>` in
-  `site/`. The check fails on a page or a string that does not follow the
-  English text.
+  `es` and `it` beside English. The rules of this section apply to a
+  translation as they apply to the English text. After a change to an English
+  page or to `site/content/i18n/en.json`, update each language and stamp it
+  with `node translations.ts --stamp <file>` in `site/`. The check fails on a
+  page or a string that does not follow the English text.
 - **Name no company and no app.** Do not write "company", "manufacturer",
   "vendor" or "app". The software a user drives these devices with is "the
   phone controller", or "another controller" where it competes for the link.

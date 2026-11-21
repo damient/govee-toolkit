@@ -1,5 +1,4 @@
 // The documentation pages: one Markdown file under `content/docs/`, one page.
-// Another language holds its pages under `content/<id>/docs/`.
 
 import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
@@ -74,8 +73,7 @@ export function docPage(doc: Doc, nav: NavEntry[], t: T): string {
 
 const MENU = /<!--\s*menu:\s*(.+?)\s*-->/u;
 
-// `## Titre {#title}` keeps the anchor of the English page, so that a link to
-// `#title` works in every language.
+// `{#id}` gives a translated heading the anchor of the English heading.
 const ANCHOR = /\s*\{#([\w-]+)\}/u;
 
 function renderDoc(file: string, raw: string, t: T): Doc {

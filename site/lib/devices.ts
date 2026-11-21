@@ -1,5 +1,4 @@
-// The device list. Nothing here names a model or a command: the device files
-// own them. `device-page.ts` builds the page of one model.
+// Nothing here names a model or a command: the device files own them.
 
 import { categoryOptions } from "./categories.ts";
 import { MODES } from "./config.ts";
@@ -9,8 +8,7 @@ import { infoBadge } from "./listed.ts";
 import type { T } from "./locales.ts";
 import type { Device, Mode, Support } from "./types.ts";
 
-// The order a reader looks for, not the order the catalog holds. `cap.<key>`
-// in `content/i18n/` names each one.
+// The order a reader looks for, not the order the catalog holds.
 const CAPS = ["power", "color", "colortemp", "brightness", "music", "segments", "segment_brightness"];
 
 const CAP_ORDER = new Map(CAPS.map((key, at) => [key, at]));
