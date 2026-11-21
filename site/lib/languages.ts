@@ -1,7 +1,8 @@
 // `src/assets/ts/tabs.ts` reads `data-langs`.
 
 import { highlight } from "./code.ts";
-import { escapeAttr, filled } from "./html.ts";
+import { escapeAttr, escapeHtml, filled } from "./html.ts";
+import { EN, type T } from "./locales.ts";
 import type { Examples } from "./types.ts";
 
 export const LANGUAGES = [
@@ -21,7 +22,7 @@ const DEFAULT_LANGUAGE = "cli";
  * tells the reader which language it is. `after` holds the HTML that follows
  * the code in a pane.
  */
-export function langBlock(prefix: string, examples: Examples, after: Record<string, string> = {}): string {
+export function langBlock(prefix: string, examples: Examples, after: Record<string, string> = {}, t: T = EN): string {
   const available = LANGUAGES.filter((lang) => filled(examples[lang.id]));
   if (available.length === 0) return "";
   const selected = available.find((lang) => lang.id === DEFAULT_LANGUAGE)?.id ?? available[0]?.id;
@@ -32,11 +33,11 @@ export function langBlock(prefix: string, examples: Examples, after: Record<stri
   const panes = available
     .map((lang) => {
       const source = examples[lang.id] ?? "";
-      return `<div class="pane" role="tabpanel" id="pane-${id(lang)}" aria-labelledby="tab-${id(lang)}" tabindex="0" data-lang="${lang.id}"${lang.id === selected ? "" : " hidden"}><div class="code"><pre><code>${highlight(source, lang.id)}</code></pre><button class="copy" type="button" data-copy="${escapeAttr(source)}">Copy</button></div>${after[lang.id] ?? ""}</div>`;
+      return `<div class="pane" role="tabpanel" id="pane-${id(lang)}" aria-labelledby="tab-${id(lang)}" tabindex="0" data-lang="${lang.id}"${lang.id === selected ? "" : " hidden"}><div class="code"><pre><code>${highlight(source, lang.id)}</code></pre><button class="copy" type="button" data-copy="${escapeAttr(source)}">${escapeHtml(t("docs.copy"))}</button></div>${after[lang.id] ?? ""}</div>`;
     })
     .join("\n              ");
   return `<div class="langs" data-langs="${selected}">
-              <div class="tabs" role="tablist" aria-label="Language">${tabs}</div>
+              <div class="tabs" role="tablist" aria-label="${escapeAttr(t("ref.language"))}">${tabs}</div>
               ${panes}
             </div>`;
 }

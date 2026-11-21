@@ -7,6 +7,7 @@ import { MODES } from "./config.ts";
 import { categoryUrl } from "./categories.ts";
 import { escapeAttr, escapeHtml, filled } from "./html.ts";
 import { badgeIcon, familyIcon, modeIcon, shapeIcon } from "./icons.ts";
+import { EN, type T } from "./locales.ts";
 import type { Mode } from "./types.ts";
 
 const badge = (kind: string, iconHtml: string, text: string, href?: string): string =>
@@ -40,10 +41,10 @@ export function familyBadge(family: string | undefined): string {
 
 /** One badge, naming the category of a model and linking to its page. Empty
  * where the model has no category. */
-export function categoryBadge(category: string | undefined, shape: string | undefined): string {
+export function categoryBadge(category: string | undefined, shape: string | undefined, t: T = EN): string {
   return category === undefined
     ? ""
-    : badge("category", shapeIcon(shape), escapeHtml(category), `{{base}}${categoryUrl(category)}`);
+    : badge("category", shapeIcon(shape), escapeHtml(t.category(category)), `{{base}}${categoryUrl(category)}`);
 }
 
 /** One badge, naming another model by SKU and name, with the shape icon of

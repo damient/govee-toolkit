@@ -83,7 +83,9 @@ export interface Channel {
   component?: string;
   zone?: number;
   unreached?: boolean;
-  values?: { slots: Range; label: string }[];
+  /** The kelvin range of a white channel. */
+  range?: Range;
+  values?: { slots: Range; label: string; kind?: string }[];
 }
 
 export interface Reference {

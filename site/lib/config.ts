@@ -16,8 +16,6 @@ export const SITE_URL = "https://gvetk.com";
 export const base = "/";
 export const repoUrl = "https://github.com/damient/govee-toolkit";
 
-export const DESCRIPTION = "An unofficial toolkit that controls Govee lights from your own computer, over Wi-Fi, Bluetooth, DMX or the cloud. From the command line, Rust, Python or Node.js.";
-
 /** The catalog `xtask` writes, and the schema the renderers read. */
 export const catalogPath = join(repo, "dist/catalog.json");
 export const CATALOG_SCHEMA = 1;

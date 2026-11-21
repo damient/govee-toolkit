@@ -74,6 +74,12 @@ jobs:
           npm ci
           npm run build
 
+      # Each language must follow the English text as it is now. The check
+      # names the English file that changed and the git diff to translate.
+      - name: Check the translations
+        working-directory: site
+        run: npm run translations
+
       # The HTML linter reads `dist/`: the pages are templates before the
       # build, and a template is not valid HTML.
       - name: Lint the site

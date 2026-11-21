@@ -1,5 +1,6 @@
 
 import { escapeAttr, escapeHtml } from "./html.ts";
+import type { T } from "./locales.ts";
 import type { TocEntry } from "./types.ts";
 
 type NavLink = { url: string; title: string };
@@ -12,6 +13,7 @@ interface Shell {
   body: string;
   klass?: string;
   collapse?: boolean;
+  t: T;
 }
 
 /**
@@ -21,19 +23,19 @@ interface Shell {
  * carries beside `prose`. `collapse` folds each group of that menu, for a
  * page whose menu is longer than a screen.
  */
-export function docShell({ base, nav, current, toc, body, klass = "", collapse = false }: Shell): string {
+export function docShell({ base, nav, current, toc, body, klass = "", collapse = false, t }: Shell): string {
   return `<div class="doc-grid">
       ${menus({
-        here: nav.find((item) => item.url === current)?.title ?? "Contents",
-        label: "Documentation",
+        here: nav.find((item) => item.url === current)?.title ?? t("docs.contents"),
+        label: t("docs.documentation"),
         select: selectItems(base, nav, current, toc, collapse),
         side: nav.map((item) => navItem(base, item, current)).join("\n          "),
       })}
       <article class="prose${klass ? ` ${klass}` : ""}">
         ${body}
-        ${pager(base, nav, current)}
+        ${pager(base, nav, current, t)}
       </article>
-      ${pageToc(toc, collapse)}
+      ${pageToc(toc, collapse, t)}
     </div>`;
 }
 
@@ -41,14 +43,14 @@ export function docShell({ base, nav, current, toc, body, klass = "", collapse =
  * The two links that close a page: the page before it and the page after it,
  * in menu order. The first page carries no `Prev` and the last no `Next`.
  */
-function pager(base: string, nav: NavLink[], current: string): string {
+function pager(base: string, nav: NavLink[], current: string, t: T): string {
   const at = nav.findIndex((item) => item.url === current);
   const links = [
     pagerLink(base, nav[at - 1], "prev"),
     pagerLink(base, nav[at + 1], "next"),
   ].filter(Boolean);
   if (links.length === 0) return "";
-  return `<nav class="pager" aria-label="Documentation pages">
+  return `<nav class="pager" aria-label="${escapeAttr(t("docs.pages"))}">
           ${links.join("\n          ")}
         </nav>`;
 }
@@ -122,9 +124,9 @@ export function navItem(base: string, item: NavLink, current: string | null, inn
  * `data-spy` is what marks the entry the reader is on — see `spy()` in
  * `src/assets/ts/spy.ts`.
  */
-function pageToc(entries: TocEntry[], collapse: boolean): string {
-  return `<aside class="doc-toc" aria-label="On this page" data-spy>
-        <p class="eyebrow">On this page</p>
+function pageToc(entries: TocEntry[], collapse: boolean, t: T): string {
+  return `<aside class="doc-toc" aria-label="${escapeAttr(t("docs.on_this_page"))}" data-spy>
+        <p class="eyebrow">${escapeHtml(t("docs.on_this_page"))}</p>
         ${tocList(entries, "sub", collapse ? "toc-page" : "")}
       </aside>`;
 }

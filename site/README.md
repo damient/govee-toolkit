@@ -17,6 +17,8 @@ pages so that the header, the footer and the device tables exist once.
 | `src/assets/` | The fonts and the images. |
 | `lib/*.ts` | The renderers the build calls. `config.ts` holds the address of the site, and `types.ts` the shape of the catalog and of the reference. |
 | `content/docs/*.md` | The documentation pages. One file, one page. |
+| `content/i18n/<lang>.json` | The strings of the layout, of the hand-written pages and of the renderers, one file per language. A template names a string as `{{t:key}}`. |
+| `content/<lang>/` | The documentation pages, the FAQ and the reference text of one language other than English. |
 | `content/faq.md` | The FAQ page. Each `##` heading is a question, and `<!-- menu: Label -->` at its end names it in the menu on the left. The page carries the `FAQPage` JSON-LD block. |
 | `public/` | Anything that must land at the root of the site, such as `CNAME`. |
 | `build.ts` | The build. |
@@ -56,6 +58,45 @@ because Node keeps an imported module in memory. `PORT` selects another port.
 
 The reload script is added by the server when it sends a page. `dist/` stays
 the site that ships.
+
+## Languages
+
+English sits at the root of the site. `fr`, `de`, `es` and `it` sit under
+`/fr/`, `/de/`, `/es/` and `/it/`, and `LOCALES` in `lib/locales.ts` lists
+them. A model page exists in every language, but outside English it carries
+`noindex` and stays out of the sitemap and the `hreflang` links: its notes,
+names and values come from the device files, in English. The build keeps two
+maps for that: `routes` holds every page and decides where a link goes, and
+`site` holds the indexed pages.
+
+- A string of the layout, of a page under `src/pages/` or of a renderer lives
+  in `content/i18n/en.json`. Each language holds the same keys. A key that a
+  language lacks takes the English text.
+- A documentation page of a language is `content/<lang>/docs/<file>.md`, with
+  the `slug` and the `order` of the English page. The FAQ is
+  `content/<lang>/faq.md`. `content/<lang>/reference.json` holds the text of
+  the reference: `intro`, a title per group id and a `summary` and `detail` per
+  entry id, with an `action` title and summary where the English entry draws a
+  block on the model pages. A language that lacks a page does not carry it.
+- A `##` heading of a translated page ends with `{#id}`, the anchor of the
+  English heading. A link to `#id` then works in every language.
+- The build points a link at the page of the same language where that page
+  exists, and at the English page otherwise. Each page carries a `hreflang`
+  link to each language that carries it, and the sitemap lists them.
+- The English home page sends a visitor who arrives from another site to the
+  home page of their language: the language that the language menu stored, or
+  else the first browser language the site carries. English in that list stops
+  the search. A link inside the site never moves the reader.
+
+Each translated file records the git blob id of the English file it follows:
+`source:` in the front matter, `$source` in a JSON file. `npm run translations`
+lists a file whose English file changed since, a missing file and a missing
+string, with the `git diff` that shows the change. Translate the change, then
+stamp the file:
+
+```bash
+node translations.ts --stamp content/fr/docs/start.md
+```
 
 ## Write a documentation page
 

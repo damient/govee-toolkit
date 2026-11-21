@@ -71,7 +71,9 @@
 .brand-dots i:nth-child(3) { --dot: var(--accent-violet); }
 
 .links { margin-left: auto; display: flex; align-items: center; gap: clamp(12px, 2.4vw, 26px); }
-.controls { display: flex; align-items: center; gap: 8px; margin-left: 14px; }
+/* The negative margin takes back the 24px gap of the shell: the theme toggle
+   sits 8px from the language menu, as the other tools of the group do. */
+.controls { display: flex; align-items: center; gap: 8px; margin-left: -16px; }
 .links a {
   font: 500 14px/1 var(--sans); color: var(--muted); text-decoration: none;
   padding-block: 6px;
@@ -79,9 +81,14 @@
 .links a:hover, .links a[aria-current] { color: var(--text); }
 .links a[aria-current] { box-shadow: inset 0 -2px 0 0 var(--ember); }
 .links .ghost {
+  display: inline-flex; align-items: center; gap: 7px; height: 30px;
   color: var(--text); border: 1px solid var(--line-strong);
-  padding: 7px 13px; border-radius: 8px;
+  padding: 0 11px; border-radius: 8px;
 }
+.links .ghost svg { width: 15px; height: 15px; }
+/* GitHub, the language menu and the theme toggle read as one group, set
+   apart from the page links. */
+.bar-tools { display: flex; align-items: center; gap: 8px; margin-left: clamp(8px, 2.4vw, 30px); }
 
 .theme, .burger {
   display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
@@ -130,7 +137,8 @@
   .topbar[data-menu="closed"] .links { display: none; }
   .topbar[data-menu] .links a { padding: 12px 0; font-size: 16px; text-align: center; }
   .topbar[data-menu] .links a[aria-current] { box-shadow: none; color: var(--ember); }
-  .topbar[data-menu] .links .ghost { margin-top: 14px; padding: 12px; }
+  .topbar[data-menu] .bar-tools { display: contents; }
+  .topbar[data-menu] .links .ghost { justify-content: center; height: auto; margin-top: 14px; padding: 12px; }
   /* One theme control at a time: inside the folded menu, the top bar keeps
      only the burger. */
   .controls .theme { display: none; }

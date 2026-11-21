@@ -1,12 +1,15 @@
 // The documentation pages: one Markdown file under `content/docs/`, one page.
+// Another language holds its pages under `content/<id>/docs/`.
 
+import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { Marked, type Token, type Tokens } from "marked";
 import { codeBlock, highlight } from "./code.ts";
-import { base, repoUrl, root } from "./config.ts";
+import { base, repoUrl } from "./config.ts";
 import { docShell } from "./docs.ts";
 import { escapeAttr, fill, slugify } from "./html.ts";
+import { type Locale, type T, contentDir, strings } from "./locales.ts";
 import { modeBadges } from "./mode-badge.ts";
 import { tabsExtension } from "./tabs.ts";
 import type { NavEntry } from "./types.ts";
@@ -35,24 +38,32 @@ export interface Section {
   answer: string;
 }
 
-/** Every documentation page, in menu order. */
-export async function readDocs(): Promise<Doc[]> {
-  const dir = join(root, "content/docs");
+/** Every documentation page of a language, in menu order. */
+export async function readDocs(locale: Locale): Promise<Doc[]> {
+  const dir = join(contentDir(locale), "docs");
+  if (!existsSync(dir)) return [];
   const files = (await readdir(dir)).filter((f) => f.endsWith(".md"));
+  const t = strings(locale);
   const docs = await Promise.all(
-    files.map(async (file) => renderDoc(file, await readFile(join(dir, file), "utf8"))),
+    files.map(async (file) => renderDoc(file, await readFile(join(dir, file), "utf8"), t)),
   );
   return docs.toSorted((a, b) => a.order - b.order);
 }
 
-/** One Markdown file under `content/` that sits outside the documentation menu. */
-export async function readPage(file: string): Promise<Doc> {
-  return renderDoc(file, await readFile(join(root, "content", file), "utf8"));
+/**
+ * One Markdown file of a language that sits outside the documentation menu.
+ * `null` where the language does not carry it.
+ */
+export async function readPage(file: string, locale: Locale): Promise<Doc | null> {
+  const path = join(contentDir(locale), file);
+  if (!existsSync(path)) return null;
+  return renderDoc(file, await readFile(path, "utf8"), strings(locale));
 }
 
 /** One documentation page, inside the frame every one of them shares. */
-export function docPage(doc: Doc, nav: NavEntry[]): string {
+export function docPage(doc: Doc, nav: NavEntry[], t: T): string {
   return docShell({
+    t,
     base,
     nav,
     current: `docs/${doc.slug}/`,
@@ -63,7 +74,11 @@ export function docPage(doc: Doc, nav: NavEntry[]): string {
 
 const MENU = /<!--\s*menu:\s*(.+?)\s*-->/u;
 
-function renderDoc(file: string, raw: string): Doc {
+// `## Titre {#title}` keeps the anchor of the English page, so that a link to
+// `#title` works in every language.
+const ANCHOR = /\s*\{#([\w-]+)\}/u;
+
+function renderDoc(file: string, raw: string, t: T): Doc {
   const { meta, body } = frontMatter(raw);
   // The heading renderer fills this, so that the anchor id and the table of
   // contents id are one value.
@@ -73,20 +88,20 @@ function renderDoc(file: string, raw: string): Doc {
     renderer: {
       code({ text, lang }: Tokens.Code) {
         const name = (lang ?? "").trim().split(/\s+/u)[0] ?? "";
-        return codeBlock(highlight(text, name), text);
+        return codeBlock(highlight(text, name), text, t("docs.copy"));
       },
-      heading({ depth, tokens }: Tokens.Heading) {
+      heading({ depth, tokens, text }: Tokens.Heading) {
         if (depth !== 2) return `<h${depth}>${this.parser.parseInline(tokens)}</h${depth}>\n`;
         // Inline HTML at the end of a heading stays outside the anchor.
-        const at = tokens.findIndex((t) => t.type === "html");
+        const at = tokens.findIndex((token) => token.type === "html");
         const named = at === -1 ? tokens : tokens.slice(0, at);
-        const trailing = at === -1 ? "" : this.parser.parseInline(tokens.slice(at)).replace(MENU, "");
-        const label = headingLabel(tokens);
-        const id = slugify(label);
-        const menu = at === -1 ? undefined : MENU.exec(tokens.slice(at).map((t) => t.raw).join(""))?.[1];
+        const trailing = at === -1 ? "" : this.parser.parseInline(tokens.slice(at)).replace(MENU, "").replace(ANCHOR, "");
+        const label = headingLabel(tokens).replace(ANCHOR, "");
+        const id = ANCHOR.exec(text)?.[1] ?? slugify(label);
+        const menu = at === -1 ? undefined : MENU.exec(tokens.slice(at).map((token) => token.raw).join(""))?.[1];
         headings.push({ id, text: label, ...(menu === undefined ? {} : { menu }) });
         return `<h2 id="${escapeAttr(id)}"><a class="anchor" href="#${escapeAttr(id)}">`
-          + `${this.parser.parseInline(named)}</a>${trailing}</h2>\n`;
+          + `${this.parser.parseInline(named).replace(ANCHOR, "")}</a>${trailing}</h2>\n`;
       },
     },
   });

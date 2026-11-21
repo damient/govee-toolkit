@@ -1,3 +1,4 @@
+import { say } from "./strings.ts";
 import { toast } from "./toast.ts";
 
 // The category select ships `hidden`: without this script it navigates nowhere.
@@ -17,8 +18,8 @@ export function filter(input: HTMLInputElement): void {
     }
     if (count) {
       count.textContent = needle
-        ? `${shown} of ${total} models match.`
-        : `${total} models ${count.dataset.filterScope ?? "in the catalog"}.`;
+        ? say("match", { shown, total })
+        : say("total", { total, scope: count.dataset.filterScope ?? "" });
     }
   };
 
@@ -61,8 +62,8 @@ export function rowLink(body: HTMLElement): void {
 async function copySku(sku: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(sku);
-    toast(`Reference ${sku} copied`);
+    toast(say("sku_copied", { sku }));
   } catch {
-    toast("Copy failed");
+    toast(say("copy_failed"));
   }
 }

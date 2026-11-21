@@ -1,6 +1,8 @@
 // The player loads on the first click only. Before that the page shows the
 // thumbnail, and no request goes to the video host.
 
+import { say } from "./strings.ts";
+
 const LIGHTBOX = "(min-width: 768px)";
 const CLOSE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 
@@ -18,11 +20,11 @@ function player(id: string): HTMLIFrameElement {
 function lightbox(id: string): void {
   const dialog = document.createElement("dialog");
   dialog.className = "lightbox";
-  dialog.setAttribute("aria-label", "Demo video");
+  dialog.setAttribute("aria-label", say("video"));
   const close = document.createElement("button");
   close.type = "button";
   close.className = "lightbox-close";
-  close.setAttribute("aria-label", "Close the video");
+  close.setAttribute("aria-label", say("video_close"));
   close.innerHTML = CLOSE_ICON;
   const box = document.createElement("div");
   box.className = "lightbox-frame";

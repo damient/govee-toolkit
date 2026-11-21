@@ -2,14 +2,14 @@
 
 import { DASH, escapeAttr, escapeHtml } from "./html.ts";
 import { icon, slotIcon } from "./icons.ts";
+import type { T } from "./locales.ts";
 import type { Channel, Device, Personality, Range } from "./types.ts";
 
-// An unknown kind falls back to its own name.
-const SLOTS = new Map([
-  ["dimmer", "Dimmer"],
-  ["white_temp", "White"],
-  ["mode", "Mode"],
-]);
+// `dmx.slot.<kind>` and `dmx.component.<name>` in `content/i18n/` name a
+// channel. An unknown kind falls back to its own name.
+function named(t: T, key: string, fallback: string): string {
+  return t.has(key) ? t(key) : fallback;
+}
 
 const SLOT_CAPS = new Map([
   ["dimmer", "brightness"],
@@ -33,15 +33,15 @@ function mark(channel: Channel): string {
  * model reaches through nothing says so: it holds its place in the table and
  * drives nothing.
  */
-function slotLabel(channel: Channel): string {
+function slotLabel(channel: Channel, t: T): string {
   const name = escapeHtml(
     channel.slot === "color"
-      ? capitalize(channel.component ?? "color")
-      : (SLOTS.get(channel.slot) ?? channel.slot.replaceAll("_", " ")),
+      ? named(t, `dmx.component.${channel.component ?? "color"}`, capitalize(channel.component ?? "color"))
+      : named(t, `dmx.slot.${channel.slot}`, channel.slot.replaceAll("_", " ")),
   );
   if (channel.unreached !== true) return name;
   return `${name}
-            <span class="dmx-order">this model drives nothing here</span>`;
+            <span class="dmx-order">${escapeHtml(t("dmx.unreached"))}</span>`;
 }
 
 const capitalize = (word: string): string => word.charAt(0).toUpperCase() + word.slice(1);
@@ -52,14 +52,27 @@ const valueList = (lines: string[]): string => `<ul class="dmx-values">
               ${lines.join("\n              ")}
             </ul>`;
 
-function values(channel: Channel): string {
+// `kind` names the meaning of a band, and `dmx.band.<kind>` its text. A band
+// with no kind, or a kind with no text, shows the English label.
+function bandLabel(band: { label: string; kind?: string }, channel: Channel, t: T): string {
+  const key = `dmx.band.${band.kind ?? ""}`;
+  if (band.kind === undefined || !t.has(key)) return band.label;
+  const component = channel.component ?? "";
+  return t(key, {
+    component: named(t, `dmx.color.${component}`, component),
+    min: channel.range?.[0] ?? "",
+    max: channel.range?.[1] ?? "",
+  });
+}
+
+function values(channel: Channel, t: T): string {
   const bands = channel.values ?? [];
   if (bands.length === 0) return DASH;
   return valueList(
     bands.map(
       (band) =>
         `<li><span class="dmx-slots">${escapeHtml(slots(band.slots))}</span>
-              ${escapeHtml(band.label)}</li>`,
+              ${escapeHtml(bandLabel(band, channel, t))}</li>`,
     ),
   );
 }
@@ -74,32 +87,34 @@ function column(head: string, channel: Channel, slot: string, cell: string): str
 }
 
 // The zone triples show as one column: a strip can hold hundreds of them.
-function zoneColumn(run: [Channel, ...Channel[]]): string {
+function zoneColumn(run: [Channel, ...Channel[]], t: T): string {
   const first = run[0];
   const last = run.at(-1) ?? first;
   const zones = new Set(run.map((c) => c.zone)).size;
-  const components = [...new Set(run.map((c) => c.component))].join(", ");
+  const components = [...new Set(run.map((c) => c.component ?? ""))]
+    .map((c) => named(t, `dmx.color.${c}`, c))
+    .join(", ");
   const head = `${first.offset} – ${last.offset}`;
   const cell = valueList([
-    "<li>three channels each</li>",
-    `<li>${escapeHtml(components)}, in zone order</li>`,
+    `<li>${escapeHtml(t("dmx.three"))}</li>`,
+    `<li>${escapeHtml(t("dmx.zone_order", { components }))}</li>`,
   ]);
-  return column(head, first, `${zones} zones`, cell);
+  return column(head, first, escapeHtml(t("model.zones", { count: zones })), cell);
 }
 
 /** Every channel as a column, with the zone channels folded into one. */
-function columns(channels: Channel[]): string[] {
+function columns(channels: Channel[], t: T): string[] {
   const out: string[] = [];
   for (let at = 0; at < channels.length; at += 1) {
     const channel = channels[at];
     if (!channel) break;
     if (channel.slot !== "zone") {
-      out.push(column(String(channel.offset), channel, slotLabel(channel), values(channel)));
+      out.push(column(String(channel.offset), channel, slotLabel(channel, t), values(channel, t)));
       continue;
     }
     const start = at;
     while (channels[at + 1]?.slot === "zone") at += 1;
-    out.push(zoneColumn([channel, ...channels.slice(start + 1, at + 1)]));
+    out.push(zoneColumn([channel, ...channels.slice(start + 1, at + 1)], t));
   }
   return out;
 }
@@ -108,8 +123,8 @@ const paneId = (entry: Personality): string => `pane-dmx-${entry.personality}`;
 const tabId = (entry: Personality): string => `tab-dmx-${entry.personality}`;
 
 // The width sits in the tab: an operator compares it before opening one.
-function tab(entry: Personality, at: number): string {
-  const width = entry.channels ? `${entry.width} channels` : "no table";
+function tab(entry: Personality, at: number, t: T): string {
+  const width = entry.channels ? t("dmx.channels", { count: entry.width ?? 0 }) : t("dmx.no_table");
   return `<button type="button" role="tab" id="${escapeAttr(tabId(entry))}"
             aria-controls="${escapeAttr(paneId(entry))}" data-personality="${escapeAttr(entry.personality)}"
             aria-selected="${at === 0}" tabindex="${at === 0 ? "0" : "-1"}">${escapeHtml(entry.personality)}<span
@@ -117,19 +132,19 @@ function tab(entry: Personality, at: number): string {
 }
 
 /** One personality: its table, or the reason it serves none. */
-function pane(entry: Personality, at: number): string {
+function pane(entry: Personality, at: number, t: T): string {
   const frame = `class="dmx-pane" role="tabpanel" id="${escapeAttr(paneId(entry))}"
           aria-labelledby="${escapeAttr(tabId(entry))}" tabindex="0"
           data-personality="${escapeAttr(entry.personality)}"${at === 0 ? "" : " hidden"}`;
   if (!entry.channels) {
     return `<div ${frame}>
-          <p class="mode-note">${escapeHtml(entry.error ?? "No channel table.")}</p>
+          <p class="mode-note">${escapeHtml(entry.error ?? t("dmx.no_channel_table"))}</p>
         </div>`;
   }
   return `<div ${frame}>
           <div class="dmx-frame">
-            <ol class="dmx-desk" aria-label="Channels">
-            ${columns(entry.channels).join("\n            ")}
+            <ol class="dmx-desk" aria-label="${escapeAttr(t("dmx.channels_label"))}">
+            ${columns(entry.channels, t).join("\n            ")}
             </ol>
           </div>
         </div>`;
@@ -139,14 +154,14 @@ function pane(entry: Personality, at: number): string {
  * The section, or an empty string where the device file gives the bridge no
  * way to drive one channel of any personality. The caller places it.
  */
-export function dmx(device: Device): string {
+export function dmx(device: Device, t: T): string {
   const entries = device.dmx?.personalities ?? [];
   if (entries.length === 0) return "";
   return `<h2 id="dmx">DMX</h2>
       <div class="dmx" data-dmx>
-        <div class="tabs tabs-dmx" role="tablist" aria-label="Personality">
-          ${entries.map((entry, at) => tab(entry, at)).join("\n          ")}
+        <div class="tabs tabs-dmx" role="tablist" aria-label="${escapeAttr(t("dmx.personality"))}">
+          ${entries.map((entry, at) => tab(entry, at, t)).join("\n          ")}
         </div>
-        ${entries.map((entry, at) => pane(entry, at)).join("\n        ")}
+        ${entries.map((entry, at) => pane(entry, at, t)).join("\n        ")}
       </div>`;
 }

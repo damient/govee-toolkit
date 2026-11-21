@@ -2,7 +2,7 @@
   <div class="shell">
     {{crumbs}}
     <h1>{{devices_heading}}</h1>
-    <p class="lede">Find your model and see what the toolkit reaches on it.</p>
+    <p class="lede">{{t:devices.lede}}</p>
   </div>
 </section>
 
@@ -10,11 +10,11 @@
   <div class="shell">
     <div class="toolbar">
       <label class="search">
-        <span class="visually-hidden">Search a model</span>
-        <input type="search" placeholder="Search a model, for example H61A0" data-filter autocomplete="off">
+        <span class="visually-hidden">{{t:devices.search}}</span>
+        <input type="search" placeholder="{{t:devices.placeholder}}" data-filter autocomplete="off">
       </label>
       <label class="category">
-        <span class="visually-hidden">Category</span>
+        <span class="visually-hidden">{{t:devices.category}}</span>
         <select data-filter-category hidden>
           {{devices_categories}}
         </select>
@@ -24,12 +24,12 @@
 
     <div class="tablewrap">
       <table class="matrix matrix-list">
-        <caption class="visually-hidden">Support of each model, per mode, and the DMX channel table</caption>
+        <caption class="visually-hidden">{{t:devices.caption}}</caption>
         <thead>
           <tr>
             <th scope="col">SKU</th>
-            <th scope="col"><span class="visually-hidden">Shape</span></th>
-            <th scope="col">Name</th>
+            <th scope="col"><span class="visually-hidden">{{t:devices.shape}}</span></th>
+            <th scope="col">{{t:devices.name}}</th>
             <th scope="col">{{badge_lan}}</th>
             <th scope="col">{{badge_ble}}</th>
             <th scope="col">{{badge_cloud}}</th>
@@ -46,19 +46,17 @@
         {{caps_legend}}
     </ul>
     <ul class="caps legend-caps">
-        <li><span class="pill pill-unknown">?</span>Still to probe</li>
-        <li><span class="dmx-yes">{{check_mark}}</span>Answers a DMX channel table</li>
-        <li><span class="muted">—</span>Out of reach on this model</li>
+        <li><span class="pill pill-unknown">?</span>{{t:devices.unknown}}</li>
+        <li><span class="dmx-yes">{{check_mark}}</span>{{t:devices.dmx}}</li>
+        <li><span class="muted">—</span>{{t:devices.none}}</li>
     </ul>
   </div>
 </section>
 
 <section class="slab tight">
   <div class="shell narrow">
-    <h2>Your light does more than this?</h2>
-    <p>The list shows what each model answers today. Follow the guide and add
-    what your light does, or a model that is missing, or mail us the light and
-    we add it.</p>
-    <a class="btn" href="{{base}}devices/add/">Add what my light does</a>
+    <h2>{{t:devices.more_title}}</h2>
+    <p>{{t:devices.more_text}}</p>
+    <a class="btn" href="{{base}}devices/add/">{{t:devices.more_cta}}</a>
   </div>
 </section>

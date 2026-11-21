@@ -37,7 +37,8 @@ export function inline(text: unknown): string {
 
 /** Turns a heading into the identifier its anchor uses. */
 export function slugify(text: string): string {
-  return text.toLowerCase().replaceAll(/[^\w]+/gu, "-").replaceAll(/^-|-$/gu, "");
+  // A letter with an accent keeps its base letter: `é` gives `e`.
+  return text.normalize("NFD").replaceAll(/\p{M}/gu, "").toLowerCase().replaceAll(/[^\w]+/gu, "-").replaceAll(/^-|-$/gu, "");
 }
 
 /** What a cell shows where the catalog carries no answer. */

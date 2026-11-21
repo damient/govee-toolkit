@@ -1,0 +1,143 @@
+{
+  "$source": "53c2af29c206fb239497a66aca386c9734d5a499",
+  "intro": "Jede Aktion, aus der govee-CLI, aus Rust, Python, Node.js oder von einem DMX-Pult.",
+  "groups": {
+    "find": "Geräte finden",
+    "control": "Eine Leuchte steuern",
+    "stream": "Die Segmente animieren",
+    "dmx": "Ein Rig per DMX steuern",
+    "raw": "Rohbefehle und Einrichtung"
+  },
+  "entries": {
+    "scan": {
+      "summary": "Nach Geräten suchen und melden, was antwortet.",
+      "detail": "Mit einer Liste von Modi deckt der Scan nur diese Modi ab. Er aktiviert nie einen Modus, den die Konfiguration auslässt. Wenn nichts antwortet, warnt `govee scan` vor dem, was die Antworten fernhält, etwa einem Antwortport, den ein anderes Programm belegt."
+    },
+    "devices": {
+      "summary": "Mehrere Geräte auf einmal benennen, dann auflisten oder ihnen einen Befehl senden.",
+      "detail": "Ein Ziel ist eine Identität (`1C:8B:…`), eine SKU (`H6159`), ein konfigurierter Name (`kitchen`) oder eine Gruppe (`ambient`). Stelle `id:`, `sku:`, `name:` oder `group:` voran, wo die Art mehrdeutig ist. Ohne Ziel wählt es jedes Gerät, das ein Scan findet. Der erste Aufruf, der eine SKU oder jedes Gerät liest, scannt einmal. Jedes Mitglied liefert sein eigenes Ergebnis, und wenn ein Mitglied scheitert, machen die anderen weiter."
+    },
+    "device": {
+      "summary": "Ein Handle für ein Gerät holen, per Identität oder per Name.",
+      "detail": "Es liest die Konfiguration und scannt nichts. Ein Modus legt jeden Aufruf auf dem Handle auf diesen Modus fest. Eine SKU oder eine Gruppe kann mehr als ein Gerät bezeichnen: Nutze dafür `devices`."
+    },
+    "identify": {
+      "summary": "Jedes Gerät nacheinander leuchten lassen, damit eine Person eine Identität einer Leuchte im Raum zuordnet.",
+      "detail": "Der Durchlauf schaltet jedes Gerät aus, lässt sie eines nach dem anderen leuchten und schaltet dann alle aus. Er liefert die Geräte, die er hat leuchten lassen, die Geräte, die gescheitert sind, und die Geräte, die an geblieben sind."
+    },
+    "describe": {
+      "summary": "Melden, was die Gerätedatei für ein Modell deklariert.",
+      "detail": "Es liest keine Hardware. Nutze es, um den Bereich jedes Arguments zu sehen, bevor du einen Wert sendest."
+    },
+    "status": {
+      "summary": "Das Gerät nach seinem aktuellen Zustand fragen.",
+      "detail": "`last_status` liefert den schon bekannten Zustand und sendet nichts.",
+      "action": {
+        "title": "Den Zustand zurücklesen"
+      }
+    },
+    "watch": {
+      "summary": "Ereignissen folgen: Ein Gerät erscheint, ein Modus ändert seinen Zustand."
+    },
+    "doctor": {
+      "summary": "Alles melden, was an der Konfiguration falsch ist.",
+      "detail": "Führe es zuerst aus, wenn ein Gerät nicht antwortet."
+    },
+    "power": {
+      "summary": "Das Gerät ein- oder ausschalten.",
+      "action": {
+        "title": "Ein- und ausschalten"
+      }
+    },
+    "brightness": {
+      "summary": "Die Helligkeit des ganzen Geräts einstellen.",
+      "detail": "Die Gerätedatei enthält den Bereich. Ein Wert außerhalb davon ist ein Fehler, nie eine Begrenzung. Auf einem verifizierten Modell begrenzt die Firmware `0` auf `1`, und das Gerät geht nicht aus.",
+      "action": {
+        "title": "Die Helligkeit einstellen"
+      }
+    },
+    "color": {
+      "summary": "Eine Farbe für das ganze Gerät einstellen.",
+      "action": {
+        "title": "Eine Farbe einstellen"
+      }
+    },
+    "color-temp": {
+      "summary": "Die Farbtemperatur in Kelvin einstellen.",
+      "detail": "Es beendet den Farbmodus: Weiß und Farbe schließen einander aus.",
+      "action": {
+        "title": "Die Farbtemperatur einstellen",
+        "summary": "Weiß und Farbe schließen einander aus: Das beendet die Farbe, die das Gerät zeigt."
+      }
+    },
+    "segment": {
+      "summary": "Die Zonen färben.",
+      "detail": "Eine Farbe füllt jede Zone, und eine Liste gibt eine Farbe pro Zone. Mit `zones` ändern sich nur die genannten Zonen. Das braucht einen Modus, der per Maske färbt. Eine Zonenzahl, die die Einheit nicht darstellt, wird abgelehnt.",
+      "action": {
+        "title": "Die Zonen färben"
+      }
+    },
+    "gradient": {
+      "summary": "Festlegen, ob die Firmware zwischen den Zonen interpoliert, ohne zu färben.",
+      "detail": "Die Interpolation läuft von der letzten Zone zurück zur ersten. Über einen Modus, der die Einstellung in seinem Farb-Frame überträgt, wird sie abgelehnt: Gib dort `gradient` an `segment` mit.",
+      "action": {
+        "title": "Zwischen den Zonen interpolieren",
+        "summary": "Die Interpolation läuft von der letzten Zone zurück zur ersten."
+      }
+    },
+    "music": {
+      "summary": "Einen Effekt abspielen, den das Gerät aus seinem eigenen Mikrofon erzeugt.",
+      "detail": "Das Gerät hört mit seinem eigenen Mikrofon zu, und nichts wird von deinem Rechner gestreamt. Die Effektnummern gehören zum Modus, und `lan` überträgt keinen Musikbefehl. Stelle eine Farbe, eine Temperatur oder Ein/Aus ein, um den Effekt zu beenden.",
+      "action": {
+        "title": "Einen Musikeffekt abspielen",
+        "summary": "Das Gerät hört mit seinem eigenen Mikrofon zu."
+      }
+    },
+    "open-stream": {
+      "summary": "Den Segmentkanal öffnen und scharf halten.",
+      "detail": "Der Stream meldet die Zonenzahl und die Bildrate, die auf der Einheit gemessen wurden. Die Farben enden, wenn du ihn schließt."
+    },
+    "set-zone": {
+      "summary": "Eine Zone des Streams setzen."
+    },
+    "set-all": {
+      "summary": "Jede Zone auf einmal setzen.",
+      "detail": "`set_all` nimmt eine Farbe pro Zone. `fill` gibt jeder Zone dieselbe Farbe. `clear` setzt sie auf Schwarz."
+    },
+    "close": {
+      "summary": "Den Kanal schließen.",
+      "detail": "Nichts anderes entschärft den Kanal. `frames_superseded` zählt die Frames, die ein neuerer ersetzt hat, bevor sie gesendet wurden."
+    },
+    "dmx-profile": {
+      "summary": "Die Kanaltabelle eines Modells ausgeben, um ein Pult damit zu patchen.",
+      "detail": "Jede Personality ist eine Tabelle: `full` belegt 6 Kanäle, und `segment` und `pixel` belegen die Zonen, die die Einheit darstellt. Es liest keine Hardware."
+    },
+    "dmx-patch": {
+      "summary": "Das LAN scannen und den Patch schreiben, mit dem der Node läuft.",
+      "detail": "Es gibt jedem Gerät ohne Eintrag die niedrigsten freien Kanäle und verschiebt nie einen Eintrag, den die Datei schon enthält: Das Pult patcht diese Adresse ebenfalls."
+    },
+    "dmx-identify": {
+      "summary": "Jedes gepatchte Fixture nacheinander leuchten lassen, damit eine Person das Rig liest.",
+      "detail": "Der Durchlauf lässt die Fixtures in Patch-Reihenfolge leuchten, über `lan`. `--address` lässt das Fixture leuchten, das auf diesen Kanal antwortet, und nicht nur das, das dort beginnt."
+    },
+    "dmx-run": {
+      "summary": "Art-Net auf Port 6454 empfangen und die gepatchten Geräte steuern.",
+      "detail": "Der Node antwortet auf jeden Art-Net-Poll, damit ein Pult ihn listet und patcht. `--dry-run` gibt aus, was jedes Fixture liest, und schreibt an kein Gerät."
+    },
+    "send": {
+      "summary": "Einen Eintrag der Gerätedatei senden, per Name.",
+      "detail": "Es funktioniert für ein Modell, das dieser Build nie gesehen hat: Die Gerätedatei deklariert jedes Argument, und der Kern prüft seinen Bereich. `read` macht dasselbe für einen Eintrag, der antwortet."
+    },
+    "provision": {
+      "summary": "Ein neues Gerät über Bluetooth in ein WLAN bringen.",
+      "detail": "Das Passwort wird im Klartext übertragen: Alles in Bluetooth-Reichweite kann es während der Übertragung lesen.",
+      "action": {
+        "title": "In ein WLAN bringen"
+      }
+    },
+    "modes": {
+      "summary": "Einen Befehl auf einen Modus beschränken.",
+      "detail": "Es aktiviert nie einen Modus, den die Konfiguration auslässt, und es weicht nie auf einen anderen aus. Ein Gerät, das kein aktivierter Modus erreicht, ist ein Fehler."
+    }
+  }
+}
