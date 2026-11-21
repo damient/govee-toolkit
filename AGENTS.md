@@ -248,7 +248,7 @@ a single crate; do not weaken it.
 
 Node and Python wrap the crate (napi-rs, PyO3). Each package versions and
 releases independently (`rust-vX.Y.Z`, `cli-vX.Y.Z`, `dmx-vX.Y.Z`,
-`python-vX.Y.Z`, `node-vX.Y.Z`) through the workflows in `.github/workflows/`. The policy is
+`server-vX.Y.Z`, `python-vX.Y.Z`, `node-vX.Y.Z`) through the workflows in `.github/workflows/`. The policy is
 `docs/versioning.md`.
 
 `integrations/mcp` is a local MCP server over stdio, released as `mcp-vX.Y.Z`
