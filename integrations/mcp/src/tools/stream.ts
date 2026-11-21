@@ -107,9 +107,12 @@ async function openAll(govee: Govee, input: StreamInput): Promise<Opened[]> {
   throw refused.reason;
 }
 
-/** `setInterval`, not chained timeouts: the clock does not drift. */
+/**
+ * `setInterval`, not chained timeouts: the clock does not drift. A frame that
+ * the stream refuses rejects the call: a throw in the timer would end the process.
+ */
 function play(opened: Opened[], frames: Frame[], count: number, holdMs: number): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     let next = 0;
     const tick = (): void => {
       const frame = frames[next % frames.length];
@@ -118,7 +121,13 @@ function play(opened: Opened[], frames: Frame[], count: number, holdMs: number):
         resolve();
         return;
       }
-      for (const { stream } of opened) paint(stream, frame);
+      try {
+        for (const { stream } of opened) paint(stream, frame);
+      } catch (error) {
+        clearInterval(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
+        return;
+      }
       next += 1;
     };
     const timer = setInterval(tick, holdMs);
