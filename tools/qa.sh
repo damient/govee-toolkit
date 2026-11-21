@@ -163,13 +163,24 @@ fi
 # The site, the Python binding, the Node binding and the MCP server each carry
 # a script of their own. One check here runs one script there, and its summary
 # prints inside this one when it fails.
-if outside_scope "other packages" "the site, the bindings and the MCP server; run tools/qa.sh"; then
+if outside_scope "other packages" "the site, the bindings, the MCP server and the apps; run tools/qa.sh"; then
   :
 else
   check_script site "$root/tools/qa-site.sh"
   check_script python "$root/tools/qa-python.sh"
   check_script node "$root/tools/qa-node.sh"
   check_script mcp "$root/tools/qa-mcp.sh"
+  if [ -d "$root/apps/studio/node_modules" ]; then
+    check_in "$root/apps/studio" "studio lint" npm run lint
+  else
+    skip "studio lint" "npm ci --prefix apps/studio"
+  fi
+  # The webview links to WebKitGTK on Linux.
+  if [ "$(uname)" = Linux ] && ! pkg-config --exists webkit2gtk-4.1; then
+    skip "desktop clippy" "install libwebkit2gtk-4.1-dev"
+  else
+    check_in "$root/apps/desktop/src-tauri" "desktop clippy" cargo clippy -- -D warnings
+  fi
 fi
 
 # Every check above runs through the scripts under tools/. -x follows
