@@ -17,11 +17,11 @@ use govee_toolkit_server::{Options, Web};
 use tauri::{Url, WebviewUrl, WebviewWindowBuilder};
 
 /// A release build serves the UI that `govee-toolkit-server` compiles in. A
-/// debug build reads `apps/dashboard/dist`, so a rebuild of the UI shows on a
+/// debug build reads `apps/studio/dist`, so a rebuild of the UI shows on a
 /// reload.
 fn web() -> Web {
     if cfg!(debug_assertions) {
-        Web::Dir(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../dashboard/dist"))
+        Web::Dir(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../studio/dist"))
     } else {
         Web::Embedded
     }
@@ -46,7 +46,7 @@ fn main() {
             });
 
             WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
-                .title("govee-toolkit")
+                .title("Govee Toolkit Studio")
                 .inner_size(960.0, 720.0)
                 .min_inner_size(400.0, 480.0)
                 .build()?;

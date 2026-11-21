@@ -1,4 +1,4 @@
-//! The local HTTP server of the dashboard. The `govee-server` binary runs it
+//! The local HTTP server of Studio. The `govee-server` binary runs it
 //! on its own, and the desktop app runs it in its process.
 //!
 //! The server holds no protocol logic: every answer comes from
@@ -38,7 +38,7 @@ pub struct Options {
 /// The source of the web UI.
 #[derive(Debug, Clone, Default)]
 pub enum Web {
-    /// The build of `apps/dashboard` compiled into the binary. A build made
+    /// The build of `apps/studio` compiled into the binary. A build made
     /// without it answers every path outside `/api` with 404 and a message.
     #[default]
     Embedded,

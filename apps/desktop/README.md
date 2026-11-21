@@ -1,13 +1,13 @@
 # Desktop app
 
-The dashboard in a window, on Windows, macOS and Linux, built with Tauri 2.
+Studio in a window, on Windows, macOS and Linux, built with Tauri 2.
 
-- The web UI is the build of [`../dashboard/`](../dashboard/).
+- The web UI is the build of [`../studio/`](../studio/).
 - The server is `govee-toolkit-server`, in the same process. It listens on a
   free loopback port and serves the web UI. The window opens the address of
   the server.
 - A release build serves the UI that the server crate compiles in. A debug
-  build reads `../dashboard/dist`.
+  build reads `../studio/dist`.
 
 `src-tauri` is a Cargo project of its own, outside the workspace of
 `packages/rust`, because on Linux it links to WebKitGTK.
@@ -27,7 +27,7 @@ npm run dev
 ```
 
 `dev` builds the web UI once, then opens the window. After a change to
-`../dashboard/src`, run `npm run build` in `../dashboard` and reload the
+`../studio/src`, run `npm run build` in `../studio` and reload the
 window.
 
 `npm run build` makes the installers of the current platform under

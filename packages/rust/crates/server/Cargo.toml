@@ -1,6 +1,6 @@
 [package]
 name = "govee-toolkit-server"
-description = "Local HTTP server over govee-toolkit: the backend of the web dashboard and of the desktop app. Unofficial."
+description = "The local server of Govee Toolkit Studio: control Govee lights from a browser, over the LAN, over Bluetooth or through the cloud."
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ repository.workspace = true
 authors.workspace = true
 keywords = ["govee", "dashboard", "led", "smart-home", "iot"]
 categories = ["web-programming::http-server", "hardware-support"]
-# `web/` is the build of apps/dashboard, which the release workflow copies
+# `web/` is the build of apps/studio, which the release workflow copies
 # beside the manifest: `cargo package` cannot reach above it.
 include = ["src/**", "build.rs", "web/**", "README.md"]
 
@@ -19,7 +19,7 @@ name = "govee-server"
 path = "src/main.rs"
 
 [features]
-# Same set as the CLI: a person picks a mode in the dashboard and expects it
+# Same set as the CLI: a person picks a mode in Studio and expects it
 # to answer. On Linux `ble` reaches BlueZ over D-Bus, so a build from source
 # needs `libdbus-1-dev`.
 default = ["lan", "ble", "cloud"]

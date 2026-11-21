@@ -68,20 +68,20 @@ jobs:
             exit 1
           fi
       # build.rs embeds the web UI. The crate on crates.io reads it from `web/`,
-      # because `cargo package` cannot reach apps/dashboard above the manifest.
+      # because `cargo package` cannot reach apps/studio above the manifest.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.crate.outputs.published == 'false'
         with:
           node-version: "26"
           cache: npm
-          cache-dependency-path: apps/dashboard/package-lock.json
+          cache-dependency-path: apps/studio/package-lock.json
       - name: Build the web UI
         if: steps.crate.outputs.published == 'false'
-        working-directory: apps/dashboard
+        working-directory: apps/studio
         run: npm ci && npm run build
       - name: Vendor the web UI
         if: steps.crate.outputs.published == 'false'
-        run: cp -R ../../../../apps/dashboard/dist web
+        run: cp -R ../../../../apps/studio/dist web
       # A vendoring step that did nothing would ship a binary with no UI, so
       # the file list is read before the upload.
       - name: The upload carries the web UI

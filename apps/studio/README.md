@@ -1,6 +1,6 @@
-# Dashboard
+# Studio
 
-The web UI of the dashboard, in TypeScript with no framework. Two hosts serve
+The web UI of Studio, the app that controls the lights, in TypeScript with no framework. Two hosts serve
 the same build:
 
 - `govee-server` (`packages/rust/crates/server`), in a browser;

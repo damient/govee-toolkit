@@ -1,4 +1,4 @@
-//! `govee-server` — the web dashboard, served from this machine.
+//! `govee-server` — Studio, served from this machine.
 
 // A binary reports and exits; the no-panic rule that protects a host
 // application from a library does not apply here.
@@ -12,15 +12,15 @@ use clap::Parser;
 use govee_toolkit::exit::{Failure, Writer};
 use govee_toolkit_server::{DEFAULT_LISTEN, Options, Web};
 
-/// Serve the dashboard API and its web UI.
+/// Serve Studio: its API and its web UI.
 #[derive(Debug, Parser)]
 #[command(version)]
 struct Cli {
-    /// The address to listen on. Use `0.0.0.0:<port>` to reach the dashboard
+    /// The address to listen on. Use `0.0.0.0:<port>` to reach Studio
     /// from another device on the network. The API has no authentication.
     #[arg(long, default_value = DEFAULT_LISTEN)]
     listen: SocketAddr,
-    /// Serve the web UI from this directory, such as `apps/dashboard/dist`,
+    /// Serve the web UI from this directory, such as `apps/studio/dist`,
     /// and not from the copy built into the binary.
     #[arg(long)]
     web: Option<PathBuf>,
