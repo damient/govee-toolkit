@@ -43,7 +43,7 @@ function scan(server: McpServer): void {
       attempt(async (govee) => {
         const found = await govee.scan(modes);
         const devices = found.map((device) => deviceRow(device));
-        const problems = found.length === 0 ? govee.problems() : [];
+        const problems = found.length === 0 ? govee.transportProblems(modes) : [];
         return ok(problems.length === 0 ? { devices } : { devices, problems });
       }),
   );

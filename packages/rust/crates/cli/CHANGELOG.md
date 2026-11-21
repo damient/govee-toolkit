@@ -11,8 +11,9 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 - The version moves to 1.x: a breaking change now raises the major number.
   See [`docs/versioning.md`](../../../../docs/versioning.md).
-- `govee scan` that hears nothing prints each problem of `govee doctor` as a
-  warning on stderr, such as a reply port that another process holds.
+- `govee scan` that hears nothing prints, as a warning on stderr, what keeps
+  each scanned mode from its devices, such as a reply port that another
+  process holds.
 
 ## [0.11.0] — 2026-11-15
 

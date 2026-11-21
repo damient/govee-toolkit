@@ -377,6 +377,12 @@ export declare class Govee {
   modes(): Array<string>
   /** Everything wrong with the configuration, as one sentence each. */
   problems(): Array<string>
+  /**
+   * What keeps the transports of `modes`, or of every mode, from their
+   * devices on this host, as one sentence each. A scan that hears nothing
+   * reports these, such as a reply port that another process holds.
+   */
+  transportProblems(modes?: Array<string> | undefined | null): Array<string>
   /** The configuration in force. */
   get config(): Config
   /** The device catalog in force. */

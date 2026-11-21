@@ -79,6 +79,20 @@ impl Govee {
             .collect()
     }
 
+    /// What keeps the transports of `modes`, or of every mode, from their
+    /// devices on this host, as one sentence each. A scan that hears nothing
+    /// reports these, such as a reply port that another process holds.
+    #[pyo3(signature = (modes = None))]
+    fn transport_problems(&self, modes: Option<Vec<String>>) -> PyResult<Vec<String>> {
+        let wanted = modes.map(conv::modes).transpose()?;
+        Ok(self
+            .inner
+            .transport_problems(wanted.as_deref())
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect())
+    }
+
     /// The configuration in force.
     #[getter]
     fn config(&self) -> Config {

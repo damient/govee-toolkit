@@ -172,15 +172,20 @@ impl Govee {
         problems.extend(self.missing_credentials());
         problems.extend(self.absent_transports());
         problems.extend(self.check_devices());
-        problems.extend(self.transport_problems());
+        problems.extend(self.transport_problems(None));
         problems
     }
 
-    fn transport_problems(&self) -> Vec<Problem> {
+    /// What keeps the transports of the modes named, or of every mode with
+    /// `None`, from their devices on this host. A scan that hears nothing
+    /// reports these, such as a reply port that another process holds.
+    #[must_use]
+    pub fn transport_problems(&self, modes: Option<&[Mode]>) -> Vec<Problem> {
         self.inner
             .transports
-            .values()
-            .flat_map(|transport| transport.problems())
+            .iter()
+            .filter(|(mode, _)| modes.is_none_or(|modes| modes.contains(mode)))
+            .flat_map(|(_, transport)| transport.problems())
             .map(|message| Problem {
                 device: None,
                 message,
