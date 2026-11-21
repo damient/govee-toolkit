@@ -57,8 +57,7 @@ function listKnown(server: McpServer): void {
       description:
         "List every device that a scan found, with its health per mode. " +
         "The first call scans each mode that no scan covered yet. A later call reads what the scans found and sends nothing: " +
-        "call `scan` to find a device that answered since. " +
-        "By default, the server releases the network after 30 s with no call, and the next call scans again.",
+        "call `scan` to find a device that answered since.",
       inputSchema: z.object({}),
       outputSchema: z.object({ devices: z.array(deviceShape) }),
       annotations: { ...CONTROL, readOnlyHint: true },
