@@ -171,6 +171,7 @@ Control tools drive the lights. The SDK starts on the first call.
 | `status` | Reads the state of a device |
 | `set` | Sets power, brightness, color, white temperature, a segment, a gradient or music mode |
 | `send` | Sends one command that the device file declares |
+| `stream` | Plays frames on the segments of one or more devices, then gives back their colors |
 | `identify` | Lights the devices one by one, so you see which is which |
 | `doctor` | Lists the problems in your configuration |
 
@@ -183,5 +184,5 @@ or every device of one model.
 order in your `config.yaml` applies. A call that fails returns the error code
 of the SDK, such as `mode_not_enabled`, and stays on the mode it used.
 
-To put a device on your Wi-Fi or to stream segments, use the `govee` command
-or a binding. The Wi-Fi password then stays between you and the device.
+To put a device on your Wi-Fi, use the `govee` command or a binding. The Wi-Fi
+password then stays between you and the device.
