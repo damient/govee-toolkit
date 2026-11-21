@@ -4,6 +4,8 @@ Changes to `govee-toolkit-mcp`, the MCP server in `integrations/mcp`. It
 versions apart from the binding it wraps and releases under `mcp-vX.Y.Z`. The
 policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.3.0] — 2026-11-21
+
 ### Added
 
 - `stream` plays frames on the segment channel of one or more devices in
@@ -19,6 +21,7 @@ policy is [`../../docs/versioning.md`](../../docs/versioning.md).
   same host hears replies. `GOVEE_MCP_IDLE_MS` sets the delay; 0 disables it.
 - `status` after a command from the server waits until the device reports
   the new state, for the time that the device file records.
+- The server wraps the Node binding `govee-toolkit` 1.8.0.
 
 ## [0.2.0] — 2026-11-15
 
