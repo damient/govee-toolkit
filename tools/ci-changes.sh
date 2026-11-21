@@ -4,14 +4,17 @@
 
 set -euo pipefail
 
-core=false python=false node=false mcp=false docs=false
+core=false python=false node=false mcp=false docs=false apps=false
 
 while IFS= read -r path; do
   case $path in
   # A changelog ships in a release note and is checked by no build.
   CHANGELOG.md | */CHANGELOG.md) ;;
+  # The desktop app builds on the server crate.
+  packages/rust/crates/server/*) core=true apps=true ;;
   # Every package embeds devices/ and builds on the core.
   packages/rust/* | devices/* | tests/*) core=true ;;
+  apps/*) apps=true ;;
   # `xtask api` joins the Python and Node signatures for the MCP server.
   packages/python/*) python=true mcp=true ;;
   # The Python job lints these with ruff.
@@ -20,13 +23,14 @@ while IFS= read -r path; do
   integrations/mcp/* | tools/qa-mcp.sh | tools/lib/*) mcp=true ;;
   # The MCP server ships docs/ and serves it through `read_doc`.
   docs/*) docs=true mcp=true ;;
-  tools/ci-changes.sh) core=true python=true node=true mcp=true docs=true ;;
+  tools/ci-changes.sh) core=true python=true node=true mcp=true docs=true apps=true ;;
   # The jobs that always run cover these, or pages.yml builds them.
-  site/* | apps/* | social/* | tools/*.sh | tools/README.md) ;;
+  site/* | social/* | tools/*.sh | tools/README.md) ;;
   *.md | LICENSE | typos.toml | .github/dependabot.yml) ;;
   .github/workflows/pages.yml | .github/workflows/*-release.yml) ;;
-  *) core=true python=true node=true mcp=true docs=true ;;
+  *) core=true python=true node=true mcp=true docs=true apps=true ;;
   esac
 done
 
-printf '%s\n' "core=$core" "python=$python" "node=$node" "mcp=$mcp" "docs=$docs"
+printf '%s\n' "core=$core" "python=$python" "node=$node" "mcp=$mcp" "docs=$docs" \
+  "apps=$apps"

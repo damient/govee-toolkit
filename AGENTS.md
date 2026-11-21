@@ -303,8 +303,8 @@ push:
 | `packages/python/` | `tools/qa-python.sh` |
 | `packages/node/` | `tools/qa-node.sh` |
 | `integrations/mcp/` | `tools/qa-mcp.sh` |
-| `apps/studio/` | `npm run lint --prefix apps/studio` |
-| `apps/desktop/` | `cargo clippy` in `apps/desktop/src-tauri` |
+| `apps/studio/` | `tools/qa.sh studio` |
+| `apps/desktop/` | `tools/qa.sh desktop` |
 | `tools/*.sh` | `tools/qa.sh "shell"` |
 
 `-p <crate>` narrows the cargo checks to one crate and skips the generated
