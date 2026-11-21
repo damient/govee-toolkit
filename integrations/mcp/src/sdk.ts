@@ -12,6 +12,7 @@ let started: Promise<Govee> | undefined;
 const idleMs = idleSetting(process.env.GOVEE_MCP_IDLE_MS);
 let active = 0;
 let idleTimer: NodeJS.Timeout | undefined;
+let releasing: Promise<void> = Promise.resolve();
 
 function idleSetting(value: string | undefined): number {
   if (value === undefined || value === "") return 30_000;
@@ -29,9 +30,16 @@ export function sdk(): Promise<Govee> {
   return started;
 }
 
-/** Releases every transport. Without it, `ble` loses the last frame it wrote. */
+/** Releases every transport. The next call acquires each one again and keeps the known devices. */
+async function release(): Promise<void> {
+  const govee = await started?.catch(() => null);
+  await govee?.close();
+}
+
+/** Releases every transport and drops the SDK. Without it, `ble` loses the last frame it wrote. */
 export async function closeSdk(): Promise<void> {
   clearTimeout(idleTimer);
+  await releasing;
   const running = started;
   started = undefined;
   const govee = await running?.catch(() => null);
@@ -45,6 +53,8 @@ export async function attempt(
   clearTimeout(idleTimer);
   active += 1;
   try {
+    // A call that arrives during an idle release waits for it, then binds again.
+    await releasing;
     return await answer(await sdk());
   } catch (error) {
     return fail(error);
@@ -52,8 +62,8 @@ export async function attempt(
     active -= 1;
     if (active === 0 && idleMs > 0) {
       idleTimer = setTimeout(() => {
-        closeSdk().catch((error: unknown) => {
-          console.error("idle close:", error);
+        releasing = release().catch((error: unknown) => {
+          console.error("idle release:", error);
         });
       }, idleMs);
       idleTimer.unref();
