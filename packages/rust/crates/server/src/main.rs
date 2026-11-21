@@ -1,7 +1,6 @@
 //! `govee-server` — Studio, served from this machine.
 
-// A binary reports and exits; the no-panic rule that protects a host
-// application from a library does not apply here.
+// A binary reports and exits.
 #![allow(clippy::print_stdout)]
 
 use std::net::SocketAddr;
@@ -43,7 +42,7 @@ fn main() -> ExitCode {
 }
 
 async fn run(cli: Cli) -> std::io::Result<()> {
-    let listener = tokio::net::TcpListener::bind(cli.listen).await?;
+    let listener = std::net::TcpListener::bind(cli.listen)?;
     println!("govee-server: http://{}", listener.local_addr()?);
     let options = Options {
         web: cli.web.map_or(Web::Embedded, Web::Dir),

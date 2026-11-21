@@ -13,15 +13,14 @@
 use std::net::{Ipv4Addr, TcpListener};
 use std::path::PathBuf;
 
-use govee_toolkit_server::{Options, Web};
+use govee_toolkit_server::{Options, WEB_DIR, Web};
 use tauri::{Url, WebviewUrl, WebviewWindowBuilder};
 
 /// A release build serves the UI that `govee-toolkit-server` compiles in. A
-/// debug build reads `apps/studio/dist`, so a rebuild of the UI shows on a
-/// reload.
+/// debug build reads the same files from disk.
 fn web() -> Web {
     if cfg!(debug_assertions) {
-        Web::Dir(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../studio/dist"))
+        Web::Dir(PathBuf::from(WEB_DIR))
     } else {
         Web::Embedded
     }
@@ -68,16 +67,11 @@ fn main() {
             menu::install(app)?;
 
             let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
-            listener.set_nonblocking(true)?;
             let url = Url::parse(&format!("http://{}/", listener.local_addr()?))?;
 
             let options = Options { web: web() };
             tauri::async_runtime::spawn(async move {
-                let served = match tokio::net::TcpListener::from_std(listener) {
-                    Ok(listener) => govee_toolkit_server::serve(listener, &options).await,
-                    Err(e) => Err(e),
-                };
-                if let Err(e) = served {
+                if let Err(e) = govee_toolkit_server::serve(listener, &options).await {
                     eprintln!("govee-toolkit-desktop: server: {e}");
                 }
             });

@@ -23,10 +23,7 @@ impl Sdk {
 
 /// Each request runs a scan, so the answer takes one `lan` scan window.
 pub(crate) async fn list(State(sdk): State<std::sync::Arc<Sdk>>) -> Response {
-    let found = match sdk.get().await {
-        Ok(govee) => govee.scan(Some(&[Mode::Lan])).await,
-        Err(error) => Err(error),
-    };
+    let found = async { sdk.get().await?.scan(Some(&[Mode::Lan])).await }.await;
     match found {
         Ok(devices) => {
             let devices: Vec<Value> = devices

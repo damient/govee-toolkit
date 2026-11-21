@@ -14,12 +14,11 @@ publish = false
 [workspace]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = "2"
 
 [dependencies]
 govee-toolkit-server = { path = "../../../packages/rust/crates/server" }
-tauri = { version = "2", features = [] }
-tokio = { version = "1", features = ["net"] }
+tauri = "2"
 
 [features]
 # `tauri dev` builds without it, and `tauri build` turns it on: it makes the

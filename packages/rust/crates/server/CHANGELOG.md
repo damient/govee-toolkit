@@ -15,3 +15,5 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   number of SKUs in the embedded catalog.
 - `GET /api/devices` runs a `lan` scan and answers the devices that replied.
   The SDK starts on the first call and reads the configuration file.
+- `serve` takes a `std::net::TcpListener`, and `WEB_DIR` names the folder
+  that the build embeds. A build with no web UI prints a warning.

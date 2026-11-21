@@ -769,7 +769,7 @@ dependencies = [
  "clap",
  "govee-toolkit",
  "http-body-util",
- "serde",
+ "mime_guess",
  "serde_json",
  "tokio",
  "tower",

@@ -6,8 +6,9 @@
 //!
 //! A build script fails the build loudly: the no-panic rule of the library
 //! does not apply here.
-#![allow(clippy::expect_used, clippy::panic, clippy::format_push_string)]
+#![allow(clippy::expect_used, clippy::panic)]
 
+use std::fmt::Write;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
@@ -19,20 +20,19 @@ fn main() {
         .nth(4)
         .map(|root| root.join("apps/studio"));
     let dir = match studio {
-        // The whole folder is watched, so a first build of `dist/` reruns
-        // this script. A missing path would rerun it on every build.
-        Some(studio) if studio.is_dir() => {
-            println!("cargo:rerun-if-changed={}", studio.display());
-            studio.join("dist")
-        }
-        _ => {
-            let vendored = manifest.join("web");
-            if vendored.is_dir() {
-                println!("cargo:rerun-if-changed={}", vendored.display());
-            }
-            vendored
-        }
+        Some(studio) if studio.is_dir() => studio.join("dist"),
+        _ => manifest.join("web"),
     };
+    // A missing path reruns this script on every build, so the first build
+    // of the UI is picked up.
+    println!("cargo:rerun-if-changed={}", dir.display());
+    println!("cargo:rustc-env=GOVEE_SERVER_WEB_DIR={}", dir.display());
+    if !dir.is_dir() {
+        println!(
+            "cargo:warning={} is missing: the binary carries no web UI",
+            dir.display()
+        );
+    }
     println!("cargo:rerun-if-changed=build.rs");
 
     let mut files = Vec::new();
@@ -41,7 +41,7 @@ fn main() {
     }
     files.sort();
 
-    let mut out = String::from("static ASSETS: &[(&str, &[u8])] = &[\n");
+    let mut out = String::from("pub(crate) static ASSETS: &[(&str, &[u8])] = &[\n");
     for path in &files {
         let name = path
             .strip_prefix(&dir)
@@ -50,10 +50,12 @@ fn main() {
             .map(|c| c.as_os_str().to_str().expect("utf-8 file name"))
             .collect::<Vec<_>>()
             .join("/");
-        out.push_str(&format!(
-            "    ({name:?}, include_bytes!({:?})),\n",
+        writeln!(
+            out,
+            "    ({name:?}, include_bytes!({:?})),",
             path.display().to_string()
-        ));
+        )
+        .expect("write to a String");
     }
     out.push_str("];\n");
 
