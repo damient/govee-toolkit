@@ -191,13 +191,13 @@ Details: [`devices/README.md`](devices/README.md).
 
 ## Documenting an undocumented command
 
-1. Try the payload through the **raw payload field** of Studio
-   (`apps/studio/`).
+1. Write the candidate payload as an entry in the device file of the SKU, and
+   send it with `govee send <device> <entry>`.
 2. Add the observed frame to `tests/fixtures/lan-captures/`, redacted:
    [checklist](tests/fixtures/README.md#redaction-checklist).
 3. Document it in `docs/protocol/lan.md`: payload structure, compatible SKUs,
    sample frame, observed behavior.
-4. Formalize the command in the relevant `devices/*.yaml` files.
+4. Add the entry to the device file of each other SKU that answered it.
 5. Add a conformance vector under `tests/fixtures/golden/`, and say in its
    `source` whether the bytes come from a capture or were worked out from the
    documented layout. Only the first is evidence.
