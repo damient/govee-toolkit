@@ -8,7 +8,7 @@ The cloud waits as a third mode for the days you are away. And the toolkit
 sends commands you have never seen before: the undocumented ones, read off the
 wire.
 
-[![status](https://img.shields.io/badge/status-beta-yellow)](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md)
+[![status](https://img.shields.io/badge/status-stable-green)](https://github.com/damient/govee-toolkit/blob/main/docs/roadmap.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/damient/govee-toolkit/blob/main/LICENSE)
 [![ci](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/damient/govee-toolkit/actions/workflows/ci.yml?query=branch%3Amain)
 

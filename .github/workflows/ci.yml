@@ -364,7 +364,6 @@ jobs:
             | grep -qE '^[a-z]+(\([a-z0-9-]+\))?!: |^BREAKING[ -]CHANGE: '; then
             echo "release-type=major" >> "$GITHUB_OUTPUT"
           fi
-      # `release-type` takes semver terms: pre-1.0, a break still needs `major`.
       - uses: obi1kenobi/cargo-semver-checks-action@6b69fcf40e9b5fb17adeb57e4b6ecd020649a239 # v2.9
         with:
           package: govee-toolkit

@@ -14,8 +14,8 @@ policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 ### Changed
 
 - The SDK closes 30 s after the last call and releases UDP port 4002, so the
-  `govee` command on the same host hears replies. `GOVEE_MCP_IDLE_MS` sets it.
-- `status` after a command from the server waits until the device reports
+  `govee` command on the same host hears replies. `GOVEE_MCP_IDLE_MS` sets
+  the delay, and 0 keeps the SDK open.- `status` after a command from the server waits until the device reports
   the new state, for the time that the device file records.
 
 ## [0.2.0] — 2026-11-15

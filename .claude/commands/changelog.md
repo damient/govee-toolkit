@@ -196,9 +196,9 @@ what does not need a paragraph.
 
 Report the files touched and the entries added, as a list. Then the bump the
 commit types imply, so the version is a reading rather than a guess: a `!` or a
-`BREAKING CHANGE:` trailer is the breaking bump — pre-1.0, `0.x` to `0.(x+1)` —
-a `feat` is the minor one, a `fix` or a `perf` the patch. Name the highest one
-in the range and the commit that forces it.
+`BREAKING CHANGE:` trailer is the breaking bump — the major one, and `0.x`
+to `0.(x+1)` for `mcp` — a `feat` is the minor one, a `fix` or a `perf` the
+patch. Name the highest one in the range and the commit that forces it.
 
 Do not tag, commit or push, and bump no manifest the arguments did not ask
 for.

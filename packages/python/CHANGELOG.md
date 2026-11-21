@@ -4,8 +4,14 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [1.9.0] — 2026-11-21
+
 ### Changed
 
+- The version moves to 1.x: a breaking change now raises the major number.
+  See [`docs/versioning.md`](../../docs/versioning.md).
+- `DeviceHandle.status()` after a command from the same process waits for
+  the status settle time that the device file records, then reports.
 - `Govee.problems()` reports a `lan` reply port that another process holds:
   the kernel can give the replies to that process.
 

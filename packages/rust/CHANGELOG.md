@@ -7,15 +7,22 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [1.17.0] — 2026-11-21
+
 ### Added
 
-- `DeviceHandle::status()` waits for `Measurements::status_settle_ms` after a
-  command from the same process, so it reports the new state.
-- `Measurements::status_settle()` gives that time for one mode.
-- **Breaking:** `Measurements` carries `status_settle_ms`. A struct literal takes
-  `..Measurements::default()`.
+- `Measurements::status_settle()` gives the status settle time of one mode.
 - `Transport::problems()` reports what keeps a transport from its devices on
   this host. The default reports nothing.
+
+### Changed
+
+- The version moves to 1.x: a breaking change now raises the major number.
+  See [`docs/versioning.md`](../../docs/versioning.md).
+- **Breaking:** `Measurements` carries `status_settle_ms`. A struct literal
+  takes `..Measurements::default()`.
+- `DeviceHandle::status()` waits for `Measurements::status_settle_ms` after a
+  command from the same process, so it reports the new state.
 - `Govee::problems()` reports a `lan` reply port that another process holds:
   the kernel can give the replies to that process.
 

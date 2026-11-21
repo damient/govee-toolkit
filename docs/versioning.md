@@ -16,24 +16,32 @@ Each package keeps its own —
 [`CHANGELOG.md`](../CHANGELOG.md) carries what belongs to no package — the
 device catalog, the documentation, the tooling and CI — and indexes the six.
 
-## Semver, and what pre-1.0 means
+## Semver
 
-Every package follows [semantic versioning](https://semver.org/). All of them
-are pre-1.0 today, and pre-1.0 has one specific meaning here:
+Every package follows [semantic versioning](https://semver.org/). `rust`,
+`cli`, `python`, `node` and `dmx` are at 1.x:
 
-- `0.x.y` → `0.(x+1).0` may break the public API. It is the breaking bump.
-- `0.x.y` → `0.x.(y+1)` does not break it.
+- `x.y.z` → `(x+1).0.0` breaks the public API. It is the breaking bump.
+- `x.y.z` → `x.(y+1).0` adds to the public API.
+- `x.y.z` → `x.y.(z+1)` fixes a fault and does not change the public API.
 
-A breaking change still gets a changelog entry saying what broke and what to do
-about it. Pre-1.0 is permission to move, not permission to move quietly.
+`mcp` is pre-1.0. For it, `0.x.y` → `0.(x+1).0` is the breaking bump, and
+`0.x.y` → `0.x.(y+1)` does not break the public API.
+
+The first 1.x version of a package keeps the minor number of its last 0.x
+version: `govee-toolkit` 0.16.0 is followed by 1.17.0.
+
+A breaking change gets a changelog entry that says what broke and what to do
+instead.
+
+Group the breaking changes into one major release. Until that release, ship
+the replacement in a minor release and deprecate the old item, as
+[Deprecation](#deprecation) says.
 
 A breaking change can merge before the release that bumps the version. Its
 commit declares the break with `!` or a `BREAKING CHANGE:` trailer. CI then
 accepts the change against the crate on crates.io. The release workflow checks
 the change again against the bumped manifest, before it publishes.
-
-1.0 arrives when the mode model, the `Transport` trait and the device schema
-have survived `ble` and `cloud` landing — not on a date.
 
 ## Tags and packages
 
@@ -180,8 +188,8 @@ what a release pins.
 
 Which number to bump comes from the commit types in the range: a `feat` is a
 minor bump, a `fix` a patch, and a `!` or a `BREAKING CHANGE:` trailer the
-breaking one — pre-1.0, that is the minor bump above. `CONTRIBUTING.md` has the
-convention.
+breaking one: the major bump, or the minor bump for `mcp`. `CONTRIBUTING.md`
+has the convention.
 
 ## MSRV
 
@@ -190,8 +198,7 @@ checked in CI.
 
 - It is **raised in the same commit as the feature that needs it**, never after
   the fact, and the commit says which feature.
-- **A raise is a minor bump** — `0.x` → `0.(x+1)` pre-1.0, and a minor release
-  after 1.0. It is not a patch: someone pinned to an older toolchain finds out
+- **A raise is a minor bump** — `x.y` → `x.(y+1)`. It is not a patch: someone pinned to an older toolchain finds out
   from the version number, not from a failed build.
 - MSRV is not chased upward for its own sake.
 
