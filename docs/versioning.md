@@ -1,6 +1,6 @@
 # Versioning and compatibility
 
-Six packages release independently off one shared core. This page is the rule
+Seven packages release independently off one shared core. This page is the rule
 they follow, written before the first release rather than after the second one
 breaks.
 
@@ -12,9 +12,10 @@ Each package keeps its own —
 [`python`](../packages/python/CHANGELOG.md),
 [`node`](../packages/node/CHANGELOG.md),
 [`dmx`](../packages/rust/crates/dmx/CHANGELOG.md),
+[`server`](../packages/rust/crates/server/CHANGELOG.md),
 [`mcp`](../integrations/mcp/CHANGELOG.md). The root
 [`CHANGELOG.md`](../CHANGELOG.md) carries what belongs to no package — the
-device catalog, the documentation, the tooling and CI — and indexes the six.
+device catalog, the documentation, the tooling and CI — and indexes the seven.
 
 ## Semver
 
@@ -50,12 +51,13 @@ the change again against the bumped manifest, before it publishes.
 | `rust-vX.Y.Z` | `govee-toolkit` | crates.io |
 | `cli-vX.Y.Z` | `govee-toolkit-cli` | crates.io |
 | `dmx-vX.Y.Z` | `govee-toolkit-dmx` | crates.io |
+| `server-vX.Y.Z` | `govee-toolkit-server` | crates.io |
 | `python-vX.Y.Z` | `govee-toolkit` | PyPI |
 | `node-vX.Y.Z` | `govee-toolkit` | npm |
 | `mcp-vX.Y.Z` | `govee-toolkit-mcp` | npm |
 
-Versions are **not** kept in lockstep. Six packages that move at different
-speeds and share a version number would mean publishing five no-op releases
+Versions are **not** kept in lockstep. Seven packages that move at different
+speeds and share a version number would mean publishing six no-op releases
 every time one of them changed.
 
 ## One crate, and what a feature means
@@ -151,7 +153,8 @@ The changelog is the source, and the release is derived from it:
 2. A signed tag names the package and the version — `git tag -s rust-v0.3.0 -m
    rust-v0.3.0 && git push origin rust-v0.3.0`. Push each tag alone: GitHub
    starts no workflow for a push of more than three tags. Push `rust-v…`
-   before `cli-v…` and `dmx-v…`, which need the core on crates.io.
+   before `cli-v…`, `dmx-v…` and `server-v…`, which need the core on
+   crates.io.
 3. The tag starts the package's release workflow. Its first step,
    `tools/ci-passed.sh`, waits for CI on the tagged commit and fails the run
    unless CI passed. After a CI rerun that passes, rerun the release job.
