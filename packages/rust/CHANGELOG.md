@@ -15,7 +15,8 @@ releases apart and keeps
 - `Transport::problems()` reports what keeps a transport from its devices on
   this host. The default reports nothing.
 - `lan::Transport::close()` stops the background tasks and frees the reply
-  port before it returns. Every later command fails with `Error::Io`.
+  port before it returns. The next scan, command or status request binds the
+  port again, and the known devices stay.
 
 ### Changed
 
@@ -27,8 +28,8 @@ releases apart and keeps
   other `close()` of the crate. Rename each call.
 - **Breaking:** `LanConfig::cache_path()` is renamed
   `LanConfig::device_cache_file()`, like `paths::device_cache_file()`.
-- **Breaking:** `Govee::close()` frees the `lan` reply port before it returns,
-  and `lan` then refuses every command. Start a new `Govee` instead.
+- `Govee::close()` frees the `lan` reply port before it returns. The next
+  call binds it again, as `ble` connects again.
 - `DeviceHandle::status()` waits for `Measurements::status_settle_ms` after a
   command from the same process, so it reports the new state.
 - `Govee::problems()` reports a `lan` reply port that another socket holds:

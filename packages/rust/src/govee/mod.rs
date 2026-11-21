@@ -144,8 +144,9 @@ impl Govee {
     /// Release what every transport holds. Call it before the program ends,
     /// or `ble` loses the last frame it wrote.
     ///
-    /// `lan` frees its reply port before this call returns, and refuses every
-    /// later command with [`Error::Transport`]. `ble` answers commands again.
+    /// `lan` frees its reply port before this call returns. The next call
+    /// that needs a transport acquires it again: `lan` binds its port, `ble`
+    /// connects. The known devices stay.
     ///
     /// # Errors
     ///

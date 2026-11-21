@@ -6,7 +6,8 @@
 //! same port, so the receive loop dispatches on `msg.cmd`.
 
 use std::net::{Ipv4Addr, SocketAddr};
-use std::sync::{Arc, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, PoisonError, RwLock};
 
 use socket2::{Domain, Protocol, Socket as Socket2, Type};
 use tokio::net::UdpSocket;
@@ -18,59 +19,41 @@ use crate::transport::error::{Error, Result};
 /// is a few hundred bytes base64'd into JSON, so 4 KiB leaves room to spare.
 pub(crate) const MAX_DATAGRAM: usize = 4096;
 
-/// A bound, shared UDP socket.
+/// A shared UDP socket, bound until [`Socket::close`] and bound again by
+/// [`Socket::reopen`].
 #[derive(Debug)]
 pub(crate) struct Socket {
     /// `None` after [`Socket::close`]. Hold the `Arc` for one send or receive
     /// only: a clone kept longer keeps the port.
     inner: RwLock<Option<Arc<UdpSocket>>>,
-    held_elsewhere: bool,
+    held_elsewhere: AtomicBool,
 }
 
 impl Socket {
     /// Bind the receive port and join the discovery group.
-    ///
-    /// `SO_REUSEADDR`, and `SO_REUSEPORT` where it exists, because port 4002
-    /// is fixed by the protocol: without them a second process cannot start.
     pub(crate) fn bind(endpoints: &Endpoints) -> Result<Self> {
-        let held_elsewhere = held_elsewhere(endpoints.reply_bind);
-        let domain = Domain::for_address(endpoints.reply_bind);
-        let socket = Socket2::new(domain, Type::DGRAM, Some(Protocol::UDP))
-            .map_err(|e| Error::io("creating the UDP socket", e))?;
+        let socket = Self {
+            inner: RwLock::new(None),
+            held_elsewhere: AtomicBool::new(false),
+        };
+        socket.reopen(endpoints)?;
+        Ok(socket)
+    }
 
-        socket
-            .set_reuse_address(true)
-            .map_err(|e| Error::io("SO_REUSEADDR", e))?;
-        #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
-        socket
-            .set_reuse_port(true)
-            .map_err(|e| Error::io("SO_REUSEPORT", e))?;
-
-        socket
-            .bind(&endpoints.reply_bind.into())
-            .map_err(|e| Error::io(format!("binding {}", endpoints.reply_bind), e))?;
-
-        if let Some(group) = endpoints.multicast_group {
-            // Replies are unicast, so this join is not what makes discovery
-            // work; it is what lets this host see another client's scan, which
-            // the simulator and any second SDK on the same machine rely on.
-            if let Err(e) = socket.join_multicast_v4(&group, &Ipv4Addr::UNSPECIFIED) {
-                tracing::warn!(%group, error = %e, "could not join the discovery group; replies still arrive");
-            }
-            socket
-                .set_multicast_loop_v4(true)
-                .map_err(|e| Error::io("IP_MULTICAST_LOOP", e))?;
+    /// Bind again after [`Socket::close`]. Returns `true` if this call bound.
+    pub(crate) fn reopen(&self, endpoints: &Endpoints) -> Result<bool> {
+        let mut inner = self.inner.write().unwrap_or_else(PoisonError::into_inner);
+        if inner.is_some() {
+            return Ok(false);
         }
+        self.held_elsewhere
+            .store(held_elsewhere(endpoints.reply_bind), Ordering::Relaxed);
+        *inner = Some(Arc::new(bind(endpoints)?));
+        Ok(true)
+    }
 
-        socket
-            .set_nonblocking(true)
-            .map_err(|e| Error::io("setting the socket non-blocking", e))?;
-
-        let inner = UdpSocket::from_std(socket.into()).map_err(|e| Error::io("tokio socket", e))?;
-        Ok(Self {
-            inner: RwLock::new(Some(Arc::new(inner))),
-            held_elsewhere,
-        })
+    pub(crate) fn is_open(&self) -> bool {
+        self.inner.read().is_ok_and(|inner| inner.is_some())
     }
 
     fn open(&self) -> Result<Arc<UdpSocket>> {
@@ -80,21 +63,23 @@ impl Socket {
             .and_then(|inner| inner.clone())
             .ok_or_else(|| {
                 Error::io(
-                    "the lan transport is closed",
+                    "the lan socket is released",
                     std::io::ErrorKind::NotConnected.into(),
                 )
             })
     }
 
-    /// Release the port. Every later call fails with [`Error::Io`].
+    /// Release the port. A call before [`Socket::reopen`] fails with
+    /// [`Error::Io`].
     pub(crate) fn close(&self) {
-        if let Ok(mut inner) = self.inner.write() {
-            inner.take();
-        }
+        self.inner
+            .write()
+            .unwrap_or_else(PoisonError::into_inner)
+            .take();
     }
 
-    pub(crate) const fn held_elsewhere(&self) -> bool {
-        self.held_elsewhere
+    pub(crate) fn held_elsewhere(&self) -> bool {
+        self.held_elsewhere.load(Ordering::Relaxed)
     }
 
     /// Where this socket is bound. Its port is where replies come back.
@@ -122,11 +107,52 @@ impl Socket {
     }
 }
 
+/// `SO_REUSEADDR`, and `SO_REUSEPORT` where it exists, because port 4002 is
+/// fixed by the protocol: without them a second process cannot start.
+fn bind(endpoints: &Endpoints) -> Result<UdpSocket> {
+    let domain = Domain::for_address(endpoints.reply_bind);
+    let socket = Socket2::new(domain, Type::DGRAM, Some(Protocol::UDP))
+        .map_err(|e| Error::io("creating the UDP socket", e))?;
+
+    socket
+        .set_reuse_address(true)
+        .map_err(|e| Error::io("SO_REUSEADDR", e))?;
+    #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
+    socket
+        .set_reuse_port(true)
+        .map_err(|e| Error::io("SO_REUSEPORT", e))?;
+
+    socket
+        .bind(&endpoints.reply_bind.into())
+        .map_err(|e| Error::io(format!("binding {}", endpoints.reply_bind), e))?;
+
+    if let Some(group) = endpoints.multicast_group {
+        // Replies are unicast, so this join is not what makes discovery
+        // work; it is what lets this host see another client's scan, which
+        // the simulator and any second SDK on the same machine rely on.
+        if let Err(e) = socket.join_multicast_v4(&group, &Ipv4Addr::UNSPECIFIED) {
+            tracing::warn!(%group, error = %e, "could not join the discovery group; replies still arrive");
+        }
+        socket
+            .set_multicast_loop_v4(true)
+            .map_err(|e| Error::io("IP_MULTICAST_LOOP", e))?;
+    }
+
+    socket
+        .set_nonblocking(true)
+        .map_err(|e| Error::io("setting the socket non-blocking", e))?;
+
+    UdpSocket::from_std(socket.into()).map_err(|e| Error::io("tokio socket", e))
+}
+
 /// A bind with no reuse option fails on a port that any socket holds. Windows
 /// shares a port under other rules, so it gets no probe.
-#[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
 fn held_elsewhere(addr: SocketAddr) -> bool {
-    if addr.port() == 0 {
+    if !cfg!(all(
+        unix,
+        not(any(target_os = "solaris", target_os = "illumos"))
+    )) || addr.port() == 0
+    {
         return false;
     }
     let Ok(probe) = Socket2::new(Domain::for_address(addr), Type::DGRAM, Some(Protocol::UDP))
@@ -136,11 +162,6 @@ fn held_elsewhere(addr: SocketAddr) -> bool {
     probe
         .bind(&addr.into())
         .is_err_and(|e| e.kind() == std::io::ErrorKind::AddrInUse)
-}
-
-#[cfg(not(all(unix, not(any(target_os = "solaris", target_os = "illumos")))))]
-const fn held_elsewhere(_addr: SocketAddr) -> bool {
-    false
 }
 
 /// One parsed reply, before it is attributed to a device.

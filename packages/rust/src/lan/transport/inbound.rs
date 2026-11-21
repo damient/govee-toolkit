@@ -217,11 +217,14 @@ pub(super) async fn refresh_loop(
     interval: Duration,
     window: Duration,
     forget_after: Duration,
+    scan_now: bool,
 ) {
-    let mut ticker = tokio::time::interval(interval);
+    // With `scan_now`, the first tick fires immediately: the startup scan is
+    // this one, so a caller does not have to remember to issue it. A reopen
+    // waits one interval, because a command never starts a scan.
+    let first = tokio::time::Instant::now() + if scan_now { Duration::ZERO } else { interval };
+    let mut ticker = tokio::time::interval_at(first, interval);
     ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-    // The first tick fires immediately: the startup scan is this one, so a
-    // caller does not have to remember to issue it.
     loop {
         ticker.tick().await;
         if let Err(e) = shared.scan(window).await {

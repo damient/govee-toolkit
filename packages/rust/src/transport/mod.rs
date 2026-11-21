@@ -161,8 +161,8 @@ pub trait Transport: Debug + Send + Sync + 'static {
     ///
     /// A mode whose wire takes no acknowledgement holds the link open here,
     /// long enough for the last frame to leave. A mode that binds a port
-    /// frees it here. The default does nothing. Each mode states whether it
-    /// answers commands after this call.
+    /// frees it here. The default does nothing. The next call that needs
+    /// what this released acquires it again.
     ///
     /// # Errors
     ///
