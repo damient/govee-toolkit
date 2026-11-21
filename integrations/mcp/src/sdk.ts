@@ -94,6 +94,8 @@ const byte = z.number().int().min(0).max(255);
 
 export const rgb = z.tuple([byte, byte, byte]).describe("Red, green and blue, 0-255 each.");
 
+export const resolutionArg = z.union([z.number().int().min(1), z.enum(["app", "native", "groups"])]).optional();
+
 export function deviceRow(device: Device): Record<string, unknown> {
   return device.toJSON();
 }

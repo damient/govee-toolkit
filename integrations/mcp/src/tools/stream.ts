@@ -3,7 +3,7 @@ import type { Govee, SegmentStream } from "govee-toolkit";
 import { z } from "zod";
 
 import { codeError, ok } from "../result.ts";
-import { CONTROL, attempt, modeArg, reach, rgb } from "../sdk.ts";
+import { CONTROL, attempt, modeArg, reach, resolutionArg, rgb } from "../sdk.ts";
 
 const MAX_PLAY_MS = 120_000;
 
@@ -27,7 +27,7 @@ const streamInput = z.object({
     .max(1000),
   hold_ms: z.number().int().min(1).max(10_000).default(500).describe("How long each frame stays, in milliseconds."),
   repeat: z.number().int().min(1).max(1000).default(1).describe("How many times the frames play."),
-  resolution: z.union([z.number().int().min(1), z.enum(["app", "native", "groups"])]).optional(),
+  resolution: resolutionArg,
   rate: z
     .number()
     .positive()
@@ -46,7 +46,9 @@ const streamRow = z.object({
 });
 
 type StreamInput = z.infer<typeof streamInput>;
-type Frame = StreamInput["frames"][number];
+
+/** One color goes to `fill`. More colors go to `setAll` as bytes, which cross the binding once. */
+type Frame = [number, number, number] | Uint8Array;
 
 export function registerStream(server: McpServer): void {
   server.registerTool(
@@ -70,17 +72,17 @@ export function registerStream(server: McpServer): void {
         if (total > MAX_PLAY_MS)
           throw codeError("invalid_argument", `the playback lasts ${total} ms, over the ${MAX_PLAY_MS} ms of one call`);
 
+        const frames = input.frames.map(prepare);
         const opened = await openAll(govee, input);
+        let playedMs: number;
         try {
           const started = performance.now();
-          await play(opened, Array.from({ length: input.repeat }, () => input.frames).flat(), input.hold_ms);
-          const playedMs = Math.round(performance.now() - started);
+          await play(opened, frames, frames.length * input.repeat, input.hold_ms);
+          playedMs = Math.round(performance.now() - started);
+        } finally {
           await closeAll(opened);
-          return ok({ played_ms: playedMs, streams: opened.map(({ id, stream }) => row(id, stream)) });
-        } catch (error) {
-          await closeAll(opened);
-          throw error;
         }
+        return ok({ played_ms: playedMs, streams: opened.map(({ id, stream }) => row(id, stream)) });
       }),
   );
 }
@@ -106,12 +108,12 @@ async function openAll(govee: Govee, input: StreamInput): Promise<Opened[]> {
 }
 
 /** `setInterval`, not chained timeouts: the clock does not drift. */
-function play(opened: Opened[], frames: Frame[], holdMs: number): Promise<void> {
+function play(opened: Opened[], frames: Frame[], count: number, holdMs: number): Promise<void> {
   return new Promise((resolve) => {
     let next = 0;
     const tick = (): void => {
-      const frame = frames[next];
-      if (frame === undefined) {
+      const frame = frames[next % frames.length];
+      if (next === count || frame === undefined) {
         clearInterval(timer);
         resolve();
         return;
@@ -124,10 +126,14 @@ function play(opened: Opened[], frames: Frame[], holdMs: number): Promise<void> 
   });
 }
 
+function prepare(colors: StreamInput["frames"][number]): Frame {
+  const [only] = colors;
+  return colors.length === 1 && only !== undefined ? only : Uint8Array.from(colors.flat());
+}
+
 function paint(stream: SegmentStream, frame: Frame): void {
-  const [only] = frame;
-  if (frame.length === 1 && only !== undefined) stream.fill(only);
-  else stream.setAll(frame);
+  if (frame instanceof Uint8Array) stream.setAll(frame);
+  else stream.fill(frame);
 }
 
 async function closeAll(opened: Opened[]): Promise<void> {

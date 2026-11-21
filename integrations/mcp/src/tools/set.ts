@@ -5,7 +5,7 @@ import type { Applied, Devices } from "govee-toolkit";
 import { z } from "zod";
 
 import { codeError, failure, ok } from "../result.ts";
-import { CONTROL, TARGET, attempt, modeArg, outcomeRow, rgb } from "../sdk.ts";
+import { CONTROL, TARGET, attempt, modeArg, outcomeRow, resolutionArg, rgb } from "../sdk.ts";
 
 const setInput = z.object({
   target: z.string().describe(`A SKU, which selects every device of that model that a scan found, or else: ${TARGET}`),
@@ -18,7 +18,7 @@ const setInput = z.object({
     .object({
       colors: z.array(rgb).min(1).describe("One color fills every zone. More colors state each zone in order."),
       zones: z.array(z.number().int().min(0)).optional().describe("The zones that take the one color."),
-      resolution: z.union([z.number().int().min(1), z.enum(["app", "native", "groups"])]).optional(),
+      resolution: resolutionArg,
       gradient: z.boolean().optional(),
     })
     .optional(),
