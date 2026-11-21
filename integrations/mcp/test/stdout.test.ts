@@ -24,8 +24,8 @@ const requests = [
     },
   },
   { method: "tools/list", params: {} },
-  { method: "tools/call", params: { name: "describe_device", arguments: { sku: Catalog.embedded().skus()[0] } } },
-  { method: "tools/call", params: { name: "describe_device", arguments: { sku: "NOT-A-SKU" } } },
+  { method: "tools/call", params: { name: "describe_model", arguments: { sku: Catalog.embedded().skus()[0] } } },
+  { method: "tools/call", params: { name: "describe_model", arguments: { sku: "NOT-A-SKU" } } },
   // Starts the SDK, so what the core writes at startup is covered too.
   { method: "tools/call", params: { name: "doctor", arguments: {} } },
   { method: "resources/list", params: {} },

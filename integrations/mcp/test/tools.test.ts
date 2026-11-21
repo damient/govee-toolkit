@@ -1,4 +1,4 @@
-// Update the snapshot with `npm test -- --test-update-snapshots`.
+// Update the snapshot with `node --test --test-update-snapshots test/tools.test.ts`.
 
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
@@ -58,7 +58,7 @@ test("every tool carries a title, a description and an output schema", () => {
 
 test("a read tool is read only, and a control tool that sends is not", () => {
   const hints = new Map(tools.map((tool) => [tool.name, tool.annotations]));
-  for (const name of ["list_devices", "describe_device", "get_dmx_profile", "get_api", "read_doc"]) {
+  for (const name of ["list_models", "describe_model", "get_dmx_profile", "get_api", "read_doc"]) {
     assert.equal(hints.get(name)?.readOnlyHint, true, name);
     assert.equal(hints.get(name)?.openWorldHint, false, name);
   }

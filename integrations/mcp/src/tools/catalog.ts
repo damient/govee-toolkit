@@ -10,31 +10,31 @@ const READ = { readOnlyHint: true, openWorldHint: false } as const;
 const personality = z.looseObject({ personality: z.string() });
 
 export function registerCatalogTools(server: McpServer): void {
-  listDevices(server);
-  describeDevice(server);
+  listModels(server);
+  describeModel(server);
   getDmxProfile(server);
   getApi(server);
   readDocTool(server);
 }
 
-function listDevices(server: McpServer): void {
+function listModels(server: McpServer): void {
   server.registerTool(
-    "list_devices",
+    "list_models",
     {
-      title: "List the devices in the catalog",
+      title: "List the device models in the catalog",
       description:
         "List every device model the catalog describes, one short row per SKU: name, family and the support of each mode. " +
-        "Call it to find a SKU, then call `describe_device` for the detail. It reads the embedded catalog, not the network: " +
+        "Call it to find a SKU, then call `describe_model` for the detail. It reads the embedded catalog, not the network: " +
         "it does not tell which devices are on this network. " +
-        "`mode` scopes the two other filters to one mode. `capability` keeps the devices that declare it. " +
-        `\`support\` keeps the devices whose support on \`mode\` has that value, and needs \`mode\`. ${UNVERIFIED}`,
+        "`mode` scopes the two other filters to one mode. `capability` keeps the models that declare it. " +
+        `\`support\` keeps the models whose support on \`mode\` has that value, and needs \`mode\`. ${UNVERIFIED}`,
       inputSchema: z.object({
         mode: oneOf(vocabulary.modes).optional().describe("The mode that `capability` and `support` read."),
         capability: oneOf(vocabulary.capabilities).optional(),
         support: oneOf(vocabulary.support).optional(),
       }),
       outputSchema: z.object({
-        devices: z.array(
+        models: z.array(
           z.object({
             sku: z.string(),
             alias_of: z.string().nullable().describe("The SKU of the device file when `sku` is a verified alias."),
@@ -46,13 +46,13 @@ function listDevices(server: McpServer): void {
       }),
       annotations: READ,
     },
-    (filter) => attempt(() => ok({ devices: query(filter).map((sku) => row(sku)) })),
+    (filter) => attempt(() => ok({ models: query(filter).map((sku) => row(sku)) })),
   );
 }
 
-function describeDevice(server: McpServer): void {
+function describeModel(server: McpServer): void {
   server.registerTool(
-    "describe_device",
+    "describe_model",
     {
       title: "Describe one device model",
       description:
@@ -60,7 +60,7 @@ function describeDevice(server: McpServer): void {
         "what was verified on hardware, and the DMX channel tables under `dmx`. " +
         "It reads the catalog and no device: it does not report the state of a device on this network. " +
         `Fails with \`unknown_sku\` when the catalog declares no such SKU. ${UNVERIFIED}`,
-      inputSchema: z.object({ sku: z.string().describe("A SKU, such as one that `list_devices` returns.") }),
+      inputSchema: z.object({ sku: z.string().describe("A SKU, such as one that `list_models` returns.") }),
       outputSchema: z.looseObject({
         sku: z.string(),
         name: z.string(),
@@ -111,7 +111,7 @@ function getApi(server: McpServer): void {
         "For each role (power, brightness, color, and the rest), the methods that serve it on each surface: " +
         "the `govee` CLI, Rust, Node and Python. Call it to write code or a command line against this SDK. " +
         "With `language`, it also lists the full public surface of that language under `methods`. " +
-        "A role names what a command does; the command that carries it on a device is in `describe_device`.",
+        "A role names what a command does; the command that carries it on a device is in `describe_model`.",
       inputSchema: z.object({
         role: oneOf(Object.keys(api.roles).toSorted()).optional(),
         language: oneOf(Object.keys(api.methods).toSorted()).optional(),
@@ -143,7 +143,7 @@ function readDocTool(server: McpServer): void {
       title: "Read one documentation page",
       description:
         "One page of the project documentation, as Markdown: how the modes work, the protocol of each mode, " +
-        "the DMX bridge, the compatibility tables, the security notes. Call it when a record from `describe_device` " +
+        "the DMX bridge, the compatibility tables, the security notes. Call it when a record from `describe_model` " +
         "points at a page such as `docs/protocol/lan.md`: the topic is then `protocol/lan`.",
       inputSchema: z.object({ topic: oneOf(docTopics()) }),
       outputSchema: z.object({ topic: z.string(), text: z.string() }),

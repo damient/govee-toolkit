@@ -41,7 +41,7 @@ const commandsShape = z.looseObject({
 async function lowestFor(sku: string, role: string): Promise<number> {
   const record = await structured(
     client,
-    "describe_device",
+    "describe_model",
     { sku },
     commandsShape,
   );
@@ -156,7 +156,7 @@ test(
     const device = await scanForSim(client);
     const record = await structured(
       client,
-      "describe_device",
+      "describe_model",
       { sku: device.sku },
       roleShape,
     );

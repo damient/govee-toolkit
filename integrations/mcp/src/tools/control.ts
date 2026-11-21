@@ -103,7 +103,7 @@ function send(server: McpServer): void {
       title: "Send one command from the device file",
       description:
         "Send one command to one device, named as its device file names it, with the arguments that the entry declares. " +
-        "`describe_device` lists the commands of each mode and their arguments. " +
+        "`describe_model` lists the commands of each mode and their arguments. " +
         "A command that declares a reply is read, and the answer holds the fields it captured. " +
         "A value outside the declared range fails, and nothing is sent. " +
         "A command that takes a secret, such as a network password, fails with `secret_arg`: " +

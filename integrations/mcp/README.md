@@ -105,8 +105,8 @@ The values that a filter accepts come from the catalog and from `api.json`.
 
 | Tool | Returns |
 | ---- | ------- |
-| `list_devices({ mode?, capability?, support? })` | One short row per SKU: name, family, the support of each mode |
-| `describe_device({ sku })` | The record of `govee describe --json`, with the DMX tables under `dmx` |
+| `list_models({ mode?, capability?, support? })` | One short row per SKU: name, family, the support of each mode |
+| `describe_model({ sku })` | The record of `govee describe --json`, with the DMX tables under `dmx` |
 | `get_dmx_profile({ sku, personality? })` | The DMX channel tables of one SKU |
 | `get_api({ role?, language? })` | The methods that serve each role, per language |
 | `read_doc({ topic })` | One page of `docs/`, as Markdown |
@@ -155,7 +155,7 @@ model.
 ## Resources
 
 - `gtk://docs/<topic>`: one docs page, such as `gtk://docs/protocol/lan`.
-- `gtk://devices/{sku}`: one device record, as `describe_device` returns it.
+- `gtk://models/{sku}`: one device model record, as `describe_model` returns it.
 
 ## Build from the repository
 
