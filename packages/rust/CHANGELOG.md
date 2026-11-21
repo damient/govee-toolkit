@@ -7,6 +7,11 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `profile::report::json()` gives each band of a channel a `kind`, such as
+  `idle`, `off` or `color`, which a machine matches on beside `label`.
+
 ## [1.17.0] — 2026-11-21
 
 ### Added

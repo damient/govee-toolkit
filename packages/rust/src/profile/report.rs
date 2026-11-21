@@ -117,46 +117,52 @@ fn channel_json(channel: &Channel) -> Value {
 /// desk. A band is inclusive on both ends, and the bands cover 0 to 255 in
 /// order.
 ///
+/// `label` is English text for a person. `kind` names the meaning for a
+/// machine, which renders its own text: `idle`, `reserved`, `resend`, `off`,
+/// `brightness`, `no_white`, `white`, `no_color` and `color`. The numbers of
+/// a `white` band are the `range` of the channel, and the color of a
+/// `no_color` or `color` band is its `component`.
+///
 /// A band that scales states the travel in percent: the pair a parameter
 /// takes is the device's own unit and travels in `range`. The white channel
 /// states kelvin, which is the unit the operator sets.
 fn values(channel: &Channel) -> Vec<Value> {
     match channel.slot {
         Slot::Mode => vec![
-            band(0, MODE_IDLE_TOP, "no action"),
-            band(MODE_IDLE_TOP + 1, MODE_RESEND - 1, "reserved"),
-            band(MODE_RESEND, u8::MAX, "full resend"),
+            band(0, MODE_IDLE_TOP, "idle", "no action"),
+            band(MODE_IDLE_TOP + 1, MODE_RESEND - 1, "reserved", "reserved"),
+            band(MODE_RESEND, u8::MAX, "resend", "full resend"),
         ],
         Slot::Dimmer => channel.scale.map_or_else(Vec::new, |_| {
             vec![
-                band(OFF, OFF, "off"),
-                band(OFF + 1, u8::MAX, "brightness 0 to 100%"),
+                band(OFF, OFF, "off", "off"),
+                band(OFF + 1, u8::MAX, "brightness", "brightness 0 to 100%"),
             ]
         }),
         Slot::WhiteTemp => channel.scale.map_or_else(Vec::new, |scale| {
             let [min, max] = scale.range();
             vec![
-                band(OFF, OFF, "no white"),
-                band(OFF + 1, u8::MAX, &format!("{min} K to {max} K")),
+                band(OFF, OFF, "no_white", "no white"),
+                band(OFF + 1, u8::MAX, "white", &format!("{min} K to {max} K")),
             ]
         }),
         Slot::Color(component) | Slot::Zone { component, .. } => {
             channel.scale.map_or_else(Vec::new, |scale| {
                 let travel = format!("{component} 0 to 100%");
                 if scale.range()[0] > 0 {
-                    return vec![band(0, u8::MAX, &travel)];
+                    return vec![band(0, u8::MAX, "color", &travel)];
                 }
                 vec![
-                    band(OFF, OFF, &format!("no {component}")),
-                    band(OFF + 1, u8::MAX, &travel),
+                    band(OFF, OFF, "no_color", &format!("no {component}")),
+                    band(OFF + 1, u8::MAX, "color", &travel),
                 ]
             })
         }
     }
 }
 
-fn band(low: u8, high: u8, label: &str) -> Value {
-    json!({ "slots": [low, high], "label": label })
+fn band(low: u8, high: u8, kind: &str, label: &str) -> Value {
+    json!({ "slots": [low, high], "kind": kind, "label": label })
 }
 
 /// Whether the channel holds its place in the table and drives nothing. The
@@ -246,6 +252,9 @@ mod tests {
         assert_eq!(channels[1]["values"][2]["label"], "full resend");
         assert_eq!(channels[3]["values"][0]["label"], "no red");
         assert_eq!(channels[3]["values"][1]["label"], "red 0 to 100%");
+        assert_eq!(channels[1]["values"][0]["kind"], "idle");
+        assert_eq!(channels[3]["values"][0]["kind"], "no_color");
+        assert_eq!(channels[3]["values"][1]["kind"], "color");
     }
 
     #[test]
