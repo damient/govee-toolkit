@@ -71,9 +71,6 @@ impl Socket {
         })
     }
 
-    /// Whether another socket held the reply port when this one bound it.
-    /// The kernel then gives a unicast reply to one of the two sockets only,
-    /// so a scan or a status request here can hear nothing.
     pub(crate) const fn held_elsewhere(&self) -> bool {
         self.held_elsewhere
     }
@@ -103,9 +100,8 @@ impl Socket {
     }
 }
 
-/// Whether another socket holds `addr`. A bind with no reuse option fails on
-/// a port that any socket holds, so the probe tells. Windows shares a port
-/// under other rules, and an ephemeral port is never shared.
+/// A bind with no reuse option fails on a port that any socket holds. Windows
+/// shares a port under other rules, so it gets no probe.
 #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
 fn held_elsewhere(addr: SocketAddr) -> bool {
     if addr.port() == 0 {

@@ -8,12 +8,7 @@ import { fail, oneOf } from "./result.ts";
 
 let started: Promise<Govee> | undefined;
 
-/**
- * How long the SDK stays up after the last call, in milliseconds. The `lan`
- * socket holds UDP port 4002 while the SDK is up, and the kernel then gives a
- * reply to one of the processes on the port only: the `govee` command on the
- * same host hears nothing. `GOVEE_MCP_IDLE_MS=0` keeps the SDK up.
- */
+/** Frees UDP port 4002: the kernel gives a reply to one process on the port only. */
 const idleMs = idleSetting(process.env.GOVEE_MCP_IDLE_MS);
 let active = 0;
 let idleTimer: NodeJS.Timeout | undefined;
@@ -61,7 +56,6 @@ export async function attempt(
           console.error("idle close:", error);
         });
       }, idleMs);
-      // A pending release keeps no process alive.
       idleTimer.unref();
     }
   }

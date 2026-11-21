@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 # Reads the changed paths of a pull request on stdin, one per line, and prints
 # one `<zone>=true|false` line per CI zone, for $GITHUB_OUTPUT.
-#
-# A path that matches no rule sets every zone: an unknown path runs the full
-# pipeline. Add a rule before a path is left out of a zone it can break.
 
 set -euo pipefail
 
@@ -23,7 +20,6 @@ while IFS= read -r path; do
   integrations/mcp/* | tools/qa-mcp.sh | tools/lib/*) mcp=true ;;
   # The MCP server ships docs/ and serves it through `read_doc`.
   docs/*) docs=true mcp=true ;;
-  # A change to the mapping itself takes every zone.
   tools/ci-changes.sh) core=true python=true node=true mcp=true docs=true ;;
   # The jobs that always run cover these, or pages.yml builds them.
   site/* | apps/* | social/* | tools/*.sh | tools/README.md) ;;

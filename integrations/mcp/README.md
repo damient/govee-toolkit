@@ -146,8 +146,8 @@ acknowledges nothing, so call `status` to read what the device applied.
 
 The `lan` socket holds UDP port 4002 while the SDK is up. The kernel then
 gives each reply to one process on the port only, so the `govee` command on
-the same host can hear nothing. The server releases the port after 30 s with
-no call. `GOVEE_MCP_IDLE_MS` sets that delay, and `0` keeps the SDK up.
+the same host can hear nothing. `GOVEE_MCP_IDLE_MS` sets the 30 s delay before
+the server releases the port, and `0` keeps the SDK up.
 
 The server does not provision Wi-Fi, because the password goes through the
 model.
