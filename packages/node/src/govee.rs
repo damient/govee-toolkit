@@ -81,8 +81,7 @@ impl Govee {
     }
 
     /// What keeps the transports of `modes`, or of every mode, from their
-    /// devices on this host, as one sentence each. A scan that hears nothing
-    /// reports these, such as a reply port that another process holds.
+    /// devices on this host, one sentence each.
     #[napi]
     pub fn transport_problems(
         &self,
@@ -205,8 +204,7 @@ impl Govee {
 
     /// Release what every transport holds. Call it before the program ends,
     /// or `ble` loses the last frame it wrote. `lan` frees its reply port
-    /// before this call returns. The next call binds it again, and `ble`
-    /// connects again.
+    /// before this call returns. The next call acquires each transport again.
     #[napi]
     pub fn close<'env>(&self, env: &'env Env) -> napi::Result<PromiseRaw<'env, ()>> {
         let govee = self.inner.clone();

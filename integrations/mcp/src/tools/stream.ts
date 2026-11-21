@@ -47,7 +47,7 @@ const streamRow = z.object({
 
 type StreamInput = z.infer<typeof streamInput>;
 
-/** One color goes to `fill`. More colors go to `setAll` as bytes, which cross the binding once. */
+/** A `Uint8Array` crosses the binding in one copy. */
 type Frame = [number, number, number] | Uint8Array;
 
 export function registerStream(server: McpServer): void {

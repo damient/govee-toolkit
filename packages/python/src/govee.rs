@@ -80,8 +80,7 @@ impl Govee {
     }
 
     /// What keeps the transports of `modes`, or of every mode, from their
-    /// devices on this host, as one sentence each. A scan that hears nothing
-    /// reports these, such as a reply port that another process holds.
+    /// devices on this host, one sentence each.
     #[pyo3(signature = (modes = None))]
     fn transport_problems(&self, modes: Option<Vec<String>>) -> PyResult<Vec<String>> {
         let wanted = modes.map(conv::modes).transpose()?;
@@ -202,8 +201,7 @@ impl Govee {
 
     /// Release what every transport holds. Call it before the program ends,
     /// or `ble` loses the last frame it wrote. `lan` frees its reply port
-    /// before this call returns. The next call binds it again, and `ble`
-    /// connects again.
+    /// before this call returns. The next call acquires each transport again.
     fn close<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let govee = self.inner.clone();
         future_into_py(py, async move {

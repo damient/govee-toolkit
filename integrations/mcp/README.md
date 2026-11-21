@@ -111,12 +111,12 @@ The values that a filter accepts come from the catalog and from `api.json`.
 | `get_api({ role?, language? })` | The methods that serve each role, per language |
 | `read_doc({ topic })` | One page of `docs/`, as Markdown |
 
-Control tools. The SDK starts on the first control call. It closes 30 s after
-the last call, when stdin closes, or on `SIGINT` and `SIGTERM`.
+Control tools. The SDK starts on the first control call, and closes when stdin
+closes, or on `SIGINT` and `SIGTERM`.
 
 | Tool | Does |
 | ---- | ---- |
-| `scan({ modes? })` | Runs a discovery scan and lists the devices that answered |
+| `scan({ modes? })` | Runs a discovery scan and lists the devices that answered. When nothing answers, `problems` gives what keeps the replies away |
 | `list_known()` | Lists the devices that a scan found, with the health of each mode. The first call scans each mode that no scan covered |
 | `status({ target, mode? })` | Asks a device for its state |
 | `set({ target, mode?, power?, brightness?, color?, color_temp?, segment?, music?, gradient? })` | Sets the state of a device, of a group, or of every device of one SKU |

@@ -198,8 +198,9 @@ checked in CI.
 
 - It is **raised in the same commit as the feature that needs it**, never after
   the fact, and the commit says which feature.
-- **A raise is a minor bump** — `x.y` → `x.(y+1)`. It is not a patch: someone pinned to an older toolchain finds out
-  from the version number, not from a failed build.
+- **A raise is a minor bump** — `x.y` → `x.(y+1)`. It is not a patch: someone
+  pinned to an older toolchain finds out from the version number, not from a
+  failed build.
 - MSRV is not chased upward for its own sake.
 
 ## Deprecation
