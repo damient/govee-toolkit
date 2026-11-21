@@ -21,7 +21,7 @@ pub struct LanConfig {
     /// Where discovery results are cached. Unset uses the default path.
     /// `false` is refused: [`LanConfig::cache_disabled`] keeps the cache in
     /// memory.
-    #[serde(deserialize_with = "cache_path")]
+    #[serde(deserialize_with = "cache_file")]
     pub cache: Option<PathBuf>,
     /// Keep the cache in memory rather than on disk.
     pub cache_disabled: bool,
@@ -89,7 +89,7 @@ impl LanConfig {
     /// be read.
     #[cfg(feature = "lan")]
     pub fn transport_options(&self) -> Result<crate::lan::Options> {
-        let cache = match self.cache_path() {
+        let cache = match self.device_cache_file() {
             Some(path) => crate::lan::Cache::load(path)?,
             None => crate::lan::Cache::in_memory(),
         };
@@ -114,7 +114,7 @@ impl LanConfig {
     /// Where the device cache belongs, or `None` to keep it in memory.
     #[cfg(feature = "lan")]
     #[must_use]
-    pub fn cache_path(&self) -> Option<PathBuf> {
+    pub fn device_cache_file(&self) -> Option<PathBuf> {
         if self.cache_disabled {
             return None;
         }
@@ -126,7 +126,7 @@ impl LanConfig {
     }
 }
 
-fn cache_path<'de, D>(deserializer: D) -> std::result::Result<Option<PathBuf>, D::Error>
+fn cache_file<'de, D>(deserializer: D) -> std::result::Result<Option<PathBuf>, D::Error>
 where
     D: Deserializer<'de>,
 {
