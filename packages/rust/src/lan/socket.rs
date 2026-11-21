@@ -105,20 +105,24 @@ impl Socket {
     }
 }
 
-/// `SO_REUSEADDR`, and `SO_REUSEPORT` where it exists, because port 4002 is
-/// fixed by the protocol: without them a second process cannot start.
+/// `SO_REUSEADDR`, and `SO_REUSEPORT` where it exists, on a fixed port only:
+/// port 4002 is fixed by the protocol, and without them a second process
+/// cannot start. On Linux, an ephemeral bind with them can get a port that
+/// another reuse socket holds, and the two then take each other's replies.
 fn bind(endpoints: &Endpoints) -> Result<UdpSocket> {
     let domain = Domain::for_address(endpoints.reply_bind);
     let socket = Socket2::new(domain, Type::DGRAM, Some(Protocol::UDP))
         .map_err(|e| Error::io("creating the UDP socket", e))?;
 
-    socket
-        .set_reuse_address(true)
-        .map_err(|e| Error::io("SO_REUSEADDR", e))?;
-    #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
-    socket
-        .set_reuse_port(true)
-        .map_err(|e| Error::io("SO_REUSEPORT", e))?;
+    if endpoints.reply_bind.port() != 0 {
+        socket
+            .set_reuse_address(true)
+            .map_err(|e| Error::io("SO_REUSEADDR", e))?;
+        #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
+        socket
+            .set_reuse_port(true)
+            .map_err(|e| Error::io("SO_REUSEPORT", e))?;
+    }
 
     socket
         .bind(&endpoints.reply_bind.into())
@@ -255,17 +259,40 @@ mod tests {
         assert!(!socket.held_elsewhere());
     }
 
+    /// On Linux, an ephemeral bind with `SO_REUSEADDR` can get a port that
+    /// another reuse socket holds. Two test rigs then took each other's
+    /// status replies.
+    #[tokio::test]
+    async fn an_ephemeral_port_is_not_shared() {
+        let endpoints = Endpoints {
+            reply_bind: SocketAddr::from((Ipv4Addr::LOCALHOST, 0)),
+            multicast_group: None,
+            ..Endpoints::default()
+        };
+        let socket = Socket::bind(&endpoints).expect("bind");
+        let open = socket.open().expect("open");
+        let options = socket2::SockRef::from(open.as_ref());
+        assert!(!options.reuse_address().expect("SO_REUSEADDR"));
+        #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
+        assert!(!options.reuse_port().expect("SO_REUSEPORT"));
+    }
+
     #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
     #[tokio::test]
     async fn a_second_socket_on_the_port_sees_the_first() {
+        let port = std::net::UdpSocket::bind((Ipv4Addr::LOCALHOST, 0))
+            .and_then(|probe| probe.local_addr())
+            .expect("a free port")
+            .port();
+        let shared = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
         let first = Socket::bind(&Endpoints {
-            reply_bind: SocketAddr::from((Ipv4Addr::LOCALHOST, 0)),
+            reply_bind: shared,
             multicast_group: None,
             ..Endpoints::default()
         })
         .expect("bind");
         let second = Socket::bind(&Endpoints {
-            reply_bind: first.local_addr().expect("local addr"),
+            reply_bind: shared,
             multicast_group: None,
             ..Endpoints::default()
         })

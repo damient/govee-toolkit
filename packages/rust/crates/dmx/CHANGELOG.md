@@ -11,6 +11,11 @@ is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 - `govee-dmx profile --json` gives each band of a channel a `kind`, such as
   `idle`, `off` or `color`, beside its English `label`.
 
+### Fixed
+
+- `input::socket::Listener::bind` shares a fixed port only. On Linux, two
+  listeners on port 0 could get one port and take each other's frames.
+
 ## [1.4.0] — 2026-11-21
 
 ### Changed

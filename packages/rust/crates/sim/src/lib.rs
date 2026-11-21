@@ -305,6 +305,17 @@ mod tests {
 
     use super::*;
 
+    /// Two simulators that shared an ephemeral port took each other's
+    /// requests, and one answered with the status of the other.
+    #[tokio::test]
+    async fn an_ephemeral_port_is_not_shared() {
+        let socket = serve::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)), None).unwrap();
+        let options = socket2::SockRef::from(&socket);
+        assert!(!options.reuse_address().unwrap());
+        #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]
+        assert!(!options.reuse_port().unwrap());
+    }
+
     #[test]
     fn a_write_is_not_a_status_request() {
         let write = Received {

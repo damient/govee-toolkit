@@ -12,6 +12,13 @@ releases apart and keeps
 - `profile::report::json()` gives each band of a channel a `kind`, such as
   `idle`, `off` or `color`, which a machine matches on beside `label`.
 
+### Fixed
+
+- `lan::Transport` sets `SO_REUSEADDR` and `SO_REUSEPORT` on a fixed reply port
+  only. On Linux, two transports on port 0 could share a port and its replies.
+- `govee-toolkit-sim` binds an ephemeral port unshared, so two simulators
+  cannot take each other's requests on Linux.
+
 ## [1.17.0] — 2026-11-21
 
 ### Added
