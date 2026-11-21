@@ -20,6 +20,10 @@ Check these, in order:
    gives the switch.
 4. **Your firewall.** Discovery uses multicast on UDP. A firewall that drops it
    makes every device invisible.
+5. **One program on port 4002.** Replies come back to UDP port 4002, and the
+   system hands each one to a single program there. A running MCP server or
+   `govee-dmx` can take them. `govee scan` warns when it sees that program:
+   stop it and scan again.
 
 Run `govee doctor`. It reports what it can see of your configuration.
 
