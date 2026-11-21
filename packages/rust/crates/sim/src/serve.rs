@@ -115,9 +115,7 @@ fn envelope(bytes: &[u8]) -> Option<(String, serde_json::Value)> {
 
 pub(crate) fn bind(addr: SocketAddr, group: Option<Ipv4Addr>) -> std::io::Result<UdpSocket> {
     let socket = Socket2::new(Domain::for_address(addr), Type::DGRAM, Some(Protocol::UDP))?;
-    // Share a fixed port only. On Linux, an ephemeral bind with SO_REUSEADDR
-    // can get a port that another reuse socket holds, and the two then take
-    // each other's datagrams.
+    // Linux can give port 0 a port that a reuse socket holds.
     if addr.port() != 0 {
         socket.set_reuse_address(true)?;
         #[cfg(all(unix, not(any(target_os = "solaris", target_os = "illumos"))))]

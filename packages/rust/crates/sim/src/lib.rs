@@ -305,8 +305,6 @@ mod tests {
 
     use super::*;
 
-    /// Two simulators that shared an ephemeral port took each other's
-    /// requests, and one answered with the status of the other.
     #[tokio::test]
     async fn an_ephemeral_port_is_not_shared() {
         let socket = serve::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)), None).unwrap();
