@@ -9,9 +9,10 @@
           "id": "scan",
           "title": "scan",
           "summary": "Look for devices and report what answers.",
-          "detail": "With a list of modes, the scan covers only those modes. It never enables a mode that the configuration leaves out.",
+          "detail": "With a list of modes, the scan covers only those modes. It never enables a mode that the configuration leaves out. When nothing answers, `govee scan` warns of what keeps the replies away, such as a reply port that another program holds.",
           "api": [
-            "Govee::scan"
+            "Govee::scan",
+            "Govee::transport_problems"
           ],
           "cli": [
             "govee scan"

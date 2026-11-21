@@ -30,7 +30,7 @@ export function sdk(): Promise<Govee> {
   return started;
 }
 
-/** Releases every transport. The next call acquires each one again and keeps the known devices. */
+/** The next call acquires each transport again and keeps the known devices. */
 async function release(): Promise<void> {
   const govee = await started?.catch(() => null);
   await govee?.close();

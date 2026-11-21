@@ -379,8 +379,7 @@ export declare class Govee {
   problems(): Array<string>
   /**
    * What keeps the transports of `modes`, or of every mode, from their
-   * devices on this host, as one sentence each. A scan that hears nothing
-   * reports these, such as a reply port that another process holds.
+   * devices on this host, one sentence each.
    */
   transportProblems(modes?: Array<string> | undefined | null): Array<string>
   /** The configuration in force. */
@@ -428,8 +427,7 @@ export declare class Govee {
   /**
    * Release what every transport holds. Call it before the program ends,
    * or `ble` loses the last frame it wrote. `lan` frees its reply port
-   * before this call returns. The next call binds it again, and `ble`
-   * connects again.
+   * before this call returns. The next call acquires each transport again.
    */
   close(): Promise<undefined>
   toString(): string

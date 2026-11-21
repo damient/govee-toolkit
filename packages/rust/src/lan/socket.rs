@@ -19,12 +19,10 @@ use crate::transport::error::{Error, Result};
 /// is a few hundred bytes base64'd into JSON, so 4 KiB leaves room to spare.
 pub(crate) const MAX_DATAGRAM: usize = 4096;
 
-/// A shared UDP socket, bound until [`Socket::close`] and bound again by
-/// [`Socket::reopen`].
 #[derive(Debug)]
 pub(crate) struct Socket {
-    /// `None` after [`Socket::close`]. Hold the `Arc` for one send or receive
-    /// only: a clone kept longer keeps the port.
+    /// Hold a clone for one send or receive only: a clone kept longer keeps the
+    /// port.
     inner: RwLock<Option<Arc<UdpSocket>>>,
     held_elsewhere: AtomicBool,
 }
@@ -40,7 +38,7 @@ impl Socket {
         Ok(socket)
     }
 
-    /// Bind again after [`Socket::close`]. Returns `true` if this call bound.
+    /// `true` if this call bound, `false` if the socket was open.
     pub(crate) fn reopen(&self, endpoints: &Endpoints) -> Result<bool> {
         let mut inner = self.inner.write().unwrap_or_else(PoisonError::into_inner);
         if inner.is_some() {
@@ -69,7 +67,7 @@ impl Socket {
             })
     }
 
-    /// Release the port. A call before [`Socket::reopen`] fails with
+    /// Until [`Socket::reopen`], every send and receive fails with
     /// [`Error::Io`].
     pub(crate) fn close(&self) {
         self.inner
@@ -127,9 +125,8 @@ fn bind(endpoints: &Endpoints) -> Result<UdpSocket> {
         .map_err(|e| Error::io(format!("binding {}", endpoints.reply_bind), e))?;
 
     if let Some(group) = endpoints.multicast_group {
-        // Replies are unicast, so this join is not what makes discovery
-        // work; it is what lets this host see another client's scan, which
-        // the simulator and any second SDK on the same machine rely on.
+        // Replies are unicast. The join lets this host see the scan of another
+        // client, which the simulator and a second SDK on this host need.
         if let Err(e) = socket.join_multicast_v4(&group, &Ipv4Addr::UNSPECIFIED) {
             tracing::warn!(%group, error = %e, "could not join the discovery group; replies still arrive");
         }

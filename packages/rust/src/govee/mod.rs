@@ -142,11 +142,9 @@ impl Govee {
     }
 
     /// Release what every transport holds. Call it before the program ends,
-    /// or `ble` loses the last frame it wrote.
-    ///
-    /// `lan` frees its reply port before this call returns. The next call
-    /// that needs a transport acquires it again: `lan` binds its port, `ble`
-    /// connects. The known devices stay.
+    /// or `ble` loses the last frame it wrote. `lan` frees its reply port
+    /// before this call returns. The next call acquires each transport again
+    /// and keeps the known devices.
     ///
     /// # Errors
     ///
@@ -176,9 +174,9 @@ impl Govee {
         problems
     }
 
-    /// What keeps the transports of the modes named, or of every mode with
-    /// `None`, from their devices on this host. A scan that hears nothing
-    /// reports these, such as a reply port that another process holds.
+    /// What keeps the transports of `modes`, or of every mode with `None`,
+    /// from their devices on this host, such as a reply port that another
+    /// process holds.
     #[must_use]
     pub fn transport_problems(&self, modes: Option<&[Mode]>) -> Vec<Problem> {
         self.inner

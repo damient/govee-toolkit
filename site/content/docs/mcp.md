@@ -162,7 +162,9 @@ Read tools answer from the catalog that ships with the server, on your machine.
 | `get_api` | The methods that serve each role, in each language |
 | `read_doc` | One page of the documentation |
 
-Control tools drive the lights. The SDK starts on the first call.
+Control tools drive the lights. The SDK starts on the first call, and frees
+the network port 30 seconds after the last one, so the `govee` command can scan
+in between.
 
 | Tool | Does |
 | ---- | ---- |

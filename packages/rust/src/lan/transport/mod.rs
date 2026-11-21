@@ -42,7 +42,6 @@ use crate::transport::{DeviceId, Event, Health, KnownDevice, Sent, Verify};
 /// "Consecutive commands".
 pub const COMMAND_GAP: Duration = Duration::from_millis(5);
 
-/// What the refresh loop needs to start again after a close.
 #[derive(Clone, Copy)]
 struct Refresh {
     interval: Duration,
@@ -54,7 +53,7 @@ struct Refresh {
 ///
 /// Cheap to clone; every clone shares one socket, one cache and one set of
 /// breakers. The background tasks stop at [`Transport::close`] or with the
-/// last clone: dropping the set aborts them.
+/// last clone.
 #[derive(Clone)]
 pub struct Transport {
     shared: Arc<Shared>,
@@ -122,7 +121,6 @@ impl Transport {
         })
     }
 
-    /// Bind again and restart the receive loop after [`Transport::close`].
     async fn reopen(&self) -> Result<()> {
         if self.shared.socket.is_open() {
             return Ok(());
@@ -172,10 +170,8 @@ impl Transport {
     }
 
     /// Stop the background tasks and free the reply port before this call
-    /// returns.
-    ///
-    /// The next scan, command or status request binds the port again. The
-    /// known devices and the cache stay.
+    /// returns. The next scan, command or status request binds it again, with
+    /// the known devices and the cache.
     pub async fn close(&self) {
         let mut tasks = self.tasks.lock().await;
         tasks.shutdown().await;

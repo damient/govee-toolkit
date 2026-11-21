@@ -646,8 +646,7 @@ class Govee:
         """Everything wrong with the configuration, as one sentence each."""
     def transport_problems(self, modes: Sequence[str] | None = None) -> list[str]:
         """What keeps the transports of `modes`, or of every mode, from their devices on
-        this host, as one sentence each. A scan that hears nothing reports these, such
-        as a reply port that another process holds.
+        this host, one sentence each.
         """
     @property
     def config(self) -> Config:
@@ -701,5 +700,5 @@ class Govee:
     async def close(self) -> None:
         """Release what every transport holds. Call it before the program ends, or `ble`
         loses the last frame it wrote. `lan` frees its reply port before this call
-        returns. The next call binds it again, and `ble` connects again.
+        returns. The next call acquires each transport again.
         """
