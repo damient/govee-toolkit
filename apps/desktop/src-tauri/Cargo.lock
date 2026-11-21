@@ -1556,7 +1556,6 @@ dependencies = [
  "govee-toolkit-server",
  "tauri",
  "tauri-build",
- "tokio",
 ]
 
 [[package]]
@@ -1566,7 +1565,7 @@ dependencies = [
  "axum",
  "clap",
  "govee-toolkit",
- "serde",
+ "mime_guess",
  "serde_json",
  "tokio",
  "tower-http",

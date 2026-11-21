@@ -12,13 +12,11 @@ use std::sync::Arc;
 mod devices;
 mod web;
 
-use axum::extract::State;
 use axum::http::Uri;
 use axum::routing::get;
 use axum::{Json, Router};
 use govee_toolkit::Catalog;
-use serde::Serialize;
-use tokio::net::TcpListener;
+use serde_json::json;
 use tower_http::services::ServeDir;
 
 /// The address that `govee-server` listens on when `--listen` is absent.
@@ -27,9 +25,11 @@ use tower_http::services::ServeDir;
 /// authentication.
 pub const DEFAULT_LISTEN: &str = "127.0.0.1:4080";
 
+/// The directory that this build embeds as [`Web::Embedded`]. A debug build
+/// can serve it as [`Web::Dir`], so a rebuild of the UI shows on a reload.
+pub const WEB_DIR: &str = env!("GOVEE_SERVER_WEB_DIR");
+
 /// What the server serves beside the API.
-///
-/// The API allows no other origin: a page that calls it comes from this server.
 #[derive(Debug, Clone, Default)]
 pub struct Options {
     /// Where the web UI comes from.
@@ -50,19 +50,6 @@ pub enum Web {
     None,
 }
 
-#[derive(Debug)]
-struct Shared {
-    skus: usize,
-}
-
-/// The answer of `GET /api/hello`.
-#[derive(Debug, Serialize)]
-struct Hello {
-    name: &'static str,
-    version: &'static str,
-    skus: usize,
-}
-
 /// Build the routes.
 ///
 /// # Errors
@@ -70,21 +57,19 @@ struct Hello {
 /// The error of [`Catalog::embedded`] when the compiled-in device files do
 /// not load.
 pub fn router(options: &Options) -> govee_toolkit::codec::Result<Router> {
-    let catalog = Catalog::embedded()?;
-    let shared = Arc::new(Shared {
-        skus: catalog.skus().count(),
-    });
-
+    let hello = Json(json!({
+        "name": "govee-toolkit",
+        "version": govee_toolkit::VERSION,
+        "skus": Catalog::embedded()?.skus().count(),
+    }));
     let api = Router::new()
-        .route("/hello", get(hello))
-        .with_state(shared)
+        .route("/hello", get(move || async move { hello }))
         .route("/devices", get(devices::list))
         .with_state(Arc::new(devices::Sdk::default()));
     let mut app = Router::new().nest("/api", api);
     match &options.web {
         Web::Embedded => {
-            let assets = web::embedded();
-            app = app.fallback(move |uri: Uri| async move { web::respond(assets, &uri) });
+            app = app.fallback(|uri: Uri| async move { web::respond(web::ASSETS, &uri) });
         }
         Web::Dir(dir) => app = app.fallback_service(ServeDir::new(dir)),
         Web::None => {}
@@ -92,21 +77,15 @@ pub fn router(options: &Options) -> govee_toolkit::codec::Result<Router> {
     Ok(app)
 }
 
-/// Serve on `listener` until the future is dropped.
+/// Serve on `listener` until the future is dropped. Call it inside a Tokio
+/// runtime.
 ///
 /// # Errors
 ///
 /// [`io::ErrorKind::InvalidData`] when the device files do not load, or the
 /// error of the listener.
-pub async fn serve(listener: TcpListener, options: &Options) -> io::Result<()> {
+pub async fn serve(listener: std::net::TcpListener, options: &Options) -> io::Result<()> {
     let app = router(options).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-    axum::serve(listener, app).await
-}
-
-async fn hello(State(shared): State<Arc<Shared>>) -> Json<Hello> {
-    Json(Hello {
-        name: "govee-toolkit",
-        version: govee_toolkit::VERSION,
-        skus: shared.skus,
-    })
+    listener.set_nonblocking(true)?;
+    axum::serve(tokio::net::TcpListener::from_std(listener)?, app).await
 }

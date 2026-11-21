@@ -8,10 +8,6 @@ include!(concat!(env!("OUT_DIR"), "/web.rs"));
 /// `(path, body)` pairs. A path is relative to the root and uses `/`.
 pub(crate) type Assets = &'static [(&'static str, &'static [u8])];
 
-pub(crate) fn embedded() -> Assets {
-    ASSETS
-}
-
 pub(crate) fn respond(assets: Assets, uri: &Uri) -> Response {
     let path = uri.path().trim_start_matches('/');
     let path = if path.is_empty() || path.ends_with('/') {
@@ -20,7 +16,10 @@ pub(crate) fn respond(assets: Assets, uri: &Uri) -> Response {
         path.to_owned()
     };
     match assets.iter().find(|(name, _)| *name == path) {
-        Some((name, body)) => ([(header::CONTENT_TYPE, content_type(name))], *body).into_response(),
+        Some((name, body)) => {
+            let mime = mime_guess::from_path(name).first_or_octet_stream();
+            ([(header::CONTENT_TYPE, mime.as_ref())], *body).into_response()
+        }
         None if assets.is_empty() => (
             StatusCode::NOT_FOUND,
             "This build of govee-server carries no web UI. Build apps/studio and build \
@@ -28,19 +27,6 @@ pub(crate) fn respond(assets: Assets, uri: &Uri) -> Response {
         )
             .into_response(),
         None => StatusCode::NOT_FOUND.into_response(),
-    }
-}
-
-fn content_type(name: &str) -> &'static str {
-    match name.rsplit('.').next() {
-        Some("html") => "text/html; charset=utf-8",
-        Some("js") => "text/javascript; charset=utf-8",
-        Some("css") => "text/css; charset=utf-8",
-        Some("svg") => "image/svg+xml",
-        Some("woff2") => "font/woff2",
-        Some("json" | "map") => "application/json",
-        Some("txt") => "text/plain; charset=utf-8",
-        _ => "application/octet-stream",
     }
 }
 
@@ -54,30 +40,25 @@ mod tests {
         respond(assets, &path.parse().unwrap_or_default())
     }
 
+    fn content_type(response: &Response) -> Option<&str> {
+        response
+            .headers()
+            .get(header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+    }
+
     #[test]
     fn the_root_is_the_index() {
         let response = get(TWO, "/");
         assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(
-            response
-                .headers()
-                .get(header::CONTENT_TYPE)
-                .and_then(|v| v.to_str().ok()),
-            Some("text/html; charset=utf-8")
-        );
+        assert_eq!(content_type(&response), Some("text/html"));
     }
 
     #[test]
     fn a_nested_file_gets_its_type() {
         let response = get(TWO, "/fonts/a.woff2");
         assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(
-            response
-                .headers()
-                .get(header::CONTENT_TYPE)
-                .and_then(|v| v.to_str().ok()),
-            Some("font/woff2")
-        );
+        assert_eq!(content_type(&response), Some("font/woff2"));
     }
 
     #[test]
