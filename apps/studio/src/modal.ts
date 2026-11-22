@@ -10,7 +10,11 @@ export interface Action<T> {
 
 export interface Modal<T> {
   title: string;
-  body: string;
+  body?: string;
+  /** A form or a list under the body. The caller reads its state after the answer. */
+  content?: HTMLElement;
+  /** Checked on each change in `content`: the primary actions stay disabled while it answers `false`. */
+  ready?: () => boolean;
   /** The first action is the answer to Esc. */
   actions: readonly [Action<T>, ...Action<T>[]];
 }
@@ -22,12 +26,17 @@ export function ask<T>(modal: Modal<T>): Promise<T> {
   const title = document.createElement("h2");
   title.id = "modal-title";
   title.textContent = modal.title;
-  const body = document.createElement("p");
-  body.textContent = modal.body;
   const buttons = document.createElement("div");
   buttons.className = "buttons";
   dialog.setAttribute("aria-labelledby", title.id);
-  dialog.append(title, body, buttons);
+  dialog.append(title);
+  if (modal.body !== undefined) {
+    const body = document.createElement("p");
+    body.textContent = modal.body;
+    dialog.append(body);
+  }
+  if (modal.content) dialog.append(modal.content);
+  dialog.append(buttons);
 
   return new Promise((resolve) => {
     const close = (value: T): void => {
@@ -45,6 +54,13 @@ export function ask<T>(modal: Modal<T>): Promise<T> {
       });
       buttons.append(button);
     }
+    const primaries = [...buttons.querySelectorAll<HTMLButtonElement>(".primary")];
+    const check = (): void => {
+      const ready = modal.ready?.() ?? true;
+      for (const button of primaries) button.disabled = !ready;
+    };
+    modal.content?.addEventListener("change", check);
+    check();
     dialog.addEventListener("cancel", (event) => {
       event.preventDefault();
       close(modal.actions[0].value);
