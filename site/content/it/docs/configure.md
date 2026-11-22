@@ -3,7 +3,7 @@ title: Configurazione
 slug: configure
 order: 3
 description: Il config.yaml che dà un nome ai tuoi dispositivi, il file .env che il toolkit legge, le credenziali Wi-Fi che servono a un dispositivo per entrare nella tua rete, e la chiave API che serve alla modalità cloud.
-source: 31e56e8665d485c372e3101fcdd80473e879657c
+source: ac7a5ca370cd6102f6679a62f9e74a3d695e661d
 ---
 
 # Configurazione
@@ -16,9 +16,15 @@ colleghi un dispositivo alla tua rete Wi-Fi, o quando abiliti `cloud`.
 
 ## Il file `config.yaml` {#the-config-yaml-file}
 
-Finché non scrivi questo file, ogni dispositivo usa `lan`. Scrivilo tu in
-`~/.config/govee-toolkit/config.yaml`, oppure indica un altro percorso con
+Finché non scrivi questo file, ogni dispositivo usa `lan`. Scrivilo tu nella
+cartella di configurazione del tuo sistema, oppure indica un altro percorso con
 `GOVEE_CONFIG` o `--config`.
+
+| Sistema | Cartella di configurazione |
+| --- | --- |
+| macOS | `~/Library/Application Support/govee-toolkit` |
+| Linux | `$XDG_CONFIG_HOME/govee-toolkit`, altrimenti `~/.config/govee-toolkit` |
+| Windows | `%APPDATA%\govee-toolkit` |
 
 Ogni dispositivo ha come chiave l'indirizzo MAC che comunica. `govee scan` li
 elenca:
@@ -58,7 +64,11 @@ nuova shell. Il toolkit legge il primo file che trova, in quest'ordine:
 2. `.env` nella directory in cui lavori, poi in ogni directory sopra di essa.
    La ricerca si ferma dopo la directory che contiene `.git`, dopo la tua home
    directory, o alla radice del file system.
-3. `~/.config/govee-toolkit/.env`.
+3. `.env` nella cartella di configurazione.
+
+`credentials.env`, nella cartella di configurazione, viene dopo e fornisce i
+nomi che nessun altro file imposta. Studio ci scrive la chiave API quando
+importi un backup.
 
 Il toolkit legge solo i nomi `GOVEE_*` di un `.env`, quindi un solo file può
 servire più progetti. Una variabile già presente nel tuo ambiente vince sul
@@ -68,7 +78,7 @@ file, e `govee --no-env` salta il file.
 
 <div class="terminal">
 <pre><code><span class="prompt">$</span> govee doctor
-variables from `/home/you/.config/govee-toolkit/.env`
+variables from `/home/you/lights/.env`
 no problem found</code></pre>
 <button class="copy" type="button" data-copy="govee doctor">Copia</button>
 </div>

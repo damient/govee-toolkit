@@ -62,8 +62,8 @@ The read tools need no configuration. The control tools read the
 configuration that the `govee` command reads:
 
 - `GOVEE_CONFIG` names the `config.yaml` that enables the modes of each
-  device. Without it, the server reads
-  `~/.config/govee-toolkit/config.yaml`. A file that is not there gives the
+  device. Without it, the server reads `config.yaml` in the configuration
+  folder ([`docs/modes.md`](../../docs/modes.md#where-the-files-are)). A file that is not there gives the
   default configuration, which is `lan` alone.
 - `GOVEE_API_KEY` is the cloud API key, for `cloud` alone.
 
@@ -76,7 +76,7 @@ Give both in the `env` of the client's MCP configuration:
       "command": "npx",
       "args": ["-y", "govee-toolkit-mcp@latest"],
       "env": {
-        "GOVEE_CONFIG": "/home/me/.config/govee-toolkit/config.yaml",
+        "GOVEE_CONFIG": "/home/me/govee.yaml",
         "GOVEE_API_KEY": "..."
       }
     }
@@ -94,8 +94,8 @@ Give `GOVEE_CONFIG` as an absolute path. A relative path starts at the working
 directory of the client, which the client chooses.
 
 The client keeps the `env` block in plaintext in its configuration file. To
-keep the key out of that file, put `GOVEE_API_KEY` in
-`~/.config/govee-toolkit/.env`. The SDK reads that file last. See
+keep the key out of that file, put `GOVEE_API_KEY` in `credentials.env` in
+the configuration folder. The SDK reads that file last. See
 [`../../docs/security.md`](../../docs/security.md).
 
 ## Tools

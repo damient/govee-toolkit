@@ -3,7 +3,7 @@ title: Serveur MCP
 slug: mcp
 order: 8
 description: Laissez un assistant IA lire le catalogue des appareils et piloter vos lumières, par un serveur MCP local.
-source: f9b43c0f13f88f7b6621ad144824feb2b0f4b1c8
+source: 92c6411f45f2e8e5d5006a6c8cf7e45127325edf
 ---
 
 # Serveur MCP
@@ -80,7 +80,7 @@ Ajoutez ceci à `.vscode/mcp.json`:
 Le serveur lit deux variables :
 
 - `GOVEE_CONFIG` nomme votre `config.yaml`. La valeur par défaut est
-  `~/.config/govee-toolkit/config.yaml`.
+  `config.yaml` dans le [dossier de configuration]({{base}}docs/configure/).
 - `GOVEE_API_KEY` est la clé d'API dont {{badge_cloud}} a besoin.
 
 Donnez-les à votre assistant :
@@ -88,8 +88,8 @@ Donnez-les à votre assistant :
 ::: tabs client
 @tab Claude Code
 <div class="terminal">
-<pre><code><span class="prompt">$</span> claude mcp add govee -e GOVEE_CONFIG=/home/me/.config/govee-toolkit/config.yaml -- npx -y govee-toolkit-mcp@latest</code></pre>
-<button class="copy" type="button" data-copy="claude mcp add govee -e GOVEE_CONFIG=/home/me/.config/govee-toolkit/config.yaml -- npx -y govee-toolkit-mcp@latest">Copier</button>
+<pre><code><span class="prompt">$</span> claude mcp add govee -e GOVEE_CONFIG=/home/me/govee.yaml -- npx -y govee-toolkit-mcp@latest</code></pre>
+<button class="copy" type="button" data-copy="claude mcp add govee -e GOVEE_CONFIG=/home/me/govee.yaml -- npx -y govee-toolkit-mcp@latest">Copier</button>
 </div>
 @tab Claude Desktop
 Ajoutez `env` à `claude_desktop_config.json`:
@@ -101,7 +101,7 @@ Ajoutez `env` à `claude_desktop_config.json`:
       "command": "npx",
       "args": ["-y", "govee-toolkit-mcp@latest"],
       "env": {
-        "GOVEE_CONFIG": "/home/me/.config/govee-toolkit/config.yaml"
+        "GOVEE_CONFIG": "/home/me/govee.yaml"
       }
     }
   }
@@ -109,8 +109,8 @@ Ajoutez `env` à `claude_desktop_config.json`:
 ```
 @tab Codex
 <div class="terminal">
-<pre><code><span class="prompt">$</span> codex mcp add govee --env GOVEE_CONFIG=/home/me/.config/govee-toolkit/config.yaml -- npx -y govee-toolkit-mcp@latest</code></pre>
-<button class="copy" type="button" data-copy="codex mcp add govee --env GOVEE_CONFIG=/home/me/.config/govee-toolkit/config.yaml -- npx -y govee-toolkit-mcp@latest">Copier</button>
+<pre><code><span class="prompt">$</span> codex mcp add govee --env GOVEE_CONFIG=/home/me/govee.yaml -- npx -y govee-toolkit-mcp@latest</code></pre>
+<button class="copy" type="button" data-copy="codex mcp add govee --env GOVEE_CONFIG=/home/me/govee.yaml -- npx -y govee-toolkit-mcp@latest">Copier</button>
 </div>
 @tab Cursor
 Ajoutez `env` à `.cursor/mcp.json`:
@@ -122,7 +122,7 @@ Ajoutez `env` à `.cursor/mcp.json`:
       "command": "npx",
       "args": ["-y", "govee-toolkit-mcp@latest"],
       "env": {
-        "GOVEE_CONFIG": "/home/me/.config/govee-toolkit/config.yaml"
+        "GOVEE_CONFIG": "/home/me/govee.yaml"
       }
     }
   }
@@ -139,7 +139,7 @@ Ajoutez `env` à `.vscode/mcp.json`:
       "command": "npx",
       "args": ["-y", "govee-toolkit-mcp@latest"],
       "env": {
-        "GOVEE_CONFIG": "/home/me/.config/govee-toolkit/config.yaml"
+        "GOVEE_CONFIG": "/home/me/govee.yaml"
       }
     }
   }
@@ -149,7 +149,7 @@ Ajoutez `env` à `.vscode/mcp.json`:
 
 Écrivez `GOVEE_CONFIG` sous forme de chemin absolu : le client choisit le
 répertoire de travail. Le client garde son bloc `env` en clair : mettez donc
-plutôt la clé d'API dans `~/.config/govee-toolkit/.env`.
+plutôt la clé d'API dans `credentials.env`, dans le dossier de configuration.
 
 ## Ce que l'assistant peut faire {#what-the-assistant-can-do}
 

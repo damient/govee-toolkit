@@ -5,6 +5,15 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Changed
+
+- **Breaking:** the configuration folder and the cache folder follow the
+  convention of each operating system: `~/Library/Application Support` and
+  `~/Library/Caches` on macOS, `%APPDATA%` and `%LOCALAPPDATA%` on Windows,
+  XDG on Linux as before. The binary reads `config.yaml`, `.env` and the device cache there, and
+  `credentials.env` in the configuration folder. On macOS and Windows, move
+  the old folder: the [`govee-toolkit` changelog](../../CHANGELOG.md) gives the command.
+
 ## [1.12.0] — 2026-11-21
 
 ### Changed

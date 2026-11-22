@@ -42,8 +42,13 @@ impl Env {
     ///
     /// The search starts in the working directory and goes up. It stops after
     /// the directory that holds `.git`, after the home directory, or at the
-    /// root of the file system. `~/.config/govee-toolkit/.env` is read last.
+    /// root of the file system. The `.env` of
+    /// [`config_dir`](crate::paths::config_dir) ends the search.
     /// [`FILE_ENV`] replaces the search.
+    ///
+    /// [`credentials_file`](crate::paths::credentials_file) is read after
+    /// the search, or after the [`FILE_ENV`] file, and supplies only the
+    /// names that nothing else sets.
     ///
     /// A file the search does not find is not an error: `lan` and `ble` need
     /// no credential. A file that [`FILE_ENV`] names is an error when it is
@@ -56,13 +61,14 @@ impl Env {
         let mut env = Self::process();
         if let Some(path) = std::env::var_os(FILE_ENV) {
             env.merge(&PathBuf::from(path), true)?;
-            return Ok(env);
-        }
-        for path in search_path() {
-            if env.merge(&path, false)? {
-                break;
+        } else {
+            for path in search_path() {
+                if env.merge(&path, false)? {
+                    break;
+                }
             }
         }
+        env.merge(&crate::paths::credentials_file(), false)?;
         Ok(env)
     }
 
@@ -91,6 +97,18 @@ impl Env {
         Ok(env)
     }
 
+    /// The file at `path` alone: no process environment and no search. An
+    /// absent file gives an [`Env`] with no variable.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Env`] if the file cannot be read or does not parse.
+    pub fn from_file_alone(path: impl AsRef<Path>) -> Result<Self> {
+        let mut env = Self::default();
+        env.merge(path.as_ref(), false)?;
+        Ok(env)
+    }
+
     /// An [`Env`] from names and values the caller holds. Nothing is read from
     /// the process or from a file, and nothing is filtered.
     pub fn from_pairs<I, K, V>(pairs: I) -> Self
@@ -116,7 +134,7 @@ impl Env {
         self.vars.get(name).map(String::as_str)
     }
 
-    /// The file the values came from, where one was read.
+    /// The first file the values came from, where one was read.
     #[must_use]
     pub fn source(&self) -> Option<&Path> {
         self.source.as_deref()
@@ -137,7 +155,9 @@ impl Env {
             }
             self.vars.entry(name).or_insert(value);
         }
-        self.source = Some(path.to_owned());
+        if self.source.is_none() {
+            self.source = Some(path.to_owned());
+        }
         Ok(true)
     }
 }
@@ -211,6 +231,17 @@ mod tests {
         let env = Env::from_file(&path).expect("the file reads");
         assert_eq!(env.var("GOVEE_WIFI_PASSWORD"), Some("two words "));
         std::fs::remove_file(&path).unwrap();
+    }
+
+    #[test]
+    fn a_file_alone_ignores_the_process_and_an_absent_file_is_empty() {
+        let path = file("env-alone", "GOVEE_API_KEY=a-key\n");
+        let env = Env::from_file_alone(&path).expect("the file reads");
+        assert_eq!(env.var("GOVEE_API_KEY"), Some("a-key"));
+        assert_eq!(env.var("PATH"), None);
+        std::fs::remove_file(&path).unwrap();
+        let none = Env::from_file_alone("/nonexistent/govee/credentials.env").unwrap();
+        assert_eq!(none.var("GOVEE_API_KEY"), None);
     }
 
     #[test]

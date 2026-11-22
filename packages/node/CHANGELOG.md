@@ -4,6 +4,15 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Changed
+
+- **Breaking:** the configuration folder and the cache folder follow the
+  convention of each operating system: `~/Library/Application Support` and
+  `~/Library/Caches` on macOS, `%APPDATA%` and `%LOCALAPPDATA%` on Windows,
+  XDG on Linux as before. The binding reads `config.yaml`, `.env` and the device cache there, and
+  `credentials.env` in the configuration folder. On macOS and Windows, move
+  the old folder: the [`govee-toolkit` changelog](../rust/CHANGELOG.md) gives the command.
+
 ## [1.8.0] — 2026-11-21
 
 ### Added

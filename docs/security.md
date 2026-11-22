@@ -70,7 +70,8 @@ authenticated with an API key, and the trust boundary is the account.
 - **Do not expose ports 4001–4003 across networks.** Multicast discovery is
   link-local by design; forwarding it is exporting the trust boundary.
 - **Treat the configuration file as untrusted-adjacent.** It is a plain YAML
-  file in `$XDG_CONFIG_HOME/govee-toolkit/`; anyone who can write it decides
+  file in the configuration folder ([`modes.md`](modes.md#where-the-files-are));
+  anyone who can write it decides
   which modes are enabled and, if `catalog.local_devices` is on, which device
   files are used. Keep it owned by the user running the SDK and not
   world-writable.
@@ -94,10 +95,15 @@ The only credential this project handles is the Govee cloud API key, used by
 - **It is never exported into the process environment.** The SDK holds the
   variables in a value and reads through it, so nothing the process launches
   inherits the key.
-- **It never lives in `~/.config/govee-toolkit/config.yaml`.** People paste that
+- **It never lives in `config.yaml`.** People paste that
   file into bug reports and issues; a key in it leaks the day someone asks for
   help.
 - **It is never logged.** Not at any level, not in an error, not in an event.
+- **`credentials.env` holds it for the desktop app and `govee-server`.** The
+  file is in the configuration folder, and the server writes it with the
+  permissions `0600`. A backup that Studio exports carries the key when one is
+  set, so keep that file private too. Only a client on the computer of the
+  server can export or import a backup.
 - **It is never written to the device cache**, or to any other file the SDK
   writes.
 

@@ -3,7 +3,7 @@ title: Konfiguration
 slug: configure
 order: 3
 description: Die config.yaml, die deine Geräte benennt, die .env-Datei, die das Toolkit liest, die WLAN-Zugangsdaten, mit denen ein Gerät deinem Netzwerk beitritt, und der API-Schlüssel, den der Cloud-Modus braucht.
-source: 31e56e8665d485c372e3101fcdd80473e879657c
+source: ac7a5ca370cd6102f6679a62f9e74a3d695e661d
 ---
 
 # Konfiguration
@@ -17,8 +17,14 @@ du ein Gerät in dein WLAN bringst oder wenn du `cloud` aktivierst.
 ## Die Datei `config.yaml` {#the-config-yaml-file}
 
 Solange du diese Datei nicht schreibst, nutzt jedes Gerät `lan`. Lege sie selbst
-unter `~/.config/govee-toolkit/config.yaml` an, oder zeige mit `GOVEE_CONFIG`
+im Konfigurationsordner deines Systems an, oder zeige mit `GOVEE_CONFIG`
 oder `--config` auf einen anderen Pfad.
+
+| System | Konfigurationsordner |
+| --- | --- |
+| macOS | `~/Library/Application Support/govee-toolkit` |
+| Linux | `$XDG_CONFIG_HOME/govee-toolkit`, sonst `~/.config/govee-toolkit` |
+| Windows | `%APPDATA%\govee-toolkit` |
 
 Der Schlüssel jedes Geräts ist die MAC-Adresse, die es meldet. `govee scan`
 listet sie auf:
@@ -60,7 +66,11 @@ findet, in dieser Reihenfolge:
 2. `.env` im Verzeichnis, in dem du arbeitest, dann in jedem Verzeichnis darüber.
    Die Suche endet nach dem Verzeichnis, das `.git` enthält, nach deinem
    Home-Verzeichnis oder an der Wurzel des Dateisystems.
-3. `~/.config/govee-toolkit/.env`.
+3. `.env` im Konfigurationsordner.
+
+`credentials.env` im Konfigurationsordner kommt danach und liefert die
+Namen, die keine andere Datei setzt. Studio schreibt den API-Schlüssel dorthin,
+wenn du eine Sicherung importierst.
 
 Das Toolkit liest nur die `GOVEE_*`-Namen einer `.env`. Eine Datei kann also
 mehreren Projekten dienen. Eine Variable, die schon in deiner Umgebung steht,
@@ -70,7 +80,7 @@ hat Vorrang vor der Datei, und `govee --no-env` überspringt die Datei.
 
 <div class="terminal">
 <pre><code><span class="prompt">$</span> govee doctor
-variables from `/home/you/.config/govee-toolkit/.env`
+variables from `/home/you/lights/.env`
 no problem found</code></pre>
 <button class="copy" type="button" data-copy="govee doctor">Kopieren</button>
 </div>

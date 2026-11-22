@@ -248,9 +248,11 @@ govee doctor                       # says which file the variables came from
 `Config::load` finds the file, so the `govee` command, the examples and any
 program that calls it all read the same one. The search starts in the working
 directory and goes up. It stops after the directory that holds `.git`, after
-your home directory, or at the root of the file system, and it reads
-`~/.config/govee-toolkit/.env` last. `GOVEE_ENV_FILE` names one file and
-replaces the search.
+your home directory, or at the root of the file system, and it reads the
+`.env` of the configuration folder last. `GOVEE_ENV_FILE` names one file and
+replaces the search. `credentials.env` in the configuration folder comes
+after all of them. [`docs/modes.md`](docs/modes.md#where-the-files-are) gives
+the folder of each operating system.
 
 Three rules apply to the file:
 
@@ -270,7 +272,7 @@ named that way is an error when it is absent, because somebody asked for it.
 ## Local configuration
 
 `config.yaml` says which modes are enabled, per device. `GOVEE_CONFIG` names
-the file in place of `~/.config/govee-toolkit/config.yaml`, and `.env` carries
+the file in place of `config.yaml` in the configuration folder, and `.env` carries
 it like any other variable, so the file can sit beside the code:
 
 ```bash
@@ -287,7 +289,7 @@ the `.env` it read and not this file, so a wrong path here is silent.
 
 Two other paths reach the same key, and both are for an operator rather than a
 contributor: the `GOVEE_API_KEY` variable on its own, and a file of its own
-that `cloud.key_file` names in `~/.config/govee-toolkit/config.yaml`. The key
+that `cloud.key_file` names in `config.yaml`. The key
 never goes in `config.yaml` itself — people paste that file into bug reports.
 See [`docs/security.md`](docs/security.md).
 

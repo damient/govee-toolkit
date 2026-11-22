@@ -3,7 +3,7 @@ title: Configurar
 slug: configure
 order: 3
 description: El config.yaml que nombra tus dispositivos, el archivo .env que lee el toolkit, las credenciales Wi-Fi que un dispositivo necesita para unirse a tu red y la clave de API que necesita el modo cloud.
-source: 31e56e8665d485c372e3101fcdd80473e879657c
+source: ac7a5ca370cd6102f6679a62f9e74a3d695e661d
 ---
 
 # Configurar
@@ -17,8 +17,14 @@ dispositivo a tu red Wi-Fi, o cuando habilites `cloud`.
 ## El archivo `config.yaml` {#the-config-yaml-file}
 
 Mientras no escribas este archivo, todos los dispositivos usan `lan`. Escríbelo
-tú en `~/.config/govee-toolkit/config.yaml`, o indica otra ruta con
+tú en la carpeta de configuración de tu sistema, o indica otra ruta con
 `GOVEE_CONFIG` o `--config`.
+
+| Sistema | Carpeta de configuración |
+| --- | --- |
+| macOS | `~/Library/Application Support/govee-toolkit` |
+| Linux | `$XDG_CONFIG_HOME/govee-toolkit`, si no `~/.config/govee-toolkit` |
+| Windows | `%APPDATA%\govee-toolkit` |
 
 Cada dispositivo se identifica por la dirección MAC que comunica. `govee scan`
 las lista:
@@ -59,7 +65,11 @@ orden:
 2. `.env` en el directorio en el que trabajas, y después en cada directorio
    superior. La búsqueda se detiene tras el directorio que contiene `.git`, tras
    tu directorio personal, o en la raíz del sistema de archivos.
-3. `~/.config/govee-toolkit/.env`.
+3. `.env` en la carpeta de configuración.
+
+`credentials.env`, en la carpeta de configuración, va después y aporta los
+nombres que ningún otro archivo define. Studio escribe ahí la clave de API
+cuando importas una copia de seguridad.
 
 El toolkit solo lee los nombres `GOVEE_*` de un `.env`, así que un mismo
 archivo sirve para varios proyectos. Una variable que ya está en tu entorno
@@ -69,7 +79,7 @@ tiene prioridad sobre el archivo, y `govee --no-env` omite el archivo.
 
 <div class="terminal">
 <pre><code><span class="prompt">$</span> govee doctor
-variables from `/home/you/.config/govee-toolkit/.env`
+variables from `/home/you/lights/.env`
 no problem found</code></pre>
 <button class="copy" type="button" data-copy="govee doctor">Copiar</button>
 </div>

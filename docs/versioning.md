@@ -115,7 +115,8 @@ is removed, is breaking.
 Public:
 
 - The facade's exported types, functions and traits.
-- The configuration file format at `$XDG_CONFIG_HOME/govee-toolkit/config.yaml`.
+- The configuration file format of `config.yaml`, and the folders of
+  [`modes.md`](modes.md#where-the-files-are).
 - The event types an application subscribes to, and the error variants it
   matches on.
 - The conformance vector format in `tests/fixtures/golden/`.

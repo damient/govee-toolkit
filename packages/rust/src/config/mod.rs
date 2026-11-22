@@ -4,7 +4,7 @@
 //! is `devices/<SKU>.yaml` and is not editable here. Enabling a mode the
 //! hardware does not support is reported at startup, not at send time.
 //!
-//! YAML, at `~/.config/govee-toolkit/config.yaml`:
+//! YAML, at `config.yaml` in [`paths::config_dir`](crate::paths::config_dir):
 //!
 //! ```yaml
 //! catalog:
