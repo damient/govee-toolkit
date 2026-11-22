@@ -2,15 +2,17 @@
 //! other path is a file of the web UI that [`Options::web`] selects.
 
 use std::io;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 mod devices;
+mod share;
 mod web;
 
 use axum::http::Uri;
 use axum::routing::get;
-use axum::{Json, Router};
+use axum::{Json, Router, middleware};
 use govee_toolkit::Catalog;
 use serde_json::json;
 use tower_http::services::ServeDir;
@@ -40,12 +42,17 @@ pub enum Web {
     None,
 }
 
-/// The routes.
+/// The routes. `/api/share` cannot open the network here: only [`serve`]
+/// knows the port.
 ///
 /// # Errors
 ///
 /// The error of [`Catalog::embedded`].
 pub fn router(options: &Options) -> govee_toolkit::codec::Result<Router> {
+    routes(options, None)
+}
+
+fn routes(options: &Options, listen: Option<SocketAddr>) -> govee_toolkit::codec::Result<Router> {
     let hello = Json(json!({
         "name": "govee-toolkit",
         "version": govee_toolkit::VERSION,
@@ -55,6 +62,12 @@ pub fn router(options: &Options) -> govee_toolkit::codec::Result<Router> {
         .route("/hello", get(move || async move { hello }))
         .route("/devices", get(devices::list))
         .with_state(Arc::new(devices::Sdk::default()));
+    let share = Arc::new(share::Share::new(listen));
+    let api = api.merge(
+        Router::new()
+            .route("/share", get(share::get).post(share::set))
+            .with_state(Arc::clone(&share)),
+    );
     let mut app = Router::new().nest("/api", api);
     match &options.web {
         Web::Embedded => {
@@ -63,6 +76,11 @@ pub fn router(options: &Options) -> govee_toolkit::codec::Result<Router> {
         Web::Dir(dir) => app = app.fallback_service(ServeDir::new(dir)),
         Web::None => {}
     }
+    let app = app.layer(middleware::from_fn_with_state(
+        Arc::clone(&share),
+        share::guard,
+    ));
+    share.set_app(app.clone());
     Ok(app)
 }
 
@@ -72,7 +90,9 @@ pub fn router(options: &Options) -> govee_toolkit::codec::Result<Router> {
 ///
 /// `InvalidData` when the device files do not load, or the listener error.
 pub async fn serve(listener: std::net::TcpListener, options: &Options) -> io::Result<()> {
-    let app = router(options).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let app = routes(options, Some(listener.local_addr()?))
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     listener.set_nonblocking(true)?;
-    axum::serve(tokio::net::TcpListener::from_std(listener)?, app).await
+    let service = app.into_make_service_with_connect_info::<SocketAddr>();
+    axum::serve(tokio::net::TcpListener::from_std(listener)?, service).await
 }

@@ -29,9 +29,15 @@ cargo run -p govee-toolkit-server
 the UI shows on a reload.
 
 `--listen` sets the address. The default is `127.0.0.1:4080`, the loopback
-alone. `--listen 0.0.0.0:4080` opens Studio to the other devices on the
-network. The API has no authentication, so anyone on that network can then
-control the lights.
+alone. The API has no authentication, so a device that reaches the server
+can control the lights. Two ways open Studio to a phone or a tablet:
+
+- The Mobile page of Studio, or `POST /api/share`, adds a listener on the
+  network address of this machine, on the same port when it is free.
+  Sharing is off at each start, and only a client on this machine can
+  switch it. When sharing stops, the server refuses the network again.
+- `--listen 0.0.0.0:4080` opens the server to the network for as long as it
+  runs.
 
 ## Routes
 
@@ -39,6 +45,8 @@ control the lights.
 | ----- | ------ |
 | `GET /api/hello` | `{ "name", "version", "skus" }`: the crate, its version and the number of SKUs in the embedded catalog |
 | `GET /api/devices` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`. The call takes one scan window, 2 s by default. An error answers 500 and `{ "error" }` |
+| `GET /api/share` | `{ "fixed", "shared", "url", "control" }`: `fixed` when `--listen` opens the network already, `url` while sharing is on, `control` when the caller can switch sharing |
+| `POST /api/share` | `{ "shared": true \| false }` opens or closes the network, and answers as `GET`. A client from the network gets 403, a server started with a network `--listen` 409 |
 | any other path | a file of the web UI: the copy in the binary, or the directory that `--web` names |
 
 Not affiliated with Govee.
