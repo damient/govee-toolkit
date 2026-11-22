@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+mod apply;
 mod backup;
 mod compat;
 mod control;
@@ -86,8 +87,7 @@ fn routes(
         .route("/devices", get(devices::list).put(entries::put))
         .route("/devices/{id}/identify", post(devices::identify))
         .route("/devices/{id}/status", get(control::status))
-        .route("/devices/{id}/brightness", post(control::brightness))
-        .route("/power", post(control::power))
+        .route("/apply", post(apply::apply))
         .route("/scan", get(devices::scan))
         .with_state(sdk)
         .merge(

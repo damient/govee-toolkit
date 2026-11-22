@@ -56,7 +56,7 @@ async fn settings_start_at_the_defaults_and_survive_a_restart() {
     let server = json!({ "version": env!("CARGO_PKG_VERSION"), "sdk": govee_toolkit::VERSION });
     assert_eq!(
         settings,
-        json!({ "theme": "dark", "language": null, "advanced": false, "server": server })
+        json!({ "theme": "dark", "language": null, "advanced": false, "favorites": [], "server": server })
     );
 
     let change = json!({ "theme": "light", "language": "en" }).to_string();
@@ -64,7 +64,7 @@ async fn settings_start_at_the_defaults_and_survive_a_restart() {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(
         settings,
-        json!({ "theme": "light", "language": "en", "advanced": false, "server": server })
+        json!({ "theme": "light", "language": "en", "advanced": false, "favorites": [], "server": server })
     );
 
     // A new router reads the file again, as a new start of the server does.

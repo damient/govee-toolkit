@@ -27,13 +27,18 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 - `GET /api/devices/{id}/status` asks one device for its state over the
   modes that `config.yaml` enables, and adds `brightness_range`, the
   bounds of brightness that the device file gives for the mode that
-  answered. The first call for a device takes one scan window. A device
-  that does not answer gets 502.
-- `POST /api/devices/{id}/brightness` sets the brightness in those bounds.
-  A level out of the bounds is an error, never a clamp.
-- `POST /api/power` turns a list of devices on or off at once, and
-  answers one outcome per device. When a device fails, the others go
-  ahead.
+  answered, and `features`: whether that mode takes a color, the bounds
+  of its white temperature, how many
+  zones it paints, and whether it takes the gradient. The zones come from
+  the entry `role: segment_color_masked`, and a mode that arms a segment
+  channel gets none. The first call for a device takes one scan window. A
+  device that does not answer gets 502.
+- `POST /api/apply` changes a list of devices in one call: power,
+  brightness, one color, a white temperature, one color over a list of zones, and the gradient.
+  Power on goes first and power off last. A level out of the bounds is an
+  error, never a clamp. The answer gives one outcome per device. When a
+  device fails, the others go ahead.
+- The Studio settings keep `favorites`, a list of at most 32 colors.
 - `PUT /api/devices` writes the device entries of `config.yaml` in one
   go: `keep` adds or renames, `remove` deletes. An entry with no SKU gets
   the SKU of the request, and a new entry also gets `modes: [lan]`. A name is 64 characters at most. The other keys of
