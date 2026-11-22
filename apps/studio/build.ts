@@ -1,4 +1,4 @@
-// The fonts and the icon come from the site: one copy of each file.
+// The fonts and the icons come from the site: one copy of each file.
 
 import { cp, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -18,7 +18,9 @@ export async function copyStatic(): Promise<void> {
     cp(join(src, "index.html"), join(dist, "index.html")),
     cp(join(src, "style.css"), join(dist, "style.css")),
     cp(join(src, "locales"), join(dist, "locales"), { recursive: true }),
+    cp(join(src, "manifest.webmanifest"), join(dist, "manifest.webmanifest")),
     cp(join(site, "favicon.svg"), join(dist, "favicon.svg")),
+    cp(join(site, "apple-touch-icon.png"), join(dist, "apple-touch-icon.png")),
     ...FONTS.map((font) => cp(join(site, "fonts", font), join(dist, "fonts", font))),
   ]);
 }

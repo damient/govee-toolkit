@@ -1,4 +1,5 @@
 import { hello } from "./api.ts";
+import { watchCamera } from "./insets.ts";
 import { type Language, language, load, t, translate } from "./i18n.ts";
 import { mobile } from "./mobile.ts";
 import { mount, type Page } from "./nav.ts";
@@ -6,6 +7,7 @@ import { write } from "./prefs.ts";
 import { rail } from "./rail.ts";
 import { settings } from "./settings.ts";
 import { splash } from "./splash.ts";
+import { paint } from "./theme.ts";
 
 /** A change of language shows the splash at least this long. */
 const LANGUAGE_MS = 700;
@@ -59,6 +61,8 @@ function byId(id: string): HTMLElement {
   return element;
 }
 
+paint();
+watchCamera();
 const screen = splash(byId("splash"), byId("splash-note"));
 let refresh = empty;
 let relabelRail = empty;

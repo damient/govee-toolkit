@@ -43,6 +43,8 @@ The fonts and the icon come from `site/src/assets` at build time.
 - Mobile, on a wide screen only, shares Studio on the network and shows its
   address as a QR code for a phone or a tablet. Sharing is off at each start
   of the server, and only the computer of the server can switch it.
+- On a phone, "Add to Home Screen" opens Studio without the browser bars
+  (`manifest.webmanifest`).
 - Settings sets the theme and the language. The theme is dark by default;
   "Auto" follows the system. This browser keeps both choices
   (`localStorage`).
