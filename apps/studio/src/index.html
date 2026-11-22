@@ -11,15 +11,17 @@
   <title>Govee Toolkit Studio</title>
   <meta name="theme-color" content="#0a0d14">
   <!-- Added to the home screen, Studio opens without the browser bars. -->
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" href="/manifest.webmanifest">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Studio">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="modal.css">
-  <script type="module" src="app.js"></script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/modal.css">
+  <link rel="stylesheet" href="/components.css">
+  <link rel="stylesheet" href="/pages.css">
+  <script type="module" src="/app.js"></script>
 </head>
 <body>
   <div class="splash" id="splash" role="status" aria-live="polite">
@@ -32,7 +34,7 @@
   <div class="app">
     <aside class="rail">
       <div class="rail-head">
-        <a class="brand" href="#home" aria-label="Home" data-i18n-label="brand.home">
+        <a class="brand" href="/" aria-label="Home" data-i18n-label="brand.home">
           <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
           <span class="wordmark">Studio</span>
         </a>

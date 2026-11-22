@@ -61,7 +61,7 @@ function note(state: Share, error: string): HTMLElement {
   return element("p", "share-note", t("mobile.warning"));
 }
 
-function draw(view: HTMLElement, state: Share, error = ""): void {
+function draw(box: HTMLElement, state: Share, error = ""): void {
   const body = element("div", "share-body");
   body.append(
     element("h2", "share-title", t("mobile.title")),
@@ -81,10 +81,10 @@ function draw(view: HTMLElement, state: Share, error = ""): void {
       toggle.disabled = true;
       setShare(!state.shared).then(
         (next) => {
-          draw(view, next);
+          draw(box, next);
         },
         (failure: unknown) => {
-          draw(view, state, explain(failure));
+          draw(box, state, explain(failure));
         },
       );
     });
@@ -97,18 +97,21 @@ function draw(view: HTMLElement, state: Share, error = ""): void {
 
   const card = element("div", "share-card");
   card.append(tile(state), body);
-  view.replaceChildren(card);
+  box.replaceChildren(card);
 }
 
 /** Draw the Mobile view: the address of Studio on the network, as a QR code. */
 export function mobile(view: HTMLElement): void {
   view.classList.add("centered");
+  // The view also holds the note for a small screen: draw beside it.
+  const box = element("div", "");
+  view.append(box);
   share().then(
     (state) => {
-      draw(view, state);
+      draw(box, state);
     },
     (failure: unknown) => {
-      view.replaceChildren(element("p", "share-note error", explain(failure)));
+      box.replaceChildren(element("p", "share-note error", explain(failure)));
     },
   );
 }

@@ -35,11 +35,44 @@ The fonts and the icon come from `site/src/assets` at build time.
   does not answer, the splash stays and gives the reason.
 - The shell has a rail, with the logo above the navigation, and one view per
   space: Home, Lights, Library (presets and scenes), Live (pads), Stage
-  (rooms in 3D and the scene timeline) and Settings. Each view is empty.
+  (rooms in 3D and the scene timeline) and Settings. Lights, Library, Live
+  and Stage show a "Coming soon" card that says what the view will do
+  (`soon.ts`).
+- Each view has a path: `/`, `/lights`, `/setup`. `router.ts` routes the
+  links with the history of the browser, so the back button and a reload
+  keep the view. `govee-server` answers `index.html` for a path with no dot
+  outside `/api`. The files of the build have absolute paths for this
+  reason.
+- Home shows a welcome card, centered in the view, that opens the setup.
+  `/setup` has no entry in the navigation. Its first step runs a `lan`
+  scan (`/api/devices`) and shows one card per light that answered
+  (`light.ts`): the icon of its family, and its name or its SKU. A card
+  selects the light, renames it in `config.yaml` and identifies it (the
+  walk of `govee identify`: green for some seconds, then off). A scan
+  that finds no light shows how to make a light answer. On a phone, the
+  steps show as "1 / 3". The other steps are not built yet.
+- The shared parts of a view:
+  - `title.ts`: the head of a view. It holds an optional back link, the
+    title, and content on the right.
+  - `loading.ts`: the three dots of the logo in a wave, in three sizes,
+    with an optional text on the right. `block` puts them in a card in the
+    center of the free space, for a view that waits for its content.
+  - `notice.ts`: a centered card with an icon, a title, a text and
+    actions. The welcome card, the "Coming soon" card and an empty result
+    use it.
+  - `help.ts`: a "?" badge with a tooltip, on hover, on focus and on a
+    tap. A view puts its hints there, not in a paragraph.
+  - `family.ts`: the icon of a device family. `build.ts` reads the icons
+    from `site/src/icons/family/`, so the site and Studio share one copy.
+- A view is full width. A view with `width: "narrow"` in `nav.ts`
+  (Settings) centers its content at `--page-narrow` (720 px).
 - On a wide screen, the button next to the logo sets the rail to icons
   only, and back. On a tablet, the rail always shows icons only. On a
-  phone, the logo goes and the navigation is a tab bar; Stage and Settings
-  go to "More".
+  phone, the logo goes and the navigation is a tab bar. Settings goes to
+  "More".
+- A view can need a larger screen (`min` in `nav.ts`): Stage needs a
+  tablet, Mobile needs a computer. A smaller screen leaves the view out of
+  the navigation, and the view shows a note in place of its content.
 - Mobile, on a wide screen only, shares Studio on the network and shows its
   address as a QR code for a phone or a tablet. Only the computer of the
   server can switch sharing, and the server keeps the choice.
@@ -60,8 +93,14 @@ The fonts and the icon come from `site/src/assets` at build time.
   button goes when the user leaves Settings or reloads the page; the server
   keeps its copies.
   Only the computer of the server can export, import or restore.
-- `modal.ts` shows a modal dialog with a title, a text and buttons, and
-  answers the button that the user picks.
+- Settings > Reset opens a modal with a checkbox for the preferences, one
+  for the device list, and All, which checks both. A second modal asks for
+  a confirmation. The page reloads after the reset. Only the computer of
+  the server can reset.
+- `modal.ts` shows a modal dialog with a title, an optional text, an
+  optional form and buttons, and answers the button that the user picks.
+  The caller reads the form after the answer. `ready` keeps the primary
+  button disabled until the form holds a valid choice.
 - An error shows as a sentence: the server does not answer, the server is
   older than Studio, or the reason that the server gives.
 - The text of the UI is in `src/locales/<code>.json`. `en.json` is the

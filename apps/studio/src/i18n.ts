@@ -32,7 +32,7 @@ export function language(): Language {
 
 /** Fetch `locales/<code>.json`. The file is fetched each time, so that a change shows without a rebuild. */
 export async function load(code: Language): Promise<void> {
-  const response = await fetch(`locales/${code}.json`, { cache: "no-store" });
+  const response = await fetch(`/locales/${code}.json`, { cache: "no-store" });
   if (!response.ok) throw new Error(`locales/${code}.json: HTTP ${response.status}`);
   const data: unknown = await response.json();
   if (!isStrings(data)) throw new Error(`locales/${code}.json: not a map of strings`);
