@@ -1,91 +1,88 @@
-interface Hello {
-  name: string;
-  version: string;
-  skus: number;
-}
+import { hello } from "./api.ts";
+import { type Language, language, load, t, translate } from "./i18n.ts";
+import { mount, type Page } from "./nav.ts";
+import { write } from "./prefs.ts";
+import { settings } from "./settings.ts";
+import { splash } from "./splash.ts";
 
-interface Device {
-  id: string;
-  sku: string;
-  name: string | null;
-  modes: { mode: string; health: { state: string } | null }[];
-}
+/** A change of language shows the splash at least this long. */
+const LANGUAGE_MS = 700;
 
-function text(id: string, value: string): void {
-  const element = document.getElementById(id);
-  if (element) element.textContent = value;
-}
+const empty = (): void => {};
 
-function setStatus(state: "ok" | "error", label: string): void {
-  const element = document.getElementById("status");
-  if (!element) return;
-  element.dataset["state"] = state;
-  element.textContent = label;
-}
+const top: Page[] = [
+  { id: "home", label: "nav.home", render: empty, icon: "M5 12H3l9-9 9 9h-2M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7M9 21v-6h6v6" },
+  {
+    id: "lights",
+    label: "nav.lights",
+    render: empty,
+    icon: "M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z",
+  },
+  { id: "library", label: "nav.library", render: empty, icon: "M5 4h4v16H5zM9 4h4v16H9zM14 5l4-1 3 15-4 1z" },
+  {
+    id: "live",
+    label: "nav.live",
+    render: empty,
+    icon: "M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM10 8.5v7l6-3.5z",
+  },
+  {
+    id: "stage",
+    label: "nav.stage",
+    render: empty,
+    icon: "M4 4h16v16H4zM8 4v16M16 4v16M4 8h4M4 16h4M16 8h4M16 16h4M4 12h16",
+  },
+];
 
-function message(error: unknown): string {
-  return error instanceof Error ? error.message : "unreachable";
-}
+const bottom: Page[] = [
+  {
+    id: "settings",
+    label: "nav.settings",
+    render: (view) => {
+      settings(view, change);
+    },
+    icon: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM10.3 4.3a1.7 1.7 0 0 1 3.4 0 1.7 1.7 0 0 0 2.6 1.1 1.7 1.7 0 0 1 2.3 2.3 1.7 1.7 0 0 0 1.1 2.6 1.7 1.7 0 0 1 0 3.4 1.7 1.7 0 0 0-1.1 2.6 1.7 1.7 0 0 1-2.3 2.3 1.7 1.7 0 0 0-2.6 1.1 1.7 1.7 0 0 1-3.4 0 1.7 1.7 0 0 0-2.6-1.1 1.7 1.7 0 0 1-2.3-2.3 1.7 1.7 0 0 0-1.1-2.6 1.7 1.7 0 0 1 0-3.4 1.7 1.7 0 0 0 1.1-2.6 1.7 1.7 0 0 1 2.3-2.3 1.7 1.7 0 0 0 2.6-1.1z",
+  },
+];
 
-async function hello(): Promise<void> {
-  try {
-    const response = await fetch("/api/hello");
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const answer = (await response.json()) as Hello;
-    setStatus("ok", "connected");
-    text("version", `${answer.name} ${answer.version}`);
-    text("skus", answer.skus.toString());
-  } catch (error) {
-    setStatus("error", message(error));
-  }
-}
-
-function el(tag: string, className: string, value: string): HTMLElement {
-  const element = document.createElement(tag);
-  element.className = className;
-  element.textContent = value;
+function byId(id: string): HTMLElement {
+  const element = document.querySelector<HTMLElement>(`#${id}`);
+  if (!element) throw new Error(`#${id} is missing from index.html`);
   return element;
 }
 
-function row(device: Device): HTMLLIElement {
-  const item = document.createElement("li");
-  const what = document.createElement("div");
-  what.className = "what";
-  what.append(el("span", "title", device.name ?? device.sku), el("code", "id", device.id));
-  const state = device.modes.find((m) => m.mode === "lan")?.health?.state;
-  const badge = el("span", "status", "lan");
-  badge.dataset["state"] = state === "ok" ? "ok" : "pending";
-  item.append(what, badge);
-  return item;
+const screen = splash(byId("splash"), byId("splash-note"));
+let refresh = empty;
+
+async function relabel(code: Language): Promise<void> {
+  await load(code);
+  translate();
+  refresh();
 }
 
-async function scan(): Promise<void> {
-  const button = document.getElementById("scan") as HTMLButtonElement | null;
-  const hint = document.getElementById("devices-hint");
-  const list = document.getElementById("devices");
-  if (!button || !hint || !list) return;
-  button.disabled = true;
-  hint.hidden = false;
-  hint.dataset["state"] = "pending";
-  hint.textContent = "Scanning the LAN…";
-  try {
-    const response = await fetch("/api/devices");
-    const answer = (await response.json()) as { devices?: Device[]; error?: string };
-    if (!response.ok) throw new Error(answer.error ?? `HTTP ${response.status}`);
-    const devices = answer.devices ?? [];
-    list.replaceChildren(...devices.map(row));
-    list.hidden = devices.length === 0;
-    hint.hidden = devices.length > 0;
-    hint.textContent = "No device answered on the LAN. Check that LAN Control is on in the Govee Home app.";
-  } catch (error) {
-    list.hidden = true;
-    hint.dataset["state"] = "error";
-    hint.textContent = message(error);
-  } finally {
-    button.disabled = false;
-  }
+async function boot(): Promise<void> {
+  const answer = await hello();
+  screen.note(`v${answer.version}`);
+  await load(language());
+  translate();
+  refresh = mount(byId("nav"), byId("view"), top, bottom);
 }
 
-document.getElementById("scan")?.addEventListener("click", () => void scan());
-void hello();
-void scan();
+function fail(error: unknown): void {
+  screen.fail(t("splash.error", { reason: error instanceof Error ? error.message : "unreachable" }));
+}
+
+function change(code: Language): void {
+  write("language", code);
+  screen.hold(() => relabel(code), LANGUAGE_MS).catch(fail);
+}
+
+// `npm run dev` sends this event when a file in `locales/` changes.
+addEventListener("studio:locale", () => {
+  relabel(language()).catch(fail);
+});
+
+try {
+  await screen.hold(boot);
+} catch (error) {
+  fail(error);
+}

@@ -5,7 +5,8 @@
     "lib": ["es2022", "dom", "dom.iterable"],
     "module": "esnext",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "types": []
   },
-  "include": ["*.ts"]
+  "include": ["*.ts", "locales/*.json"]
 }
