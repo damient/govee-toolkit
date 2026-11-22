@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 mod backup;
 mod compat;
+mod control;
 mod devices;
 mod entries;
 mod reset;
@@ -84,6 +85,9 @@ fn routes(
     let api = Router::new()
         .route("/devices", get(devices::list).put(entries::put))
         .route("/devices/{id}/identify", post(devices::identify))
+        .route("/devices/{id}/status", get(control::status))
+        .route("/devices/{id}/brightness", post(control::brightness))
+        .route("/power", post(control::power))
         .route("/scan", get(devices::scan))
         .with_state(sdk)
         .merge(
