@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": { "correctness": "error", "suspicious": "error", "perf": "error", "pedantic": "error" },
+  "env": { "browser": true, "es2024": true },
+  "ignorePatterns": ["dist", "node_modules"],
+  "rules": {
+    "typescript/prefer-readonly-parameter-types": "off"
+  },
+  "overrides": [
+    {
+      "files": ["build.ts", "dev.ts"],
+      "env": { "browser": false, "node": true }
+    }
+  ]
+}

@@ -175,6 +175,7 @@ else
   else
     skip "studio lint" "npm ci --prefix apps/studio"
   fi
+  check "studio file length" "$root/tools/check-file-length.sh" studio
   # The webview links to WebKitGTK on Linux.
   if [ "$(uname)" = Linux ] && ! pkg-config --exists webkit2gtk-4.1; then
     skip "desktop clippy" "install libwebkit2gtk-4.1-dev"

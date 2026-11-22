@@ -335,8 +335,8 @@ RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo +nightly doc --no-deps \
 grouping and comment wrapping. CI formats with nightly, so `cargo fmt` on stable
 will disagree with it. Use `cargo +nightly fmt`.
 
-A Rust source file stays under **400 lines**, and a site source file under
-**300**. Neither language has such a convention and no formatter enforces one,
+A Rust source file stays under **400 lines**, and a site or Studio source
+file under **300**. Neither language has such a convention and no formatter enforces one,
 so this is a repository rule: it is a prompt to split along responsibilities,
 not a target to hit. Per-function size is handled separately by
 `clippy::too_many_lines`.
@@ -346,6 +346,10 @@ The site has checks of its own. `tools/qa-site.sh` mirrors
 catalog, the build, oxlint, stylelint, html-validate and the file length, with
 the same pass/fail summary and the same exit codes. `qa.sh` runs it as one
 check, so a full run covers the site as well.
+
+Studio takes the same linters as the site: `npm run lint` in `apps/studio`
+runs tsc, oxlint, stylelint and html-validate with the configuration of the
+site. `qa.sh` runs it, and the file length, as Studio checks.
 
 ```bash
 tools/qa-site.sh              # every site check
