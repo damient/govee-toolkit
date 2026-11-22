@@ -84,12 +84,26 @@ SKU.
     prohibition.
   - No idiom, no metaphor, no rhetorical question, no word play.
   - Use a list when a sentence carries more than one condition.
-- **The site is an exception to ASD-STE100.** Copy under `site/` speaks to a
+- **A screen of Studio stays short.** A view shows a title, the controls and
+  the result, and no paragraph that explains them. Give a hint that the user
+  needs in a help badge (`help.ts` in `apps/studio/src/`), which shows the
+  text in a tooltip. Keep a security warning visible on the screen. Do not
+  put a card in a card. Use the shared parts before a new one: `title.ts`,
+  `loading.ts`, `notice.ts`, `help.ts`, `family.ts`.
+- **No typographic marks that a keyboard does not type.** Do not write an em
+  dash (—), an en dash (–), an ellipsis character (…) or a curly quote. Do not
+  join two sentences with a semicolon. Use a period, a comma, a colon or
+  parentheses. This applies to all text, the site and Studio included. Fix an
+  old one in the lines that you change.
+- **The site and the text of Studio are an exception to ASD-STE100.** Copy
+  under `site/` and the strings of `apps/studio/src/locales/` speak to a
   reader who wants a light to work, so a heading can carry a contrast or a
   rhythm, and a sentence can run past the word count. The other rules hold:
-  plain, concise, English, no company name, no invented verification.
-- **Site copy states what a thing does.** This applies to every page under
-  `site/`, the documentation pages included. Write the positive form: name
+  plain, concise, English, no company name, no invented verification. The
+  code, the comments and `apps/studio/README.md` stay in ASD-STE100.
+- **Site and Studio copy states what a thing does.** This applies to every
+  page under `site/`, the documentation pages included, and to every string
+  of Studio. Write the positive form: name
   what a mode reaches, not what it misses. The limit of a mode belongs on the
   documentation page that owns it, so the landing pages carry none.
   - Replace a negation that only reassures with the fact behind it. "Needs no
@@ -114,8 +128,8 @@ SKU.
 - **A kept comment states its fact and stops.** No preamble, no second sentence
   repeating the first, no re-describing the mechanism the reader is looking at.
 - **English throughout**, including code comments. The translations of the
-  site are the one exception: `site/content/i18n/<lang>.json` and
-  `site/content/<lang>/`.
+  site and of Studio are the one exception: `site/content/i18n/<lang>.json`,
+  `site/content/<lang>/` and `apps/studio/src/locales/<lang>.json`.
 - **A translation follows its English text.** The site carries `fr`, `de`,
   `es` and `it` beside English. The rules of this section apply to a
   translation as they apply to the English text. After a change to an English
