@@ -22,7 +22,7 @@ use crate::studio::StudioSettings;
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Reset {
-    /// Theme, language and the `advanced` switch.
+    /// Theme, language, the `advanced` switch and the favorite colors.
     #[serde(default)]
     prefs: bool,
     /// The `devices:` key of `config.yaml` (names, modes and groups), and

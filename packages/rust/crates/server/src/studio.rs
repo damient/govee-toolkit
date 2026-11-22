@@ -106,6 +106,76 @@ pub(crate) struct StudioSettings {
     /// `None` until the user picks a language.
     pub(crate) language: Option<Language>,
     pub(crate) advanced: bool,
+    /// The favorite colors, which every light of the panel offers.
+    pub(crate) favorites: Favorites,
+}
+
+/// The most favorite colors that the settings keep.
+const FAVORITES: usize = 32;
+
+/// A list of at most [`FAVORITES`] colors, with no color twice.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "Vec<Hex>", into = "Vec<Hex>")]
+pub(crate) struct Favorites(Vec<Hex>);
+
+impl TryFrom<Vec<Hex>> for Favorites {
+    type Error = String;
+
+    fn try_from(list: Vec<Hex>) -> Result<Self, String> {
+        if list.len() > FAVORITES {
+            return Err(format!("there are more than {FAVORITES} favorite colors"));
+        }
+        if list
+            .iter()
+            .enumerate()
+            .any(|(i, hex)| list.iter().take(i).any(|other| other == hex))
+        {
+            return Err("a favorite color is in the list twice".to_owned());
+        }
+        Ok(Self(list))
+    }
+}
+
+impl From<Favorites> for Vec<Hex> {
+    fn from(favorites: Favorites) -> Self {
+        favorites.0
+    }
+}
+
+/// A color as `#rrggbb`. The text is kept in lowercase.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub(crate) struct Hex([u8; 3]);
+
+impl Hex {
+    pub(crate) fn rgb(&self) -> [u8; 3] {
+        self.0
+    }
+}
+
+impl TryFrom<String> for Hex {
+    type Error = String;
+
+    fn try_from(text: String) -> Result<Self, String> {
+        let refused = || format!("`{text}` is not a color as #rrggbb");
+        let digits = text
+            .strip_prefix('#')
+            .filter(|d| d.len() == 6 && d.bytes().all(|b| b.is_ascii_hexdigit()))
+            .ok_or_else(refused)?;
+        let mut rgb = [0; 3];
+        for (i, channel) in rgb.iter_mut().enumerate() {
+            let pair = digits.get(i * 2..i * 2 + 2).ok_or_else(refused)?;
+            *channel = u8::from_str_radix(pair, 16).map_err(|_| refused())?;
+        }
+        Ok(Self(rgb))
+    }
+}
+
+impl From<Hex> for String {
+    fn from(hex: Hex) -> Self {
+        let [r, g, b] = hex.0;
+        format!("#{r:02x}{g:02x}{b:02x}")
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -280,6 +350,23 @@ mod tests {
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
         assert!(error.to_string().contains("studio.json"), "{error}");
         std::fs::remove_dir_all(path.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn a_favorite_is_a_color_and_the_list_is_short() {
+        let favorites = |list: Value| serde_json::from_value::<Favorites>(list);
+        assert!(favorites(json!(["#FF8000", "#00ff00"])).is_ok());
+        assert!(favorites(json!(["#ff8000", "#FF8000"])).is_err());
+        assert!(favorites(json!(["ff8000"])).is_err());
+        assert!(favorites(json!(["#ff80zz"])).is_err());
+        assert!(favorites(json!(["#+f8000"])).is_err());
+        let many: Vec<String> = (0..33).map(|i| format!("#0000{i:02x}")).collect();
+        assert!(favorites(json!(many.iter().take(32).collect::<Vec<_>>())).is_ok());
+        assert!(favorites(json!(many)).is_err());
+        let hex: String = serde_json::from_value::<Hex>(json!("#FF8000"))
+            .unwrap()
+            .into();
+        assert_eq!(hex, "#ff8000");
     }
 
     #[test]
