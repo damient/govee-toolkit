@@ -1,5 +1,6 @@
 import { backup, fail } from "./data.ts";
 import { type Key, LANGUAGES, type Language, NAMES, language, t } from "./i18n.ts";
+import { server } from "./prefs.ts";
 import { resetButton } from "./reset.ts";
 import { THEMES, type Theme, setTheme, theme } from "./theme.ts";
 import { VERSION } from "./version.ts";
@@ -67,8 +68,9 @@ export function settings(view: HTMLElement, change: (code: Language) => void): v
   note.className = "settings-note";
   const look = card(row("settings.theme", themes(note)), row("settings.language", languages(change)));
   const data = card(row("settings.data", backup(note)), row("settings.reset", resetButton(note)));
-  const versions = document.createElement("p");
-  versions.className = "settings-versions";
-  versions.textContent = t("settings.versions", { studio: VERSION });
-  view.append(look, data, note, versions);
+  const line = document.createElement("p");
+  line.className = "settings-versions";
+  const facts = server();
+  line.textContent = t("settings.versions", { studio: VERSION, server: facts?.version ?? "?", sdk: facts?.sdk ?? "?" });
+  view.append(look, data, note, line);
 }

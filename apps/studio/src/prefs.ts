@@ -14,6 +14,14 @@ export interface Prefs {
   advanced: boolean;
 }
 
+/** The versions that the server gives with the settings. A client cannot change them. */
+export interface Server {
+  /** The version of govee-server. */
+  version: string;
+  /** The version of the govee-toolkit crate in the server. */
+  sdk: string;
+}
+
 function local(name: string): string | null {
   try {
     return localStorage.getItem(PREFIX + name);
@@ -44,10 +52,23 @@ function isPrefs(value: unknown): value is Prefs {
   );
 }
 
+let facts: Server | undefined;
+
+function isServer(value: unknown): value is Server {
+  if (typeof value !== "object" || value === null) return false;
+  return "version" in value && typeof value.version === "string" && "sdk" in value && typeof value.sdk === "string";
+}
+
 function answer(body: unknown): void {
   if (!isPrefs(body)) throw new Failure("unreadable");
-  current = body;
+  current = { theme: body.theme, language: body.language, advanced: body.advanced };
+  if ("server" in body && isServer(body.server)) facts = body.server;
   keep("theme", current.theme);
+}
+
+/** The versions of the server, once the settings have loaded. */
+export function server(): Server | undefined {
+  return facts;
 }
 
 /** The preferences as the server last gave them, or the cached theme before `load`. */

@@ -39,7 +39,8 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   start.
 - `GET` and `PUT /api/settings` read and change the theme, the language and the
   `advanced` switch of Studio. Every client that the server admits can
-  change them.
+  change them. The answer adds `server`, the version of the server and of
+  `govee-toolkit`, which a client can read only.
 - `GET /api/backup` exports `studio.json`, `config.yaml` and the API key in
   one JSON file. Studio names the file with the local date and time.
 - `POST /api/backup` imports that file. It checks the whole file, keeps a
