@@ -75,8 +75,7 @@ async function relabel(code: Language): Promise<void> {
 }
 
 async function boot(): Promise<void> {
-  const answer = await hello();
-  screen.note(`v${answer.version}`);
+  await hello();
   await loadPrefs();
   applyTheme();
   await load(language());

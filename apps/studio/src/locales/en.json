@@ -31,6 +31,7 @@
   "settings.theme.light": "Light",
   "settings.theme.auto": "Auto",
   "settings.language": "Language",
+  "settings.versions": "Studio {studio} · Server {server} · SDK {sdk}",
   "settings.data": "Data",
   "settings.data.export": "Export",
   "settings.data.import": "Import",

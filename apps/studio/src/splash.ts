@@ -29,8 +29,6 @@ export interface Splash {
    * caller.
    */
   hold<T>(task: () => Promise<T>, ms?: number): Promise<T>;
-  /** The line under the title. */
-  note(text: string): void;
   /** Stop the wave and show `text` as an error. */
   fail(text: string): void;
 }
@@ -60,9 +58,6 @@ export function splash(element: HTMLElement, line: HTMLElement): Splash {
         await shown;
         throw error;
       }
-    },
-    note(text) {
-      line.textContent = text;
     },
     fail(text) {
       element.dataset["state"] = "error";
