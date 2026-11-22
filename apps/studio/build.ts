@@ -1,5 +1,6 @@
 // The fonts and the icons come from the site: one copy of each file.
 
+import { readFileSync } from "node:fs";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import * as esbuild from "esbuild";
@@ -32,9 +33,19 @@ export async function clean(): Promise<void> {
   await mkdir(dist, { recursive: true });
 }
 
+/** The version in `package.json`, which `src/version.ts` reads. */
+function version(): string {
+  const manifest: unknown = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  if (typeof manifest === "object" && manifest !== null && "version" in manifest && typeof manifest.version === "string") {
+    return manifest.version;
+  }
+  throw new Error("package.json has no version");
+}
+
 /** `dev` adds a source map and keeps the bundle readable. */
 export function options(dev: boolean): esbuild.BuildOptions {
   return {
+    define: { STUDIO_VERSION: JSON.stringify(version()) },
     entryPoints: [join(src, "main.ts")],
     outfile: join(dist, "app.js"),
     bundle: true,

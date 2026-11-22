@@ -1,6 +1,8 @@
+import { answeredHello } from "./api.ts";
 import { backup, fail } from "./data.ts";
 import { type Key, LANGUAGES, type Language, NAMES, language, t } from "./i18n.ts";
 import { THEMES, type Theme, setTheme, theme } from "./theme.ts";
+import { VERSION } from "./version.ts";
 
 const THEME_LABELS: Record<Theme, Key> = {
   dark: "settings.theme.dark",
@@ -63,5 +65,9 @@ export function settings(view: HTMLElement, change: (code: Language) => void): v
     row("settings.language", languages(change)),
     row("settings.data", backup(note)),
   );
-  view.append(list, note);
+  const versions = document.createElement("p");
+  versions.className = "settings-versions";
+  const server = answeredHello();
+  versions.textContent = t("settings.versions", { studio: VERSION, server: server?.version ?? "?", sdk: server?.sdk ?? "?" });
+  view.append(list, note, versions);
 }

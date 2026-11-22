@@ -2,7 +2,17 @@ import { Failure, request, send } from "./http.ts";
 
 export interface Hello {
   name: string;
+  /** The version of govee-server. */
   version: string;
+  /** The version of the govee-toolkit crate in the server. Absent from an older server. */
+  sdk?: string;
+}
+
+let answered: Hello | undefined;
+
+/** The answer of `hello()`, once it has answered. */
+export function answeredHello(): Hello | undefined {
+  return answered;
 }
 
 function isHello(value: unknown): value is Hello {
@@ -14,6 +24,8 @@ function isHello(value: unknown): value is Hello {
 export async function hello(): Promise<Hello> {
   const body = await request("/api/hello");
   if (!isHello(body)) throw new Failure("unreadable");
+  answered = { name: body.name, version: body.version };
+  if ("sdk" in body && typeof body.sdk === "string") answered.sdk = body.sdk;
   return body;
 }
 
