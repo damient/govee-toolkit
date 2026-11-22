@@ -34,7 +34,7 @@ impl Sdk {
         }
     }
 
-    async fn get(&self) -> govee_toolkit::Result<Arc<Govee>> {
+    pub(crate) async fn get(&self) -> govee_toolkit::Result<Arc<Govee>> {
         let mut govee = self.govee.lock().await;
         if let Some(govee) = &*govee {
             return Ok(Arc::clone(govee));
@@ -63,7 +63,7 @@ impl Sdk {
     }
 }
 
-fn failed(error: &govee_toolkit::Error) -> Response {
+pub(crate) fn failed(error: &govee_toolkit::Error) -> Response {
     (
         StatusCode::INTERNAL_SERVER_ERROR,
         Json(json!({ "error": error.to_string() })),

@@ -12,7 +12,7 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   The binary carries the build of `apps/studio`, and `--web <directory>`
   serves another copy. It listens on `127.0.0.1:4080` by default.
   A path outside `/api` with no dot in its last segment is a page of
-  Studio: the server answers `index.html` for it, so a reload of `/lights`
+  Studio: the server answers `index.html` for it, so a reload of `/settings`
   keeps the page.
 - `GET /api/devices` answers the devices of `config.yaml` at once, with no
   scan. Each device carries its SKU, its name and the `family` of its
@@ -24,6 +24,16 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 - `POST /api/devices/{id}/identify` runs the walk of `govee identify` over
   `lan` for one device: off, green at full brightness for some seconds,
   then off. The call answers when the walk ends.
+- `GET /api/devices/{id}/status` asks one device for its state over the
+  modes that `config.yaml` enables, and adds `brightness_range`, the
+  bounds of brightness that the device file gives for the mode that
+  answered. The first call for a device takes one scan window. A device
+  that does not answer gets 502.
+- `POST /api/devices/{id}/brightness` sets the brightness in those bounds.
+  A level out of the bounds is an error, never a clamp.
+- `POST /api/power` turns a list of devices on or off at once, and
+  answers one outcome per device. When a device fails, the others go
+  ahead.
 - `PUT /api/devices` writes the device entries of `config.yaml` in one
   go: `keep` adds or renames, `remove` deletes. An entry with no SKU gets
   the SKU of the request, and a new entry also gets `modes: [lan]`. A name is 64 characters at most. The other keys of
