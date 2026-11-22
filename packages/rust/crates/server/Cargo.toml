@@ -32,7 +32,9 @@ axum = { version = "0.8", default-features = false, features = [
 clap = { version = "4", features = ["derive"] }
 govee-toolkit = { path = "../..", version = "1.17", default-features = false }
 mime_guess = "2"
+serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
+serde_norway = "0.9"
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
 tower-http = { version = "0.6", features = ["fs"] }
 

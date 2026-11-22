@@ -13,11 +13,14 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tower::ServiceExt;
 
 async fn call(request: Request<Body>) -> (StatusCode, Value) {
-    let response = router(&Options { web: Web::None })
-        .unwrap()
-        .oneshot(request)
-        .await
-        .unwrap();
+    let response = router(&Options {
+        web: Web::None,
+        ..Options::default()
+    })
+    .unwrap()
+    .oneshot(request)
+    .await
+    .unwrap();
     let status = response.status();
     let body = response.into_body().collect().await.unwrap().to_bytes();
     (status, serde_json::from_slice(&body).unwrap())
@@ -36,7 +39,7 @@ async fn a_router_out_of_serve_reports_sharing_off_and_no_control() {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(
         state,
-        json!({ "fixed": false, "shared": false, "url": null, "control": false })
+        json!({ "fixed": false, "shared": false, "url": null, "control": false, "local": true })
     );
 }
 
@@ -57,7 +60,10 @@ async fn a_body_without_shared_is_a_bad_request() {
 async fn a_loopback_client_of_serve_controls_the_switch() {
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
     let addr = listener.local_addr().unwrap();
-    let options = Options { web: Web::None };
+    let options = Options {
+        web: Web::None,
+        ..Options::default()
+    };
     tokio::spawn(async move { serve(listener, &options).await });
 
     let mut stream = tokio::net::TcpStream::connect(addr).await.unwrap();

@@ -1,6 +1,7 @@
 //! `/api/share`: open Studio to the other devices of the network, and close
-//! it again. The API has no authentication, so sharing is off at start and
-//! only a client on this machine can switch it.
+//! it again. The API has no authentication, so sharing is off by default and
+//! only a client on this machine can switch it. `studio.json` keeps the
+//! switch, and the server opens the network at start when it is on.
 
 use std::io;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, UdpSocket};
@@ -14,6 +15,12 @@ use axum::{Extension, Json, Router};
 use serde_json::{Value, json};
 use tokio::task::AbortHandle;
 
+use crate::settings::refuse;
+use crate::studio::Store;
+
+/// The interval between two tries to share at start.
+const RETRY: std::time::Duration = std::time::Duration::from_secs(5);
+
 /// The switch, and the second listener that it opens.
 #[derive(Debug, Default)]
 pub(crate) struct Share {
@@ -23,6 +30,7 @@ pub(crate) struct Share {
     open: Mutex<Option<Open>>,
     /// The second listener serves this router: the same as the main one.
     app: OnceLock<Router>,
+    store: Arc<Store>,
 }
 
 #[derive(Debug)]
@@ -33,13 +41,46 @@ struct Open {
 
 /// Whether the client of a request is on this machine.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct Local(bool);
+pub(crate) struct Local(pub(crate) bool);
 
 impl Share {
-    pub(crate) fn new(listen: Option<SocketAddr>) -> Self {
+    pub(crate) fn new(listen: Option<SocketAddr>, store: Arc<Store>) -> Self {
         Self {
             listen,
+            store,
             ..Self::default()
+        }
+    }
+
+    /// Open the network when `studio.json` says so. At boot the network can
+    /// come up after the server: a failed start tries again every
+    /// [`RETRY`], for as long as the setting stays on. The setting is kept.
+    pub(crate) fn restore(self: &Arc<Self>) {
+        let wanted = |share: &Self| share.store.get().server.settings.share && !share.fixed();
+        if !wanted(self) || self.start().is_ok() {
+            return;
+        }
+        let share = Arc::clone(self);
+        tokio::spawn(async move {
+            while wanted(&share) && share.opened().is_none() {
+                tokio::time::sleep(RETRY).await;
+                if wanted(&share) && share.start().is_ok() {
+                    break;
+                }
+            }
+        });
+    }
+
+    /// Open or close the network to match `on`, without a write.
+    pub(crate) fn apply(&self, on: bool) -> Result<(), String> {
+        if self.fixed() || self.listen.is_none() {
+            return Ok(());
+        }
+        if on {
+            self.start()
+        } else {
+            self.stop();
+            Ok(())
         }
     }
 
@@ -81,6 +122,7 @@ impl Share {
             "shared": fixed || address.is_some(),
             "url": address.map(|addr| format!("http://{addr}/")),
             "control": local.0 && !fixed && self.listen.is_some(),
+            "local": local.0,
         })
     }
 
@@ -162,16 +204,12 @@ pub(crate) async fn guard(
     next.run(request).await
 }
 
-/// `GET /api/share`: `{ "fixed", "shared", "url", "control" }`.
+/// `GET /api/share`: `{ "fixed", "shared", "url", "control", "local" }`.
 pub(crate) async fn get(
     State(share): State<Arc<Share>>,
     Extension(local): Extension<Local>,
 ) -> Json<Value> {
     Json(share.state(local))
-}
-
-fn refuse(status: StatusCode, error: &str) -> Response {
-    (status, Json(json!({ "error": error }))).into_response()
 }
 
 /// `POST /api/share` with `{ "shared": bool }`: the same answer as `GET`.
@@ -204,6 +242,12 @@ pub(crate) async fn set(
         }
     } else {
         share.stop();
+    }
+    if let Err(error) = share
+        .store
+        .update(|studio| studio.server.settings.share = on)
+    {
+        return refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string());
     }
     Json(share.state(local)).into_response()
 }

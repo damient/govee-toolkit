@@ -62,10 +62,48 @@ can control the lights. Two ways open Studio to a phone or a tablet:
 
 - The Mobile page of Studio, or `POST /api/share`, adds a listener on the
   network address of this machine, on the same port when it is free.
-  Sharing is off at each start, and only a client on this machine can
-  switch it. When sharing stops, the server refuses the network again.
+  Sharing is off by default, and only a client on this machine can switch
+  it. The server keeps the switch and shares again at its next start. When
+  the network is not up yet, as at boot, it tries again every 5 s. When
+  sharing stops, the server refuses the network again.
 - `--listen 0.0.0.0:4080` opens the server to the network for as long as it
   runs.
+
+## Files
+
+The server keeps its files in the configuration folder of the system:
+`~/Library/Application Support/govee-toolkit` on macOS,
+`$XDG_CONFIG_HOME/govee-toolkit` on Linux and `%APPDATA%\govee-toolkit` on
+Windows. See [`docs/modes.md`](../../../../docs/modes.md#where-the-files-are).
+
+- `studio.json`: two parts, `server` and `studio`. Each part holds a
+  `version` and `settings`. The `server` settings hold the share switch, the
+  `studio` settings the theme, the language and the `advanced` switch. Each write goes to a temporary file, then a rename replaces the
+  file. A file that does not parse stops the start.
+- `config.yaml`: the configuration of the SDK, which `GOVEE_CONFIG` can
+  name. The server reads it, and writes it only on an import.
+- `credentials.env`: the API key, written on an import with the
+  permissions `0600`. The SDK reads it after every other source.
+
+A backup from `GET /api/backup` holds all three, the API key included when
+one is set. Keep the file private.
+
+## Compatibility
+
+`studio.json` and a backup carry two versions:
+
+- `studio.version`: the Studio release that gave the Studio settings their
+  shape, such as `0.1.0`.
+- `server.version`: the `govee-server` that wrote the file.
+
+An import accepts a Studio version that this table holds, and `src/compat.rs`
+holds the same table. A file from a newer Studio or a newer server gets an
+answer that says to update `govee-server`. A Studio release that changes the
+shape of the settings adds a row.
+
+| Studio settings | Read by `govee-server` |
+| --------------- | ---------------------- |
+| 0.1.0           | 0.1.0 and later        |
 
 ## Routes
 
@@ -73,8 +111,13 @@ can control the lights. Two ways open Studio to a phone or a tablet:
 | ----- | ------ |
 | `GET /api/hello` | `{ "name", "version", "skus" }`: the crate, its version and the number of SKUs in the embedded catalog |
 | `GET /api/devices` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`. The call takes one scan window, 2 s by default. An error answers 500 and `{ "error" }` |
-| `GET /api/share` | `{ "fixed", "shared", "url", "control" }`: `fixed` when `--listen` opens the network already, `url` while sharing is on, `control` when the caller can switch sharing |
-| `POST /api/share` | `{ "shared": true \| false }` opens or closes the network, and answers as `GET`. A client from the network gets 403, a server started with a network `--listen` 409 |
+| `GET /api/share` | `{ "fixed", "shared", "url", "control", "local" }`: `fixed` when `--listen` opens the network already, `url` while sharing is on, `control` when the caller can switch sharing, `local` when the caller is on this machine |
+| `POST /api/share` | `{ "shared": true \| false }` opens or closes the network, keeps the choice in `studio.json`, and answers as `GET`. A client from the network gets 403, a server started with a network `--listen` 409 |
+| `GET /api/settings` | `{ "theme", "language", "advanced" }`: `theme` is `dark`, `light` or `auto`, `language` a code or `null` |
+| `PUT /api/settings` | the keys to change, such as `{ "theme": "light" }`, and the answer of `GET`. A value that is not valid gets 400 and `{ "error" }` |
+| `GET /api/backup` | one JSON file to download: `{ "format": "govee-toolkit-backup", "server", "studio", "config", "credentials" }`. `server` and `studio` are the two parts of `studio.json`, each with its `version` (see [Compatibility](#compatibility)). The answer names no file: Studio names it `govee-toolkit-studio-<date>-<time>.json`. `config` is the text of `config.yaml` or `null`, `credentials` holds `GOVEE_API_KEY` or is `null`. A client from the network gets 403 |
+| `POST /api/backup` | that file. The server checks all of it, keeps a `.import.bak` copy of each file, replaces the files and starts the SDK again on the next request. A file that is not valid gets 400 and changes nothing. A client from the network gets 403 |
+| `POST /api/backup/restore` | puts back the files from the `.import.bak` copies of the last import, then deletes the copies. With no copy, 409. A client from the network gets 403 |
 | any other path | a file of the web UI: the copy in the binary, or the directory that `--web` names |
 
 Not affiliated with Govee.

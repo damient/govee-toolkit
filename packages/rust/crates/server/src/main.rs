@@ -8,7 +8,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit_server::{DEFAULT_LISTEN, Options, Web};
+use govee_toolkit_server::{DEFAULT_LISTEN, Options, Storage, Web};
 
 /// Serve Studio: its API and its web UI.
 #[derive(Debug, Parser)]
@@ -45,6 +45,7 @@ async fn run(cli: Cli) -> std::io::Result<()> {
     println!("govee-server: http://{}", listener.local_addr()?);
     let options = Options {
         web: cli.web.map_or(Web::Embedded, Web::Dir),
+        storage: Some(Storage::system()?),
     };
     tokio::select! {
         served = govee_toolkit_server::serve(listener, &options) => served,
