@@ -15,5 +15,9 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   number of SKUs in the embedded catalog.
 - `GET /api/devices` runs a `lan` scan and answers the devices that replied.
   The SDK starts on the first call and reads the configuration file.
+- `GET` and `POST /api/share` open the server to the network and close it
+  again, with a second listener on the network address of this machine.
+  Sharing is off at start, and only a loopback client can switch it. While
+  it is off, the server answers 403 to a client from the network.
 - `serve` takes a `std::net::TcpListener`, and `WEB_DIR` names the folder
   that the build embeds. A build with no web UI prints a warning.
