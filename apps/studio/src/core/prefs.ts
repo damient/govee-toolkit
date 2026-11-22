@@ -12,7 +12,12 @@ export interface Prefs {
   /** `null` until the user picks a language. */
   language: string | null;
   advanced: boolean;
+  /** Colors as `#rrggbb`, which the panel of every light offers. 32 at most. */
+  favorites: string[];
 }
+
+/** The most favorite colors that the server keeps. */
+export const FAVORITES = 32;
 
 /** The versions that the server gives with the settings. A client cannot change them. */
 export interface Server {
@@ -38,7 +43,7 @@ function keep(name: string, value: string): void {
   }
 }
 
-let current: Prefs = { theme: local("theme") ?? "dark", language: null, advanced: false };
+let current: Prefs = { theme: local("theme") ?? "dark", language: null, advanced: false, favorites: [] };
 
 function isPrefs(value: unknown): value is Prefs {
   if (typeof value !== "object" || value === null) return false;
@@ -48,7 +53,10 @@ function isPrefs(value: unknown): value is Prefs {
     "language" in value &&
     (value.language === null || typeof value.language === "string") &&
     "advanced" in value &&
-    typeof value.advanced === "boolean"
+    typeof value.advanced === "boolean" &&
+    "favorites" in value &&
+    Array.isArray(value.favorites) &&
+    value.favorites.every((color: unknown) => typeof color === "string")
   );
 }
 
@@ -61,7 +69,7 @@ function isServer(value: unknown): value is Server {
 
 function answer(body: unknown): void {
   if (!isPrefs(body)) throw new Failure("unreadable");
-  current = { theme: body.theme, language: body.language, advanced: body.advanced };
+  current = { theme: body.theme, language: body.language, advanced: body.advanced, favorites: body.favorites };
   if ("server" in body && isServer(body.server)) facts = body.server;
   keep("theme", current.theme);
 }

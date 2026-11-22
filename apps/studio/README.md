@@ -68,11 +68,29 @@ page: move the shared code to `components/`, `shell/` or `core/`.
   answers and gray when it does not. When the light answers, the card
   shows a power button, a brightness slider on the color bar when the device file
   gives a range (sent while the knob moves, one request in flight at most),
-  and the color. A light turned on is read again for its color. The bar
+  and the color. A light turned on is read again for its color. Every
+  change goes through `/api/apply`. A click on a light that answers opens
+  its panel (`panel/`), on the right of the page, or full screen on a
+  phone (`components/sheet/`), with a back button. The head holds the
+  power button. The body holds the colors (the current color when no
+  swatch has it, the favorites, the base colors, and a chip that shows a
+  color wheel), the white temperature, the brightness, the
+  segments and the gradient. It shows each part that `features` of the
+  status gives for the mode that answered. A change goes to the light at
+  once, with one request in flight at most (`core/latest.ts`). A change to
+  a light that is off turns it on in the same request. With
+  segments selected, a color paints these segments. With none, it paints
+  the whole light. The white swatch sends the white temperature where the
+  mode has one, and shows its slider. The favorite button shows with the
+  wheel, and for a favorite color. The favorites are a setting of the server, so every
+  light and every client shows the same list. Studio keeps the colors of
+  the segments and the gradient until a reload: the status of a light does
+  not give them. "Save to library" waits for the Library view. The bar
   (`bar.ts`) holds the tabs of the rooms, a search on the name and the
-  SKU, a power button (`/api/power`), and a link to the setup. The power
+  SKU, a power button, and a link to the setup. The power
   button turns off the lights shown that are on, then turns back on these
-  lights only. Studio keeps that list until a reload. With no light, Home shows a
+  lights only. Studio keeps that list until a reload, or until the user
+  turns a light on from its card or its panel. With no light, Home shows a
   welcome card that opens the setup. Settings also opens the setup.
   `/setup` has no entry in the navigation. Its first step shows the
   lights of `config.yaml` at once (`/api/devices`), and runs a `lan` scan
