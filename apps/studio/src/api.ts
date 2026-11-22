@@ -1,34 +1,5 @@
 import { Failure, request, send } from "./http.ts";
 
-export interface Hello {
-  name: string;
-  /** The version of govee-server. */
-  version: string;
-  /** The version of the govee-toolkit crate in the server. Absent from an older server. */
-  sdk?: string;
-}
-
-let answered: Hello | undefined;
-
-/** The answer of `hello()`, once it has answered. */
-export function answeredHello(): Hello | undefined {
-  return answered;
-}
-
-function isHello(value: unknown): value is Hello {
-  if (typeof value !== "object" || value === null) return false;
-  return "name" in value && typeof value.name === "string" && "version" in value && typeof value.version === "string";
-}
-
-/** `GET /api/hello`. Throws when the server does not answer or answers something else. */
-export async function hello(): Promise<Hello> {
-  const body = await request("/api/hello");
-  if (!isHello(body)) throw new Failure("unreadable");
-  answered = { name: body.name, version: body.version };
-  if ("sdk" in body && typeof body.sdk === "string") answered.sdk = body.sdk;
-  return body;
-}
-
 export interface Share {
   /** `--listen` opens the server to the network already: the switch does nothing. */
   fixed: boolean;
@@ -94,16 +65,23 @@ export async function reset(choice: ResetChoice): Promise<void> {
   await send("/api/reset", "POST", JSON.stringify(choice));
 }
 
-/** A device that answered a `lan` scan. */
+/** A device that answered a `lan` scan, or a device of the configuration. */
 export interface Found {
   /** The device ID, as `AA:BB:CC:DD:EE:FF:00:11`. */
   id: string;
-  sku: string;
+  /** `null` for a device of the configuration that gives no SKU and did not answer. */
+  sku: string | null;
   /** The name that the configuration gives it. */
   name: string | null;
   /** The family of its device file, for the icon. */
   family: string | null;
+  /** The configuration has an entry for it. */
+  configured: boolean;
+  /** It answered the scan. */
+  online: boolean;
 }
+
+const nullableString = (value: unknown): boolean => value === null || typeof value === "string";
 
 function isFound(value: unknown): value is Found {
   if (typeof value !== "object" || value === null) return false;
@@ -111,15 +89,19 @@ function isFound(value: unknown): value is Found {
     "id" in value &&
     typeof value.id === "string" &&
     "sku" in value &&
-    typeof value.sku === "string" &&
+    nullableString(value.sku) &&
     "name" in value &&
-    (value.name === null || typeof value.name === "string") &&
+    nullableString(value.name) &&
     "family" in value &&
-    (value.family === null || typeof value.family === "string")
+    nullableString(value.family) &&
+    "configured" in value &&
+    typeof value.configured === "boolean" &&
+    "online" in value &&
+    typeof value.online === "boolean"
   );
 }
 
-/** `GET /api/devices`: a `lan` scan. The server answers when the scan ends. */
+/** `GET /api/devices`: a `lan` scan, and the devices of the configuration. The server answers when the scan ends. */
 export async function devices(): Promise<Found[]> {
   const body = await request("/api/devices");
   if (typeof body !== "object" || body === null || !("devices" in body) || !Array.isArray(body.devices)) {
@@ -130,6 +112,21 @@ export async function devices(): Promise<Found[]> {
   return list;
 }
 
+/** A device that the configuration keeps. A blank `name` removes the name. */
+export interface Keep {
+  id: string;
+  sku: string | null;
+  name: string;
+}
+
+/**
+ * `PUT /api/devices`: write the device entries in one go. A new entry gets
+ * the SKU and the `lan` mode. `remove` deletes the entries of these IDs.
+ */
+export async function saveDevices(keep: Keep[], remove: string[]): Promise<void> {
+  await send("/api/devices", "PUT", JSON.stringify({ keep, remove }));
+}
+
 function devicePath(id: string, action: string): string {
   return `/api/devices/${encodeURIComponent(id)}/${action}`;
 }
@@ -137,13 +134,4 @@ function devicePath(id: string, action: string): string {
 /** `POST /api/devices/{id}/identify`: the light turns on, green, at full brightness. */
 export async function identify(id: string): Promise<void> {
   await send(devicePath(id, "identify"), "POST", "");
-}
-
-/** `PUT /api/devices/{id}/name`. An empty `name` removes the name. Answers the name kept. */
-export async function rename(id: string, name: string): Promise<string | null> {
-  const body = await send(devicePath(id, "name"), "PUT", JSON.stringify({ name }));
-  if (typeof body !== "object" || body === null || !("name" in body)) throw new Failure("unreadable");
-  const kept = body.name;
-  if (kept !== null && typeof kept !== "string") throw new Failure("unreadable");
-  return kept;
 }

@@ -1,4 +1,3 @@
-import { hello } from "./api.ts";
 import { home } from "./home.ts";
 import { watchCamera } from "./insets.ts";
 import { type Language, explain, language, load, t, translate } from "./i18n.ts";
@@ -7,7 +6,7 @@ import { mount, type Page, type Route } from "./nav.ts";
 import { load as loadPrefs, save } from "./prefs.ts";
 import { rail } from "./rail.ts";
 import { settings } from "./settings.ts";
-import { setup } from "./setup.ts";
+import { rooms, setup } from "./setup.ts";
 import { soon } from "./soon.ts";
 import { splash } from "./splash.ts";
 import { applyTheme, paint } from "./theme.ts";
@@ -79,7 +78,10 @@ const bottom: Page[] = [
   },
 ];
 
-const hidden: Route[] = [{ id: "setup", label: "nav.setup", render: setup }];
+const hidden: Route[] = [
+  { id: "setup", label: "nav.setup", render: setup },
+  { id: "setup/rooms", label: "nav.setup", render: rooms },
+];
 
 function byId(id: string): HTMLElement {
   const element = document.querySelector<HTMLElement>(`#${id}`);
@@ -101,7 +103,6 @@ async function relabel(code: Language): Promise<void> {
 }
 
 async function boot(): Promise<void> {
-  await hello();
   await loadPrefs();
   applyTheme();
   await load(language());

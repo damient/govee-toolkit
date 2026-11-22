@@ -91,7 +91,7 @@ mod tests {
         assert!(!is_page("/app.js"));
         assert!(!is_page("/fonts/a.woff2"));
         assert!(!is_page("/api"));
-        assert!(!is_page("/api/hello"));
+        assert!(!is_page("/api/devices"));
     }
 
     #[test]

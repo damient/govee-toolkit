@@ -31,8 +31,8 @@ The fonts and the icon come from `site/src/assets` at build time.
 
 ## UI
 
-- A splash screen stays until the server answers `/api/hello`. If the server
-  does not answer, the splash stays and gives the reason.
+- A splash screen stays until the server answers `/api/settings`. If the
+  server does not answer, the splash stays and gives the reason.
 - The shell has a rail, with the logo above the navigation, and one view per
   space: Home, Lights, Library (presets and scenes), Live (pads), Stage
   (rooms in 3D and the scene timeline) and Settings. Lights, Library, Live
@@ -45,23 +45,33 @@ The fonts and the icon come from `site/src/assets` at build time.
   reason.
 - Home shows a welcome card, centered in the view, that opens the setup.
   `/setup` has no entry in the navigation. Its first step runs a `lan`
-  scan (`/api/devices`) and shows one card per light that answered
-  (`light.ts`): the icon of its family, and its name or its SKU. A card
-  selects the light, renames it in `config.yaml` and identifies it (the
-  walk of `govee identify`: green for some seconds, then off). A scan
-  that finds no light shows how to make a light answer. On a phone, the
-  steps show as "1 / 3". The other steps are not built yet.
+  scan (`/api/devices`) and shows one card per light (`light.ts`), in two
+  groups: the new lights, and the lights of `config.yaml`. A light of
+  `config.yaml` that did not answer shows as offline. A card shows the
+  icon of its family, and its name or its SKU. A card selects the light,
+  renames it and identifies it (the walk of `govee identify`: green for
+  some seconds, then off). A rename stays in the page until Continue
+  (`find.ts`). Continue writes every entry in one `PUT /api/devices`:
+  `config.yaml` keeps each selected light and loses each light of
+  `config.yaml` that is not selected. Then it goes to the second step,
+  `/setup/rooms`, which is not built yet. A scan that finds no light and
+  a `config.yaml` with no device show how to make a light answer. On a
+  phone, the steps show as "1 / 2".
 - The shared parts of a view:
   - `title.ts`: the head of a view. It holds an optional back link, the
     title, and content on the right.
   - `loading.ts`: the three dots of the logo in a wave, in three sizes,
     with an optional text on the right. `block` puts them in a card in the
     center of the free space, for a view that waits for its content.
+  - `alert.ts`: a line in the flow of a view, with a tone: success,
+    info, warning or error. The tone sets the color and the icon.
   - `notice.ts`: a centered card with an icon, a title, a text and
     actions. The welcome card, the "Coming soon" card and an empty result
     use it.
   - `help.ts`: a "?" badge with a tooltip, on hover, on focus and on a
     tap. A view puts its hints there, not in a paragraph.
+  - `tooltip.ts`: a tooltip on hover and on focus of a control. An icon
+    button names its action there, not in a `title`.
   - `family.ts`: the icon of a device family. `build.ts` reads the icons
     from `site/src/icons/family/`, so the site and Studio share one copy.
 - A view is full width. A view with `width: "narrow"` in `nav.ts`
@@ -78,8 +88,8 @@ The fonts and the icon come from `site/src/assets` at build time.
   server can switch sharing, and the server keeps the choice.
 - On a phone, "Add to Home Screen" opens Studio without the browser bars
   (`manifest.webmanifest`).
-- Settings shows the versions of Studio, of `govee-server` and of the SDK
-  below its rows. `build.ts` reads the version of Studio from `package.json`.
+- Settings shows the version of Studio below its rows. `build.ts` reads
+  the version of Studio from `package.json`.
 - Settings sets the theme and the language. The theme is dark by default;
   "Auto" follows the system. The server keeps both choices (`/api/settings`),
   so every browser and the desktop app show the same ones. `localStorage`

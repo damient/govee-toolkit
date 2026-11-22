@@ -109,8 +109,8 @@ shape of the settings adds a row.
 
 | Route | Answer |
 | ----- | ------ |
-| `GET /api/hello` | `{ "name", "version", "sdk", "skus" }`: the server crate and its version, the version of the `govee-toolkit` crate, and the number of SKUs in the embedded catalog |
-| `GET /api/devices` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`. The call takes one scan window, 2 s by default. An error answers 500 and `{ "error" }` |
+| `GET /api/devices` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`, then the devices of `config.yaml` that did not answer. Each record adds `family`, `name`, `configured` (`config.yaml` has an entry) and `online` (it answered). The call takes one scan window, 2 s by default. An error answers 500 and `{ "error" }` |
+| `PUT /api/devices` | `{ "keep": [{ "id", "sku", "name" }], "remove": ["id"] }`, written to `config.yaml` in one go. A new entry gets `sku` and `modes: [lan]`. A blank `name` removes the name. A name is 64 characters at most, or 400. The SDK starts again on the next request. The other keys stay, without their comments |
 | `GET /api/share` | `{ "fixed", "shared", "url", "control", "local" }`: `fixed` when `--listen` opens the network already, `url` while sharing is on, `control` when the caller can switch sharing, `local` when the caller is on this machine |
 | `POST /api/share` | `{ "shared": true \| false }` opens or closes the network, keeps the choice in `studio.json`, and answers as `GET`. A client from the network gets 403, a server started with a network `--listen` 409 |
 | `GET /api/settings` | `{ "theme", "language", "advanced" }`: `theme` is `dark`, `light` or `auto`, `language` a code or `null` |

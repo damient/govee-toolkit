@@ -1,4 +1,3 @@
-import { answeredHello } from "./api.ts";
 import { backup, fail } from "./data.ts";
 import { type Key, LANGUAGES, type Language, NAMES, language, t } from "./i18n.ts";
 import { resetButton } from "./reset.ts";
@@ -70,7 +69,6 @@ export function settings(view: HTMLElement, change: (code: Language) => void): v
   const data = card(row("settings.data", backup(note)), row("settings.reset", resetButton(note)));
   const versions = document.createElement("p");
   versions.className = "settings-versions";
-  const server = answeredHello();
-  versions.textContent = t("settings.versions", { studio: VERSION, server: server?.version ?? "?", sdk: server?.sdk ?? "?" });
+  versions.textContent = t("settings.versions", { studio: VERSION });
   view.append(look, data, note, versions);
 }

@@ -10,7 +10,7 @@ use std::sync::Arc;
 mod backup;
 mod compat;
 mod devices;
-mod names;
+mod entries;
 mod reset;
 mod settings;
 mod share;
@@ -19,10 +19,8 @@ mod studio;
 mod web;
 
 use axum::http::Uri;
-use axum::routing::{get, post, put};
-use axum::{Json, Router, middleware};
-use govee_toolkit::Catalog;
-use serde_json::json;
+use axum::routing::{get, post};
+use axum::{Router, middleware};
 use tower_http::services::ServeDir;
 
 pub use crate::storage::Storage;
@@ -60,8 +58,8 @@ pub enum Web {
 ///
 /// # Errors
 ///
-/// `InvalidData` when the device files do not load or `studio.json` does
-/// not parse, and the error of a read of `studio.json`.
+/// `InvalidData` when `studio.json` does not parse, and the error of a read
+/// of `studio.json`.
 pub fn router(options: &Options) -> io::Result<Router> {
     Ok(routes(options, None)?.0)
 }
@@ -70,16 +68,6 @@ fn routes(
     options: &Options,
     listen: Option<SocketAddr>,
 ) -> io::Result<(Router, Arc<share::Share>)> {
-    let skus = Catalog::embedded()
-        .map_err(storage::invalid)?
-        .skus()
-        .count();
-    let hello = Json(json!({
-        "name": env!("CARGO_PKG_NAME"),
-        "version": env!("CARGO_PKG_VERSION"),
-        "sdk": govee_toolkit::VERSION,
-        "skus": skus,
-    }));
     let storage = options.storage.clone();
     let store = Arc::new(studio::Store::open(storage.as_ref().map(Storage::studio))?);
     let sdk = Arc::new(devices::Sdk::new(storage.clone()));
@@ -91,10 +79,8 @@ fn routes(
         sdk: Arc::clone(&sdk),
     });
     let api = Router::new()
-        .route("/hello", get(move || async move { hello }))
-        .route("/devices", get(devices::list))
+        .route("/devices", get(devices::list).put(entries::put))
         .route("/devices/{id}/identify", post(devices::identify))
-        .route("/devices/{id}/name", put(names::put))
         .with_state(sdk)
         .merge(
             Router::new()
