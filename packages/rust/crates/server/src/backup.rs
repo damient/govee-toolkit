@@ -58,7 +58,7 @@ pub(crate) struct Backup {
 }
 
 impl Backup {
-    fn admit(&self, local: Local) -> Result<&Storage, (StatusCode, &'static str)> {
+    pub(crate) fn admit(&self, local: Local) -> Result<&Storage, (StatusCode, &'static str)> {
         if !local.0 {
             return Err((
                 StatusCode::FORBIDDEN,
