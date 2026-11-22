@@ -1,6 +1,6 @@
 // The fonts and the icons come from the site: one copy of each file.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import * as esbuild from "esbuild";
@@ -9,6 +9,7 @@ const root = import.meta.dirname;
 export const src = join(root, "src");
 export const dist = join(root, "dist");
 const site = join(root, "../../site/src/assets");
+const familyIcons = join(root, "../../site/src/icons/family");
 
 const FONTS = ["ibm-plex-sans-latin.woff2", "ibm-plex-mono-500-latin.woff2", "ibm-plex-mono-600-latin.woff2", "OFL.txt"];
 
@@ -19,6 +20,8 @@ export async function copyStatic(): Promise<void> {
     cp(join(src, "index.html"), join(dist, "index.html")),
     cp(join(src, "style.css"), join(dist, "style.css")),
     cp(join(src, "modal.css"), join(dist, "modal.css")),
+    cp(join(src, "components.css"), join(dist, "components.css")),
+    cp(join(src, "pages.css"), join(dist, "pages.css")),
     cp(join(src, "locales"), join(dist, "locales"), { recursive: true }),
     cp(join(src, "manifest.webmanifest"), join(dist, "manifest.webmanifest")),
     cp(join(site, "favicon.svg"), join(dist, "favicon.svg")),
@@ -42,10 +45,27 @@ function version(): string {
   throw new Error("package.json has no version");
 }
 
+/**
+ * The shapes of each device family icon of the site, by family: the markup
+ * inside `<svg>`. `src/family.ts` draws them on a 24 × 24 box.
+ */
+function families(): Record<string, string> {
+  const icons: Record<string, string> = {};
+  for (const file of readdirSync(familyIcons)) {
+    if (!file.endsWith(".svg")) continue;
+    const source = readFileSync(join(familyIcons, file), "utf8");
+    const open = /<svg\b[^>]*>/u.exec(source);
+    if (open === null) throw new Error(`${file}: no <svg> element`);
+    const inner = source.slice(open.index + open[0].length, source.lastIndexOf("</svg>"));
+    icons[file.slice(0, -4)] = inner.trim().replaceAll(/\s*\n\s*/gu, "");
+  }
+  return icons;
+}
+
 /** `dev` adds a source map and keeps the bundle readable. */
 export function options(dev: boolean): esbuild.BuildOptions {
   return {
-    define: { STUDIO_VERSION: JSON.stringify(version()) },
+    define: { STUDIO_VERSION: JSON.stringify(version()), STUDIO_FAMILY_ICONS: JSON.stringify(families()) },
     entryPoints: [join(src, "main.ts")],
     outfile: join(dist, "app.js"),
     bundle: true,

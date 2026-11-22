@@ -1,14 +1,24 @@
 import { type Key, t } from "./i18n.ts";
+import { currentId, go, listen, pathOf } from "./router.ts";
 
-/** A space of the UI: one entry in the navigation, one view. */
-export interface Page {
+/** A view at the path `/<id>`. */
+export interface Route {
   id: string;
   label: Key;
+  /**
+   * The smallest screen that shows the view. The navigation of a smaller
+   * screen leaves it out, and the view says that it needs a larger screen.
+   */
+  min?: "tablet" | "desktop";
+  /** `narrow` centers the content at one width. A view is full width otherwise. */
+  width?: "narrow";
+  render(view: HTMLElement): void;
+}
+
+/** A space of the UI: one entry in the navigation, one view. */
+export interface Page extends Route {
   /** The `d` attribute of a 24 × 24 stroked path. */
   icon: string;
-  /** Only on a wide screen: the tablet rail and the phone tab bar leave it out. */
-  wide?: true;
-  render(view: HTMLElement): void;
 }
 
 /** The phone tab bar holds this many pages; the rest go to "More". */
@@ -43,9 +53,9 @@ function label(text: string): HTMLSpanElement {
 
 function link(page: Page): HTMLAnchorElement {
   const a = document.createElement("a");
-  a.href = `#${page.id}`;
+  a.href = pathOf(page.id);
   a.dataset["page"] = page.id;
-  if (page.wide) a.classList.add("wide");
+  if (page.min) a.dataset["min"] = page.min;
   // The name of the link when the rail hides the labels.
   a.title = t(page.label);
   a.append(icon(page.icon), label(t(page.label)));
@@ -76,14 +86,39 @@ function more(pages: Page[]): { button: HTMLButtonElement; menu: HTMLDivElement 
   return { button, menu };
 }
 
+/** The note that replaces a view on a screen smaller than `min`. CSS shows it. */
+function tooSmall(min: NonNullable<Route["min"]>): HTMLElement {
+  const note = document.createElement("p");
+  note.className = "too-small";
+  note.textContent = t(min === "tablet" ? "small.tablet" : "small.desktop");
+  return note;
+}
+
+/** Empty `view` for `route`, and name it. */
+function clear(view: HTMLElement, route: Route): void {
+  view.replaceChildren();
+  view.className = route.width === "narrow" ? "view narrow" : "view";
+  view.scrollTop = 0;
+  view.setAttribute("aria-label", t(route.label));
+  document.title = route.id === "home" ? "Govee Toolkit Studio" : `${t(route.label)} · Studio`;
+  if (route.min) {
+    view.dataset["min"] = route.min;
+    view.append(tooSmall(route.min));
+  } else {
+    delete view.dataset["min"];
+  }
+}
+
 /**
- * Draw the navigation and route on the hash. `bottom` goes after a spacer, at
+ * Draw the navigation and route on the path. `bottom` goes after a spacer, at
  * the foot of the side rail. On a phone, the pages after the first `TABS` go
- * to the "More" menu. Call the function that it returns to draw the
- * navigation and the view again, after a change of language.
+ * to the "More" menu. `hidden` are views with no entry in the navigation.
+ * Call the function that it returns to draw the navigation and the view
+ * again, after a change of language.
  */
-export function mount(nav: HTMLElement, view: HTMLElement, top: Page[], bottom: Page[]): () => void {
+export function mount(nav: HTMLElement, view: HTMLElement, top: Page[], bottom: Page[], hidden: Route[] = []): () => void {
   const pages = [...top, ...bottom];
+  const routes: Route[] = [...pages, ...hidden];
 
   const draw = (): void => {
     nav.setAttribute("aria-label", t("nav.main"));
@@ -93,28 +128,29 @@ export function mount(nav: HTMLElement, view: HTMLElement, top: Page[], bottom: 
     for (const a of links.slice(TABS)) a.classList.add("overflow");
     nav.replaceChildren(...links.slice(0, top.length), spacer, ...links.slice(top.length));
     if (pages.length > TABS) {
-      const { button, menu } = more(pages.slice(TABS).filter((page) => page.wide !== true));
+      const { button, menu } = more(pages.slice(TABS).filter((page) => page.min === undefined));
       nav.append(button, menu);
     }
   };
 
   const show = (): void => {
-    const id = location.hash.slice(1);
-    const page = pages.find((p) => p.id === id) ?? pages[0];
-    if (!page) return;
+    const id = currentId();
+    const page = routes.find((p) => p.id === id);
+    if (!page) {
+      go(pathOf("home"), true);
+      return;
+    }
     for (const a of nav.querySelectorAll<HTMLAnchorElement>("a")) {
       if (a.dataset["page"] === page.id) a.setAttribute("aria-current", "page");
       else a.removeAttribute("aria-current");
     }
-    const inMore = pages.indexOf(page) >= TABS;
+    const inMore = pages.findIndex((p) => p.id === page.id) >= TABS && page.min === undefined;
     nav.querySelector(".more")?.classList.toggle("current", inMore);
-    view.replaceChildren();
-    view.className = "view";
-    view.setAttribute("aria-label", t(page.label));
+    clear(view, page);
     page.render(view);
   };
 
-  addEventListener("hashchange", show);
+  listen(show);
   const refresh = (): void => {
     draw();
     show();
