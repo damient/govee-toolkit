@@ -5,7 +5,12 @@
 }
 .steps li::before { content: counter(step) " · "; }
 .steps li[aria-current="step"] { border-color: var(--accent-ember); color: var(--text); }
-.steps li.done { color: var(--accent-cyan); }
+.steps li.done { padding: 0; color: var(--accent-cyan); }
+.steps li.done a { display: block; padding: 8px 12px; border-radius: 999px; color: inherit; text-decoration: none; }
+.steps li.done::before { display: none; }
+.steps li.done a::before { content: counter(step) " · "; }
+.steps li.done:hover { border-color: var(--accent-cyan); }
+.steps li.done a:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
 
 .steps-short { display: none; color: var(--muted); font: 500 13px/1 var(--mono); }
 

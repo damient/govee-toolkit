@@ -64,19 +64,31 @@ page: move the shared code to `components/`, `shell/` or `core/`.
   outside `/api`. The files of the build have absolute paths for this
   reason.
 - Home shows a welcome card, centered in the view, that opens the setup.
-  `/setup` has no entry in the navigation. Its first step runs a `lan`
-  scan (`/api/devices`) and shows one card per light (`light.ts`), in two
-  groups: the new lights, and the lights of `config.yaml`. A light of
-  `config.yaml` that did not answer shows as offline. A card shows the
+  `/setup` has no entry in the navigation. Its first step shows the
+  lights of `config.yaml` at once (`/api/devices`), and runs a `lan` scan
+  in the background (`/api/scan`). It shows one card per light
+  (`light.ts`), in two groups: the new lights, and the lights of
+  `config.yaml`. While the scan runs, a light of `config.yaml` shows a
+  wait mark. Then a light that did not answer shows as offline. A card shows the
   icon of its family, and its name or its SKU. A card selects the light,
   renames it and identifies it (the walk of `govee identify`: green for
   some seconds, then off). A rename stays in the page until Continue
   (`find.ts`). Continue writes every entry in one `PUT /api/devices`:
   `config.yaml` keeps each selected light and loses each light of
   `config.yaml` that is not selected. Then it goes to the second step,
-  `/setup/rooms`, which is not built yet. A scan that finds no light and
+  `/setup/rooms` (`rooms.ts`). A scan that finds no light and
   a `config.yaml` with no device show how to make a light answer. On a
-  phone, the steps show as "1 / 2".
+  phone, the steps show as "1 / 2". A done step links to its page.
+- The second step reads the lights of `config.yaml` (`/api/devices`,
+  with no scan) and the rooms (`/api/rooms`). It shows every light on the left and one card per room
+  (`room.ts`). A room shows its number of lights in a badge, and a menu
+  renames or deletes it. A light goes into a room with a drag (`drag.ts`), or with a
+  click on the light and then on the room. Enter and Esc do the same from
+  the keyboard. A drag from the light list adds the light, and a drag from
+  a room moves it. A light can be in more than one room, and a room can be
+  empty. The card at the end adds a room. Finish writes every room in one `PUT /api/rooms` and goes home.
+  The drag uses the pointer events, so that a mouse and a touch use one
+  path.
 - The shared parts of a view:
   - `title.ts`: the head of a view. It holds an optional back link, the
     title, and content on the right.
@@ -90,6 +102,9 @@ page: move the shared code to `components/`, `shell/` or `core/`.
     use it.
   - `help.ts`: a "?" badge with a tooltip, on hover, on focus and on a
     tap. A view puts its hints there, not in a paragraph.
+  - `menu.ts`: a button with three dots that opens a list of actions.
+    The arrow keys move in the list. Esc, a click elsewhere and a scroll
+    close it.
   - `tooltip.ts`: a tooltip on hover and on focus of a control. An icon
     button names its action there, not in a `title`.
   - `family.ts`: the icon of a device family. `build.ts` reads the icons

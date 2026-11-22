@@ -1,5 +1,5 @@
 import { alert } from "../../components/alert/alert.ts";
-import { type Found, type Keep, devices, saveDevices } from "../../core/api.ts";
+import { type Found, type Keep, devices, saveDevices, scan } from "../../core/api.ts";
 import { help } from "../../components/help/help.ts";
 import { explain, t } from "../../core/i18n.ts";
 import { type Draft, lightCard } from "./light.ts";
@@ -30,12 +30,12 @@ function button(text: string, d: string, run: () => void): HTMLButtonElement {
 }
 
 /** The scan found no light and the configuration has none, or the scan failed: a card with "Scan again". */
-function empty(scan: Scan, run: () => void): HTMLElement {
+function empty(result: Scan, run: () => void): HTMLElement {
   const fill = element("div", "fill");
   const again = button(t("setup.again"), REFRESH, run);
   fill.append(
-    scan.kind === "failed"
-      ? notice({ icon: ALERT, title: t("setup.failed"), body: scan.reason, actions: [again] })
+    result.kind === "failed"
+      ? notice({ icon: ALERT, title: t("setup.failed"), body: result.reason, actions: [again] })
       : notice({ icon: WIFI, title: t("setup.none"), body: t("setup.none.body"), actions: [again] }),
   );
   return fill;
@@ -48,10 +48,29 @@ function draftOf(drafts: Map<string, Draft>, found: Found): Draft {
   return draft;
 }
 
-function grid(list: Found[], drafts: Map<string, Draft>): HTMLElement {
+function grid(list: Found[], drafts: Map<string, Draft>, checking = false): HTMLElement {
   const node = element("div", "light-grid");
-  for (const found of list) node.append(lightCard(found, draftOf(drafts, found)));
+  for (const found of list) node.append(lightCard(found, draftOf(drafts, found), checking));
   return node;
+}
+
+/**
+ * The lights of the configuration with the result of the scan: `online`, and
+ * the SKU and the family that the entry does not give.
+ */
+function merged(configured: Found[], result: Scan): Found[] {
+  if (result.kind !== "found") return configured;
+  const answered = new Map(result.list.map((found) => [found.id.toUpperCase(), found]));
+  return configured.map((light) => {
+    const seen = answered.get(light.id.toUpperCase());
+    return { ...light, online: seen !== undefined, sku: light.sku ?? seen?.sku ?? null, family: light.family ?? seen?.family ?? null };
+  });
+}
+
+/** The new lights while the scan runs, or when it failed. */
+function waiting(result: Scan): HTMLElement {
+  if (result.kind === "failed") return alert({ tone: "error", title: t("setup.failed"), body: result.reason });
+  return loading({ text: t("setup.scanning") });
 }
 
 function newTitle(count: number): string {
@@ -60,20 +79,22 @@ function newTitle(count: number): string {
 }
 
 /** The new lights: they answered the scan, and the configuration has no entry for them. */
-function fresh(list: Found[], drafts: Map<string, Draft>): HTMLElement {
+function fresh(list: Found[], drafts: Map<string, Draft>, result: Scan): HTMLElement {
   const count = list.length;
   const h2 = element("h2", "section-title", newTitle(count));
   h2.append(help(t("setup.help")));
   const section = element("section", "light-group");
-  section.append(h2, count > 0 ? grid(list, drafts) : alert({ tone: "success", title: t("setup.new.none"), body: t("setup.new.none.body") }));
+  if (result.kind !== "found") section.append(h2, waiting(result));
+  else if (count > 0) section.append(h2, grid(list, drafts));
+  else section.append(h2, alert({ tone: "success", title: t("setup.new.none"), body: t("setup.new.none.body") }));
   return section;
 }
 
 /** The lights of the configuration, that answered the scan or not. */
-function known(list: Found[], drafts: Map<string, Draft>): HTMLElement {
+function known(list: Found[], drafts: Map<string, Draft>, checking: boolean): HTMLElement {
   const count = list.length;
   const section = element("section", "light-group");
-  section.append(element("h2", "section-title", t(count === 1 ? "setup.known.one" : "setup.known.other", { count: String(count) })), grid(list, drafts));
+  section.append(element("h2", "section-title", t(count === 1 ? "setup.known.one" : "setup.known.other", { count: String(count) })), grid(list, drafts, checking));
   return section;
 }
 
@@ -93,7 +114,7 @@ function save(list: Found[], drafts: Map<string, Draft>): Promise<void> {
 }
 
 /** Continue saves the drafts and goes to the next step. An error shows on its left. */
-function actions(list: Found[], drafts: Map<string, Draft>, run: () => void): HTMLElement {
+function actions(list: Found[], drafts: Map<string, Draft>, again: HTMLButtonElement): HTMLElement {
   const error = element("p", "error");
   error.hidden = true;
   const next = element("button", "button primary");
@@ -114,40 +135,62 @@ function actions(list: Found[], drafts: Map<string, Draft>, run: () => void): HT
     );
   });
   const row = element("div", "buttons end");
-  row.append(error, button(t("setup.again"), REFRESH, run), next);
+  row.append(error, again, next);
   return row;
 }
 
-/** The scan and its result. It scans at once, and again on "Scan again". */
+/**
+ * The lights of the configuration at once, and the scan in the background.
+ * The scan gives the status of each light and the new lights. "Scan again"
+ * runs the scan again and keeps the drafts.
+ */
 export function findStep(): HTMLElement {
   const section = element("section", "scan");
   section.setAttribute("aria-live", "polite");
   const drafts = new Map<string, Draft>();
-  const draw = (scan: Scan): void => {
-    if (scan.kind === "scanning") {
-      section.replaceChildren(loading({ block: true, text: t("setup.scanning") }));
+  let configured: Found[] | null = null;
+  let result: Scan = { kind: "scanning" };
+  const draw = (): void => {
+    if (configured === null) return;
+    const mine = merged(configured, result);
+    const added = result.kind === "found" ? result.list.filter((found) => !found.configured) : [];
+    if (mine.length === 0 && added.length === 0) {
+      section.replaceChildren(result.kind === "scanning" ? loading({ block: true, text: t("setup.scanning") }) : empty(result, rescan));
       return;
     }
-    if (scan.kind === "failed" || scan.list.length === 0) {
-      section.replaceChildren(empty(scan, run));
-      return;
-    }
-    const configured = scan.list.filter((found) => found.configured);
-    const parts = [fresh(scan.list.filter((found) => !found.configured), drafts)];
-    if (configured.length > 0) parts.push(known(configured, drafts));
-    section.replaceChildren(...parts, actions(scan.list, drafts, run));
+    const again = button(t("setup.again"), REFRESH, rescan);
+    again.disabled = result.kind === "scanning";
+    const parts = [fresh(added, drafts, result)];
+    if (mine.length > 0) parts.push(known(mine, drafts, result.kind === "scanning"));
+    section.replaceChildren(...parts, actions([...mine, ...added], drafts, again));
   };
-  function run(): void {
-    draw({ kind: "scanning" });
-    devices().then(
+  function rescan(): void {
+    result = { kind: "scanning" };
+    draw();
+    scan().then(
       (list) => {
-        draw({ kind: "found", list });
+        result = { kind: "found", list };
+        draw();
       },
       (failure: unknown) => {
-        draw({ kind: "failed", reason: explain(failure) });
+        result = { kind: "failed", reason: explain(failure) };
+        draw();
       },
     );
   }
-  run();
+  function start(): void {
+    section.replaceChildren(loading({ block: true, text: t("setup.loading") }));
+    devices().then(
+      (list) => {
+        configured = list;
+        draw();
+      },
+      (failure: unknown) => {
+        section.replaceChildren(empty({ kind: "failed", reason: explain(failure) }, start));
+      },
+    );
+  }
+  start();
+  rescan();
   return section;
 }

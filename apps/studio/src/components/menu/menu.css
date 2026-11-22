@@ -1,0 +1,17 @@
+.menu { display: inline-flex; }
+.menu-button[aria-expanded="true"] { background: var(--panel-2); color: var(--text); }
+
+/* A fixed position, so that no box clips the list. */
+.menu-list {
+  position: fixed; z-index: 20; display: flex; flex-direction: column; min-width: 160px; padding: 4px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 30%);
+}
+.menu-list[hidden] { display: none; }
+.menu-item {
+  display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 0; border-radius: 7px;
+  background: none; color: var(--text); font: 500 14px/1.2 var(--sans); text-align: left; cursor: pointer;
+}
+.menu-item svg { width: 16px; height: 16px; flex: none; color: var(--muted); }
+.menu-item:is(:hover, :focus-visible) { background: var(--panel); outline: none; }
+.menu-item.danger, .menu-item.danger svg { color: var(--ember); }
