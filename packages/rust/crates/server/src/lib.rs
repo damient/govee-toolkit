@@ -1,5 +1,6 @@
 //! The local HTTP server of Studio. The routes are under `/api`, and any
-//! other path is a file of the web UI that [`Options::web`] selects.
+//! other path is a file of the web UI that [`Options::web`] selects. A path
+//! with no dot in its last segment is a page of Studio and gets `index.html`.
 
 use std::io;
 use std::net::SocketAddr;
@@ -9,6 +10,8 @@ use std::sync::Arc;
 mod backup;
 mod compat;
 mod devices;
+mod names;
+mod reset;
 mod settings;
 mod share;
 mod storage;
@@ -16,7 +19,7 @@ mod studio;
 mod web;
 
 use axum::http::Uri;
-use axum::routing::{get, post};
+use axum::routing::{get, post, put};
 use axum::{Json, Router, middleware};
 use govee_toolkit::Catalog;
 use serde_json::json;
@@ -90,6 +93,8 @@ fn routes(
     let api = Router::new()
         .route("/hello", get(move || async move { hello }))
         .route("/devices", get(devices::list))
+        .route("/devices/{id}/identify", post(devices::identify))
+        .route("/devices/{id}/name", put(names::put))
         .with_state(sdk)
         .merge(
             Router::new()
@@ -105,14 +110,21 @@ fn routes(
             Router::new()
                 .route("/backup", get(backup::export).post(backup::import))
                 .route("/backup/restore", post(backup::restore))
+                .route("/reset", post(reset::reset))
                 .with_state(backup),
         );
     let mut app = Router::new().nest("/api", api);
     match &options.web {
         Web::Embedded => {
-            app = app.fallback(|uri: Uri| async move { web::respond(web::ASSETS, &uri) });
+            app = app
+                .fallback(|uri: Uri| async move { web::respond(web::ASSETS, &uri) })
+                .layer(middleware::map_request(web::to_index));
         }
-        Web::Dir(dir) => app = app.fallback_service(ServeDir::new(dir)),
+        Web::Dir(dir) => {
+            app = app
+                .fallback_service(ServeDir::new(dir))
+                .layer(middleware::map_request(web::to_index));
+        }
         Web::None => {}
     }
     let app = app.layer(middleware::from_fn_with_state(
