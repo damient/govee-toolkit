@@ -10,7 +10,7 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 authors.workspace = true
-keywords = ["govee", "dmx", "artnet", "dmx512", "lighting"]
+keywords = ["govee", "dmx", "artnet", "lan", "lighting"]
 categories = ["command-line-utilities", "hardware-support"]
 
 [[bin]]
