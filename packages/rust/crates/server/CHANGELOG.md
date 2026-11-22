@@ -11,10 +11,22 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 - `govee-server` serves Studio: the API under `/api`, and the web UI.
   The binary carries the build of `apps/studio`, and `--web <directory>`
   serves another copy. It listens on `127.0.0.1:4080` by default.
+  A path outside `/api` with no dot in its last segment is a page of
+  Studio: the server answers `index.html` for it, so a reload of `/lights`
+  keeps the page.
 - `GET /api/hello` answers the name and the version of the server, the
   version of `govee-toolkit`, and the number of SKUs in the embedded catalog.
 - `GET /api/devices` runs a `lan` scan and answers the devices that replied.
   The SDK starts on the first call and reads the configuration file.
+  Each device carries the `family` of its device file, and the name that
+  `config.yaml` gives it now.
+- `POST /api/devices/{id}/identify` runs the walk of `govee identify` over
+  `lan` for one device: off, green at full brightness for some seconds,
+  then off. The call answers when the walk ends.
+- `PUT /api/devices/{id}/name` sets the name of a device in `config.yaml`,
+  or removes it with `null` or a blank name. A name is 64 characters at
+  most. The other keys of the file stay, but its comments do not survive
+  the write.
 - `GET` and `POST /api/share` open the server to the network and close it
   again, with a second listener on the network address of this machine.
   Sharing is off by default, and only a loopback client can switch it.

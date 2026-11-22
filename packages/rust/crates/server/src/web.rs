@@ -1,5 +1,6 @@
 //! The web UI that `build.rs` compiles in.
 
+use axum::extract::Request;
 use axum::http::{StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
 
@@ -7,6 +8,22 @@ include!(concat!(env!("OUT_DIR"), "/web.rs"));
 
 /// `(path, body)` pairs. A path is relative to the root and uses `/`.
 pub(crate) type Assets = &'static [(&'static str, &'static [u8])];
+
+/// A page of Studio, which the UI routes on the path: outside `/api`, and no
+/// dot in the last segment.
+fn is_page(path: &str) -> bool {
+    let api = path == "/api" || path.starts_with("/api/");
+    !api && !path.rsplit('/').next().unwrap_or_default().contains('.')
+}
+
+/// Send a page of Studio to `/`, so that a reload or a link to `/lights`
+/// gets `index.html`.
+pub(crate) async fn to_index(mut request: Request) -> Request {
+    if is_page(request.uri().path()) {
+        *request.uri_mut() = Uri::from_static("/");
+    }
+    request
+}
 
 pub(crate) fn respond(assets: Assets, uri: &Uri) -> Response {
     let path = uri.path().trim_start_matches('/');
@@ -64,6 +81,17 @@ mod tests {
     #[test]
     fn an_unknown_path_is_not_found() {
         assert_eq!(get(TWO, "/missing.js").status(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn a_path_without_a_dot_is_a_page() {
+        assert!(is_page("/"));
+        assert!(is_page("/lights"));
+        assert!(is_page("/setup/"));
+        assert!(!is_page("/app.js"));
+        assert!(!is_page("/fonts/a.woff2"));
+        assert!(!is_page("/api"));
+        assert!(!is_page("/api/hello"));
     }
 
     #[test]
