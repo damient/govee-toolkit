@@ -80,7 +80,7 @@ body {
 .dots i:nth-child(2) { --dot: var(--accent-cyan); --n: 1; }
 .dots i:nth-child(3) { --dot: var(--accent-violet); --n: 2; }
 
-/* The splash covers the shell until the server answers `/api/hello`. */
+/* The splash covers the shell until the server answers `/api/settings`. */
 /* The splash scales with the short side of the screen. */
 .splash {
   --size: clamp(12px, 3.5vmin, 40px);
@@ -227,76 +227,4 @@ body {
     min-width: 200px; padding: 6px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
   }
   .nav .more-menu a { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 12px; font: 400 15px/1 var(--sans); border-radius: 10px; }
-}
-
-/* Settings: one row per choice, the control on the right. */
-.list { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
-.list li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 14px 16px; }
-.list + .list { margin-top: 16px; }
-.list li + li { border-top: 1px solid var(--line); }
-.list .grow { flex: 1; min-width: 120px; }
-.seg { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; }
-.seg label { padding: 7px 12px; border-radius: 999px; font: 500 12px/1 var(--mono); color: var(--muted); cursor: pointer; }
-.seg label:has(:checked) { background: var(--panel-2); color: var(--text); }
-.seg label:has(:focus-visible) { outline: 2px solid var(--ember); outline-offset: 1px; }
-.seg input { position: absolute; opacity: 0; pointer-events: none; }
-/* Every select: the chevron of the icons in place of the arrow of the engine. */
-select {
-  appearance: none;
-  padding: 5px 30px 5px 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel-2) var(--chevron) no-repeat right 9px center / 14px;
-  color: var(--text);
-  /* A line height of 1 cuts the descenders. */
-  font: 500 12px/1.4 var(--mono);
-  cursor: pointer;
-}
-select:hover { border-color: color-mix(in oklab, var(--text) 25%, transparent); }
-select:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
-
-/* Mobile: the QR code on a light tile in both themes, so that a camera reads it. */
-.view.centered { display: grid; place-items: center; }
-.share-card {
-  display: grid; grid-template-columns: auto minmax(0, 340px); gap: 40px; align-items: center;
-  max-width: 760px; padding: 32px; border: 1px solid var(--line); border-radius: 24px; background: var(--panel);
-}
-.qr-tile {
-  display: grid; place-items: center; width: 248px; aspect-ratio: 1; padding: 22px;
-  border-radius: 20px; background: #fff; color: #0a0d14; box-shadow: 0 12px 40px -12px rgb(0 0 0 / 35%);
-}
-.qr-tile svg { width: 100%; height: 100%; animation: reveal .35s ease-out; }
-.qr-tile.off { border: 1px dashed var(--line); background: var(--panel-2); box-shadow: none; color: var(--muted); }
-.qr-tile.off svg { width: 56px; height: 56px; opacity: .6; animation: none; }
-.share-body { display: flex; flex-direction: column; gap: 14px; }
-.share-title { margin: 0; font: 600 22px/1.25 var(--sans); }
-.share-lead { margin: 0; color: var(--muted); }
-.share-url { display: flex; align-items: center; gap: 4px; padding: 6px 6px 6px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); }
-.share-url a { flex: 1; overflow: hidden; color: var(--text); font: 500 14px/1 var(--mono); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
-.share-url a:hover { color: var(--ember); }
-.icon-button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer; }
-.icon-button:hover { background: var(--panel); color: var(--text); }
-.icon-button svg { width: 18px; height: 18px; }
-.share-switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
-.share-note { margin: 0; font: 500 12px/1.5 var(--mono); color: var(--muted); }
-.share-note.error, .settings-note.error { color: var(--ember); }
-.settings-versions { margin: 24px 0 0; text-align: center; font: 500 12px/1.5 var(--mono); color: var(--muted); }
-.settings-note { margin: 12px 0 0; font: 500 12px/1.5 var(--mono); color: var(--muted); }
-.switch { position: relative; flex: none; width: 40px; height: 24px; padding: 0; border: 0; border-radius: 999px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); cursor: pointer; transition: background .2s; }
-.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s; }
-.switch[aria-checked="true"] { background: var(--ember); box-shadow: none; }
-.switch[aria-checked="true"]::after { transform: translateX(16px); background: #fff; }
-.switch:disabled { cursor: default; opacity: .5; }
-.switch:focus-visible, .icon-button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
-
-@keyframes reveal {
-  from { opacity: 0; transform: scale(.96); }
-}
-
-@media (max-width: 860px) {
-  .share-card { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .qr-tile svg { animation: none; }
 }

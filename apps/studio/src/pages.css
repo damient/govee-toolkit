@@ -1,4 +1,4 @@
-/* The content of the views: Setup and the note for a small screen. */
+/* The content of the views: Setup, Settings, Mobile and the note for a small screen. */
 
 
 /* A view that needs a larger screen shows this note in its place. */
@@ -91,4 +91,48 @@
   .light-card { padding: 12px; }
   .light-top { gap: 8px; }
   .light-sku { font-size: 12px; }
+}
+
+/* Settings: one row per choice, the control on the right. */
+.list { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.list li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 14px 16px; }
+.list + .list { margin-top: 16px; }
+.list li + li { border-top: 1px solid var(--line); }
+.list .grow { flex: 1; min-width: 120px; }
+
+/* Mobile: the QR code on a light tile in both themes, so that a camera reads it. */
+.view.centered { display: grid; place-items: center; }
+.share-card {
+  display: grid; grid-template-columns: auto minmax(0, 340px); gap: 40px; align-items: center;
+  max-width: 760px; padding: 32px; border: 1px solid var(--line); border-radius: 24px; background: var(--panel);
+}
+.qr-tile {
+  display: grid; place-items: center; width: 248px; aspect-ratio: 1; padding: 22px;
+  border-radius: 20px; background: #fff; color: #0a0d14; box-shadow: 0 12px 40px -12px rgb(0 0 0 / 35%);
+}
+.qr-tile svg { width: 100%; height: 100%; animation: reveal .35s ease-out; }
+.qr-tile.off { border: 1px dashed var(--line); background: var(--panel-2); box-shadow: none; color: var(--muted); }
+.qr-tile.off svg { width: 56px; height: 56px; opacity: .6; animation: none; }
+.share-body { display: flex; flex-direction: column; gap: 14px; }
+.share-title { margin: 0; font: 600 22px/1.25 var(--sans); }
+.share-lead { margin: 0; color: var(--muted); }
+.share-url { display: flex; align-items: center; gap: 4px; padding: 6px 6px 6px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); }
+.share-url a { flex: 1; overflow: hidden; color: var(--text); font: 500 14px/1 var(--mono); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.share-url a:hover { color: var(--ember); }
+.share-switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.share-note { margin: 0; font: 500 12px/1.5 var(--mono); color: var(--muted); }
+.share-note.error, .settings-note.error { color: var(--ember); }
+.settings-versions { margin: 24px 0 0; text-align: center; font: 500 12px/1.5 var(--mono); color: var(--muted); }
+.settings-note { margin: 12px 0 0; font: 500 12px/1.5 var(--mono); color: var(--muted); }
+
+@keyframes reveal {
+  from { opacity: 0; transform: scale(.96); }
+}
+
+@media (max-width: 860px) {
+  .share-card { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qr-tile svg { animation: none; }
 }
