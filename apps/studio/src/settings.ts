@@ -1,6 +1,7 @@
 import { answeredHello } from "./api.ts";
 import { backup, fail } from "./data.ts";
 import { type Key, LANGUAGES, type Language, NAMES, language, t } from "./i18n.ts";
+import { resetButton } from "./reset.ts";
 import { THEMES, type Theme, setTheme, theme } from "./theme.ts";
 import { VERSION } from "./version.ts";
 
@@ -17,6 +18,13 @@ function row(name: Key, control: HTMLElement): HTMLLIElement {
   title.textContent = t(name);
   li.append(title, control);
   return li;
+}
+
+function card(...rows: HTMLLIElement[]): HTMLUListElement {
+  const list = document.createElement("ul");
+  list.className = "list";
+  list.append(...rows);
+  return list;
 }
 
 function themes(note: HTMLElement): HTMLElement {
@@ -56,18 +64,13 @@ function languages(change: (code: Language) => void): HTMLElement {
 
 /** Draw the Settings view. `change` applies a new language. */
 export function settings(view: HTMLElement, change: (code: Language) => void): void {
-  const list = document.createElement("ul");
-  list.className = "list";
   const note = document.createElement("p");
   note.className = "settings-note";
-  list.append(
-    row("settings.theme", themes(note)),
-    row("settings.language", languages(change)),
-    row("settings.data", backup(note)),
-  );
+  const look = card(row("settings.theme", themes(note)), row("settings.language", languages(change)));
+  const data = card(row("settings.data", backup(note)), row("settings.reset", resetButton(note)));
   const versions = document.createElement("p");
   versions.className = "settings-versions";
   const server = answeredHello();
   versions.textContent = t("settings.versions", { studio: VERSION, server: server?.version ?? "?", sdk: server?.sdk ?? "?" });
-  view.append(list, note, versions);
+  view.append(look, data, note, versions);
 }

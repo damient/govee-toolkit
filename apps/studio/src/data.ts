@@ -48,7 +48,7 @@ async function importFile(file: File): Promise<boolean> {
 function button(text: string): HTMLButtonElement {
   const node = document.createElement("button");
   node.type = "button";
-  node.className = "button";
+  node.className = "button xs";
   node.textContent = text;
   return node;
 }
@@ -131,7 +131,7 @@ export function backup(note: HTMLElement): HTMLElement {
   const group = document.createElement("div");
   group.className = "buttons";
   const save = document.createElement("a");
-  save.className = "button";
+  save.className = "button xs";
   save.href = "/api/backup";
   save.download = fileName(new Date());
   save.textContent = t("settings.data.export");

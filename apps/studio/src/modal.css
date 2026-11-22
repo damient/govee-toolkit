@@ -1,12 +1,4 @@
-/* The buttons of Settings and of a modal, and the modal: a <dialog> that modal.ts opens. */
-
-.buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-.button { padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: none; font: 500 12px/1 var(--mono); color: var(--text); text-decoration: none; cursor: pointer; }
-.button:hover { background: var(--panel-2); }
-.button:disabled, .button[aria-disabled="true"] { color: var(--muted); cursor: default; background: none; }
-.button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
-.button.primary { border-color: var(--ember); background: var(--ember); color: #fff; }
-.button.primary:hover { background: var(--ember); filter: brightness(1.1); }
+/* The modal: a <dialog> that modal.ts opens. */
 
 .modal {
   width: min(440px, calc(100vw - 32px));
@@ -21,3 +13,7 @@
 .modal h2 { margin: 0 0 10px; font-size: 17px; font-weight: 600; }
 .modal p { margin: 0 0 22px; font-size: 14px; line-height: 1.5; color: var(--muted); }
 .modal .buttons { justify-content: flex-end; }
+.modal .choices { display: flex; flex-direction: column; gap: 2px; margin: 0 0 22px; padding: 0; border: 0; }
+.modal .choices label { display: flex; gap: 12px; align-items: center; padding: 8px 0; font-size: 17px; cursor: pointer; }
+.modal .choices input { width: 20px; height: 20px; flex: none; margin: 0; accent-color: var(--ember); }
+.modal .summary { margin: -10px 0 22px; padding-left: 20px; font-size: 14px; line-height: 1.6; }
