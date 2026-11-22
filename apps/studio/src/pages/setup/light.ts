@@ -64,15 +64,27 @@ function identifyButton(found: Found, error: HTMLElement): HTMLButtonElement {
   return button;
 }
 
-/** The mark of a light that did not answer the scan. It takes the focus, so that a keyboard shows its tooltip. */
-function offlineMark(): HTMLElement {
+/**
+ * The mark of a light that has no answer: the scan runs, the scan failed, or
+ * the light did not answer. It takes the focus, so that a keyboard shows its
+ * tooltip.
+ */
+function statusMark(text: string, content: Node): HTMLElement {
   const mark = element("span", "light-find light-offline");
   mark.tabIndex = 0;
   mark.setAttribute("role", "img");
-  mark.setAttribute("aria-label", t("light.offline"));
-  mark.append(icon(ONLINE));
-  tooltip(mark, t("light.offline"));
+  mark.setAttribute("aria-label", text);
+  mark.append(content);
+  tooltip(mark, text);
   return mark;
+}
+
+/** The status of the light. `checking` says that a scan runs. */
+function status(found: Found, checking: boolean, error: HTMLElement): HTMLElement {
+  if (found.online === true) return identifyButton(found, error);
+  if (found.online === false) return statusMark(t("light.offline"), icon(ONLINE));
+  if (checking) return statusMark(t("light.checking"), loading({ size: "s" }));
+  return statusMark(t("light.unknown"), icon(ONLINE));
 }
 
 /** The state of a card that Continue saves. */
@@ -128,10 +140,10 @@ function nameRow(found: Found, draft: Draft): HTMLElement {
   return row;
 }
 
-/** One light. A click on the card and a rename change `draft`. */
-export function lightCard(found: Found, draft: Draft): HTMLElement {
+/** One light. A click on the card and a rename change `draft`. `checking` says that a scan runs. */
+export function lightCard(found: Found, draft: Draft, checking = false): HTMLElement {
   const card = element("article", "light-card");
-  card.classList.toggle("offline", !found.online);
+  card.classList.toggle("offline", found.online === false);
   const error = element("p", "light-error");
   error.hidden = true;
   const check = element("input", "light-check");
@@ -156,7 +168,7 @@ export function lightCard(found: Found, draft: Draft): HTMLElement {
   const shape = element("span", "light-icon");
   shape.append(familyIcon(found.family), check);
   const sku = element("div", "light-sku", found.sku ?? "");
-  top.append(shape, sku, found.online ? identifyButton(found, error) : offlineMark());
+  top.append(shape, sku, status(found, checking, error));
   card.append(top, nameRow(found, draft), error);
   return card;
 }

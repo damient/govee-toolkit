@@ -56,7 +56,7 @@ export async function undoImport(): Promise<void> {
 export interface ResetChoice {
   /** Theme, language and the advanced switch. */
   prefs: boolean;
-  /** The `devices:` entries of the configuration file: names, modes, groups. */
+  /** The `devices:` entries of the configuration file (names, modes, groups), and the rooms. */
   devices: boolean;
 }
 
@@ -65,11 +65,11 @@ export async function reset(choice: ResetChoice): Promise<void> {
   await send("/api/reset", "POST", JSON.stringify(choice));
 }
 
-/** A device that answered a `lan` scan, or a device of the configuration. */
+/** A device of the configuration, or a device that answered a `lan` scan. */
 export interface Found {
   /** The device ID, as `AA:BB:CC:DD:EE:FF:00:11`. */
   id: string;
-  /** `null` for a device of the configuration that gives no SKU and did not answer. */
+  /** `null` for a device of the configuration that gives no SKU. */
   sku: string | null;
   /** The name that the configuration gives it. */
   name: string | null;
@@ -77,13 +77,15 @@ export interface Found {
   family: string | null;
   /** The configuration has an entry for it. */
   configured: boolean;
-  /** It answered the scan. */
-  online: boolean;
+  /** It answered the scan: `null` until a scan ends. */
+  online: boolean | null;
 }
 
 const nullableString = (value: unknown): boolean => value === null || typeof value === "string";
 
-function isFound(value: unknown): value is Found {
+type Record = Pick<Found, "id" | "sku" | "name" | "family">;
+
+function isRecord(value: unknown): value is Record {
   if (typeof value !== "object" || value === null) return false;
   return (
     "id" in value &&
@@ -93,23 +95,42 @@ function isFound(value: unknown): value is Found {
     "name" in value &&
     nullableString(value.name) &&
     "family" in value &&
-    nullableString(value.family) &&
-    "configured" in value &&
-    typeof value.configured === "boolean" &&
-    "online" in value &&
-    typeof value.online === "boolean"
+    nullableString(value.family)
   );
 }
 
-/** `GET /api/devices`: a `lan` scan, and the devices of the configuration. The server answers when the scan ends. */
-export async function devices(): Promise<Found[]> {
-  const body = await request("/api/devices");
+function isScanned(value: unknown): value is Record & { configured: boolean } {
+  return isRecord(value) && "configured" in value && typeof value.configured === "boolean";
+}
+
+function listOf(body: unknown): unknown[] {
   if (typeof body !== "object" || body === null || !("devices" in body) || !Array.isArray(body.devices)) {
     throw new Failure("unreadable");
   }
-  const list: unknown[] = body.devices;
-  if (!list.every((item) => isFound(item))) throw new Failure("unreadable");
-  return list;
+  return body.devices;
+}
+
+const found = (record: Record, configured: boolean, online: boolean | null): Found => ({
+  id: record.id,
+  sku: record.sku,
+  name: record.name,
+  family: record.family,
+  configured,
+  online,
+});
+
+/** `GET /api/devices`: the devices of the configuration, at once, with no scan. */
+export async function devices(): Promise<Found[]> {
+  const list = listOf(await request("/api/devices"));
+  if (!list.every((item) => isRecord(item))) throw new Failure("unreadable");
+  return list.map((record) => found(record, true, null));
+}
+
+/** `GET /api/scan`: the devices that answer a `lan` scan. The server answers when the scan ends. */
+export async function scan(): Promise<Found[]> {
+  const list = listOf(await request("/api/scan"));
+  if (!list.every((item) => isScanned(item))) throw new Failure("unreadable");
+  return list.map((record) => found(record, record.configured, true));
 }
 
 /** A device that the configuration keeps. A blank `name` removes the name. */
@@ -134,4 +155,44 @@ function devicePath(id: string, action: string): string {
 /** `POST /api/devices/{id}/identify`: the light turns on, green, at full brightness. */
 export async function identify(id: string): Promise<void> {
   await send(devicePath(id, "identify"), "POST", "");
+}
+
+/** A room of `rooms.json`. A new room has an empty `id` until the server gives it one. */
+export interface Room {
+  id: string;
+  name: string;
+  /** Device IDs. A device can be in more than one room. */
+  devices: string[];
+}
+
+function isRoom(value: unknown): value is Room {
+  if (typeof value !== "object" || value === null) return false;
+  return (
+    "id" in value &&
+    typeof value.id === "string" &&
+    "name" in value &&
+    typeof value.name === "string" &&
+    "devices" in value &&
+    Array.isArray(value.devices) &&
+    value.devices.every((id: unknown) => typeof id === "string")
+  );
+}
+
+function asRooms(body: unknown): Room[] {
+  if (typeof body !== "object" || body === null || !("rooms" in body) || !Array.isArray(body.rooms)) {
+    throw new Failure("unreadable");
+  }
+  const list: unknown[] = body.rooms;
+  if (!list.every((item) => isRoom(item))) throw new Failure("unreadable");
+  return list;
+}
+
+/** `GET /api/rooms`. */
+export async function rooms(): Promise<Room[]> {
+  return asRooms(await request("/api/rooms"));
+}
+
+/** `PUT /api/rooms`: replace every room. The answer gives each new room its `id`. */
+export async function saveRooms(list: Room[]): Promise<Room[]> {
+  return asRooms(await send("/api/rooms", "PUT", JSON.stringify({ rooms: list })));
 }

@@ -1,10 +1,15 @@
 import "./setup.css";
 import { findStep } from "./find.ts";
+import { roomsStep } from "./rooms.ts";
 import { type Key, t } from "../../core/i18n.ts";
 import { pathOf } from "../../core/router.ts";
 import { title } from "../../components/title/title.ts";
 
-const STEPS: Key[] = ["setup.step.find", "setup.step.rooms"];
+/** The steps of the setup: the text of the badge and the page. */
+const STEPS: { key: Key; page: string }[] = [
+  { key: "setup.step.find", page: "setup" },
+  { key: "setup.step.rooms", page: "setup/rooms" },
+];
 
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -13,12 +18,19 @@ function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: strin
   return node;
 }
 
-/** The steps of the setup, and "1 / 2" for a phone. `at` is the index of the current one. */
+/** The steps of the setup, and "1 / 2" for a phone. `at` is the index of the current one. A done step links to its page. */
 function steps(at: number): HTMLElement[] {
   const list = element("ol", "steps");
   list.setAttribute("aria-label", t("setup.steps"));
-  for (const [index, key] of STEPS.entries()) {
-    const item = element("li", index < at ? "done" : "", t(key));
+  for (const [index, step] of STEPS.entries()) {
+    const item = element("li", index < at ? "done" : "");
+    if (index < at) {
+      const link = element("a", "", t(step.key));
+      link.href = pathOf(step.page);
+      item.append(link);
+    } else {
+      item.textContent = t(step.key);
+    }
     if (index === at) item.setAttribute("aria-current", "step");
     list.append(item);
   }
@@ -43,4 +55,5 @@ export function setup(view: HTMLElement): void {
 /** Draw the second step of the setup: put the lights in rooms. */
 export function rooms(view: HTMLElement): void {
   head(view, 1, pathOf("setup"));
+  view.append(roomsStep());
 }
