@@ -13,6 +13,34 @@ govee-server
 Open <http://127.0.0.1:4080>. The binary carries the web UI. On Linux the
 `ble` mode needs `libdbus-1-dev` to build.
 
+## Linux
+
+The desktop app targets Windows and macOS. On Linux, `govee-server` serves
+Studio to a browser on this machine, or to a phone or a tablet on the
+network.
+
+[`systemd/govee-server.service`](systemd/govee-server.service) runs the
+server as a systemd user service, so it starts at boot and restarts after a
+failure:
+
+```sh
+cargo install govee-toolkit-server
+cp systemd/govee-server.service ~/.config/systemd/user/
+systemctl --user enable --now govee-server
+sudo loginctl enable-linger "$USER"
+```
+
+`enable-linger` starts the service at boot, before a login. Read the output
+with `journalctl --user -u govee-server`.
+
+On a machine with no screen, such as a Raspberry Pi, no browser on that
+machine can switch sharing on. In the file, put a `#` before the first
+`ExecStart` line and remove the `#` before the second. The second line
+opens the server to the network with `--listen 0.0.0.0:4080`. Then
+open `http://<address of the machine>:4080` on a phone or a computer of the
+network. The API has no authentication: any device on the network can
+control the lights.
+
 ## Run from the repository
 
 `build.rs` compiles `apps/studio/dist` into the binary. Build the UI

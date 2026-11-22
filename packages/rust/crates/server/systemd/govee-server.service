@@ -1,0 +1,24 @@
+# A systemd user service for govee-server. The README of the crate gives the
+# install steps ("Linux").
+#
+#   cp govee-server.service ~/.config/systemd/user/
+#   systemctl --user enable --now govee-server
+#   sudo loginctl enable-linger "$USER"    # start at boot, with no login
+
+[Unit]
+Description=Govee Toolkit Studio server
+Documentation=https://github.com/damient/govee-toolkit/tree/main/packages/rust/crates/server
+
+[Service]
+# Studio on this machine only. Switch on sharing from the Mobile page of
+# Studio to reach it from a phone or a tablet.
+ExecStart=%h/.cargo/bin/govee-server
+# A machine with no screen, such as a Raspberry Pi: no browser on this machine
+# can switch sharing, so open the server to the network at start. The API has
+# no authentication: any device on the network can control the lights.
+#ExecStart=%h/.cargo/bin/govee-server --listen 0.0.0.0:4080
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

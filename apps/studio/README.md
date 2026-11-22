@@ -59,6 +59,8 @@ first.
 ## Engines
 
 The desktop app shows this UI in the webview of the system: WebView2
-(Chromium) on Windows, WebKit on macOS and WebKitGTK on Linux. Use only the
-CSS and JavaScript that all three support. Test in Safari as well as in a
-Chromium browser: Safari is the nearest engine to WebKitGTK.
+(Chromium) on Windows and WebKit on macOS. On Linux, and on a phone or a
+tablet, the UI runs in a browser. Use only the CSS and JavaScript that
+Chromium, WebKit and Firefox all support. Test in Safari as well as in a
+Chromium browser: WebKit is the engine of the macOS app and of every browser
+on iOS.

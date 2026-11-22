@@ -204,8 +204,9 @@ runs on `tauri://localhost`, and WKWebView refuses its requests to
 
 The server calls the crate directly, with no binding between the two. Like the
 CLI, it holds no protocol logic. The Tauri crate stays outside the workspace
-of `packages/rust`: on Linux it links to WebKitGTK, and the workspace must
-build without it.
+of `packages/rust`: the desktop app targets Windows and macOS, and the
+workspace must also build on Linux. On Linux, `govee-server` serves Studio
+to a browser.
 
 ## The catalog as an artifact
 

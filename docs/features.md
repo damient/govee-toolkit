@@ -54,7 +54,7 @@ One core, in Rust. The other packages bind to it — [`architecture.md`](archite
 | --- | ------- |
 | 🚧 | **Studio**, the web app (`govee-server`, `apps/studio`) — a local Rust server and a web UI. Serves the version, the catalog and the devices that answer a `lan` scan today |
 | 🔜 | Studio controls — device list with per-mode state badges, power / brightness / color controls, raw payload field, latency log |
-| 🚧 | **Desktop app** (`apps/desktop`, Tauri) — Studio in a window on Windows, macOS and Linux, with its server in process |
+| 🚧 | **Desktop app** (`apps/desktop`, Tauri) — Studio in a window on Windows and macOS, with its server in process. On Linux, `govee-server` serves Studio to a browser |
 | 🔜 | Desktop app: auto-discovery on launch, tray icon |
 | ✅ | **Device simulator** (`packages/rust/crates/sim`) — a fake `lan` device on UDP and a fake `ble` peripheral on GATT, both with fault injection, so tests run without hardware or an adapter |
 | ✅ | **DMX bridge** (`packages/rust/crates/dmx`) — the `govee-dmx` node receives DMX on the network and drives devices and segments over `lan`. Art-Net carries the DMX in. See [`dmx.md`](dmx.md) |
