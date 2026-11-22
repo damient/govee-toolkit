@@ -26,10 +26,12 @@ export function place(anchor: HTMLElement, tip: HTMLElement): void {
 }
 
 /**
- * Show `text` in a tooltip on hover and on focus of `target`. Esc, a click
- * and a scroll close it. The tooltip is in `document.body` only while it shows.
+ * Show `text` in a tooltip on hover of `target` with a mouse or a pen, and on
+ * focus from the keyboard. Esc, a click and a scroll close it. The tooltip is
+ * in `document.body` only while it shows. The function that it returns
+ * changes the text.
  */
-export function tooltip(target: HTMLElement, text: string): void {
+export function tooltip(target: HTMLElement, text: string): (text: string) => void {
   const tip = tipElement(text);
   target.setAttribute("aria-describedby", tip.id);
   const show = (open: boolean): void => {
@@ -47,16 +49,20 @@ export function tooltip(target: HTMLElement, text: string): void {
   const close = (): void => {
     show(false);
   };
-  target.addEventListener("mouseenter", () => {
-    show(true);
+  // A touch shows no tooltip: the finger hides it, and the tap acts at once.
+  target.addEventListener("pointerenter", (event) => {
+    if (event.pointerType !== "touch") show(true);
   });
   target.addEventListener("focus", () => {
     if (target.matches(":focus-visible")) show(true);
   });
-  target.addEventListener("mouseleave", close);
+  target.addEventListener("pointerleave", close);
   target.addEventListener("blur", close);
   target.addEventListener("pointerdown", close);
   target.addEventListener("keydown", (event) => {
     if (event.key === "Escape") close();
   });
+  return (next) => {
+    tip.textContent = next;
+  };
 }

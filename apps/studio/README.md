@@ -54,16 +54,26 @@ page: move the shared code to `components/`, `shell/` or `core/`.
 - A splash screen stays until the server answers `/api/settings`. If the
   server does not answer, the splash stays and gives the reason.
 - The shell has a rail, with the logo above the navigation, and one view per
-  space: Home, Lights, Library (presets and scenes), Live (pads), Stage
-  (rooms in 3D and the scene timeline) and Settings. Lights, Library, Live
-  and Stage show a "Coming soon" card that says what the view will do
-  (`soon.ts`).
-- Each view has a path: `/`, `/lights`, `/setup`. `router.ts` routes the
+  space: Home, Library (presets and scenes), Live (pads), Stage (rooms in
+  3D and the scene timeline) and Settings. Library, Live and Stage show a
+  "Coming soon" card that says what the view will do (`soon.ts`).
+- Each view has a path: `/`, `/settings`, `/setup`. `router.ts` routes the
   links with the history of the browser, so the back button and a reload
   keep the view. `govee-server` answers `index.html` for a path with no dot
   outside `/api`. The files of the build have absolute paths for this
   reason.
-- Home shows a welcome card, centered in the view, that opens the setup.
+- Home shows the lights of `config.yaml` (`/api/devices`), one card per
+  light (`card.ts`). Each card asks its light for its state
+  (`/api/devices/{id}/status`). A dot on the icon is green when the light
+  answers and gray when it does not. When the light answers, the card
+  shows a power button, a brightness slider on the color bar when the device file
+  gives a range (sent while the knob moves, one request in flight at most),
+  and the color. A light turned on is read again for its color. The bar
+  (`bar.ts`) holds the tabs of the rooms, a search on the name and the
+  SKU, a power button (`/api/power`), and a link to the setup. The power
+  button turns off the lights shown that are on, then turns back on these
+  lights only. Studio keeps that list until a reload. With no light, Home shows a
+  welcome card that opens the setup. Settings also opens the setup.
   `/setup` has no entry in the navigation. Its first step shows the
   lights of `config.yaml` at once (`/api/devices`), and runs a `lan` scan
   in the background (`/api/scan`). It shows one card per light

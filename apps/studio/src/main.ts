@@ -21,21 +21,12 @@ const LANGUAGE_MS = 700;
 
 const empty = (): void => {};
 
-const LIGHTS = "M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z";
 const LIBRARY = "M5 4h4v16H5zM9 4h4v16H9zM14 5l4-1 3 15-4 1z";
 const LIVE = "M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM10 8.5v7l6-3.5z";
 const STAGE = "M4 4h16v16H4zM8 4v16M16 4v16M4 8h4M4 16h4M16 8h4M16 16h4M4 12h16";
 
 const top: Page[] = [
   { id: "home", label: "nav.home", render: home, icon: "M5 12H3l9-9 9 9h-2M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7M9 21v-6h6v6" },
-  {
-    id: "lights",
-    label: "nav.lights",
-    icon: LIGHTS,
-    render: (view) => {
-      soon(view, { title: "nav.lights", body: "soon.lights", icon: LIGHTS });
-    },
-  },
   {
     id: "library",
     label: "nav.library",
