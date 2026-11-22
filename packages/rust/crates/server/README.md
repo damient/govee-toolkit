@@ -109,7 +109,7 @@ shape of the settings adds a row.
 
 | Route | Answer |
 | ----- | ------ |
-| `GET /api/hello` | `{ "name", "version", "skus" }`: the crate, its version and the number of SKUs in the embedded catalog |
+| `GET /api/hello` | `{ "name", "version", "sdk", "skus" }`: the server crate and its version, the version of the `govee-toolkit` crate, and the number of SKUs in the embedded catalog |
 | `GET /api/devices` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`. The call takes one scan window, 2 s by default. An error answers 500 and `{ "error" }` |
 | `GET /api/share` | `{ "fixed", "shared", "url", "control", "local" }`: `fixed` when `--listen` opens the network already, `url` while sharing is on, `control` when the caller can switch sharing, `local` when the caller is on this machine |
 | `POST /api/share` | `{ "shared": true \| false }` opens or closes the network, keeps the choice in `studio.json`, and answers as `GET`. A client from the network gets 403, a server started with a network `--listen` 409 |

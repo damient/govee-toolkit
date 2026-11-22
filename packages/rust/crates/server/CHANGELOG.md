@@ -11,8 +11,8 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 - `govee-server` serves Studio: the API under `/api`, and the web UI.
   The binary carries the build of `apps/studio`, and `--web <directory>`
   serves another copy. It listens on `127.0.0.1:4080` by default.
-- `GET /api/hello` answers the name and the version of `govee-toolkit`, and the
-  number of SKUs in the embedded catalog.
+- `GET /api/hello` answers the name and the version of the server, the
+  version of `govee-toolkit`, and the number of SKUs in the embedded catalog.
 - `GET /api/devices` runs a `lan` scan and answers the devices that replied.
   The SDK starts on the first call and reads the configuration file.
 - `GET` and `POST /api/share` open the server to the network and close it
