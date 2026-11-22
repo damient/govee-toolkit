@@ -196,11 +196,18 @@ Studio, the app that controls the lights, has these parts:
   the server over HTTP alone, so one build serves a browser and the desktop
   app.
 
-`apps/desktop` is a Tauri app. It runs the server in its own process, on a
-free loopback port, and opens the address of the server in the webview of the
-system. The page and the API thus share one origin. A page served by Tauri
-runs on `tauri://localhost`, and WKWebView refuses its requests to
-`http://127.0.0.1`.
+`apps/desktop` is a Tauri app. It runs the server in its own process, on the
+loopback port 4090 or a free port when 4090 is taken, and opens the address of
+the server in the webview of the system. The page and the API thus share one
+origin. A page served by Tauri runs on `tauri://localhost`, and WKWebView
+refuses its requests to `http://127.0.0.1`.
+
+The server and the desktop app keep their files in the configuration folder
+that `paths::config_dir()` gives, beside `config.yaml`. `studio.json` holds
+the settings of the server and the settings of Studio, so a browser and
+the desktop app show the same ones. The page keeps no state of its own except
+a copy of the theme for the first paint. A fixed port keeps the origin of the
+page, and with it that copy.
 
 The server calls the crate directly, with no binding between the two. Like the
 CLI, it holds no protocol logic. The Tauri crate stays outside the workspace

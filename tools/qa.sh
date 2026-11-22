@@ -176,9 +176,8 @@ else
     skip "studio lint" "npm ci --prefix apps/studio"
   fi
   check "studio file length" "$root/tools/check-file-length.sh" studio
-  # The webview links to WebKitGTK on Linux.
-  if [ "$(uname)" = Linux ] && ! pkg-config --exists webkit2gtk-4.1; then
-    skip "desktop clippy" "install libwebkit2gtk-4.1-dev"
+  if [ "$(uname)" = Linux ]; then
+    skip "desktop clippy" "the desktop app targets Windows and macOS"
   else
     check_in "$root/apps/desktop/src-tauri" "desktop clippy" cargo clippy -- -D warnings
   fi
