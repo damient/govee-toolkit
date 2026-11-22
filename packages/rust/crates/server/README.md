@@ -118,6 +118,7 @@ shape of the settings adds a row.
 | `GET /api/backup` | one JSON file to download: `{ "format": "govee-toolkit-backup", "server", "studio", "config", "credentials" }`. `server` and `studio` are the two parts of `studio.json`, each with its `version` (see [Compatibility](#compatibility)). The answer names no file: Studio names it `govee-toolkit-studio-<date>-<time>.json`. `config` is the text of `config.yaml` or `null`, `credentials` holds `GOVEE_API_KEY` or is `null`. A client from the network gets 403 |
 | `POST /api/backup` | that file. The server checks all of it, keeps a `.import.bak` copy of each file, replaces the files and starts the SDK again on the next request. A file that is not valid gets 400 and changes nothing. A client from the network gets 403 |
 | `POST /api/backup/restore` | puts back the files from the `.import.bak` copies of the last import, then deletes the copies. With no copy, 409. A client from the network gets 403 |
+| `POST /api/reset` | `{ "prefs": true, "devices": true }`, one key or both. `prefs` puts the settings of `GET /api/settings` back to the defaults. `devices` removes the `devices:` key of `config.yaml` and starts the SDK again on the next request. The other keys stay, without their comments. The API key and the sharing switch stay. With neither key, 400. A client from the network gets 403 |
 | any other path | a file of the web UI: the copy in the binary, or the directory that `--web` names |
 
 Not affiliated with Govee.
