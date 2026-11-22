@@ -1,0 +1,6 @@
+/* A fixed position, so that no box clips the tooltip. */
+.tip {
+  position: fixed; z-index: 20; max-width: min(280px, calc(100vw - 16px)); padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 30%); color: var(--text); font: 400 13px/1.5 var(--sans);
+}

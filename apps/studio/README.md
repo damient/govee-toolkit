@@ -21,13 +21,31 @@ npm run serve
 `npm run dev` is the same page with a reload on every change in `src/`:
 
 - A stylesheet change replaces the stylesheet in the page, without a reload.
-- A change in `src/locales/` loads the text again, without a reload.
+- A change in `src/assets/locales/` loads the text again, without a reload.
 - Any other change rebuilds `dist/` and reloads the page.
 
 The dev server listens on `PORT` (4080). It starts `govee-server` on
 `API_PORT` (4081) and passes every request to it.
 
 The fonts and the icon come from `site/src/assets` at build time.
+
+## Layout
+
+`src/` puts each file in a folder that gives its role:
+
+| Folder | Content |
+| ------ | ------- |
+| `core/` | The modules that draw nothing: the API, the text, the preferences, the router, the theme. |
+| `shell/` | The frame that `main.ts` mounts once: the rail, the navigation and the splash. |
+| `components/` | The parts that two views or more use. Each part has a folder. |
+| `pages/` | One folder per view. A part that only one view uses stays in the folder of that view. |
+| `styles/` | The global stylesheets: the fonts, the tokens, the base rules, the logo and the controls that have no module. |
+| `assets/` | The files that the page fetches: the text of the UI. |
+
+A stylesheet sits beside the module that uses it, and the module imports it.
+esbuild puts every imported stylesheet in `dist/app.css`, in the order of the
+imports. `main.ts` imports `styles/` first. A page does not import another
+page: move the shared code to `components/`, `shell/` or `core/`.
 
 ## UI
 
@@ -115,7 +133,7 @@ The fonts and the icon come from `site/src/assets` at build time.
   button disabled until the form holds a valid choice.
 - An error shows as a sentence: the server does not answer, the server is
   older than Studio, or the reason that the server gives.
-- The text of the UI is in `src/locales/<code>.json`. `en.json` is the
+- The text of the UI is in `src/assets/locales/<code>.json`. `en.json` is the
   reference: it gives the keys, and a key that another file does not have
   shows in English. A change of language shows the splash while the new
   file loads. English is the only language for now.

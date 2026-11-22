@@ -1,15 +1,20 @@
-import { home } from "./home.ts";
-import { watchCamera } from "./insets.ts";
-import { type Language, explain, language, load, t, translate } from "./i18n.ts";
-import { mobile } from "./mobile.ts";
-import { mount, type Page, type Route } from "./nav.ts";
-import { load as loadPrefs, save } from "./prefs.ts";
-import { rail } from "./rail.ts";
-import { settings } from "./settings.ts";
-import { rooms, setup } from "./setup.ts";
-import { soon } from "./soon.ts";
-import { splash } from "./splash.ts";
-import { applyTheme, paint } from "./theme.ts";
+import "./styles/fonts.css";
+import "./styles/tokens.css";
+import "./styles/base.css";
+import "./styles/brand.css";
+import "./styles/controls.css";
+import { home } from "./pages/home/home.ts";
+import { watchCamera } from "./core/insets.ts";
+import { type Language, explain, language, load, t, translate } from "./core/i18n.ts";
+import { mobile } from "./pages/mobile/mobile.ts";
+import { mount, type Page, type Route } from "./shell/nav.ts";
+import { load as loadPrefs, save } from "./core/prefs.ts";
+import { rail } from "./shell/rail.ts";
+import { settings } from "./pages/settings/settings.ts";
+import { rooms, setup } from "./pages/setup/setup.ts";
+import { soon } from "./pages/soon/soon.ts";
+import { splash } from "./shell/splash.ts";
+import { applyTheme, paint } from "./core/theme.ts";
 
 /** A change of language shows the splash at least this long. */
 const LANGUAGE_MS = 700;
@@ -125,7 +130,7 @@ function change(code: Language): void {
   screen.hold(task, LANGUAGE_MS).catch(fail);
 }
 
-// `npm run dev` sends this event when a file in `locales/` changes.
+// `npm run dev` sends this event when a file in `assets/locales/` changes.
 addEventListener("studio:locale", () => {
   relabel(language()).catch(fail);
 });

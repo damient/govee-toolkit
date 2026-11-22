@@ -21,8 +21,8 @@
     "lint": "npm run lint:types && npm run lint:js && npm run lint:css && npm run lint:html",
     "lint:types": "tsc -p tsconfig.json && tsc -p src/tsconfig.json",
     "lint:js": "oxlint --type-aware",
-    "lint:css": "stylelint \"src/*.css\"",
-    "lint:html": "html-validate \"src/*.html\""
+    "lint:css": "stylelint \"src/**/*.css\"",
+    "lint:html": "html-validate \"src/**/*.html\""
   },
   "devDependencies": {
     "@types/node": "26.6.6",

@@ -8,5 +8,5 @@
     "resolveJsonModule": true,
     "types": []
   },
-  "include": ["*.ts", "locales/*.json"]
+  "include": ["**/*.ts", "assets/locales/*.json"]
 }

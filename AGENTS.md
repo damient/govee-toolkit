@@ -86,7 +86,7 @@ SKU.
   - Use a list when a sentence carries more than one condition.
 - **A screen of Studio stays short.** A view shows a title, the controls and
   the result, and no paragraph that explains them. Give a hint that the user
-  needs in a help badge (`help.ts` in `apps/studio/src/`), which shows the
+  needs in a help badge (`help.ts` in `apps/studio/src/components/`), which shows the
   text in a tooltip. Keep a security warning visible on the screen. Do not
   put a card in a card. Use the shared parts before a new one: `title.ts`,
   `loading.ts`, `notice.ts`, `alert.ts`, `help.ts`, `tooltip.ts`,
@@ -97,7 +97,7 @@ SKU.
   parentheses. This applies to all text, the site and Studio included. Fix an
   old one in the lines that you change.
 - **The site and the text of Studio are an exception to ASD-STE100.** Copy
-  under `site/` and the strings of `apps/studio/src/locales/` speak to a
+  under `site/` and the strings of `apps/studio/src/assets/locales/` speak to a
   reader who wants a light to work, so a heading can carry a contrast or a
   rhythm, and a sentence can run past the word count. The other rules hold:
   plain, concise, English, no company name, no invented verification. The
@@ -130,7 +130,7 @@ SKU.
   repeating the first, no re-describing the mechanism the reader is looking at.
 - **English throughout**, including code comments. The translations of the
   site and of Studio are the one exception: `site/content/i18n/<lang>.json`,
-  `site/content/<lang>/` and `apps/studio/src/locales/<lang>.json`.
+  `site/content/<lang>/` and `apps/studio/src/assets/locales/<lang>.json`.
 - **A translation follows its English text.** The site carries `fr`, `de`,
   `es` and `it` beside English. The rules of this section apply to a
   translation as they apply to the English text. After a change to an English

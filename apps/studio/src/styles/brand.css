@@ -1,0 +1,22 @@
+/* The wordmark and the dots follow the site header (topbar.css). */
+.wordmark { font: 600 15px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.dots { display: inline-flex; align-items: center; gap: 5px; }
+.dots i {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--dot);
+  box-shadow: 0 0 8px 0 var(--dot), 0 0 16px 1px color-mix(in oklab, var(--dot) 45%, transparent);
+}
+.dots i:nth-child(1) { --dot: var(--accent-ember); }
+.dots i:nth-child(2) { --dot: var(--accent-cyan); --n: 1; }
+.dots i:nth-child(3) { --dot: var(--accent-violet); --n: 2; }
+
+/* The hop of the site header (dots.css), looped. */
+.wave i { animation: dot-hop 1.4s ease-out calc(var(--n, 0) * 110ms) infinite; }
+
+@keyframes dot-hop {
+  12% { transform: translateY(-80%); }
+  30% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave i { animation: none; }
+}

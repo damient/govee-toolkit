@@ -1,0 +1,123 @@
+/* The shell: the rail (logo and navigation) and the view. */
+.app {
+  display: grid;
+  grid-template: "rail view" minmax(0, 1fr) / calc(220px + var(--safe-left)) minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+}
+.rail {
+  grid-area: rail; display: flex; flex-direction: column; min-height: 0;
+  padding-left: var(--safe-left); border-right: 1px solid var(--line);
+}
+/* The left padding puts the dots over the icons of the navigation. */
+.rail-head { position: relative; display: flex; flex: none; align-items: center; justify-content: space-between; height: 56px; padding: 0 10px 0 22px; }
+.brand { display: flex; align-items: center; gap: 20px; color: inherit; text-decoration: none; }
+.collapse {
+  display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer;
+}
+.collapse:hover { background: var(--panel-2); color: var(--text); }
+.collapse:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
+.collapse svg { width: 20px; height: 20px; }
+.nav { display: flex; flex: 1; flex-direction: column; gap: 2px; padding: 4px 10px max(12px, env(safe-area-inset-bottom)); }
+.nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--muted); text-decoration: none; }
+.nav a:hover { background: var(--panel-2); color: var(--text); }
+.nav a[aria-current="page"] { background: rgb(255 61 0 / 12%); color: var(--text); }
+.nav a[aria-current="page"] svg { color: var(--ember); }
+.nav .spacer { flex: 1; }
+.nav svg { width: 20px; height: 20px; flex: none; }
+/* The label takes the height of the icon, so the link keeps its height when "min" hides the label. */
+.nav a span { line-height: 20px; }
+.nav .more, .nav .more-menu { display: none; }
+/* Every page keeps clear of the insets: the rail takes the left one, the view the others. */
+.view {
+  --gutter: clamp(16px, 3vw, 40px);
+  grid-area: view; overflow: auto;
+  padding: 24px calc(var(--gutter) + var(--safe-right)) max(40px, env(safe-area-inset-bottom)) var(--gutter);
+}
+
+:root { --page-narrow: 720px; }
+/* A view is full width. A narrow view centers its content at one width. */
+.view.narrow > * { width: 100%; max-width: var(--page-narrow); margin-inline: auto; }
+.view.centered { display: grid; place-items: center; }
+
+/* A view that needs a larger screen shows this note in its place. */
+.too-small { display: none; max-width: 32ch; margin: 0; color: var(--muted); text-align: center; font: 500 13px/1.6 var(--mono); }
+
+@media (max-width: 1100px) {
+  .view[data-min="desktop"] > :not(.too-small) { display: none; }
+  .view[data-min="desktop"] > .too-small { display: block; }
+}
+
+@media (max-width: 700px) {
+  .view[data-min="tablet"] > :not(.too-small) { display: none; }
+  .view[data-min="tablet"] > .too-small { display: block; }
+}
+
+.view[data-min] { display: grid; place-items: center; }
+
+/*
+ * Desktop, rail set to "min": the icons only. The button shows in place of the dots on hover.
+ * The icons and the dots keep the left offset of "full", so a toggle does not move them.
+ * 65px: 22px on each side of a 20px icon, and the 1px border.
+ */
+@media (min-width: 1101px) {
+  .app[data-rail="min"] { grid-template-columns: calc(65px + var(--safe-left)) minmax(0, 1fr); }
+  [data-rail="min"] .brand .wordmark { display: none; }
+  [data-rail="min"] .collapse { position: absolute; inset: 0; margin: auto; opacity: 0; }
+  [data-rail="min"] .rail-head:hover .collapse, [data-rail="min"] .collapse:focus-visible { opacity: 1; }
+  [data-rail="min"] .rail-head:hover .brand, [data-rail="min"] .rail-head:has(.collapse:focus-visible) .brand { opacity: 0; }
+  [data-rail="min"] .nav a span { display: none; }
+}
+
+/* Tablet: the icons only, always. */
+@media (max-width: 1100px) {
+  .app { grid-template-columns: calc(68px + var(--safe-left)) minmax(0, 1fr); }
+  .rail-head { justify-content: center; padding: 0; }
+  .brand .wordmark, .collapse { display: none; }
+  .nav a { justify-content: center; }
+  .nav a span { display: none; }
+  .nav a[data-min="desktop"] { display: none; }
+}
+
+/* Phone: no logo, and the navigation is a tab bar at the bottom. */
+@media (max-width: 700px) {
+  /*
+   * Safari 26 paints its floating toolbar, and the strip around it, with the color
+   * of a fixed element at the bottom edge. A tab bar in the flow leaves the root.
+   */
+  html { background: var(--panel); }
+  /* Studio is an app: no pull to refresh, and no bounce that moves the fixed tab bar. */
+  html, body { overscroll-behavior: none; }
+  .app { grid-template: "view" minmax(0, 1fr) / minmax(0, 1fr); }
+  .rail {
+    position: fixed; inset: auto 0 0; z-index: 5;
+    border-right: 0; border-top: 1px solid var(--line); background: var(--panel);
+  }
+  .rail-head { display: none; }
+  /* 68px: the height of the tab bar above the inset. */
+  .view {
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-bottom: calc(68px + 32px + env(safe-area-inset-bottom));
+    padding-left: calc(var(--gutter) + var(--safe-left));
+    overscroll-behavior: contain;
+  }
+  .nav { flex-direction: row; justify-content: space-around; padding: 0 var(--safe-right) env(safe-area-inset-bottom) 0; }
+  .nav .spacer { display: none; }
+  .nav a { flex: 1; flex-direction: column; gap: 6px; padding: 12px 0 14px; border-radius: 0; font: 500 11px/1 var(--mono); }
+  .nav svg { width: 24px; height: 24px; }
+  .nav a span { display: inline; }
+  .nav a:hover, .nav a[aria-current="page"] { background: none; }
+  .nav a.overflow, .nav a[data-min="tablet"] { display: none; }
+  .nav .more {
+    display: flex; flex: 1; flex-direction: column; align-items: center; gap: 6px; padding: 12px 0 14px;
+    border: 0; background: none; color: var(--muted); font: 500 11px/1 var(--mono); cursor: pointer;
+  }
+  .nav .more.current { color: var(--text); }
+  .nav .more.current svg { color: var(--ember); }
+  .nav .more-menu:not([hidden]) {
+    display: flex; flex-direction: column; position: fixed; inset: auto 8px calc(80px + env(safe-area-inset-bottom)) auto;
+    min-width: 200px; padding: 6px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
+  }
+  .nav .more-menu a { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 12px; font: 400 15px/1 var(--sans); border-radius: 10px; }
+}
