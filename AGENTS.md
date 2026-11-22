@@ -89,7 +89,8 @@ SKU.
   needs in a help badge (`help.ts` in `apps/studio/src/`), which shows the
   text in a tooltip. Keep a security warning visible on the screen. Do not
   put a card in a card. Use the shared parts before a new one: `title.ts`,
-  `loading.ts`, `notice.ts`, `help.ts`, `family.ts`.
+  `loading.ts`, `notice.ts`, `alert.ts`, `help.ts`, `tooltip.ts`,
+  `family.ts`.
 - **No typographic marks that a keyboard does not type.** Do not write an em
   dash (—), an en dash (–), an ellipsis character (…) or a curly quote. Do not
   join two sentences with a semicolon. Use a period, a comma, a colon or
