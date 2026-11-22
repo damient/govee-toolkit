@@ -1,8 +1,8 @@
 {
-  "$source": "62bbcead8ffb5f6ec01467d21c5799a9e32a1d54",
-  "meta.title": "Govee Toolkit — steuere deine Govee-Leuchten lokal",
+  "$source": "486d66fe133de91c17128fecfc7b1d8cce35146d",
+  "meta.title": "Govee Toolkit — volle Kontrolle über deine Govee-Leuchten, lokal",
   "meta.title_page": "{title} — Govee Toolkit",
-  "meta.description": "Ein inoffizielles Toolkit, das Govee-Leuchten von deinem eigenen Computer aus steuert, über WLAN, Bluetooth, DMX oder die Cloud. Von der Kommandozeile, aus Rust, Python oder Node.js.",
+  "meta.description": "Übernimm die volle Kontrolle über deine Govee-Leuchten von deinem eigenen Rechner aus: jedes Segment, in Echtzeit, sogar von einem DMX-Lichtpult. Von der Kommandozeile, aus Rust, Python oder Node.js.",
   "nav.home": "Start",
   "nav.docs": "Doku",
   "nav.devices": "Geräte",
