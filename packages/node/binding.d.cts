@@ -77,7 +77,7 @@ export declare class Config {
   /** The default configuration: `lan` alone, and no device entry. */
   constructor()
   /**
-   * Read `$XDG_CONFIG_HOME/govee-toolkit/config.yaml`.
+   * Read `config.yaml` in the configuration folder of the system.
    *
    * A missing file is the default configuration, not an error. A file that
    * does not parse throws with the code `config`.

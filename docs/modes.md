@@ -44,13 +44,38 @@ Three `ble` constraints change what an application can do with it:
    mode supported by the device can be enabled; enabling an unsupported one is a
    configuration error, reported at startup.
 
+## Where the files are
+
+Each operating system gives the toolkit two folders. The CLI, the bindings,
+`govee-server` and the desktop app use the same ones.
+
+| System  | Configuration folder | Cache folder |
+| ------- | -------------------- | ------------ |
+| macOS   | `~/Library/Application Support/govee-toolkit` | `~/Library/Caches/govee-toolkit` |
+| Linux   | `$XDG_CONFIG_HOME/govee-toolkit`, else `~/.config/govee-toolkit` | `$XDG_CACHE_HOME/govee-toolkit`, else `~/.cache/govee-toolkit` |
+| Windows | `%APPDATA%\govee-toolkit` | `%LOCALAPPDATA%\govee-toolkit` |
+
+macOS reads no `XDG_*` variable. The configuration folder holds:
+
+- `config.yaml`: the modes, the names and the groups of the devices.
+- `credentials.env`: `GOVEE_*` variables, such as the API key, in the `.env`
+  format. The SDK reads it after every other source. `govee-server` writes
+  it with the permissions `0600` when it imports a backup.
+- `.env`: read when the search for a `.env` finds nothing else.
+- `studio.json`: the settings of the server and the settings of Studio.
+- `devices/`: the device files of the user, when `catalog.local_devices` is on.
+
+The cache folder holds `devices.json`, the result of the last discovery. It
+can be deleted at any time.
+
 ## Selecting modes per device
 
 The user picks **one or several** modes per device, as an ordered list. Order is
 preference order: the first entry is the preferred mode.
 
-YAML, at `~/.config/govee-toolkit/config.yaml` — `$XDG_CONFIG_HOME` and
-`GOVEE_CONFIG` both override it, and `GOVEE_CONFIG` can live in `.env`.
+YAML, at `config.yaml` in the configuration folder (see [Where the files
+are](#where-the-files-are)). `GOVEE_CONFIG` names another file, and it can
+live in `.env`.
 Devices are keyed by the MAC they report in a discovery reply, not by address:
 a DHCP lease renews and the device is at a different one, still the same
 device.
@@ -90,7 +115,7 @@ cloud:
 ```
 
 `catalog:` decides whether
-`~/.config/govee-toolkit/devices/*.yaml` may replace the device files the build
+`devices/*.yaml` in the configuration folder may replace the device files the build
 shipped:
 
 ```yaml

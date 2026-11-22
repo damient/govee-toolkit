@@ -33,7 +33,7 @@ pub use self::resolve::{Fixture, Rig};
 pub use self::write::update;
 
 /// The file `govee-dmx` reads where the command line names none:
-/// `$XDG_CONFIG_HOME/govee-toolkit/patch.yaml`, beside `config.yaml`.
+/// `patch.yaml` in [`govee_toolkit::paths::config_dir`], beside `config.yaml`.
 #[must_use]
 pub fn default_path() -> PathBuf {
     govee_toolkit::paths::config_dir().join("patch.yaml")

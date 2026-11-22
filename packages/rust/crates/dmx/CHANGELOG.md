@@ -11,6 +11,15 @@ is [`../../../../docs/dmx.md`](../../../../docs/dmx.md).
 - `govee-dmx profile --json` gives each band of a channel a `kind`, such as
   `idle`, `off` or `color`, beside its English `label`.
 
+### Changed
+
+- **Breaking:** the configuration folder and the cache folder follow the
+  convention of each operating system: `~/Library/Application Support` and
+  `~/Library/Caches` on macOS, `%APPDATA%` and `%LOCALAPPDATA%` on Windows,
+  XDG on Linux as before. The binary reads `patch.yaml` and `config.yaml` there, and
+  `credentials.env` in the configuration folder. On macOS and Windows, move
+  the old folder: the [`govee-toolkit` changelog](../../CHANGELOG.md) gives the command.
+
 ### Fixed
 
 - `input::socket::Listener::bind` shares a fixed port only. On Linux, two

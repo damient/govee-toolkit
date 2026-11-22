@@ -15,9 +15,15 @@ on your Wi-Fi network, or when you enable `cloud`.
 
 ## The `config.yaml` file
 
-Until you write this file, every device uses `lan`. Write it yourself at
-`~/.config/govee-toolkit/config.yaml`, or point `GOVEE_CONFIG` or `--config` at
+Until you write this file, every device uses `lan`. Write it yourself in the
+configuration folder of your system, or point `GOVEE_CONFIG` or `--config` at
 another path.
+
+| System | Configuration folder |
+| --- | --- |
+| macOS | `~/Library/Application Support/govee-toolkit` |
+| Linux | `$XDG_CONFIG_HOME/govee-toolkit`, else `~/.config/govee-toolkit` |
+| Windows | `%APPDATA%\govee-toolkit` |
 
 Each device is keyed by the MAC address it reports. `govee scan` lists them:
 
@@ -56,7 +62,11 @@ one. The toolkit reads the first file it finds, in this order:
 2. `.env` in the directory you work in, then in each directory above it. The
    search stops after the directory that holds `.git`, after your home
    directory, or at the root of the file system.
-3. `~/.config/govee-toolkit/.env`.
+3. `.env` in the configuration folder.
+
+`credentials.env` in the configuration folder comes after them and fills the
+names that no other file sets. Studio writes the API key there when you import
+a backup.
 
 The toolkit reads only the `GOVEE_*` names of a `.env`, so one file can serve
 several projects. A variable already in your environment wins over the file,
@@ -66,7 +76,7 @@ and `govee --no-env` skips the file.
 
 <div class="terminal">
 <pre><code><span class="prompt">$</span> govee doctor
-variables from `/home/you/.config/govee-toolkit/.env`
+variables from `/home/you/lights/.env`
 no problem found</code></pre>
 <button class="copy" type="button" data-copy="govee doctor">Copy</button>
 </div>

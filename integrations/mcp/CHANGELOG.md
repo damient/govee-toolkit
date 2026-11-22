@@ -4,6 +4,15 @@ Changes to `govee-toolkit-mcp`, the MCP server in `integrations/mcp`. It
 versions apart from the binding it wraps and releases under `mcp-vX.Y.Z`. The
 policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Changed
+
+- **Breaking:** the configuration folder and the cache folder follow the
+  convention of each operating system: `~/Library/Application Support` and
+  `~/Library/Caches` on macOS, `%APPDATA%` and `%LOCALAPPDATA%` on Windows,
+  XDG on Linux as before. The server reads `config.yaml`, `.env` and the device cache there, and
+  `credentials.env` in the configuration folder. On macOS and Windows, move
+  the old folder: the [`govee-toolkit` changelog](../../packages/rust/CHANGELOG.md) gives the command.
+
 ## [0.3.0] — 2026-11-21
 
 ### Added

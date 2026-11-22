@@ -24,7 +24,7 @@ impl Config {
         }
     }
 
-    /// Read `$XDG_CONFIG_HOME/govee-toolkit/config.yaml`.
+    /// Read `config.yaml` in the configuration folder of the system.
     ///
     /// A missing file is the default configuration, not an error. A file that
     /// does not parse raises `ConfigError`.
