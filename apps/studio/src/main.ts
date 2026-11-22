@@ -2,6 +2,7 @@ import { hello } from "./api.ts";
 import { type Language, language, load, t, translate } from "./i18n.ts";
 import { mount, type Page } from "./nav.ts";
 import { write } from "./prefs.ts";
+import { rail } from "./rail.ts";
 import { settings } from "./settings.ts";
 import { splash } from "./splash.ts";
 
@@ -52,10 +53,12 @@ function byId(id: string): HTMLElement {
 
 const screen = splash(byId("splash"), byId("splash-note"));
 let refresh = empty;
+let relabelRail = empty;
 
 async function relabel(code: Language): Promise<void> {
   await load(code);
   translate();
+  relabelRail();
   refresh();
 }
 
@@ -64,6 +67,9 @@ async function boot(): Promise<void> {
   screen.note(`v${answer.version}`);
   await load(language());
   translate();
+  const app = document.querySelector<HTMLElement>(".app");
+  const button = document.querySelector<HTMLButtonElement>("#collapse");
+  if (app && button) relabelRail = rail(app, button);
   refresh = mount(byId("nav"), byId("view"), top, bottom);
 }
 
