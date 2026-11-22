@@ -28,8 +28,8 @@ export function place(anchor: HTMLElement, tip: HTMLElement): void {
 /**
  * Show `text` in a tooltip on hover of `target` with a mouse or a pen, and on
  * focus from the keyboard. Esc, a click and a scroll close it. The tooltip is
- * in `document.body` only while it shows. The function that it returns
- * changes the text.
+ * in `document.body`, or in the dialog of `target`, only while it shows. The
+ * function that it returns changes the text.
  */
 export function tooltip(target: HTMLElement, text: string): (text: string) => void {
   const tip = tipElement(text);
@@ -41,7 +41,8 @@ export function tooltip(target: HTMLElement, text: string): (text: string) => vo
       document.removeEventListener("scroll", close, true);
       return;
     }
-    document.body.append(tip);
+    // An open dialog is in the top layer: a tooltip outside it shows under it.
+    (target.closest("dialog") ?? document.body).append(tip);
     place(target, tip);
     // The tooltip has a fixed position: a scroll would leave it behind.
     document.addEventListener("scroll", close, true);

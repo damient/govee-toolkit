@@ -1,7 +1,9 @@
 import "./home.css";
 import { ALL, bar } from "./bar.ts";
 import { ARROW, icon } from "../../shell/nav.ts";
-import { type Found, type Room, devices, power, rooms } from "../../core/api.ts";
+import { type Found, type Room, devices, rooms } from "../../core/api.ts";
+import { apply } from "../../core/control.ts";
+import { openPanel } from "./panel/panel.ts";
 import { HomeCard } from "./card.ts";
 import { explain, t } from "../../core/i18n.ts";
 import { readLocal, writeLocal } from "../../core/prefs.ts";
@@ -30,18 +32,19 @@ const matches = (found: Found, query: string): boolean =>
 
 /**
  * The IDs of the lights that the power button of the bar turned off, which
- * it turns back on. They stay while Studio is open, and a reload drops them.
+ * it turns back on. They stay while Studio is open. A reload drops them, and
+ * so does a light that the user turns on from its card or its panel.
  */
 let turnedOff: string[] = [];
 
 /** Turn `cards` on or off, and answer the IDs that took the change. A failure of the request shows in `box`. */
 async function switchAll(cards: HomeCard[], on: boolean, box: HTMLElement): Promise<string[]> {
   try {
-    const answers = await power(
+    const answers = await apply(
       cards.map((card) => card.found.id),
-      on,
+      { power: on },
     );
-    for (const answer of answers) cards.find((card) => card.found.id === answer.id)?.apply(answer, on);
+    for (const answer of answers) cards.find((card) => card.found.id === answer.id)?.powered(answer, on, true);
     return answers.filter((answer) => answer.ok).map((answer) => answer.id);
   } catch (failure) {
     box.append(alert({ tone: "error", title: explain(failure) }));
@@ -98,7 +101,12 @@ function board(box: HTMLElement, lights: Found[], list: Room[]): void {
     },
   });
 
-  for (const found of lights) cards.push(new HomeCard(found, refresh));
+  // A light turned on by hand ends the "turn back on" of the bar: its next press turns off again.
+  const turnedOn = (): void => {
+    turnedOff = [];
+    refresh();
+  };
+  for (const found of lights) cards.push(new HomeCard(found, { changed: refresh, open: openPanel, turnedOn }));
   grid.append(...cards.map((card) => card.node));
   box.append(top.node, grid, none);
   filter(room, "");

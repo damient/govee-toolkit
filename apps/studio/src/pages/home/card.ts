@@ -1,12 +1,16 @@
 import "../../components/light/light.css";
-import { type Found, type Powered, type Status, power, setBrightness, status } from "../../core/api.ts";
+import { type Outcome, type Status, apply, applyOne, status } from "../../core/control.ts";
+import type { Found } from "../../core/api.ts";
 import { explain, t } from "../../core/i18n.ts";
 import { familyIcon } from "../../components/family/family.ts";
 import { icon } from "../../shell/nav.ts";
+import { latest } from "../../core/latest.ts";
 import { loading } from "../../components/loading/loading.ts";
 import { tooltip } from "../../components/tooltip/tooltip.ts";
 
 export const POWER = "M7 6a7.75 7.75 0 1 0 10 0M12 4v8";
+/** What a click on a card leaves to the element itself. */
+const CONTROLS = "button, input, [tabindex]";
 /** The light needs a moment after power on before its state gives the color. */
 const SETTLE_MS = 300;
 
@@ -43,10 +47,17 @@ function mark(text: string, content: Node): HTMLElement {
   return node;
 }
 
-/**
- * One configured light of the home view. The card asks the light for its
- * state when it is made. `changed` runs after each change of state.
- */
+/** What a card tells the home view. */
+export interface CardEvents {
+  /** After each change of state. */
+  changed(): void;
+  /** A click on a light that answered. */
+  open(card: HomeCard): void;
+  /** The user turned the light on, from the card or from its panel. */
+  turnedOn(): void;
+}
+
+/** One configured light of the home view. The card asks the light for its state when it is made. */
 export class HomeCard {
   readonly found: Found;
   readonly node = element("article", "light-card home-card");
@@ -57,18 +68,46 @@ export class HomeCard {
   private readonly level = element("input", "home-level");
   private readonly swatch = element("span", "home-swatch");
   private readonly error = element("p", "light-error");
-  private readonly name: string;
-  private readonly changed: () => void;
+  readonly name: string;
+  private readonly title = element("button", "light-title home-open");
+  private readonly events: CardEvents;
   /** `null` until the light answers, and while it does not answer. */
   private state: Status | null = null;
-  private sending = false;
-  /** The level that waits for the request in flight. */
-  private next: number | null = null;
+  /** Sends the level while the knob moves. */
+  private readonly send = latest(
+    async (level: number) => {
+      await applyOne(this.found.id, { brightness: level });
+      this.error.hidden = true;
+      if (this.state) this.state = { ...this.state, brightness: level };
+    },
+    (failure) => {
+      this.fail(explain(failure));
+    },
+  );
 
-  constructor(found: Found, changed: () => void) {
+  constructor(found: Found, events: CardEvents) {
     this.found = found;
-    this.changed = changed;
+    this.events = events;
     this.name = found.name ?? found.sku ?? found.id;
+    this.title.type = "button";
+    this.title.textContent = this.name;
+    this.title.disabled = true;
+    this.title.setAttribute("aria-label", t("home.light.open", { name: this.name }));
+    this.title.addEventListener("click", () => {
+      this.events.open(this);
+    });
+    // The title button serves the keyboard. A click elsewhere on the card does the same, outside its
+    // controls. The gesture decides where it starts: a slider drag ends its click on the card, and the
+    // power button replaces its icon before the click reaches the card.
+    let fromControl = false;
+    this.node.addEventListener("pointerdown", (event) => {
+      fromControl = event.composedPath().some((item) => item instanceof Element && item.matches(CONTROLS));
+    });
+    this.node.addEventListener("click", (event) => {
+      const control = fromControl || event.composedPath().some((item) => item instanceof Element && item.matches(CONTROLS));
+      fromControl = false;
+      if (!control && this.state !== null) this.events.open(this);
+    });
     const top = element("div", "light-top home-top");
     const shape = element("span", "light-icon");
     this.dot.tabIndex = 0;
@@ -77,7 +116,7 @@ export class HomeCard {
     this.tip = tooltip(this.dot, t("light.checking"));
     shape.append(familyIcon(found.family), this.dot);
     const text = element("div", "home-text");
-    text.append(element("span", "light-title", this.name), element("span", "home-sku", found.sku ?? ""));
+    text.append(this.title, element("span", "home-sku", found.sku ?? ""));
     top.append(shape, text, this.slot);
     this.error.hidden = true;
     this.level.type = "range";
@@ -110,13 +149,36 @@ export class HomeCard {
     return this.state?.on ?? null;
   }
 
+  /** The state, or `null` while the light does not answer. */
+  snapshot(): Status | null {
+    return this.state;
+  }
+
+  /** Show a change that the panel sent and the light took. */
+  update(change: Partial<Status>): void {
+    if (this.state === null) return;
+    this.state = { ...this.state, ...change };
+    this.draw();
+    this.events.changed();
+  }
+
   /**
-   * Show what `power` answered for this light. `wanted` is the state that it
-   * asked for. A light turned on is read again, for its color.
+   * Show what `apply` answered to a power change of this light. `wanted` is the state that it
+   * asked for. A light turned on is read again, for its color. `bar` is `true` for a change
+   * from the power button of the bar: any other power on runs `events.turnedOn`.
    */
-  apply(answer: Powered, wanted: boolean): void {
+  powered(answer: Outcome, wanted: boolean, bar = false): void {
+    if (answer.ok && wanted && !bar) this.events.turnedOn();
     if (answer.ok) {
-      this.state = { brightness: null, color: null, kelvin: null, range: null, ...this.state, on: wanted };
+      this.state = {
+        brightness: null,
+        color: null,
+        kelvin: null,
+        range: null,
+        features: { color: false, colorTemp: null, segments: null, gradient: false },
+        ...this.state,
+        on: wanted,
+      };
       this.draw();
       if (wanted) {
         setTimeout(() => {
@@ -126,42 +188,13 @@ export class HomeCard {
     } else {
       this.fail(answer.error ?? "");
     }
-    this.changed();
-  }
-
-  /**
-   * Send `level` while the knob moves. One request is in flight at most: the
-   * last level waits for the answer, and the levels between are dropped.
-   */
-  private send(level: number): void {
-    if (this.sending) {
-      this.next = level;
-      return;
-    }
-    this.sending = true;
-    void setBrightness(this.found.id, level)
-      .then(
-        () => {
-          this.error.hidden = true;
-          if (this.state) this.state = { ...this.state, brightness: level };
-        },
-        (failure: unknown) => {
-          this.next = null;
-          this.fail(explain(failure));
-        },
-      )
-      .finally(() => {
-        this.sending = false;
-        const next = this.next;
-        this.next = null;
-        if (next !== null && next !== level) this.send(next);
-      });
+    this.events.changed();
   }
 
   private settle(state: Status | null): void {
     this.state = state;
     this.draw();
-    this.changed();
+    this.events.changed();
   }
 
   private fail(message: string): void {
@@ -179,6 +212,7 @@ export class HomeCard {
     this.level.hidden = (state?.range ?? null) === null;
     const reach = t(state === null ? "light.offline" : "home.light.online");
     this.dot.classList.toggle("online", state !== null);
+    this.title.disabled = state === null;
     this.dot.setAttribute("aria-label", reach);
     this.tip(reach);
     if (state === null) {
@@ -206,9 +240,9 @@ export class HomeCard {
     button.addEventListener("click", () => {
       button.disabled = true;
       button.replaceChildren(loading({ size: "s" }));
-      power([this.found.id], !on).then(
+      apply([this.found.id], { power: !on }).then(
         ([answer]) => {
-          if (answer) this.apply(answer, !on);
+          if (answer) this.powered(answer, !on);
         },
         (failure: unknown) => {
           this.fail(explain(failure));

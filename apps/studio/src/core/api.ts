@@ -103,7 +103,7 @@ function isScanned(value: unknown): value is Record & { configured: boolean } {
   return isRecord(value) && "configured" in value && typeof value.configured === "boolean";
 }
 
-function listOf(body: unknown): unknown[] {
+export function listOf(body: unknown): unknown[] {
   if (typeof body !== "object" || body === null || !("devices" in body) || !Array.isArray(body.devices)) {
     throw new Failure("unreadable");
   }
@@ -148,7 +148,7 @@ export async function saveDevices(keep: Keep[], remove: string[]): Promise<void>
   await send("/api/devices", "PUT", JSON.stringify({ keep, remove }));
 }
 
-function devicePath(id: string, action: string): string {
+export function devicePath(id: string, action: string): string {
   return `/api/devices/${encodeURIComponent(id)}/${action}`;
 }
 
@@ -195,69 +195,4 @@ export async function rooms(): Promise<Room[]> {
 /** `PUT /api/rooms`: replace every room. The answer gives each new room its `id`. */
 export async function saveRooms(list: Room[]): Promise<Room[]> {
   return asRooms(await send("/api/rooms", "PUT", JSON.stringify({ rooms: list })));
-}
-
-/** What a device answered on `GET /api/devices/{id}/status`. A field is `null` when the device does not report it. */
-export interface Status {
-  on: boolean | null;
-  /** A percentage on every unit seen so far. */
-  brightness: number | null;
-  /** `#RRGGBB`. Black while the device is in white mode. */
-  color: string | null;
-  /** `0` while the device is in color mode. */
-  kelvin: number | null;
-  /** The bounds that `setBrightness` takes, or `null` when the device has no brightness. */
-  range: [number, number] | null;
-}
-
-const isPair = (value: unknown): value is [number, number] =>
-  Array.isArray(value) && value.length === 2 && value.every((item) => typeof item === "number");
-
-const field = <T>(body: object, key: string, check: (value: unknown) => value is T): T | null => {
-  const value: unknown = Reflect.get(body, key);
-  return check(value) ? value : null;
-};
-const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
-const isNumber = (value: unknown): value is number => typeof value === "number";
-const isString = (value: unknown): value is string => typeof value === "string";
-
-/** `GET /api/devices/{id}/status`. The first call for a device can take the scan window. A device that does not answer throws `refused`. */
-export async function status(id: string): Promise<Status> {
-  const body = await request(devicePath(id, "status"));
-  if (typeof body !== "object" || body === null) throw new Failure("unreadable");
-  return {
-    on: field(body, "on", isBoolean),
-    brightness: field(body, "brightness", isNumber),
-    color: field(body, "color", isString),
-    kelvin: field(body, "color_temp_kelvin", isNumber),
-    range: field(body, "brightness_range", isPair),
-  };
-}
-
-/** `POST /api/devices/{id}/brightness`. A `level` out of `Status.range` is refused. */
-export async function setBrightness(id: string, level: number): Promise<void> {
-  await send(devicePath(id, "brightness"), "POST", JSON.stringify({ level }));
-}
-
-/** What one device answered to `power`. */
-export interface Powered {
-  id: string;
-  ok: boolean;
-  /** The message of the failure, when `ok` is `false`. */
-  error: string | null;
-}
-
-function asPowered(value: unknown): Powered {
-  if (typeof value !== "object" || value === null || !("id" in value) || typeof value.id !== "string") {
-    throw new Failure("unreadable");
-  }
-  const ok = "ok" in value && value.ok === true;
-  const failure = "error" in value && typeof value.error === "object" && value.error !== null ? value.error : null;
-  const message = failure !== null && "message" in failure && typeof failure.message === "string" ? failure.message : null;
-  return { id: value.id, ok, error: ok ? null : (message ?? "?") };
-}
-
-/** `POST /api/power`: turn the devices of `ids` on or off at once. A device that fails does not stop the others. */
-export async function power(ids: string[], on: boolean): Promise<Powered[]> {
-  return listOf(await send("/api/power", "POST", JSON.stringify({ ids, on }))).map((item) => asPowered(item));
 }
