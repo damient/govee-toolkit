@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
-  <!-- Before the first paint, so that a light theme does not show dark first. theme.ts writes the key. -->
+  <!-- Before the first paint, so that a light theme does not show dark first. prefs.ts keeps this copy of the theme that the server stores. -->
   <script>
     try { document.documentElement.dataset.theme = localStorage.getItem("studio.theme") ?? "dark"; } catch {}
   </script>
@@ -18,6 +18,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="modal.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>

@@ -26,9 +26,9 @@ events.addEventListener("error", () => { lost = true; });
 events.addEventListener("open", () => { if (lost) location.reload(); });
 events.addEventListener("message", ({ data }) => {
   if (data === "locale") { dispatchEvent(new Event("studio:locale")); return; }
-  const link = document.querySelector('link[rel="stylesheet"]');
-  if (data !== "css" || !link) { location.reload(); return; }
-  link.href = "style.css?" + Date.now();
+  const links = document.querySelectorAll('link[rel="stylesheet"]');
+  if (data !== "css" || links.length === 0) { location.reload(); return; }
+  for (const link of links) link.href = link.getAttribute("href").split("?")[0] + "?" + Date.now();
 });
 </script>`;
 

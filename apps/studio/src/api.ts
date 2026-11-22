@@ -1,3 +1,5 @@
+import { Failure, request, send } from "./http.ts";
+
 export interface Hello {
   name: string;
   version: string;
@@ -10,10 +12,8 @@ function isHello(value: unknown): value is Hello {
 
 /** `GET /api/hello`. Throws when the server does not answer or answers something else. */
 export async function hello(): Promise<Hello> {
-  const response = await fetch("/api/hello");
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const body: unknown = await response.json();
-  if (!isHello(body)) throw new Error("unexpected answer");
+  const body = await request("/api/hello");
+  if (!isHello(body)) throw new Failure("unreadable");
   return body;
 }
 
@@ -25,6 +25,8 @@ export interface Share {
   url: string | null;
   /** This client can switch sharing: it runs on the computer of the server. */
   control: boolean;
+  /** This client runs on the computer of the server: it can export and import. */
+  local: boolean;
 }
 
 function isShare(value: unknown): value is Share {
@@ -37,28 +39,33 @@ function isShare(value: unknown): value is Share {
     "url" in value &&
     (value.url === null || typeof value.url === "string") &&
     "control" in value &&
-    typeof value.control === "boolean"
+    typeof value.control === "boolean" &&
+    "local" in value &&
+    typeof value.local === "boolean"
   );
 }
 
-// An error answer carries `{ "error" }`.
-async function read(response: Response): Promise<Share> {
-  const body: unknown = await response.json();
-  if (!response.ok) {
-    const error = typeof body === "object" && body !== null && "error" in body ? String(body.error) : "";
-    throw new Error(error || `HTTP ${response.status}`);
-  }
-  if (!isShare(body)) throw new Error("unexpected answer");
+function asShare(body: unknown): Share {
+  if (!isShare(body)) throw new Failure("unreadable");
   return body;
 }
 
 /** `GET /api/share`. */
 export async function share(): Promise<Share> {
-  return read(await fetch("/api/share"));
+  return asShare(await request("/api/share"));
 }
 
 /** `POST /api/share`: open the server to the network, or close it. */
 export async function setShare(shared: boolean): Promise<Share> {
-  const body = JSON.stringify({ shared });
-  return read(await fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body }));
+  return asShare(await send("/api/share", "POST", JSON.stringify({ shared })));
+}
+
+/** `POST /api/backup`: replace every file of the server with the backup `text`. */
+export async function restore(text: string): Promise<void> {
+  await send("/api/backup", "POST", text);
+}
+
+/** `POST /api/backup/restore`: put back the files from before the last import. */
+export async function undoImport(): Promise<void> {
+  await send("/api/backup/restore", "POST", "");
 }

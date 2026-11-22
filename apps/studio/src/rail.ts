@@ -1,6 +1,6 @@
 import { t } from "./i18n.ts";
 import { icon } from "./nav.ts";
-import { read, write } from "./prefs.ts";
+import { readLocal, writeLocal } from "./prefs.ts";
 
 const STATES = ["full", "min"] as const;
 type State = (typeof STATES)[number];
@@ -15,7 +15,7 @@ const EXPAND = `${FRAME}M14 10l2 2-2 2`;
  * Call the function that it returns after a change of language.
  */
 export function rail(app: HTMLElement, button: HTMLButtonElement): () => void {
-  let state: State = read("rail", STATES, "full");
+  let state: State = readLocal("rail", STATES, "full");
   const draw = (): void => {
     const full = state === "full";
     app.dataset["rail"] = state;
@@ -26,7 +26,7 @@ export function rail(app: HTMLElement, button: HTMLButtonElement): () => void {
   };
   button.addEventListener("click", () => {
     state = state === "full" ? "min" : "full";
-    write("rail", state);
+    writeLocal("rail", state);
     draw();
   });
   draw();

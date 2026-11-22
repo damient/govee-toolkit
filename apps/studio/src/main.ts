@@ -1,13 +1,13 @@
 import { hello } from "./api.ts";
 import { watchCamera } from "./insets.ts";
-import { type Language, language, load, t, translate } from "./i18n.ts";
+import { type Language, explain, language, load, t, translate } from "./i18n.ts";
 import { mobile } from "./mobile.ts";
 import { mount, type Page } from "./nav.ts";
-import { write } from "./prefs.ts";
+import { load as loadPrefs, save } from "./prefs.ts";
 import { rail } from "./rail.ts";
 import { settings } from "./settings.ts";
 import { splash } from "./splash.ts";
-import { paint } from "./theme.ts";
+import { applyTheme, paint } from "./theme.ts";
 
 /** A change of language shows the splash at least this long. */
 const LANGUAGE_MS = 700;
@@ -77,6 +77,8 @@ async function relabel(code: Language): Promise<void> {
 async function boot(): Promise<void> {
   const answer = await hello();
   screen.note(`v${answer.version}`);
+  await loadPrefs();
+  applyTheme();
   await load(language());
   translate();
   const app = document.querySelector<HTMLElement>(".app");
@@ -86,12 +88,15 @@ async function boot(): Promise<void> {
 }
 
 function fail(error: unknown): void {
-  screen.fail(t("splash.error", { reason: error instanceof Error ? error.message : "unreachable" }));
+  screen.fail(t("splash.error", { reason: explain(error) }));
 }
 
 function change(code: Language): void {
-  write("language", code);
-  screen.hold(() => relabel(code), LANGUAGE_MS).catch(fail);
+  const task = async (): Promise<void> => {
+    await save({ language: code });
+    await relabel(code);
+  };
+  screen.hold(task, LANGUAGE_MS).catch(fail);
 }
 
 // `npm run dev` sends this event when a file in `locales/` changes.

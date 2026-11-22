@@ -1,23 +1,79 @@
-// The choices of this browser. Each origin keeps its own: the desktop app and
-// a browser tab do not share them.
+// The Studio settings. The server keeps them (`/api/settings`), so that
+// the desktop app and each browser show the same choices. `localStorage`
+// keeps a copy of the theme for the script in index.html, which paints the
+// page before the server answers, and the layout choices of this screen.
+
+import { Failure, request, send } from "./http.ts";
 
 const PREFIX = "studio.";
 
-/** The stored value of `name`, or `fallback` when it is missing, unknown or unreadable. */
-export function read<T extends string>(name: string, allowed: readonly T[], fallback: T): T {
+export interface Prefs {
+  theme: string;
+  /** `null` until the user picks a language. */
+  language: string | null;
+  advanced: boolean;
+}
+
+function local(name: string): string | null {
   try {
-    const value = localStorage.getItem(PREFIX + name);
-    return allowed.find((option) => option === value) ?? fallback;
+    return localStorage.getItem(PREFIX + name);
   } catch {
-    return fallback;
+    return null;
   }
 }
 
-/** Store `value`. A browser that refuses storage keeps the choice until the next reload. */
-export function write(name: string, value: string): void {
+function keep(name: string, value: string): void {
   try {
     localStorage.setItem(PREFIX + name, value);
   } catch {
-    // Private mode or blocked storage.
+    // Private mode or blocked storage: the next first paint uses the default.
   }
+}
+
+let current: Prefs = { theme: local("theme") ?? "dark", language: null, advanced: false };
+
+function isPrefs(value: unknown): value is Prefs {
+  if (typeof value !== "object" || value === null) return false;
+  return (
+    "theme" in value &&
+    typeof value.theme === "string" &&
+    "language" in value &&
+    (value.language === null || typeof value.language === "string") &&
+    "advanced" in value &&
+    typeof value.advanced === "boolean"
+  );
+}
+
+function answer(body: unknown): void {
+  if (!isPrefs(body)) throw new Failure("unreadable");
+  current = body;
+  keep("theme", current.theme);
+}
+
+/** The preferences as the server last gave them, or the cached theme before `load`. */
+export function prefs(): Readonly<Prefs> {
+  return current;
+}
+
+/** `GET /api/settings`. */
+export async function load(): Promise<void> {
+  answer(await request("/api/settings"));
+}
+
+/** `PUT /api/settings` with the keys to change. `prefs()` gives the change at once. */
+export async function save(change: Partial<Prefs>): Promise<void> {
+  current = { ...current, ...change };
+  keep("theme", current.theme);
+  answer(await send("/api/settings", "PUT", JSON.stringify(change)));
+}
+
+/** A layout choice of this screen, which stays in this browser: `fallback` when it is missing or unknown. */
+export function readLocal<T extends string>(name: string, allowed: readonly T[], fallback: T): T {
+  const value = local(name);
+  return allowed.find((option) => option === value) ?? fallback;
+}
+
+/** Keep a layout choice of this screen in this browser. */
+export function writeLocal(name: string, value: string): void {
+  keep(name, value);
 }

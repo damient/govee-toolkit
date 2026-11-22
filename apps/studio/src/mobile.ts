@@ -1,5 +1,5 @@
 import { type Share, setShare, share } from "./api.ts";
-import { t } from "./i18n.ts";
+import { explain, t } from "./i18n.ts";
 import { icon } from "./nav.ts";
 import { qr } from "./qr.ts";
 
@@ -84,7 +84,7 @@ function draw(view: HTMLElement, state: Share, error = ""): void {
           draw(view, next);
         },
         (failure: unknown) => {
-          draw(view, state, failure instanceof Error ? failure.message : String(failure));
+          draw(view, state, explain(failure));
         },
       );
     });
@@ -108,7 +108,7 @@ export function mobile(view: HTMLElement): void {
       draw(view, state);
     },
     (failure: unknown) => {
-      view.replaceChildren(element("p", "share-note error", failure instanceof Error ? failure.message : String(failure)));
+      view.replaceChildren(element("p", "share-note error", explain(failure)));
     },
   );
 }
