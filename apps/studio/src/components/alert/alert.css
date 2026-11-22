@@ -1,0 +1,14 @@
+.alert {
+  display: flex; gap: 12px; align-items: center; padding: 12px 14px;
+  border: 1px solid color-mix(in oklab, var(--tone) 40%, transparent); border-radius: 12px;
+  background: color-mix(in oklab, var(--tone) 8%, var(--panel));
+}
+.alert.success { --tone: var(--accent-cyan); }
+.alert.info { --tone: var(--accent-violet); }
+.alert.warning { --tone: light-dark(#b26b00, #f5a524); }
+.alert.error { --tone: var(--ember); }
+.alert-icon { flex: none; color: var(--tone); }
+.alert-icon svg { display: block; width: 20px; height: 20px; }
+.alert-text { display: flex; flex-direction: column; gap: 2px; }
+.alert-title { margin: 0; font-weight: 600; }
+.alert-body { margin: 0; color: var(--muted); font-size: 14px; }

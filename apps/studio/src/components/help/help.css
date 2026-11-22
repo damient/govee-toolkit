@@ -1,0 +1,8 @@
+.help { display: inline-flex; }
+.help-badge {
+  display: grid; place-items: center; width: 18px; height: 18px; padding: 0;
+  border: 1px solid var(--line); border-radius: 50%; background: var(--panel-2);
+  color: var(--muted); font: 600 11px/1 var(--mono); cursor: help;
+}
+.help-badge:hover, .help-badge[aria-expanded="true"] { border-color: var(--muted); color: var(--text); }
+.help-badge:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }

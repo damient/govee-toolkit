@@ -103,7 +103,7 @@ await copyStatic();
 
 function kind(files: string[]): Change {
   if (files.every((f) => f.endsWith(".css"))) return "css";
-  if (files.every((f) => f.startsWith("locales"))) return "locale";
+  if (files.every((f) => f.startsWith("assets/locales"))) return "locale";
   return "page";
 }
 
@@ -117,7 +117,7 @@ watch(src, { recursive: true }, (_event, file) => {
     const files = [...pending];
     pending = new Set();
     void (async () => {
-      if (files.some((f) => f.endsWith(".ts"))) await context.rebuild().catch(() => null);
+      if (files.some((f) => f.endsWith(".ts") || f.endsWith(".css"))) await context.rebuild().catch(() => null);
       await copyStatic();
       notify(kind(files));
     })();

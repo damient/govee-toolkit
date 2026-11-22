@@ -1,0 +1,17 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font: 400 15px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  /* The tap flash of mobile engines. A control shows its own pressed and focus states. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* A rule that sets `display` wins over the `hidden` attribute: put it back on top. */
+[hidden] { display: none !important; }
+
+.muted { color: var(--muted); }
+.error { color: var(--ember); }

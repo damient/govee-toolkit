@@ -18,11 +18,7 @@ export async function copyStatic(): Promise<void> {
   await mkdir(join(dist, "fonts"), { recursive: true });
   await Promise.all([
     cp(join(src, "index.html"), join(dist, "index.html")),
-    cp(join(src, "style.css"), join(dist, "style.css")),
-    cp(join(src, "modal.css"), join(dist, "modal.css")),
-    cp(join(src, "components.css"), join(dist, "components.css")),
-    cp(join(src, "pages.css"), join(dist, "pages.css")),
-    cp(join(src, "locales"), join(dist, "locales"), { recursive: true }),
+    cp(join(src, "assets/locales"), join(dist, "locales"), { recursive: true }),
     cp(join(src, "manifest.webmanifest"), join(dist, "manifest.webmanifest")),
     cp(join(site, "favicon.svg"), join(dist, "favicon.svg")),
     cp(join(site, "apple-touch-icon.png"), join(dist, "apple-touch-icon.png")),
@@ -36,7 +32,7 @@ export async function clean(): Promise<void> {
   await mkdir(dist, { recursive: true });
 }
 
-/** The version in `package.json`, which `src/version.ts` reads. */
+/** The version in `package.json`, which `src/core/version.ts` reads. */
 function version(): string {
   const manifest: unknown = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   if (typeof manifest === "object" && manifest !== null && "version" in manifest && typeof manifest.version === "string") {
@@ -47,7 +43,7 @@ function version(): string {
 
 /**
  * The shapes of each device family icon of the site, by family: the markup
- * inside `<svg>`. `src/family.ts` draws them on a 24 × 24 box.
+ * inside `<svg>`. `src/components/family/family.ts` draws them on a 24 × 24 box.
  */
 function families(): Record<string, string> {
   const icons: Record<string, string> = {};
@@ -62,12 +58,17 @@ function families(): Record<string, string> {
   return icons;
 }
 
-/** `dev` adds a source map and keeps the bundle readable. */
+/**
+ * `dev` adds a source map and keeps the bundle readable. The stylesheets that
+ * the modules import go to `app.css`, in the order of the imports.
+ */
 export function options(dev: boolean): esbuild.BuildOptions {
   return {
     define: { STUDIO_VERSION: JSON.stringify(version()), STUDIO_FAMILY_ICONS: JSON.stringify(families()) },
     entryPoints: [join(src, "main.ts")],
     outfile: join(dist, "app.js"),
+    // copyStatic() puts the fonts there.
+    external: ["/fonts/*"],
     bundle: true,
     format: "esm",
     target: "es2022",
