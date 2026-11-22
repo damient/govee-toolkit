@@ -30,6 +30,13 @@ async fn hello_names_the_crate_and_counts_the_skus() {
 
 #[tokio::test]
 async fn without_a_web_ui_other_paths_are_not_found() {
-    let response = get(&Options { web: Web::None }, "/index.html").await;
+    let response = get(
+        &Options {
+            web: Web::None,
+            ..Options::default()
+        },
+        "/index.html",
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
