@@ -9,6 +9,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { watch } from "node:fs";
 import { type IncomingMessage, type ServerResponse, createServer, request } from "node:http";
+import { createServer as createNetServer } from "node:net";
 import { join } from "node:path";
 import * as esbuild from "esbuild";
 import { clean, copyStatic, options, src } from "./build.ts";
@@ -96,6 +97,30 @@ function server(): ChildProcess {
   });
 }
 
+// A second dev server would proxy to the govee-server of the first one, which
+// serves another build: stop here.
+function free(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const probe = createNetServer();
+    probe.once("error", () => {
+      resolve(false);
+    });
+    probe.listen(port, "127.0.0.1", () => {
+      probe.close(() => {
+        resolve(true);
+      });
+    });
+  });
+}
+
+const ports = [PORT, API_PORT];
+const results = await Promise.all(ports.map((port) => free(port)));
+const taken = ports.filter((_port, i) => !(results[i] ?? false));
+if (taken.length > 0) {
+  console.error(`studio dev: port ${taken.join(", ")} in use. Stop the other dev server or govee-server first.`);
+  process.exit(1);
+}
+
 await clean();
 const context = await esbuild.context(options(true));
 await context.rebuild();
@@ -132,8 +157,22 @@ createServer((incoming, response) => {
   console.log(`studio dev: http://127.0.0.1:${PORT}`);
 });
 
-process.on("SIGINT", () => {
+// The dev server and govee-server stop together. A closed terminal sends
+// SIGHUP: without a handler, govee-server stays on API_PORT.
+let stopping = false;
+function stop(code: number): void {
+  stopping = true;
   api.kill("SIGINT");
   void context.dispose();
-  process.exit(0);
+  process.exit(code);
+}
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
+  process.on(signal, () => {
+    stop(0);
+  });
+}
+api.on("exit", (code) => {
+  if (stopping) return;
+  console.error(`studio dev: govee-server stopped (code ${code ?? "none"})`);
+  stop(1);
 });
