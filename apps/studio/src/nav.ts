@@ -6,6 +6,8 @@ export interface Page {
   label: Key;
   /** The `d` attribute of a 24 × 24 stroked path. */
   icon: string;
+  /** Only on a wide screen: the tablet rail and the phone tab bar leave it out. */
+  wide?: true;
   render(view: HTMLElement): void;
 }
 
@@ -43,6 +45,7 @@ function link(page: Page): HTMLAnchorElement {
   const a = document.createElement("a");
   a.href = `#${page.id}`;
   a.dataset["page"] = page.id;
+  if (page.wide) a.classList.add("wide");
   // The name of the link when the rail hides the labels.
   a.title = t(page.label);
   a.append(icon(page.icon), label(t(page.label)));
@@ -90,7 +93,7 @@ export function mount(nav: HTMLElement, view: HTMLElement, top: Page[], bottom: 
     for (const a of links.slice(TABS)) a.classList.add("overflow");
     nav.replaceChildren(...links.slice(0, top.length), spacer, ...links.slice(top.length));
     if (pages.length > TABS) {
-      const { button, menu } = more(pages.slice(TABS));
+      const { button, menu } = more(pages.slice(TABS).filter((page) => page.wide !== true));
       nav.append(button, menu);
     }
   };
@@ -106,6 +109,7 @@ export function mount(nav: HTMLElement, view: HTMLElement, top: Page[], bottom: 
     const inMore = pages.indexOf(page) >= TABS;
     nav.querySelector(".more")?.classList.toggle("current", inMore);
     view.replaceChildren();
+    view.className = "view";
     view.setAttribute("aria-label", t(page.label));
     page.render(view);
   };

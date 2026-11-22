@@ -40,6 +40,9 @@ The fonts and the icon come from `site/src/assets` at build time.
   only, and back. On a tablet, the rail always shows icons only. On a
   phone, the logo goes and the navigation is a tab bar; Stage and Settings
   go to "More".
+- Mobile, on a wide screen only, shares Studio on the network and shows its
+  address as a QR code for a phone or a tablet. Sharing is off at each start
+  of the server, and only the computer of the server can switch it.
 - Settings sets the theme and the language. The theme is dark by default;
   "Auto" follows the system. This browser keeps both choices
   (`localStorage`).

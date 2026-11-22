@@ -1,5 +1,6 @@
 import { hello } from "./api.ts";
 import { type Language, language, load, t, translate } from "./i18n.ts";
+import { mobile } from "./mobile.ts";
 import { mount, type Page } from "./nav.ts";
 import { write } from "./prefs.ts";
 import { rail } from "./rail.ts";
@@ -35,6 +36,13 @@ const top: Page[] = [
 ];
 
 const bottom: Page[] = [
+  {
+    id: "mobile",
+    label: "nav.mobile",
+    wide: true,
+    render: mobile,
+    icon: "M6 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM11 4h2M12 17v.01",
+  },
   {
     id: "settings",
     label: "nav.settings",
