@@ -1,0 +1,139 @@
+// `npm run dev`: rebuild on change and reload the open pages.
+//
+// The page talks to this server, on PORT (4080). It proxies every request to
+// govee-server, which it starts on API_PORT (4081) with `--web dist`, and adds
+// the reload channel. A stylesheet change swaps the stylesheet in place, a
+// change in `locales/` loads the text again, and any other change reloads the
+// page.
+
+import { type ChildProcess, spawn } from "node:child_process";
+import { watch } from "node:fs";
+import { type IncomingMessage, type ServerResponse, createServer, request } from "node:http";
+import { join } from "node:path";
+import * as esbuild from "esbuild";
+import { clean, copyStatic, options, src } from "./build.ts";
+
+const PORT = Number(process.env["PORT"] ?? 4080);
+const API_PORT = Number(process.env["API_PORT"] ?? 4081);
+const LIVE_PATH = "/__reload";
+
+// Added when a page is sent, so that `dist/` stays the build that ships. An
+// `open` after an `error` is this server back after a restart.
+const CLIENT = `<script type="module">
+const events = new EventSource("${LIVE_PATH}");
+let lost = false;
+events.addEventListener("error", () => { lost = true; });
+events.addEventListener("open", () => { if (lost) location.reload(); });
+events.addEventListener("message", ({ data }) => {
+  if (data === "locale") { dispatchEvent(new Event("studio:locale")); return; }
+  const link = document.querySelector('link[rel="stylesheet"]');
+  if (data !== "css" || !link) { location.reload(); return; }
+  link.href = "style.css?" + Date.now();
+});
+</script>`;
+
+const WAITING = `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="1">
+<title>Studio</title><body style="background:#0a0d14;color:#9694a0;font:14px monospace;padding:2em">
+govee-server is starting…</body>`;
+
+const clients = new Set<ServerResponse>();
+
+type Change = "css" | "locale" | "page";
+
+function notify(change: Change): void {
+  for (const client of clients) client.write(`data: ${change}\n\n`);
+}
+
+// `retry` shortens the wait of the browser after a restart (3 s by default).
+function listen(response: ServerResponse): void {
+  response.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-store" });
+  response.write("retry: 250\n\n");
+  clients.add(response);
+  response.on("close", () => {
+    clients.delete(response);
+  });
+}
+
+function relay(upstream: IncomingMessage, response: ServerResponse): void {
+  const headers = { ...upstream.headers, "cache-control": "no-store" };
+  if (upstream.headers["content-type"]?.startsWith("text/html") !== true) {
+    response.writeHead(upstream.statusCode ?? 502, headers);
+    upstream.pipe(response);
+    return;
+  }
+  const chunks: Buffer[] = [];
+  upstream.on("data", (chunk: Buffer) => {
+    chunks.push(chunk);
+  });
+  upstream.on("end", () => {
+    const html = Buffer.concat(chunks).toString("utf8").replace("</body>", `${CLIENT}\n</body>`);
+    delete headers["content-length"];
+    response.writeHead(upstream.statusCode ?? 502, headers);
+    response.end(html);
+  });
+}
+
+function proxy(incoming: IncomingMessage, response: ServerResponse): void {
+  const outgoing = request(
+    { host: "127.0.0.1", port: API_PORT, path: incoming.url, method: incoming.method, headers: incoming.headers },
+    (upstream) => {
+      relay(upstream, response);
+    },
+  );
+  outgoing.on("error", () => {
+    response.writeHead(503, { "Content-Type": "text/html; charset=utf-8" });
+    response.end(WAITING);
+  });
+  incoming.pipe(outgoing);
+}
+
+function server(): ChildProcess {
+  const manifest = join(import.meta.dirname, "../../packages/rust/Cargo.toml");
+  const args = ["run", "--manifest-path", manifest, "-p", "govee-toolkit-server", "--"];
+  return spawn("cargo", [...args, "--listen", `127.0.0.1:${API_PORT}`, "--web", "dist"], {
+    cwd: import.meta.dirname,
+    stdio: "inherit",
+  });
+}
+
+await clean();
+const context = await esbuild.context(options(true));
+await context.rebuild();
+await copyStatic();
+
+function kind(files: string[]): Change {
+  if (files.every((f) => f.endsWith(".css"))) return "css";
+  if (files.every((f) => f.startsWith("locales"))) return "locale";
+  return "page";
+}
+
+// One change often fires several events: wait for the burst to end.
+let timer: NodeJS.Timeout | undefined;
+let pending = new Set<string>();
+watch(src, { recursive: true }, (_event, file) => {
+  if (file !== null) pending.add(file);
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    const files = [...pending];
+    pending = new Set();
+    void (async () => {
+      if (files.some((f) => f.endsWith(".ts"))) await context.rebuild().catch(() => null);
+      await copyStatic();
+      notify(kind(files));
+    })();
+  }, 50);
+});
+
+const api = server();
+createServer((incoming, response) => {
+  if (incoming.url === LIVE_PATH) listen(response);
+  else proxy(incoming, response);
+}).listen(PORT, "127.0.0.1", () => {
+  console.log(`studio dev: http://127.0.0.1:${PORT}`);
+});
+
+process.on("SIGINT", () => {
+  api.kill("SIGINT");
+  void context.dispose();
+  process.exit(0);
+});

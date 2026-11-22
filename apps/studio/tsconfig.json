@@ -17,5 +17,5 @@
     "noUnusedParameters": true,
     "skipLibCheck": true
   },
-  "include": ["build.ts"]
+  "include": ["build.ts", "dev.ts"]
 }

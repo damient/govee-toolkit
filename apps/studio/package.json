@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build": "node build.ts",
-    "dev": "node build.ts --watch",
+    "dev": "node dev.ts",
     "serve": "npm run build && cargo run --manifest-path ../../packages/rust/Cargo.toml -p govee-toolkit-server -- --web dist",
     "lint": "tsc -p tsconfig.json && tsc -p src/tsconfig.json"
   },
