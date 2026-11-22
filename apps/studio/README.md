@@ -88,8 +88,10 @@ The fonts and the icon come from `site/src/assets` at build time.
   server can switch sharing, and the server keeps the choice.
 - On a phone, "Add to Home Screen" opens Studio without the browser bars
   (`manifest.webmanifest`).
-- Settings shows the version of Studio below its rows. `build.ts` reads
-  the version of Studio from `package.json`.
+- Settings shows the versions of Studio, of `govee-server` and of the SDK
+  below its rows. The server gives its two with the settings
+  (`/api/settings`). `build.ts` reads the version of Studio from
+  `package.json`.
 - Settings sets the theme and the language. The theme is dark by default;
   "Auto" follows the system. The server keeps both choices (`/api/settings`),
   so every browser and the desktop app show the same ones. `localStorage`
