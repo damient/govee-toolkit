@@ -24,6 +24,12 @@
 }
 
 :root {
+  /*
+   * In landscape, iOS gives both sides the inset of the camera. insets.ts names the
+   * side of the camera, and the other side gets no inset.
+   */
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
   color-scheme: dark;
   --ink: light-dark(#fbfaf9, #0a0d14);
   --panel: light-dark(#fff, #10141d);
@@ -40,6 +46,8 @@
   /* An image cannot read a token: one chevron per scheme, in the --muted color. */
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239694a0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
+:root[data-camera="left"] { --safe-right: 0px; }
+:root[data-camera="right"] { --safe-left: 0px; }
 
 /* Dark is the default. `light-dark()` in the tokens follows the scheme. */
 :root[data-theme="light"] { color-scheme: light; --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f5d68' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); }
@@ -81,9 +89,10 @@ body {
   place-content: center;
   justify-items: center;
   background: var(--ink);
-  transition: opacity .4s ease, visibility .4s;
+  transition: opacity .4s ease, display .4s allow-discrete;
 }
-.splash[data-state="done"] { opacity: 0; visibility: hidden; }
+/* Safari 26 tints its bars from a fixed element at the edge, even a hidden one: remove it. */
+.splash[data-state="done"] { display: none; opacity: 0; }
 .splash .dots { gap: calc(var(--size) * .6); margin-bottom: calc(var(--size) * 1.8); }
 .splash .dots i { width: var(--size); height: var(--size); }
 /* The spacing also follows the last letter: the padding on the left centers the word. */
@@ -117,11 +126,14 @@ body {
 /* The shell: the rail (logo and navigation) and the view. */
 .app {
   display: grid;
-  grid-template: "rail view" minmax(0, 1fr) / 220px minmax(0, 1fr);
+  grid-template: "rail view" minmax(0, 1fr) / calc(220px + var(--safe-left)) minmax(0, 1fr);
   height: 100vh;
   height: 100dvh;
 }
-.rail { grid-area: rail; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); }
+.rail {
+  grid-area: rail; display: flex; flex-direction: column; min-height: 0;
+  padding-left: var(--safe-left); border-right: 1px solid var(--line);
+}
 /* The left padding puts the dots over the icons of the navigation. */
 .rail-head { position: relative; display: flex; flex: none; align-items: center; justify-content: space-between; height: 56px; padding: 0 10px 0 22px; }
 .brand { display: flex; align-items: center; gap: 20px; color: inherit; text-decoration: none; }
@@ -132,7 +144,7 @@ body {
 .collapse:hover { background: var(--panel-2); color: var(--text); }
 .collapse:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
 .collapse svg { width: 20px; height: 20px; }
-.nav { display: flex; flex: 1; flex-direction: column; gap: 2px; padding: 4px 10px 12px; }
+.nav { display: flex; flex: 1; flex-direction: column; gap: 2px; padding: 4px 10px max(12px, env(safe-area-inset-bottom)); }
 .nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--muted); text-decoration: none; }
 .nav a:hover { background: var(--panel-2); color: var(--text); }
 .nav a[aria-current="page"] { background: rgb(255 61 0 / 12%); color: var(--text); }
@@ -140,11 +152,16 @@ body {
 .nav .spacer { flex: 1; }
 .nav svg { width: 20px; height: 20px; flex: none; }
 .nav .more, .nav .more-menu { display: none; }
-.view { grid-area: view; overflow: auto; padding: 24px clamp(16px, 3vw, 40px) 40px; }
+/* Every page keeps clear of the insets: the rail takes the left one, the view the others. */
+.view {
+  --gutter: clamp(16px, 3vw, 40px);
+  grid-area: view; overflow: auto;
+  padding: 24px calc(var(--gutter) + var(--safe-right)) max(40px, env(safe-area-inset-bottom)) var(--gutter);
+}
 
 /* Desktop, rail set to "min": the icons only. The button shows in place of the dots on hover. */
 @media (min-width: 1101px) {
-  .app[data-rail="min"] { grid-template-columns: 68px minmax(0, 1fr); }
+  .app[data-rail="min"] { grid-template-columns: calc(68px + var(--safe-left)) minmax(0, 1fr); }
   [data-rail="min"] .rail-head { justify-content: center; padding: 0; }
   [data-rail="min"] .brand .wordmark { display: none; }
   [data-rail="min"] .collapse { position: absolute; inset: 0; margin: auto; opacity: 0; }
@@ -156,7 +173,7 @@ body {
 
 /* Tablet: the icons only, always. */
 @media (max-width: 1100px) {
-  .app { grid-template-columns: 68px minmax(0, 1fr); }
+  .app { grid-template-columns: calc(68px + var(--safe-left)) minmax(0, 1fr); }
   .rail-head { justify-content: center; padding: 0; }
   .brand .wordmark, .collapse { display: none; }
   .nav a { justify-content: center; }
@@ -166,11 +183,27 @@ body {
 
 /* Phone: no logo, and the navigation is a tab bar at the bottom. */
 @media (max-width: 700px) {
-  .app { grid-template: "view" minmax(0, 1fr) "rail" auto / minmax(0, 1fr); }
-  .rail { border-right: 0; border-top: 1px solid var(--line); background: var(--panel); }
+  /*
+   * Safari 26 paints its floating toolbar, and the strip around it, with the color
+   * of a fixed element at the bottom edge. A tab bar in the flow leaves the root.
+   */
+  html { background: var(--panel); }
+  /* Studio is an app: no pull to refresh, and no bounce that moves the fixed tab bar. */
+  html, body { overscroll-behavior: none; }
+  .app { grid-template: "view" minmax(0, 1fr) / minmax(0, 1fr); }
+  .rail {
+    position: fixed; inset: auto 0 0; z-index: 5;
+    border-right: 0; border-top: 1px solid var(--line); background: var(--panel);
+  }
   .rail-head { display: none; }
-  .view { padding-top: max(24px, env(safe-area-inset-top)); }
-  .nav { flex-direction: row; justify-content: space-around; padding: 0 0 env(safe-area-inset-bottom); }
+  /* 68px: the height of the tab bar above the inset. */
+  .view {
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-bottom: calc(68px + 32px + env(safe-area-inset-bottom));
+    padding-left: calc(var(--gutter) + var(--safe-left));
+    overscroll-behavior: contain;
+  }
+  .nav { flex-direction: row; justify-content: space-around; padding: 0 var(--safe-right) env(safe-area-inset-bottom) 0; }
   .nav .spacer { display: none; }
   .nav a { flex: 1; flex-direction: column; gap: 6px; padding: 12px 0 14px; border-radius: 0; font: 500 11px/1 var(--mono); }
   .nav svg { width: 24px; height: 24px; }
