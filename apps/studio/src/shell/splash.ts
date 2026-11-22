@@ -1,7 +1,7 @@
 import "./splash.css";
 
-/** The splash stays at least this long, so the wave runs once in full. */
-const MIN_MS = 1400;
+/** The splash stays at least this long. The hop of the three dots ends at 640 ms (brand.css). */
+const MIN_MS = 1000;
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
