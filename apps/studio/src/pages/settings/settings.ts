@@ -1,6 +1,7 @@
 import "./settings.css";
 import { backup, fail } from "./data.ts";
 import { type Key, LANGUAGES, type Language, NAMES, language, t } from "../../core/i18n.ts";
+import { pathOf } from "../../core/router.ts";
 import { server } from "../../core/prefs.ts";
 import { resetButton } from "./reset.ts";
 import { THEMES, type Theme, setTheme, theme } from "../../core/theme.ts";
@@ -63,15 +64,24 @@ function languages(change: (code: Language) => void): HTMLElement {
   return select;
 }
 
+function setupLink(): HTMLAnchorElement {
+  const link = document.createElement("a");
+  link.className = "button xs";
+  link.href = pathOf("setup");
+  link.textContent = t("settings.setup.open");
+  return link;
+}
+
 /** Draw the Settings view. `change` applies a new language. */
 export function settings(view: HTMLElement, change: (code: Language) => void): void {
   const note = document.createElement("p");
   note.className = "settings-note";
+  const lights = card(row("settings.setup", setupLink()));
   const look = card(row("settings.theme", themes(note)), row("settings.language", languages(change)));
   const data = card(row("settings.data", backup(note)), row("settings.reset", resetButton(note)));
   const line = document.createElement("p");
   line.className = "settings-versions";
   const facts = server();
   line.textContent = t("settings.versions", { studio: VERSION, server: facts?.version ?? "?", sdk: facts?.sdk ?? "?" });
-  view.append(look, data, note, line);
+  view.append(lights, look, data, note, line);
 }

@@ -1,4 +1,4 @@
-import "./light.css";
+import "../../components/light/light.css";
 import { type Found, identify } from "../../core/api.ts";
 import { familyIcon } from "../../components/family/family.ts";
 import { explain, t } from "../../core/i18n.ts";

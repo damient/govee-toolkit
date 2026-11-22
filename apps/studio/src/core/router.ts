@@ -1,4 +1,4 @@
-// The pages of Studio are paths: `/`, `/lights`, `/setup`. govee-server
+// The pages of Studio are paths: `/`, `/settings`, `/setup`. govee-server
 // answers `index.html` for a path with no dot, so a reload keeps the page.
 
 /** The path of the page `id`: `/` for home. */
