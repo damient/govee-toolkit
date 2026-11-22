@@ -273,7 +273,8 @@ module and no match arm — see `docs/architecture.md`.
 
 Format with `cargo +nightly fmt` — `rustfmt.toml` uses nightly-only options and
 stable rustfmt produces a different result. A Rust source file stays under 400
-lines and a site source file under 300 (`tools/check-file-length.sh`); split
+lines, and a site or Studio source file under 300
+(`tools/check-file-length.sh`); split
 along responsibilities rather than trimming to fit. The MSRV is checked in CI,
 so a feature that needs a newer compiler raises `rust-version` in the same
 commit.

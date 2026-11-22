@@ -9,14 +9,15 @@ set -euo pipefail
 RUST_LIMIT=${RUST_LIMIT:-400}
 SITE_LIMIT=${SITE_LIMIT:-300}
 MCP_LIMIT=${MCP_LIMIT:-300}
+STUDIO_LIMIT=${STUDIO_LIMIT:-300}
 root=$(cd "$(dirname "$0")/.." && pwd)
 
 # One group, or every group when no argument is given.
 group=${1:-all}
 case $group in
-all | rust | site | mcp) ;;
+all | rust | site | mcp | studio) ;;
 *)
-  echo "usage: $(basename "$0") [rust|site|mcp]" >&2
+  echo "usage: $(basename "$0") [rust|site|mcp|studio]" >&2
   exit 2
   ;;
 esac
@@ -50,6 +51,11 @@ fi
 
 if [ "$group" = all ] || [ "$group" = mcp ]; then
   over "$MCP_LIMIT" integrations/mcp/src integrations/mcp/scripts -name '*.ts'
+fi
+
+if [ "$group" = all ] || [ "$group" = studio ]; then
+  over "$STUDIO_LIMIT" apps/studio/build.ts apps/studio/dev.ts apps/studio/src \
+    \( -name '*.ts' -o -name '*.css' -o -name '*.html' \)
 fi
 
 [ $status -eq 0 ] || echo "Split the file along its responsibilities; see CONTRIBUTING.md."
