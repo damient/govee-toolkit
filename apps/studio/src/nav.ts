@@ -17,7 +17,8 @@ const MORE_ICON =
 
 const SVG = "http://www.w3.org/2000/svg";
 
-function icon(d: string): SVGSVGElement {
+/** A 24 × 24 icon, stroked in the current color. */
+export function icon(d: string): SVGSVGElement {
   const svg = document.createElementNS(SVG, "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("fill", "none");
@@ -42,6 +43,8 @@ function link(page: Page): HTMLAnchorElement {
   const a = document.createElement("a");
   a.href = `#${page.id}`;
   a.dataset["page"] = page.id;
+  // The name of the link when the rail hides the labels.
+  a.title = t(page.label);
   a.append(icon(page.icon), label(t(page.label)));
   return a;
 }

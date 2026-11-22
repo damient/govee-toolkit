@@ -8,6 +8,8 @@
   "nav.stage": "Stage",
   "nav.settings": "Settings",
   "nav.more": "More",
+  "rail.collapse": "Collapse the sidebar",
+  "rail.expand": "Expand the sidebar",
   "splash.error": "Studio cannot start ({reason}). Make sure that govee-server runs, then reload.",
   "settings.theme": "Theme",
   "settings.theme.dark": "Dark",

@@ -33,12 +33,13 @@ The fonts and the icon come from `site/src/assets` at build time.
 
 - A splash screen stays until the server answers `/api/hello`. If the server
   does not answer, the splash stays and gives the reason.
-- The shell has a header, the navigation and one view per space: Home,
-  Lights, Library (presets and scenes), Live (pads), Stage (rooms in 3D and
-  the scene timeline) and Settings. Each view is empty.
-- The navigation is a side rail on a wide screen and an icon rail on a
-  tablet. On a phone it is a tab bar, and Stage and Settings go to "More".
-
+- The shell has a rail, with the logo above the navigation, and one view per
+  space: Home, Lights, Library (presets and scenes), Live (pads), Stage
+  (rooms in 3D and the scene timeline) and Settings. Each view is empty.
+- On a wide screen, the button next to the logo sets the rail to icons
+  only, and back. On a tablet, the rail always shows icons only. On a
+  phone, the logo goes and the navigation is a tab bar; Stage and Settings
+  go to "More".
 - Settings sets the theme and the language. The theme is dark by default;
   "Auto" follows the system. This browser keeps both choices
   (`localStorage`).
