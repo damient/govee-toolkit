@@ -72,8 +72,9 @@ fn routes(
         .skus()
         .count();
     let hello = Json(json!({
-        "name": "govee-toolkit",
-        "version": govee_toolkit::VERSION,
+        "name": env!("CARGO_PKG_NAME"),
+        "version": env!("CARGO_PKG_VERSION"),
+        "sdk": govee_toolkit::VERSION,
         "skus": skus,
     }));
     let storage = options.storage.clone();

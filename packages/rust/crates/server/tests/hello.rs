@@ -23,8 +23,9 @@ async fn hello_names_the_crate_and_counts_the_skus() {
     assert_eq!(response.status(), StatusCode::OK);
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let value: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(value["name"], "govee-toolkit");
-    assert_eq!(value["version"], govee_toolkit::VERSION);
+    assert_eq!(value["name"], "govee-toolkit-server");
+    assert_eq!(value["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(value["sdk"], govee_toolkit::VERSION);
     assert!(value["skus"].as_u64().unwrap() > 0);
 }
 
