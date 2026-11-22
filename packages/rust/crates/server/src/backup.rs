@@ -1,6 +1,6 @@
-//! `/api/backup`: `studio.json`, the configuration of the SDK and the API key
-//! in one JSON document, and back. The document can carry the API key, so
-//! only a client on this machine can export or import it.
+//! `/api/backup`: `studio.json`, `rooms.json`, the configuration of the SDK
+//! and the API key in one JSON document, and back. The document can carry the
+//! API key, so only a client on this machine can export or import it.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -20,6 +20,7 @@ use serde_json::json;
 
 use crate::compat;
 use crate::devices::Sdk;
+use crate::rooms::{self, Rooms};
 use crate::settings::refuse;
 use crate::share::{Local, Share};
 use crate::storage::{self, Storage};
@@ -46,6 +47,9 @@ struct Document<Server = serde_json::Value, Part = serde_json::Value> {
     config: Option<String>,
     /// `GOVEE_*` variables, such as the API key. `null` when none is set.
     credentials: Option<BTreeMap<String, String>>,
+    /// The content of `rooms.json`. A backup with no `rooms` holds no room.
+    #[serde(default)]
+    rooms: Option<Rooms>,
 }
 
 /// What an import replaces, and what it starts again.
@@ -55,6 +59,7 @@ pub(crate) struct Backup {
     pub(crate) store: Arc<Store>,
     pub(crate) share: Arc<Share>,
     pub(crate) sdk: Arc<Sdk>,
+    pub(crate) rooms: Arc<rooms::Store>,
 }
 
 impl Backup {
@@ -103,6 +108,7 @@ pub(crate) async fn export(
             studio: settings.studio,
             config,
             credentials: key.map(|key| BTreeMap::from([(KEY_ENV.to_owned(), key)])),
+            rooms: Some(backup.rooms.get()),
         };
         serde_json::to_string_pretty(&document).map_err(|e| e.to_string())
     })();
@@ -128,6 +134,7 @@ struct Plan {
     config: Option<String>,
     studio: Studio,
     credentials: Option<String>,
+    rooms: Option<Rooms>,
 }
 
 fn validate(body: &[u8]) -> Result<Plan, String> {
@@ -161,10 +168,12 @@ fn validate(body: &[u8]) -> Result<Plan, String> {
         Some(vars) if !vars.is_empty() => Some(credentials_text(&vars)?),
         _ => None,
     };
+    let rooms = document.rooms.map(Rooms::checked).transpose()?;
     Ok(Plan {
         config: document.config,
         studio,
         credentials,
+        rooms,
     })
 }
 
@@ -215,6 +224,7 @@ pub(crate) async fn import(
     let share = plan.studio.server.settings.share;
     let written = replace(&storage.credentials(), plan.credentials.as_deref(), true)
         .and_then(|()| replace(&storage.config, plan.config.as_deref(), false))
+        .and_then(|()| backup.rooms.set(plan.rooms, true))
         .and_then(|()| backup.store.replace(plan.studio, true));
     if let Err(error) = written {
         return refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string());
@@ -225,11 +235,12 @@ pub(crate) async fn import(
     axum::Json(json!({ "imported": true })).into_response()
 }
 
-fn copies(storage: &Storage) -> [std::path::PathBuf; 3] {
+fn copies(storage: &Storage) -> [std::path::PathBuf; 4] {
     [
         storage.credentials(),
         storage.config.clone(),
         storage.studio(),
+        storage.rooms(),
     ]
 }
 
@@ -260,10 +271,12 @@ pub(crate) async fn restore(
             }
             None => Studio::default(),
         };
+        let rooms = rooms::read(&storage::bak(&storage.rooms())).map_err(|e| e.to_string())?;
         Ok::<_, String>(Plan {
             config,
             studio,
             credentials: read(&storage.credentials())?,
+            rooms,
         })
     })();
     let plan = match plan {
@@ -277,6 +290,7 @@ pub(crate) async fn restore(
     };
     let written = put(&storage.credentials(), plan.credentials.as_deref(), true)
         .and_then(|()| put(&storage.config, plan.config.as_deref(), false))
+        .and_then(|()| backup.rooms.set(plan.rooms, false))
         .and_then(|()| backup.store.replace(plan.studio, false))
         .and_then(|()| {
             files
@@ -317,6 +331,7 @@ mod tests {
             share: Arc::new(Share::new(None, Arc::clone(&store))),
             store,
             sdk: Arc::new(Sdk::default()),
+            rooms: Arc::new(rooms::Store::default()),
         };
         assert_eq!(
             backup.admit(Local(false)).unwrap_err().0,

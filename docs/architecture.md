@@ -205,7 +205,8 @@ refuses its requests to `http://127.0.0.1`.
 The server and the desktop app keep their files in the configuration folder
 that `paths::config_dir()` gives, beside `config.yaml`. `studio.json` holds
 the settings of the server and the settings of Studio, so a browser and
-the desktop app show the same ones. The page keeps no state of its own except
+the desktop app show the same ones. `rooms.json` holds the rooms of the
+lights. It is data of the server, not a preference of Studio. The page keeps no state of its own except
 a copy of the theme for the first paint. A fixed port keeps the origin of the
 page, and with it that copy.
 

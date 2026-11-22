@@ -14,17 +14,19 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   A path outside `/api` with no dot in its last segment is a page of
   Studio: the server answers `index.html` for it, so a reload of `/lights`
   keeps the page.
-- `GET /api/devices` runs a `lan` scan and answers the devices that replied.
-  The SDK starts on the first call and reads the configuration file.
+- `GET /api/devices` answers the devices of `config.yaml` at once, with no
+  scan. Each device carries its SKU, its name and the `family` of its
+  device file.
+- `GET /api/scan` runs a `lan` scan and answers the devices that replied.
   Each device carries the `family` of its device file, the name that
-  `config.yaml` gives it now, `configured` and `online`. The devices of
-  `config.yaml` that did not answer follow, with `online: false`.
+  `config.yaml` gives it now, and `configured`. The SDK starts on the
+  first call of either route and reads the configuration file.
 - `POST /api/devices/{id}/identify` runs the walk of `govee identify` over
   `lan` for one device: off, green at full brightness for some seconds,
   then off. The call answers when the walk ends.
 - `PUT /api/devices` writes the device entries of `config.yaml` in one
-  go: `keep` adds or renames, `remove` deletes. A new entry gets its SKU
-  and `modes: [lan]`. A name is 64 characters at most. The other keys of
+  go: `keep` adds or renames, `remove` deletes. An entry with no SKU gets
+  the SKU of the request, and a new entry also gets `modes: [lan]`. A name is 64 characters at most. The other keys of
   the file stay, but its comments do not survive the write.
 - `GET` and `POST /api/share` open the server to the network and close it
   again, with a second listener on the network address of this machine.
@@ -41,8 +43,11 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   `advanced` switch of Studio. Every client that the server admits can
   change them. The answer adds `server`, the version of the server and of
   `govee-toolkit`, which a client can read only.
-- `GET /api/backup` exports `studio.json`, `config.yaml` and the API key in
-  one JSON file. Studio names the file with the local date and time.
+- `GET` and `PUT /api/rooms` read and replace the rooms of the lights, in
+  `rooms.json`. A room can be empty, and a device can be in more than one
+  room. A device that `PUT /api/devices` removes leaves its rooms.
+- `GET /api/backup` exports `studio.json`, `rooms.json`, `config.yaml` and
+  the API key in one JSON file. Studio names the file with the local date and time.
 - `POST /api/backup` imports that file. It checks the whole file, keeps a
   `.import.bak` copy of each file, then replaces them. The API key goes to
   `credentials.env` with the permissions `0600`. An import accepts a version
@@ -51,7 +56,7 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 - `POST /api/backup/restore` puts back the files from before the last
   import.
 - `POST /api/reset` puts the Studio settings back to the defaults, removes
-  the `devices:` key of `config.yaml`, or both.
+  the `devices:` key of `config.yaml` and the rooms, or both.
 - Only a loopback client can export, import, restore or reset.
 - `Options::storage` and `Storage` choose the folder of these files.
 - `serve` takes a `std::net::TcpListener`, and `WEB_DIR` names the folder

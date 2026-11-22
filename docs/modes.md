@@ -63,6 +63,7 @@ macOS reads no `XDG_*` variable. The configuration folder holds:
   it with the permissions `0600` when it imports a backup.
 - `.env`: read when the search for a `.env` finds nothing else.
 - `studio.json`: the settings of the server and the settings of Studio.
+- `rooms.json`: the rooms of the lights, which `govee-server` keeps.
 - `devices/`: the device files of the user, when `catalog.local_devices` is on.
 
 The cache folder holds `devices.json`, the result of the last discovery. It
