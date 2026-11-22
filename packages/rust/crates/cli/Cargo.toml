@@ -1,6 +1,6 @@
 [package]
 name = "govee-toolkit-cli"
-description = "Command line interface to govee-toolkit: discover Govee devices and send commands over the LAN, over Bluetooth or through the cloud. Unofficial."
+description = "Take full control of your Govee lights from a terminal."
 # Versioned apart from the crate it wraps, and released under `cli-vX.Y.Z` —
 # see docs/versioning.md.
 version = "1.12.0"
@@ -10,7 +10,7 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 authors.workspace = true
-keywords = ["govee", "cli", "led", "smart-home", "iot"]
+keywords = ["govee", "govee-api", "cli", "lan", "lighting"]
 categories = ["command-line-utilities", "hardware-support"]
 
 [[bin]]

@@ -8,13 +8,17 @@
   "files": [
     "govee-toolkit.win32-arm64-msvc.node"
   ],
-  "description": "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them.",
+  "description": "Take full control of your Govee lights from Node.js and TypeScript.",
   "keywords": [
     "govee",
+    "govee-api",
+    "govee-lan",
+    "lan",
     "led",
-    "smart-home",
-    "iot",
-    "sdk"
+    "lighting",
+    "dmx",
+    "home-automation",
+    "smart-home"
   ],
   "author": "damient",
   "homepage": "https://gvetk.com",
