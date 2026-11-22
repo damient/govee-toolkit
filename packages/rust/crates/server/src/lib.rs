@@ -12,6 +12,7 @@ mod compat;
 mod devices;
 mod entries;
 mod reset;
+mod rooms;
 mod settings;
 mod share;
 mod storage;
@@ -58,8 +59,8 @@ pub enum Web {
 ///
 /// # Errors
 ///
-/// `InvalidData` when `studio.json` does not parse, and the error of a read
-/// of `studio.json`.
+/// `InvalidData` when `studio.json` or `rooms.json` does not parse, and the
+/// error of a read of either file.
 pub fn router(options: &Options) -> io::Result<Router> {
     Ok(routes(options, None)?.0)
 }
@@ -70,22 +71,30 @@ fn routes(
 ) -> io::Result<(Router, Arc<share::Share>)> {
     let storage = options.storage.clone();
     let store = Arc::new(studio::Store::open(storage.as_ref().map(Storage::studio))?);
-    let sdk = Arc::new(devices::Sdk::new(storage.clone()));
+    let rooms = Arc::new(rooms::Store::open(storage.as_ref().map(Storage::rooms))?);
+    let sdk = Arc::new(devices::Sdk::new(storage.clone(), Arc::clone(&rooms)));
     let share = Arc::new(share::Share::new(listen, Arc::clone(&store)));
     let backup = Arc::new(backup::Backup {
         storage,
         store: Arc::clone(&store),
         share: Arc::clone(&share),
         sdk: Arc::clone(&sdk),
+        rooms: Arc::clone(&rooms),
     });
     let api = Router::new()
         .route("/devices", get(devices::list).put(entries::put))
         .route("/devices/{id}/identify", post(devices::identify))
+        .route("/scan", get(devices::scan))
         .with_state(sdk)
         .merge(
             Router::new()
                 .route("/share", get(share::get).post(share::set))
                 .with_state(Arc::clone(&share)),
+        )
+        .merge(
+            Router::new()
+                .route("/rooms", get(rooms::get).put(rooms::put))
+                .with_state(rooms),
         )
         .merge(
             Router::new()

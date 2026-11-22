@@ -1,5 +1,6 @@
-//! `GET /api/devices`: the devices that answer a `lan` scan, and the devices
-//! of `config.yaml`.
+//! `GET /api/devices`: the devices of `config.yaml`. `GET /api/scan`: the
+//! devices that answer a `lan` scan. The first answers at once, the second
+//! after the scan window.
 
 use std::sync::Arc;
 
@@ -11,6 +12,7 @@ use govee_toolkit::{Config, DeviceConfig, DeviceId, Govee, Mode, Walk};
 use serde_json::{Value, json};
 use tokio::sync::Mutex;
 
+use crate::rooms;
 use crate::storage::Storage;
 
 /// Started on the first request, so a UI-only server opens no device socket.
@@ -18,13 +20,16 @@ use crate::storage::Storage;
 pub(crate) struct Sdk {
     /// `None` reads the configuration of the system.
     storage: Option<Storage>,
+    /// A device that leaves `config.yaml` leaves its rooms too.
+    rooms: Arc<rooms::Store>,
     govee: Mutex<Option<Arc<Govee>>>,
 }
 
 impl Sdk {
-    pub(crate) fn new(storage: Option<Storage>) -> Self {
+    pub(crate) fn new(storage: Option<Storage>, rooms: Arc<rooms::Store>) -> Self {
         Self {
             storage,
+            rooms,
             govee: Mutex::default(),
         }
     }
@@ -42,6 +47,10 @@ impl Sdk {
 
     pub(crate) fn storage(&self) -> Option<&Storage> {
         self.storage.as_ref()
+    }
+
+    pub(crate) fn rooms(&self) -> &rooms::Store {
+        &self.rooms
     }
 
     /// Close the SDK. The next request starts it with the files as they are.
@@ -67,9 +76,9 @@ fn family(govee: &Govee, sku: Option<&str>) -> Option<String> {
     Some(file.family.clone())
 }
 
-/// A scanned device, with the family of its device file for the icon of
-/// Studio, and its entry in `config.yaml`. The file is read on each call: a
-/// write does not restart the SDK.
+/// A device that answered the scan, with the family of its device file for
+/// the icon of Studio, and its entry in `config.yaml`. The file is read on
+/// each call: a write does not restart the SDK.
 fn scanned(govee: &Govee, device: &govee_toolkit::Device, config: Option<&Config>) -> Value {
     let mut value = device.to_json(Some(Mode::Lan));
     if let Some(fields) = value.as_object_mut() {
@@ -78,39 +87,53 @@ fn scanned(govee: &Govee, device: &govee_toolkit::Device, config: Option<&Config
         let configured = config.is_some_and(|config| config.devices.contains_key(&device.id));
         fields.insert("name".to_owned(), json!(name));
         fields.insert("configured".to_owned(), json!(configured));
-        fields.insert("online".to_owned(), json!(true));
     }
     value
 }
 
-/// A device of `config.yaml` that did not answer the scan. `sku` is `null`
-/// when the entry gives none.
-fn offline(govee: &Govee, id: &DeviceId, entry: &DeviceConfig) -> Value {
+/// A device of `config.yaml`. `sku` and `family` are `null` when the entry
+/// gives no SKU.
+fn entry(govee: &Govee, id: &DeviceId, entry: &DeviceConfig) -> Value {
     json!({
         "id": id.to_string(),
         "sku": entry.sku,
         "name": entry.name,
         "family": family(govee, entry.sku.as_deref()),
-        "configured": true,
-        "online": false,
     })
 }
 
+/// `GET /api/devices`: the devices of `config.yaml`, with no scan.
 pub(crate) async fn list(State(sdk): State<Arc<Sdk>>) -> Response {
+    let found = async {
+        let govee = sdk.get().await?;
+        let config = sdk.storage.as_ref().map(Storage::sdk_config).transpose()?;
+        let records = config.iter().flat_map(|config| &config.devices);
+        govee_toolkit::Result::Ok(
+            records
+                .map(|(id, record)| entry(&govee, id, record))
+                .collect::<Vec<_>>(),
+        )
+    }
+    .await;
+    match found {
+        Ok(devices) => Json(json!({ "devices": devices })).into_response(),
+        Err(error) => failed(&error),
+    }
+}
+
+/// `GET /api/scan`: the devices that answer a `lan` scan. The answer comes
+/// when the scan window ends.
+pub(crate) async fn scan(State(sdk): State<Arc<Sdk>>) -> Response {
     let found = async {
         let govee = sdk.get().await?;
         let devices = govee.scan(Some(&[Mode::Lan])).await?;
         let config = sdk.storage.as_ref().map(Storage::sdk_config).transpose()?;
-        let mut records: Vec<Value> = devices
-            .iter()
-            .map(|device| scanned(&govee, device, config.as_ref()))
-            .collect();
-        for (id, entry) in config.iter().flat_map(|config| &config.devices) {
-            if !devices.iter().any(|device| &device.id == id) {
-                records.push(offline(&govee, id, entry));
-            }
-        }
-        govee_toolkit::Result::Ok(records)
+        govee_toolkit::Result::Ok(
+            devices
+                .iter()
+                .map(|device| scanned(&govee, device, config.as_ref()))
+                .collect::<Vec<_>>(),
+        )
     }
     .await;
     match found {

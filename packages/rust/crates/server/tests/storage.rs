@@ -117,6 +117,12 @@ async fn a_backup_restores_every_file_in_another_folder() {
     std::fs::write(from.join("credentials.env"), "GOVEE_API_KEY=a-key\n").unwrap();
     let theme = json!({ "theme": "auto", "advanced": true }).to_string();
     call(&options(&from), send("PUT", "/api/settings", &theme)).await;
+    let rooms = json!({ "rooms": [{ "name": "Office", "devices": ["AA:BB:CC:DD:EE:FF"] }] });
+    call(
+        &options(&from),
+        send("PUT", "/api/rooms", &rooms.to_string()),
+    )
+    .await;
 
     let response = router(&options(&from))
         .unwrap()
@@ -136,6 +142,7 @@ async fn a_backup_restores_every_file_in_another_folder() {
     assert_eq!(document["config"], CONFIG);
     assert_eq!(document["credentials"], json!({ "GOVEE_API_KEY": "a-key" }));
     assert_eq!(document["studio"]["settings"]["theme"], "auto");
+    assert_eq!(document["rooms"]["rooms"][0]["name"], "Office");
 
     let to = folder("backup-to");
     std::fs::write(to.join("config.yaml"), "defaults:\n  modes: [ble]\n").unwrap();
@@ -150,6 +157,8 @@ async fn a_backup_restores_every_file_in_another_folder() {
         std::fs::read_to_string(to.join("config.yaml.import.bak")).unwrap(),
         "defaults:\n  modes: [ble]\n"
     );
+    let (_, rooms) = call(&options(&to), get("/api/rooms")).await;
+    assert_eq!(rooms["rooms"][0]["devices"][0], "AA:BB:CC:DD:EE:FF");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

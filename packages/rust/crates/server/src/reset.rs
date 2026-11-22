@@ -1,6 +1,6 @@
 //! `POST /api/reset`: put the Studio settings back to the defaults, remove
-//! the device entries of `config.yaml`, or both. The other keys of the file
-//! stay, and so do the API key and the sharing switch.
+//! the device entries of `config.yaml` and the rooms, or both. The other keys
+//! of the file stay, and so do the API key and the sharing switch.
 
 use std::sync::Arc;
 
@@ -25,7 +25,8 @@ pub(crate) struct Reset {
     /// Theme, language and the `advanced` switch.
     #[serde(default)]
     prefs: bool,
-    /// The `devices:` key of `config.yaml`: names, modes and groups.
+    /// The `devices:` key of `config.yaml` (names, modes and groups), and
+    /// `rooms.json`.
     #[serde(default)]
     devices: bool,
 }
@@ -79,6 +80,9 @@ pub(crate) async fn reset(
     if body.devices {
         if let Err((status, error)) = forget_devices(storage) {
             return refuse(status, &error);
+        }
+        if let Err(error) = backup.rooms.set(None, false) {
+            return refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string());
         }
         backup.sdk.reset().await;
     }

@@ -80,12 +80,17 @@ Windows. See [`docs/modes.md`](../../../../docs/modes.md#where-the-files-are).
   `version` and `settings`. The `server` settings hold the share switch, the
   `studio` settings the theme, the language and the `advanced` switch. Each write goes to a temporary file, then a rename replaces the
   file. A file that does not parse stops the start.
+- `rooms.json`: the rooms of the lights, with its own `version`. A room
+  has an `id`, a `name` and the IDs of its `devices`. A room can be empty,
+  and a device can be in more than one room. A file that does not parse
+  stops the start.
 - `config.yaml`: the configuration of the SDK, which `GOVEE_CONFIG` can
-  name. The server reads it, and writes it only on an import.
+  name. The server reads it, and writes its device entries on
+  `PUT /api/devices`, a reset and an import.
 - `credentials.env`: the API key, written on an import with the
   permissions `0600`. The SDK reads it after every other source.
 
-A backup from `GET /api/backup` holds all three, the API key included when
+A backup from `GET /api/backup` holds all four, the API key included when
 one is set. Keep the file private.
 
 ## Compatibility
@@ -109,16 +114,19 @@ shape of the settings adds a row.
 
 | Route | Answer |
 | ----- | ------ |
-| `GET /api/devices` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`, then the devices of `config.yaml` that did not answer. Each record adds `family`, `name`, `configured` (`config.yaml` has an entry) and `online` (it answered). The call takes one scan window, 2 s by default. An error answers 500 and `{ "error" }` |
-| `PUT /api/devices` | `{ "keep": [{ "id", "sku", "name" }], "remove": ["id"] }`, written to `config.yaml` in one go. A new entry gets `sku` and `modes: [lan]`. A blank `name` removes the name. A name is 64 characters at most, or 400. The SDK starts again on the next request. The other keys stay, without their comments |
+| `GET /api/devices` | `{ "devices": [{ "id", "sku", "name", "family" }] }`: the devices of `config.yaml`, at once, with no scan. `sku` and `family` are `null` when the entry gives no SKU. An error answers 500 and `{ "error" }` |
+| `GET /api/scan` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`. Each record adds `family`, `name` (from `config.yaml`) and `configured` (`config.yaml` has an entry). The call takes one scan window, 2 s by default. An error answers 500 and `{ "error" }` |
+| `PUT /api/devices` | `{ "keep": [{ "id", "sku", "name" }], "remove": ["id"] }`, written to `config.yaml` in one go. An entry with no `sku` gets the one of the request, and a new entry also gets `modes: [lan]`. A blank `name` removes the name. A name is 64 characters at most, or 400. A removed device leaves its rooms. The SDK starts again on the next request. The other keys stay, without their comments |
+| `GET /api/rooms` | `{ "rooms": [{ "id", "name", "devices" }] }`, in the order of `rooms.json` |
+| `PUT /api/rooms` | `{ "rooms": [{ "id", "name", "devices" }] }` replaces every room, and answers as `GET`. A room with no `id` gets `room-<n>`. A blank name, a name longer than 64 characters, a name or an `id` that two rooms share, and a device that a room lists twice get 400 and change nothing |
 | `GET /api/share` | `{ "fixed", "shared", "url", "control", "local" }`: `fixed` when `--listen` opens the network already, `url` while sharing is on, `control` when the caller can switch sharing, `local` when the caller is on this machine |
 | `POST /api/share` | `{ "shared": true \| false }` opens or closes the network, keeps the choice in `studio.json`, and answers as `GET`. A client from the network gets 403, a server started with a network `--listen` 409 |
 | `GET /api/settings` | `{ "theme", "language", "advanced", "server" }`: `theme` is `dark`, `light` or `auto`, `language` a code or `null`. `server` is `{ "version", "sdk" }`, the version of `govee-server` and of the `govee-toolkit` crate in it, and a client can read it only |
 | `PUT /api/settings` | the keys to change, such as `{ "theme": "light" }`, and the answer of `GET`. A value that is not valid gets 400 and `{ "error" }` |
-| `GET /api/backup` | one JSON file to download: `{ "format": "govee-toolkit-backup", "server", "studio", "config", "credentials" }`. `server` and `studio` are the two parts of `studio.json`, each with its `version` (see [Compatibility](#compatibility)). The answer names no file: Studio names it `govee-toolkit-studio-<date>-<time>.json`. `config` is the text of `config.yaml` or `null`, `credentials` holds `GOVEE_API_KEY` or is `null`. A client from the network gets 403 |
+| `GET /api/backup` | one JSON file to download: `{ "format": "govee-toolkit-backup", "server", "studio", "config", "credentials", "rooms" }`. `server` and `studio` are the two parts of `studio.json`, each with its `version` (see [Compatibility](#compatibility)). The answer names no file: Studio names it `govee-toolkit-studio-<date>-<time>.json`. `config` is the text of `config.yaml` or `null`, `credentials` holds `GOVEE_API_KEY` or is `null`, `rooms` is the content of `rooms.json`. A client from the network gets 403 |
 | `POST /api/backup` | that file. The server checks all of it, keeps a `.import.bak` copy of each file, replaces the files and starts the SDK again on the next request. A file that is not valid gets 400 and changes nothing. A client from the network gets 403 |
 | `POST /api/backup/restore` | puts back the files from the `.import.bak` copies of the last import, then deletes the copies. With no copy, 409. A client from the network gets 403 |
-| `POST /api/reset` | `{ "prefs": true, "devices": true }`, one key or both. `prefs` puts the settings of `GET /api/settings` back to the defaults. `devices` removes the `devices:` key of `config.yaml` and starts the SDK again on the next request. The other keys stay, without their comments. The API key and the sharing switch stay. With neither key, 400. A client from the network gets 403 |
+| `POST /api/reset` | `{ "prefs": true, "devices": true }`, one key or both. `prefs` puts the settings of `GET /api/settings` back to the defaults. `devices` removes the `devices:` key of `config.yaml` and every room, and starts the SDK again on the next request. The other keys stay, without their comments. The API key and the sharing switch stay. With neither key, 400. A client from the network gets 403 |
 | any other path | a file of the web UI: the copy in the binary, or the directory that `--web` names |
 
 Not affiliated with Govee.

@@ -74,6 +74,9 @@ async fn a_reset_of_the_prefs_keeps_the_devices() {
 async fn a_reset_of_the_devices_keeps_the_prefs_and_the_other_keys() {
     let dir = folder("devices");
     light_theme(&dir).await;
+    let rooms = r#"{"rooms":[{"name":"Office","devices":["AA:BB:CC:DD:EE:FF"]}]}"#;
+    let (status, _) = call(&dir, "PUT", "/api/rooms", rooms).await;
+    assert_eq!(status, StatusCode::OK);
     let (status, _) = call(&dir, "POST", "/api/reset", r#"{"devices":true}"#).await;
     assert_eq!(status, StatusCode::OK);
     let (_, settings) = call(&dir, "GET", "/api/settings", "").await;
@@ -81,6 +84,8 @@ async fn a_reset_of_the_devices_keeps_the_prefs_and_the_other_keys() {
     let text = config(&dir);
     assert!(!text.contains("desk"), "{text}");
     assert!(text.contains("status_timeout_ms: 500"), "{text}");
+    let (_, rooms) = call(&dir, "GET", "/api/rooms", "").await;
+    assert_eq!(rooms, json!({ "rooms": [] }));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

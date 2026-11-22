@@ -1,4 +1,5 @@
-//! `PUT /api/devices`: the device entries of `config.yaml`, in one write.
+//! `PUT /api/devices`: the device entries of `config.yaml`, in one write. A
+//! device that the request removes leaves its rooms too.
 //!
 //! The edit goes through a YAML tree, so the other keys of the file stay as
 //! they are. The comments of the file do not survive a write.
@@ -32,7 +33,7 @@ pub(crate) struct Entries {
 #[serde(deny_unknown_fields)]
 struct Keep {
     id: String,
-    /// Written only in an entry that the request makes.
+    /// Written in an entry that has no SKU. A SKU in the file stays.
     #[serde(default)]
     sku: Option<String>,
     /// `null` or a blank string removes the name.
@@ -71,8 +72,10 @@ fn key_of(devices: &Mapping, id: &str) -> Value {
         .unwrap_or_else(|| id.into())
 }
 
-/// The text of `config` with `entries` applied. A new entry gets the SKU and
-/// `modes: [lan]`, because the device answered a `lan` scan.
+/// The text of `config` with `entries` applied. An entry with no SKU gets
+/// the SKU of the request, so that a read with no scan knows the device file.
+/// A new entry also gets `modes: [lan]`, because the device answered a `lan`
+/// scan.
 fn edited(config: &str, entries: &Entries) -> Result<String, String> {
     let invalid = |e: serde_norway::Error| format!("the configuration file is not valid: {e}");
     let mut root = if config.trim().is_empty() {
@@ -88,10 +91,12 @@ fn edited(config: &str, entries: &Entries) -> Result<String, String> {
         let key = key_of(devices, &keep.id);
         let made = !devices.contains_key(&key);
         let entry = child(devices, key)?;
+        if let Some(sku) = &keep.sku
+            && !entry.contains_key("sku")
+        {
+            entry.insert("sku".into(), sku.as_str().into());
+        }
         if made {
-            if let Some(sku) = &keep.sku {
-                entry.insert("sku".into(), sku.as_str().into());
-            }
             entry.insert("modes".into(), Value::Sequence(vec!["lan".into()]));
         }
         match keep.name() {
@@ -138,6 +143,9 @@ pub(crate) async fn put(State(sdk): State<Arc<Sdk>>, Json(entries): Json<Entries
         return refuse(status, &error);
     }
     sdk.reset().await;
+    if let Err(error) = sdk.rooms().forget(&entries.remove) {
+        return refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string());
+    }
     Json(json!({})).into_response()
 }
 
@@ -173,8 +181,15 @@ mod tests {
         );
         assert_eq!(value["devices"]["aa:bb"]["name"], "desk");
         assert_eq!(value["devices"]["aa:bb"]["modes"][0], "cloud");
-        assert!(value["devices"]["aa:bb"].get("sku").is_none());
+        assert_eq!(value["devices"]["aa:bb"]["sku"], "H6022");
         assert_eq!(value["defaults"]["modes"][0], "lan");
+    }
+
+    #[test]
+    fn a_sku_in_the_file_stays() {
+        let config = "devices:\n  AA:BB:\n    sku: H6008\n";
+        let value = apply(config, vec![keep("AA:BB", Some("H6022"), None)], &[]);
+        assert_eq!(value["devices"]["AA:BB"]["sku"], "H6008");
     }
 
     #[test]
