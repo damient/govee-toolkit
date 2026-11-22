@@ -1,6 +1,8 @@
 # Desktop app
 
-Studio in a window, on Windows, macOS and Linux, built with Tauri 2.
+Studio in a window, on Windows and macOS, built with Tauri 2. On Linux, run
+`govee-server` and open Studio in a browser: see
+[`govee-toolkit-server`](../../packages/rust/crates/server/README.md#linux).
 
 - The web UI is the build of [`../studio/`](../studio/).
 - The server is `govee-toolkit-server`, in the same process. It listens on a
@@ -12,8 +14,6 @@ Studio in a window, on Windows, macOS and Linux, built with Tauri 2.
 ## Requirements
 
 - Rust and Node 26.
-- Linux: `libwebkit2gtk-4.1-dev`, `libdbus-1-dev` and the other packages of
-  the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
 - Windows: the WebView2 runtime, which Windows 11 includes.
 
 ## Run
