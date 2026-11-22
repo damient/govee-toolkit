@@ -17,6 +17,7 @@ export async function copyStatic(): Promise<void> {
   await Promise.all([
     cp(join(src, "index.html"), join(dist, "index.html")),
     cp(join(src, "style.css"), join(dist, "style.css")),
+    cp(join(src, "modal.css"), join(dist, "modal.css")),
     cp(join(src, "locales"), join(dist, "locales"), { recursive: true }),
     cp(join(src, "manifest.webmanifest"), join(dist, "manifest.webmanifest")),
     cp(join(site, "favicon.svg"), join(dist, "favicon.svg")),

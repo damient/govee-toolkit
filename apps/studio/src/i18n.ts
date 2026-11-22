@@ -1,5 +1,6 @@
 import en from "./locales/en.json" with { type: "json" };
-import { read } from "./prefs.ts";
+import { Failure } from "./http.ts";
+import { prefs } from "./prefs.ts";
 
 /** English is the reference: a key exists when `locales/en.json` has it. */
 export type Key = keyof typeof en;
@@ -26,7 +27,7 @@ export function t(key: Key, vars: Record<string, string> = {}): string {
 }
 
 export function language(): Language {
-  return read("language", LANGUAGES, "en");
+  return LANGUAGES.find((code) => code === prefs().language) ?? "en";
 }
 
 /** Fetch `locales/<code>.json`. The file is fetched each time, so that a change shows without a rebuild. */
@@ -53,4 +54,12 @@ export function translate(root: ParentNode = document): void {
     const key = element.dataset["i18nLabel"];
     if (isKey(key)) element.setAttribute("aria-label", t(key));
   }
+}
+
+/** A sentence for the user about `error`: a request that failed, or another fault. */
+export function explain(error: unknown): string {
+  if (error instanceof Failure) {
+    return error.kind === "refused" ? t("error.refused", { reason: error.message }) : t(`error.${error.kind}`);
+  }
+  return t("error.other", { reason: error instanceof Error ? error.message : String(error) });
 }

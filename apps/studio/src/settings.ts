@@ -1,3 +1,4 @@
+import { backup, fail } from "./data.ts";
 import { type Key, LANGUAGES, type Language, NAMES, language, t } from "./i18n.ts";
 import { THEMES, type Theme, setTheme, theme } from "./theme.ts";
 
@@ -16,7 +17,7 @@ function row(name: Key, control: HTMLElement): HTMLLIElement {
   return li;
 }
 
-function themes(): HTMLElement {
+function themes(note: HTMLElement): HTMLElement {
   const group = document.createElement("div");
   group.className = "seg";
   group.setAttribute("role", "radiogroup");
@@ -30,7 +31,9 @@ function themes(): HTMLElement {
     input.value = value;
     input.checked = value === current;
     input.addEventListener("change", () => {
-      setTheme(value);
+      setTheme(value).catch((failure: unknown) => {
+        fail(note, failure);
+      });
     });
     label.append(input, t(THEME_LABELS[value]));
     group.append(label);
@@ -53,9 +56,12 @@ function languages(change: (code: Language) => void): HTMLElement {
 export function settings(view: HTMLElement, change: (code: Language) => void): void {
   const list = document.createElement("ul");
   list.className = "list";
+  const note = document.createElement("p");
+  note.className = "settings-note";
   list.append(
-    row("settings.theme", themes()),
+    row("settings.theme", themes(note)),
     row("settings.language", languages(change)),
+    row("settings.data", backup(note)),
   );
-  view.append(list);
+  view.append(list, note);
 }
