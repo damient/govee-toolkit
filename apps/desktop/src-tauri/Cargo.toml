@@ -1,6 +1,6 @@
 [package]
 name = "govee-toolkit-desktop"
-description = "Govee Toolkit Studio on Windows, macOS and Linux: control Govee lights from a desktop app."
+description = "Govee Toolkit Studio on Windows, macOS and Linux: take full control of your Govee lights from a desktop app."
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.89"

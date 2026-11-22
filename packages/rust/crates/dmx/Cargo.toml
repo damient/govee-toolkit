@@ -1,6 +1,6 @@
 [package]
 name = "govee-toolkit-dmx"
-description = "A DMX bridge over govee-toolkit: a lighting desk drives Govee devices on the LAN over Art-Net. Unofficial."
+description = "Take full control of your Govee lights from a lighting desk, over Art-Net."
 # Versioned apart from the crate it reads, and released under `dmx-vX.Y.Z` —
 # see docs/versioning.md.
 version = "1.4.0"
@@ -10,7 +10,7 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 authors.workspace = true
-keywords = ["govee", "dmx", "artnet", "lighting", "led"]
+keywords = ["govee", "dmx", "artnet", "dmx512", "lighting"]
 categories = ["command-line-utilities", "hardware-support"]
 
 [[bin]]

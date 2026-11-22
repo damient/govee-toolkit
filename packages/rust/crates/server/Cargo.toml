@@ -1,6 +1,6 @@
 [package]
 name = "govee-toolkit-server"
-description = "The local server of Govee Toolkit Studio: control Govee lights from a browser, over the LAN, over Bluetooth or through the cloud."
+description = "Govee Toolkit Studio: take full control of your Govee lights from a browser."
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
@@ -8,7 +8,7 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 authors.workspace = true
-keywords = ["govee", "dashboard", "led", "smart-home", "iot"]
+keywords = ["govee", "govee-api", "lan", "lighting", "dashboard"]
 categories = ["web-programming::http-server", "hardware-support"]
 # `web/` is the Studio build that the release workflow copies here.
 include = ["src/**", "build.rs", "web/**", "README.md"]

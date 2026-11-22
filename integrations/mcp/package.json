@@ -1,7 +1,7 @@
 {
   "name": "govee-toolkit-mcp",
   "version": "0.3.0",
-  "description": "A local MCP server that describes the Govee device catalog and drives the devices over lan, ble and cloud.",
+  "description": "Let your AI assistant take full control of your Govee lights.",
   "license": "MIT",
   "author": "damient",
   "homepage": "https://gvetk.com",
@@ -11,7 +11,7 @@
     "directory": "integrations/mcp"
   },
   "bugs": "https://github.com/damient/govee-toolkit/issues",
-  "keywords": ["govee", "mcp", "model-context-protocol", "smart-home"],
+  "keywords": ["govee", "govee-api", "mcp", "mcp-server", "model-context-protocol", "lighting"],
   "type": "module",
   "bin": { "govee-toolkit-mcp": "dist/main.js" },
   "files": ["dist", "data"],

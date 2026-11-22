@@ -1,6 +1,6 @@
 [package]
 name = "govee-toolkit"
-description = "Control Govee devices over the LAN, over Bluetooth or through the cloud, including undocumented commands. Unofficial."
+description = "Take full control of your Govee lights from your own machine. The engine under every Govee Toolkit package."
 version = "1.17.0"
 edition = "2024"
 rust-version = "1.89"
@@ -8,7 +8,7 @@ license = "MIT"
 homepage = "https://gvetk.com"
 repository = "https://github.com/damient/govee-toolkit"
 authors = ["damient"]
-keywords = ["govee", "led", "smart-home", "iot", "sdk"]
+keywords = ["govee", "govee-api", "lan", "lighting", "dmx"]
 categories = ["api-bindings", "hardware-support", "network-programming"]
 # `cargo package` cannot reach above the manifest, so the release workflow
 # copies `devices/` beside it first — see .github/workflows/rust-release.yml.

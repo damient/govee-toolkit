@@ -1,7 +1,7 @@
 {
   "name": "govee-toolkit",
   "version": "1.8.0",
-  "description": "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them.",
+  "description": "Take full control of your Govee lights from Node.js and TypeScript.",
   "license": "MIT",
   "author": "damient",
   "homepage": "https://gvetk.com",
@@ -11,7 +11,7 @@
     "directory": "packages/node"
   },
   "bugs": "https://github.com/damient/govee-toolkit/issues",
-  "keywords": ["govee", "led", "smart-home", "iot", "sdk"],
+  "keywords": ["govee", "govee-api", "govee-lan", "lan", "led", "lighting", "dmx", "home-automation", "smart-home"],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

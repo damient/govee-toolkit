@@ -9,13 +9,13 @@ name = "govee-toolkit"
 # `tools/release-notes.sh` reads this line to check the tag, the manifest and
 # the changelog against each other. Raise it here and in Cargo.toml together.
 version = "1.9.0"
-description = "Control Govee devices from your own network: undocumented LAN features, with BLE and Cloud modes when you need them."
+description = "Take full control of your Govee lights from Python."
 authors = [{ name = "damient" }]
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = []
-keywords = ["govee", "led", "smart-home", "iot", "sdk"]
+keywords = ["govee", "govee-api", "govee-lan", "lan", "led", "lighting", "dmx", "home-automation", "smart-home"]
 # maturin fills in the license and the platform rows. These are the ones it
 # cannot know.
 classifiers = [
