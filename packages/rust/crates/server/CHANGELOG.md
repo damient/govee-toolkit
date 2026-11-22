@@ -38,7 +38,9 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   the user to update `govee-server` for a newer one.
 - `POST /api/backup/restore` puts back the files from before the last
   import.
-- Only a loopback client can export, import or restore.
+- `POST /api/reset` puts the Studio settings back to the defaults, removes
+  the `devices:` key of `config.yaml`, or both.
+- Only a loopback client can export, import, restore or reset.
 - `Options::storage` and `Storage` choose the folder of these files.
 - `serve` takes a `std::net::TcpListener`, and `WEB_DIR` names the folder
   that the build embeds. A build with no web UI prints a warning.
