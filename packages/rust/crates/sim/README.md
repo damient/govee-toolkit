@@ -16,6 +16,6 @@ firmware does when it is written to too fast.
 Both play the wire, not the firmware: neither interprets a payload, and what a
 read answers is set by the test.
 
-Unofficial and not affiliated with Govee.
+Not affiliated with Govee.
 
 [govee-toolkit]: https://github.com/damient/govee-toolkit
