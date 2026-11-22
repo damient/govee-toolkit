@@ -2,43 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
+  <!-- Before the first paint, so that a light theme does not show dark first. theme.ts writes the key. -->
+  <script>
+    try { document.documentElement.dataset.theme = localStorage.getItem("studio.theme") ?? "dark"; } catch {}
+  </script>
   <title>Govee Toolkit Studio</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
-  <main class="shell">
-    <header class="brand">
-      <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-      <span class="name">govee-toolkit</span>
+  <div class="splash" id="splash" role="status" aria-live="polite">
+    <span class="dots wave" aria-hidden="true"><i></i><i></i><i></i></span>
+    <h1 class="splash-title wordmark">Studio</h1>
+    <p class="splash-sub">Govee Toolkit</p>
+    <p class="splash-note" id="splash-note"></p>
+  </div>
+
+  <div class="app">
+    <header class="top">
+      <a class="brand" href="#home" aria-label="Home" data-i18n-label="brand.home">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="wordmark">Studio</span>
+      </a>
     </header>
-
-    <section class="card" aria-live="polite">
-      <div class="row">
-        <span class="label">Server</span>
-        <span class="status" id="status" data-state="pending">connecting</span>
-      </div>
-      <div class="row">
-        <span class="label">Version</span>
-        <code id="version">—</code>
-      </div>
-      <div class="row">
-        <span class="label">Known models</span>
-        <code id="skus">—</code>
-      </div>
-    </section>
-
-    <section class="devices" aria-live="polite">
-      <header class="devices-head">
-        <h2>On the network</h2>
-        <button type="button" id="scan">Scan</button>
-      </header>
-      <p class="hint" id="devices-hint"></p>
-      <ul class="card list" id="devices" hidden></ul>
-    </section>
-  </main>
+    <nav class="nav" id="nav" aria-label="Main"></nav>
+    <main class="view" id="view"></main>
+  </div>
 </body>
 </html>

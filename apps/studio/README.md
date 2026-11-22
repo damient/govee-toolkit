@@ -17,19 +17,38 @@ npm run serve
 ```
 
 `serve` builds `dist/` and starts `govee-server` on <http://127.0.0.1:4080>.
-In a second terminal, `npm run dev` rebuilds `dist/` on every change. Reload
-the page to see it.
+
+`npm run dev` is the same page with a reload on every change in `src/`:
+
+- A stylesheet change replaces the stylesheet in the page, without a reload.
+- A change in `src/locales/` loads the text again, without a reload.
+- Any other change rebuilds `dist/` and reloads the page.
+
+The dev server listens on `PORT` (4080). It starts `govee-server` on
+`API_PORT` (4081) and passes every request to it.
 
 The fonts and the icon come from `site/src/assets` at build time.
 
-## Planned UI
+## UI
 
-- Detected device list with a state badge per mode
-- Per device: power toggle, brightness slider, color picker, effects
-  dropdown (including undocumented commands)
-- Bottom log: every command sent, with timestamp and measured latency
-- **Raw payload field**: send a custom JSON command straight to a device, to
-  try a discovery before you formalize it in `devices/*.yaml`
+- A splash screen stays until the server answers `/api/hello`. If the server
+  does not answer, the splash stays and gives the reason.
+- The shell has a header, the navigation and one view per space: Home,
+  Lights, Library (presets and scenes), Live (pads), Stage (rooms in 3D and
+  the scene timeline) and Settings. Each view is empty.
+- The navigation is a side rail on a wide screen and an icon rail on a
+  tablet. On a phone it is a tab bar, and Stage and Settings go to "More".
+
+- Settings sets the theme and the language. The theme is dark by default;
+  "Auto" follows the system. This browser keeps both choices
+  (`localStorage`).
+- The text of the UI is in `src/locales/<code>.json`. `en.json` is the
+  reference: it gives the keys, and a key that another file does not have
+  shows in English. A change of language shows the splash while the new
+  file loads. English is the only language for now.
+
+A view gets its content when the content works against the server, `lan`
+first.
 
 ## Engines
 

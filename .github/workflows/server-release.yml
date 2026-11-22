@@ -79,6 +79,7 @@ jobs:
           cargo package --list --allow-dirty > "$RUNNER_TEMP/files.txt"
           grep -qx 'web/index.html' "$RUNNER_TEMP/files.txt"
           grep -qx 'web/app.js' "$RUNNER_TEMP/files.txt"
+          grep -qx 'web/locales/en.json' "$RUNNER_TEMP/files.txt"
       # `ble` reaches BlueZ over D-Bus, and `cargo publish` builds the crate.
       - name: D-Bus headers
         if: steps.crate.outputs.published == 'false'
