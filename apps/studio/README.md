@@ -26,6 +26,8 @@ npm run serve
 
 The dev server listens on `PORT` (4080). It starts `govee-server` on
 `API_PORT` (4081) and passes every request to it.
+The dev server stops when either port is in use, and it stops `govee-server`
+when it stops, so only one dev server runs at a time.
 
 The fonts and the icon come from `site/src/assets` at build time.
 
