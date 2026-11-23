@@ -15,6 +15,7 @@ wire.
 [![govee-toolkit on crates.io](https://img.shields.io/crates/v/govee-toolkit?logo=rust&logoColor=white&label=govee-toolkit)](https://crates.io/crates/govee-toolkit)
 [![govee-toolkit-cli on crates.io](https://img.shields.io/crates/v/govee-toolkit-cli?logo=rust&logoColor=white&label=govee-toolkit-cli)](https://crates.io/crates/govee-toolkit-cli)
 [![govee-toolkit-dmx on crates.io](https://img.shields.io/crates/v/govee-toolkit-dmx?logo=rust&logoColor=white&label=govee-toolkit-dmx)](https://crates.io/crates/govee-toolkit-dmx)
+[![govee-toolkit-server on crates.io](https://img.shields.io/crates/v/govee-toolkit-server?logo=rust&logoColor=white&label=govee-toolkit-server)](https://crates.io/crates/govee-toolkit-server)
 [![govee-toolkit on PyPI](https://img.shields.io/pypi/v/govee-toolkit?logo=python&logoColor=white&label=govee-toolkit)](https://pypi.org/project/govee-toolkit/)
 [![govee-toolkit on npm](https://img.shields.io/npm/v/govee-toolkit?logo=npm&logoColor=white&label=govee-toolkit)](https://www.npmjs.com/package/govee-toolkit)
 [![govee-toolkit-mcp on npm](https://img.shields.io/npm/v/govee-toolkit-mcp?logo=npm&logoColor=white&label=govee-toolkit-mcp)](https://www.npmjs.com/package/govee-toolkit-mcp)
