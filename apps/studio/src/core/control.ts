@@ -17,7 +17,8 @@ export interface Features {
 const isPair = (value: unknown): value is [number, number] =>
   Array.isArray(value) && value.length === 2 && value.every((item) => typeof item === "number");
 
-const NONE: Features = { color: false, colorTemp: null, segments: null, gradient: false };
+/** A device that `POST /api/apply` can only switch and dim. */
+export const NONE: Features = { color: false, colorTemp: null, segments: null, gradient: false };
 
 function features(value: unknown): Features {
   if (typeof value !== "object" || value === null) return NONE;

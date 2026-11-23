@@ -26,15 +26,18 @@ export function help(text: string): HTMLElement {
   const show = (open: boolean): void => {
     tip.hidden = !open;
     badge.setAttribute("aria-expanded", String(open));
-    if (open) place(badge, tip);
-  };
-  const outside = (event: Event): void => {
-    if (!wrap.isConnected) {
+    if (!open) {
       document.removeEventListener("pointerdown", outside);
       document.removeEventListener("scroll", outside, true);
       return;
     }
-    if (event.target instanceof Node && wrap.contains(event.target)) return;
+    place(badge, tip);
+    document.addEventListener("pointerdown", outside);
+    // The tooltip has a fixed position: a scroll would leave it behind.
+    document.addEventListener("scroll", outside, true);
+  };
+  const outside = (event: Event): void => {
+    if (wrap.isConnected && event.target instanceof Node && wrap.contains(event.target)) return;
     pinned = false;
     show(false);
   };
@@ -60,8 +63,5 @@ export function help(text: string): HTMLElement {
     pinned = false;
     show(false);
   });
-  document.addEventListener("pointerdown", outside);
-  // The tooltip has a fixed position: a scroll would leave it behind.
-  document.addEventListener("scroll", outside, true);
   return wrap;
 }

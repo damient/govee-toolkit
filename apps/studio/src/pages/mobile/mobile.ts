@@ -1,19 +1,12 @@
 import "./mobile.css";
 import { type Share, setShare, share } from "../../core/api.ts";
 import { explain, t } from "../../core/i18n.ts";
-import { icon } from "../../shell/nav.ts";
 import { qr } from "../../core/qr.ts";
+import { CHECK, icon } from "../../components/icon/icon.ts";
+import { element } from "../../core/dom.ts";
 
 const PHONE = "M6 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM11 4h2M12 17v.01";
 const COPY = "M8 10a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2zM16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2";
-const CHECK = "M5 12l5 5L20 7";
-
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
-}
 
 /** The QR code, or an empty tile while sharing is off. */
 function tile(state: Share): HTMLElement {

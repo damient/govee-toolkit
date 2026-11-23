@@ -1,19 +1,17 @@
 import "./rooms.css";
 import { type Found, type Room, devices, rooms, saveRooms } from "../../core/api.ts";
-import { chipFace, element, nameInput, roomCard } from "./room.ts";
+import { chipFace, nameInput, roomCard } from "./room.ts";
+import { element } from "../../core/dom.ts";
 import { explain, t } from "../../core/i18n.ts";
 import { go, pathOf } from "../../core/router.ts";
 import { draggable } from "./drag.ts";
 import { help } from "../../components/help/help.ts";
-import { icon } from "../../shell/nav.ts";
 import { loading } from "../../components/loading/loading.ts";
 import { notice } from "../../components/notice/notice.ts";
+import { ALERT, CHECK, REFRESH, icon } from "../../components/icon/icon.ts";
 
 const BULB = "M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V16h8v-1.3A7 7 0 0 0 12 2z";
-const ALERT = "M12 8v5M12 16h.01M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z";
-const REFRESH = "M20 11A8.1 8.1 0 0 0 4.5 9M4 5v4h4M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4";
 const PLUS = "M12 5v14M5 12h14";
-const CHECK = "M5 12l5 5L20 7";
 
 /** A light on its way: from the pool when `room` is `null`, or from the room at that index. */
 interface Source {

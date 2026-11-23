@@ -163,10 +163,9 @@ page: move the shared code to `components/`, `shell/` or `core/`.
 - Settings > Data exports one JSON file with the devices, the settings and
   the API key of the cloud mode when one is set, and imports it again. The
   file is `govee-toolkit-studio-<date>-<time>.json`, in local time. A
-  modal asks before an import replaces the files. After an import, Restore
-  shows on the same row and puts back the configuration from before it. The
-  button goes when the user leaves Settings or reloads the page; the server
-  keeps its copies.
+  modal asks before an import replaces the files. While the server keeps the
+  copies from before an import, Restore shows on the same row and puts back
+  that configuration.
   Only the computer of the server can export, import or restore.
 - Settings > Reset opens a modal with a checkbox for the preferences, one
   for the device list, and All, which checks both. A second modal asks for

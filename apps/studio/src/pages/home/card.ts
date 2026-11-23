@@ -1,25 +1,18 @@
 import "../../components/light/light.css";
-import { type Outcome, type Status, apply, applyOne, status } from "../../core/control.ts";
-import type { Found } from "../../core/api.ts";
+import { NONE, type Outcome, type Status, apply, applyOne, status } from "../../core/control.ts";
+import { type Found, labelOf } from "../../core/api.ts";
 import { explain, t } from "../../core/i18n.ts";
 import { familyIcon } from "../../components/family/family.ts";
-import { icon } from "../../shell/nav.ts";
 import { latest } from "../../core/latest.ts";
 import { loading } from "../../components/loading/loading.ts";
 import { tooltip } from "../../components/tooltip/tooltip.ts";
+import { icon } from "../../components/icon/icon.ts";
+import { element } from "../../core/dom.ts";
+import { statusMark } from "../../components/light/mark.ts";
 
 export const POWER = "M7 6a7.75 7.75 0 1 0 10 0M12 4v8";
 /** What a click on a card leaves to the element itself. */
 const CONTROLS = "button, input, [tabindex]";
-/** The light needs a moment after power on before its state gives the color. */
-const SETTLE_MS = 300;
-
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
-}
 
 /** The color of a white temperature, for the swatch. The steps are approximate. */
 function white(kelvin: number): string {
@@ -36,15 +29,38 @@ function shown(state: Status): string | null {
   return hex === "000000" ? null : `#${hex}`;
 }
 
-/** The mark of a light that has no state: the request runs, or the light did not answer. */
-function mark(text: string, content: Node): HTMLElement {
-  const node = element("span", "light-find light-offline");
-  node.tabIndex = 0;
-  node.setAttribute("role", "img");
-  node.setAttribute("aria-label", text);
-  node.append(content);
-  tooltip(node, text);
-  return node;
+/** A power button and the function that shows the state of the light on it. */
+export interface PowerButton {
+  button: HTMLButtonElement;
+  set: (on: boolean) => void;
+}
+
+/**
+ * The power button of a light: cyan while the light is on. A click gives
+ * `press` the wanted state, and the button stays disabled until it settles.
+ * `spinner` shows a spinner in place of the icon meanwhile.
+ */
+export function powerButton(name: string, press: (wanted: boolean) => Promise<void>, spinner = false): PowerButton {
+  const button = element("button", "home-power");
+  button.type = "button";
+  button.append(icon(POWER));
+  const tip = tooltip(button, "");
+  const set = (on: boolean): void => {
+    const label = t(on ? "home.light.off" : "home.light.on", { name });
+    button.setAttribute("aria-pressed", String(on));
+    button.setAttribute("aria-label", label);
+    tip(label);
+  };
+  button.addEventListener("click", () => {
+    const wanted = button.getAttribute("aria-pressed") !== "true";
+    button.disabled = true;
+    if (spinner) button.replaceChildren(loading({ size: "s" }));
+    void press(wanted).finally(() => {
+      button.disabled = false;
+      if (spinner) button.replaceChildren(icon(POWER));
+    });
+  });
+  return { button, set };
 }
 
 /** What a card tells the home view. */
@@ -71,6 +87,7 @@ export class HomeCard {
   readonly name: string;
   private readonly title = element("button", "light-title home-open");
   private readonly events: CardEvents;
+  private readonly power: PowerButton;
   /** `null` until the light answers, and while it does not answer. */
   private state: Status | null = null;
   /** Sends the level while the knob moves. */
@@ -88,7 +105,8 @@ export class HomeCard {
   constructor(found: Found, events: CardEvents) {
     this.found = found;
     this.events = events;
-    this.name = found.name ?? found.sku ?? found.id;
+    this.name = labelOf(found);
+    this.power = this.powerButton();
     this.title.type = "button";
     this.title.textContent = this.name;
     this.title.disabled = true;
@@ -128,8 +146,21 @@ export class HomeCard {
     // The color bar is the track of the slider: the knob alone shows.
     this.swatch.append(this.level);
     this.node.append(top, this.swatch, this.error);
-    this.slot.append(mark(t("light.checking"), loading({ size: "s" })));
+    this.slot.append(statusMark(t("light.checking"), loading({ size: "s" })));
     this.read();
+  }
+
+  private powerButton(): PowerButton {
+    const press = (wanted: boolean): Promise<void> =>
+      apply([this.found.id], { power: wanted }).then(
+        ([answer]) => {
+          if (answer) this.powered(answer, wanted);
+        },
+        (failure: unknown) => {
+          this.fail(explain(failure));
+        },
+      );
+    return powerButton(this.name, press, true);
   }
 
   /** Ask the light for its state. */
@@ -164,7 +195,7 @@ export class HomeCard {
 
   /**
    * Show what `apply` answered to a power change of this light. `wanted` is the state that it
-   * asked for. A light turned on is read again, for its color. `bar` is `true` for a change
+   * asked for. `bar` is `true` for a change
    * from the power button of the bar: any other power on runs `events.turnedOn`.
    */
   powered(answer: Outcome, wanted: boolean, bar = false): void {
@@ -175,16 +206,13 @@ export class HomeCard {
         color: null,
         kelvin: null,
         range: null,
-        features: { color: false, colorTemp: null, segments: null, gradient: false },
+        features: NONE,
         ...this.state,
         on: wanted,
       };
+      // A light that is off still reports its color: the state of the last
+      // read holds it. A read just after power on can still answer `on: false`.
       this.draw();
-      if (wanted) {
-        setTimeout(() => {
-          this.read();
-        }, SETTLE_MS);
-      }
     } else {
       this.fail(answer.error ?? "");
     }
@@ -226,29 +254,8 @@ export class HomeCard {
       this.level.value = String(Math.min(high, Math.max(low, state.brightness ?? high)));
       this.level.disabled = state.on !== true;
     }
-    this.slot.replaceChildren(this.toggle(state.on === true));
+    this.power.set(state.on === true);
+    if (this.power.button.parentNode !== this.slot) this.slot.replaceChildren(this.power.button);
   }
 
-  private toggle(on: boolean): HTMLButtonElement {
-    const button = element("button", "home-power");
-    button.type = "button";
-    button.setAttribute("aria-pressed", String(on));
-    const label = t(on ? "home.light.off" : "home.light.on", { name: this.name });
-    button.setAttribute("aria-label", label);
-    button.append(icon(POWER));
-    tooltip(button, label);
-    button.addEventListener("click", () => {
-      button.disabled = true;
-      button.replaceChildren(loading({ size: "s" }));
-      apply([this.found.id], { power: !on }).then(
-        ([answer]) => {
-          if (answer) this.powered(answer, !on);
-        },
-        (failure: unknown) => {
-          this.fail(explain(failure));
-        },
-      );
-    });
-    return button;
-  }
 }

@@ -1,5 +1,6 @@
 import "./alert.css";
-import { icon } from "../../shell/nav.ts";
+import { icon } from "../icon/icon.ts";
+import { element } from "../../core/dom.ts";
 
 const ICONS = {
   success: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 12.5l3 3 5-6",
@@ -12,13 +13,6 @@ export interface Alert {
   tone: keyof typeof ICONS;
   title: string;
   body?: string;
-}
-
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
 }
 
 /** A line in the flow of a view: the icon of its tone, a title and an optional text. An error is read out at once. */

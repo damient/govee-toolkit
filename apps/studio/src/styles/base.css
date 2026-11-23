@@ -13,5 +13,4 @@ body {
 /* A rule that sets `display` wins over the `hidden` attribute: put it back on top. */
 [hidden] { display: none !important; }
 
-.muted { color: var(--muted); }
 .error { color: var(--ember); }

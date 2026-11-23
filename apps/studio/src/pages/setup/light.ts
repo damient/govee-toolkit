@@ -3,42 +3,25 @@ import { type Found, identify } from "../../core/api.ts";
 import { familyIcon } from "../../components/family/family.ts";
 import { explain, t } from "../../core/i18n.ts";
 import { loading } from "../../components/loading/loading.ts";
-import { icon } from "../../shell/nav.ts";
-import { tooltip } from "../../components/tooltip/tooltip.ts";
+import { CHECK, EDIT, SEARCH, icon } from "../../components/icon/icon.ts";
+import { element } from "../../core/dom.ts";
+import { iconButton } from "./room.ts";
+import { statusMark } from "../../components/light/mark.ts";
 
-const LOCATE = "M10.5 17.5a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4.5-4.5";
-const EDIT = "M4 20h4L18.5 9.5a2.8 2.8 0 0 0-4-4L4 16v4M13.5 6.5l4 4";
-const CHECK = "M5 12l5 5L20 7";
 const ONLINE = "M12 6.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z";
-
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
-}
-
-function iconButton(d: string, label: string): HTMLButtonElement {
-  const button = element("button", "icon-button");
-  button.type = "button";
-  button.setAttribute("aria-label", label);
-  button.append(icon(d));
-  tooltip(button, label);
-  return button;
-}
 
 /** A dot that shows the light answered, and the magnifier of the action on hover and on focus. */
 function rest(): SVGSVGElement[] {
   const answered = icon(ONLINE);
   answered.classList.add("rest");
-  const find = icon(LOCATE);
+  const find = icon(SEARCH);
   find.classList.add("act");
   return [answered, find];
 }
 
 /** The identify button: the light shows green for some seconds, and the button shows the wait. */
 function identifyButton(found: Found, error: HTMLElement): HTMLButtonElement {
-  const button = iconButton(LOCATE, t("light.identify"));
+  const button = iconButton(SEARCH, t("light.identify"));
   button.classList.add("light-find");
   button.replaceChildren(...rest());
   button.addEventListener("click", () => {
@@ -62,21 +45,6 @@ function identifyButton(found: Found, error: HTMLElement): HTMLButtonElement {
     );
   });
   return button;
-}
-
-/**
- * The mark of a light that has no answer: the scan runs, the scan failed, or
- * the light did not answer. It takes the focus, so that a keyboard shows its
- * tooltip.
- */
-function statusMark(text: string, content: Node): HTMLElement {
-  const mark = element("span", "light-find light-offline");
-  mark.tabIndex = 0;
-  mark.setAttribute("role", "img");
-  mark.setAttribute("aria-label", text);
-  mark.append(content);
-  tooltip(mark, text);
-  return mark;
 }
 
 /** The status of the light. `checking` says that a scan runs. */

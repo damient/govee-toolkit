@@ -15,15 +15,19 @@ export interface White {
   pick(): void;
 }
 
+function recolor(button: HTMLElement, hex: string): void {
+  button.style.background = hex;
+  button.dataset["color"] = hex;
+  button.setAttribute("aria-label", t("panel.pick", { color: hex }));
+}
+
 function swatch(hex: string, pick: (hex: string) => void): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "panel-swatch";
-  button.style.background = hex;
-  button.dataset["color"] = hex;
-  button.setAttribute("aria-label", t("panel.pick", { color: hex }));
+  recolor(button, hex);
   button.addEventListener("click", () => {
-    pick(hex);
+    pick(button.dataset["color"] ?? hex);
   });
   return button;
 }
@@ -64,6 +68,8 @@ export class ColorPart {
   private readonly pick: (hex: string) => void;
   private readonly failed: (message: string) => void;
   private readonly white: White | null;
+  /** The first swatch when it shows a color that no other swatch has. A drag of the wheel recolors it. */
+  private extra: HTMLElement | null = null;
 
   /** `failed` shows an error of the save of the favorites. */
   constructor(start: string, pick: (hex: string) => void, failed: (message: string) => void, white: White | null) {
@@ -136,8 +142,11 @@ export class ColorPart {
   private draw(): void {
     const favorites = prefs().favorites;
     const colors = [...favorites, ...BASE.filter((hex) => !favorites.includes(hex))];
-    if (!colors.includes(this.current)) colors.unshift(this.current);
-    this.swatches.replaceChildren(...colors.map((hex) => swatch(hex, this.choose)), this.custom);
+    const extra = !colors.includes(this.current);
+    if (extra) colors.unshift(this.current);
+    const nodes = colors.map((hex) => swatch(hex, this.choose));
+    this.extra = extra ? (nodes[0] ?? null) : null;
+    this.swatches.replaceChildren(...nodes, this.custom);
     this.mark();
   }
 
@@ -148,10 +157,13 @@ export class ColorPart {
   private mark(): void {
     const listed = [...this.swatches.querySelectorAll<HTMLElement>(".panel-swatch")];
     if (!listed.some((button) => button.dataset["color"] === this.current)) {
-      this.draw();
-      return;
+      if (this.extra === null) {
+        this.draw();
+        return;
+      }
+      recolor(this.extra, this.current);
     }
-    for (const button of this.swatches.querySelectorAll<HTMLElement>(".panel-swatch")) {
+    for (const button of listed) {
       button.setAttribute("aria-pressed", String(button.dataset["color"] === this.current));
     }
     const kept = prefs().favorites.includes(this.current);

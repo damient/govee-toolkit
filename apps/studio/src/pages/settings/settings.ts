@@ -2,6 +2,7 @@ import "./settings.css";
 import { backup, fail } from "./data.ts";
 import { type Key, LANGUAGES, type Language, NAMES, language, t } from "../../core/i18n.ts";
 import { pathOf } from "../../core/router.ts";
+import { share } from "../../core/api.ts";
 import { server } from "../../core/prefs.ts";
 import { resetButton } from "./reset.ts";
 import { THEMES, type Theme, setTheme, theme } from "../../core/theme.ts";
@@ -78,7 +79,9 @@ export function settings(view: HTMLElement, change: (code: Language) => void): v
   note.className = "settings-note";
   const lights = card(row("settings.setup", setupLink()));
   const look = card(row("settings.theme", themes(note)), row("settings.language", languages(change)));
-  const data = card(row("settings.data", backup(note)), row("settings.reset", resetButton(note)));
+  // Only this computer can export, import or reset.
+  const local = share().then((state) => state.local);
+  const data = card(row("settings.data", backup(note, local)), row("settings.reset", resetButton(note, local)));
   const line = document.createElement("p");
   line.className = "settings-versions";
   const facts = server();

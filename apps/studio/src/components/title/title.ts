@@ -1,8 +1,7 @@
 import "./title.css";
 import { t } from "../../core/i18n.ts";
-import { icon } from "../../shell/nav.ts";
+import { BACK, icon } from "../icon/icon.ts";
 
-const BACK = "M15 6l-6 6 6 6";
 
 export interface Title {
   text: string;

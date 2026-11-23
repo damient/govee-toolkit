@@ -1,5 +1,6 @@
 import "./menu.css";
-import { icon } from "../../shell/nav.ts";
+import { icon } from "../icon/icon.ts";
+import { element } from "../../core/dom.ts";
 
 const DOTS = "M12 5h.01M12 12h.01M12 19h.01";
 
@@ -16,13 +17,6 @@ export interface Menu {
   /** The name of the button, for a screen reader. */
   label: string;
   items: MenuItem[];
-}
-
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
 }
 
 /** Put `list` under `button`, with their right edges aligned, or above it near the bottom edge. */
