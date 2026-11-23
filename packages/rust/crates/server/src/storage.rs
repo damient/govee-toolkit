@@ -5,8 +5,10 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use govee_toolkit::config::{self, DeviceEdit};
 use govee_toolkit::env::Env;
 use govee_toolkit::{Config, paths};
+use serde::Serialize;
 
 /// The files that the server reads and writes.
 #[derive(Debug, Clone)]
@@ -76,6 +78,46 @@ impl Storage {
 
 pub(crate) fn invalid(error: impl std::fmt::Display) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, error.to_string())
+}
+
+/// Apply `edits` to the configuration file at `path`. `false` when nothing
+/// changes: the file then stays as it is. `InvalidData` when the file is not
+/// a valid configuration.
+pub(crate) fn edit_config(path: &Path, edits: &[DeviceEdit]) -> io::Result<bool> {
+    let text = read(path)?.unwrap_or_default();
+    match config::edit_devices(path, &text, edits).map_err(invalid)? {
+        Some(text) => write(path, text.as_bytes(), false).map(|()| true),
+        None => Ok(false),
+    }
+}
+
+/// Run `work` on a thread of the blocking pool. A write waits for the disk
+/// (`sync_all`), and an async worker must not: the `lan` send path shares it.
+pub(crate) async fn blocking<T: Send + 'static>(
+    work: impl FnOnce() -> io::Result<T> + Send + 'static,
+) -> io::Result<T> {
+    tokio::task::spawn_blocking(work)
+        .await
+        .map_err(io::Error::other)?
+}
+
+/// `value` as pretty JSON with a final line break.
+pub(crate) fn json_text(value: &impl Serialize) -> io::Result<String> {
+    let mut text = serde_json::to_string_pretty(value).map_err(invalid)?;
+    text.push('\n');
+    Ok(text)
+}
+
+/// Replace `path` with `text`, or delete it for `None`. `keep` makes a
+/// [`keep`] copy first.
+pub(crate) fn put(path: &Path, text: Option<&str>, private: bool, keep: bool) -> io::Result<()> {
+    if keep {
+        self::keep(path)?;
+    }
+    match text {
+        Some(text) => write(path, text.as_bytes(), private),
+        None => remove(path),
+    }
 }
 
 /// The text of `path`, or `None` when the file does not exist.

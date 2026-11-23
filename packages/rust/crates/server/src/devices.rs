@@ -12,8 +12,8 @@ use govee_toolkit::{Config, DeviceConfig, DeviceId, Govee, Mode, Walk};
 use serde_json::{Value, json};
 use tokio::sync::Mutex;
 
-use crate::rooms;
 use crate::storage::Storage;
+use crate::{refuse, rooms};
 
 /// Started on the first request, so a UI-only server opens no device socket.
 #[derive(Debug, Default)]
@@ -39,36 +39,65 @@ impl Sdk {
         if let Some(govee) = &*govee {
             return Ok(Arc::clone(govee));
         }
-        let config = self.storage.as_ref().map(Storage::sdk_config).transpose()?;
+        let config = self.read_config().await?;
         let started = Arc::new(Govee::start_or_defaults(config, None).await?);
         *govee = Some(Arc::clone(&started));
         Ok(started)
+    }
+
+    /// The configuration that `govee` started with, which every write of
+    /// the server renews through [`Sdk::reset`]. `None` when the server
+    /// keeps no files.
+    fn config<'a>(&self, govee: &'a Govee) -> Option<&'a Config> {
+        self.storage.is_some().then(|| govee.config())
     }
 
     pub(crate) fn storage(&self) -> Option<&Storage> {
         self.storage.as_ref()
     }
 
-    pub(crate) fn rooms(&self) -> &rooms::Store {
-        &self.rooms
+    pub(crate) fn rooms(&self) -> Arc<rooms::Store> {
+        Arc::clone(&self.rooms)
     }
 
-    /// Close the SDK. The next request starts it with the files as they are.
-    pub(crate) async fn reset(&self) {
-        if let Some(govee) = self.govee.lock().await.take() {
+    /// The configuration of the files, read on the blocking pool. `None`
+    /// when the server keeps no files.
+    async fn read_config(&self) -> govee_toolkit::Result<Option<Config>> {
+        let Some(storage) = self.storage.clone() else {
+            return Ok(None);
+        };
+        let path = storage.config.display().to_string();
+        let read = tokio::task::spawn_blocking(move || storage.sdk_config()).await;
+        read.map_err(|e| govee_toolkit::Error::Config {
+            path,
+            reason: e.to_string(),
+        })?
+        .map(Some)
+    }
+
+    /// Give the SDK the files as they are now. [`Govee::reconfigure`] keeps
+    /// the transports and the devices that they know. When it cannot, the
+    /// SDK closes, and the next request starts it with the files.
+    pub(crate) async fn reload(&self) {
+        let mut govee = self.govee.lock().await;
+        let Some(current) = govee.take() else {
+            return;
+        };
+        let next = match self.read_config().await {
+            Ok(Some(config)) => current.reconfigure(config).ok(),
+            _ => None,
+        };
+        if next.is_none() {
             // A close that fails leaves nothing to undo: the next start binds
             // again.
-            let _ = govee.close().await;
+            let _ = current.close().await;
         }
+        *govee = next.map(Arc::new);
     }
 }
 
 pub(crate) fn failed(error: &govee_toolkit::Error) -> Response {
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({ "error": error.to_string() })),
-    )
-        .into_response()
+    refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string())
 }
 
 fn family(govee: &Govee, sku: Option<&str>) -> Option<String> {
@@ -77,8 +106,7 @@ fn family(govee: &Govee, sku: Option<&str>) -> Option<String> {
 }
 
 /// A device that answered the scan, with the family of its device file for
-/// the icon of Studio, and its entry in `config.yaml`. The file is read on
-/// each call: a write does not restart the SDK.
+/// the icon of Studio, and its entry in `config.yaml`.
 fn scanned(govee: &Govee, device: &govee_toolkit::Device, config: Option<&Config>) -> Value {
     let mut value = device.to_json(Some(Mode::Lan));
     if let Some(fields) = value.as_object_mut() {
@@ -106,8 +134,10 @@ fn entry(govee: &Govee, id: &DeviceId, entry: &DeviceConfig) -> Value {
 pub(crate) async fn list(State(sdk): State<Arc<Sdk>>) -> Response {
     let found = async {
         let govee = sdk.get().await?;
-        let config = sdk.storage.as_ref().map(Storage::sdk_config).transpose()?;
-        let records = config.iter().flat_map(|config| &config.devices);
+        let records = sdk
+            .config(&govee)
+            .into_iter()
+            .flat_map(|config| &config.devices);
         govee_toolkit::Result::Ok(
             records
                 .map(|(id, record)| entry(&govee, id, record))
@@ -127,11 +157,11 @@ pub(crate) async fn scan(State(sdk): State<Arc<Sdk>>) -> Response {
     let found = async {
         let govee = sdk.get().await?;
         let devices = govee.scan(Some(&[Mode::Lan])).await?;
-        let config = sdk.storage.as_ref().map(Storage::sdk_config).transpose()?;
+        let config = sdk.config(&govee);
         govee_toolkit::Result::Ok(
             devices
                 .iter()
-                .map(|device| scanned(&govee, device, config.as_ref()))
+                .map(|device| scanned(&govee, device, config))
                 .collect::<Vec<_>>(),
         )
     }
@@ -154,7 +184,7 @@ pub(crate) async fn identify(State(sdk): State<Arc<Sdk>>, Path(id): Path<String>
     match report {
         Ok(report) => match report.summary("light") {
             None => Json(json!({})).into_response(),
-            Some(line) => (StatusCode::BAD_GATEWAY, Json(json!({ "error": line }))).into_response(),
+            Some(line) => refuse(StatusCode::BAD_GATEWAY, &line),
         },
         Err(error) => failed(&error),
     }

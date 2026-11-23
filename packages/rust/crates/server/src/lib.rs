@@ -21,12 +21,29 @@ mod storage;
 mod studio;
 mod web;
 
-use axum::http::Uri;
+use axum::http::{HeaderMap, StatusCode, Uri};
+use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
-use axum::{Router, middleware};
+use axum::{Json, Router, middleware};
 use tower_http::services::ServeDir;
 
 pub use crate::storage::Storage;
+
+/// The answer of a refused request: `{ "error": error }`.
+pub(crate) fn refuse(status: StatusCode, error: &str) -> Response {
+    (status, Json(serde_json::json!({ "error": error }))).into_response()
+}
+
+/// [`refuse`] for an error of a file: 409 for a file that does not parse,
+/// 500 for the others.
+pub(crate) fn refuse_io(error: &io::Error) -> Response {
+    let status = if error.kind() == io::ErrorKind::InvalidData {
+        StatusCode::CONFLICT
+    } else {
+        StatusCode::INTERNAL_SERVER_ERROR
+    };
+    refuse(status, &error.to_string())
+}
 
 /// Loopback only: the API carries no authentication.
 pub const DEFAULT_LISTEN: &str = "127.0.0.1:4080";
@@ -108,7 +125,10 @@ fn routes(
         .merge(
             Router::new()
                 .route("/backup", get(backup::export).post(backup::import))
-                .route("/backup/restore", post(backup::restore))
+                .route(
+                    "/backup/restore",
+                    get(backup::restorable).post(backup::restore),
+                )
                 .route("/reset", post(reset::reset))
                 .with_state(backup),
         );
@@ -116,7 +136,9 @@ fn routes(
     match &options.web {
         Web::Embedded => {
             app = app
-                .fallback(|uri: Uri| async move { web::respond(web::ASSETS, &uri) })
+                .fallback(|uri: Uri, headers: HeaderMap| async move {
+                    web::respond(web::ASSETS, &uri, &headers)
+                })
                 .layer(middleware::map_request(web::to_index));
         }
         Web::Dir(dir) => {

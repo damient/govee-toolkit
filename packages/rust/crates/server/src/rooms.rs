@@ -12,15 +12,16 @@ use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use govee_toolkit::DeviceId;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::storage;
+use crate::{refuse, storage};
 
 /// The version of the shape of `rooms.json` that this server writes.
 pub(crate) const VERSION: &str = "0.1.0";
 /// The longest name, in characters.
-const NAME_MAX: usize = 64;
+pub(crate) const NAME_MAX: usize = 64;
 
 /// The content of `rooms.json`, and the rooms part of a backup.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,9 +47,9 @@ pub(crate) struct Room {
     #[serde(default)]
     id: String,
     name: String,
-    /// Device IDs, in the order of the room.
+    /// Device IDs, in the order of the room. A read normalizes each one.
     #[serde(default)]
-    devices: Vec<String>,
+    devices: Vec<DeviceId>,
 }
 
 impl Rooms {
@@ -70,19 +71,18 @@ impl Rooms {
     }
 
     /// Remove `ids` from every room. Answer `true` when a room changed.
-    fn forget(&mut self, ids: &[String]) -> bool {
+    fn forget(&mut self, ids: &[DeviceId]) -> bool {
         let mut changed = false;
         for room in &mut self.rooms {
             let before = room.devices.len();
-            room.devices
-                .retain(|id| !ids.iter().any(|gone| gone.eq_ignore_ascii_case(id)));
+            room.devices.retain(|id| !ids.contains(id));
             changed |= room.devices.len() != before;
         }
         changed
     }
 }
 
-/// Trim the names and the IDs, then refuse a blank or long name, a name or
+/// Trim the names, then refuse a blank or long name, a name or
 /// an ID that two rooms share, and a device that a room lists twice. A room
 /// with no id gets `room-<n>`, above every number in use.
 fn valid(rooms: Vec<Room>) -> Result<Vec<Room>, String> {
@@ -111,16 +111,12 @@ fn valid(rooms: Vec<Room>) -> Result<Vec<Room>, String> {
         if out.iter().any(|kept| kept.id == id) {
             return Err(format!("two rooms have the id `{id}`"));
         }
-        let mut devices: Vec<String> = Vec::with_capacity(room.devices.len());
+        let mut devices: Vec<DeviceId> = Vec::with_capacity(room.devices.len());
         for device in room.devices {
-            let device = device.trim().to_owned();
-            if device.is_empty() {
+            if device.as_str().is_empty() {
                 return Err(format!("`{name}` lists a blank device ID"));
             }
-            if devices
-                .iter()
-                .any(|kept| kept.eq_ignore_ascii_case(&device))
-            {
+            if devices.contains(&device) {
                 return Err(format!("`{name}` lists {device} twice"));
             }
             devices.push(device);
@@ -165,24 +161,15 @@ impl Store {
     pub(crate) fn set(&self, rooms: Option<Rooms>, keep: bool) -> io::Result<()> {
         let mut data = self.lock();
         if let Some(path) = &self.path {
-            if keep {
-                storage::keep(path)?;
-            }
-            match &rooms {
-                Some(rooms) => {
-                    let mut text = serde_json::to_string_pretty(rooms).map_err(storage::invalid)?;
-                    text.push('\n');
-                    storage::write(path, text.as_bytes(), false)?;
-                }
-                None => storage::remove(path)?,
-            }
+            let text = rooms.as_ref().map(storage::json_text).transpose()?;
+            storage::put(path, text.as_deref(), false, keep)?;
         }
         *data = rooms.unwrap_or_default();
         Ok(())
     }
 
     /// Remove `ids` from every room, and write the file when a room changed.
-    pub(crate) fn forget(&self, ids: &[String]) -> io::Result<()> {
+    pub(crate) fn forget(&self, ids: &[DeviceId]) -> io::Result<()> {
         let mut next = self.get();
         if next.forget(ids) {
             self.set(Some(next), false)?;
@@ -224,17 +211,15 @@ pub(crate) async fn put(State(store): State<Arc<Store>>, Json(body): Json<Put>) 
             rooms,
             ..Rooms::default()
         },
-        Err(error) => {
-            return (StatusCode::BAD_REQUEST, Json(json!({ "error": error }))).into_response();
-        }
+        Err(error) => return refuse(StatusCode::BAD_REQUEST, &error),
     };
-    match store.set(Some(rooms.clone()), false) {
+    if rooms == store.get() {
+        return answer(&rooms);
+    }
+    let kept = rooms.clone();
+    match storage::blocking(move || store.set(Some(kept), false)).await {
         Ok(()) => answer(&rooms),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": e.to_string() })),
-        )
-            .into_response(),
+        Err(e) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
     }
 }
 
@@ -248,7 +233,7 @@ mod tests {
         Room {
             id: id.to_owned(),
             name: name.to_owned(),
-            devices: devices.iter().map(|d| (*d).to_owned()).collect(),
+            devices: devices.iter().map(DeviceId::new).collect(),
         }
     }
 
@@ -286,10 +271,10 @@ mod tests {
             ],
             ..Rooms::default()
         };
-        assert!(rooms.forget(&["AA".to_owned()]));
-        assert_eq!(rooms.rooms[0].devices, ["BB"]);
-        assert_eq!(rooms.rooms[1].devices, Vec::<String>::new());
-        assert!(!rooms.forget(&["CC".to_owned()]));
+        assert!(rooms.forget(&[DeviceId::new("aa")]));
+        assert_eq!(rooms.rooms[0].devices, [DeviceId::new("BB")]);
+        assert_eq!(rooms.rooms[1].devices, Vec::<DeviceId>::new());
+        assert!(!rooms.forget(&[DeviceId::new("CC")]));
     }
 
     #[test]

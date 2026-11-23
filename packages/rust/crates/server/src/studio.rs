@@ -157,17 +157,12 @@ impl TryFrom<String> for Hex {
     type Error = String;
 
     fn try_from(text: String) -> Result<Self, String> {
-        let refused = || format!("`{text}` is not a color as #rrggbb");
-        let digits = text
-            .strip_prefix('#')
-            .filter(|d| d.len() == 6 && d.bytes().all(|b| b.is_ascii_hexdigit()))
-            .ok_or_else(refused)?;
-        let mut rgb = [0; 3];
-        for (i, channel) in rgb.iter_mut().enumerate() {
-            let pair = digits.get(i * 2..i * 2 + 2).ok_or_else(refused)?;
-            *channel = u8::from_str_radix(pair, 16).map_err(|_| refused())?;
-        }
-        Ok(Self(rgb))
+        // `coerce::rgb` also reads a color with no `#` or with a sign.
+        text.strip_prefix('#')
+            .filter(|d| d.bytes().all(|b| b.is_ascii_hexdigit()))
+            .and_then(|_| govee_toolkit::codec::coerce::rgb(&text))
+            .map(Self)
+            .ok_or_else(|| format!("`{text}` is not a color as #rrggbb"))
     }
 }
 
@@ -273,12 +268,7 @@ impl Store {
         let Some(path) = &self.path else {
             return Ok(());
         };
-        if keep {
-            storage::keep(path)?;
-        }
-        let mut text = serde_json::to_string_pretty(studio).map_err(storage::invalid)?;
-        text.push('\n');
-        storage::write(path, text.as_bytes(), false)
+        storage::put(path, Some(&storage::json_text(studio)?), false, keep)
     }
 }
 

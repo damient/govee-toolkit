@@ -3,7 +3,6 @@
 //! API key, so only a client on this machine can export or import it.
 
 use std::collections::BTreeMap;
-use std::fmt::Write as _;
 use std::io;
 use std::path::Path;
 use std::sync::Arc;
@@ -13,18 +12,17 @@ use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use govee_toolkit::Config;
 use govee_toolkit::config::{CloudConfig, KEY_ENV};
+use govee_toolkit::{Config, Env};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::compat;
 use crate::devices::Sdk;
 use crate::rooms::{self, Rooms};
-use crate::settings::refuse;
 use crate::share::{Local, Share};
 use crate::storage::{self, Storage};
 use crate::studio::{Store, Studio};
+use crate::{compat, refuse};
 
 /// The value of `format` in a backup.
 const FORMAT: &str = "govee-toolkit-backup";
@@ -98,9 +96,12 @@ pub(crate) async fn export(
         Ok(storage) => storage,
         Err((status, error)) => return refuse(status, error),
     };
-    let document = (|| {
-        let config = storage::read(&storage.config).map_err(|e| e.to_string())?;
-        let key = key(storage, config.as_deref())?;
+    let storage = storage.clone();
+    let shared = Arc::clone(&backup);
+    let document = storage::blocking(move || {
+        let config = storage::read(&storage.config)?;
+        let key = key(&storage, config.as_deref()).map_err(storage::invalid)?;
+        let backup = shared;
         let settings = backup.store.get();
         let document = Document {
             format: FORMAT.to_owned(),
@@ -110,8 +111,9 @@ pub(crate) async fn export(
             credentials: key.map(|key| BTreeMap::from([(KEY_ENV.to_owned(), key)])),
             rooms: Some(backup.rooms.get()),
         };
-        serde_json::to_string_pretty(&document).map_err(|e| e.to_string())
-    })();
+        serde_json::to_string_pretty(&document).map_err(storage::invalid)
+    })
+    .await;
     match document {
         Ok(text) => (
             [
@@ -124,7 +126,7 @@ pub(crate) async fn export(
             text,
         )
             .into_response(),
-        Err(error) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &error),
+        Err(error) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()),
     }
 }
 
@@ -137,7 +139,8 @@ struct Plan {
     rooms: Option<Rooms>,
 }
 
-fn validate(body: &[u8]) -> Result<Plan, String> {
+/// `credentials` is where the credentials go, for the error.
+fn validate(body: &[u8], credentials: &Path) -> Result<Plan, String> {
     let value: serde_json::Value =
         serde_json::from_slice(body).map_err(|_| NOT_A_BACKUP.to_owned())?;
     if value.get("format").and_then(serde_json::Value::as_str) != Some(FORMAT) {
@@ -165,7 +168,12 @@ fn validate(body: &[u8]) -> Result<Plan, String> {
         parse_config(text)?;
     }
     let credentials = match document.credentials {
-        Some(vars) if !vars.is_empty() => Some(credentials_text(&vars)?),
+        Some(vars) if !vars.is_empty() => {
+            let vars = vars
+                .iter()
+                .map(|(name, value)| (name.as_str(), value.as_str()));
+            Some(Env::file_text(credentials, vars).map_err(|e| e.to_string())?)
+        }
         _ => None,
     };
     let rooms = document.rooms.map(Rooms::checked).transpose()?;
@@ -177,33 +185,25 @@ fn validate(body: &[u8]) -> Result<Plan, String> {
     })
 }
 
-/// The credentials file in the `.env` format. A value goes between single
-/// quotes, which `.env` reads verbatim, so a value cannot hold one.
-fn credentials_text(vars: &BTreeMap<String, String>) -> Result<String, String> {
-    let mut text =
-        String::from("# GOVEE_* variables, written by govee-server. Keep this file private.\n");
-    for (name, value) in vars {
-        let named = name.starts_with("GOVEE_")
-            && name
-                .bytes()
-                .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_');
-        if !named {
-            return Err(format!("credentials: `{name}` is not a GOVEE_* name"));
-        }
-        if value.trim().is_empty() || value.contains('\'') || value.chars().any(char::is_control) {
-            return Err(format!("credentials: the value of {name} cannot be stored"));
-        }
-        let _ = writeln!(text, "{name}='{value}'");
-    }
-    Ok(text)
+/// Write every file of `plan`. `keep` makes a `.import.bak` copy of each
+/// file first.
+fn write(backup: &Backup, storage: &Storage, plan: Plan, keep: bool) -> io::Result<()> {
+    storage::put(
+        &storage.credentials(),
+        plan.credentials.as_deref(),
+        true,
+        keep,
+    )?;
+    storage::put(&storage.config, plan.config.as_deref(), false, keep)?;
+    backup.rooms.set(plan.rooms, keep)?;
+    backup.store.replace(plan.studio, keep)
 }
 
-fn replace(path: &Path, text: Option<&str>, private: bool) -> io::Result<()> {
-    storage::keep(path)?;
-    match text {
-        Some(text) => storage::write(path, text.as_bytes(), private),
-        None => storage::remove(path),
-    }
+/// Open the network as the settings say, and give the SDK the new files.
+async fn settle(backup: &Backup, share: bool) {
+    // As at start: a network address that is not available leaves sharing off.
+    let _ = backup.share.apply(share);
+    backup.sdk.reload().await;
 }
 
 /// `POST /api/backup` with a document: replace every file, each after a
@@ -217,21 +217,17 @@ pub(crate) async fn import(
         Ok(storage) => storage,
         Err((status, error)) => return refuse(status, error),
     };
-    let plan = match validate(&body) {
+    let plan = match validate(&body, &storage.credentials()) {
         Ok(plan) => plan,
         Err(error) => return refuse(StatusCode::BAD_REQUEST, &error),
     };
     let share = plan.studio.server.settings.share;
-    let written = replace(&storage.credentials(), plan.credentials.as_deref(), true)
-        .and_then(|()| replace(&storage.config, plan.config.as_deref(), false))
-        .and_then(|()| backup.rooms.set(plan.rooms, true))
-        .and_then(|()| backup.store.replace(plan.studio, true));
+    let (shared, storage) = (Arc::clone(&backup), storage.clone());
+    let written = storage::blocking(move || write(&shared, &storage, plan, true)).await;
     if let Err(error) = written {
         return refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string());
     }
-    // As at start: a network address that is not available leaves sharing off.
-    let _ = backup.share.apply(share);
-    backup.sdk.reset().await;
+    settle(&backup, share).await;
     axum::Json(json!({ "imported": true })).into_response()
 }
 
@@ -244,10 +240,9 @@ fn copies(storage: &Storage) -> [std::path::PathBuf; 4] {
     ]
 }
 
-/// `POST /api/backup/restore`: put back the files as they were before the
-/// last import, from the `.import.bak` copies, then delete the copies. A file
-/// with no copy did not exist, and goes.
-pub(crate) async fn restore(
+/// `GET /api/backup/restore`: `{ "restorable": bool }`, whether a
+/// `.import.bak` copy exists, so that `POST` can undo the last import.
+pub(crate) async fn restorable(
     State(backup): State<Arc<Backup>>,
     Extension(local): Extension<Local>,
 ) -> Response {
@@ -256,53 +251,74 @@ pub(crate) async fn restore(
         Err((status, error)) => return refuse(status, error),
     };
     let files = copies(storage);
-    if !files.iter().any(|path| storage::bak(path).exists()) {
-        return refuse(StatusCode::CONFLICT, "there is no import to undo");
+    let found = storage::blocking(move || Ok(files.iter().any(|path| storage::bak(path).exists())));
+    match found.await {
+        Ok(restorable) => axum::Json(json!({ "restorable": restorable })).into_response(),
+        Err(error) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()),
     }
-    let read = |path: &Path| storage::read(&storage::bak(path)).map_err(|e| e.to_string());
-    let plan = (|| {
-        let config = read(&storage.config)?;
-        if let Some(text) = &config {
-            parse_config(text)?;
+}
+
+/// The files as they were before the last import, from the `.import.bak`
+/// copies. `None` when there is no copy.
+fn kept(storage: &Storage) -> io::Result<Option<Plan>> {
+    if !copies(storage)
+        .iter()
+        .any(|path| storage::bak(path).exists())
+    {
+        return Ok(None);
+    }
+    let read = |path: &Path| storage::read(&storage::bak(path));
+    let config = read(&storage.config)?;
+    if let Some(text) = &config {
+        parse_config(text).map_err(storage::invalid)?;
+    }
+    let studio = match read(&storage.studio())? {
+        Some(text) => {
+            let value = serde_json::from_str(&text).map_err(storage::invalid)?;
+            Studio::from_value(value).map_err(storage::invalid)?
         }
-        let studio = match read(&storage.studio())? {
-            Some(text) => {
-                Studio::from_value(serde_json::from_str(&text).map_err(|e| e.to_string())?)?
-            }
-            None => Studio::default(),
+        None => Studio::default(),
+    };
+    Ok(Some(Plan {
+        config,
+        studio,
+        credentials: read(&storage.credentials())?,
+        rooms: rooms::read(&storage::bak(&storage.rooms()))?,
+    }))
+}
+
+/// `POST /api/backup/restore`: put back the files as they were before the
+/// last import, from the `.import.bak` copies, then delete the copies. A file
+/// with no copy did not exist, and goes.
+pub(crate) async fn restore(
+    State(backup): State<Arc<Backup>>,
+    Extension(local): Extension<Local>,
+) -> Response {
+    let storage = match backup.admit(local) {
+        Ok(storage) => storage.clone(),
+        Err((status, error)) => return refuse(status, error),
+    };
+    let shared = Arc::clone(&backup);
+    let restored = storage::blocking(move || {
+        let Some(plan) = kept(&storage)? else {
+            return Ok(None);
         };
-        let rooms = rooms::read(&storage::bak(&storage.rooms())).map_err(|e| e.to_string())?;
-        Ok::<_, String>(Plan {
-            config,
-            studio,
-            credentials: read(&storage.credentials())?,
-            rooms,
-        })
-    })();
-    let plan = match plan {
-        Ok(plan) => plan,
-        Err(error) => return refuse(StatusCode::INTERNAL_SERVER_ERROR, &error),
-    };
-    let share = plan.studio.server.settings.share;
-    let put = |path: &Path, text: Option<&str>, private: bool| match text {
-        Some(text) => storage::write(path, text.as_bytes(), private),
-        None => storage::remove(path),
-    };
-    let written = put(&storage.credentials(), plan.credentials.as_deref(), true)
-        .and_then(|()| put(&storage.config, plan.config.as_deref(), false))
-        .and_then(|()| backup.rooms.set(plan.rooms, false))
-        .and_then(|()| backup.store.replace(plan.studio, false))
-        .and_then(|()| {
-            files
-                .iter()
-                .try_for_each(|path| storage::remove(&storage::bak(path)))
-        });
-    if let Err(error) = written {
-        return refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string());
+        let share = plan.studio.server.settings.share;
+        write(&shared, &storage, plan, false)?;
+        for path in copies(&storage) {
+            storage::remove(&storage::bak(&path))?;
+        }
+        Ok(Some(share))
+    })
+    .await;
+    match restored {
+        Ok(Some(share)) => {
+            settle(&backup, share).await;
+            axum::Json(json!({ "restored": true })).into_response()
+        }
+        Ok(None) => refuse(StatusCode::CONFLICT, "there is no import to undo"),
+        Err(error) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()),
     }
-    let _ = backup.share.apply(share);
-    backup.sdk.reset().await;
-    axum::Json(json!({ "restored": true })).into_response()
 }
 
 #[cfg(test)]
@@ -310,6 +326,10 @@ mod tests {
     #![allow(clippy::unwrap_used)]
 
     use super::*;
+
+    fn validate_doc(body: &[u8]) -> Result<Plan, String> {
+        validate(body, Path::new("credentials.env"))
+    }
 
     fn document(credentials: &serde_json::Value) -> Vec<u8> {
         json!({
@@ -342,15 +362,15 @@ mod tests {
 
     #[test]
     fn a_credential_is_written_between_single_quotes() {
-        let plan = validate(&document(&json!({ "GOVEE_API_KEY": "a-key" }))).unwrap();
+        let plan = validate_doc(&document(&json!({ "GOVEE_API_KEY": "a-key" }))).unwrap();
         let text = plan.credentials.unwrap();
         assert!(text.ends_with("GOVEE_API_KEY='a-key'\n"), "{text}");
     }
 
     #[test]
     fn a_credential_that_the_file_cannot_hold_is_refused() {
-        assert!(validate(&document(&json!({ "GOVEE_API_KEY": "a'b" }))).is_err());
-        assert!(validate(&document(&json!({ "GOVEE_API_KEY": "a\nb" }))).is_err());
-        assert!(validate(&document(&json!({ "PATH": "x" }))).is_err());
+        assert!(validate_doc(&document(&json!({ "GOVEE_API_KEY": "a'b" }))).is_err());
+        assert!(validate_doc(&document(&json!({ "GOVEE_API_KEY": "a\nb" }))).is_err());
+        assert!(validate_doc(&document(&json!({ "PATH": "x" }))).is_err());
     }
 }

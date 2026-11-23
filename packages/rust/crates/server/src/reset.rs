@@ -8,16 +8,14 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
-use govee_toolkit::Config;
+use govee_toolkit::config::DeviceEdit;
 use serde::Deserialize;
 use serde_json::json;
-use serde_norway::Value;
 
 use crate::backup::Backup;
-use crate::settings::refuse;
 use crate::share::Local;
-use crate::storage::{self, Storage};
 use crate::studio::StudioSettings;
+use crate::{refuse, refuse_io, storage};
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -29,39 +27,6 @@ pub(crate) struct Reset {
     /// `rooms.json`.
     #[serde(default)]
     devices: bool,
-}
-
-/// The text of `config` with no `devices:` key. `None` when the file has no
-/// such key, and so stays as it is. The comments do not survive.
-fn without_devices(config: &str) -> Result<Option<String>, String> {
-    let invalid = |e: serde_norway::Error| format!("the configuration file is not valid: {e}");
-    if config.trim().is_empty() {
-        return Ok(None);
-    }
-    let mut root: Value = serde_norway::from_str(config).map_err(invalid)?;
-    if root.is_null() {
-        return Ok(None);
-    }
-    let Value::Mapping(map) = &mut root else {
-        return Err("the configuration file is not valid: it is not a mapping".to_owned());
-    };
-    if map.remove("devices").is_none() {
-        return Ok(None);
-    }
-    let text = serde_norway::to_string(&root).map_err(invalid)?;
-    serde_norway::from_str::<Config>(&text).map_err(invalid)?;
-    Ok(Some(text))
-}
-
-fn forget_devices(storage: &Storage) -> Result<(), (StatusCode, String)> {
-    let internal = |e: std::io::Error| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string());
-    let Some(config) = storage::read(&storage.config).map_err(internal)? else {
-        return Ok(());
-    };
-    match without_devices(&config).map_err(|e| (StatusCode::CONFLICT, e))? {
-        Some(text) => storage::write(&storage.config, text.as_bytes(), false).map_err(internal),
-        None => Ok(()),
-    }
 }
 
 /// Only a client on this machine can reset, as for an import.
@@ -77,43 +42,26 @@ pub(crate) async fn reset(
     if !body.prefs && !body.devices {
         return refuse(StatusCode::BAD_REQUEST, "choose what to reset");
     }
-    if body.devices {
-        if let Err((status, error)) = forget_devices(storage) {
-            return refuse(status, &error);
+    let path = storage.config.clone();
+    let rooms = Arc::clone(&backup.rooms);
+    let store = Arc::clone(&backup.store);
+    let Reset { prefs, devices } = body;
+    let written = storage::blocking(move || {
+        if devices {
+            storage::edit_config(&path, &[DeviceEdit::RemoveAll])?;
+            rooms.set(None, false)?;
         }
-        if let Err(error) = backup.rooms.set(None, false) {
-            return refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string());
+        if prefs {
+            store.update(|studio| studio.studio.settings = StudioSettings::default())?;
         }
-        backup.sdk.reset().await;
+        Ok(())
+    })
+    .await;
+    if let Err(error) = written {
+        return refuse_io(&error);
     }
-    if body.prefs
-        && let Err(error) = backup
-            .store
-            .update(|studio| studio.studio.settings = StudioSettings::default())
-    {
-        return refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string());
+    if devices {
+        backup.sdk.reload().await;
     }
-    Json(json!({ "prefs": body.prefs, "devices": body.devices })).into_response()
-}
-
-#[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used)]
-
-    use super::*;
-
-    #[test]
-    fn the_device_entries_go_and_the_other_keys_stay() {
-        let config = "lan:\n  status_timeout_ms: 500\ndevices:\n  AA:BB:CC:DD:EE:FF:00:11:\n    name: Desk\n";
-        let text = without_devices(config).unwrap().unwrap();
-        assert!(!text.contains("devices"), "{text}");
-        assert!(text.contains("status_timeout_ms: 500"), "{text}");
-    }
-
-    #[test]
-    fn a_file_with_no_device_entry_stays_as_it_is() {
-        assert_eq!(without_devices("# only a comment\n").unwrap(), None);
-        assert_eq!(without_devices("lan: {}\n").unwrap(), None);
-        assert_eq!(without_devices("").unwrap(), None);
-    }
+    Json(json!({ "prefs": prefs, "devices": devices })).into_response()
 }
