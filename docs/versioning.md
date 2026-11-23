@@ -219,6 +219,25 @@ checked in CI.
   startup, for at least one minor release. It is never silently ignored — an
   ignored key reads as a setting that did not work.
 - A device file command is deprecated in the device file, not in code.
+- A default behavior that changes, such as a file location, follows the same
+  path. The old behavior stays as a fallback that warns, and a breaking bump
+  removes it.
+- [`deprecations.md`](deprecations.md) lists every deprecated item. The
+  commit that deprecates an item adds its row.
+- The changelog of each package that the item touches carries it under
+  `### Deprecated`. The entry names the replacement.
+
+Each public surface deprecates in its own way:
+
+| Surface | How |
+| ------- | --- |
+| Rust | `#[deprecated(since = "X.Y.Z", note = "use ...")]` |
+| Python | `warnings.warn(..., DeprecationWarning, stacklevel=2)` for an API, `FutureWarning` for a file or a setting that the user must change, and `@deprecated` in the `.pyi` |
+| Node | `/** @deprecated use ... */` in the declarations, and `process.emitWarning(..., "DeprecationWarning")` once |
+| CLI, `govee-dmx` | The old flag or subcommand stays as an alias and writes a warning through `exit::Writer::warn`. A JSON field is added beside the old one, never in place of it |
+| `govee-server` HTTP API, from 1.0 | The old route stays and answers the `Deprecation` and `Sunset` headers |
+| MCP server | The old tool name stays as an alias. A schema field is added, never removed |
+| Configuration and files | The old key or location keeps working and warns once at startup |
 
 ## CI
 

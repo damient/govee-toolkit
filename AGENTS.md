@@ -359,4 +359,11 @@ the run, since a tag moved to a new commit reruns the job.
 - Releasing is `docs/versioning.md`: the changelog section is the source, a
   signed `<pkg>-vX.Y.Z` tag starts the workflow, and `tools/release-notes.sh`
   fails the run when the tag, the manifest and the changelog heading disagree.
+- **Deprecate before you break.** A package at 1.x takes no breaking change
+  outside a planned major release. Ship the replacement in a minor release,
+  keep the old item or behavior, and make it warn. Follow
+  `docs/versioning.md#deprecation` for the mechanism of each surface. Add a
+  row to `docs/deprecations.md` and a `### Deprecated` entry to each changelog
+  that the item touches. A major release removes the rows of that list, and
+  nothing else.
 - Commit and push only when asked.
