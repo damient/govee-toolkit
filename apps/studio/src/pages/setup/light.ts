@@ -1,5 +1,5 @@
 import "../../components/light/light.css";
-import { type Found, identify } from "../../core/api.ts";
+import { type Found, identify, labelOf } from "../../core/api.ts";
 import { familyIcon } from "../../components/family/family.ts";
 import { explain, t } from "../../core/i18n.ts";
 import { loading } from "../../components/loading/loading.ts";
@@ -57,8 +57,6 @@ export interface Draft {
   name: string | null;
 }
 
-const label = (found: Found, name: string | null): string => name ?? found.sku ?? found.id;
-
 /** Enter and a click out keep the name, Esc cancels. */
 function nameField(found: Found, name: string | null, done: (kept: string | null) => void): HTMLInputElement {
   const input = element("input", "light-input");
@@ -93,7 +91,7 @@ function nameRow(found: Found, draft: Draft): HTMLElement {
       input.focus();
       input.select();
     });
-    row.replaceChildren(element("span", "light-title", label(found, name)), edit);
+    row.replaceChildren(element("span", "light-title", labelOf({ ...found, name })), edit);
   };
   show(draft.name);
   return row;
@@ -107,7 +105,7 @@ export function lightCard(found: Found, draft: Draft, checking = false): HTMLEle
   const check = element("input", "light-check");
   check.type = "checkbox";
   check.checked = draft.selected;
-  check.setAttribute("aria-label", t("light.select", { name: label(found, draft.name) }));
+  check.setAttribute("aria-label", t("light.select", { name: labelOf({ ...found, name: draft.name }) }));
   const mark = (): void => {
     card.classList.toggle("selected", check.checked);
     draft.selected = check.checked;
