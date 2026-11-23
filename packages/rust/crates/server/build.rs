@@ -33,7 +33,7 @@ fn main() {
     }
     files.sort();
 
-    let mut out = String::from("pub(crate) static ASSETS: &[(&str, &[u8])] = &[\n");
+    let mut out = String::from("pub(crate) static ASSETS: &[(&str, &[u8], &str)] = &[\n");
     for path in &files {
         let name = path
             .strip_prefix(&dir)
@@ -42,9 +42,10 @@ fn main() {
             .map(|c| c.as_os_str().to_str().expect("utf-8 file name"))
             .collect::<Vec<_>>()
             .join("/");
+        let tag = etag(&fs::read(path).expect("read a web file"));
         writeln!(
             out,
-            "    ({name:?}, include_bytes!({:?})),",
+            "    ({name:?}, include_bytes!({:?}), {tag:?}),",
             path.display().to_string()
         )
         .expect("write to a String");
@@ -53,6 +54,15 @@ fn main() {
 
     let dest = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR")).join("web.rs");
     fs::write(&dest, out).expect("write web.rs");
+}
+
+/// A strong `ETag`: the FNV-1a hash of the bytes. A change of the file
+/// changes the tag, which is all that a cache check needs.
+fn etag(bytes: &[u8]) -> String {
+    let hash = bytes.iter().fold(0xcbf2_9ce4_8422_2325_u64, |hash, &byte| {
+        (hash ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01b3)
+    });
+    format!("\"{hash:016x}\"")
 }
 
 fn walk(dir: &Path, files: &mut Vec<PathBuf>) {

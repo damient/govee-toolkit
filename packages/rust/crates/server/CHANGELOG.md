@@ -34,8 +34,9 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   of its white temperature, how many
   zones it paints, and whether it takes the gradient. The zones come from
   the entry `role: segment_color_masked`, and a mode that arms a segment
-  channel gets none. The first call for a device takes one scan window. A
-  device that does not answer gets 502.
+  channel gets none. The first call for a device that the SDK does not
+  know scans until the device answers. A device that does not answer gets
+  502.
 - `POST /api/apply` changes a list of devices in one call: power,
   brightness, one color, a white temperature, one color over a list of zones, and the gradient.
   Power on goes first and power off last. A level out of the bounds is an
@@ -45,7 +46,8 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 - `PUT /api/devices` writes the device entries of `config.yaml` in one
   go: `keep` adds or renames, `remove` deletes. An entry with no SKU gets
   the SKU of the request, and a new entry also gets `modes: [lan]`. A name is 64 characters at most. The other keys of
-  the file stay, but its comments do not survive the write.
+  the file stay, but its comments do not survive the write. A request that
+  changes no entry writes nothing.
 - `GET` and `POST /api/share` open the server to the network and close it
   again, with a second listener on the network address of this machine.
   Sharing is off by default, and only a loopback client can switch it.
@@ -72,10 +74,19 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   of the Studio settings that the table of `src/compat.rs` holds, and tells
   the user to update `govee-server` for a newer one.
 - `POST /api/backup/restore` puts back the files from before the last
-  import.
+  import. `GET /api/backup/restore` says whether there is an import to undo.
 - `POST /api/reset` puts the Studio settings back to the defaults, removes
   the `devices:` key of `config.yaml` and the rooms, or both.
 - Only a loopback client can export, import, restore or reset.
 - `Options::storage` and `Storage` choose the folder of these files.
+- A write to `config.yaml` (an import, a restore, a reset or `PUT
+  /api/devices`) reaches the SDK through `Govee::reconfigure`: the sockets
+  and the known devices stay. A change to `catalog`, `lan`, `cloud` or the
+  API key starts the SDK again on the next request.
+- The server writes its files on the blocking pool of Tokio, away from the
+  threads that send to the devices.
+- `rooms.json` keeps each device ID in upper case, as the SDK gives it.
+- The web UI in the binary carries an `ETag` per file and
+  `Cache-Control: no-cache`. A file that did not change gets 304.
 - `serve` takes a `std::net::TcpListener`, and `WEB_DIR` names the folder
   that the build embeds. A build with no web UI prints a warning.

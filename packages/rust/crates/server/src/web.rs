@@ -1,13 +1,13 @@
 //! The web UI that `build.rs` compiles in.
 
 use axum::extract::Request;
-use axum::http::{StatusCode, Uri, header};
+use axum::http::{HeaderMap, StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
 
 include!(concat!(env!("OUT_DIR"), "/web.rs"));
 
-/// `(path, body)` pairs. A path is relative to the root and uses `/`.
-pub(crate) type Assets = &'static [(&'static str, &'static [u8])];
+/// `(path, body, etag)` triples. A path is relative to the root and uses `/`.
+pub(crate) type Assets = &'static [(&'static str, &'static [u8], &'static str)];
 
 /// A page of Studio, which the UI routes on the path: outside `/api`, and no
 /// dot in the last segment.
@@ -25,17 +25,28 @@ pub(crate) async fn to_index(mut request: Request) -> Request {
     request
 }
 
-pub(crate) fn respond(assets: Assets, uri: &Uri) -> Response {
+/// A file of the UI. A browser checks each file again on each load
+/// (`no-cache`), and a file that did not change gets 304 with no body: the
+/// names of the files carry no hash.
+pub(crate) fn respond(assets: Assets, uri: &Uri, headers: &HeaderMap) -> Response {
     let path = uri.path().trim_start_matches('/');
     let path = if path.is_empty() || path.ends_with('/') {
         format!("{path}index.html")
     } else {
         path.to_owned()
     };
-    match assets.iter().find(|(name, _)| *name == path) {
-        Some((name, body)) => {
+    match assets.iter().find(|(name, ..)| *name == path) {
+        Some((name, body, tag)) => {
+            let cache = [(header::ETAG, *tag), (header::CACHE_CONTROL, "no-cache")];
+            let fresh = headers
+                .get(header::IF_NONE_MATCH)
+                .and_then(|value| value.to_str().ok())
+                .is_some_and(|value| value.split(',').any(|item| item.trim() == *tag));
+            if fresh {
+                return (StatusCode::NOT_MODIFIED, cache).into_response();
+            }
             let mime = mime_guess::from_path(name).first_or_octet_stream();
-            ([(header::CONTENT_TYPE, mime.as_ref())], *body).into_response()
+            (cache, [(header::CONTENT_TYPE, mime.as_ref())], *body).into_response()
         }
         None if assets.is_empty() => (
             StatusCode::NOT_FOUND,
@@ -51,10 +62,13 @@ pub(crate) fn respond(assets: Assets, uri: &Uri) -> Response {
 mod tests {
     use super::*;
 
-    static TWO: Assets = &[("index.html", b"<p>home</p>"), ("fonts/a.woff2", b"font")];
+    static TWO: Assets = &[
+        ("index.html", b"<p>home</p>", "\"1\""),
+        ("fonts/a.woff2", b"font", "\"2\""),
+    ];
 
     fn get(assets: Assets, path: &str) -> Response {
-        respond(assets, &path.parse().unwrap_or_default())
+        respond(assets, &path.parse().unwrap_or_default(), &HeaderMap::new())
     }
 
     fn content_type(response: &Response) -> Option<&str> {
@@ -76,6 +90,28 @@ mod tests {
         let response = get(TWO, "/fonts/a.woff2");
         assert_eq!(response.status(), StatusCode::OK);
         assert_eq!(content_type(&response), Some("font/woff2"));
+    }
+
+    #[test]
+    fn a_file_that_did_not_change_gets_304() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::IF_NONE_MATCH,
+            axum::http::HeaderValue::from_static("\"0\", \"2\""),
+        );
+        let uri = "/fonts/a.woff2".parse().unwrap_or_default();
+        assert_eq!(
+            respond(TWO, &uri, &headers).status(),
+            StatusCode::NOT_MODIFIED
+        );
+        let response = get(TWO, "/fonts/a.woff2");
+        assert_eq!(
+            response
+                .headers()
+                .get(header::ETAG)
+                .map(axum::http::HeaderValue::as_bytes),
+            Some(&b"\"2\""[..])
+        );
     }
 
     #[test]

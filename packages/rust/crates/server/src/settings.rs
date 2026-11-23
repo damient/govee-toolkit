@@ -11,10 +11,7 @@ use axum::response::{IntoResponse, Response};
 use serde_json::{Value, json};
 
 use crate::studio::{Store, StudioSettings};
-
-pub(crate) fn refuse(status: StatusCode, error: &str) -> Response {
-    (status, Json(json!({ "error": error }))).into_response()
-}
+use crate::{refuse, storage};
 
 /// The settings, and `server`: the version of the server crate and of the
 /// SDK. A `PUT` that names `server` gets 400.
@@ -48,7 +45,8 @@ pub(crate) async fn put(State(store): State<Arc<Store>>, Json(body): Json<Value>
         Ok(prefs) => prefs,
         Err(e) => return refuse(StatusCode::BAD_REQUEST, &e.to_string()),
     };
-    match store.update(|studio| studio.studio.settings = prefs) {
+    let saved = storage::blocking(move || store.update(|studio| studio.studio.settings = prefs));
+    match saved.await {
         Ok(studio) => answer(studio.studio.settings),
         Err(e) => refuse(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
     }

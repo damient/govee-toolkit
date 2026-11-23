@@ -15,8 +15,8 @@ use axum::{Extension, Json, Router};
 use serde_json::{Value, json};
 use tokio::task::AbortHandle;
 
-use crate::settings::refuse;
 use crate::studio::Store;
+use crate::{refuse, storage};
 
 /// The interval between two tries to share at start.
 const RETRY: std::time::Duration = std::time::Duration::from_secs(5);
@@ -243,10 +243,9 @@ pub(crate) async fn set(
     } else {
         share.stop();
     }
-    if let Err(error) = share
-        .store
-        .update(|studio| studio.server.settings.share = on)
-    {
+    let store = Arc::clone(&share.store);
+    let saved = storage::blocking(move || store.update(|studio| studio.server.settings.share = on));
+    if let Err(error) = saved.await {
         return refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string());
     }
     Json(share.state(local)).into_response()

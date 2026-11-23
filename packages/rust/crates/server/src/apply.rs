@@ -9,45 +9,28 @@ use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use govee_toolkit::codec::{ArgBound, ArgRole, Device, Mode, Role};
-use govee_toolkit::{DeviceId, Error, Filter, Painting, Resolution, Verb};
+use govee_toolkit::{DeviceId, Error, Filter, Painting, Resolution, Supported, Verb};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
 use crate::devices::{Sdk, failed};
-use crate::settings::refuse;
+use crate::refuse;
 use crate::studio::Hex;
 
-/// What `POST /api/apply` can send to a device on `mode`, for the `features`
-/// of `GET /api/devices/{id}/status`.
-///
-/// - `color`: the mode has an entry `role: color`.
-/// - `segments`: the zone count of the entry `role: segment_color_masked`, or
-///   `null`. A mode that arms a segment channel gets `null`: Studio paints
-///   zones in the normal mode of the device only.
-/// - `gradient`: the mode paints zones and has an entry `role:
-///   segment_gradient`.
-pub(crate) fn features(device: &Device, mode: Mode) -> Value {
-    let segments = device
-        .entry_for(mode, Role::SegmentColorMasked)
-        .filter(|_| device.command_for(mode, Role::SegmentEnable).is_none())
-        .and_then(|(_, command)| command.args.get(command.arg_for(ArgRole::Zones)?))
-        .and_then(|spec| match spec.bound() {
-            ArgBound::Zones(count) => Some(count),
-            _ => None,
-        });
-    let color_temp = device
-        .entry_for(mode, Role::ColorTemp)
-        .and_then(|(_, command)| command.args.get(command.arg_for(ArgRole::ColorTemp)?))
-        .and_then(|spec| match spec.bound() {
-            ArgBound::Range(pair) => Some(pair),
-            _ => None,
-        });
+/// What `POST /api/apply` can send on a mode, for the `features` of
+/// `GET /api/devices/{id}/status`. A mode that arms a segment channel gets
+/// `segments: null`: Studio paints zones in the normal mode of the device
+/// only. `gradient` needs `segments`.
+pub(crate) fn features(supported: &Supported) -> Value {
+    let segments = supported
+        .segments
+        .filter(|segments| !segments.armed)
+        .map(|segments| segments.zones);
     json!({
-        "color": device.entry_for(mode, Role::Color).is_some(),
-        "color_temp": color_temp,
+        "color": supported.color,
+        "color_temp": supported.color_temp,
         "segments": segments,
-        "gradient": segments.is_some() && device.entry_for(mode, Role::SegmentGradient).is_some(),
+        "gradient": segments.is_some() && supported.gradient,
     })
 }
 
