@@ -9,12 +9,12 @@ shipped.
 
 | Package | Changelog | Version |
 | ------- | --------- | ------- |
-| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 1.17.0 |
-| `govee-toolkit-cli` (Rust) | [`packages/rust/crates/cli/CHANGELOG.md`](packages/rust/crates/cli/CHANGELOG.md) | 1.12.0 |
-| `govee-toolkit-dmx` (Rust) | [`packages/rust/crates/dmx/CHANGELOG.md`](packages/rust/crates/dmx/CHANGELOG.md) | 1.4.0 |
-| `govee-toolkit-server` (Rust) | [`packages/rust/crates/server/CHANGELOG.md`](packages/rust/crates/server/CHANGELOG.md) | 0.1.0, not released |
-| `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 1.9.0 |
-| `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 1.8.0 |
+| `govee-toolkit` (Rust) | [`packages/rust/CHANGELOG.md`](packages/rust/CHANGELOG.md) | 1.18.0 |
+| `govee-toolkit-cli` (Rust) | [`packages/rust/crates/cli/CHANGELOG.md`](packages/rust/crates/cli/CHANGELOG.md) | 1.13.0 |
+| `govee-toolkit-dmx` (Rust) | [`packages/rust/crates/dmx/CHANGELOG.md`](packages/rust/crates/dmx/CHANGELOG.md) | 1.5.0 |
+| `govee-toolkit-server` (Rust) | [`packages/rust/crates/server/CHANGELOG.md`](packages/rust/crates/server/CHANGELOG.md) | 0.1.0 |
+| `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 1.10.0 |
+| `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 1.9.0 |
 | `govee-toolkit-mcp` (MCP server) | [`integrations/mcp/CHANGELOG.md`](integrations/mcp/CHANGELOG.md) | 0.3.0 |
 
 ## Catalog

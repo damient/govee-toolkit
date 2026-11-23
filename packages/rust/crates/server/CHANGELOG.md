@@ -4,7 +4,7 @@ Changes to `govee-toolkit-server`, the crate of the `govee-server` binary in
 `packages/rust/crates/server`. It releases under `server-vX.Y.Z`. The policy
 is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
-## [0.1.0] — Unreleased
+## [0.1.0] — 2026-11-23
 
 ### Added
 

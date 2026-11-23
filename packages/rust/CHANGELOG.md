@@ -7,6 +7,8 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [1.18.0] — 2026-11-23
+
 ### Added
 
 - `paths::credentials_file()` names `credentials.env` in the configuration
@@ -17,20 +19,16 @@ releases apart and keeps
   writes it to stderr.
 - `Env::from_file_alone()` reads one `.env` file without the process
   environment. An absent file gives no variable.
-- `config::edit_devices()` applies a list of `config::DeviceEdit` to the
-  text of a configuration file: add an entry, give it a SKU, name it,
-  remove it, or remove every entry. A key matches a `DeviceId` whatever its
-  case. The other keys stay. The comments do not survive the edit.
+- `config::edit_devices()` applies a list of `config::DeviceEdit` to the text
+  of a configuration file. The other keys stay, the comments do not.
 - `Env::file_text()` writes `GOVEE_*` variables in the form that
   `Env::from_file()` reads back verbatim, and refuses a value that the file
   cannot hold.
 - `Supported::of()` reads from a device file what the role verbs accept on
   one mode: power, the bounds of brightness and of the white temperature,
   color, the zones of a paint and the gradient.
-- `Govee::reconfigure()` gives a new configuration to the transports that a
-  `Govee` holds, with the devices that they know. A change to `catalog`,
-  `lan`, `cloud` or the API key gives `Error::Configuration`: start again
-  for such a change.
+- `Govee::reconfigure()` gives a running `Govee` a new configuration. A change
+  to `catalog`, `lan`, `cloud` or the API key gives `Error::Configuration`.
 - `profile::report::json()` gives each band of a channel a `kind`, such as
   `idle`, `off` or `color`, which a machine matches on beside `label`.
 

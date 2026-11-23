@@ -5,21 +5,19 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+## [1.13.0] — 2026-11-23
+
 ### Changed
 
-- The configuration folder and the cache folder follow the
-  convention of each operating system: `~/Library/Application Support` and
-  `~/Library/Caches` on macOS, `%APPDATA%` and `%LOCALAPPDATA%` on Windows,
-  XDG on Linux as before. The binary reads `config.yaml`, `.env` and the device cache there, and
-  `credentials.env` in the configuration folder. On macOS and Windows, the old folder
-  `~/.config/govee-toolkit` is still read while the new one does not exist.
-  Move it: the [`govee-toolkit` changelog](../../CHANGELOG.md) gives the command.
+- `govee` reads its files in the folders of each OS. On macOS and Windows, it
+  reads the old folder until you [move it](../../CHANGELOG.md).
+- `govee` builds on `govee-toolkit` 1.18.
 
 ### Deprecated
 
-- On macOS and Windows, the configuration folder `~/.config/govee-toolkit`.
-  While it is in use or ignored, `govee` writes a warning to stderr at startup, a `{"deprecated": ...}` record with `--json`. A later breaking release
-  stops reading it ([`docs/deprecations.md`](../../../../docs/deprecations.md)).
+- `~/.config/govee-toolkit` on macOS and Windows
+  ([list](../../../../docs/deprecations.md)). While it is read or ignored,
+  `govee` warns on stderr, or in a `deprecated` record with `--json`.
 
 ## [1.12.0] — 2026-11-21
 

@@ -1,7 +1,7 @@
 [package]
 name = "govee-toolkit"
 description = "Take full control of your Govee lights from your own machine. The engine under every Govee Toolkit package."
-version = "1.17.0"
+version = "1.18.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT"
@@ -29,7 +29,7 @@ resolver = "3"
 members = ["crates/cli", "crates/dmx", "crates/server", "crates/sim", "crates/xtask"]
 
 [workspace.package]
-version = "1.17.0"
+version = "1.18.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT"
