@@ -154,4 +154,7 @@ pub use summary::{Style, Summary};
 #[cfg(feature = "transport")]
 pub use transport::{DeviceId, DeviceStatus, Health, Reply, State, Transport};
 #[cfg(feature = "transport")]
-pub use verbs::{IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify, Music, Paint, Painting};
+pub use verbs::{
+    IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify, Music, Paint, Painting, Segments,
+    Supported,
+};

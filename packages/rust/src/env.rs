@@ -5,6 +5,7 @@
 //! edition 2024, and this workspace forbids `unsafe`.
 
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use crate::error::{Error, Result};
@@ -140,6 +141,43 @@ impl Env {
         self.source.as_deref()
     }
 
+    /// The text of a `.env` file that holds `vars`, in the form that
+    /// [`Env::from_file`] reads back verbatim: each value goes between single
+    /// quotes. `path` is where the caller writes the text, for the error.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Env`] for a name that is not `GOVEE_*` in upper case, and
+    /// for a value that is blank or holds a single quote or a control
+    /// character. The file cannot hold such a value verbatim.
+    pub fn file_text<'a>(
+        path: &Path,
+        vars: impl IntoIterator<Item = (&'a str, &'a str)>,
+    ) -> Result<String> {
+        let refused = |reason: String| Error::Env {
+            path: path.display().to_string(),
+            reason,
+        };
+        let mut text = String::from("# GOVEE_* variables. Keep this file private.\n");
+        for (name, value) in vars {
+            let named = name.starts_with(PREFIX)
+                && name
+                    .bytes()
+                    .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_');
+            if !named {
+                return Err(refused(format!("`{name}` is not a {PREFIX}* name")));
+            }
+            if value.trim().is_empty()
+                || value.contains('\'')
+                || value.chars().any(char::is_control)
+            {
+                return Err(refused(format!("the value of {name} cannot be stored")));
+            }
+            let _ = writeln!(text, "{name}='{value}'");
+        }
+        Ok(text)
+    }
+
     /// Reads into the names nothing sets yet. Answers whether the file was
     /// there.
     fn merge(&mut self, path: &Path, required: bool) -> Result<bool> {
@@ -223,6 +261,26 @@ mod tests {
         assert_eq!(env.var("GOVEE_WIFI_SSID"), None);
         assert_eq!(env.var("GOVEE_WIFI_PASSWORD"), None);
         std::fs::remove_file(&path).unwrap();
+    }
+
+    #[test]
+    fn file_text_reads_back_verbatim() {
+        let value = "a #key with $HOME and \"quotes\"";
+        let text = Env::file_text(Path::new("x"), [("GOVEE_API_KEY", value)]).unwrap();
+        let path = file("env-written", &text);
+        let env = Env::from_file_alone(&path).unwrap();
+        assert_eq!(env.var("GOVEE_API_KEY"), Some(value));
+        std::fs::remove_file(&path).unwrap();
+    }
+
+    #[test]
+    fn file_text_refuses_what_the_file_cannot_hold() {
+        let path = Path::new("x");
+        assert!(Env::file_text(path, [("GOVEE_API_KEY", "a'b")]).is_err());
+        assert!(Env::file_text(path, [("GOVEE_API_KEY", "a\nb")]).is_err());
+        assert!(Env::file_text(path, [("GOVEE_API_KEY", " ")]).is_err());
+        assert!(Env::file_text(path, [("PATH", "x")]).is_err());
+        assert!(Env::file_text(path, [("GOVEE_api", "x")]).is_err());
     }
 
     #[test]

@@ -40,10 +40,12 @@ use crate::error::{Error, Result};
 use crate::transport::DeviceId;
 
 mod cloud;
+mod edit;
 mod groups;
 mod lan;
 
 pub use self::cloud::{CloudConfig, KEY_ENV};
+pub use self::edit::{DeviceEdit, edit_devices};
 pub(crate) use self::groups::{carries, gives};
 pub use self::lan::LanConfig;
 
