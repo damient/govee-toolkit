@@ -1,6 +1,6 @@
 {
   "name": "govee-toolkit-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Let your AI assistant take full control of your Govee lights.",
   "license": "MIT",
   "author": "damient",
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.4.0",
-    "govee-toolkit": "1.8.0",
+    "govee-toolkit": "1.9.0",
     "zod": "4.6.7"
   },
   "devDependencies": {
