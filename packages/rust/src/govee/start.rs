@@ -164,6 +164,53 @@ impl Govee {
         }
         Ok(govee)
     }
+
+    /// A facade with `config` that shares the catalog and the transports of
+    /// this one, and with them the devices that they know. No socket is bound
+    /// again and no scan runs. This facade keeps its own configuration.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Configuration`] as for [`Govee::attach`], and when `config`
+    /// changes what a transport or the catalog started with: `catalog`,
+    /// `lan`, `cloud` or the API key. Close this facade and start a new one
+    /// for such a change.
+    pub fn reconfigure(&self, config: Config) -> Result<Self> {
+        let old = self.config();
+        let started = same(&old.catalog, &config.catalog)
+            && same(&old.lan, &config.lan)
+            && same(&old.cloud, &config.cloud)
+            && old.cloud.key(&old.env)? == config.cloud.key(&config.env)?;
+        if !started {
+            return Err(Error::Configuration(vec![crate::config::Problem {
+                device: None,
+                message: "the change needs a new start: it changes `catalog`, `lan`, `cloud` or \
+                          the API key"
+                    .to_owned(),
+            }]));
+        }
+        let transports = self.inner.transports.values().cloned().collect::<Vec<_>>();
+        let govee = Self::attach(config, self.inner.catalog.clone(), transports)?;
+        if let (Ok(old), Ok(mut new)) = (self.inner.heard.lock(), govee.inner.heard.lock()) {
+            new.clone_from(&old);
+        }
+        if let (Ok(old), Ok(mut new)) = (
+            self.inner.scanned.try_lock(),
+            govee.inner.scanned.try_lock(),
+        ) {
+            new.clone_from(&old);
+        }
+        Ok(govee)
+    }
+}
+
+/// Compare two parts of a configuration by their serialized form: the parts
+/// carry no `PartialEq`. A part that does not serialize is a change.
+fn same<T: serde::Serialize>(a: &T, b: &T) -> bool {
+    match (serde_json::to_value(a), serde_json::to_value(b)) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => false,
+    }
 }
 
 /// Let the user's own device files replace what the build ships.
@@ -210,4 +257,40 @@ fn overlay_local_devices(catalog: &mut Catalog, config: &Config) -> Result<()> {
         );
     }
     Ok(())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::transport::DeviceId;
+
+    fn config(text: &str) -> Config {
+        serde_norway::from_str(text).unwrap()
+    }
+
+    #[tokio::test]
+    async fn reconfigure_keeps_the_transports_and_takes_the_devices() {
+        let catalog = Catalog::embedded().unwrap();
+        let govee = Govee::attach(Config::default(), catalog, Vec::new()).unwrap();
+        let named = govee
+            .reconfigure(config("devices:\n  AA:BB:\n    name: desk\n"))
+            .unwrap();
+        assert_eq!(
+            named.config().name_for(&DeviceId::new("aa:bb")),
+            Some("desk")
+        );
+        assert_eq!(govee.config().name_for(&DeviceId::new("aa:bb")), None);
+    }
+
+    #[tokio::test]
+    async fn reconfigure_refuses_a_change_to_a_transport() {
+        let catalog = Catalog::embedded().unwrap();
+        let govee = Govee::attach(Config::default(), catalog, Vec::new()).unwrap();
+        let slower = config("lan:\n  status_timeout_ms: 1234\n");
+        assert!(matches!(
+            govee.reconfigure(slower),
+            Err(Error::Configuration(_))
+        ));
+    }
 }

@@ -10,11 +10,13 @@
 mod identify;
 mod music;
 mod segment;
+mod supported;
 mod white;
 
 pub use identify::{IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify};
 pub use music::Music;
 pub use segment::{Paint, Painting};
+pub use supported::{Segments, Supported};
 
 use crate::codec::catalog::{Command, Device};
 use crate::codec::{ArgBound, ArgRole, ArgValue, Args, Mode, Role};
