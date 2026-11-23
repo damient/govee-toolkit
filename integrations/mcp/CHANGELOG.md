@@ -4,10 +4,13 @@ Changes to `govee-toolkit-mcp`, the MCP server in `integrations/mcp`. It
 versions apart from the binding it wraps and releases under `mcp-vX.Y.Z`. The
 policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 
+## [0.3.1] — 2026-11-23
+
 ### Changed
 
 - The server reads its files in the folders of each OS. On macOS and Windows, it
   reads the old folder until you [move it](../../packages/rust/CHANGELOG.md).
+- The server wraps the Node binding `govee-toolkit` 1.9.0.
 
 ### Deprecated
 
