@@ -7,9 +7,7 @@ Studio in a window, on Windows and macOS, built with Tauri 2. On Linux, run
 - The web UI is the build of [`../studio/`](../studio/).
 - The server is `govee-toolkit-server`, in the same process. It listens on
   the loopback port 4090, or on a free port when another program holds 4090,
-  and serves the web UI. The window opens the address of the server. A fixed
-  port keeps the origin of the page, and with it the copy of the theme that
-  paints the first frame.
+  and serves the web UI. The window opens the address of the server.
 - The server reads and writes the files of the configuration folder, as
   `govee-server` does: see its [README](../../packages/rust/crates/server/README.md#files).
 - Export in Settings saves the backup in the Downloads folder. A name that

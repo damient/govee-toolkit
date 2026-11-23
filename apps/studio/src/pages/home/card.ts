@@ -21,7 +21,6 @@ function white(kelvin: number): string {
   return "#e8f0ff";
 }
 
-/** The color that the light shows, or `null` when it is off or does not say. */
 function shown(state: Status): string | null {
   if (state.on !== true) return null;
   if (state.kelvin !== null && state.kelvin > 0) return white(state.kelvin);
@@ -29,17 +28,12 @@ function shown(state: Status): string | null {
   return hex === "000000" ? null : `#${hex}`;
 }
 
-/** A power button and the function that shows the state of the light on it. */
 export interface PowerButton {
   button: HTMLButtonElement;
   set: (on: boolean) => void;
 }
 
-/**
- * The power button of a light: cyan while the light is on. A click gives
- * `press` the wanted state, and the button stays disabled until it settles.
- * `spinner` shows a spinner in place of the icon meanwhile.
- */
+/** The button stays disabled until `press` settles. */
 export function powerButton(name: string, press: (wanted: boolean) => Promise<void>, spinner = false): PowerButton {
   const button = element("button", "home-power");
   button.type = "button";
@@ -63,7 +57,6 @@ export function powerButton(name: string, press: (wanted: boolean) => Promise<vo
   return { button, set };
 }
 
-/** What a card tells the home view. */
 export interface CardEvents {
   /** After each change of state. */
   changed(): void;
@@ -73,7 +66,7 @@ export interface CardEvents {
   turnedOn(): void;
 }
 
-/** One configured light of the home view. The card asks the light for its state when it is made. */
+/** The card asks the light for its state when it is made. */
 export class HomeCard {
   readonly found: Found;
   readonly node = element("article", "light-card home-card");
@@ -114,9 +107,7 @@ export class HomeCard {
     this.title.addEventListener("click", () => {
       this.events.open(this);
     });
-    // The title button serves the keyboard. A click elsewhere on the card does the same, outside its
-    // controls. The gesture decides where it starts: a slider drag ends its click on the card, and the
-    // power button replaces its icon before the click reaches the card.
+    // A slider drag ends its click on the card, and the power button swaps its icon before the click.
     let fromControl = false;
     this.node.addEventListener("pointerdown", (event) => {
       fromControl = event.composedPath().some((item) => item instanceof Element && item.matches(CONTROLS));
@@ -143,7 +134,6 @@ export class HomeCard {
     this.level.addEventListener("input", () => {
       this.send(Number(this.level.value));
     });
-    // The color bar is the track of the slider: the knob alone shows.
     this.swatch.append(this.level);
     this.node.append(top, this.swatch, this.error);
     this.slot.append(statusMark(t("light.checking"), loading({ size: "s" })));

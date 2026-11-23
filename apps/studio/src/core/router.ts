@@ -1,12 +1,9 @@
-// The pages of Studio are paths: `/`, `/settings`, `/setup`. govee-server
-// answers `index.html` for a path with no dot, so a reload keeps the page.
+// govee-server answers `index.html` for a path with no dot, so a reload keeps the page.
 
-/** The path of the page `id`: `/` for home. */
 export function pathOf(id: string): string {
   return id === "home" ? "/" : `/${id}`;
 }
 
-/** The id of the page at the current path: `home` for `/`. */
 export function currentId(): string {
   return location.pathname.replaceAll(/^\/+|\/+$/gu, "") || "home";
 }

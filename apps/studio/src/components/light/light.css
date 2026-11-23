@@ -11,7 +11,6 @@
 .light-icon { position: relative; display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--panel-2); color: var(--muted); }
 .light-card.selected .light-icon { color: var(--ember); }
 .light-icon svg { width: 26px; height: 26px; }
-/* The selection: an ember round with a check on the bottom right of the icon, and nothing while the light is not selected. */
 .light-check {
   position: absolute; right: -6px; bottom: -6px; width: 20px; height: 20px; margin: 0;
   border: 2px solid var(--panel); border-radius: 50%; appearance: none; cursor: pointer;
@@ -20,7 +19,6 @@
 .light-check:not(:checked) { opacity: 0; }
 .light-check:focus-visible { opacity: 1; outline: 2px solid var(--ember); outline-offset: 2px; }
 .light-check:not(:checked):focus-visible { background: none; }
-/* The status of the light: a cyan dot that turns into the identify magnifier, or a gray dot when the light is offline. */
 .light-find { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid transparent; border-radius: 50%; color: var(--muted); }
 .light-find:hover:not(:disabled) { border-color: var(--muted); color: var(--text); }
 .light-find svg { width: 17px; height: 17px; }

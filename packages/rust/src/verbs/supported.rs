@@ -1,31 +1,25 @@
-//! What the role verbs accept on one mode, read from the device file alone.
-
 use serde::Serialize;
 
 use crate::codec::catalog::Device;
 use crate::codec::{ArgBound, ArgRole, Mode, Role};
 
 /// What the role verbs of [`DeviceHandle`](crate::DeviceHandle) accept on one
-/// mode of a device file. A verb that this answers `false` or `None` for
-/// fails with [`Error::NoRoleCommand`](crate::Error::NoRoleCommand) or
-/// [`Error::NoRoleArg`](crate::Error::NoRoleArg) on that mode.
-///
-/// It reads the device file, not the device: the firmware can still refuse a
-/// value.
+/// mode. A verb at `false` or `None` fails with
+/// [`Error::NoRoleCommand`](crate::Error::NoRoleCommand) or
+/// [`Error::NoRoleArg`](crate::Error::NoRoleArg). The firmware can still
+/// refuse a value.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[non_exhaustive]
 pub struct Supported {
     /// `power` has an entry.
     pub power: bool,
-    /// The bounds of `brightness`, or `None` where the mode has no entry or
-    /// the argument declares no range.
+    /// The bounds of `brightness`, or `None` without an entry or a range.
     pub brightness: Option<[i64; 2]>,
     /// `color` has an entry.
     pub color: bool,
     /// The bounds of `color_temp`, in kelvin, as for `brightness`.
     pub color_temp: Option<[i64; 2]>,
-    /// The zones that a paint can address, or `None` where the mode has no
-    /// entry that paints zones by mask.
+    /// `None` without an entry that paints zones by mask.
     pub segments: Option<Segments>,
     /// `gradient` has an entry.
     pub gradient: bool,

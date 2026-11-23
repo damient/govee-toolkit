@@ -1,6 +1,5 @@
 //! The local HTTP server of Studio. The routes are under `/api`, and any
-//! other path is a file of the web UI that [`Options::web`] selects. A path
-//! with no dot in its last segment is a page of Studio and gets `index.html`.
+//! other path is a file of the web UI.
 
 use std::io;
 use std::net::SocketAddr;
@@ -29,13 +28,10 @@ use tower_http::services::ServeDir;
 
 pub use crate::storage::Storage;
 
-/// The answer of a refused request: `{ "error": error }`.
 pub(crate) fn refuse(status: StatusCode, error: &str) -> Response {
     (status, Json(serde_json::json!({ "error": error }))).into_response()
 }
 
-/// [`refuse`] for an error of a file: 409 for a file that does not parse,
-/// 500 for the others.
 pub(crate) fn refuse_io(error: &io::Error) -> Response {
     let status = if error.kind() == io::ErrorKind::InvalidData {
         StatusCode::CONFLICT
@@ -56,8 +52,7 @@ pub const WEB_DIR: &str = env!("GOVEE_SERVER_WEB_DIR");
 pub struct Options {
     /// Where the web UI comes from.
     pub web: Web,
-    /// The files that keep the settings. `None` keeps them in memory, and
-    /// `/api/backup` answers 404.
+    /// `None` keeps the settings in memory, and `/api/backup` answers 404.
     pub storage: Option<Storage>,
 }
 
@@ -73,13 +68,12 @@ pub enum Web {
     None,
 }
 
-/// The routes. `/api/share` cannot open the network here: only [`serve`]
-/// knows the port.
+/// `/api/share` cannot open the network here: only [`serve`] knows the port.
 ///
 /// # Errors
 ///
-/// `InvalidData` when `studio.json` or `rooms.json` does not parse, and the
-/// error of a read of either file.
+/// `InvalidData` when `studio.json` or `rooms.json` does not parse, or the
+/// read error.
 pub fn router(options: &Options) -> io::Result<Router> {
     Ok(routes(options, None)?.0)
 }

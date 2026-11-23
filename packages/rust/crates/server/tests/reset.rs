@@ -1,4 +1,4 @@
-//! `POST /api/reset`, against a temporary folder.
+//! `POST /api/reset`.
 
 #![allow(clippy::unwrap_used, clippy::indexing_slicing)]
 

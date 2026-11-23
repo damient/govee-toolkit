@@ -17,7 +17,6 @@ export interface Notice {
   level?: "h1" | "h2";
 }
 
-/** A centered card: an icon, a title, an optional text and actions. */
 export function notice(card: Notice): HTMLElement {
   const box = element("section", `notice ${card.tone ?? "plain"}`);
   const mark = element("span", "notice-icon");

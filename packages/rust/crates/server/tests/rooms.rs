@@ -1,4 +1,4 @@
-//! `/api/rooms`, against a temporary folder.
+//! `/api/rooms`.
 
 #![allow(clippy::unwrap_used, clippy::indexing_slicing)]
 

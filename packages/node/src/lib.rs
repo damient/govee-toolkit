@@ -40,8 +40,7 @@ pub fn modes() -> Vec<&'static str> {
     govee_toolkit::Mode::NAMES.to_vec()
 }
 
-/// The line that the module shows at load when the deprecated configuration
-/// folder is still on disk, or `null`.
+/// The warning for the deprecated configuration folder, or `null`.
 #[napi]
 #[must_use]
 pub fn legacy_warning() -> Option<String> {

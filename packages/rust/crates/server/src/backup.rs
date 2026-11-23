@@ -1,6 +1,5 @@
-//! `/api/backup`: `studio.json`, `rooms.json`, the configuration of the SDK
-//! and the API key in one JSON document, and back. The document can carry the
-//! API key, so only a client on this machine can export or import it.
+//! `/api/backup`. The document can carry the API key, so only a client on
+//! this machine can export or import it.
 
 use std::collections::BTreeMap;
 use std::io;
@@ -24,14 +23,9 @@ use crate::storage::{self, Storage};
 use crate::studio::{Store, Studio};
 use crate::{compat, refuse};
 
-/// The value of `format` in a backup.
 const FORMAT: &str = "govee-toolkit-backup";
-/// The answer to a file that is not a backup. The parse error names fields
-/// that a user does not know.
+/// The parse error names fields that a user does not know.
 const NOT_A_BACKUP: &str = "this file is not a backup of govee-toolkit";
-/// The content of `studio.json`, with the configuration file and the
-/// credentials beside it. An import reads the two parts as JSON values first:
-/// [`Studio::from_value`] checks their versions.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Document<Server = serde_json::Value, Part = serde_json::Value> {
@@ -40,17 +34,14 @@ struct Document<Server = serde_json::Value, Part = serde_json::Value> {
     server: Server,
     #[serde(default)]
     studio: Part,
-    /// The text of the configuration file, comments included. `null` when
-    /// there is no file.
+    /// The text of the configuration file, comments included.
     config: Option<String>,
-    /// `GOVEE_*` variables, such as the API key. `null` when none is set.
     credentials: Option<BTreeMap<String, String>>,
     /// The content of `rooms.json`. A backup with no `rooms` holds no room.
     #[serde(default)]
     rooms: Option<Rooms>,
 }
 
-/// What an import replaces, and what it starts again.
 #[derive(Debug)]
 pub(crate) struct Backup {
     pub(crate) storage: Option<Storage>,
@@ -87,7 +78,6 @@ fn key(storage: &Storage, config: Option<&str>) -> Result<Option<String>, String
     cloud.key(&env).map_err(|e| e.to_string())
 }
 
-/// `GET /api/backup`: the document, as a file to download.
 pub(crate) async fn export(
     State(backup): State<Arc<Backup>>,
     Extension(local): Extension<Local>,
@@ -118,8 +108,7 @@ pub(crate) async fn export(
         Ok(text) => (
             [
                 (header::CONTENT_TYPE, "application/json"),
-                // Studio names the file with the local date and time: a name
-                // here would win over the one that Studio gives.
+                // A name here wins over the local date that Studio gives.
                 (header::CONTENT_DISPOSITION, "attachment"),
                 (header::CACHE_CONTROL, "no-store"),
             ],
@@ -130,7 +119,6 @@ pub(crate) async fn export(
     }
 }
 
-/// The files of a valid document.
 #[derive(Debug)]
 struct Plan {
     config: Option<String>,
@@ -139,7 +127,6 @@ struct Plan {
     rooms: Option<Rooms>,
 }
 
-/// `credentials` is where the credentials go, for the error.
 fn validate(body: &[u8], credentials: &Path) -> Result<Plan, String> {
     let value: serde_json::Value =
         serde_json::from_slice(body).map_err(|_| NOT_A_BACKUP.to_owned())?;
@@ -185,8 +172,6 @@ fn validate(body: &[u8], credentials: &Path) -> Result<Plan, String> {
     })
 }
 
-/// Write every file of `plan`. `keep` makes a `.import.bak` copy of each
-/// file first.
 fn write(backup: &Backup, storage: &Storage, plan: Plan, keep: bool) -> io::Result<()> {
     storage::put(
         &storage.credentials(),
@@ -199,15 +184,13 @@ fn write(backup: &Backup, storage: &Storage, plan: Plan, keep: bool) -> io::Resu
     backup.store.replace(plan.studio, keep)
 }
 
-/// Open the network as the settings say, and give the SDK the new files.
 async fn settle(backup: &Backup, share: bool) {
     // As at start: a network address that is not available leaves sharing off.
     let _ = backup.share.apply(share);
     backup.sdk.reload().await;
 }
 
-/// `POST /api/backup` with a document: replace every file, each after a
-/// `.import.bak` copy. Nothing is written unless the whole document is valid.
+/// Nothing is written unless the whole document is valid.
 pub(crate) async fn import(
     State(backup): State<Arc<Backup>>,
     Extension(local): Extension<Local>,
@@ -240,8 +223,6 @@ fn copies(storage: &Storage) -> [std::path::PathBuf; 4] {
     ]
 }
 
-/// `GET /api/backup/restore`: `{ "restorable": bool }`, whether a
-/// `.import.bak` copy exists, so that `POST` can undo the last import.
 pub(crate) async fn restorable(
     State(backup): State<Arc<Backup>>,
     Extension(local): Extension<Local>,
@@ -258,8 +239,6 @@ pub(crate) async fn restorable(
     }
 }
 
-/// The files as they were before the last import, from the `.import.bak`
-/// copies. `None` when there is no copy.
 fn kept(storage: &Storage) -> io::Result<Option<Plan>> {
     if !copies(storage)
         .iter()
@@ -287,9 +266,7 @@ fn kept(storage: &Storage) -> io::Result<Option<Plan>> {
     }))
 }
 
-/// `POST /api/backup/restore`: put back the files as they were before the
-/// last import, from the `.import.bak` copies, then delete the copies. A file
-/// with no copy did not exist, and goes.
+/// A file with no `.import.bak` copy did not exist, and goes.
 pub(crate) async fn restore(
     State(backup): State<Arc<Backup>>,
     Extension(local): Extension<Local>,

@@ -1,7 +1,6 @@
 import "./tooltip.css";
 let count = 0;
 
-/** A tooltip element, hidden, with an id for `aria-describedby`. */
 export function tipElement(text: string): HTMLElement {
   count += 1;
   const tip = document.createElement("span");
@@ -13,7 +12,6 @@ export function tipElement(text: string): HTMLElement {
   return tip;
 }
 
-/** Keep `tip` in the viewport, under `anchor`, or above it near the bottom edge. */
 export function place(anchor: HTMLElement, tip: HTMLElement): void {
   const margin = 8;
   const box = anchor.getBoundingClientRect();
@@ -26,10 +24,8 @@ export function place(anchor: HTMLElement, tip: HTMLElement): void {
 }
 
 /**
- * Show `text` in a tooltip on hover of `target` with a mouse or a pen, and on
- * focus from the keyboard. Esc, a click and a scroll close it. The tooltip is
- * in `document.body`, or in the dialog of `target`, only while it shows. The
- * function that it returns changes the text.
+ * Show `text` on hover with a mouse or a pen, and on focus from the keyboard.
+ * Esc, a click and a scroll close it. The function that it returns changes the text.
  */
 export function tooltip(target: HTMLElement, text: string): (text: string) => void {
   const tip = tipElement(text);

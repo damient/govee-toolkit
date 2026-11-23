@@ -16,10 +16,7 @@ function parts(text: string): { wrap: HTMLElement; badge: HTMLButtonElement; tip
   return { wrap, badge, tip };
 }
 
-/**
- * A "?" badge that shows `text` in a tooltip: on hover, on focus, and on a
- * tap for a touch screen. Esc and a tap elsewhere close it.
- */
+/** A "?" badge that shows `text` in a tooltip, also on a tap. Esc and a tap elsewhere close it. */
 export function help(text: string): HTMLElement {
   const { wrap, badge, tip } = parts(text);
   let pinned = false;
@@ -33,7 +30,6 @@ export function help(text: string): HTMLElement {
     }
     place(badge, tip);
     document.addEventListener("pointerdown", outside);
-    // The tooltip has a fixed position: a scroll would leave it behind.
     document.addEventListener("scroll", outside, true);
   };
   const outside = (event: Event): void => {

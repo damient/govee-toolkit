@@ -23,8 +23,8 @@ The key is user-supplied configuration. It is never required to use `lan` or
 
 **Where it is stored:** the `GOVEE_API_KEY` environment variable, a `.env`
 file, `credentials.env` in the configuration folder, or a separate file whose
-path the configuration names. Never `config.yaml` — that file ends up in bug reports. The
-key is never logged and never written to the device cache. See
+path the configuration names. Never `config.yaml`: that file ends up in bug
+reports. The key is never logged and never written to the device cache. See
 [`../security.md`](../security.md).
 
 In this repository, development keys live in a gitignored `.env` at the root,

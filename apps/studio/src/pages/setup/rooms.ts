@@ -29,7 +29,7 @@ function button(text: string, d: string, primary = false): HTMLButtonElement {
   return node;
 }
 
-/** The pool of lights and the rooms. Every change stays in the page until Finish. */
+/** Every change stays in the page until Finish. */
 class Board {
   readonly root = element("div", "rooms-board");
   readonly draft: Room[];
@@ -210,7 +210,6 @@ class Board {
   };
 }
 
-/** Finish writes the rooms and goes home. An error shows on its left. */
 function finishRow(board: Board): HTMLElement {
   const error = element("p", "error");
   error.hidden = true;
@@ -240,7 +239,6 @@ function filled(card: HTMLElement): HTMLElement {
   return fill;
 }
 
-/** The second step: put the lights of the configuration in rooms. It reads the lights of the configuration and the rooms first. */
 export function roomsStep(): HTMLElement {
   const section = element("section", "scan rooms");
   const run = (): void => {

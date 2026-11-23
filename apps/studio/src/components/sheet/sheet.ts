@@ -1,7 +1,3 @@
-// A panel on the right of the page, over the full height. A phone shows it
-// full screen, with a back button. `<dialog>` keeps the focus inside, and Esc
-// closes it.
-
 import "./sheet.css";
 import { t } from "../../core/i18n.ts";
 import { BACK, icon } from "../icon/icon.ts";

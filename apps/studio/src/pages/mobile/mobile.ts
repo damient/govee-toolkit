@@ -8,7 +8,6 @@ import { element } from "../../core/dom.ts";
 const PHONE = "M6 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM11 4h2M12 17v.01";
 const COPY = "M8 10a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2zM16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2";
 
-/** The QR code, or an empty tile while sharing is off. */
 function tile(state: Share): HTMLElement {
   const box = element("div", "qr-tile");
   if (state.url === null) {
@@ -47,7 +46,6 @@ function address(url: string): HTMLElement {
   return row;
 }
 
-/** The note under the switch: who can switch, what sharing opens, or the last error. */
 function note(state: Share, error: string): HTMLElement {
   if (error) return element("p", "share-note error", error);
   if (state.fixed) return element("p", "share-note", t("mobile.fixed"));
@@ -94,7 +92,6 @@ function draw(box: HTMLElement, state: Share, error = ""): void {
   box.replaceChildren(card);
 }
 
-/** Draw the Mobile view: the address of Studio on the network, as a QR code. */
 export function mobile(view: HTMLElement): void {
   view.classList.add("centered");
   // The view also holds the note for a small screen: draw beside it.

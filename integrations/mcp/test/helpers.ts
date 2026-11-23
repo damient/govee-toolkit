@@ -19,7 +19,7 @@ writeFileSync(emptyEnv, "");
 
 /** The variables that isolate an SDK, for this process or a child. */
 export const isolated = {
-  // macOS derives the folders from HOME, Windows from APPDATA and LOCALAPPDATA.
+  // The folders of macOS and Windows.
   HOME: state,
   APPDATA: join(state, "config"),
   LOCALAPPDATA: join(state, "cache"),

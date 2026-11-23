@@ -71,15 +71,13 @@ can control the lights. Two ways open Studio to a phone or a tablet:
 
 ## Files
 
-The server keeps its files in the configuration folder of the system:
-`~/Library/Application Support/govee-toolkit` on macOS,
-`$XDG_CONFIG_HOME/govee-toolkit` on Linux and `%APPDATA%\govee-toolkit` on
-Windows. See [`docs/modes.md`](../../../../docs/modes.md#where-the-files-are).
+The server keeps its files in the configuration folder of the system, which
+[`docs/modes.md`](../../../../docs/modes.md#where-the-files-are) gives.
 
 - `studio.json`: two parts, `server` and `studio`. Each part holds a
   `version` and `settings`. The `server` settings hold the share switch, the
-  `studio` settings the theme, the language and the `advanced` switch. Each write goes to a temporary file, then a rename replaces the
-  file. A file that does not parse stops the start.
+  `studio` settings the theme, the language and the `advanced` switch. Each write goes to a temporary file, then a rename
+  replaces the file. A file that does not parse stops the start.
 - `rooms.json`: the rooms of the lights, with its own `version`. A room
   has an `id`, a `name` and the IDs of its `devices`. A room can be empty,
   and a device can be in more than one room. A file that does not parse
@@ -88,7 +86,7 @@ Windows. See [`docs/modes.md`](../../../../docs/modes.md#where-the-files-are).
   name. The server reads it, and writes its device entries on
   `PUT /api/devices`, a reset and an import.
 - `credentials.env`: the API key, written on an import with the
-  permissions `0600`. The SDK reads it after every other source.
+  permissions `0600`.
 
 A backup from `GET /api/backup` holds all four, the API key included when
 one is set. Keep the file private.
@@ -117,6 +115,7 @@ shape of the settings adds a row.
 | `GET /api/devices` | `{ "devices": [{ "id", "sku", "name", "family" }] }`: the devices of `config.yaml`, at once, with no scan. `sku` and `family` are `null` when the entry gives no SKU. An error answers 500 and `{ "error" }` |
 | `GET /api/scan` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`. Each record adds `family`, `name` (from `config.yaml`) and `configured` (`config.yaml` has an entry). The call takes one scan window, 2 s by default. An error answers 500 and `{ "error" }` |
 | `PUT /api/devices` | `{ "keep": [{ "id", "sku", "name" }], "remove": ["id"] }`, written to `config.yaml` in one go. An entry with no `sku` gets the one of the request, and a new entry also gets `modes: [lan]`. A blank `name` removes the name. A name is 64 characters at most, or 400. A removed device leaves its rooms. A request that changes no entry writes nothing. The SDK takes the new entries and keeps the devices that it knows. The other keys stay, without their comments |
+| `POST /api/devices/{id}/identify` | the walk of `govee identify` over `lan` for one device: off, green, then off. The answer comes when the walk ends: `{}`, or 502 and `{ "error" }` when the device does not answer |
 | `GET /api/devices/{id}/status` | `{ "id", "on", "brightness", "color", "color_temp_kelvin", "raw", "brightness_range", "features" }`: the record of `govee status --json`, asked over the modes that `config.yaml` enables. `brightness_range` is `[min, max]` from the device file for the mode that answered, or `null`. `features` is `{ "color", "color_temp", "segments", "gradient" }` for that mode: `color` when it has an entry `role: color`, `color_temp` the bounds in kelvin of its entry `role: color_temp` or `null`, `segments` the zone count of its entry `role: segment_color_masked` or `null`, `gradient` when it also has an entry `role: segment_gradient`. A mode that arms a segment channel gets `segments: null`. The first call for a device that the SDK does not know scans until the device answers. A device that does not answer gets 502 and `{ "error" }` |
 | `POST /api/apply` | `{ "ids": ["id"], "power", "brightness", "color", "color_temp", "segment", "gradient" }`: each key but `ids` is optional, and one at least must be there. `power` is `true` or `false`, `brightness` a level in the bounds of `brightness_range`, `color` `"#rrggbb"` over the whole device, `color_temp` a white temperature in kelvin in the bounds of `features.color_temp`, `segment` `{ "zones": [0, 1], "color": "#rrggbb" }` over the zero-based zones of the list (the other zones keep their color), `gradient` `true` or `false`. A `segment` carries `gradient`, and a `segment` with no `gradient` sets it off. Power on goes first and power off last. A device that fails takes no later step. The answer is `{ "devices": [{ "id", "ok", "error" }] }` in the order of `ids`, with the first error of each device. When a device fails, the others go ahead. `error` is `{ "code", "message" }` or `null`. An empty `ids`, an empty `zones` and a request with no change get 400 |
 | `GET /api/rooms` | `{ "rooms": [{ "id", "name", "devices" }] }`, in the order of `rooms.json` |

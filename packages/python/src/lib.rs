@@ -46,8 +46,6 @@ fn govee_toolkit_module(module: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-/// The line that `__init__.py` shows when the deprecated configuration
-/// folder is still on disk.
 #[pyfunction]
 #[pyo3(name = "_legacy_warning")]
 fn legacy_warning() -> Option<String> {

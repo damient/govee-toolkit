@@ -1,10 +1,8 @@
-// A drag with the pointer events, so that a mouse, a finger and a pen use
-// one path. The drag and drop of HTML does not start from a touch on iOS.
+// The drag and drop of HTML does not start from a touch on iOS.
 
 /** A move shorter than this, in pixels, stays a click. */
 const THRESHOLD = 5;
 
-/** The drop target under a point: an element with `data-drop` inside `root`. */
 function targetAt(root: HTMLElement, x: number, y: number): HTMLElement | null {
   const under = document.elementFromPoint(x, y);
   const target = under?.closest<HTMLElement>("[data-drop]") ?? null;
@@ -16,7 +14,6 @@ function swallow(click: Event): void {
   click.preventDefault();
 }
 
-/** One press on a draggable node, until the release. */
 class Gesture {
   private ghost: HTMLElement | null = null;
   private over: HTMLElement | null = null;
@@ -94,11 +91,9 @@ class Gesture {
 }
 
 /**
- * Let `node` move to a drop target of `root`. `drop` gets the target under
- * the pointer at the release. The click that ends a drag does not reach
- * `node`. An element with `data-nodrag` in `node` starts no drag. `root`
- * carries `dragging` and the target under the pointer carries `over` while
- * the drag runs.
+ * The click that ends a drag does not reach `node`. An element with `data-nodrag` in
+ * `node` starts no drag. While the drag runs, `root` carries `dragging` and the
+ * target under the pointer carries `over`.
  */
 export function draggable(node: HTMLElement, root: HTMLElement, drop: (target: HTMLElement) => void): void {
   node.addEventListener("pointerdown", (down) => {

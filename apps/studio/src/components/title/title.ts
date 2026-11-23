@@ -11,7 +11,6 @@ export interface Title {
   end?: Node[];
 }
 
-/** The head of a view: an optional back link, the title, and content on the right. */
 export function title(head: Title): HTMLElement {
   const row = document.createElement("header");
   row.className = "page-head";

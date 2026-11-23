@@ -1,6 +1,3 @@
-// A modal dialog over the page. `<dialog>` keeps the focus inside, and Esc
-// closes it as the first action (the one that changes nothing).
-
 import "./modal.css";
 
 export interface Action<T> {
@@ -21,7 +18,6 @@ export interface Modal<T> {
   actions: readonly [Action<T>, ...Action<T>[]];
 }
 
-/** Show `modal` and answer the value of the action that the user picks. */
 export function ask<T>(modal: Modal<T>): Promise<T> {
   const dialog = document.createElement("dialog");
   dialog.className = "modal";

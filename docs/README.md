@@ -24,7 +24,7 @@
   where the cloud API key lives
 - [`versioning.md`](versioning.md) — semver across the six packages, MSRV and
   deprecation policy
-- [`deprecations.md`](deprecations.md) — what the next breaking release
+- [`deprecations.md`](deprecations.md): what the next breaking release
   removes
 
 See also [`../devices/README.md`](../devices/README.md) for the device database.

@@ -19,7 +19,6 @@ export interface Menu {
   items: MenuItem[];
 }
 
-/** Put `list` under `button`, with their right edges aligned, or above it near the bottom edge. */
 function place(button: HTMLElement, list: HTMLElement): void {
   const margin = 6;
   const box = button.getBoundingClientRect();
@@ -43,10 +42,7 @@ function entry(item: MenuItem, close: () => void): HTMLButtonElement {
   return node;
 }
 
-/**
- * A button with three dots that opens a list of actions. Arrow keys move in
- * the list, Esc, a click elsewhere and a scroll close it.
- */
+/** Arrow keys move in the list. Esc, a click elsewhere and a scroll close it. */
 export function menu(spec: Menu): HTMLElement {
   const wrap = element("span", "menu");
   const button = element("button", "icon-button menu-button");

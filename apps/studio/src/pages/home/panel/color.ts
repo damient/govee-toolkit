@@ -32,7 +32,6 @@ function swatch(hex: string, pick: (hex: string) => void): HTMLButtonElement {
   return button;
 }
 
-/** The chip after the base colors: it shows the wheel, or hides it. `changed` runs after each click. */
 function wheelToggle(wheelNode: HTMLElement, changed: () => void): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
@@ -52,12 +51,7 @@ function wheelToggle(wheelNode: HTMLElement, changed: () => void): HTMLButtonEle
 }
 
 
-/**
- * The colors: the current color when no swatch has it, the favorites, then
- * the base colors and the chip of the wheel. A pick runs `pick`, and the
- * white swatch runs `white.pick` when there is a `white`. The favorites are a
- * setting of the server, so every light shows them.
- */
+/** The favorites are a setting of the server, so every light shows them. */
 export class ColorPart {
   readonly node = document.createElement("div");
   private current: string;

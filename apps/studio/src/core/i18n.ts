@@ -30,7 +30,7 @@ export function language(): Language {
   return LANGUAGES.find((code) => code === prefs().language) ?? "en";
 }
 
-/** Fetch `locales/<code>.json`. The file is fetched each time, so that a change shows without a rebuild. */
+/** The file is fetched each time, so that a change shows without a rebuild. */
 export async function load(code: Language): Promise<void> {
   const response = await fetch(`/locales/${code}.json`, { cache: "no-store" });
   if (!response.ok) throw new Error(`locales/${code}.json: HTTP ${response.status}`);

@@ -10,7 +10,6 @@ export interface Memory {
 
 const memories = new Map<string, Memory>();
 
-/** The memory of the light `id` with `count` zones. */
 export function memory(id: string, count: number): Memory {
   let kept = memories.get(id);
   if (kept?.colors.length !== count) {
@@ -37,7 +36,6 @@ function textButton(text: string, click: () => void): HTMLButtonElement {
   return button;
 }
 
-/** One button per zone, in a strip. A click selects the zone, or drops it. */
 export function zonesPart(kept: Memory): ZonesPart {
   const picked = new Set<number>();
   const node = document.createElement("div");

@@ -165,16 +165,13 @@ impl Govee {
         Ok(govee)
     }
 
-    /// A facade with `config` that shares the catalog and the transports of
-    /// this one, and with them the devices that they know. No socket is bound
-    /// again and no scan runs. This facade keeps its own configuration.
+    /// A facade with `config` that shares the catalog, the transports and the
+    /// known devices of this one. No socket is bound and no scan runs.
     ///
     /// # Errors
     ///
     /// [`Error::Configuration`] as for [`Govee::attach`], and when `config`
-    /// changes what a transport or the catalog started with: `catalog`,
-    /// `lan`, `cloud` or the API key. Close this facade and start a new one
-    /// for such a change.
+    /// changes `catalog`, `lan`, `cloud` or the API key.
     pub fn reconfigure(&self, config: Config) -> Result<Self> {
         let old = self.config();
         let started = same(&old.catalog, &config.catalog)
@@ -204,8 +201,7 @@ impl Govee {
     }
 }
 
-/// Compare two parts of a configuration by their serialized form: the parts
-/// carry no `PartialEq`. A part that does not serialize is a change.
+/// The parts carry no `PartialEq`. A part that does not serialize is a change.
 fn same<T: serde::Serialize>(a: &T, b: &T) -> bool {
     match (serde_json::to_value(a), serde_json::to_value(b)) {
         (Ok(a), Ok(b)) => a == b,

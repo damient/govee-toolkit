@@ -15,7 +15,6 @@ interface Switch {
   set(on: boolean): void;
 }
 
-/** A switch with its label on the left. `click` gets the state that the user asks for. */
 function switchRow(text: string, on: boolean, click: (on: boolean) => void): Switch {
   const row = element("label", "panel-row");
   const button = element("button", "switch");
@@ -38,11 +37,7 @@ interface Slider {
   track: HTMLElement;
 }
 
-/**
- * A slider in the bounds that the device file gives, drawn as the slider of
- * a card. A value out of the bounds shows at the nearest bound. `text` is a
- * visible label, or `null` for a slider that only a screen reader names.
- */
+/** A value out of the bounds shows at the nearest bound. A `null` text names the slider for a screen reader only. */
 function slider(
   text: string | null,
   name: string,
@@ -75,13 +70,12 @@ function head(card: HomeCard): Node[] {
   return [shape, text];
 }
 
-/** The color that the light shows, or white when it does not say. */
 function start(state: Status): string {
   const hex = state.color?.toLowerCase() ?? "#000000";
   return hex === "#000000" ? "#ffffff" : hex;
 }
 
-/** The button of the library. It waits for the library view. */
+/** It waits for the library view. */
 function libraryButton(): HTMLButtonElement {
   const button = element("button", "button", t("panel.library"));
   button.type = "button";
@@ -90,10 +84,7 @@ function libraryButton(): HTMLButtonElement {
   return button;
 }
 
-/**
- * The panel of one light. Each change goes to the light at once, with one
- * request in flight at most, and the card shows it.
- */
+/** Each change goes to the light at once, with one request in flight at most. */
 class LightPanel {
   private readonly id: string;
   private readonly error = element("p", "light-error");
@@ -242,7 +233,7 @@ class LightPanel {
   }
 }
 
-/** Open the panel of the light of `card`. A light that does not answer opens nothing. */
+/** A light that does not answer opens nothing. */
 export function openPanel(card: HomeCard): void {
   const state = card.snapshot();
   if (state !== null) new LightPanel(card, state).show();

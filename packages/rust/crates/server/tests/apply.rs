@@ -1,5 +1,4 @@
-//! `POST /api/apply` refuses a request that changes nothing before the SDK
-//! starts, so these tests open no socket.
+//! Each request here fails before the SDK starts, so no test opens a socket.
 
 #![allow(clippy::unwrap_used)]
 

@@ -1,6 +1,5 @@
-//! Change the `devices:` entries of a configuration file, as text. The edit
-//! goes through a YAML tree, so the other keys of the file stay as they are.
-//! The comments of the file do not survive an edit.
+//! Change the `devices:` entries of a configuration file. The other keys stay,
+//! and the comments of the file are lost.
 
 use std::path::Path;
 
@@ -11,29 +10,25 @@ use crate::config::Config;
 use crate::error::{Error, Result};
 use crate::transport::DeviceId;
 
-/// One change to the `devices:` entries. A key of the file matches a
-/// [`DeviceId`] whatever its case, as the SDK reads it.
+/// One change to the `devices:` entries. A key matches in any case.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum DeviceEdit {
-    /// Make the entry of `id` with `modes` when the file has none. An entry
-    /// that exists keeps its modes.
+    /// Make the entry of `id` with `modes`. An entry keeps its modes.
     Add {
         /// The device.
         id: DeviceId,
         /// The modes of the new entry.
         modes: Vec<Mode>,
     },
-    /// Write `sku` in the entry of `id` when the entry gives none. Makes the
-    /// entry when the file has none.
+    /// Write `sku` in the entry of `id` when the entry gives none.
     Sku {
         /// The device.
         id: DeviceId,
         /// The SKU to read the device file under.
         sku: String,
     },
-    /// Set the name of `id`. `None` or a blank name removes it. Makes the
-    /// entry when the file has none. The name is trimmed.
+    /// Set the trimmed name of `id`. `None` or a blank name removes it.
     Name {
         /// The device.
         id: DeviceId,
@@ -46,10 +41,8 @@ pub enum DeviceEdit {
     RemoveAll,
 }
 
-/// The text of the configuration file `text` after `edits`, in order. `None`
-/// when the edits change nothing: the caller then keeps the file as it is. An
-/// empty file reads as an empty configuration. `path` names the file in the
-/// error.
+/// The text of the file after `edits`, in order, or `None` when the edits
+/// change nothing. `path` names the file in the error.
 ///
 /// # Errors
 ///
@@ -126,7 +119,6 @@ fn apply(map: &mut Mapping, edit: &DeviceEdit) -> std::result::Result<(), &'stat
     Ok(())
 }
 
-/// The mapping under `key`, made when it is missing.
 fn child(map: &mut Mapping, key: Value) -> std::result::Result<&mut Mapping, &'static str> {
     match map.entry(key).or_insert_with(|| Mapping::new().into()) {
         Value::Mapping(child) => Ok(child),
@@ -134,7 +126,7 @@ fn child(map: &mut Mapping, key: Value) -> std::result::Result<&mut Mapping, &'s
     }
 }
 
-/// The key of `id` in `devices`, or the normalized form for a new entry.
+/// The key of a new entry is the normalized form of `id`.
 fn key_of(devices: &Mapping, id: &DeviceId) -> Value {
     devices
         .keys()

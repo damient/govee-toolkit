@@ -28,8 +28,7 @@ def isolated_state(tmp_path_factory):
     empty_env = root / "env"
     empty_env.write_text("", encoding="utf-8")
     wanted = {
-        # macOS derives the folders from HOME, Windows from APPDATA and
-        # LOCALAPPDATA, and Linux from XDG_*.
+        # The folders of macOS and Windows.
         "HOME": str(root),
         "APPDATA": str(root / "config"),
         "LOCALAPPDATA": str(root / "cache"),

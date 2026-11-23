@@ -73,13 +73,12 @@ function setupLink(): HTMLAnchorElement {
   return link;
 }
 
-/** Draw the Settings view. `change` applies a new language. */
+/** `change` applies a new language. */
 export function settings(view: HTMLElement, change: (code: Language) => void): void {
   const note = document.createElement("p");
   note.className = "settings-note";
   const lights = card(row("settings.setup", setupLink()));
   const look = card(row("settings.theme", themes(note)), row("settings.language", languages(change)));
-  // Only this computer can export, import or reset.
   const local = share().then((state) => state.local);
   const data = card(row("settings.data", backup(note, local)), row("settings.reset", resetButton(note, local)));
   const line = document.createElement("p");

@@ -1,7 +1,4 @@
-// The Studio settings. The server keeps them (`/api/settings`), so that
-// the desktop app and each browser show the same choices. `localStorage`
-// keeps a copy of the theme for the script in index.html, which paints the
-// page before the server answers, and the layout choices of this screen.
+// `localStorage` keeps the theme for the first paint (index.html) and the layout choices of this screen.
 
 import { Failure, request, send } from "./http.ts";
 
@@ -12,7 +9,7 @@ export interface Prefs {
   /** `null` until the user picks a language. */
   language: string | null;
   advanced: boolean;
-  /** Colors as `#rrggbb`, which the panel of every light offers. 32 at most. */
+  /** Colors as `#rrggbb`. */
   favorites: string[];
 }
 
@@ -39,7 +36,7 @@ function keep(name: string, value: string): void {
   try {
     localStorage.setItem(PREFIX + name, value);
   } catch {
-    // Private mode or blocked storage: the next first paint uses the default.
+    // Private mode or blocked storage.
   }
 }
 
@@ -102,7 +99,6 @@ export function readLocal<T extends string>(name: string, allowed: readonly T[],
   return allowed.find((option) => option === value) ?? fallback;
 }
 
-/** Keep a layout choice of this screen in this browser. */
 export function writeLocal(name: string, value: string): void {
   keep(name, value);
 }

@@ -9,7 +9,7 @@ repository = "https://github.com/damient/govee-toolkit"
 authors = ["damient"]
 publish = false
 
-# Outside the packages/rust workspace: the workspace builds on Linux, and the desktop app does not.
+# Outside the packages/rust workspace, which builds on Linux. The desktop app does not.
 [workspace]
 
 [build-dependencies]

@@ -1,7 +1,6 @@
 import { type Key, t } from "../../core/i18n.ts";
 import { notice } from "../../components/notice/notice.ts";
 
-/** A view that has no content yet. */
 export interface Soon {
   title: Key;
   /** What the view will do, in one or two sentences. */
@@ -10,7 +9,6 @@ export interface Soon {
   icon: string;
 }
 
-/** Draw the card that says that `soon` comes in a later version. */
 export function soon(view: HTMLElement, page: Soon): void {
   view.classList.add("centered");
   view.append(

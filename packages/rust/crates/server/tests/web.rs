@@ -1,4 +1,4 @@
-//! The web UI from a directory: a page of Studio gets `index.html`.
+//! The web UI from a directory.
 
 #![allow(clippy::unwrap_used)]
 

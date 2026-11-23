@@ -10,7 +10,6 @@ import { statusMark } from "../../components/light/mark.ts";
 
 const ONLINE = "M12 6.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z";
 
-/** A dot that shows the light answered, and the magnifier of the action on hover and on focus. */
 function rest(): SVGSVGElement[] {
   const answered = icon(ONLINE);
   answered.classList.add("rest");
@@ -19,7 +18,6 @@ function rest(): SVGSVGElement[] {
   return [answered, find];
 }
 
-/** The identify button: the light shows green for some seconds, and the button shows the wait. */
 function identifyButton(found: Found, error: HTMLElement): HTMLButtonElement {
   const button = iconButton(SEARCH, t("light.identify"));
   button.classList.add("light-find");
@@ -47,7 +45,6 @@ function identifyButton(found: Found, error: HTMLElement): HTMLButtonElement {
   return button;
 }
 
-/** The status of the light. `checking` says that a scan runs. */
 function status(found: Found, checking: boolean, error: HTMLElement): HTMLElement {
   if (found.online === true) return identifyButton(found, error);
   if (found.online === false) return statusMark(t("light.offline"), icon(ONLINE));
@@ -55,16 +52,14 @@ function status(found: Found, checking: boolean, error: HTMLElement): HTMLElemen
   return statusMark(t("light.unknown"), icon(ONLINE));
 }
 
-/** The state of a card that Continue saves. */
 export interface Draft {
   selected: boolean;
   name: string | null;
 }
 
-/** The label of a light: its name, its SKU, or its ID. */
 const label = (found: Found, name: string | null): string => name ?? found.sku ?? found.id;
 
-/** The rename field. Enter and a click out keep the name, Esc cancels. `done` gets the name. */
+/** Enter and a click out keep the name, Esc cancels. */
 function nameField(found: Found, name: string | null, done: (kept: string | null) => void): HTMLInputElement {
   const input = element("input", "light-input");
   input.value = name ?? "";
@@ -87,10 +82,6 @@ function nameField(found: Found, name: string | null, done: (kept: string | null
   return input;
 }
 
-/**
- * The name, or the SKU while the light has none, and the button that renames
- * it. A rename changes `draft`.
- */
 function nameRow(found: Found, draft: Draft): HTMLElement {
   const row = element("div", "light-name");
   const show = (name: string | null): void => {
@@ -108,7 +99,6 @@ function nameRow(found: Found, draft: Draft): HTMLElement {
   return row;
 }
 
-/** One light. A click on the card and a rename change `draft`. `checking` says that a scan runs. */
 export function lightCard(found: Found, draft: Draft, checking = false): HTMLElement {
   const card = element("article", "light-card");
   card.classList.toggle("offline", found.online === false);
@@ -123,9 +113,7 @@ export function lightCard(found: Found, draft: Draft, checking = false): HTMLEle
     draft.selected = check.checked;
   };
   check.addEventListener("change", mark);
-  // A click on the card, out of its controls, toggles the selection. The path
-  // of the event is read, because a control can swap its content on the click
-  // and detach the target before the card hears it.
+  // Read the event path: a control can swap its content on the click and detach the target.
   card.addEventListener("click", (event) => {
     if (event.composedPath().some((node) => node instanceof Element && node.matches("button, input"))) return;
     check.checked = !check.checked;

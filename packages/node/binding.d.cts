@@ -584,10 +584,7 @@ export declare class WalkReport {
 /** The version of the core this binding was built from. */
 export declare const CORE_VERSION: string
 
-/**
- * The line that the module shows at load when the deprecated configuration
- * folder is still on disk, or `null`.
- */
+/** The warning for the deprecated configuration folder, or `null`. */
 export declare function legacyWarning(): string | null
 
 /**

@@ -1,8 +1,3 @@
-//! `POST /api/apply`: change the state of a list of devices in one call. The
-//! SDK sends power on first and power off last, and a device that fails takes
-//! no later step. Each step goes over the mode that `config.yaml` enables for
-//! the device, and fails when that mode does not carry the role.
-
 use std::sync::Arc;
 
 use axum::Json;
@@ -17,10 +12,8 @@ use crate::devices::{Sdk, failed};
 use crate::refuse;
 use crate::studio::Hex;
 
-/// What `POST /api/apply` can send on a mode, for the `features` of
-/// `GET /api/devices/{id}/status`. A mode that arms a segment channel gets
-/// `segments: null`: Studio paints zones in the normal mode of the device
-/// only. `gradient` needs `segments`.
+/// `segments` is `null` on a mode that arms a segment channel: Studio paints
+/// zones in the normal mode of the device only.
 pub(crate) fn features(supported: &Supported) -> Value {
     let segments = supported
         .segments
@@ -49,11 +42,10 @@ pub(crate) struct Apply {
     power: Option<bool>,
     brightness: Option<i64>,
     color: Option<Hex>,
-    /// In kelvin, in the bounds of `features.color_temp`.
+    /// In kelvin.
     color_temp: Option<i64>,
     segment: Option<Zones>,
-    /// With `segment`, the paint carries it. A paint with no `gradient`
-    /// sets it off.
+    /// With `segment`, the paint carries it, and `None` sets it off.
     gradient: Option<bool>,
 }
 
@@ -85,10 +77,8 @@ fn outcome(id: &DeviceId, error: Option<&Error>) -> Value {
     })
 }
 
-/// `POST /api/apply` with `{ "ids", "power", "brightness", "color",
-/// "color_temp", "segment", "gradient" }`. Each key but `ids` is optional. The
-/// answer gives one outcome per device, in the order of `ids`, with the first
-/// error of the device. When a device fails, the others go ahead.
+/// One outcome per device, in the order of `ids`. When a device fails, the
+/// others go ahead.
 pub(crate) async fn apply(State(sdk): State<Arc<Sdk>>, Json(body): Json<Apply>) -> Response {
     if body.ids.is_empty() {
         return refuse(StatusCode::BAD_REQUEST, "`ids` is empty");
