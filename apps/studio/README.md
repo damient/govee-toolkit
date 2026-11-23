@@ -26,8 +26,8 @@ npm run serve
 
 The dev server listens on `PORT` (4080). It starts `govee-server` on
 `API_PORT` (4081) and passes every request to it.
-The dev server stops when either port is in use, and it stops `govee-server`
-when it stops, so only one dev server runs at a time.
+The dev server stops when either port is in use, so only one dev server runs
+at a time. It stops `govee-server` when it stops.
 
 The fonts and the icon come from `site/src/assets` at build time.
 
@@ -66,9 +66,9 @@ page: move the shared code to `components/`, `shell/` or `core/`.
   light (`card.ts`). Each card asks its light for its state
   (`/api/devices/{id}/status`). A dot on the icon is green when the light
   answers and gray when it does not. When the light answers, the card
-  shows a power button, a brightness slider on the color bar when the device file
-  gives a range (sent while the knob moves, one request in flight at most),
-  and the color. A light turned on is read again for its color. Every
+  shows a power button and the color. When the device file gives a range,
+  it also shows a brightness slider on the color bar, which sends the level
+  while the knob moves. A light turned on is read again for its color. Every
   change goes through `/api/apply`. A click on a light that answers opens
   its panel (`panel/`), on the right of the page, or full screen on a
   phone (`components/sheet/`), with a back button. The head holds the
@@ -92,7 +92,7 @@ page: move the shared code to `components/`, `shell/` or `core/`.
   lights only. Studio keeps that list until a reload, or until the user
   turns a light on from its card or its panel. With no light, Home shows a
   welcome card that opens the setup. Settings also opens the setup.
-  `/setup` has no entry in the navigation. Its first step shows the
+- `/setup` has no entry in the navigation. Its first step shows the
   lights of `config.yaml` at once (`/api/devices`), and runs a `lan` scan
   in the background (`/api/scan`). It shows one card per light
   (`light.ts`), in two groups: the new lights, and the lights of
@@ -155,7 +155,7 @@ page: move the shared code to `components/`, `shell/` or `core/`.
   below its rows. The server gives its two with the settings
   (`/api/settings`). `build.ts` reads the version of Studio from
   `package.json`.
-- Settings sets the theme and the language. The theme is dark by default;
+- Settings sets the theme and the language. The theme is dark by default.
   "Auto" follows the system. The server keeps both choices (`/api/settings`),
   so every browser and the desktop app show the same ones. `localStorage`
   keeps a copy of the theme, which the script in `index.html` applies

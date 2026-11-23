@@ -17,7 +17,7 @@ function checkbox(group: HTMLElement, key: Key): HTMLInputElement {
   return input;
 }
 
-/** The checkbox list of the modal, and a getter for the parts that it holds. All checks or clears every part. */
+/** All checks or clears every part. */
 function choices(): [HTMLElement, () => ResetChoice] {
   const group = document.createElement("fieldset");
   group.className = "choices";
@@ -78,7 +78,6 @@ function confirm(choice: ResetChoice): Promise<boolean> {
   });
 }
 
-/** The button of the Reset row. Only the computer of the server can reset. `note` shows an error. */
 export function resetButton(note: HTMLElement, local: Promise<boolean>): HTMLButtonElement {
   const node = document.createElement("button");
   node.type = "button";
@@ -101,7 +100,6 @@ export function resetButton(note: HTMLElement, local: Promise<boolean>): HTMLBut
       node.disabled = !here;
     },
     () => {
-      // The button stays: the server answers the reset on its own.
     },
   );
   return node;

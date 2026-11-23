@@ -56,8 +56,7 @@ fn main() {
     fs::write(&dest, out).expect("write web.rs");
 }
 
-/// A strong `ETag`: the FNV-1a hash of the bytes. A change of the file
-/// changes the tag, which is all that a cache check needs.
+/// FNV-1a. A cache check needs no cryptographic hash.
 fn etag(bytes: &[u8]) -> String {
     let hash = bytes.iter().fold(0xcbf2_9ce4_8422_2325_u64, |hash, &byte| {
         (hash ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01b3)

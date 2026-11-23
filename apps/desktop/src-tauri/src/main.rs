@@ -12,9 +12,8 @@ use govee_toolkit_server::{Options, Storage, WEB_DIR, Web};
 use tauri::webview::DownloadEvent;
 use tauri::{Url, WebviewUrl, WebviewWindowBuilder};
 
-/// A fixed port keeps the origin of the page from one launch to the next, and
-/// with it the `localStorage` that paints the theme before the first answer.
-/// Another program on the port gives a free port, and one plain first paint.
+/// A fixed port keeps the origin, and with it the `localStorage` that paints
+/// the theme before the first answer. A busy port falls back to a free one.
 const PORT: u16 = 4090;
 
 fn web() -> Web {
@@ -82,8 +81,7 @@ fn main() {
                 .title("Govee Toolkit Studio")
                 .inner_size(960.0, 720.0)
                 .min_inner_size(400.0, 480.0)
-                // The export of Settings. The webview saves the file in the
-                // Downloads folder, with a number after a name that exists.
+                // The backup export of Settings, saved in the Downloads folder.
                 .on_download(move |_, event| match event {
                     DownloadEvent::Requested { url, .. } => url.origin() == origin,
                     _ => true,

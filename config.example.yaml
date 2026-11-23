@@ -1,6 +1,6 @@
 # A configuration file for development, in place of `config.yaml` in the
-# configuration folder (docs/modes.md, "Where the files are"). Copy it to `config.local.yaml`, which
-# is gitignored, and name that file in `.env`:
+# configuration folder. Copy it to `config.local.yaml`, which is gitignored,
+# and name that file in `.env`:
 #
 #     GOVEE_CONFIG=config.local.yaml
 #

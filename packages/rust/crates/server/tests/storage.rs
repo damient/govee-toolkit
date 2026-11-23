@@ -1,5 +1,4 @@
-//! `studio.json`, `/api/settings` and `/api/backup`, against a temporary
-//! folder.
+//! `studio.json`, `/api/settings` and `/api/backup`.
 
 #![allow(clippy::unwrap_used, clippy::indexing_slicing)]
 
@@ -67,7 +66,7 @@ async fn settings_start_at_the_defaults_and_survive_a_restart() {
         json!({ "theme": "light", "language": "en", "advanced": false, "favorites": [], "server": server })
     );
 
-    // A new router reads the file again, as a new start of the server does.
+    // A new router reads the file again, as a restart does.
     let (_, settings) = call(&options(&dir), get("/api/settings")).await;
     assert_eq!(settings["theme"], "light");
     let file: Value =

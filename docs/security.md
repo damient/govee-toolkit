@@ -70,8 +70,8 @@ authenticated with an API key, and the trust boundary is the account.
 - **Do not expose ports 4001–4003 across networks.** Multicast discovery is
   link-local by design; forwarding it is exporting the trust boundary.
 - **Treat the configuration file as untrusted-adjacent.** It is a plain YAML
-  file in the configuration folder ([`modes.md`](modes.md#where-the-files-are));
-  anyone who can write it decides
+  file in the configuration folder ([`modes.md`](modes.md#where-the-files-are)).
+  Anyone who can write it decides
   which modes are enabled and, if `catalog.local_devices` is on, which device
   files are used. Keep it owned by the user running the SDK and not
   world-writable.

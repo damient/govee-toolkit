@@ -10,7 +10,6 @@ export interface Loading {
   block?: boolean;
 }
 
-/** The three dots of the logo, in a wave, for a wait. */
 export function loading(options: Loading = {}): HTMLElement {
   const box = document.createElement("span");
   box.className = `loading ${options.size ?? (options.block === true ? "l" : "m")}`;

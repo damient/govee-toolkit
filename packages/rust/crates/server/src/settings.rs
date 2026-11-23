@@ -1,6 +1,5 @@
-//! `/api/settings`: the Studio settings, which every client that the server
-//! admits can read and change, and the facts of the server, which it can
-//! read only.
+//! `/api/settings`. Every client that the server admits can change the
+//! settings. `server` is read-only.
 
 use std::sync::Arc;
 
@@ -13,8 +12,6 @@ use serde_json::{Value, json};
 use crate::studio::{Store, StudioSettings};
 use crate::{refuse, storage};
 
-/// The settings, and `server`: the version of the server crate and of the
-/// SDK. A `PUT` that names `server` gets 400.
 fn answer(settings: StudioSettings) -> Response {
     let mut value = serde_json::to_value(settings).unwrap_or_default();
     if let Value::Object(fields) = &mut value {
@@ -26,12 +23,10 @@ fn answer(settings: StudioSettings) -> Response {
     Json(value).into_response()
 }
 
-/// `GET /api/settings`: `{ "theme", "language", "advanced", "server" }`.
 pub(crate) async fn get(State(store): State<Arc<Store>>) -> Response {
     answer(store.get().studio.settings)
 }
 
-/// `PUT /api/settings` with the keys to change: the same answer as `GET`.
 pub(crate) async fn put(State(store): State<Arc<Store>>, Json(body): Json<Value>) -> Response {
     let Value::Object(changes) = body else {
         return refuse(StatusCode::BAD_REQUEST, "expected an object");

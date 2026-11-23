@@ -1,7 +1,5 @@
-//! `/api/share`: open Studio to the other devices of the network, and close
-//! it again. The API has no authentication, so sharing is off by default and
-//! only a client on this machine can switch it. `studio.json` keeps the
-//! switch, and the server opens the network at start when it is on.
+//! `/api/share`. The API has no authentication, so sharing is off by default
+//! and only a client on this machine can switch it.
 
 use std::io;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, UdpSocket};
@@ -18,17 +16,13 @@ use tokio::task::AbortHandle;
 use crate::studio::Store;
 use crate::{refuse, storage};
 
-/// The interval between two tries to share at start.
 const RETRY: std::time::Duration = std::time::Duration::from_secs(5);
 
-/// The switch, and the second listener that it opens.
 #[derive(Debug, Default)]
 pub(crate) struct Share {
-    /// The address of the main listener. `None` when [`crate::serve`] does not
-    /// run the router.
+    /// `None` when [`crate::serve`] does not run the router.
     listen: Option<SocketAddr>,
     open: Mutex<Option<Open>>,
-    /// The second listener serves this router: the same as the main one.
     app: OnceLock<Router>,
     store: Arc<Store>,
 }
@@ -52,9 +46,8 @@ impl Share {
         }
     }
 
-    /// Open the network when `studio.json` says so. At boot the network can
-    /// come up after the server: a failed start tries again every
-    /// [`RETRY`], for as long as the setting stays on. The setting is kept.
+    /// At boot the network can come up after the server: a failed start tries
+    /// again every [`RETRY`] while the setting stays on.
     pub(crate) fn restore(self: &Arc<Self>) {
         let wanted = |share: &Self| share.store.get().server.settings.share && !share.fixed();
         if !wanted(self) || self.start().is_ok() {
@@ -71,7 +64,7 @@ impl Share {
         });
     }
 
-    /// Open or close the network to match `on`, without a write.
+    /// Writes nothing to `studio.json`.
     pub(crate) fn apply(&self, on: bool) -> Result<(), String> {
         if self.fixed() || self.listen.is_none() {
             return Ok(());
@@ -93,13 +86,11 @@ impl Share {
         self.open.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// `--listen` names an address other than the loopback: the main
-    /// listener accepts the network already, and the switch does nothing.
+    /// `--listen` on a non-loopback address: the switch does nothing.
     fn fixed(&self) -> bool {
         self.listen.is_some_and(|addr| !addr.ip().is_loopback())
     }
 
-    /// The address of the second listener, while it runs.
     fn opened(&self) -> Option<SocketAddr> {
         let mut open = self.lock();
         if open.as_ref().is_some_and(|o| o.task.is_finished()) {
@@ -126,8 +117,6 @@ impl Share {
         })
     }
 
-    /// Bind the network address on the port of the main listener, or on
-    /// any port when another program holds it.
     fn start(&self) -> Result<(), String> {
         let mut open = self.lock();
         if open.as_ref().is_some_and(|o| !o.task.is_finished()) {
@@ -150,8 +139,7 @@ impl Share {
         let service = app
             .clone()
             .into_make_service_with_connect_info::<SocketAddr>();
-        // `opened` reads the end of the task, so an error of `serve` shows as
-        // sharing off.
+        // An error of `serve` ends the task: `opened` reads it as sharing off.
         let task = tokio::spawn(async move { axum::serve(listener, service).await }).abort_handle();
         *open = Some(Open { addr, task });
         Ok(())
@@ -164,8 +152,7 @@ impl Share {
     }
 }
 
-/// The address that this machine uses on the network. A UDP `connect` sends
-/// no packet: it only picks the route, and with it the source address.
+/// A UDP `connect` sends no packet: it only picks the route.
 fn lan_ip() -> io::Result<IpAddr> {
     let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0))?;
     // TEST-NET-1 takes the default route. The mDNS group also has a route on
@@ -184,9 +171,8 @@ fn lan_ip() -> io::Result<IpAddr> {
     ))
 }
 
-/// Refuse a client from the network while sharing is off. A connection that
-/// opened while sharing was on stays open after `stop`: this check closes it
-/// to the API and the UI.
+/// A connection that opened while sharing was on stays open after `stop`:
+/// this check closes it to the API and the UI.
 pub(crate) async fn guard(
     State(share): State<Arc<Share>>,
     mut request: Request,
@@ -204,7 +190,6 @@ pub(crate) async fn guard(
     next.run(request).await
 }
 
-/// `GET /api/share`: `{ "fixed", "shared", "url", "control", "local" }`.
 pub(crate) async fn get(
     State(share): State<Arc<Share>>,
     Extension(local): Extension<Local>,
@@ -212,7 +197,6 @@ pub(crate) async fn get(
     Json(share.state(local))
 }
 
-/// `POST /api/share` with `{ "shared": bool }`: the same answer as `GET`.
 pub(crate) async fn set(
     State(share): State<Arc<Share>>,
     Extension(local): Extension<Local>,

@@ -1,8 +1,6 @@
-/* Home: the bar, then the lights. A wait takes the free space. */
 .home { display: flex; flex-direction: column; gap: 20px; min-height: 100%; }
 .home > .alert { margin-top: 4px; }
 
-/* The tabs of the rooms on the left, the search and the actions on the right. */
 .home-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 12px; }
 .home-rooms { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .home-rooms label { white-space: nowrap; }
@@ -19,7 +17,6 @@
 }
 .home-setup { width: 36px; height: 36px; }
 
-/* The power button of the bar and of a light: cyan while the light is on. */
 .home-power {
   display: grid; flex: none; place-items: center; width: 36px; height: 36px; padding: 0;
   border: 0; border-radius: 50%; background: var(--panel-2); color: var(--muted); cursor: pointer;
@@ -31,7 +28,6 @@
 .home-power:disabled { cursor: default; opacity: .5; }
 .home-power:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
 
-/* A light: the card of the setup, with no selection. A light that answers opens its panel. */
 .home-card.offline { cursor: default; }
 .home-card.offline:hover { border-color: var(--line); }
 .home-open { min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: inherit; }
@@ -39,7 +35,6 @@
 .home-top { gap: 12px; margin-bottom: 4px; }
 .home-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
 .home-sku { overflow: hidden; color: var(--muted); font: 500 12px/1.3 var(--mono); text-overflow: ellipsis; white-space: nowrap; }
-/* The reach of the light, in the bottom right corner of its icon. */
 .home-dot {
   position: absolute; right: 4px; bottom: 4px; width: 8px; height: 8px;
   border-radius: 50%; background: var(--muted); cursor: help;

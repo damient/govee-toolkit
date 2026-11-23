@@ -2,7 +2,6 @@ import { restorable, restore, undoImport } from "../../core/api.ts";
 import { explain, t } from "../../core/i18n.ts";
 import { ask } from "../../components/modal/modal.ts";
 
-/** Show `failure` in `note`. */
 export function fail(note: HTMLElement, failure: unknown): void {
   note.classList.add("error");
   note.textContent = explain(failure);
@@ -71,7 +70,6 @@ export function fileName(at: Date): string {
   return `govee-toolkit-studio-${day}-${two(at.getHours())}${two(at.getMinutes())}.json`;
 }
 
-/** The Import button, and the file input that it opens. */
 function picker(note: HTMLElement): [HTMLButtonElement, HTMLInputElement] {
   const load = button(t("settings.data.import"));
   const file = document.createElement("input");
@@ -101,10 +99,7 @@ function picker(note: HTMLElement): [HTMLButtonElement, HTMLInputElement] {
   return [load, file];
 }
 
-/**
- * The Export, Import and Restore buttons. `note` shows an error. Only the computer of
- * the server can export or import: the backup can hold the API key.
- */
+/** Only the computer of the server can export or import: the backup can hold the API key. */
 export function backup(note: HTMLElement, local: Promise<boolean>): HTMLElement {
   const group = document.createElement("div");
   group.className = "buttons";
@@ -121,7 +116,6 @@ export function backup(note: HTMLElement, local: Promise<boolean>): HTMLElement 
   local.then(
     async (here) => {
       if (here) {
-        // A server that does not answer offers no Restore.
         back.hidden = !(await restorable().catch(() => false));
         return;
       }
@@ -131,7 +125,6 @@ export function backup(note: HTMLElement, local: Promise<boolean>): HTMLElement 
       note.textContent = t("settings.data.elsewhere");
     },
     () => {
-      // The buttons stay: the server answers each action on its own.
     },
   );
   group.append(save, load, back, file);

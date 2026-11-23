@@ -1,5 +1,3 @@
-//! The files of the server: where they are, and how one is replaced.
-
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -17,15 +15,12 @@ pub struct Storage {
     pub dir: PathBuf,
     /// The configuration file of the SDK.
     pub config: PathBuf,
-    /// Read the variables as the SDK does: the process, `.env` and the
-    /// credentials file of the system. `false` reads the credentials file
-    /// of [`Storage::dir`] alone.
+    /// `false` reads the `credentials.env` of [`Storage::dir`] alone.
     pub system_env: bool,
 }
 
 impl Storage {
-    /// The files that the SDK reads: [`paths::config_dir`], and the
-    /// configuration file that `GOVEE_CONFIG` can name.
+    /// The files that the SDK reads, `GOVEE_CONFIG` included.
     ///
     /// # Errors
     ///
@@ -70,7 +65,6 @@ impl Storage {
         }
     }
 
-    /// The configuration that the SDK of this server starts with.
     pub(crate) fn sdk_config(&self) -> govee_toolkit::Result<Config> {
         Config::load_from_with(&self.config, self.env()?)
     }
@@ -80,9 +74,7 @@ pub(crate) fn invalid(error: impl std::fmt::Display) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, error.to_string())
 }
 
-/// Apply `edits` to the configuration file at `path`. `false` when nothing
-/// changes: the file then stays as it is. `InvalidData` when the file is not
-/// a valid configuration.
+/// `false` when nothing changes. `InvalidData` for an invalid configuration.
 pub(crate) fn edit_config(path: &Path, edits: &[DeviceEdit]) -> io::Result<bool> {
     let text = read(path)?.unwrap_or_default();
     match config::edit_devices(path, &text, edits).map_err(invalid)? {
@@ -91,8 +83,7 @@ pub(crate) fn edit_config(path: &Path, edits: &[DeviceEdit]) -> io::Result<bool>
     }
 }
 
-/// Run `work` on a thread of the blocking pool. A write waits for the disk
-/// (`sync_all`), and an async worker must not: the `lan` send path shares it.
+/// A write waits for the disk. The `lan` send path shares the async workers.
 pub(crate) async fn blocking<T: Send + 'static>(
     work: impl FnOnce() -> io::Result<T> + Send + 'static,
 ) -> io::Result<T> {
@@ -101,15 +92,13 @@ pub(crate) async fn blocking<T: Send + 'static>(
         .map_err(io::Error::other)?
 }
 
-/// `value` as pretty JSON with a final line break.
 pub(crate) fn json_text(value: &impl Serialize) -> io::Result<String> {
     let mut text = serde_json::to_string_pretty(value).map_err(invalid)?;
     text.push('\n');
     Ok(text)
 }
 
-/// Replace `path` with `text`, or delete it for `None`. `keep` makes a
-/// [`keep`] copy first.
+/// `None` deletes the file. `keep` makes a [`keep`] copy first.
 pub(crate) fn put(path: &Path, text: Option<&str>, private: bool, keep: bool) -> io::Result<()> {
     if keep {
         self::keep(path)?;
@@ -120,7 +109,6 @@ pub(crate) fn put(path: &Path, text: Option<&str>, private: bool, keep: bool) ->
     }
 }
 
-/// The text of `path`, or `None` when the file does not exist.
 pub(crate) fn read(path: &Path) -> io::Result<Option<String>> {
     match fs::read_to_string(path) {
         Ok(text) => Ok(Some(text)),
@@ -129,17 +117,14 @@ pub(crate) fn read(path: &Path) -> io::Result<Option<String>> {
     }
 }
 
-/// `<path>.import.bak`, the copy that [`keep`] makes. A name of its own: a
-/// `.bak` beside the file can belong to the user or to another tool.
+/// A name of its own: a `.bak` beside the file can belong to the user.
 pub(crate) fn bak(path: &Path) -> PathBuf {
     let mut bak = path.as_os_str().to_owned();
     bak.push(".import.bak");
     PathBuf::from(bak)
 }
 
-/// Copy `path` to [`bak`]. The copy keeps the permissions of the file.
-/// When `path` does not exist, an old copy goes: no copy then says that
-/// there was no file.
+/// When `path` does not exist, an old copy goes: no copy means no file.
 pub(crate) fn keep(path: &Path) -> io::Result<()> {
     match fs::copy(path, bak(path)) {
         Ok(_) => Ok(()),
@@ -148,10 +133,7 @@ pub(crate) fn keep(path: &Path) -> io::Result<()> {
     }
 }
 
-/// Replace `path` with `bytes`: write a temporary file in the same folder,
-/// then rename it. A reader sees the old file or the new one, never a part.
-/// `private` gives the file the permissions `0600` on Unix. On Windows the
-/// folder of the user keeps other users out.
+/// `private` is `0600` on Unix. On Windows, the user folder keeps others out.
 pub(crate) fn write(path: &Path, bytes: &[u8], private: bool) -> io::Result<()> {
     static NEXT: AtomicU64 = AtomicU64::new(0);
     let dir = path
@@ -182,7 +164,6 @@ pub(crate) fn write(path: &Path, bytes: &[u8], private: bool) -> io::Result<()> 
     result
 }
 
-/// Delete `path`. A file that does not exist is not an error.
 pub(crate) fn remove(path: &Path) -> io::Result<()> {
     match fs::remove_file(path) {
         Err(e) if e.kind() != io::ErrorKind::NotFound => Err(e),

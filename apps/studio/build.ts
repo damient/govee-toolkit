@@ -1,5 +1,3 @@
-// The fonts and the icons come from the site: one copy of each file.
-
 import { readFileSync, readdirSync } from "node:fs";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -13,7 +11,6 @@ const familyIcons = join(root, "../../site/src/icons/family");
 
 const FONTS = ["ibm-plex-sans-latin.woff2", "ibm-plex-mono-500-latin.woff2", "ibm-plex-mono-600-latin.woff2", "OFL.txt"];
 
-/** Copy the files that esbuild does not bundle into `dist/`. */
 export async function copyStatic(): Promise<void> {
   await mkdir(join(dist, "fonts"), { recursive: true });
   await Promise.all([
@@ -26,7 +23,6 @@ export async function copyStatic(): Promise<void> {
   ]);
 }
 
-/** Empty `dist/`. */
 export async function clean(): Promise<void> {
   await rm(dist, { recursive: true, force: true });
   await mkdir(dist, { recursive: true });
@@ -41,10 +37,7 @@ function version(): string {
   throw new Error("package.json has no version");
 }
 
-/**
- * The shapes of each device family icon of the site, by family: the markup
- * inside `<svg>`. `src/components/family/family.ts` draws them on a 24 × 24 box.
- */
+/** The markup inside `<svg>` of each family icon of the site, by family. */
 function families(): Record<string, string> {
   const icons: Record<string, string> = {};
   for (const file of readdirSync(familyIcons)) {
@@ -58,16 +51,11 @@ function families(): Record<string, string> {
   return icons;
 }
 
-/**
- * `dev` adds a source map and keeps the bundle readable. The stylesheets that
- * the modules import go to `app.css`, in the order of the imports.
- */
 export function options(dev: boolean): esbuild.BuildOptions {
   return {
     define: { STUDIO_VERSION: JSON.stringify(version()), STUDIO_FAMILY_ICONS: JSON.stringify(families()) },
     entryPoints: [join(src, "main.ts")],
     outfile: join(dist, "app.js"),
-    // copyStatic() puts the fonts there.
     external: ["/fonts/*"],
     bundle: true,
     format: "esm",

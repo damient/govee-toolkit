@@ -1,6 +1,5 @@
-//! `POST /api/reset`: put the Studio settings back to the defaults, remove
-//! the device entries of `config.yaml` and the rooms, or both. The other keys
-//! of the file stay, and so do the API key and the sharing switch.
+//! `POST /api/reset`. The API key, the sharing switch and the other keys of
+//! `config.yaml` stay.
 
 use std::sync::Arc;
 
@@ -20,16 +19,13 @@ use crate::{refuse, refuse_io, storage};
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Reset {
-    /// Theme, language, the `advanced` switch and the favorite colors.
     #[serde(default)]
     prefs: bool,
-    /// The `devices:` key of `config.yaml` (names, modes and groups), and
-    /// `rooms.json`.
     #[serde(default)]
     devices: bool,
 }
 
-/// Only a client on this machine can reset, as for an import.
+/// Only a client on this machine can reset.
 pub(crate) async fn reset(
     State(backup): State<Arc<Backup>>,
     Extension(local): Extension<Local>,

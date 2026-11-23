@@ -19,12 +19,10 @@ export function applyTheme(): void {
   paint();
 }
 
-/** Apply `value` and store it on the server. */
 export async function setTheme(value: Theme): Promise<void> {
   const saved = save({ theme: value });
   applyTheme();
   await saved;
 }
 
-// "Auto" follows a change of the system while the page is open.
 matchMedia("(prefers-color-scheme: light)").addEventListener("change", paint);

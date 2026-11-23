@@ -15,7 +15,6 @@ import { ARROW, icon } from "../../components/icon/icon.ts";
 const WAND =
   "M6 21L21 6l-3-3L3 18zM15 6l3 3M9 3a2 2 0 0 0 2 2 2 2 0 0 0-2 2 2 2 0 0 0-2-2 2 2 0 0 0 2-2M19 13a2 2 0 0 0 2 2 2 2 0 0 0-2 2 2 2 0 0 0-2-2 2 2 0 0 0 2-2";
 
-/** The welcome card of a first run: it opens the setup. */
 function welcome(view: HTMLElement): void {
   view.classList.add("centered");
   const start = document.createElement("a");
@@ -30,14 +29,10 @@ function welcome(view: HTMLElement): void {
 const matches = (found: Found, query: string): boolean =>
   query === "" || [found.name, found.sku].some((text) => text?.toLowerCase().includes(query) === true);
 
-/**
- * The IDs of the lights that the power button of the bar turned off, which
- * it turns back on. They stay while Studio is open. A reload drops them, and
- * so does a light that the user turns on from its card or its panel.
- */
+/** The lights that the power button of the bar turned off. A reload drops them, and so does a light turned on by hand. */
 let turnedOff: string[] = [];
 
-/** Turn `cards` on or off, and answer the IDs that took the change. A failure of the request shows in `box`. */
+/** Answer the IDs that took the change. A failure of the request shows in `box`. */
 async function switchAll(cards: HomeCard[], on: boolean, box: HTMLElement): Promise<string[]> {
   try {
     const answers = await apply(
@@ -52,7 +47,6 @@ async function switchAll(cards: HomeCard[], on: boolean, box: HTMLElement): Prom
   }
 }
 
-/** Turn back on the lights in `turnedOff`, or else turn off the lights of `shown` that are on and keep them in `turnedOff`. */
 async function pressPower(cards: HomeCard[], shown: HomeCard[], box: HTMLElement): Promise<void> {
   const back = turnedOff.length > 0;
   const targets = back
@@ -62,7 +56,6 @@ async function pressPower(cards: HomeCard[], shown: HomeCard[], box: HTMLElement
   turnedOff = back ? turnedOff.filter((id) => !done.includes(id)) : done;
 }
 
-/** The lights of the configuration, the tabs of the rooms, the search and the power button. */
 function board(box: HTMLElement, lights: Found[], list: Room[]): void {
   const room = readLocal("home.room", [ALL, ...list.map((item) => item.id)], ALL);
   const grid = document.createElement("div");
@@ -101,7 +94,6 @@ function board(box: HTMLElement, lights: Found[], list: Room[]): void {
     },
   });
 
-  // A light turned on by hand ends the "turn back on" of the bar: its next press turns off again.
   const turnedOn = (): void => {
     turnedOff = [];
     refresh();
@@ -112,7 +104,6 @@ function board(box: HTMLElement, lights: Found[], list: Room[]): void {
   filter(room, "");
 }
 
-/** Draw the Home view: the configured lights, or the welcome card when there is none. */
 export function home(view: HTMLElement): void {
   // The answer can come after a move to another page: it then fills a detached box.
   const box = document.createElement("div");

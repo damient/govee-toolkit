@@ -48,7 +48,7 @@ export async function restore(text: string): Promise<void> {
   await send("/api/backup", "POST", text);
 }
 
-/** `GET /api/backup/restore`: the server keeps the files from before an import, so that Restore can put them back. */
+/** `GET /api/backup/restore`: the server keeps the files from before an import. */
 export async function restorable(): Promise<boolean> {
   const answer = await request("/api/backup/restore");
   return typeof answer === "object" && answer !== null && "restorable" in answer && answer.restorable === true;
@@ -87,7 +87,6 @@ export interface Found {
   online: boolean | null;
 }
 
-/** The label of a light: its name, its SKU, or its ID. */
 export const labelOf = (light: Found): string => light.name ?? light.sku ?? light.id;
 
 const nullableString = (value: unknown): boolean => value === null || typeof value === "string";
@@ -149,10 +148,7 @@ export interface Keep {
   name: string;
 }
 
-/**
- * `PUT /api/devices`: write the device entries in one go. A new entry gets
- * the SKU and the `lan` mode. `remove` deletes the entries of these IDs.
- */
+/** `PUT /api/devices`. A new entry gets the SKU and the `lan` mode. */
 export async function saveDevices(keep: Keep[], remove: string[]): Promise<void> {
   await send("/api/devices", "PUT", JSON.stringify({ keep, remove }));
 }

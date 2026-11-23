@@ -47,9 +47,8 @@ impl Env {
     /// [`config_dir`](crate::paths::config_dir) ends the search.
     /// [`FILE_ENV`] replaces the search.
     ///
-    /// [`credentials_file`](crate::paths::credentials_file) is read after
-    /// the search, or after the [`FILE_ENV`] file, and supplies only the
-    /// names that nothing else sets.
+    /// [`credentials_file`](crate::paths::credentials_file) is read last, and
+    /// supplies only the names that nothing else sets.
     ///
     /// A file the search does not find is not an error: `lan` and `ble` need
     /// no credential. A file that [`FILE_ENV`] names is an error when it is
@@ -141,15 +140,13 @@ impl Env {
         self.source.as_deref()
     }
 
-    /// The text of a `.env` file that holds `vars`, in the form that
-    /// [`Env::from_file`] reads back verbatim: each value goes between single
-    /// quotes. `path` is where the caller writes the text, for the error.
+    /// The text of a `.env` file that holds `vars`, which [`Env::from_file`]
+    /// reads back verbatim. `path` names the file in the error.
     ///
     /// # Errors
     ///
-    /// [`Error::Env`] for a name that is not `GOVEE_*` in upper case, and
-    /// for a value that is blank or holds a single quote or a control
-    /// character. The file cannot hold such a value verbatim.
+    /// [`Error::Env`] for a name that is not `GOVEE_*` in upper case, and for
+    /// a value that is blank or holds a single quote or a control character.
     pub fn file_text<'a>(
         path: &Path,
         vars: impl IntoIterator<Item = (&'a str, &'a str)>,

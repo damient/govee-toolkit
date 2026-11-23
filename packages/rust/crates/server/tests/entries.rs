@@ -1,4 +1,4 @@
-//! `PUT /api/devices`, against a temporary folder.
+//! `PUT /api/devices`.
 
 #![allow(clippy::unwrap_used)]
 

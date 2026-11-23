@@ -1,10 +1,4 @@
-// `npm run dev`: rebuild on change and reload the open pages.
-//
-// The page talks to this server, on PORT (4080). It proxies every request to
-// govee-server, which it starts on API_PORT (4081) with `--web dist`, and adds
-// the reload channel. A stylesheet change swaps the stylesheet in place, a
-// change in `locales/` loads the text again, and any other change reloads the
-// page.
+// `npm run dev`: proxy to govee-server, rebuild on change, reload the open pages.
 
 import { type ChildProcess, spawn } from "node:child_process";
 import { watch } from "node:fs";
@@ -18,8 +12,7 @@ const PORT = Number(process.env["PORT"] ?? 4080);
 const API_PORT = Number(process.env["API_PORT"] ?? 4081);
 const LIVE_PATH = "/__reload";
 
-// Added when a page is sent, so that `dist/` stays the build that ships. An
-// `open` after an `error` is this server back after a restart.
+// Added when a page is sent, so that `dist/` stays the build that ships.
 const CLIENT = `<script type="module">
 const events = new EventSource("${LIVE_PATH}");
 let lost = false;
@@ -97,8 +90,6 @@ function server(): ChildProcess {
   });
 }
 
-// A second dev server would proxy to the govee-server of the first one, which
-// serves another build: stop here.
 function free(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const probe = createNetServer();
@@ -157,8 +148,7 @@ createServer((incoming, response) => {
   console.log(`studio dev: http://127.0.0.1:${PORT}`);
 });
 
-// The dev server and govee-server stop together. A closed terminal sends
-// SIGHUP: without a handler, govee-server stays on API_PORT.
+// A closed terminal sends SIGHUP: without a handler, govee-server stays on API_PORT.
 let stopping = false;
 function stop(code: number): void {
   stopping = true;

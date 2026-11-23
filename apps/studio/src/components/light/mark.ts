@@ -1,10 +1,7 @@
 import { element } from "../../core/dom.ts";
 import { tooltip } from "../tooltip/tooltip.ts";
 
-/**
- * The mark of a light that has no state: a request runs, or the light did
- * not answer. It takes the focus, so that a keyboard shows its tooltip.
- */
+/** It takes the focus, so that a keyboard shows its tooltip. */
 export function statusMark(text: string, content: Node): HTMLElement {
   const mark = element("span", "light-find light-offline");
   mark.tabIndex = 0;

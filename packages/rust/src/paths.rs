@@ -1,18 +1,8 @@
-//! Where the configuration and the device cache live: the folders that each
-//! operating system gives an application.
-//!
-//! | System  | Configuration and data                    | Cache                          |
-//! | ------- | ----------------------------------------- | ------------------------------ |
-//! | macOS   | `~/Library/Application Support/govee-toolkit` | `~/Library/Caches/govee-toolkit` |
-//! | Linux   | `$XDG_CONFIG_HOME/govee-toolkit`, or `~/.config/govee-toolkit` | `$XDG_CACHE_HOME/govee-toolkit`, or `~/.cache/govee-toolkit` |
-//! | Windows | `%APPDATA%\govee-toolkit`                 | `%LOCALAPPDATA%\govee-toolkit` |
+//! Where the configuration and the device cache live: docs/modes.md, "Where
+//! the files are".
 //!
 //! macOS reads no `XDG_*` variable: the desktop app gets no shell environment,
-//! and the CLI must find the same files as the desktop app.
-//!
-//! On macOS and Windows, 1.17 and earlier used `~/.config/govee-toolkit`. While
-//! that folder exists and the new one does not, [`config_dir`] gives the old
-//! one, and [`legacy_warning`] says so. A major version removes this.
+//! and the CLI must find the same files.
 //!
 //! `GOVEE_CONFIG` overrides the configuration file outright, which is what a
 //! test, a container and a second instance on one host all need. It is a
@@ -26,8 +16,7 @@ const APP: &str = "govee-toolkit";
 /// The variable that names the configuration file.
 const CONFIG_ENV: &str = "GOVEE_CONFIG";
 
-/// The folder of the configuration, the credentials and the Studio file.
-/// It can be the deprecated folder: see [`legacy_warning`].
+/// The configuration folder. It can be the deprecated one: [`legacy_warning`].
 #[must_use]
 pub fn config_dir() -> PathBuf {
     let var = |name: &str| std::env::var_os(name);
@@ -37,15 +26,14 @@ pub fn config_dir() -> PathBuf {
     }
 }
 
-/// The line to show a person when the configuration folder of 1.17 or
-/// earlier is still on disk, or `None`. A binary or a binding shows it once
-/// at startup. The SDK writes it nowhere.
+/// The warning for a configuration folder of 1.17 or earlier still on disk.
+/// The SDK writes it nowhere: the caller shows it once at startup.
 #[must_use]
 pub fn legacy_warning() -> Option<String> {
     legacy(&|name| std::env::var_os(name), &Path::is_dir).message()
 }
 
-/// The folder of the device cache. Its content can be deleted at any time.
+/// The cache folder. Its content can be deleted at any time.
 #[must_use]
 pub fn cache_dir() -> PathBuf {
     dirs(&|name| std::env::var_os(name)).cache
@@ -65,9 +53,8 @@ pub fn config_file_from(env: &crate::env::Env) -> PathBuf {
         .map_or_else(|| config_dir().join("config.yaml"), PathBuf::from)
 }
 
-/// The credentials file: `GOVEE_*` variables in the `.env` format. The SDK
-/// reads it after every other source, and a program that writes it must give
-/// it the permissions `0600`.
+/// The credentials file, in the `.env` format. A program that writes it must
+/// give it the permissions `0600`.
 #[must_use]
 pub fn credentials_file() -> PathBuf {
     config_dir().join("credentials.env")
@@ -87,16 +74,8 @@ pub fn device_cache_file() -> PathBuf {
 
 enum Legacy {
     Absent,
-    /// Only the old folder exists, and [`config_dir`] gives it.
-    InUse {
-        old: PathBuf,
-        new: PathBuf,
-    },
-    /// Both folders exist, and the old one is not read.
-    Ignored {
-        old: PathBuf,
-        new: PathBuf,
-    },
+    InUse { old: PathBuf, new: PathBuf },
+    Ignored { old: PathBuf, new: PathBuf },
 }
 
 impl Legacy {
@@ -119,12 +98,11 @@ impl Legacy {
     }
 }
 
-/// `exists` tells if a folder is on disk, so a test can supply its own.
 fn legacy(var: &dyn Fn(&str) -> Option<OsString>, exists: &dyn Fn(&Path) -> bool) -> Legacy {
     if !cfg!(any(target_os = "macos", windows)) {
         return Legacy::Absent;
     }
-    // The rule of 1.17 and earlier, on every system: XDG, then the home.
+    // The rule of 1.17 and earlier, on every system.
     let root = var("XDG_CONFIG_HOME")
         .map(PathBuf::from)
         .filter(|p| p.is_absolute())
@@ -147,7 +125,6 @@ struct Dirs {
     cache: PathBuf,
 }
 
-/// `var` reads one environment variable, so a test can supply its own.
 fn dirs(var: &dyn Fn(&str) -> Option<OsString>) -> Dirs {
     let absolute = |name: &str| var(name).map(PathBuf::from).filter(|p| p.is_absolute());
     // No home either: the current directory is a poor default, but it is a

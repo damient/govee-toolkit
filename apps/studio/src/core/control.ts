@@ -1,5 +1,3 @@
-// The routes that read and change the state of one light.
-
 import { Failure, request, send } from "./http.ts";
 import { devicePath, listOf } from "./api.ts";
 
@@ -67,7 +65,6 @@ export async function status(id: string): Promise<Status> {
   };
 }
 
-/** What one device answered to `apply`. */
 export interface Outcome {
   id: string;
   ok: boolean;

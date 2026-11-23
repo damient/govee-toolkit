@@ -1,8 +1,6 @@
-//! `rooms.json` and `/api/rooms`: the rooms of the lights.
-//!
-//! A room can be empty, and a device can be in more than one room. The file
-//! belongs to the server, not to the preferences of Studio, so that every
-//! client reads the same rooms.
+//! `rooms.json` and `/api/rooms`. A room can be empty, and a device can be in
+//! more than one room. The server keeps the file so that every client reads
+//! the same rooms.
 
 use std::io;
 use std::path::PathBuf;
@@ -18,12 +16,10 @@ use serde_json::json;
 
 use crate::{refuse, storage};
 
-/// The version of the shape of `rooms.json` that this server writes.
 pub(crate) const VERSION: &str = "0.1.0";
-/// The longest name, in characters.
+/// In characters.
 pub(crate) const NAME_MAX: usize = 64;
 
-/// The content of `rooms.json`, and the rooms part of a backup.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Rooms {
@@ -43,17 +39,15 @@ impl Default for Rooms {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Room {
-    /// Kept across a rename. A request that gives none gets a new one.
+    /// Kept across a rename.
     #[serde(default)]
     id: String,
     name: String,
-    /// Device IDs, in the order of the room. A read normalizes each one.
     #[serde(default)]
     devices: Vec<DeviceId>,
 }
 
 impl Rooms {
-    /// Check the content of a file or of a backup.
     pub(crate) fn checked(self) -> Result<Self, String> {
         if self.version != VERSION {
             return Err(format!(
@@ -70,7 +64,6 @@ impl Rooms {
         })
     }
 
-    /// Remove `ids` from every room. Answer `true` when a room changed.
     fn forget(&mut self, ids: &[DeviceId]) -> bool {
         let mut changed = false;
         for room in &mut self.rooms {
@@ -82,9 +75,6 @@ impl Rooms {
     }
 }
 
-/// Trim the names, then refuse a blank or long name, a name or
-/// an ID that two rooms share, and a device that a room lists twice. A room
-/// with no id gets `room-<n>`, above every number in use.
 fn valid(rooms: Vec<Room>) -> Result<Vec<Room>, String> {
     let mut next = rooms
         .iter()
@@ -126,7 +116,6 @@ fn valid(rooms: Vec<Room>) -> Result<Vec<Room>, String> {
     Ok(out)
 }
 
-/// `rooms.json` in memory, and the file that keeps it.
 #[derive(Debug, Default)]
 pub(crate) struct Store {
     /// `None` keeps the rooms in memory alone.
@@ -135,7 +124,6 @@ pub(crate) struct Store {
 }
 
 impl Store {
-    /// Read the file at `path`. A file that does not exist holds no room.
     pub(crate) fn open(path: Option<PathBuf>) -> io::Result<Self> {
         let rooms = match &path {
             Some(path) => read(path)?.unwrap_or_default(),
@@ -155,9 +143,8 @@ impl Store {
         self.lock().clone()
     }
 
-    /// Replace the rooms and the file. `None` deletes the file. `keep` makes
-    /// a `.import.bak` copy of the file first. The rooms stay as they were
-    /// when the write fails.
+    /// `None` deletes the file. `keep` copies it to `.import.bak` first. A
+    /// failed write leaves the rooms as they were.
     pub(crate) fn set(&self, rooms: Option<Rooms>, keep: bool) -> io::Result<()> {
         let mut data = self.lock();
         if let Some(path) = &self.path {
@@ -168,7 +155,6 @@ impl Store {
         Ok(())
     }
 
-    /// Remove `ids` from every room, and write the file when a room changed.
     pub(crate) fn forget(&self, ids: &[DeviceId]) -> io::Result<()> {
         let mut next = self.get();
         if next.forget(ids) {
@@ -178,7 +164,6 @@ impl Store {
     }
 }
 
-/// The checked rooms of the file at `path`, or `None` when it does not exist.
 pub(crate) fn read(path: &std::path::Path) -> io::Result<Option<Rooms>> {
     let Some(text) = storage::read(path)? else {
         return Ok(None);
@@ -192,7 +177,6 @@ fn answer(rooms: &Rooms) -> Response {
     Json(json!({ "rooms": rooms.rooms })).into_response()
 }
 
-/// `GET /api/rooms`: `{ "rooms": [{ "id", "name", "devices" }] }`.
 pub(crate) async fn get(State(store): State<Arc<Store>>) -> Response {
     answer(&store.get())
 }
@@ -203,8 +187,6 @@ pub(crate) struct Put {
     rooms: Vec<Room>,
 }
 
-/// `PUT /api/rooms` with every room: the same answer as `GET`. A room with
-/// no `id` gets one.
 pub(crate) async fn put(State(store): State<Arc<Store>>, Json(body): Json<Put>) -> Response {
     let rooms = match valid(body.rooms) {
         Ok(rooms) => Rooms {

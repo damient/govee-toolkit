@@ -6,18 +6,15 @@ use axum::response::{IntoResponse, Response};
 
 include!(concat!(env!("OUT_DIR"), "/web.rs"));
 
-/// `(path, body, etag)` triples. A path is relative to the root and uses `/`.
+/// `(path, body, etag)`. A path is relative to the root and uses `/`.
 pub(crate) type Assets = &'static [(&'static str, &'static [u8], &'static str)];
 
-/// A page of Studio, which the UI routes on the path: outside `/api`, and no
-/// dot in the last segment.
 fn is_page(path: &str) -> bool {
     let api = path == "/api" || path.starts_with("/api/");
     !api && !path.rsplit('/').next().unwrap_or_default().contains('.')
 }
 
-/// Send a page of Studio to `/`, so that a reload or a link to `/lights`
-/// gets `index.html`.
+/// The UI routes on the path, so a reload of `/lights` must get `index.html`.
 pub(crate) async fn to_index(mut request: Request) -> Request {
     if is_page(request.uri().path()) {
         *request.uri_mut() = Uri::from_static("/");
@@ -25,9 +22,7 @@ pub(crate) async fn to_index(mut request: Request) -> Request {
     request
 }
 
-/// A file of the UI. A browser checks each file again on each load
-/// (`no-cache`), and a file that did not change gets 304 with no body: the
-/// names of the files carry no hash.
+/// `no-cache` with an `ETag`, because the file names carry no hash.
 pub(crate) fn respond(assets: Assets, uri: &Uri, headers: &HeaderMap) -> Response {
     let path = uri.path().trim_start_matches('/');
     let path = if path.is_empty() || path.ends_with('/') {

@@ -1,6 +1,5 @@
-//! `GET /api/devices`: the devices of `config.yaml`. `GET /api/scan`: the
-//! devices that answer a `lan` scan. The first answers at once, the second
-//! after the scan window.
+//! `GET /api/devices` reads `config.yaml` and answers at once. `GET /api/scan`
+//! answers when the `lan` scan window ends.
 
 use std::sync::Arc;
 
@@ -15,12 +14,11 @@ use tokio::sync::Mutex;
 use crate::storage::Storage;
 use crate::{refuse, rooms};
 
-/// Started on the first request, so a UI-only server opens no device socket.
+/// Starts on the first request, so that a UI-only server opens no socket.
 #[derive(Debug, Default)]
 pub(crate) struct Sdk {
     /// `None` reads the configuration of the system.
     storage: Option<Storage>,
-    /// A device that leaves `config.yaml` leaves its rooms too.
     rooms: Arc<rooms::Store>,
     govee: Mutex<Option<Arc<Govee>>>,
 }
@@ -45,9 +43,7 @@ impl Sdk {
         Ok(started)
     }
 
-    /// The configuration that `govee` started with, which every write of
-    /// the server renews through [`Sdk::reset`]. `None` when the server
-    /// keeps no files.
+    /// Current, because every write of the server calls [`Sdk::reload`].
     fn config<'a>(&self, govee: &'a Govee) -> Option<&'a Config> {
         self.storage.is_some().then(|| govee.config())
     }
@@ -60,8 +56,6 @@ impl Sdk {
         Arc::clone(&self.rooms)
     }
 
-    /// The configuration of the files, read on the blocking pool. `None`
-    /// when the server keeps no files.
     async fn read_config(&self) -> govee_toolkit::Result<Option<Config>> {
         let Some(storage) = self.storage.clone() else {
             return Ok(None);
@@ -75,9 +69,8 @@ impl Sdk {
         .map(Some)
     }
 
-    /// Give the SDK the files as they are now. [`Govee::reconfigure`] keeps
-    /// the transports and the devices that they know. When it cannot, the
-    /// SDK closes, and the next request starts it with the files.
+    /// When [`Govee::reconfigure`] fails, the SDK closes and the next request
+    /// starts it again.
     pub(crate) async fn reload(&self) {
         let mut govee = self.govee.lock().await;
         let Some(current) = govee.take() else {
@@ -88,8 +81,7 @@ impl Sdk {
             _ => None,
         };
         if next.is_none() {
-            // A close that fails leaves nothing to undo: the next start binds
-            // again.
+            // A failed close leaves nothing to undo.
             let _ = current.close().await;
         }
         *govee = next.map(Arc::new);
@@ -105,8 +97,6 @@ fn family(govee: &Govee, sku: Option<&str>) -> Option<String> {
     Some(file.family.clone())
 }
 
-/// A device that answered the scan, with the family of its device file for
-/// the icon of Studio, and its entry in `config.yaml`.
 fn scanned(govee: &Govee, device: &govee_toolkit::Device, config: Option<&Config>) -> Value {
     let mut value = device.to_json(Some(Mode::Lan));
     if let Some(fields) = value.as_object_mut() {
@@ -119,8 +109,6 @@ fn scanned(govee: &Govee, device: &govee_toolkit::Device, config: Option<&Config
     value
 }
 
-/// A device of `config.yaml`. `sku` and `family` are `null` when the entry
-/// gives no SKU.
 fn entry(govee: &Govee, id: &DeviceId, entry: &DeviceConfig) -> Value {
     json!({
         "id": id.to_string(),
@@ -130,7 +118,6 @@ fn entry(govee: &Govee, id: &DeviceId, entry: &DeviceConfig) -> Value {
     })
 }
 
-/// `GET /api/devices`: the devices of `config.yaml`, with no scan.
 pub(crate) async fn list(State(sdk): State<Arc<Sdk>>) -> Response {
     let found = async {
         let govee = sdk.get().await?;
@@ -151,8 +138,6 @@ pub(crate) async fn list(State(sdk): State<Arc<Sdk>>) -> Response {
     }
 }
 
-/// `GET /api/scan`: the devices that answer a `lan` scan. The answer comes
-/// when the scan window ends.
 pub(crate) async fn scan(State(sdk): State<Arc<Sdk>>) -> Response {
     let found = async {
         let govee = sdk.get().await?;
@@ -172,9 +157,7 @@ pub(crate) async fn scan(State(sdk): State<Arc<Sdk>>) -> Response {
     }
 }
 
-/// `POST /api/devices/{id}/identify`: the walk of `govee identify` over
-/// `lan`, for one device. The device goes off, shows green, and goes off
-/// again, so the answer comes after some seconds.
+/// Answers when the walk of `govee identify` ends, after some seconds.
 pub(crate) async fn identify(State(sdk): State<Arc<Sdk>>, Path(id): Path<String>) -> Response {
     let report = async {
         let govee = sdk.get().await?;

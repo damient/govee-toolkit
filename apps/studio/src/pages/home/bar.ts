@@ -31,7 +31,6 @@ export interface BarOptions {
   power(): void;
 }
 
-/** The tabs of the rooms, as the segmented control of Settings. */
 function tabs(rooms: Room[], current: string, pick: (room: string) => void): HTMLElement {
   const group = element("div", "seg home-rooms");
   group.setAttribute("role", "radiogroup");
@@ -66,7 +65,6 @@ function search(find: (query: string) => void): HTMLElement {
   return box;
 }
 
-/** The power button. `set` shows its action. */
 function powerButton(click: () => void): { button: HTMLButtonElement; set: (action: Action) => void } {
   const button = element("button", "home-power");
   button.type = "button";
@@ -93,7 +91,6 @@ function setupLink(): HTMLAnchorElement {
   return link;
 }
 
-/** The tabs of the rooms on the left. The search, the power button and the link to the setup on the right. */
 export function bar(options: BarOptions): Bar {
   let room = options.room;
   let query = "";

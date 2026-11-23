@@ -1,23 +1,17 @@
-//! Which versions of the Studio settings this server reads.
-//!
-//! `studio.json` and a backup carry two versions: the version of the Studio
-//! settings, which is the Studio release that gave them their shape, and the
-//! version of the `govee-server` that wrote the file. A Studio release that
-//! changes the shape of the settings adds a row here and a migration in
+//! The versions of the Studio settings that this server reads. A Studio release
+//! that changes the shape of the settings adds a row here and a migration in
 //! [`Studio::from_value`](crate::studio::Studio::from_value).
 
-/// The version of this server.
 pub(crate) const SERVER: &str = env!("CARGO_PKG_VERSION");
 
-/// One version of the Studio settings, and the first `govee-server` that
-/// writes it.
+/// `server` is the first `govee-server` that writes `studio`.
 #[derive(Debug)]
 pub(crate) struct Row {
     pub(crate) studio: &'static str,
     pub(crate) server: &'static str,
 }
 
-/// Every version that this server reads. The last row is the one it writes.
+/// The last row is the version that this server writes.
 pub(crate) const TABLE: &[Row] = &[Row {
     studio: "0.1.0",
     server: "0.1.0",
@@ -27,8 +21,6 @@ pub(crate) fn reads(studio: &str) -> bool {
     TABLE.iter().any(|row| row.studio == studio)
 }
 
-/// Why this server refuses the Studio settings of version `studio`, written
-/// by `server` when the file says.
 pub(crate) fn refusal(studio: &str, server: Option<&str>) -> String {
     let latest = TABLE.last().map_or("0.0.0", |row| row.studio);
     match server {
@@ -54,12 +46,11 @@ pub(crate) fn refusal(studio: &str, server: Option<&str>) -> String {
     }
 }
 
-/// `server` is a later release than this server.
 pub(crate) fn newer_server(server: &str) -> bool {
     newer(server, SERVER)
 }
 
-/// `a` is a later release than `b`. A part that is not a number counts as 0.
+/// A part that is not a number counts as 0.
 fn newer(a: &str, b: &str) -> bool {
     let parts = |version: &str| -> [u64; 3] {
         let mut parts = version

@@ -1,4 +1,3 @@
-/* The pool of lights on the left, the rooms on the right. */
 .rooms-board { display: grid; flex: 1; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); gap: 20px; align-items: start; }
 .rooms-pool {
   position: sticky; top: 16px; display: flex; flex-direction: column; gap: 12px; padding: 14px;
@@ -20,7 +19,6 @@
 .chip-icon svg { width: 18px; height: 18px; }
 .chip-label { flex: 1; min-width: 0; overflow: hidden; font-weight: 600; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
 .chip-badge { flex: none; min-width: 20px; padding: 3px 6px; border-radius: 999px; background: var(--panel); color: var(--accent-cyan); font: 500 11px/1 var(--mono); text-align: center; }
-/* A light that is in no room yet. */
 .chip.loose .chip-icon { color: var(--ember); }
 .chip-take { width: 26px; height: 26px; }
 .chip-take svg { width: 14px; height: 14px; }
@@ -30,7 +28,6 @@
   border-color: var(--ember); box-shadow: 0 12px 30px rgb(0 0 0 / 35%);
 }
 
-/* A room. */
 .room-card {
   display: flex; flex-direction: column; gap: 10px; min-height: 150px; padding: 14px;
   border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
@@ -57,7 +54,6 @@
 /* The card is a column: the title and the field keep their height when the row is taller. */
 .room-new .room-input { flex: none; }
 
-/* A drag or a picked light: the targets show, and the one under the pointer lights up. */
 :is(.dragging, .picking) .room-card:not(.room-new) { border-color: color-mix(in oklab, var(--ember) 35%, transparent); }
 .picking .room-card:not(.room-new) { cursor: copy; }
 :is(.dragging, .picking) .rooms-pool { border-style: dashed; }

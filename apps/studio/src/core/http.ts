@@ -1,5 +1,3 @@
-// One request to the API, and its failure as a kind that the UI can explain.
-
 /** Why a request failed. `explain` in i18n.ts gives the text. */
 export type Kind = "offline" | "outdated" | "unreadable" | "refused";
 
@@ -17,7 +15,7 @@ function errorOf(body: unknown): string {
   return typeof body === "object" && body !== null && "error" in body ? String(body.error) : "";
 }
 
-/** Send a request and answer the JSON body. Throws a `Failure` on any error. */
+/** Throws a `Failure` on any error. */
 export async function request(path: string, init: RequestInit = {}): Promise<unknown> {
   let response: Response;
   try {
@@ -37,7 +35,6 @@ export async function request(path: string, init: RequestInit = {}): Promise<unk
   return body;
 }
 
-/** `request` with a JSON body. */
 export function send(path: string, method: string, body: string): Promise<unknown> {
   return request(path, { method, headers: { "Content-Type": "application/json" }, body });
 }

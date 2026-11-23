@@ -47,7 +47,6 @@ const top: Page[] = [
     id: "stage",
     label: "nav.stage",
     icon: STAGE,
-    // The 3D view and the timeline need the room of a tablet at least.
     min: "tablet",
     render: (view) => {
       soon(view, { title: "nav.stage", body: "soon.stage", icon: STAGE });

@@ -1,8 +1,5 @@
-//! `PUT /api/devices`: the device entries of `config.yaml`, in one write. A
-//! device that the request removes leaves its rooms too.
-//!
-//! [`config::edit_devices`] makes the edit, so the other keys of the file stay
-//! as they are. The comments of the file do not survive a write.
+//! `PUT /api/devices`. A removed device leaves its rooms too. A write keeps the
+//! other keys of `config.yaml`, but not its comments.
 
 use std::sync::Arc;
 
@@ -30,7 +27,7 @@ pub(crate) struct Entries {
 #[serde(deny_unknown_fields)]
 struct Keep {
     id: DeviceId,
-    /// Written in an entry that has no SKU. A SKU in the file stays.
+    /// Written only in an entry that has no SKU.
     #[serde(default)]
     sku: Option<String>,
     /// `null` or a blank string removes the name.
@@ -40,8 +37,7 @@ struct Keep {
 
 impl Entries {
     /// A new entry gets `modes: [lan]`, because the device answered a `lan`
-    /// scan. An entry with no SKU gets the SKU of the request, so that a read
-    /// with no scan knows the device file.
+    /// scan.
     fn edits(&self) -> Vec<DeviceEdit> {
         let mut edits = Vec::new();
         for keep in &self.keep {
@@ -65,8 +61,6 @@ impl Entries {
     }
 }
 
-/// Write the entries, then give them to the SDK. A request that changes no
-/// entry writes nothing.
 pub(crate) async fn put(State(sdk): State<Arc<Sdk>>, Json(entries): Json<Entries>) -> Response {
     let Some(storage) = sdk.storage() else {
         return refuse(

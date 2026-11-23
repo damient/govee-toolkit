@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 const state = mkdtempSync(join(tmpdir(), "govee-node-test-"));
 const empty = join(state, "env");
 writeFileSync(empty, "");
-// macOS derives the folders from HOME, and Windows from APPDATA and LOCALAPPDATA.
+// The folders of macOS and Windows.
 process.env.HOME = state;
 process.env.APPDATA = join(state, "config");
 process.env.LOCALAPPDATA = join(state, "cache");

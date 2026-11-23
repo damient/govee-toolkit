@@ -51,7 +51,7 @@ function place(node: HTMLElement, knob: HTMLElement, at: HueSat): void {
   node.setAttribute("aria-valuetext", hex);
 }
 
-/** The point of `event` on the wheel `node`. Out of the circle, the saturation stays at 1. The saturation is the square root of the distance. */
+/** Out of the circle, the saturation stays at 1. */
 function pointed(node: HTMLElement, event: PointerEvent): HueSat {
   const box = node.getBoundingClientRect();
   const radius = box.width / 2;
@@ -61,7 +61,6 @@ function pointed(node: HTMLElement, event: PointerEvent): HueSat {
   return { hue, sat: Math.sqrt(Math.min(1, Math.hypot(dx, dy) / radius)) };
 }
 
-/** The point after the arrow `key`, or `null` for another key. */
 function stepped(key: string, at: HueSat): HueSat | null {
   const turn = { ArrowLeft: -HUE_STEP, ArrowRight: HUE_STEP }[key] ?? 0;
   const grow = { ArrowDown: -SAT_STEP, ArrowUp: SAT_STEP }[key] ?? 0;
@@ -83,11 +82,7 @@ function shell(): { node: HTMLElement; knob: HTMLElement } {
   return { node, knob };
 }
 
-/**
- * A color wheel: the hue around, the saturation from the center out. A drag
- * runs `pick` on each move. The arrows change the hue (left, right) and the
- * saturation (up, down).
- */
+/** The arrows change the hue (left, right) and the saturation (up, down). */
 export function wheel(pick: (hex: string) => void): Wheel {
   const { node, knob } = shell();
   let at: HueSat = { hue: 0, sat: 0 };

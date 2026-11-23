@@ -9,7 +9,6 @@ import { element } from "../../core/dom.ts";
 const TRASH = "M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3";
 const CLOSE = "M6 6l12 12M18 6L6 18";
 
-/** What a room card asks the step to do. */
 export interface RoomActions {
   /** Answer an error to show, or `null` when the name is kept. */
   rename: (name: string) => string | null;
@@ -29,7 +28,6 @@ export function iconButton(d: string, label: string): HTMLButtonElement {
   return button;
 }
 
-/** The face of a chip: the family icon and the label. */
 export function chipFace(light: Found): HTMLElement[] {
   const mark = element("span", "chip-icon");
   mark.append(familyIcon(light.family));
@@ -59,7 +57,6 @@ export function nameInput(value: string, done: (name: string | null) => void): H
   return input;
 }
 
-/** The name of the room and its buttons, or the rename field. */
 function head(room: Room, actions: RoomActions): HTMLElement {
   const row = element("div", "room-head");
   const error = element("p", "room-error");
@@ -94,7 +91,7 @@ function head(room: Room, actions: RoomActions): HTMLElement {
   return wrap;
 }
 
-/** One room: a drop target with its lights. `index` is its place in the draft. */
+/** `index` is the place of the room in the draft. */
 export function roomCard(room: Room, index: number, lights: Map<string, Found>, actions: RoomActions): HTMLElement {
   const card = element("section", "room-card");
   card.dataset.drop = String(index);

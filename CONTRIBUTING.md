@@ -272,8 +272,8 @@ named that way is an error when it is absent, because somebody asked for it.
 ## Local configuration
 
 `config.yaml` says which modes are enabled, per device. `GOVEE_CONFIG` names
-the file in place of `config.yaml` in the configuration folder, and `.env` carries
-it like any other variable, so the file can sit beside the code:
+the file in place of `config.yaml` in the configuration folder, and `.env`
+carries it like any other variable, so the file can sit beside the code:
 
 ```bash
 cp config.example.yaml config.local.yaml
@@ -338,8 +338,8 @@ grouping and comment wrapping. CI formats with nightly, so `cargo fmt` on stable
 will disagree with it. Use `cargo +nightly fmt`.
 
 A Rust source file stays under **400 lines**, and a site or Studio source
-file under **300**. Neither language has such a convention and no formatter enforces one,
-so this is a repository rule: it is a prompt to split along responsibilities,
+file under **300**. Neither language has such a convention and no formatter
+enforces one, so this is a repository rule: it is a prompt to split along responsibilities,
 not a target to hit. Per-function size is handled separately by
 `clippy::too_many_lines`.
 

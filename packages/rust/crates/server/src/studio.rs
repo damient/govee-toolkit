@@ -1,11 +1,5 @@
-//! `studio.json`: the settings of the server and the settings of Studio.
-//!
-//! Each part carries the version that gave it its shape:
-//!
-//! - `server.version`: the `govee-server` that wrote the file.
-//! - `studio.version`: the Studio release that gave the Studio settings their
-//!   shape. A change to that shape raises [`VERSION`] and adds a row to
-//!   [`crate::compat::TABLE`].
+//! `studio.json`. A change to the shape of the Studio settings raises
+//! [`VERSION`] and adds a row to [`crate::compat::TABLE`].
 
 use std::io;
 use std::path::PathBuf;
@@ -16,10 +10,8 @@ use serde_json::Value;
 
 use crate::{compat, storage};
 
-/// The version of the Studio settings that this server writes.
 pub(crate) const VERSION: &str = "0.1.0";
 
-/// The content of `studio.json`, and the settings part of a backup.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub(crate) struct Studio {
@@ -60,11 +52,8 @@ impl Default for StudioPart {
 }
 
 impl Studio {
-    /// Read `value` and give it the versions that this server writes.
-    ///
-    /// Refuse a Studio version that [`crate::compat::TABLE`] does not hold:
-    /// its keys can mean other things. A file from a newer server that does
-    /// not parse gets an answer that says to update.
+    /// Refuse a Studio version outside [`crate::compat::TABLE`]: its keys can
+    /// mean other things.
     pub(crate) fn from_value(value: Value) -> Result<Self, String> {
         let server = value
             .pointer("/server/version")
@@ -103,17 +92,13 @@ pub(crate) struct ServerSettings {
 #[serde(default, deny_unknown_fields)]
 pub(crate) struct StudioSettings {
     pub(crate) theme: Theme,
-    /// `None` until the user picks a language.
     pub(crate) language: Option<Language>,
     pub(crate) advanced: bool,
-    /// The favorite colors, which every light of the panel offers.
     pub(crate) favorites: Favorites,
 }
 
-/// The most favorite colors that the settings keep.
 const FAVORITES: usize = 32;
 
-/// A list of at most [`FAVORITES`] colors, with no color twice.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "Vec<Hex>", into = "Vec<Hex>")]
 pub(crate) struct Favorites(Vec<Hex>);
@@ -142,7 +127,7 @@ impl From<Favorites> for Vec<Hex> {
     }
 }
 
-/// A color as `#rrggbb`. The text is kept in lowercase.
+/// `#rrggbb`, written in lowercase.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub(crate) struct Hex([u8; 3]);
@@ -182,8 +167,7 @@ pub(crate) enum Theme {
     Auto,
 }
 
-/// A language code such as `en` or `pt-BR`. Studio decides which codes it
-/// has a text for.
+/// A code such as `pt-BR`. Studio decides which codes it has a text for.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub(crate) struct Language(String);
@@ -208,7 +192,6 @@ impl From<Language> for String {
     }
 }
 
-/// `studio.json` in memory, and the file that keeps it.
 #[derive(Debug, Default)]
 pub(crate) struct Store {
     /// `None` keeps the content in memory alone.
@@ -217,7 +200,7 @@ pub(crate) struct Store {
 }
 
 impl Store {
-    /// Read the file at `path`. A file that does not exist is the default.
+    /// A file that does not exist is the default.
     pub(crate) fn open(path: Option<PathBuf>) -> io::Result<Self> {
         let mut studio = Studio::default();
         if let Some(path) = &path
@@ -242,8 +225,7 @@ impl Store {
         self.lock().clone()
     }
 
-    /// Apply `change`, write the file, and answer the new content. The
-    /// content stays as it was when the write fails.
+    /// The content stays as it was when the write fails.
     pub(crate) fn update(&self, change: impl FnOnce(&mut Studio)) -> io::Result<Studio> {
         let mut data = self.lock();
         let mut next = data.clone();
@@ -255,8 +237,7 @@ impl Store {
         Ok(data.clone())
     }
 
-    /// Replace the content and the file. `keep` makes a `.import.bak` copy of
-    /// the file first.
+    /// `keep` makes a `.import.bak` copy of the file first.
     pub(crate) fn replace(&self, studio: Studio, keep: bool) -> io::Result<()> {
         let mut data = self.lock();
         self.save(&studio, keep)?;

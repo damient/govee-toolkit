@@ -39,8 +39,8 @@ from ._govee_toolkit import (
     _legacy_warning,
 )
 
-# FutureWarning and not DeprecationWarning: Python shows the first one to the
-# person who runs the program, and this one asks that person to move a folder.
+# FutureWarning: Python hides a DeprecationWarning from the user,
+# who must move the folder.
 _legacy = _legacy_warning()
 if _legacy is not None:
     import warnings

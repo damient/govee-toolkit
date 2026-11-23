@@ -17,13 +17,12 @@ export interface Route {
   render(view: HTMLElement): void;
 }
 
-/** A space of the UI: one entry in the navigation, one view. */
 export interface Page extends Route {
   /** The `d` attribute of a 24 × 24 stroked path. */
   icon: string;
 }
 
-/** The phone tab bar holds this many pages; the rest go to "More". */
+/** The phone tab bar holds this many pages. The rest go to "More". */
 const TABS = 4;
 
 const MORE_ICON =
@@ -47,7 +46,6 @@ function link(page: Page): HTMLAnchorElement {
   return a;
 }
 
-/** The "More" entry of the phone tab bar, and the menu that it opens. */
 function more(pages: Page[]): { button: HTMLButtonElement; menu: HTMLDivElement } {
   const button = document.createElement("button");
   button.type = "button";
@@ -79,7 +77,6 @@ function tooSmall(min: NonNullable<Route["min"]>): HTMLElement {
   return note;
 }
 
-/** Empty `view` for `route`, and name it. */
 function clear(view: HTMLElement, route: Route): void {
   view.replaceChildren();
   view.className = route.width === "narrow" ? "view narrow" : "view";
@@ -95,11 +92,8 @@ function clear(view: HTMLElement, route: Route): void {
 }
 
 /**
- * Draw the navigation and route on the path. `bottom` goes after a spacer, at
- * the foot of the side rail. On a phone, the pages after the first `TABS` go
- * to the "More" menu. `hidden` are views with no entry in the navigation.
- * Call the function that it returns to draw the navigation and the view
- * again, after a change of language.
+ * `bottom` goes at the foot of the side rail. `hidden` are views with no entry in the
+ * navigation. Call the function that it returns after a change of language.
  */
 export function mount(nav: HTMLElement, view: HTMLElement, top: Page[], bottom: Page[], hidden: Route[] = []): () => void {
   const pages = [...top, ...bottom];

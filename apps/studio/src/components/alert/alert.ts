@@ -15,7 +15,7 @@ export interface Alert {
   body?: string;
 }
 
-/** A line in the flow of a view: the icon of its tone, a title and an optional text. An error is read out at once. */
+/** A line in the flow of a view. An error is read out at once. */
 export function alert(box: Alert): HTMLElement {
   const node = element("div", `alert ${box.tone}`);
   node.setAttribute("role", box.tone === "error" ? "alert" : "status");

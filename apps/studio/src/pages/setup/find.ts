@@ -21,7 +21,6 @@ function button(text: string, d: string, run: () => void): HTMLButtonElement {
   return node;
 }
 
-/** The scan found no light and the configuration has none, or the scan failed: a card with "Scan again". */
 function empty(result: Scan, run: () => void): HTMLElement {
   const fill = element("div", "fill");
   const again = button(t("setup.again"), REFRESH, run);
@@ -33,7 +32,7 @@ function empty(result: Scan, run: () => void): HTMLElement {
   return fill;
 }
 
-/** The draft of each light, selected at first. A new scan keeps the drafts. */
+/** A new scan keeps the drafts. */
 function draftOf(drafts: Map<string, Draft>, found: Found): Draft {
   const draft = drafts.get(found.id) ?? { selected: true, name: found.name };
   drafts.set(found.id, draft);
@@ -46,10 +45,6 @@ function grid(list: Found[], drafts: Map<string, Draft>, checking = false): HTML
   return node;
 }
 
-/**
- * The lights of the configuration with the result of the scan: `online`, and
- * the SKU and the family that the entry does not give.
- */
 function merged(configured: Found[], result: Scan): Found[] {
   if (result.kind !== "found") return configured;
   const answered = new Map(result.list.map((found) => [found.id, found]));
@@ -59,7 +54,6 @@ function merged(configured: Found[], result: Scan): Found[] {
   });
 }
 
-/** The new lights while the scan runs, or when it failed. */
 function waiting(result: Scan): HTMLElement {
   if (result.kind === "failed") return alert({ tone: "error", title: t("setup.failed"), body: result.reason });
   return loading({ text: t("setup.scanning") });
@@ -70,7 +64,6 @@ function newTitle(count: number): string {
   return t(count === 1 ? "setup.new.one" : "setup.new.other", { count: String(count) });
 }
 
-/** The new lights: they answered the scan, and the configuration has no entry for them. */
 function fresh(list: Found[], drafts: Map<string, Draft>, result: Scan): HTMLElement {
   const count = list.length;
   const h2 = element("h2", "section-title", newTitle(count));
@@ -82,7 +75,6 @@ function fresh(list: Found[], drafts: Map<string, Draft>, result: Scan): HTMLEle
   return section;
 }
 
-/** The lights of the configuration, that answered the scan or not. */
 function known(list: Found[], drafts: Map<string, Draft>, checking: boolean): HTMLElement {
   const count = list.length;
   const section = element("section", "light-group");
@@ -90,10 +82,7 @@ function known(list: Found[], drafts: Map<string, Draft>, checking: boolean): HT
   return section;
 }
 
-/**
- * Write the drafts: the configuration keeps each selected light with its
- * name, and loses each light of the configuration that is not selected.
- */
+/** The configuration loses each light that is not selected. */
 function save(list: Found[], drafts: Map<string, Draft>): Promise<void> {
   const keep: Keep[] = [];
   const remove: string[] = [];
@@ -105,7 +94,6 @@ function save(list: Found[], drafts: Map<string, Draft>): Promise<void> {
   return saveDevices(keep, remove);
 }
 
-/** Continue saves the drafts and goes to the next step. An error shows on its left. */
 function actions(list: Found[], drafts: Map<string, Draft>, again: HTMLButtonElement): HTMLElement {
   const error = element("p", "error");
   error.hidden = true;
@@ -131,11 +119,7 @@ function actions(list: Found[], drafts: Map<string, Draft>, again: HTMLButtonEle
   return row;
 }
 
-/**
- * The lights of the configuration at once, and the scan in the background.
- * The scan gives the status of each light and the new lights. "Scan again"
- * runs the scan again and keeps the drafts.
- */
+/** The lights of the configuration at once, and the scan in the background. */
 export function findStep(): HTMLElement {
   const section = element("section", "scan");
   section.setAttribute("aria-live", "polite");

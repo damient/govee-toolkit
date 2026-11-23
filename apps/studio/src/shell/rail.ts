@@ -9,11 +9,7 @@ const FRAME = "M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-
 const COLLAPSE = `${FRAME}M15 10l-2 2 2 2`;
 const EXPAND = `${FRAME}M14 10l2 2-2 2`;
 
-/**
- * Set the rail of a wide screen to "full" (icons and labels) or "min" (icons
- * only) with `button`. The tablet and the phone layouts ignore the choice.
- * Call the function that it returns after a change of language.
- */
+/** The tablet and the phone layouts ignore the choice. Call the function that it returns after a change of language. */
 export function rail(app: HTMLElement, button: HTMLButtonElement): () => void {
   let state: State = readLocal("rail", STATES, "full");
   const draw = (): void => {
