@@ -36,6 +36,7 @@ __all__ = [
     "TransportError",
     "WalkReport",
     "__version__",
+    "_legacy_warning",
 ]
 
 __version__: str
@@ -45,6 +46,8 @@ SUPPORT: tuple[str, ...]
 """Every support level a device file gives a mode."""
 PERSONALITIES: tuple[str, ...]
 """Every DMX personality the bridge knows."""
+
+def _legacy_warning() -> str | None: ...
 
 class GoveeError(Exception):
     """Anything that went wrong between a call and the bytes on the wire."""

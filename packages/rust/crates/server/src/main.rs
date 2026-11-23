@@ -27,6 +27,7 @@ struct Cli {
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let writer = Writer::new(false);
+    writer.deprecations();
     let runtime = match tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()

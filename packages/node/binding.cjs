@@ -854,6 +854,7 @@ module.exports.Served = nativeBinding.Served
 module.exports.StatusStream = nativeBinding.StatusStream
 module.exports.WalkReport = nativeBinding.WalkReport
 module.exports.CORE_VERSION = nativeBinding.CORE_VERSION
+module.exports.legacyWarning = nativeBinding.legacyWarning
 module.exports.modes = nativeBinding.modes
 module.exports.personalities = nativeBinding.personalities
 module.exports.supportLevels = nativeBinding.supportLevels

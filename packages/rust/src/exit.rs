@@ -213,6 +213,18 @@ impl Writer {
         }
     }
 
+    /// Write [`legacy_warning`](crate::paths::legacy_warning) to stderr, if
+    /// there is one. Call it once, at startup.
+    #[cfg(feature = "transport")]
+    pub fn deprecations(&self) {
+        if let Some(message) = crate::paths::legacy_warning() {
+            self.warn(
+                &json!({ "deprecated": message }),
+                &format!("warning: {message}"),
+            );
+        }
+    }
+
     /// Write the failure to stderr, and answer the code to exit with.
     pub fn failure(&self, failure: &Failure) -> ExitCode {
         if self.json {

@@ -22,6 +22,7 @@ use crate::cli::Cli;
 fn main() -> std::process::ExitCode {
     let cli = Cli::parse();
     let writer = Writer::new(cli.global.json);
+    writer.deprecations();
 
     // One command is one send, and a stream is paced by a timer: the work
     // never saturates a core, and a worker pool costs the spawns at startup.

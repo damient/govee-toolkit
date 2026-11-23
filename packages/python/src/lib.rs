@@ -33,6 +33,7 @@ fn govee_toolkit_module(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let personalities =
         govee_toolkit::profile::Personality::ALL.map(govee_toolkit::profile::Personality::as_str);
     module.add("PERSONALITIES", PyTuple::new(module.py(), personalities)?)?;
+    module.add_function(wrap_pyfunction!(legacy_warning, module)?)?;
     errors::register(module)?;
     types::register(module)?;
     catalog::register(module)?;
@@ -43,4 +44,12 @@ fn govee_toolkit_module(module: &Bound<'_, PyModule>) -> PyResult<()> {
     devices::register(module)?;
     stream::register(module)?;
     Ok(())
+}
+
+/// The line that `__init__.py` shows when the deprecated configuration
+/// folder is still on disk.
+#[pyfunction]
+#[pyo3(name = "_legacy_warning")]
+fn legacy_warning() -> Option<String> {
+    govee_toolkit::paths::legacy_warning()
 }

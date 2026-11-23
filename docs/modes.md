@@ -55,7 +55,14 @@ Each operating system gives the toolkit two folders. The CLI, the bindings,
 | Linux   | `$XDG_CONFIG_HOME/govee-toolkit`, else `~/.config/govee-toolkit` | `$XDG_CACHE_HOME/govee-toolkit`, else `~/.cache/govee-toolkit` |
 | Windows | `%APPDATA%\govee-toolkit` | `%LOCALAPPDATA%\govee-toolkit` |
 
-macOS reads no `XDG_*` variable. The configuration folder holds:
+macOS reads no `XDG_*` variable.
+
+On macOS and Windows, `~/.config/govee-toolkit` is a deprecated configuration
+folder. While it exists and the folder of the table does not, the toolkit
+reads it and warns at startup. Move it to the folder of the table: a later
+breaking release stops reading it ([`deprecations.md`](deprecations.md)).
+
+The configuration folder holds:
 
 - `config.yaml`: the modes, the names and the groups of the devices.
 - `credentials.env`: `GOVEE_*` variables, such as the API key, in the `.env`

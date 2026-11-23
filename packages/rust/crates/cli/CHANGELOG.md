@@ -7,12 +7,19 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 
 ### Changed
 
-- **Breaking:** the configuration folder and the cache folder follow the
+- The configuration folder and the cache folder follow the
   convention of each operating system: `~/Library/Application Support` and
   `~/Library/Caches` on macOS, `%APPDATA%` and `%LOCALAPPDATA%` on Windows,
   XDG on Linux as before. The binary reads `config.yaml`, `.env` and the device cache there, and
-  `credentials.env` in the configuration folder. On macOS and Windows, move
-  the old folder: the [`govee-toolkit` changelog](../../CHANGELOG.md) gives the command.
+  `credentials.env` in the configuration folder. On macOS and Windows, the old folder
+  `~/.config/govee-toolkit` is still read while the new one does not exist.
+  Move it: the [`govee-toolkit` changelog](../../CHANGELOG.md) gives the command.
+
+### Deprecated
+
+- On macOS and Windows, the configuration folder `~/.config/govee-toolkit`.
+  While it is in use or ignored, `govee` writes a warning to stderr at startup, a `{"deprecated": ...}` record with `--json`. A later breaking release
+  stops reading it ([`docs/deprecations.md`](../../../../docs/deprecations.md)).
 
 ## [1.12.0] — 2026-11-21
 

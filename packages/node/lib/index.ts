@@ -12,6 +12,7 @@ import {
   Config,
   CORE_VERSION,
   Device,
+  legacyWarning,
   DeviceHandle,
   Devices,
   DeviceStatus,
@@ -30,6 +31,16 @@ import {
   VERSION,
   WalkReport,
 } from "../binding.cjs";
+
+// The package carries no Node types: this is the one global it reads.
+declare const process: {
+  emitWarning(warning: string, type: string): void;
+};
+
+const legacy = legacyWarning();
+if (legacy !== null) {
+  process.emitWarning(legacy, "DeprecationWarning");
+}
 
 export {
   Applied,
