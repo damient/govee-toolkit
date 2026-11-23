@@ -585,6 +585,12 @@ export declare class WalkReport {
 export declare const CORE_VERSION: string
 
 /**
+ * The line that the module shows at load when the deprecated configuration
+ * folder is still on disk, or `null`.
+ */
+export declare function legacyWarning(): string | null
+
+/**
  * Every mode name the core knows. A build carries a transport for those its
  * features name — `Govee.modes()` answers which.
  */

@@ -6,12 +6,19 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 
 ### Changed
 
-- **Breaking:** the configuration folder and the cache folder follow the
+- The configuration folder and the cache folder follow the
   convention of each operating system: `~/Library/Application Support` and
   `~/Library/Caches` on macOS, `%APPDATA%` and `%LOCALAPPDATA%` on Windows,
   XDG on Linux as before. The binding reads `config.yaml`, `.env` and the device cache there, and
-  `credentials.env` in the configuration folder. On macOS and Windows, move
-  the old folder: the [`govee-toolkit` changelog](../rust/CHANGELOG.md) gives the command.
+  `credentials.env` in the configuration folder. On macOS and Windows, the old folder
+  `~/.config/govee-toolkit` is still read while the new one does not exist.
+  Move it: the [`govee-toolkit` changelog](../rust/CHANGELOG.md) gives the command.
+
+### Deprecated
+
+- On macOS and Windows, the configuration folder `~/.config/govee-toolkit`.
+  While it is in use or ignored, the load emits a `DeprecationWarning`. A later breaking release
+  stops reading it ([`docs/deprecations.md`](../../docs/deprecations.md)).
 
 ## [1.8.0] — 2026-11-21
 

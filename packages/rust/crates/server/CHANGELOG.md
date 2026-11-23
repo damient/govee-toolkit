@@ -14,6 +14,9 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   A path outside `/api` with no dot in its last segment is a page of
   Studio: the server answers `index.html` for it, so a reload of `/settings`
   keeps the page.
+- `govee-server` writes a warning to stderr at startup while the deprecated
+  configuration folder `~/.config/govee-toolkit` is in use or ignored, on
+  macOS and Windows.
 - `GET /api/devices` answers the devices of `config.yaml` at once, with no
   scan. Each device carries its SKU, its name and the `family` of its
   device file.

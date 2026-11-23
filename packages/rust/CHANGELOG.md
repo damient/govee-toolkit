@@ -12,6 +12,9 @@ releases apart and keeps
 - `paths::credentials_file()` names `credentials.env` in the configuration
   folder. `Env::load()` reads it after every other source, so it supplies only
   the names that nothing else sets. `govee-server` writes the API key there.
+- `paths::legacy_warning()` gives the line to show when the deprecated
+  configuration folder is still on disk. `exit::Writer::deprecations()`
+  writes it to stderr.
 - `Env::from_file_alone()` reads one `.env` file without the process
   environment. An absent file gives no variable.
 - `profile::report::json()` gives each band of a channel a `kind`, such as
@@ -19,24 +22,33 @@ releases apart and keeps
 
 ### Changed
 
-- **Breaking:** the configuration folder and the cache folder follow the
-  convention of each operating system. `paths::config_dir()` and
-  `paths::cache_dir()` give:
+- The configuration folder and the cache folder follow the convention of
+  each operating system. `paths::config_dir()` and `paths::cache_dir()` give:
   - macOS: `~/Library/Application Support/govee-toolkit` and
     `~/Library/Caches/govee-toolkit`. No `XDG_*` variable applies.
   - Linux: `$XDG_CONFIG_HOME/govee-toolkit` and `$XDG_CACHE_HOME/govee-toolkit`,
     as before.
   - Windows: `%APPDATA%\govee-toolkit` and `%LOCALAPPDATA%\govee-toolkit`.
 
-  Nothing moves on its own. On macOS, move the old folder:
+  On macOS and Windows, `paths::config_dir()` gives the old folder,
+  `~/.config/govee-toolkit`, while it exists and the new one does not. Nothing
+  moves on its own. On macOS, move the old folder:
 
   ```sh
   mv ~/.config/govee-toolkit ~/Library/Application\ Support/govee-toolkit
   ```
 
-  On Windows, move the `.config\govee-toolkit` folder that the old version
-  used to `%APPDATA%\govee-toolkit`. Delete the old cache folder: discovery
-  writes a new one. `GOVEE_CONFIG` still names the configuration file.
+  On Windows, move `%USERPROFILE%\.config\govee-toolkit` to
+  `%APPDATA%\govee-toolkit`. The cache moves with no fallback: discovery
+  writes a new one, and the old cache folder can be deleted. `GOVEE_CONFIG`
+  still names the configuration file.
+
+### Deprecated
+
+- On macOS and Windows, the configuration folder `~/.config/govee-toolkit`.
+  `paths::legacy_warning()` gives the line to show while it is in use or
+  ignored. A later breaking release stops reading it
+  ([`docs/deprecations.md`](../../docs/deprecations.md)).
 
 ### Fixed
 

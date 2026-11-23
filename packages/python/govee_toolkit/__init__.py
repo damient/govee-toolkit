@@ -36,7 +36,17 @@ from ._govee_toolkit import (
     StatusStream,
     TransportError,
     WalkReport,
+    _legacy_warning,
 )
+
+# FutureWarning and not DeprecationWarning: Python shows the first one to the
+# person who runs the program, and this one asks that person to move a folder.
+_legacy = _legacy_warning()
+if _legacy is not None:
+    import warnings
+
+    warnings.warn(_legacy, FutureWarning, stacklevel=2)
+del _legacy
 
 __version__: str
 """The version of the installed distribution."""

@@ -10,12 +10,16 @@
 //! macOS reads no `XDG_*` variable: the desktop app gets no shell environment,
 //! and the CLI must find the same files as the desktop app.
 //!
+//! On macOS and Windows, 1.17 and earlier used `~/.config/govee-toolkit`. While
+//! that folder exists and the new one does not, [`config_dir`] gives the old
+//! one, and [`legacy_warning`] says so. A major version removes this.
+//!
 //! `GOVEE_CONFIG` overrides the configuration file outright, which is what a
 //! test, a container and a second instance on one host all need. It is a
 //! `GOVEE_*` name, so `.env` carries it like any other.
 
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 const APP: &str = "govee-toolkit";
 
@@ -23,9 +27,22 @@ const APP: &str = "govee-toolkit";
 const CONFIG_ENV: &str = "GOVEE_CONFIG";
 
 /// The folder of the configuration, the credentials and the Studio file.
+/// It can be the deprecated folder: see [`legacy_warning`].
 #[must_use]
 pub fn config_dir() -> PathBuf {
-    dirs(&|name| std::env::var_os(name)).config
+    let var = |name: &str| std::env::var_os(name);
+    match legacy(&var, &Path::is_dir) {
+        Legacy::InUse { old, .. } => old,
+        Legacy::Absent | Legacy::Ignored { .. } => dirs(&var).config,
+    }
+}
+
+/// The line to show a person when the configuration folder of 1.17 or
+/// earlier is still on disk, or `None`. A binary or a binding shows it once
+/// at startup. The SDK writes it nowhere.
+#[must_use]
+pub fn legacy_warning() -> Option<String> {
+    legacy(&|name| std::env::var_os(name), &Path::is_dir).message()
 }
 
 /// The folder of the device cache. Its content can be deleted at any time.
@@ -66,6 +83,63 @@ pub fn local_devices_dir() -> PathBuf {
 #[must_use]
 pub fn device_cache_file() -> PathBuf {
     cache_dir().join("devices.json")
+}
+
+enum Legacy {
+    Absent,
+    /// Only the old folder exists, and [`config_dir`] gives it.
+    InUse {
+        old: PathBuf,
+        new: PathBuf,
+    },
+    /// Both folders exist, and the old one is not read.
+    Ignored {
+        old: PathBuf,
+        new: PathBuf,
+    },
+}
+
+impl Legacy {
+    fn message(&self) -> Option<String> {
+        match self {
+            Self::Absent => None,
+            Self::InUse { old, new } => Some(format!(
+                "the configuration folder {} is deprecated, and a major version stops \
+                 reading it: move it to {}",
+                old.display(),
+                new.display()
+            )),
+            Self::Ignored { old, new } => Some(format!(
+                "the configuration folder {} is ignored, because {} exists: move what you \
+                 need from the first one to the second one, then delete the first one",
+                old.display(),
+                new.display()
+            )),
+        }
+    }
+}
+
+/// `exists` tells if a folder is on disk, so a test can supply its own.
+fn legacy(var: &dyn Fn(&str) -> Option<OsString>, exists: &dyn Fn(&Path) -> bool) -> Legacy {
+    if !cfg!(any(target_os = "macos", windows)) {
+        return Legacy::Absent;
+    }
+    // The rule of 1.17 and earlier, on every system: XDG, then the home.
+    let root = var("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .or_else(|| var("HOME").map(|home| PathBuf::from(home).join(".config")));
+    let Some(old) = root.map(|root| root.join(APP)) else {
+        return Legacy::Absent;
+    };
+    let new = dirs(var).config;
+    if old == new || !exists(&old) {
+        Legacy::Absent
+    } else if exists(&new) {
+        Legacy::Ignored { old, new }
+    } else {
+        Legacy::InUse { old, new }
+    }
 }
 
 struct Dirs {
@@ -154,6 +228,31 @@ mod tests {
             unset.config,
             PathBuf::from(r"C:\Users\a\AppData\Roaming\govee-toolkit")
         );
+    }
+
+    #[cfg(any(target_os = "macos", windows))]
+    #[test]
+    fn the_old_folder_is_read_while_it_is_the_only_one() {
+        let var = |name: &str| (name == "HOME").then(|| OsString::from("/h"));
+        let old = PathBuf::from("/h/.config/govee-toolkit");
+        let new = dirs(&var).config;
+
+        let only_old = legacy(&var, &|p| p == old);
+        assert!(matches!(&only_old, Legacy::InUse { old: o, .. } if *o == old));
+        assert!(only_old.message().is_some());
+
+        let both = legacy(&var, &|_| true);
+        assert!(matches!(both, Legacy::Ignored { .. }));
+
+        assert!(matches!(legacy(&var, &|p| p == new), Legacy::Absent));
+        assert!(matches!(legacy(&var, &|_| false), Legacy::Absent));
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    #[test]
+    fn linux_has_no_old_folder() {
+        let var = |name: &str| (name == "HOME").then(|| OsString::from("/h"));
+        assert!(matches!(legacy(&var, &|_| true), Legacy::Absent));
     }
 
     #[test]

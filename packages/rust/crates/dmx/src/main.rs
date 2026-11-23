@@ -266,6 +266,7 @@ fn spellings() -> String {
 fn main() -> ExitCode {
     let Cli { command } = Cli::parse();
     let writer = Writer::new(command.as_json());
+    writer.deprecations();
     match dispatch(command, writer) {
         Ok(()) => ExitCode::SUCCESS,
         Err(failure) => writer.failure(&failure),

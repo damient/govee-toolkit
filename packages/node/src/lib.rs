@@ -40,6 +40,14 @@ pub fn modes() -> Vec<&'static str> {
     govee_toolkit::Mode::NAMES.to_vec()
 }
 
+/// The line that the module shows at load when the deprecated configuration
+/// folder is still on disk, or `null`.
+#[napi]
+#[must_use]
+pub fn legacy_warning() -> Option<String> {
+    govee_toolkit::paths::legacy_warning()
+}
+
 /// Every support level a device file gives a mode.
 #[napi]
 #[must_use]
