@@ -1,6 +1,6 @@
 {
   "name": "govee-toolkit",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Take full control of your Govee lights from Node.js and TypeScript.",
   "license": "MIT",
   "author": "damient",
