@@ -1,20 +1,6 @@
-import { restore, share, undoImport } from "../../core/api.ts";
+import { restorable, restore, undoImport } from "../../core/api.ts";
 import { explain, t } from "../../core/i18n.ts";
 import { ask } from "../../components/modal/modal.ts";
-
-/** Set before the reload that follows an import, and cleared on the first read. */
-const IMPORTED = "studio.imported";
-
-/** Whether the page loads right after an import. The answer is `true` once. */
-function justImported(): boolean {
-  try {
-    const set = sessionStorage.getItem(IMPORTED) !== null;
-    sessionStorage.removeItem(IMPORTED);
-    return set;
-  } catch {
-    return false;
-  }
-}
 
 /** Show `failure` in `note`. */
 export function fail(note: HTMLElement, failure: unknown): void {
@@ -36,11 +22,6 @@ function confirmImport(name: string): Promise<boolean> {
 async function importFile(file: File): Promise<boolean> {
   if (!(await confirmImport(file.name))) return false;
   await restore(await file.text());
-  try {
-    sessionStorage.setItem(IMPORTED, "1");
-  } catch {
-    // Blocked storage: the page does not offer Restore after the reload.
-  }
   location.reload();
   return true;
 }
@@ -53,14 +34,11 @@ function button(text: string): HTMLButtonElement {
   return node;
 }
 
-/**
- * The Restore button: shown on the first view of Settings after an import.
- * The server keeps its copies, but the button goes when the user leaves.
- */
+/** The Restore button: hidden until the server says that it keeps the files from before an import. */
 function undo(note: HTMLElement): HTMLButtonElement {
   const node = button(t("data.restore"));
   node.title = t("data.restore.hint");
-  node.hidden = !justImported();
+  node.hidden = true;
   node.addEventListener("click", () => {
     void (async () => {
       const yes = await ask({
@@ -127,7 +105,7 @@ function picker(note: HTMLElement): [HTMLButtonElement, HTMLInputElement] {
  * The Export, Import and Restore buttons. `note` shows an error. Only the computer of
  * the server can export or import: the backup can hold the API key.
  */
-export function backup(note: HTMLElement): HTMLElement {
+export function backup(note: HTMLElement, local: Promise<boolean>): HTMLElement {
   const group = document.createElement("div");
   group.className = "buttons";
   const save = document.createElement("a");
@@ -140,13 +118,16 @@ export function backup(note: HTMLElement): HTMLElement {
   });
   const [load, file] = picker(note);
   const back = undo(note);
-  share().then(
-    (state) => {
-      if (state.local) return;
+  local.then(
+    async (here) => {
+      if (here) {
+        // A server that does not answer offers no Restore.
+        back.hidden = !(await restorable().catch(() => false));
+        return;
+      }
       save.removeAttribute("href");
       save.setAttribute("aria-disabled", "true");
       load.disabled = true;
-      back.hidden = true;
       note.textContent = t("settings.data.elsewhere");
     },
     () => {

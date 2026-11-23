@@ -1,11 +1,11 @@
-import { type Found, type Room } from "../../core/api.ts";
+import { type Found, type Room, labelOf } from "../../core/api.ts";
 import { familyIcon } from "../../components/family/family.ts";
-import { icon } from "../../shell/nav.ts";
 import { menu } from "../../components/menu/menu.ts";
 import { t } from "../../core/i18n.ts";
 import { tooltip } from "../../components/tooltip/tooltip.ts";
+import { EDIT, icon } from "../../components/icon/icon.ts";
+import { element } from "../../core/dom.ts";
 
-const EDIT = "M4 20h4L18.5 9.5a2.8 2.8 0 0 0-4-4L4 16v4M13.5 6.5l4 4";
 const TRASH = "M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3";
 const CLOSE = "M6 6l12 12M18 6L6 18";
 
@@ -20,13 +20,6 @@ export interface RoomActions {
   chip: (light: Found, room: number) => HTMLElement;
 }
 
-export function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
-}
-
 export function iconButton(d: string, label: string): HTMLButtonElement {
   const button = element("button", "icon-button");
   button.type = "button";
@@ -35,9 +28,6 @@ export function iconButton(d: string, label: string): HTMLButtonElement {
   tooltip(button, label);
   return button;
 }
-
-/** The label of a light: its name, its SKU, or its ID. */
-export const labelOf = (light: Found): string => light.name ?? light.sku ?? light.id;
 
 /** The face of a chip: the family icon and the label. */
 export function chipFace(light: Found): HTMLElement[] {

@@ -4,19 +4,13 @@ import { roomsStep } from "./rooms.ts";
 import { type Key, t } from "../../core/i18n.ts";
 import { pathOf } from "../../core/router.ts";
 import { title } from "../../components/title/title.ts";
+import { element } from "../../core/dom.ts";
 
 /** The steps of the setup: the text of the badge and the page. */
 const STEPS: { key: Key; page: string }[] = [
   { key: "setup.step.find", page: "setup" },
   { key: "setup.step.rooms", page: "setup/rooms" },
 ];
-
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
-}
 
 /** The steps of the setup, and "1 / 2" for a phone. `at` is the index of the current one. A done step links to its page. */
 function steps(at: number): HTMLElement[] {

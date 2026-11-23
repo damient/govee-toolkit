@@ -1,6 +1,5 @@
 import "./home.css";
 import { ALL, bar } from "./bar.ts";
-import { ARROW, icon } from "../../shell/nav.ts";
 import { type Found, type Room, devices, rooms } from "../../core/api.ts";
 import { apply } from "../../core/control.ts";
 import { openPanel } from "./panel/panel.ts";
@@ -11,6 +10,7 @@ import { alert } from "../../components/alert/alert.ts";
 import { loading } from "../../components/loading/loading.ts";
 import { notice } from "../../components/notice/notice.ts";
 import { pathOf } from "../../core/router.ts";
+import { ARROW, icon } from "../../components/icon/icon.ts";
 
 const WAND =
   "M6 21L21 6l-3-3L3 18zM15 6l3 3M9 3a2 2 0 0 0 2 2 2 2 0 0 0-2 2 2 2 0 0 0-2-2 2 2 0 0 0 2-2M19 13a2 2 0 0 0 2 2 2 2 0 0 0-2 2 2 2 0 0 0-2-2 2 2 0 0 0 2-2";

@@ -1,4 +1,5 @@
 import "./shell.css";
+import { icon } from "../components/icon/icon.ts";
 import { type Key, t } from "../core/i18n.ts";
 import { currentId, go, listen, pathOf } from "../core/router.ts";
 
@@ -28,26 +29,6 @@ const TABS = 4;
 const MORE_ICON =
   "M4 12a1 1 0 1 0 2 0 1 1 0 1 0-2 0M11 12a1 1 0 1 0 2 0 1 1 0 1 0-2 0M18 12a1 1 0 1 0 2 0 1 1 0 1 0-2 0";
 
-const SVG = "http://www.w3.org/2000/svg";
-
-/** The arrow of a button that goes to the next view. */
-export const ARROW = "M5 12h14M13 18l6-6M13 6l6 6";
-
-/** A 24 × 24 icon, stroked in the current color. */
-export function icon(d: string): SVGSVGElement {
-  const svg = document.createElementNS(SVG, "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "1.75");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
-  svg.setAttribute("aria-hidden", "true");
-  const path = document.createElementNS(SVG, "path");
-  path.setAttribute("d", d);
-  svg.append(path);
-  return svg;
-}
 
 function label(text: string): HTMLSpanElement {
   const span = document.createElement("span");

@@ -48,6 +48,12 @@ export async function restore(text: string): Promise<void> {
   await send("/api/backup", "POST", text);
 }
 
+/** `GET /api/backup/restore`: the server keeps the files from before an import, so that Restore can put them back. */
+export async function restorable(): Promise<boolean> {
+  const answer = await request("/api/backup/restore");
+  return typeof answer === "object" && answer !== null && "restorable" in answer && answer.restorable === true;
+}
+
 /** `POST /api/backup/restore`: put back the files from before the last import. */
 export async function undoImport(): Promise<void> {
   await send("/api/backup/restore", "POST", "");
@@ -80,6 +86,9 @@ export interface Found {
   /** It answered the scan: `null` until a scan ends. */
   online: boolean | null;
 }
+
+/** The label of a light: its name, its SKU, or its ID. */
+export const labelOf = (light: Found): string => light.name ?? light.sku ?? light.id;
 
 const nullableString = (value: unknown): boolean => value === null || typeof value === "string";
 

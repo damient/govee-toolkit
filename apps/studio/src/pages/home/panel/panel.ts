@@ -3,19 +3,12 @@ import { type Change, type Status, apply, applyOne } from "../../../core/control
 import { type Memory, type ZonesPart, memory, zonesPart } from "./zones.ts";
 import { explain, t } from "../../../core/i18n.ts";
 import { ColorPart, type White } from "./color.ts";
-import { type HomeCard, POWER } from "../card.ts";
+import { type HomeCard, powerButton } from "../card.ts";
 import { familyIcon } from "../../../components/family/family.ts";
-import { icon } from "../../../shell/nav.ts";
 import { latest } from "../../../core/latest.ts";
 import { sheet } from "../../../components/sheet/sheet.ts";
 import { tooltip } from "../../../components/tooltip/tooltip.ts";
-
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
-}
+import { element } from "../../../core/dom.ts";
 
 interface Switch {
   row: HTMLElement;
@@ -210,40 +203,24 @@ class LightPanel {
     this.showPower(true);
   }
 
-  /** The power button of the head, as the one of the card: cyan while the light is on. */
+  /** The power button of the head, as the one of the card. */
   private power(on: boolean): HTMLButtonElement {
-    const button = element("button", "home-power");
-    button.type = "button";
-    button.append(icon(POWER));
-    const tip = tooltip(button, "");
-    const set = (lit: boolean): void => {
-      const label = t(lit ? "home.light.off" : "home.light.on", { name: this.card.name });
-      button.setAttribute("aria-pressed", String(lit));
-      button.setAttribute("aria-label", label);
-      tip(label);
-    };
+    const { button, set } = powerButton(this.card.name, (wanted) =>
+      apply([this.id], { power: wanted }).then(
+        ([answer]) => {
+          if (!answer) return;
+          this.card.powered(answer, wanted);
+          if (answer.ok) {
+            this.error.hidden = true;
+            set(wanted);
+          } else this.fail(answer.error ?? "");
+        },
+        (failure: unknown) => {
+          this.fail(explain(failure));
+        },
+      ),
+    );
     this.showPower = set;
-    button.addEventListener("click", () => {
-      const wanted = button.getAttribute("aria-pressed") !== "true";
-      button.disabled = true;
-      apply([this.id], { power: wanted })
-        .then(
-          ([answer]) => {
-            if (!answer) return;
-            this.card.powered(answer, wanted);
-            if (answer.ok) {
-              this.error.hidden = true;
-              set(wanted);
-            } else this.fail(answer.error ?? "");
-          },
-          (failure: unknown) => {
-            this.fail(explain(failure));
-          },
-        )
-        .finally(() => {
-          button.disabled = false;
-        });
-    });
     set(on);
     return button;
   }

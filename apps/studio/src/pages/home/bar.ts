@@ -1,13 +1,12 @@
 import type { Room } from "../../core/api.ts";
-import { icon } from "../../shell/nav.ts";
 import { loading } from "../../components/loading/loading.ts";
 import { pathOf } from "../../core/router.ts";
 import { POWER } from "./card.ts";
 import { t } from "../../core/i18n.ts";
 import { tooltip } from "../../components/tooltip/tooltip.ts";
+import { EDIT, SEARCH, icon } from "../../components/icon/icon.ts";
+import { element } from "../../core/dom.ts";
 
-const SEARCH = "M10.5 17.5a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4.5-4.5";
-const PENCIL = "M4 20h4L18.5 9.5a2.8 2.8 0 0 0-4-4L4 16v4M13.5 6.5l4 4";
 
 /** The value of the "All" tab. A room ID is never empty. */
 export const ALL = "";
@@ -30,13 +29,6 @@ export interface BarOptions {
   pick(room: string, query: string): void;
   /** A click on the power button. */
   power(): void;
-}
-
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
 }
 
 /** The tabs of the rooms, as the segmented control of Settings. */
@@ -96,7 +88,7 @@ function setupLink(): HTMLAnchorElement {
   const link = element("a", "icon-button home-setup");
   link.href = pathOf("setup");
   link.setAttribute("aria-label", t("home.setup"));
-  link.append(icon(PENCIL));
+  link.append(icon(EDIT));
   tooltip(link, t("home.setup"));
   return link;
 }

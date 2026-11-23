@@ -1,5 +1,6 @@
 import "./notice.css";
-import { icon } from "../../shell/nav.ts";
+import { icon } from "../icon/icon.ts";
+import { element } from "../../core/dom.ts";
 
 export interface Notice {
   /** The `d` attribute of the icon. */
@@ -14,13 +15,6 @@ export interface Notice {
   actions?: Node[];
   /** `h1` when the card is the whole view. */
   level?: "h1" | "h2";
-}
-
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
 }
 
 /** A centered card: an icon, a title, an optional text and actions. */

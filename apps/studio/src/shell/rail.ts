@@ -1,5 +1,5 @@
 import { t } from "../core/i18n.ts";
-import { icon } from "./nav.ts";
+import { icon } from "../components/icon/icon.ts";
 import { readLocal, writeLocal } from "../core/prefs.ts";
 
 const STATES = ["full", "min"] as const;

@@ -1,4 +1,4 @@
-import { type ResetChoice, reset, share } from "../../core/api.ts";
+import { type ResetChoice, reset } from "../../core/api.ts";
 import { fail } from "./data.ts";
 import { type Key, t } from "../../core/i18n.ts";
 import { ask } from "../../components/modal/modal.ts";
@@ -79,7 +79,7 @@ function confirm(choice: ResetChoice): Promise<boolean> {
 }
 
 /** The button of the Reset row. Only the computer of the server can reset. `note` shows an error. */
-export function resetButton(note: HTMLElement): HTMLButtonElement {
+export function resetButton(note: HTMLElement, local: Promise<boolean>): HTMLButtonElement {
   const node = document.createElement("button");
   node.type = "button";
   node.className = "button xs";
@@ -96,9 +96,9 @@ export function resetButton(note: HTMLElement): HTMLButtonElement {
       fail(note, failure);
     });
   });
-  share().then(
-    (state) => {
-      node.disabled = !state.local;
+  local.then(
+    (here) => {
+      node.disabled = !here;
     },
     () => {
       // The button stays: the server answers the reset on its own.

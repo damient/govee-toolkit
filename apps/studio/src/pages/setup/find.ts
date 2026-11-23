@@ -4,22 +4,14 @@ import { help } from "../../components/help/help.ts";
 import { explain, t } from "../../core/i18n.ts";
 import { type Draft, lightCard } from "./light.ts";
 import { loading } from "../../components/loading/loading.ts";
-import { ARROW, icon } from "../../shell/nav.ts";
 import { notice } from "../../components/notice/notice.ts";
 import { go, pathOf } from "../../core/router.ts";
+import { ALERT, ARROW, REFRESH, icon } from "../../components/icon/icon.ts";
+import { element } from "../../core/dom.ts";
 
 const WIFI = "M12 18h.01M9.2 15.2a4 4 0 0 1 5.6 0M6.3 12.3a8 8 0 0 1 11.4 0M3.5 9.4a12 12 0 0 1 17 0";
-const ALERT = "M12 8v5M12 16h.01M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z";
-const REFRESH = "M20 11A8.1 8.1 0 0 0 4.5 9M4 5v4h4M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4";
 
 type Scan = { kind: "scanning" } | { kind: "found"; list: Found[] } | { kind: "failed"; reason: string };
-
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ""): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  node.className = className;
-  node.textContent = text;
-  return node;
-}
 
 function button(text: string, d: string, run: () => void): HTMLButtonElement {
   const node = element("button", "button");
@@ -60,9 +52,9 @@ function grid(list: Found[], drafts: Map<string, Draft>, checking = false): HTML
  */
 function merged(configured: Found[], result: Scan): Found[] {
   if (result.kind !== "found") return configured;
-  const answered = new Map(result.list.map((found) => [found.id.toUpperCase(), found]));
+  const answered = new Map(result.list.map((found) => [found.id, found]));
   return configured.map((light) => {
-    const seen = answered.get(light.id.toUpperCase());
+    const seen = answered.get(light.id);
     return { ...light, online: seen !== undefined, sku: light.sku ?? seen?.sku ?? null, family: light.family ?? seen?.family ?? null };
   });
 }
