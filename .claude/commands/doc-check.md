@@ -39,9 +39,17 @@ it; do not invent the missing content beyond what the code states.
 
 **3. Comments and doc comments.** This is an audit, not a skim. Enumerate
 every comment the branch added or changed — `//`, `///` and `//!` alike, and
-the `#` comments in `devices/*.yaml`, `tools/*.sh` and the workflows — and rule
-on each one. `git diff main...HEAD -U0 | grep -nE '^\+\s*(//|#)'` gets the
-list; a comment is one unit with its continuation lines, not one line at a time.
+the `#` comments in `devices/*.yaml`, `tools/*.sh` and the workflows, and the
+`/* */` and `/** */` comments in TypeScript and CSS — and rule on each one.
+This command gets the list:
+
+```bash
+git diff main...HEAD -U0 -- ':!*.md' | grep -nE '^\+\s*(//|#( |$)|/\*|\*( |/|$))'
+```
+
+The pattern leaves out a Rust attribute (`#[derive]`, `#![allow]`), which is
+code, and the `:!*.md` pathspec leaves out a Markdown heading. A comment is
+one unit with its continuation lines, not one line at a time.
 
 A comment survives only by carrying something the code cannot state itself.
 Name which one, per comment:
@@ -132,7 +140,7 @@ unambiguous, and length is not the problem there. English throughout.
 **The target is half.** Count the comment lines the branch added or changed:
 
 ```bash
-git diff main...HEAD -U0 | grep -cE '^\+\s*(//|#)'
+git diff main...HEAD -U0 -- ':!*.md' | grep -cE '^\+\s*(//|#( |$)|/\*|\*( |/|$))'
 ```
 
 The pass is not done until what stands in their place is **at most half** that
