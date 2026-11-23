@@ -13,11 +13,11 @@ publish = false
 [workspace]
 
 [build-dependencies]
-tauri-build = "2"
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
 govee-toolkit-server = { path = "../../../packages/rust/crates/server" }
-tauri = "2"
+tauri = { version = "2", features = [] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
