@@ -39,6 +39,7 @@ export function tooltip(target: HTMLElement, text: string): (text: string) => vo
     if (!open) {
       tip.remove();
       document.removeEventListener("scroll", close, true);
+      document.removeEventListener("pointerover", outside, true);
       return;
     }
     // An open dialog is in the top layer: a tooltip outside it shows under it.
@@ -46,9 +47,14 @@ export function tooltip(target: HTMLElement, text: string): (text: string) => vo
     place(target, tip);
     // The tooltip has a fixed position: a scroll would leave it behind.
     document.addEventListener("scroll", close, true);
+    // A target removed from the page under the pointer gets no `pointerleave`.
+    document.addEventListener("pointerover", outside, true);
   };
   const close = (): void => {
     show(false);
+  };
+  const outside = (event: PointerEvent): void => {
+    if (!target.isConnected || !(event.target instanceof Node && target.contains(event.target))) close();
   };
   // A touch shows no tooltip: the finger hides it, and the tap acts at once.
   target.addEventListener("pointerenter", (event) => {
