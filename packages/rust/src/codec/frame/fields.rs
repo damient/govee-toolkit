@@ -10,6 +10,31 @@ pub(super) fn write_len(out: &mut [u8], pos: usize, len: usize) {
     }
 }
 
+/// Fill in the length field at `pos`, `width` bytes wide, with the count of
+/// the bytes after it.
+pub(super) fn write_span(
+    out: &mut [u8],
+    command: &str,
+    pos: usize,
+    width: usize,
+    little: bool,
+) -> Result<()> {
+    let len = out.len() - pos - width;
+    let max = (1usize << (width * 8)) - 1;
+    if len > max {
+        return Err(too_long(command, "<span>", len, max));
+    }
+    let be = len.to_be_bytes();
+    let mut field = be.get(be.len() - width..).unwrap_or_default().to_vec();
+    if little {
+        field.reverse();
+    }
+    if let Some(slot) = out.get_mut(pos..pos + width) {
+        slot.copy_from_slice(&field);
+    }
+    Ok(())
+}
+
 pub(super) fn push_int(
     out: &mut Vec<u8>,
     command: &str,

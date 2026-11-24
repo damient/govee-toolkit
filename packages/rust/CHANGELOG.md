@@ -11,6 +11,10 @@ releases apart and keeps
 
 - A `payload:` reads `${frames}`: a list with the base64 of each frame the
   command builds. `ptReal` uses it to carry `ble` frames over `lan`.
+- `codec::frame::Token::Span` and `Token::SpanEnd`: a length field over the
+  bytes between them, 8 or 16 bits, either byte order.
+- `codec::frame::Token::Groups`: zone indices grouped by color, one byte each.
+  An index named twice is `codec::Error::ArgSyntax`.
 
 ### Changed
 

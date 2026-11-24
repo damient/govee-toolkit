@@ -140,11 +140,23 @@ commands:
   #   <sum>                  low byte of the sum of every preceding byte. Must
   #                          come last. A layout carries <xor> or <sum>, never
   #                          both.
+  #   <span:16le> … </span>  a length field that counts the bytes between the
+  #                          two tokens. `<span:8>` is one byte, `<span:16>`
+  #                          two bytes big-endian, `<span:16le>` two bytes
+  #                          least significant first. Spans can nest, and each
+  #                          one must close.
+  #   ${cells,colors:groups} the zone argument `cells`, grouped by the colors of
+  #                          the list argument `colors`: a group count, then
+  #                          for each color the index count, the color and the
+  #                          indices, one byte each. `colors` holds one color
+  #                          for every index, or one per index. An index named
+  #                          twice is an error.
   #
-  # Two errors, because the field would carry something other than what the
+  # Three errors, because the field would carry something other than what the
   # caller asked for:
-  #   - a string longer than its length prefix can count;
-  #   - a zone index past the width of its mask.
+  #   - a string or a span longer than its length field can count;
+  #   - a zone index past the width of its mask;
+  #   - an index past 255 in a group.
   #
   # `body:` and `chunk:` — a payload longer than one frame, for a wire whose
   # frames have a fixed size. `body:` is a frame layout with no checksum.

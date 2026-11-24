@@ -4,8 +4,10 @@
 //! clamps such a value in silence and then reports success.
 
 use super::fields::{
-    bytes_arg, int_arg, mask, pad, push_int, rgb_arg, text_arg, too_long, write_len, zones_arg,
+    bytes_arg, int_arg, mask, pad, push_int, rgb_arg, text_arg, too_long, write_len, write_span,
+    zones_arg,
 };
+use super::groups::groups;
 use super::{Frame, RepeatItem, Token};
 use crate::codec::args::{ArgValue, Args};
 use crate::codec::error::Result;
@@ -30,6 +32,7 @@ impl Frame {
         let mut out: Vec<u8> = Vec::with_capacity(self.size_hint(args));
         let mut len_pos: Option<usize> = None;
         let mut payload_start: Option<usize> = None;
+        let mut spans: Vec<(usize, usize, bool)> = Vec::new();
         let checksum = self.trailing_checksum();
 
         for token in &self.tokens {
@@ -69,6 +72,21 @@ impl Frame {
                     out.extend_from_slice(bytes_arg(command, args, name)?);
                 }
                 Token::Pad(size) => pad(&mut out, command, *size, checksum.is_some())?,
+                Token::Span { width, little } => {
+                    spans.push((out.len(), *width, *little));
+                    out.resize(out.len() + width, 0);
+                }
+                // Parsing pairs every end with an open span.
+                Token::SpanEnd => {
+                    if let Some((pos, width, little)) = spans.pop() {
+                        write_span(&mut out, command, pos, width, little)?;
+                    }
+                }
+                Token::Groups { cells, colors } => out.extend(groups(
+                    command,
+                    (cells, zones_arg(command, args, cells)?),
+                    (colors, rgb_arg(command, args, colors)?),
+                )?),
                 Token::Repeat { list, count, item } => {
                     let n = usize::try_from(int_arg(command, args, count)?).unwrap_or(0);
                     let colors = rgb_arg(command, args, list)?;
@@ -111,9 +129,14 @@ impl Frame {
             size += match token {
                 Token::Literal(_) | Token::Xor | Token::Sum => 1,
                 Token::Len16 => 2,
+                Token::SpanEnd => 0,
+                Token::Groups { cells, .. } => match args.get(cells) {
+                    Some(ArgValue::Zones(zones)) => 1 + zones.len() * 5,
+                    _ => 1,
+                },
                 Token::Opcode(bytes) => bytes.len(),
                 Token::Arg { bits, .. } => (*bits as usize).div_ceil(8),
-                Token::Mask { width, .. } => *width,
+                Token::Mask { width, .. } | Token::Span { width, .. } => *width,
                 Token::Text { name, prefix } => match args.get(name) {
                     Some(ArgValue::Text(text)) => prefix + text.len(),
                     _ => *prefix,
@@ -245,6 +268,47 @@ mod tests {
             frame.build("x", &args).unwrap_err().code(),
             "frame_overflow"
         );
+    }
+
+    #[test]
+    fn a_span_counts_the_bytes_it_encloses_nested_or_not() {
+        let frame = Frame::parse("x", "<span:16le> 03 <span:8> AA BB </span> </span> CC").unwrap();
+        assert_eq!(
+            hex(&frame.build("x", &Args::new()).unwrap()),
+            "04000302aabbcc"
+        );
+    }
+
+    #[test]
+    fn a_span_longer_than_its_field_counts_is_refused() {
+        let frame = Frame::parse("x", "<span:8> ${b:bytes} </span>").unwrap();
+        let args = Args::new().bytes("b", vec![0; 256]);
+        assert_eq!(
+            frame.build("x", &args).unwrap_err().code(),
+            "field_too_long"
+        );
+    }
+
+    /// One group per color, in the order each color first appears.
+    #[test]
+    fn groups_name_each_color_once() {
+        let frame = Frame::parse("x", "${cells,colors:groups}").unwrap();
+        let args = Args::new()
+            .zones("cells", vec![7, 2, 9])
+            .rgb("colors", vec![[1, 2, 3], [4, 5, 6], [1, 2, 3]]);
+        assert_eq!(
+            hex(&frame.build("x", &args).unwrap()),
+            "020201020307090104050602"
+        );
+    }
+
+    #[test]
+    fn one_color_paints_every_cell() {
+        let frame = Frame::parse("x", "${cells,colors:groups}").unwrap();
+        let args = Args::new()
+            .zones("cells", vec![0, 1])
+            .rgb("colors", vec![[9, 9, 9]]);
+        assert_eq!(hex(&frame.build("x", &args).unwrap()), "01020909090001");
     }
 
     #[test]
