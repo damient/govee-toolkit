@@ -400,6 +400,40 @@
         "a111ff000000000000000000000000000000004f"
       ],
       "source": "docs/protocol/ble.md 4 \u2014 worked out from the documented layout; these arguments were not sent, but the entry was, and the lamp acknowledged the transfer"
+    },
+    {
+      "name": "a drawing in red over white, twinkling and scrolling up",
+      "command": "draw_cells",
+      "args": { "background_red": 255, "background_green": 255, "background_blue": 255, "cells": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 20, 24, 36, 42, 43, 46, 48, 54, 55, 56, 57, 58, 60, 65, 72, 76, 77, 84, 89, 96, 108, 116, 120, 128], "colors": [[255, 0, 0]], "speed": 50, "motion": 1 },
+      "frames_hex": ["a3000104585affffff6400013800032a0001250b", "a301ff0000000102030405060708090a0b0c1445", "a30218242a2b2e30363738393a3c41484c4d54d8", "a3ff59606c7478803264010001ffff00000000d3", "33050a20035a0000000000000000000000000045"],
+      "source": "docs/protocol/ble.md 6.3: the layout of a capture of the phone controller, rebuilt with another drawing. The unit stored it and played it twinkling and scrolling up, over lan in ptReal"
+    },
+    {
+      "name": "two colors over black, still",
+      "command": "draw_cells",
+      "args": { "background_red": 0, "background_green": 0, "background_blue": 0, "cells": [0, 1, 131], "colors": [[255, 0, 0], [255, 0, 0], [0, 0, 255]], "speed": 0, "motion": 0 },
+      "frames_hex": ["a3000103585a0000006400011a00030c000202d3", "a301ff00000001010000ff830064000001ffff44", "a3ff00000000000000000000000000000000005c", "33050a20035a0000000000000000000000000045"],
+      "source": "docs/protocol/ble.md 6.3: worked out from the layout, not captured. Two colors make two groups"
+    }
+  ],
+  "errors": [
+    {
+      "name": "a cell past the 12 by 11 grid",
+      "command": "draw_cells",
+      "args": { "background_red": 0, "background_green": 0, "background_blue": 0, "cells": [132], "colors": [[255, 0, 0]], "speed": 50, "motion": 0 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "two colors for three cells",
+      "command": "draw_cells",
+      "args": { "background_red": 0, "background_green": 0, "background_blue": 0, "cells": [0, 1, 2], "colors": [[255, 0, 0], [0, 0, 255]], "speed": 50, "motion": 0 },
+      "code": "repeat_count_mismatch"
+    },
+    {
+      "name": "one cell named twice",
+      "command": "draw_cells",
+      "args": { "background_red": 0, "background_green": 0, "background_blue": 0, "cells": [5, 5], "colors": [[255, 0, 0]], "speed": 50, "motion": 0 },
+      "code": "arg_syntax"
     }
   ]
 }

@@ -34,6 +34,12 @@ at.
   mask frame inside `ptReal`. See `docs/protocol/lan.md` 2.9.
 - `H61A0` and `H6022` include it: 15 zones, by eye on each unit. The
   vectors come from the layout, not from a capture.
+- `devices/schema.yaml`: `<span:…>` … `</span>` writes a length field, and
+  `${cells,colors:groups}` writes cells grouped by color.
+- `diy-grid` and `diy-strip` families: `draw_cells` stores a drawing on the
+  device, over `ble` and over `lan` in `ptReal`. Layouts from captures.
+- `H6022` includes `diy-grid` (132 cells), and `H61A0` includes `diy-strip`
+  (42 LEDs). Both rendered over `lan`, by eye.
 
 ### 2026-11-20
 

@@ -321,6 +321,20 @@
         "a111ff000000000000000000000000000000004f"
       ],
       "source": "docs/protocol/ble.md 4 — worked out from the documented layout; these arguments were not sent, but the entry was, and the unit joined the network"
+    },
+    {
+      "name": "the first transfer of a capture, effect 9",
+      "command": "draw_cells",
+      "args": { "effect": 9, "speed": 51, "background_brightness": 100, "background_red": 255, "background_green": 255, "background_blue": 255, "cells": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], "colors": [[255, 0, 0]] },
+      "frames_hex": ["a300010303093364ffffff0115ff0000020304ed", "a30105060708090a0b0c0d0e0f101112131415a7", "a3ff16000000000000000000000000000000004a", "33050a200300000000000000000000000000001f"],
+      "source": "docs/protocol/ble.md 6.4: captured, the phone controller over ble. The lamp acknowledged A3 03 00"
+    },
+    {
+      "name": "the last transfer of a capture, effect 20",
+      "command": "draw_cells",
+      "args": { "effect": 20, "speed": 51, "background_brightness": 100, "background_red": 255, "background_green": 255, "background_blue": 255, "cells": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 35, 38], "colors": [[255, 0, 0]] },
+      "frames_hex": ["a300010303143364ffffff0117ff0000020304f2", "a30105060708090a0b0c0d0e0f101112131415a7", "a3ff16232600000000000000000000000000004f", "33050a200300000000000000000000000000001f"],
+      "source": "docs/protocol/ble.md 6.4: captured, the phone controller over ble. The lamp acknowledged A3 03 00"
     }
   ],
   "errors": [
@@ -417,6 +431,12 @@
         "api_url": "https://device.govee.com"
       },
       "code": "unknown_arg"
+    },
+    {
+      "name": "a LED past the 42 of the unit",
+      "command": "draw_cells",
+      "args": { "effect": 9, "speed": 51, "background_brightness": 100, "background_red": 0, "background_green": 0, "background_blue": 0, "cells": [42], "colors": [[255, 0, 0]] },
+      "code": "out_of_range"
     }
   ]
 }

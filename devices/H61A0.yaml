@@ -10,6 +10,7 @@ include:
   - lan-documented
   - lan-razer
   - lan-segments
+  - diy-strip
   - ble-core
   - ble-reads
   - ble-music
@@ -186,12 +187,26 @@ commands:
 
 overrides:
   lan:
+    draw_cells:
+      notes_append: >-
+        The effects the phone controller offers: 9 clockwise, 10
+        anticlockwise, 2 cycle, 19 gradient, 15 twinkle and 20 breathing.
+      args:
+        cells: { count: 42 }
+        colors: { max_len: 42 }
     brightness:
       notes: >-
         Percent. The firmware clamps 0 to 1 and does not turn the device off,
         so only `power` does. See docs/protocol/lan.md 2.1.
 
   ble:
+    draw_cells:
+      notes_append: >-
+        The effects the phone controller offers: 9 clockwise, 10
+        anticlockwise, 2 cycle, 19 gradient, 15 twinkle and 20 breathing.
+      args:
+        cells: { count: 42 }
+        colors: { max_len: 42 }
     brightness:
       notes: >-
         Percent on this unit, not 0..255. See docs/protocol/ble.md 2.2.
@@ -476,3 +491,12 @@ verified:
     zones 10 to 14 in white brought back the stored zones (red and blue)
     around the white. `devStatus` does not report a `ptReal` write until the
     next native command.
+
+    `draw_cells` comes from a ble capture of the phone controller
+    (2026-11-24): effects 9, 10, 2, 19, 15 and 20, speed 51, red LEDs over
+    white. The lamp answered `A3 03 00`, then `33 05 00`. Over lan, in
+    `ptReal`, through the CLI, effect 9 with green LEDs 0 to 9 and blue LEDs
+    32 to 41 over red rendered as sent, and judged by eye. Effect 15
+    twinkled. The six values of the capture are the six effects the phone
+    controller offers here, and its effect table names them: see
+    `draw_cells`. Only 9 and 15 were judged by eye over lan.

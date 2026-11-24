@@ -1,0 +1,64 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`. The device file sets the cell count with an
+# override on `cells` and `colors`.
+
+schema_version: 1
+
+family: "diy-strip"
+
+description: >-
+  A drawing over the LEDs of a strip, stored on the device and played with an
+  effect. The `lan` entry carries the `ble` frames inside `ptReal`. See
+  docs/protocol/ble.md 6.4 and docs/protocol/lan.md 2.9.
+
+commands:
+  ble:
+    draw_cells:
+      body: &body >-
+        ${effect} ${speed} ${background_brightness} ${background_red}
+        ${background_green} ${background_blue} ${cells,colors:groups}
+      chunk:
+        size: 17
+        head_size: 14
+        header: &header "A3 00 01 ${total} 03 ${chunk:bytes} <pad:20> <xor>"
+        data: &data "A3 ${index} ${chunk:bytes} <pad:20> <xor>"
+        footer: &footer "A3 FF ${chunk:bytes} <pad:20> <xor>"
+        then: &then "33 05 0A 20 03 00 00 <pad:20> <xor>"
+        reply: "A3 03 ${ack_status}"
+      args:
+        effect: &effect { type: int, range: [0, 255] }
+        speed: &speed { type: int, range: [0, 100] }
+        background_brightness: &brightness { type: int, range: [0, 100] }
+        background_red: &channel { type: int, range: [0, 255] }
+        background_green: *channel
+        background_blue: *channel
+        cells: &cells { type: zones }
+        colors: &colors { type: rgb_list }
+        ack_status: { type: int, range: [0, 255], role: ack_status }
+      notes: &notes >-
+        A cell is one LED, counted from the start of the strip. `colors` holds
+        one color for every cell, or one per cell. The other LEDs show the
+        background. The effect identifiers are the device's own. The device
+        keeps playing the drawing after the sender stops.
+  lan:
+    draw_cells:
+      cmd: "ptReal"
+      body: *body
+      chunk:
+        size: 17
+        head_size: 14
+        header: *header
+        data: *data
+        footer: *footer
+        then: *then
+      payload: { command: "${frames}" }
+      args:
+        effect: *effect
+        speed: *speed
+        background_brightness: *brightness
+        background_red: *channel
+        background_green: *channel
+        background_blue: *channel
+        cells: *cells
+        colors: *colors
+      notes: *notes

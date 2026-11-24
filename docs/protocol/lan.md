@@ -369,6 +369,10 @@ frames, a chunked transfer included.
 - A frame that sets a normal-mode color ends the raw segment channel of 2.3.
   The device then shows its stored zones, with the new frame applied.
 
+A chunked transfer of [`ble.md`](ble.md) 6 goes in one datagram, the frame
+that plays it included. One firmware stored and played a drawing of
+[`ble.md`](ble.md) 6.3 this way.
+
 A device file declares it with `payload: { command: "${frames}" }`. See
 `devices/schema.yaml`.
 

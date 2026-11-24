@@ -1,0 +1,67 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`. The device file sets the cell count with an
+# override on `cells` and `colors`.
+
+schema_version: 1
+
+family: "diy-grid"
+
+description: >-
+  A drawing on the grid of cells that the phone controller shows, stored on
+  the device and played with a motion. The `lan` entry carries the `ble`
+  frames inside `ptReal`. See docs/protocol/ble.md 6.3 and
+  docs/protocol/lan.md 2.9.
+
+commands:
+  ble:
+    draw_cells:
+      body: &body >-
+        5A ${background_red} ${background_green} ${background_blue} 64 00 01
+        <span:16le> 03 <span:16le> ${cells,colors:groups} </span>
+        ${speed} 64 ${motion} 00 01 FF FF 00 00 00 00 </span>
+      chunk:
+        size: 17
+        head_size: 14
+        header: &header "A3 00 01 ${total} 58 ${chunk:bytes} <pad:20> <xor>"
+        data: &data "A3 ${index} ${chunk:bytes} <pad:20> <xor>"
+        footer: &footer "A3 FF ${chunk:bytes} <pad:20> <xor>"
+        then: &then "33 05 0A 20 03 5A 00 <pad:20> <xor>"
+        reply: "A3 58 ${ack_status}"
+      args:
+        background_red: &channel { type: int, range: [0, 255] }
+        background_green: *channel
+        background_blue: *channel
+        cells: &cells { type: zones }
+        colors: &colors { type: rgb_list }
+        speed: &speed { type: int, range: [0, 100] }
+        motion: &motion { type: int, range: [0, 255] }
+        ack_status: { type: int, range: [0, 255], role: ack_status }
+      notes: &notes >-
+        A cell is row * columns + column, row 0 at the top. `colors` holds one
+        color for every cell, or one per cell. The other cells show the
+        background. Motion 255 holds the drawing still, and 0 twinkles. 1 to 8
+        move it up, down, left, right, then up-left, up-right, down-left and
+        down-right. 9 and 10 turn it clockwise and anticlockwise. The firmware
+        answers nothing for another value. The device keeps playing the
+        drawing after the sender stops.
+  lan:
+    draw_cells:
+      cmd: "ptReal"
+      body: *body
+      chunk:
+        size: 17
+        head_size: 14
+        header: *header
+        data: *data
+        footer: *footer
+        then: *then
+      payload: { command: "${frames}" }
+      args:
+        background_red: *channel
+        background_green: *channel
+        background_blue: *channel
+        cells: *cells
+        colors: *colors
+        speed: *speed
+        motion: *motion
+      notes: *notes

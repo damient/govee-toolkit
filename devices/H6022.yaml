@@ -10,6 +10,7 @@ include:
   - lan-documented
   - lan-razer
   - lan-segments
+  - diy-grid
   - ble-core
   - ble-reads
   - ble-color
@@ -84,9 +85,9 @@ modes:
       request every few seconds. See docs/protocol/cloud.md 5 and 6.
 
 commands:
+  ble:
   # Every frame here is 20 bytes: proType, commandType, payload, then a XOR of
   # the 19 bytes before it. See docs/protocol/ble.md 1.2.
-  ble:
     colortemp:
       role: color_temp
       frame: "33 05 0D 00 00 00 ${kelvin:16} 00 00 00 <pad:20> <xor>"
@@ -101,6 +102,13 @@ commands:
 
 overrides:
   lan:
+    draw_cells:
+      notes_append: >-
+        The grid is 12 columns by 11 rows, around the cylinder: left and right
+        turn the drawing around the lamp.
+      args:
+        cells: { count: 132 }
+        colors: { max_len: 132 }
     brightness:
       notes: >-
         Percent. The firmware clamps a value above 100 to 100 in silence, and
@@ -126,6 +134,13 @@ overrides:
         and docs/protocol/lan.md 2.3.
 
   ble:
+    draw_cells:
+      notes_append: >-
+        The grid is 12 columns by 11 rows, around the cylinder: left and right
+        turn the drawing around the lamp.
+      args:
+        cells: { count: 132 }
+        colors: { max_len: 132 }
     read_version_06:
       notes_append: >-
         A third version, 1.00.14 on this unit, against the 1.04.01 and 1.03.08
@@ -474,3 +489,12 @@ verified:
     CLI (2026-11-24), and judged by eye. Over a blue lamp, zones 0 to 2 in red
     and zones 12 to 14 in green lit red at the bottom and green at the top,
     with blue between. Zone 0 is the bottom of the lamp.
+
+    `draw_cells` was exercised over lan, in `ptReal`, through the CLI
+    (2026-11-24), and judged by eye. Green over the top ring and blue over the
+    bottom ring, on black, motion 0, rendered as sent and twinkled. One red
+    column, motion 3, speed 100, turned around the lamp, and turned clearly
+    slower at speed 10. Motion 1 twinkled
+    and scrolled up, and motion 255 held the drawing still. The drawing stays
+    after the sender stops. Over ble only the phone controller sent this
+    transfer: the lamp answered `A3 58 00`, then `33 05 00`.
