@@ -232,6 +232,9 @@ SKU.
   `cargo run -p govee-toolkit-cli --features ble -- <verb>` sends the bytes the
   device file declares, so the test exercises what the SDK ships. Write a
   one-off tool only for a probe that no device file entry can express.
+- After a `ptReal` test or a stored drawing, put the device back in a normal
+  state when the person confirms the result. The device keeps playing what it
+  stored after the sender stops. Send a native command, for example `color`.
 - Two techniques that pay off, in order: decompile the vendor's desktop app, and
   capture its UDP traffic on port 4003. Both beat guessing frames. What you
   learn that way is describable in your own words; **no decompiled output,
