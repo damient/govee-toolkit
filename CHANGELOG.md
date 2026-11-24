@@ -24,6 +24,17 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-11-24
+
+#### Added
+
+- `devices/schema.yaml`: the `${frames}` payload placeholder carries every
+  frame of a `frame:` or a chunked `body:` as a base64 list.
+- `lan-segments` family: `segment_color_masked` over `lan`, the `ble`
+  mask frame inside `ptReal`. See `docs/protocol/lan.md` 2.9.
+- `H61A0` and `H6022` include it: 15 zones, by eye on each unit. The
+  vectors come from the layout, not from a capture.
+
 ### 2026-11-20
 
 #### Fixed

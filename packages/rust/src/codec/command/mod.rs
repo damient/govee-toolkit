@@ -12,10 +12,12 @@ use crate::codec::error::{Error, Result};
 use crate::codec::reply::Layout as ReplyLayout;
 use crate::codec::{Args, chunk, exchange};
 
+#[cfg(test)]
+mod frames_tests;
 mod resolve;
 
+use resolve::{Frames, resolve, substitute};
 pub(crate) use resolve::{packed_rgb, packed_rgb_list, placeholder};
-use resolve::{resolve, substitute};
 
 /// A command ready to send.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -144,11 +146,13 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
     };
 
     // `${frame}` names one frame, so a chunked command and a list of exchanges
-    // have none to name; the validator refuses a payload that asks for it.
+    // have none to name. `${frames}` names every frame of a one-way send, so
+    // a list of exchanges has none either. The validator refuses both cases.
     let single = (spec.frame.is_some() && spec.frames.is_empty())
         .then(|| frames.first().map(Vec::as_slice))
         .flatten();
-    let data = substitute(command, &spec.payload, &resolved, single)?;
+    let all: &[Vec<u8>] = if spec.frames.is_empty() { &frames } else { &[] };
+    let data = substitute(command, &spec.payload, &resolved, &Frames { single, all })?;
 
     let roles: BTreeMap<String, ArgRole> = captured
         .iter()

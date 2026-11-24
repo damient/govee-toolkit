@@ -101,8 +101,16 @@ commands:
   # what this file says and holds no per-SKU logic of its own.
   #
   # `payload:` — the msg.data template. A string that is exactly "${name}" is
-  # replaced by the argument `name`; every other string is a literal. "${frame}"
-  # is reserved and holds the base64 of the frame built below.
+  # replaced by the argument `name`; every other string is a literal. Two
+  # names are reserved. "${frame}" holds the base64 of the frame built below.
+  # "${frames}" holds a list with the base64 of each frame the command builds,
+  # from a `frame:` or from a `body:` and its `chunk:`. A `lan` entry that
+  # carries `body:` must carry it with "${frames}". `ptReal` uses it to carry
+  # `ble` frames over `lan` (../docs/protocol/lan.md 2.9):
+  #
+  #   cmd: "ptReal"
+  #   frame: "33 05 15 01 (${colors}:rgb)×${nb} 00 00 00 00 00 ${zones:mask16} <pad:20> <xor>"
+  #   payload: { command: "${frames}" }
   #
   # `frame:` — the byte layout of a raw-channel frame, whitespace-separated:
   #
@@ -322,7 +330,9 @@ commands:
     #                   device showed.
     #   segment_enable  arms and disarms the raw segment channel. Unclaimed:
     #                   nothing is armed, which is what a mode whose zones are
-    #                   always addressable looks like.
+    #                   always addressable looks like. Where the mode also
+    #                   claims `segment_color`, the channel is that command's,
+    #                   and a `segment_color_masked` paint arms nothing.
     #   segment_color   paints every zone at once.
     #   segment_color_masked
     #                   paints one color over the zones a mask names. A stream

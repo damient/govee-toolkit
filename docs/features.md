@@ -20,6 +20,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **Discovery** — multicast scan at startup, periodic background refresh, persistent on-disk cache |
 | ✅ | **Undocumented LAN commands** — the raw segment channel is documented and verified on one device. Each further command needs the same treatment once somebody finds it |
 | ✅ | **Segment streaming** (`packages/rust/src/stream`) — frames over the raw segment channel, at the rate measured on the unit |
+| ✅ | **`ptReal` over LAN**: `ble` frames inside a `lan` command, declared in the device file. Paints the zones of the `ble` mask without the raw segment channel. Verified on one device. See [`protocol/lan.md`](protocol/lan.md) 2.9 |
 | ✅ | **Per-device mode selection** — one mode for strict behavior, several for switching, see [`modes.md`](modes.md) |
 | ✅ | **Per-device, per-mode circuit breaker** — `OK` / `DEGRADED` / `DOWN`. The breaker decides from state it already holds, not from a fresh timeout per call |
 | ✅ | **Explicit failures** — a command a mode cannot serve fails and says so. The SDK never approximates one in silence |

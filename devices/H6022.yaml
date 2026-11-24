@@ -9,6 +9,7 @@ aliases: []
 include:
   - lan-documented
   - lan-razer
+  - lan-segments
   - ble-core
   - ble-reads
   - ble-color
@@ -45,7 +46,8 @@ modes:
     notes: >-
       Requires LAN Control enabled in the Govee Home app. The four documented
       commands answer and read back through `devStatus`, and the segment
-      channel of docs/protocol/lan.md 2.3 paints. Brightness is global here:
+      channel of docs/protocol/lan.md 2.3 paints. The 15 zones of the ble
+      mask paint through `ptReal` as well. Brightness is global here:
       the segment channel carries color only. It carries no music command: the
       lamp renders no music over lan, and a host that streams computed colors
       over the segment channel is not this capability. See
@@ -467,3 +469,8 @@ verified:
 
     The state answer also carries an `online` flag, which the SDK models
     nothing of.
+
+    `segment_color_masked` was exercised over lan, in `ptReal`, through the
+    CLI (2026-11-24), and judged by eye. Over a blue lamp, zones 0 to 2 in red
+    and zones 12 to 14 in green lit red at the bottom and green at the top,
+    with blue between. Zone 0 is the bottom of the lamp.

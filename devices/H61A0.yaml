@@ -9,6 +9,7 @@ aliases: []
 include:
   - lan-documented
   - lan-razer
+  - lan-segments
   - ble-core
   - ble-reads
   - ble-music
@@ -45,7 +46,9 @@ modes:
       music: transport
     notes: >-
       Requires LAN Control enabled in the Govee Home app. Reaches the segment
-      channel, including beyond the 10 zones the app exposes. Brightness is
+      channel, including beyond the 10 zones the app exposes. It also paints
+      the 15 zones of the ble mask, through `ptReal`, and leaves the other
+      zones alone. Brightness is
       global here: the segment channel carries color only. See
       docs/protocol/lan.md 2.5. It carries no music command: the device renders
       no music over lan, and a host that streams computed colors over the
@@ -465,3 +468,11 @@ verified:
     After a command over lan, `devStatus` reported the previous state for up
     to 61 ms, and every read from 134 ms reported the new one. Exercised with
     color, brightness and white temperature, 7 commands. The file records 150.
+
+    `segment_color_masked` was exercised over lan, in `ptReal`, through the
+    CLI on firmware 2.06.02 (2026-11-24), and judged by eye. Over a blue rope,
+    zones 0 to 4 turned red and the rest stayed blue. Trap: the frame ends the
+    raw segment channel. Over a rope painted green through that channel,
+    zones 10 to 14 in white brought back the stored zones (red and blue)
+    around the white. `devStatus` does not report a `ptReal` write until the
+    next native command.

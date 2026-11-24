@@ -304,12 +304,10 @@ directly accessible.
 Over LAN, brightness is global. The segment channel of 2.3 carries color only,
 and no command changes that.
 
-The `pt`, `ptReal`, `ptIotOp` and `bulb` commands belong to a separate account
-channel of the vendor's cloud, which this SDK does not implement. Probing them
-over LAN stays silent because the command exists, but not on this transport.
-
-This is a real boundary of `lan` mode, not a gap waiting to be filled: a device
-file spells it `capped`, not `partial`. See [`cloud.md`](cloud.md).
+`ptReal` (2.9) carries `ble` frames, and `ble` has a per-zone brightness
+frame. Nobody has probed that frame inside `ptReal`. Until a unit renders it, a
+device file spells per-zone brightness over `lan` `capped`, not `partial`. See
+[`cloud.md`](cloud.md).
 
 ### 2.6 Sensors / telemetry
 
@@ -348,6 +346,31 @@ answered a probe last month may not today. Ship the probes with the SDKs rather
 than trusting a table: which command names answer, the real clamping bounds read
 back through `devStatus`, and a visual test for the raw channel, which never
 replies.
+
+### 2.9 `ptReal`: `ble` frames inside a `lan` command
+
+`ptReal` carries a list of `ble` frames. Each item is the base64 of one
+20-byte frame of [`ble.md`](ble.md), byte for byte, checksum included:
+
+```json
+{"msg":{"cmd":"ptReal","data":{"command":["MwUVAf8AAAAAAAAAHwAAAAAAAMI="]}}}
+```
+
+The phone controller sends the same command over its cloud channel. Some
+firmwares also execute it from UDP 4003. One datagram can carry several
+frames, a chunked transfer included.
+
+- The firmware answers nothing, and the `ble` answers (`AA ...`) do not come
+  back over `lan`. A sender cannot know that a frame was accepted.
+- `devStatus` can report the previous state until the next native command.
+  Do not use it to check a `ptReal` write: look at the device.
+- A firmware executes some frames and drops others in silence. Record in the
+  device file each frame that a unit rendered.
+- A frame that sets a normal-mode color ends the raw segment channel of 2.3.
+  The device then shows its stored zones, with the new frame applied.
+
+A device file declares it with `payload: { command: "${frames}" }`. See
+`devices/schema.yaml`.
 
 ## 3. Discovery method
 

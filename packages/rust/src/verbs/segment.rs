@@ -148,7 +148,15 @@ impl DeviceHandle<'_> {
             return Err(no_gradient(entry.sku(), entry.mode()));
         }
 
-        self.arm(entry.mode(), entry.sku(), entry.device()).await?;
+        // The arming entry belongs to the whole-frame command where the mode
+        // claims one: that channel is not the one this frame paints.
+        if entry
+            .device()
+            .command_for(entry.mode(), Role::SegmentColor)
+            .is_none()
+        {
+            self.arm(entry.mode(), entry.sku(), entry.device()).await?;
+        }
         if in_frame.is_none()
             && let Some(command) = alone
         {

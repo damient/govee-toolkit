@@ -96,6 +96,22 @@
       "frame_hex": "bb000bb00003ff000000ff000000fffc",
       "message": { "msg": { "cmd": "razer", "data": { "pt": "uwALsAAD/wAAAP8AAAD//A==" } } },
       "source": "derived from the frame layout in docs/protocol/lan.md 2.3, not captured; the frame was exercised on the unit through the CLI"
+    },
+    {
+      "name": "red over zones 0 to 2, in ptReal",
+      "command": "segment_color_masked",
+      "args": { "colors": [[255, 0, 0]], "zones": [0, 1, 2] },
+      "frame_hex": "33051501ff0000000000000007000000000000da",
+      "message": { "msg": { "cmd": "ptReal", "data": { "command": ["MwUVAf8AAAAAAAAABwAAAAAAANo="] } } },
+      "source": "docs/protocol/lan.md 2.9: derived from the layout, not captured. The unit rendered zones 0 to 2 red, at the bottom of the lamp"
+    },
+    {
+      "name": "green over zones 12 to 14, in ptReal",
+      "command": "segment_color_masked",
+      "args": { "colors": [[0, 255, 0]], "zones": [12, 13, 14] },
+      "frame_hex": "3305150100ff00000000000000700000000000ad",
+      "message": { "msg": { "cmd": "ptReal", "data": { "command": ["MwUVAQD/AAAAAAAAAHAAAAAAAK0="] } } },
+      "source": "docs/protocol/lan.md 2.9: derived from the layout, not captured. The unit rendered zones 12 to 14 green, at the top of the lamp"
     }
   ],
   "errors": [

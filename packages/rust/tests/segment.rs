@@ -197,3 +197,40 @@ async fn a_zone_list_takes_one_color() {
 
     assert_eq!(error.code(), "zone_list_color_count");
 }
+
+/// The mask frame is the `ble` frame inside `ptReal`. It paints the normal
+/// mode, not the raw channel, so nothing arms that channel first. The
+/// `red over zones 0 to 4, in ptReal` vector of
+/// tests/fixtures/golden/lan/H61A0.json.
+#[tokio::test]
+async fn a_zone_list_goes_out_in_ptreal_and_arms_nothing() {
+    let rig = rig().await;
+    rig.govee
+        .one()
+        .segment(&Paint {
+            zones: Some(&[0, 1, 2, 3, 4]),
+            colors: &[[255, 0, 0]],
+            resolution: Resolution::App,
+            gradient: false,
+        })
+        .await
+        .expect("the paint goes out");
+
+    let received = wait_for(|| {
+        let received = rig.simulator.received();
+        received
+            .iter()
+            .any(|r| r.cmd == "ptReal")
+            .then_some(received)
+    })
+    .await
+    .unwrap_or_default();
+
+    assert!(received.iter().all(|r| r.cmd != "razer"), "{received:?}");
+    let painted: Vec<_> = received.iter().filter(|r| r.cmd == "ptReal").collect();
+    assert_eq!(painted.len(), 1, "{received:?}");
+    let frame = BASE64
+        .decode(painted[0].data["command"][0].as_str().expect("a string"))
+        .expect("base64");
+    assert_eq!(hex(&frame), "33051501ff000000000000001f000000000000c2");
+}

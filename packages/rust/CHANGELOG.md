@@ -7,6 +7,16 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- A `payload:` reads `${frames}`: a list with the base64 of each frame the
+  command builds. `ptReal` uses it to carry `ble` frames over `lan`.
+
+### Changed
+
+- `DeviceHandle::segment()` with a zone list arms no channel where the mode
+  also claims `segment_color`: that channel belongs to the whole-frame command.
+
 ## [1.18.0] — 2026-11-23
 
 ### Added

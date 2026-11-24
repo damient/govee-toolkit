@@ -101,6 +101,22 @@
       "frame_hex": "bb0008b00002ff000000ff0001",
       "message": { "msg": { "cmd": "razer", "data": { "pt": "uwAIsAAC/wAAAP8AAQ==" } } },
       "source": "derived from the frame layout in docs/protocol/lan.md 2.3, not captured"
+    },
+    {
+      "name": "red over zones 0 to 4, in ptReal",
+      "command": "segment_color_masked",
+      "args": { "colors": [[255, 0, 0]], "zones": [0, 1, 2, 3, 4] },
+      "frame_hex": "33051501ff000000000000001f000000000000c2",
+      "message": { "msg": { "cmd": "ptReal", "data": { "command": ["MwUVAf8AAAAAAAAAHwAAAAAAAMI="] } } },
+      "source": "docs/protocol/lan.md 2.9: derived from the layout, not captured. The unit rendered zones 0 to 4 red and left the others alone"
+    },
+    {
+      "name": "white over zones 10 to 14, in ptReal",
+      "command": "segment_color_masked",
+      "args": { "colors": [[255, 255, 255]], "zones": [10, 11, 12, 13, 14] },
+      "frame_hex": "33051501ffffff0000000000007c0000000000a1",
+      "message": { "msg": { "cmd": "ptReal", "data": { "command": ["MwUVAf///wAAAAAAAHwAAAAAAKE="] } } },
+      "source": "docs/protocol/lan.md 2.9: derived from the layout, not captured. The unit rendered it, and left the raw segment channel for its stored zones"
     }
   ],
   "errors": [
@@ -139,6 +155,12 @@
       "command": "segment_color",
       "args": { "gradient": 0, "nb_seg": 3, "colors": [[255, 0, 0], [0, 255, 0]] },
       "code": "repeat_count_mismatch"
+    },
+    {
+      "name": "a zone past the fifteen the mask reaches, in ptReal",
+      "command": "segment_color_masked",
+      "args": { "colors": [[255, 0, 0]], "zones": [15] },
+      "code": "out_of_range"
     },
     {
       "name": "a command this mode does not carry",

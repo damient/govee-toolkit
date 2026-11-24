@@ -54,7 +54,8 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
     }
 
     let single_frame = command.frame.is_some() && command.frames.is_empty();
-    problems.extend(check_payload(mode, command, single_frame));
+    let one_way = single_frame || (command.body.is_some() && command.frames.is_empty());
+    problems.extend(check_payload(mode, command, single_frame, one_way));
     problems
 }
 
@@ -165,7 +166,9 @@ fn check_chunk(name: &str, command: &Command, problems: &mut Vec<String>) -> Opt
     }
 }
 
-fn check_payload(mode: Mode, command: &Command, has_frame: bool) -> Vec<String> {
+/// `has_frame`: the command declares one `frame:`. `one_way`: it declares a
+/// `frame:` or a chunked `body:`, and no list of exchanges.
+fn check_payload(mode: Mode, command: &Command, has_frame: bool, one_way: bool) -> Vec<String> {
     let mut problems = Vec::new();
     let mut placeholders = Vec::new();
     collect_placeholders(&command.payload, &mut placeholders);
@@ -174,6 +177,13 @@ fn check_payload(mode: Mode, command: &Command, has_frame: bool) -> Vec<String> 
         if name == "frame" {
             if !has_frame {
                 problems.push("payload uses `${frame}` but no `frame:` is declared".to_owned());
+            }
+        } else if name == "frames" {
+            if !one_way {
+                problems.push(
+                    "payload uses `${frames}` but declares neither a `frame:` nor a `body:`"
+                        .to_owned(),
+                );
             }
         } else if !command.args.contains_key(name) {
             problems.push(format!(
@@ -186,8 +196,13 @@ fn check_payload(mode: Mode, command: &Command, has_frame: bool) -> Vec<String> 
     // neither: its wire carries the frame on its own.
     let wrapped =
         !matches!(mode, Mode::Ble) || !command.cmd.is_empty() || !command.payload.is_null();
-    if has_frame && wrapped && !placeholders.iter().any(|p| p == "frame") {
+    let carries = |name: &str| placeholders.iter().any(|p| p == name);
+    if has_frame && wrapped && !carries("frame") && !carries("frames") {
         problems.push("declares a `frame:` the payload never carries with `${frame}`".to_owned());
+    }
+    let chunked = command.body.is_some() && command.chunk.is_some() && command.frame.is_none();
+    if chunked && wrapped && !carries("frames") {
+        problems.push("declares a `body:` the payload never carries with `${frames}`".to_owned());
     }
     // A cloud payload is the capability's value, and the `capability:` carries
     // it.
