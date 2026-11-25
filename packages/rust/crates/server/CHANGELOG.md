@@ -4,6 +4,11 @@ Changes to `govee-toolkit-server`, the crate of the `govee-server` binary in
 `packages/rust/crates/server`. It releases under `server-vX.Y.Z`. The policy
 is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Fixed
+
+- `features.segments` gives the zone count on `lan` for the H6022 and the
+  H61A0. `segment` paints there by mask and arms no channel.
+
 ## [0.1.0] — 2026-11-23
 
 ### Added

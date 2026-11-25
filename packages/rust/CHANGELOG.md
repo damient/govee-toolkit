@@ -56,6 +56,11 @@ releases apart and keeps
 - `stream::reach()` and `describe` report what `segment()` reaches: the 15
   groups of the mask over `lan` on the H6022 and the H61A0.
 
+### Deprecated
+
+- `Segments::armed` is always `false`: `segment()` arms no channel on any
+  mode. Read `Supported::segments` alone.
+
 ## [1.18.0] — 2026-11-23
 
 ### Added

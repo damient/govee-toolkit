@@ -12,13 +12,8 @@ use crate::devices::{Sdk, failed};
 use crate::refuse;
 use crate::studio::Hex;
 
-/// `segments` is `null` on a mode that arms a segment channel: Studio paints
-/// zones in the normal mode of the device only.
 pub(crate) fn features(supported: &Supported) -> Value {
-    let segments = supported
-        .segments
-        .filter(|segments| !segments.armed)
-        .map(|segments| segments.zones);
+    let segments = supported.segments.map(|segments| segments.zones);
     json!({
         "color": supported.color,
         "color_temp": supported.color_temp,
