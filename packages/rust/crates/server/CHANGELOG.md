@@ -4,6 +4,11 @@ Changes to `govee-toolkit-server`, the crate of the `govee-server` binary in
 `packages/rust/crates/server`. It releases under `server-vX.Y.Z`. The policy
 is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Added
+
+- `POST /api/apply` takes `scene`: a name or a code of the scene library
+  that `govee scenes fetch <SKU>` caches for each model.
+
 ### Fixed
 
 - `features.segments` gives the zone count on `lan` for the H6022 and the

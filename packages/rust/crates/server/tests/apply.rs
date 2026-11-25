@@ -43,4 +43,6 @@ async fn a_value_that_is_not_valid_is_refused() {
     assert_eq!(apply(color).await, StatusCode::UNPROCESSABLE_ENTITY);
     let key = r#"{"ids":["AA:BB"],"hue":10}"#;
     assert_eq!(apply(key).await, StatusCode::UNPROCESSABLE_ENTITY);
+    let scene = r#"{"ids":["AA:BB"],"scene":2867}"#;
+    assert_eq!(apply(scene).await, StatusCode::UNPROCESSABLE_ENTITY);
 }

@@ -35,6 +35,8 @@ releases apart and keeps
   when the caller gives none. `ArgSpec::default_value()` reads it.
 - `codec::encode_batch()` encodes several commands, and carries the frames of
   consecutive commands that share an envelope in one envelope.
+- `input::verbs()` reads `scene`, a name or a code, into `Verb::Scene`. The
+  `apply()` of the Node and Python bindings takes it.
 
 ### Changed
 

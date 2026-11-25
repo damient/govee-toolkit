@@ -42,6 +42,8 @@ pub(crate) struct Apply {
     segment: Option<Zones>,
     /// With `segment`, the paint carries it, and `None` sets it off.
     gradient: Option<bool>,
+    /// A name or a code of the cached scene library of each model.
+    scene: Option<String>,
 }
 
 impl Apply {
@@ -60,6 +62,7 @@ impl Apply {
             })),
             None => verbs.extend(self.gradient.map(Verb::Gradient)),
         }
+        verbs.extend(self.scene.map(Verb::Scene));
         verbs
     }
 }
