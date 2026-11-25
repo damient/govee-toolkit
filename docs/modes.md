@@ -6,7 +6,7 @@ trade-offs, and **the user chooses which ones to enable, per device**.
 
 | Mode | Latency | Range | Capabilities | Requires |
 | ---- | ------- | ----- | ------------ | -------- |
-| `lan` | lowest | same network | the undocumented segment channel, in color. No music command, and brightness is global | LAN Control enabled in the Govee Home app |
+| `lan` | lowest | same network | the undocumented segment channel, in color, and `ble` frames in `ptReal`, music included. Brightness is global | LAN Control enabled in the Govee Home app |
 | `ble` | low | Bluetooth range | depends on the SKU family | a Bluetooth adapter on the host, and the device not already connected to something else |
 | `cloud` | highest (internet round-trip) | anywhere | segments in color and in brightness, music. No segment stream; throttled | a Govee API key, subject to rate limits |
 

@@ -38,6 +38,10 @@ at.
   library gives types 0 and 5 only.
 - `H6008` includes it, over `ble` only: it ignores `ptReal`. A stored and a
   type 1 scene rendered, by eye.
+- `lan-music` family: `music` sends the `ble` music frame of sub-mode 19 over
+  `lan` in `ptReal`. See `docs/protocol/lan.md` 2.4.
+- `H6022` and `H61A0` include it and reach `music` over `lan`. Effect 4 played,
+  by eye. Effect 0 renders nothing on the `H61A0`. Vectors from the layout.
 
 #### Removed
 

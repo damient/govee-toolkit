@@ -32,8 +32,8 @@ this page is written by hand.
 
 `capped` and `partial` are not the same answer. `capped` says the mode goes as
 far as the transport goes: nobody can do better over it, on any device. Every
-RGBIC device is `capped` over `lan`, because `lan` carries no music command and
-no per-segment brightness. `partial` says this device file falls short of what
+RGBIC device is `capped` over `lan`, because `lan` carries no per-segment
+brightness. `partial` says this device file falls short of what
 the transport carries, so somebody can close the gap. Both list each capability
 out of reach, with the reason, under `modes.<mode>.unreachable`.
 

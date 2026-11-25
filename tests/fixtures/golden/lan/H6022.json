@@ -114,6 +114,22 @@
       "source": "docs/protocol/lan.md 2.9: derived from the layout, not captured. The unit rendered zones 12 to 14 green, at the top of the lamp"
     },
     {
+      "name": "music, effect 4, blue imposed, in ptReal",
+      "command": "music",
+      "args": { "effect": 4, "sensitivity": 99, "soft": 0, "color_mode": 1, "r": 0, "g": 0, "b": 255 },
+      "frame_hex": "330513046300010000ff000000000000000000bc",
+      "message": { "msg": { "cmd": "ptReal", "data": { "command": ["MwUTBGMAAQAA/wAAAAAAAAAAALw="] } } },
+      "source": "docs/protocol/lan.md 2.9 and ble.md 2.7: derived from the layout, not captured. The unit played it on sound, in blue"
+    },
+    {
+      "name": "music, effect 0, colors left to the firmware, in ptReal",
+      "command": "music",
+      "args": { "effect": 0, "sensitivity": 99, "soft": 1, "color_mode": 0, "r": 0, "g": 0, "b": 0 },
+      "frame_hex": "3305130063010000000000000000000000000047",
+      "message": { "msg": { "cmd": "ptReal", "data": { "command": ["MwUTAGMBAAAAAAAAAAAAAAAAAEc="] } } },
+      "source": "docs/protocol/lan.md 2.9 and ble.md 2.7: derived from the layout, not captured. The unit changed effect and played it on sound, in the colors of the firmware"
+    },
+    {
       "name": "a drawing in red over white, twinkling and scrolling up",
       "command": "draw_cells",
       "args": { "background_red": 255, "background_green": 255, "background_blue": 255, "cells": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 20, 24, 36, 42, 43, 46, 48, 54, 55, 56, 57, 58, 60, 65, 72, 76, 77, 84, 89, 96, 108, 116, 120, 128], "colors": [[255, 0, 0]], "speed": 50, "motion": 1 },

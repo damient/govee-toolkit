@@ -10,6 +10,7 @@ include:
   - lan-documented
   - lan-razer
   - lan-segments
+  - lan-music
   - diy-strip
   - scene-rgbic
   - ble-core
@@ -42,19 +43,18 @@ capabilities:
 modes:
   lan:
     support: capped
-    capabilities: [power, brightness, color, colortemp, segments]
+    capabilities: [power, brightness, color, colortemp, segments, music]
     unreachable:
       segment_brightness: transport
-      music: transport
     notes: >-
       Requires LAN Control enabled in the Govee Home app. Reaches the segment
       channel, including beyond the 10 zones the app exposes. It also paints
       the 15 zones of the ble mask, through `ptReal`, and leaves the other
       zones alone. Brightness is
       global here: the segment channel carries color only. See
-      docs/protocol/lan.md 2.5. It carries no music command: the device renders
-      no music over lan, and a host that streams computed colors over the
-      segment channel is not this capability. See docs/protocol/lan.md 2.4.
+      docs/protocol/lan.md 2.5. Music runs off the device's own microphone,
+      through the `ble` frame of sub-mode 19 in `ptReal`. See
+      docs/protocol/lan.md 2.4.
   ble:
     support: full
     capabilities: [power, brightness, color, colortemp, segments, segment_brightness, music]
@@ -188,6 +188,11 @@ commands:
 
 overrides:
   lan:
+    music:
+      notes_append: >-
+        Effect 0 renders nothing here: the rope keeps the effect before it.
+        See `verified:`.
+
     draw_cells:
       notes_append: >-
         The effects the phone controller offers: 9 clockwise, 10
@@ -509,3 +514,10 @@ verified:
     played. Two stored scenes played from the code frame alone, code 0
     included. Where the library gives this model parameters of its own, they
     matched the shared ones. Only lan was exercised.
+
+    `music` was exercised over lan, in `ptReal`, through the CLI on firmware
+    2.06.02 (2026-11-25), and judged by eye with sound in the room. Effect 4
+    played on sound, in blue and then in green imposed. Trap: effect 0
+    rendered nothing, with the colors imposed or left to the firmware, and
+    the rope kept the effect before it. Effects 1 to 3 and 5 to 7 were sent
+    and something played, but which identifier rendered was NOT established.

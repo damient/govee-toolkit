@@ -10,6 +10,7 @@ include:
   - lan-documented
   - lan-razer
   - lan-segments
+  - lan-music
   - diy-grid
   - scene-rgbic
   - ble-core
@@ -41,18 +42,16 @@ capabilities:
 modes:
   lan:
     support: capped
-    capabilities: [power, brightness, color, colortemp, segments]
+    capabilities: [power, brightness, color, colortemp, segments, music]
     unreachable:
       segment_brightness: transport
-      music: transport
     notes: >-
       Requires LAN Control enabled in the Govee Home app. The four documented
       commands answer and read back through `devStatus`, and the segment
       channel of docs/protocol/lan.md 2.3 paints. The 15 zones of the ble
       mask paint through `ptReal` as well. Brightness is global here:
-      the segment channel carries color only. It carries no music command: the
-      lamp renders no music over lan, and a host that streams computed colors
-      over the segment channel is not this capability. See
+      the segment channel carries color only. Music runs off the lamp's own
+      microphone, through the `ble` frame of sub-mode 19 in `ptReal`. See
       docs/protocol/lan.md 2.4.
   ble:
     support: full
@@ -65,8 +64,7 @@ modes:
       and the white temperature share sub-mode 13, one colour over the whole
       lamp. Segments are narrower here than over lan: zones are addressed
       through a mask 15 bits wide, against the 132 LEDs the lan raw channel
-      reaches. Music runs off the lamp's own microphone, at sub-mode 19, which
-      lan carries no command for. Wi-Fi provisioning works from here, through
+      reaches. Music runs off the lamp's own microphone, at sub-mode 19. Wi-Fi provisioning works from here, through
       `provision_wifi()`. One connection at a time: a connected lamp stops
       advertising. See docs/protocol/ble.md.
   cloud:
@@ -378,7 +376,7 @@ verified:
     500 ms. See docs/protocol/lan.md 1, "Read after a command".
 
     The lamp has a microphone and the phone controller offers a music mode.
-    lan carries no music command, so that is a ble session, below.
+    It plays over ble, below, and over lan in `ptReal`, at the end.
 
     ble mode reaches every capability, over the encoded link of
     docs/protocol/ble.md 9. The unit advertises as `Govee_H6022_646E`, the
@@ -505,3 +503,9 @@ verified:
     Fire (code 40) played from the code frame alone. `scene` was not
     exercised: the scene library gives this model types 0 and 5 only, and
     the family plays types 1 and 2.
+
+    `music` was exercised over lan, in `ptReal`, through the CLI
+    (2026-11-25), and judged by eye with sound in the room. Effect 4 with
+    blue imposed played on sound in blue. Effect 0 with the colors left to
+    the firmware changed the effect and played on sound. `devStatus` reports
+    no music state.

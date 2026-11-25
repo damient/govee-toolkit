@@ -27,7 +27,7 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **Per-device, per-mode circuit breaker** — `OK` / `DEGRADED` / `DOWN`. The breaker decides from state it already holds, not from a fresh timeout per call |
 | ✅ | **Explicit failures** — a command a mode cannot serve fails and says so. The SDK never approximates one in silence |
 | ✅ | **White temperature** (`color_temp()`) — one call sets the kelvin value and, where the frame carries it, the RGB rendering the firmware does not compute |
-| ✅ | **Music** (`music()`) — plays an effect the device renders from its own microphone, over `ble` and `cloud`. `lan` carries no music command |
+| ✅ | **Music** (`music()`) — plays an effect the device renders from its own microphone, over `ble`, over `cloud`, and over `lan` in `ptReal`. Verified on two devices. See [`protocol/lan.md`](protocol/lan.md) 2.4 |
 | ✅ | **Identify** (`identify()`) — powers one device on and paints one color, so a person maps an identity to a fixture in the room. `govee identify` and `govee-dmx identify` walk a whole rig, or the devices a target names: an identity, a SKU, a name, a group, and on the bridge a universe and a channel. |
 | ✅ | **Names and groups** — `name:` and `groups:` in `config.yaml` give targets in place of an identity. `Govee::device()` gives the handle of one device, and `Govee::devices()` the handle of any number: every device, a SKU, a group or a list of targets. A verb on it goes to every member at once, and a member that fails stops no other one (`govee on <group>`). `Devices::apply()` sends several verbs in one fixed order, power on first and power off last. |
 | ✅ | **Wi-Fi provisioning** (`provision_wifi()`) — puts a device out of the box on a network over `ble`, which is what makes `lan` reachable |

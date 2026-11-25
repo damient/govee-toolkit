@@ -289,15 +289,22 @@ every second row moves the other way. Paint one column to see which layout a
 unit has: the right one draws a straight line, and the other draws a zigzag.
 The layout is a property of the unit — record it in `devices/<SKU>.yaml`.
 
-### 2.4 Music mode — host-side, nothing to discover on the device
+### 2.4 Music mode
 
-The vendor's desktop app captures audio, computes a spectrum, groups the LEDs
-and streams the result over the `razer` channel of 2.3. The device only obeys.
+Two kinds of music reach a device over `lan`.
 
-Music mode is therefore reproducible locally over the channel documented
-above; the only missing piece is audio capture, which is a host concern. On
-macOS, capturing *system* audio needs a loopback device; a microphone is
-directly accessible.
+**On the device.** The device listens on its own microphone. The music frame
+of [`ble.md`](ble.md) 2.7 travels in `ptReal` (2.9), byte for byte. The phone
+controller sends music this way over its cloud channel. A firmware can play
+one effect over `ble` and render nothing for the same effect in `ptReal`. The
+device file records the effects that a unit rendered. `devStatus` reports no
+music state.
+
+**On the host.** The desktop controller captures audio, computes a spectrum,
+groups the LEDs and streams the result over the `razer` channel of 2.3. The
+device only obeys. Audio capture is a host concern. On macOS, a capture of
+the system audio needs a loopback device, and a microphone is directly
+accessible.
 
 ### 2.5 Per-segment brightness — not on this transport
 
