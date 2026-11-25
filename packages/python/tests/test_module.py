@@ -30,6 +30,9 @@ EXPORTED = (
     "Invoked",
     "Applied",
     "AppliedStep",
+    "Scene",
+    "fetch_scenes",
+    "load_scenes",
     "SUPPORT",
     "PERSONALITIES",
 )

@@ -19,7 +19,7 @@ create_exception!(
     _govee_toolkit,
     CodecError,
     GoveeError,
-    "An unknown SKU, an unknown command, or an argument out of range. Nothing was sent."
+    "An unknown SKU, an unknown command, an argument out of range, or a scene name that matches no scene or more than one. Nothing was sent."
 );
 create_exception!(
     _govee_toolkit,

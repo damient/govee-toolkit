@@ -11,6 +11,7 @@ use crate::apply::Applied;
 use crate::conv::{self, read};
 use crate::device::DeviceHandle;
 use crate::errors::to_py;
+use crate::scene;
 use crate::types::{Device, Served};
 
 /// What one member answered.
@@ -186,7 +187,8 @@ impl Devices {
         })
     }
 
-    /// `DeviceHandle.segment()` on every member, against its own zones.
+    /// `DeviceHandle.segment()` on every member, against its own zones,
+    /// through the zone mask on every mode.
     #[pyo3(
         signature = (colors, zones=None, resolution=None, gradient=false),
         text_signature = "($self, colors, zones=None, resolution='app', gradient=False)"
@@ -205,6 +207,19 @@ impl Devices {
         })
     }
 
+    /// Play the scene that a name, a shared name or a code gives, on every
+    /// member. Each member reads the cached library of its own model.
+    fn scene<'py>(
+        &self,
+        py: Python<'py>,
+        query: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let query = scene::query(query)?;
+        self.each(py, move |owned| async move {
+            owned.devices().scene(&query).await
+        })
+    }
+
     /// Set the interpolation between zones on every member.
     fn gradient<'py>(&self, py: Python<'py>, on: bool) -> PyResult<Bound<'py, PyAny>> {
         self.each(py, move |owned| async move {
@@ -214,8 +229,9 @@ impl Devices {
 
     /// Scan for the members, then send the verbs, power on first and power
     /// off last. `segment` and `music` take the keys of `segment()` and
-    /// `music()`. A member that fails takes no later step.
-    #[pyo3(signature = (*, power=None, brightness=None, color=None, color_temp=None, segment=None, music=None, gradient=None))]
+    /// `music()`, and `scene` takes a name or a code. A member that fails
+    /// takes no later step.
+    #[pyo3(signature = (*, power=None, brightness=None, color=None, color_temp=None, segment=None, music=None, gradient=None, scene=None))]
     #[expect(
         clippy::too_many_arguments,
         reason = "each keyword is one Python argument"
@@ -230,6 +246,7 @@ impl Devices {
         segment: Option<&Bound<'py, PyAny>>,
         music: Option<&Bound<'py, PyAny>>,
         gradient: Option<&Bound<'py, PyAny>>,
+        scene: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let options = conv::keywords(&[
             ("power", power),
@@ -239,6 +256,7 @@ impl Devices {
             ("segment", segment),
             ("music", music),
             ("gradient", gradient),
+            ("scene", scene),
         ])?;
         let verbs = read(input::verbs(&options, Style::Python))?;
         let owned = self.inner.clone();

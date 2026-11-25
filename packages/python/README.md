@@ -27,6 +27,10 @@ wire.
 - Address every segment of a strip on its own, not only the preset effects.
 - Drive a strip frame by frame in real time: music reactive, screen ambilight,
   or your own source.
+- Play a scene of your model's library by name or by code:
+  `await fetch_scenes("H6022")` stores the library once, then
+  `await device.scene("Aurora")` plays it.
+- Store a drawing of the LEDs with `device.draw()`. The device keeps playing it.
 - Put a device out of the box on your Wi-Fi over Bluetooth, which is what makes
   it reachable over `lan`.
 
@@ -49,7 +53,7 @@ than taking a slower path in silence.
 
 The engine works over `lan`, over `ble` and over `cloud`, verified on real
 hardware: discovery, on/off, brightness, color, per-segment color, and live
-animation over the two local modes. It is usable today from Rust, from Python
+animation over `lan`. It is usable today from Rust, from Python
 and from Node.js.
 
 Next come a desktop app, then Home Assistant, Homebridge and Matter.

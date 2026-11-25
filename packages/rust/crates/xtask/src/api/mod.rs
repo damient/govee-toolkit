@@ -19,16 +19,9 @@ mod text;
 const OMITTED: &[(&str, &str, &str)] = &[
     ("cli", "draw", "`send` reaches the drawing entry by name"),
     ("node", "draw", "`send` reaches the drawing entry by name"),
-    ("python", "draw", "`send` reaches the drawing entry by name"),
     ("node", "scene", "the binding carries no scene library"),
     (
         "node",
-        "scene_builtin",
-        "the binding carries no scene library",
-    ),
-    ("python", "scene", "the binding carries no scene library"),
-    (
-        "python",
         "scene_builtin",
         "the binding carries no scene library",
     ),

@@ -30,6 +30,7 @@ __all__ = [
     "Invoked",
     "Outcome",
     "Reply",
+    "Scene",
     "SegmentStream",
     "Served",
     "StatusStream",
@@ -37,6 +38,8 @@ __all__ = [
     "WalkReport",
     "__version__",
     "_legacy_warning",
+    "fetch_scenes",
+    "load_scenes",
 ]
 
 __version__: str
@@ -48,6 +51,13 @@ PERSONALITIES: tuple[str, ...]
 """Every DMX personality the bridge knows."""
 
 def _legacy_warning() -> str | None: ...
+async def fetch_scenes(sku: str) -> list[Scene]:
+    """Fetch the scene library of a model over `cloud`, and store it in the cache.
+    Needs no device and no enabled mode.
+    """
+
+def load_scenes(sku: str) -> list[Scene]:
+    """The scene library that `fetch_scenes()` stored for a model. Sends no request."""
 
 class GoveeError(Exception):
     """Anything that went wrong between a call and the bytes on the wire."""
@@ -56,8 +66,8 @@ class GoveeError(Exception):
     """The stable identifier the core gives the failure."""
 
 class CodecError(GoveeError):
-    """An unknown SKU, an unknown command, or an argument out of range. Nothing was
-    sent.
+    """An unknown SKU, an unknown command, an argument out of range, or a scene name
+    that matches no scene or more than one. Nothing was sent.
     """
 
 class TransportError(GoveeError):
@@ -161,6 +171,32 @@ class DeviceStatus:
         """The record that every surface prints. A field the device did not report is
         `None`, and `color` is `"#RRGGBB"`.
         """
+
+@final
+class Scene:
+    """One scene of a model's library."""
+
+    @property
+    def name(self) -> str:
+        """The name in the library. A scene with more than one effect gives each effect
+        its own entry: `Aurora A`, `Aurora B`.
+        """
+    @property
+    def category(self) -> str:
+        """The category in the library."""
+    @property
+    def code(self) -> int:
+        """The code that the device reports back for the scene."""
+    @property
+    def scene_type(self) -> int:
+        """The type of the parameters. A device file entry declares the types that it
+        plays.
+        """
+    @property
+    def param(self) -> bytes:
+        """The parameters. Empty for a scene that the firmware stores."""
+    def to_dict(self) -> dict[str, Any]:
+        """The record that every surface prints, with `param` in hexadecimal."""
 
 @final
 class Reply:
@@ -430,10 +466,33 @@ class DeviceHandle:
         resolution: Resolution = "app",
         gradient: bool = False,
     ) -> Served:
-        """Paint the segments once.
+        """Paint the segments once, through the zone mask, on every mode.
 
         One color fills every zone, and a list states them all. `bytes` carries three
-        bytes for every zone. A zone list takes one color.
+        bytes for every zone. A zone list takes one color. It arms no channel, and the
+        colors stay. `resolution="native"` raises `native_zones_unreachable`: stream
+        instead.
+        """
+
+    async def draw(
+        self,
+        colors: Color | Sequence[Color] | bytes,
+        *,
+        cells: Sequence[int] | None = None,
+        resolution: Resolution = "app",
+        args: dict[str, Arg] | None = None,
+    ) -> Served:
+        """Store a drawing of the LEDs, on the entry marked `role: draw`.
+
+        Without `cells`, `colors` states one color, or one per zone of `resolution`.
+        With `cells`, it states one color, or one per cell. `args` gives the other
+        arguments of the entry, by name. The device keeps playing the drawing after the
+        call.
+        """
+
+    async def scene(self, scene: str | int | Scene) -> Served:
+        """Play a scene: a `Scene`, or a name, a shared name or a code that the cached
+        library of the model resolves. Sends no request to the cloud.
         """
 
     async def gradient(self, on: bool) -> Served:
@@ -601,7 +660,13 @@ class Devices:
         resolution: Resolution = "app",
         gradient: bool = False,
     ) -> builtins.list[Outcome]:
-        """`DeviceHandle.segment()` on every member, against its own zones."""
+        """`DeviceHandle.segment()` on every member, against its own zones, through the
+        zone mask on every mode.
+        """
+    async def scene(self, query: str | int) -> builtins.list[Outcome]:
+        """Play the scene that a name, a shared name or a code gives, on every member.
+        Each member reads the cached library of its own model.
+        """
     async def gradient(self, on: bool) -> builtins.list[Outcome]:
         """Set the interpolation between zones on every member."""
     async def apply(
@@ -614,10 +679,11 @@ class Devices:
         segment: dict[str, Any] | None = None,
         music: dict[str, Any] | None = None,
         gradient: bool | None = None,
+        scene: str | int | None = None,
     ) -> Applied:
         """Scan for the members, then send the verbs, power on first and power off last.
-        `segment` and `music` take the keys of `segment()` and `music()`. A member that
-        fails takes no later step.
+        `segment` and `music` take the keys of `segment()` and `music()`, and `scene`
+        takes a name or a code. A member that fails takes no later step.
         """
     def __len__(self) -> int: ...
     def __iter__(self) -> Iterator[DeviceHandle]: ...
