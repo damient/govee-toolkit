@@ -18,10 +18,13 @@ const setInput = z.object({
     .object({
       colors: z.array(rgb).min(1).describe("One color fills every zone. More colors state each zone in order."),
       zones: z.array(z.number().int().min(0)).optional().describe("The zones that take the one color."),
-      resolution: resolutionArg,
+      resolution: resolutionArg.describe(
+        "The zones that the colors state. `native` fails with `native_zones_unreachable`: call `stream` instead.",
+      ),
       gradient: z.boolean().optional(),
     })
-    .optional(),
+    .optional()
+    .describe("Paints the zones through the zone mask of the device file. The paint arms no channel, and the colors stay."),
   music: z
     .object({
       effect: z.number().int(),
@@ -31,6 +34,14 @@ const setInput = z.object({
     })
     .optional(),
   gradient: z.boolean().optional(),
+  scene: z
+    .union([z.string().min(1), z.number().int().min(0).max(65_535)])
+    .optional()
+    .describe(
+      "A scene of the scene library: a name, the name that the variants of one scene share, or a code. " +
+        "The scene plays from the library of the model in the cache, which `govee scenes fetch <SKU>` fills. " +
+        "Without it, the call fails with `scene_list_missing`.",
+    ),
 });
 
 const outcomeShape = z.object({
@@ -45,8 +56,8 @@ type SetInput = z.infer<typeof setInput>;
 
 /** The verbs of the input, under the keys that `Devices.apply()` takes. The core orders them. */
 function verbs(input: SetInput): Parameters<Devices["apply"]>[0] {
-  const { power, brightness, color, color_temp: colorTemp, segment, music, gradient } = input;
-  const all = { power, brightness, color, colorTemp, segment, music, gradient };
+  const { power, brightness, color, color_temp: colorTemp, segment, music, gradient, scene } = input;
+  const all = { power, brightness, color, colorTemp, segment, music, gradient, scene };
   return Object.fromEntries(Object.entries(all).filter(([, value]) => value !== undefined));
 }
 
@@ -56,7 +67,7 @@ export function registerSet(server: McpServer): void {
     {
       title: "Set the state of a device or a group",
       description:
-        "Set one or more of power, brightness, color, white temperature, segments, a music effect and the gradient, " +
+        "Set one or more of power, brightness, color, white temperature, segments, a music effect, the gradient and a scene, " +
         "on one device, on every member of a group, or on every device of one SKU. The steps go out in a fixed order, power on first and power off last. " +
         "A member that fails a step takes no later step, and the other members go on. " +
         "Each outcome names the mode that served it. " +

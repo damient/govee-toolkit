@@ -4,8 +4,16 @@ Changes to `govee-toolkit-mcp`, the MCP server in `integrations/mcp`. It
 versions apart from the binding it wraps and releases under `mcp-vX.Y.Z`. The
 policy is [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `set` takes `scene`: a name or a code, played from the scene library of the
+  model in the cache. `govee scenes fetch <SKU>` fills the cache.
+
 ### Changed
 
+- `set` paints `segment` through the zone mask of the device file. The paint
+  arms no channel, and the colors stay. The `native` resolution fails with
+  `native_zones_unreachable`.
 - Breaking: `stream` opens on `lan` alone, as the Node binding does. Another
   mode fails with `no_segment_command`.
 
