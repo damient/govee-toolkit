@@ -39,6 +39,11 @@ at.
 - `H6008` includes it, over `ble` only: it ignores `ptReal`. A stored and a
   type 1 scene rendered, by eye.
 
+#### Removed
+
+- `H6114`: the device file and its `ble` conformance vectors. The model is a
+  car strip with Bluetooth only, out of the scope of this project.
+
 ### 2026-11-24
 
 #### Added

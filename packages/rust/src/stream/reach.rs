@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn a_mode_that_paints_nothing_reaches_nothing() {
         let catalog = Catalog::embedded().expect("the catalog parses");
-        let device = catalog.device("H6114").expect("the SKU resolves");
+        let device = catalog.device("H6008").expect("the SKU resolves");
         assert_eq!(reach(device, Mode::Lan), None);
     }
 
