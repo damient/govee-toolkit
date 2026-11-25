@@ -190,8 +190,8 @@ overrides:
   lan:
     music:
       notes_append: >-
-        Effect 0 renders nothing here: the rope keeps the effect before it.
-        See `verified:`.
+        Trap: effect 0 renders nothing, over lan and over ble: the rope keeps
+        the effect before it. See `verified:`.
 
     draw_cells:
       notes_append: >-
@@ -248,8 +248,9 @@ overrides:
     music:
       notes: >-
         Sub-mode 19. The device listens on its own microphone. `effect`
-        selects the rendering: 0 to 7 each render one, and 8 to 15, 50 and 255
-        render nothing here — the rope keeps what the frame before it left. An
+        selects the rendering: 1 to 7 each render one. Trap: 0, 8 to 15, 50
+        and 255 render nothing here, and the rope keeps what the frame before
+        it left. Two sessions disagree on 0, see `verified:`. An
         effect this frame cannot render is not one the device lacks: 50
         renders over `music_effect` below, which carries the parameters this
         frame has no room for. Nothing maps an identifier to an effect. `soft`
@@ -521,3 +522,7 @@ verified:
     rendered nothing, with the colors imposed or left to the firmware, and
     the rope kept the effect before it. Effects 1 to 3 and 5 to 7 were sent
     and something played, but which identifier rendered was NOT established.
+    Over ble, through the CLI, effect 0 with red imposed after effect 4 in
+    green rendered nothing either: the rope stayed green. The session of
+    2026-09-22 saw 0 render over ble on the same firmware. What separates the
+    two results was NOT established.

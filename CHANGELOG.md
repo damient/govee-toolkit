@@ -41,7 +41,8 @@ at.
 - `lan-music` family: `music` sends the `ble` music frame of sub-mode 19 over
   `lan` in `ptReal`. See `docs/protocol/lan.md` 2.4.
 - `H6022` and `H61A0` include it and reach `music` over `lan`. Effect 4 played,
-  by eye. Effect 0 renders nothing on the `H61A0`. Vectors from the layout.
+  by eye. `H61A0` effect 0 renders nothing, over `lan` and `ble`. Vectors from
+  the layout.
 
 #### Removed
 

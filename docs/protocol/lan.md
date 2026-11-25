@@ -295,9 +295,8 @@ Two kinds of music reach a device over `lan`.
 
 **On the device.** The device listens on its own microphone. The music frame
 of [`ble.md`](ble.md) 2.7 travels in `ptReal` (2.9), byte for byte. The phone
-controller sends music this way over its cloud channel. A firmware can play
-one effect over `ble` and render nothing for the same effect in `ptReal`. The
-device file records the effects that a unit rendered. `devStatus` reports no
+controller sends music this way over its cloud channel. The device file
+records the effects that a unit rendered. `devStatus` reports no
 music state.
 
 **On the host.** The desktop controller captures audio, computes a spectrum,
