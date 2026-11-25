@@ -16,16 +16,8 @@ mod rust;
 mod text;
 
 /// `(surface, role, reason)`: a role that a surface leaves out on purpose.
-const OMITTED: &[(&str, &str, &str)] = &[
-    ("cli", "draw", "`send` reaches the drawing entry by name"),
-    ("node", "draw", "`send` reaches the drawing entry by name"),
-    ("node", "scene", "the binding carries no scene library"),
-    (
-        "node",
-        "scene_builtin",
-        "the binding carries no scene library",
-    ),
-];
+const OMITTED: &[(&str, &str, &str)] =
+    &[("cli", "draw", "`send` reaches the drawing entry by name")];
 
 const SURFACES: [&str; 4] = ["cli", "rust", "node", "python"];
 

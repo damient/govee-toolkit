@@ -252,10 +252,12 @@ export declare class DeviceHandle {
    */
   music(effect: number, sensitivity?: number | undefined | null, soft?: boolean | undefined | null, color?: [number, number, number] | Uint8Array): Promise<Served>
   /**
-   * Paint the segments once.
+   * Paint the segments once, through the zone mask of the device file.
    *
    * One color fills every zone. An array of colors, or a `Uint8Array` of
    * three bytes per zone, states them all. A zone list takes one color.
+   * The paint arms no channel, and the colors stay. The `'native'`
+   * resolution throws `native_zones_unreachable`: stream instead.
    *
    * @param [resolution='app']
    * @param [gradient=false]
@@ -266,6 +268,26 @@ export declare class DeviceHandle {
    * last zone back to the first.
    */
   gradient(on: boolean): Promise<Served>
+  /**
+   * Play a scene. A name or a code reads the library that
+   * `fetchScenes()` stored for the model of the device. A `Scene` goes
+   * out as it is.
+   *
+   * Over `lan` the device answers nothing: a scene that it does not play
+   * looks like one that it plays.
+   */
+  scene(scene: string | number | Scene): Promise<Served>
+  /**
+   * Store a drawing of the LEDs. The device keeps playing it after the
+   * sender stops.
+   *
+   * `cells` names the LEDs, zero-based, and the other LEDs show the
+   * background. `colors` holds one color, or one color per cell. Without
+   * `cells`, it holds one color per zone of `resolution`. `args` sets the
+   * other arguments of the drawing entry by name, such as `speed`. The
+   * resolution defaults to `'app'`.
+   */
+  draw(drawing: { cells?: Array<number>, colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, resolution?: number | 'app' | 'native' | 'groups', args?: Record<string, boolean | number | string | Uint8Array | Array<number> | Array<[number, number, number]>> }): Promise<Served>
 }
 
 /**
@@ -278,7 +300,7 @@ export declare class Devices {
    * Scan for the members, then send the verbs, power on first and power
    * off last. A member that fails takes no later step.
    */
-  apply(verbs: { power?: boolean, brightness?: number, color?: [number, number, number] | Uint8Array, colorTemp?: number, segment?: { colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number>, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean }, music?: { effect: number, sensitivity?: number, soft?: boolean, color?: [number, number, number] | Uint8Array }, gradient?: boolean }): Promise<Applied>
+  apply(verbs: { power?: boolean, brightness?: number, color?: [number, number, number] | Uint8Array, colorTemp?: number, segment?: { colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number>, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean }, music?: { effect: number, sensitivity?: number, soft?: boolean, color?: [number, number, number] | Uint8Array }, gradient?: boolean, scene?: string | number }): Promise<Applied>
   /**
    * One handle per member, in outcome order, with the mode that
    * `Govee.devices()` pins.
@@ -314,6 +336,12 @@ export declare class Devices {
    * @param [gradient=false]
    */
   segment(colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number> | undefined | null, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean | undefined | null): Promise<Array<Outcome>>
+  /**
+   * `DeviceHandle.scene()` on every member, by name or code. Each member
+   * reads the library of its own model, where one name can carry another
+   * code.
+   */
+  scene(query: string | number): Promise<Array<Outcome>>
   /** Set the interpolation between zones on every member. */
   gradient(on: boolean): Promise<Array<Outcome>>
   toString(): string
@@ -587,8 +615,24 @@ export declare class WalkReport {
 /** The version of the core this binding was built from. */
 export declare const CORE_VERSION: string
 
+/**
+ * Fetch the scene library of `sku` from the cloud, and store it in the
+ * cache. The request carries no account and no key.
+ *
+ * Rejects with `scene_fetch_failed`, `scene_list_unreadable` or `bad_sku`.
+ */
+export declare function fetchScenes(sku: string): Promise<Array<Scene>>
+
 /** The warning for the deprecated configuration folder, or `null`. */
 export declare function legacyWarning(): string | null
+
+/**
+ * The scene library of `sku` that `fetchScenes()` stored. Reads the cache
+ * alone.
+ *
+ * Throws `scene_list_missing`, `scene_list_unreadable` or `bad_sku`.
+ */
+export declare function loadScenes(sku: string): Array<Scene>
 
 /**
  * Every mode name the core knows. A build carries a transport for those its
@@ -598,6 +642,23 @@ export declare function modes(): Array<string>
 
 /** Every DMX personality the bridge knows. */
 export declare function personalities(): Array<string>
+
+/** One scene that a model plays. */
+export interface Scene {
+  /**
+   * The library's name. Each effect of one scene has its own entry:
+   * `Aurora A`, `Aurora B`.
+   */
+  name: string
+  /** The library's category. */
+  category: string
+  /** The code that the device reports back for the scene. */
+  code: number
+  /** The library's type for the parameters. */
+  sceneType: number
+  /** Empty for a scene that the firmware stores. */
+  param: Uint8Array
+}
 
 /** Every support level a device file gives a mode. */
 export declare function supportLevels(): Array<string>

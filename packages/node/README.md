@@ -25,8 +25,12 @@ wire.
 - Switch a device on and off, and set the brightness, the color and the white
   temperature.
 - Address every segment of a strip on its own, not only the preset effects.
-- Drive a strip frame by frame in real time: music reactive, screen ambilight,
-  or your own source.
+- Drive a strip frame by frame in real time over `lan`: music reactive, screen
+  ambilight, or your own source.
+- Play a scene of the scene library by name or code: `fetchScenes(sku)` stores
+  the library of a model, and `device.scene("Aurora")` plays from it.
+- Store a drawing of the LEDs with `device.draw({ cells, colors })`. The device
+  keeps playing it on its own.
 - Put a device out of the box on your Wi-Fi over Bluetooth, which is what makes
   it reachable over `lan`.
 
@@ -49,7 +53,7 @@ than taking a slower path in silence.
 
 The engine works over `lan`, over `ble` and over `cloud`, verified on real
 hardware: discovery, on/off, brightness, color, per-segment color, and live
-animation over the two local modes. It is usable today from Rust, from Python
+animation over `lan`. It is usable today from Rust, from Python
 and from Node.js.
 
 Next come a desktop app, then Home Assistant, Homebridge and Matter.
