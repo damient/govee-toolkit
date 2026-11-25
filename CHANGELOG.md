@@ -34,6 +34,10 @@ at.
   code, `scene_builtin` names a stored scene. Over `ble`, and `lan` in `ptReal`.
 - `H61A0` includes it. Ten scenes of types 0, 1 and 2 rendered over `lan`, by
   eye. The vectors come from the layout. See `docs/protocol/ble.md` 6.5.
+- `H6022` includes it. Two stored scenes rendered over `lan`, by eye. Its
+  library gives types 0 and 5 only.
+- `H6008` includes it, over `ble` only: it ignores `ptReal`. A stored and a
+  type 1 scene rendered, by eye.
 
 ### 2026-11-24
 
