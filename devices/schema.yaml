@@ -250,6 +250,12 @@ commands:
   # silence (../docs/protocol/lan.md 2.1), and an SDK that did the same would
   # report success for a value the device did not apply.
   #
+  # An `int` takes `default: <n>`, which the codec sends when the caller
+  # gives none. A default outside the `range` is an error in the file. Use it
+  # where a role verb fills some arguments and leaves the others out:
+  #
+  #   motion: { type: int, range: [0, 255], default: 255 }
+  #
   # Leave `range` out only on a mode that refuses a value it does not accept.
   # An identifier set that differs per SKU is the case: a shared table that
   # named one would name a value some model does not have. The value then goes
@@ -276,9 +282,9 @@ commands:
   #   enable      int       the flag a `segment_enable` command arms on
   #   colors      rgb_list  one triple per zone for a `segment_color` command;
   #                         the single triple a `segment_color_masked` frame
-  #                         paints
+  #                         paints; one triple per LED for a `draw` command
   #   zones       zones     which zones a `segment_color_masked` command
-  #                         paints, and which a `color_temp` frame with a mask
+  #                         paints, which LEDs a `draw` command paints, and which a `color_temp` frame with a mask
   #                         applies to
   #   gradient    int       whether the firmware interpolates between zones,
   #                         on a `segment_color` or `segment_gradient` command
@@ -347,12 +353,14 @@ commands:
     #                   always addressable looks like. Where the mode also
     #                   claims `segment_color`, the channel is that command's,
     #                   and a `segment_color_masked` paint arms nothing.
-    #   segment_color   paints every zone at once.
+    #   segment_color   paints every zone at once, on the armed channel. A
+    #                   stream takes this role.
     #   segment_color_masked
-    #                   paints one color over the zones a mask names. A stream
-    #                   over it sends one frame per distinct color, so declare
-    #                   it where the mode carries no whole-frame command. Where
-    #                   both are claimed, the SDK uses the whole-frame one.
+    #                   paints one color over the zones a mask names. The
+    #                   `segment` verb takes this role.
+    #   draw            stores a drawing of the LEDs, which the device keeps
+    #                   after the sender stops. The `draw` verb takes this
+    #                   role, and fills the colors and the LEDs alone.
     #   segment_gradient
     #                   sets whether the firmware interpolates between zones,
     #                   where the mode carries that outside the painting frame.
@@ -403,9 +411,11 @@ commands:
     #                   repeat count comes from the list and needs no role.
     #   segment_color_masked
     #                   one marked `role: colors` and one marked `role: zones`.
-    #                   An SDK refuses a larger stream against the `count:` on
+    #                   An SDK refuses a larger paint against the `count:` on
     #                   the zone argument, so record it: the firmware drops a
     #                   mask with bits past the last zone in silence.
+    #   draw            one marked `role: colors` and one marked `role: zones`,
+    #                   with a `count:` that names every LED.
     #   segment_gradient
     #                   one marked `role: gradient`.
     #   music           one argument marked `role: effect`. The SDK also
@@ -492,8 +502,8 @@ commands:
 #       ping:
 #         drop: true
 #
-# `args:` patches one bound per argument — `range:` on an `int`, `max_len:` on
-# an `rgb_list`, a `string` or a `bytes`, `count:` on a `zones`. `drop:`
+# `args:` patches one bound per argument — `range:` or `default:` on an `int`,
+# `max_len:` on an `rgb_list`, a `string` or a `bytes`, `count:` on a `zones`. `drop:`
 # removes the command, and takes no other field.
 #
 # `notes:` replaces what the table says, and `notes_append:` keeps it and adds

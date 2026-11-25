@@ -7,23 +7,15 @@
 //! rate comes from the zone count and from a value measured on a physical unit
 //! (`docs/protocol/lan.md` 2.7).
 //!
-//! What a frame costs depends on how the device file paints zones. A
-//! `segment_color` command carries every zone in one frame. A
-//! `segment_color_masked` one carries a single color and the zones that use
-//! it, so a repaint costs one write per distinct color. That is what `ble`
-//! offers, and no per-pixel channel sits behind it: [`Resolution::Native`] is
-//! refused there, since the firmware drops the high bits of such a mask in
-//! silence. [`Resolution::Groups`] opens on either: the mask names the groups,
-//! and a whole frame carries one color per LED.
+//! A stream takes the `role: segment_color` command alone, the one channel
+//! that takes frames at a rate. Only `lan` declares it, so a stream opens on
+//! `lan` alone. [`crate::DeviceHandle::segment`] paints the other modes.
 //!
 //! A unit can answer no status while the channel is armed
 //! (`docs/protocol/lan.md` 2.3). The SDK therefore verifies no command it
 //! sends to that device over that mode until the disarm: a request there could
 //! only expire, and it would record against the breaker a failure the device
 //! did not earn. The command itself goes out as usual.
-//!
-//! On `ble` the transport paces, not the stream. Every write goes through the
-//! same budget.
 //!
 //! Writes never block. The stream holds the current colors and an emitting
 //! task sends them on a fixed interval, so a later frame replaces an unsent
@@ -69,7 +61,7 @@ use tokio::sync::Notify;
 pub use self::options::{ParseError, Rate, Resolution, StreamOptions};
 use self::rate::rate_hz;
 pub use self::reach::{Reach, reach};
-use self::resolve::plan;
+use self::resolve::{Purpose, plan};
 use self::sender::{Shared, send_enable};
 use crate::codec::Mode;
 use crate::error::{Error, Result};
@@ -77,8 +69,8 @@ use crate::govee::{ArmedGuard, Govee};
 use crate::transport::DeviceId;
 
 /// The rate a stream falls back to when the device file measured none for its
-/// mode, in hertz. Below every rate measured so far. Every `ble` stream runs
-/// at it. Configurable as `stream.fallback_hz`.
+/// mode, in hertz. Below every rate measured so far. Configurable as
+/// `stream.fallback_hz`.
 pub const FALLBACK_HZ: f64 = 10.0;
 
 /// An open segment channel, armed until [`SegmentStream::close`]. Dropping it
@@ -113,7 +105,7 @@ impl SegmentStream {
 
         let sku = govee.sku(id)?;
         let device = govee.catalog().device(&sku)?;
-        let plan = plan(device, mode, &options)?;
+        let plan = plan(device, mode, &options, Purpose::Stream)?;
         let zones = plan.zones;
         let settle = device.measurements.arm_settle();
         // The frame width sets the rate, not the zone count of the caller.

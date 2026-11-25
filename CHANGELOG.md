@@ -43,6 +43,18 @@ at.
 - `H6022` and `H61A0` include it and reach `music` over `lan`. Effect 4 played,
   by eye. `H61A0` effect 0 renders nothing, over `lan` and `ble`. Vectors from
   the layout.
+- `devices/schema.yaml`: the role `draw` marks a stored drawing of the LEDs.
+  The `draw` verb takes it.
+- `devices/schema.yaml`: an `int` argument takes `default:`, which the codec
+  sends when the caller gives none. An override can set it.
+- `lan-segments` family: `gradient` sends the `ble` interpolation frame in
+  `ptReal`, `role: segment_gradient`. `H61A0` rendered both values over `lan`,
+  by eye. On `H6022` the diffuser hides the result.
+- `cells-grid` family: `draw_cells` takes `role: draw`, and its defaults hold
+  the drawing still on black with motion 255.
+- `cells-strip` family: `draw_cells` takes `role: draw`, and draws on black by
+  default. `H61A0` gives the defaults effect 9 and speed 0, which hold the
+  drawing still. Vectors from the layout.
 
 #### Removed
 
@@ -61,9 +73,9 @@ at.
   vectors come from the layout, not from a capture.
 - `devices/schema.yaml`: `<span:…>` … `</span>` writes a length field, and
   `${cells,colors:groups}` writes cells grouped by color.
-- `diy-grid` and `diy-strip` families: `draw_cells` stores a drawing on the
+- `cells-grid` and `cells-strip` families: `draw_cells` stores a drawing on the
   device, over `ble` and over `lan` in `ptReal`. Layouts from captures.
-- `H6022` includes `diy-grid` (132 cells), and `H61A0` includes `diy-strip`
+- `H6022` includes `cells-grid` (132 cells), and `H61A0` includes `cells-strip`
   (42 LEDs). Both rendered over `lan`, by eye.
 
 ### 2026-11-20

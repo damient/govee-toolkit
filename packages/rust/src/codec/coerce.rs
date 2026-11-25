@@ -242,6 +242,7 @@ mod tests {
     fn int() -> ArgSpec {
         ArgSpec::Int {
             range: None,
+            default: None,
             role: None,
         }
     }

@@ -40,6 +40,11 @@ pub enum Role {
     /// [`ArgRole::Colors`](super::ArgRole::Colors) and one marked
     /// [`ArgRole::Zones`](super::ArgRole::Zones).
     SegmentColorMasked,
+    /// Paints every LED at once and stores the result, so the colors stay
+    /// after the sender stops and arm no channel. Must declare an argument
+    /// marked [`ArgRole::Colors`](super::ArgRole::Colors) and one marked
+    /// [`ArgRole::Zones`](super::ArgRole::Zones), which takes every LED.
+    Draw,
     /// Sets zone interpolation, on a mode that carries it in a frame of its
     /// own. Must declare an argument marked
     /// [`ArgRole::Gradient`](super::ArgRole::Gradient).
@@ -80,7 +85,7 @@ pub enum Role {
 
 impl Role {
     /// Every role. `Display` gives the name that a device file writes.
-    pub const CLAIMABLE: [Self; 16] = [
+    pub const CLAIMABLE: [Self; 17] = [
         Self::Status,
         Self::Power,
         Self::Brightness,
@@ -89,6 +94,7 @@ impl Role {
         Self::SegmentEnable,
         Self::SegmentColor,
         Self::SegmentColorMasked,
+        Self::Draw,
         Self::SegmentGradient,
         Self::WifiLink,
         Self::WifiApiType,
@@ -111,6 +117,7 @@ impl fmt::Display for Role {
             Self::SegmentEnable => "segment_enable",
             Self::SegmentColor => "segment_color",
             Self::SegmentColorMasked => "segment_color_masked",
+            Self::Draw => "draw",
             Self::SegmentGradient => "segment_gradient",
             Self::WifiLink => "wifi_link",
             Self::WifiApiType => "wifi_api_type",

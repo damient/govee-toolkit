@@ -56,7 +56,7 @@ pub use catalog::{
 };
 pub use chunk::Chunk;
 pub use coerce::{NotAColor, Supplied};
-pub use command::{Encoded, encode};
+pub use command::{Encoded, encode, encode_batch};
 pub use error::{Error, Result};
 pub use exchange::{Exchange, Exchanges, Step};
 pub use frame::Frame;

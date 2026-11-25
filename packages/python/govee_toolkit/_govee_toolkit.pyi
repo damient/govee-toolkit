@@ -466,6 +466,8 @@ class DeviceHandle:
     ) -> SegmentStream:
         """Open the raw segment channel and paint it frame by frame.
 
+        The channel exists on `lan` alone: another mode fails with `no_segment_command`.
+
         Power the device on first: arming a dark strip paints nothing. The channel holds
         the colors only while it is armed, and the device goes back to the color it
         showed before once the stream closes.

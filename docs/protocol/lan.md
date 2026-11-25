@@ -375,6 +375,14 @@ frames, a chunked transfer included.
 - A frame that sets a normal-mode color ends the raw segment channel of 2.3.
   The device then shows its stored zones, with the new frame applied.
 
+The zone interpolation frame of [`ble.md`](ble.md) 2.6 travels the same way,
+and acts on the zones that the masked frame paints. A stored drawing renders
+no interpolation.
+
+A drawing held still paints every LED without the raw segment channel. The
+device keeps it after the sender stops, and it keeps its answer to
+`devStatus`. A `role: draw` entry declares it in a device file.
+
 A chunked transfer of [`ble.md`](ble.md) 6 goes in one datagram, the frame
 that plays it included. One firmware stored and played a drawing of
 [`ble.md`](ble.md) 6.3 this way, and a scene of [`ble.md`](ble.md) 6.5 in

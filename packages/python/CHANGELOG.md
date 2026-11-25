@@ -4,6 +4,14 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Changed
+
+- Breaking: `DeviceHandle.open_stream()` opens on `lan` alone. Another mode
+  fails with `no_segment_command`. Paint `ble` and `cloud` with `segment()`.
+- Breaking: `segment()` paints the 15 groups of the mask over `lan` on the
+  H6022 and the H61A0, in `ptReal`. It arms no channel, and the colors stay.
+  A native resolution fails with `native_zones_unreachable`: stream instead.
+
 ## [1.10.0] — 2026-11-23
 
 ### Changed

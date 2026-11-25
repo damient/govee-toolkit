@@ -4,17 +4,19 @@
 
 schema_version: 1
 
-family: "diy-grid"
+family: "cells-grid"
 
 description: >-
   A drawing on the grid of cells that the phone controller shows, stored on
   the device and played with a motion. The `lan` entry carries the `ble`
-  frames inside `ptReal`. See docs/protocol/ble.md 6.3 and
+  frames inside `ptReal`. The `draw` verb sends it, and an argument it leaves
+  out holds the drawing still on black. See docs/protocol/ble.md 6.3 and
   docs/protocol/lan.md 2.9.
 
 commands:
   ble:
     draw_cells:
+      role: draw
       body: &body >-
         5A ${background_red} ${background_green} ${background_blue} 64 00 01
         <span:16le> 03 <span:16le> ${cells,colors:groups} </span>
@@ -28,13 +30,13 @@ commands:
         then: &then "33 05 0A 20 03 5A 00 <pad:20> <xor>"
         reply: "A3 58 ${ack_status}"
       args:
-        background_red: &channel { type: int, range: [0, 255] }
+        background_red: &channel { type: int, range: [0, 255], default: 0 }
         background_green: *channel
         background_blue: *channel
-        cells: &cells { type: zones }
-        colors: &colors { type: rgb_list }
-        speed: &speed { type: int, range: [0, 100] }
-        motion: &motion { type: int, range: [0, 255] }
+        cells: &cells { type: zones, role: zones }
+        colors: &colors { type: rgb_list, role: colors }
+        speed: &speed { type: int, range: [0, 100], default: 0 }
+        motion: &motion { type: int, range: [0, 255], default: 255 }
         ack_status: { type: int, range: [0, 255], role: ack_status }
       notes: &notes >-
         A cell is row * columns + column, row 0 at the top. `colors` holds one
@@ -47,6 +49,7 @@ commands:
   lan:
     draw_cells:
       cmd: "ptReal"
+      role: draw
       body: *body
       chunk:
         size: 17

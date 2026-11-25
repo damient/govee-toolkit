@@ -62,12 +62,16 @@ pub(super) fn resolve(
 
     let mut out = Args::new();
     for (name, arg_spec) in &spec.args {
-        let supplied = args.get(name).cloned().or_else(|| {
-            derived
-                .iter()
-                .find(|(n, _)| n == name)
-                .map(|(_, v)| ArgValue::Int(*v))
-        });
+        let supplied = args
+            .get(name)
+            .cloned()
+            .or_else(|| {
+                derived
+                    .iter()
+                    .find(|(n, _)| n == name)
+                    .map(|(_, v)| ArgValue::Int(*v))
+            })
+            .or_else(|| arg_spec.default_value().map(ArgValue::Int));
         let Some(value) = supplied else {
             if captured.contains(name.as_str()) {
                 continue;

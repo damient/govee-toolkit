@@ -1,6 +1,6 @@
 //! Structural checks on one command entry.
 
-use crate::codec::catalog::{ArgRole, Command, Mode, Role};
+use crate::codec::catalog::{ArgRole, ArgSpec, Command, Mode, Role};
 use crate::codec::chunk::{self, Layout};
 use crate::codec::exchange::Exchanges;
 
@@ -9,6 +9,7 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
 
     problems.extend(check_arg_roles(command));
     problems.extend(check_reserved_args(command));
+    problems.extend(check_defaults(command));
     problems.extend(check_declaration(command));
     problems.extend(super::cloud::check_cloud(mode, command));
 
@@ -57,6 +58,27 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
     let one_way = single_frame || (command.body.is_some() && command.frames.is_empty());
     problems.extend(check_payload(mode, command, single_frame, one_way));
     problems
+}
+
+/// A default outside its own range would fail every call that leaves it out.
+fn check_defaults(command: &Command) -> Vec<String> {
+    command
+        .args
+        .iter()
+        .filter_map(|(name, spec)| {
+            let ArgSpec::Int {
+                range: Some(range),
+                default: Some(value),
+                ..
+            } = spec
+            else {
+                return None;
+            };
+            let [min, max] = range.pair()?;
+            (*value < min || *value > max)
+                .then(|| format!("argument `{name}`: `default` {value} is outside [{min}, {max}]"))
+        })
+        .collect()
 }
 
 /// A command sends one frame, a chunked body, or a list of exchanges. A file
@@ -290,7 +312,7 @@ pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
         Role::ColorTemp => &[ArgRole::ColorTemp],
         Role::SegmentEnable | Role::WifiLink => &[ArgRole::Enable],
         Role::SegmentColor => &[ArgRole::Colors],
-        Role::SegmentColorMasked => &[ArgRole::Colors, ArgRole::Zones],
+        Role::SegmentColorMasked | Role::Draw => &[ArgRole::Colors, ArgRole::Zones],
         Role::SegmentGradient => &[ArgRole::Gradient],
         Role::WifiApiType => &[ArgRole::ApiType],
         Role::WifiProvision => &WIFI_CREDENTIALS,

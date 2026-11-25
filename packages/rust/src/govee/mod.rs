@@ -313,6 +313,16 @@ impl Govee {
         Ok(crate::codec::encode(device, mode, command, args)?)
     }
 
+    pub(crate) fn encode_batch(
+        &self,
+        sku: &str,
+        mode: Mode,
+        commands: &[(&str, &Args)],
+    ) -> Result<Vec<crate::codec::Encoded>> {
+        let device = self.inner.catalog.device(sku)?;
+        Ok(crate::codec::encode_batch(device, mode, commands)?)
+    }
+
     /// The entry the file marks `role: status` for this mode, encoded. A file
     /// naming none gives [`Error::NoRoleCommand`].
     ///

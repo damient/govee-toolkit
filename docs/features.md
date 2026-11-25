@@ -19,8 +19,8 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **Per-device throttle on `cloud`** — one request per device per interval, and an explicit failure rather than an invisible queue |
 | ✅ | **Discovery** — multicast scan at startup, periodic background refresh, persistent on-disk cache |
 | ✅ | **Undocumented LAN commands** — the raw segment channel is documented and verified on one device. Each further command needs the same treatment once somebody finds it |
-| ✅ | **Segment streaming** (`packages/rust/src/stream`) — frames over the raw segment channel, at the rate measured on the unit |
-| ✅ | **`ptReal` over LAN**: `ble` frames inside a `lan` command, declared in the device file. Paints the zones of the `ble` mask without the raw segment channel. Verified on one device. See [`protocol/lan.md`](protocol/lan.md) 2.9 |
+| ✅ | **Segment streaming** (`packages/rust/src/stream`): frames over the raw segment channel of `lan`, at the rate measured on the unit |
+| ✅ | **`ptReal` over LAN**: `ble` frames inside a `lan` command, declared in the device file. Paints the zones of the `ble` mask, and every LED through a stored drawing, without the raw segment channel. Verified on two devices. See [`protocol/lan.md`](protocol/lan.md) 2.9 |
 | ✅ | **Drawings stored on the device**: cells grouped by color, a background and a motion, over `ble` and over `lan` in `ptReal`. The device plays it after the sender stops. A grid and a strip, verified on one device each. See [`protocol/ble.md`](protocol/ble.md) 6.3 and 6.4 |
 | ✅ | **Scenes** (`scene()`): plays a scene of the model's scene library, by name or by code, over `ble` and over `lan` in `ptReal`. `govee scenes fetch` stores the library once, with no account, and a send reads it from the cache. Verified on one device. See [`protocol/ble.md`](protocol/ble.md) 6.5 |
 | ✅ | **Per-device mode selection** — one mode for strict behavior, several for switching, see [`modes.md`](modes.md) |

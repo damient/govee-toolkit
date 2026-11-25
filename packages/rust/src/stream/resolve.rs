@@ -35,14 +35,40 @@ pub(crate) enum Painter {
         /// none.
         limit: usize,
     },
+    /// One stored drawing carries every LED, and the device keeps it after
+    /// the sender stops.
+    Cells {
+        /// The device file entry.
+        command: String,
+        /// The argument the LED indices go in.
+        cells: String,
+        /// The argument the colors go in, one per LED.
+        colors: String,
+        /// How many LEDs the drawing names: the `count:` on the cell argument.
+        limit: usize,
+    },
 }
 
 impl Painter {
     pub(crate) fn command(&self) -> &str {
         match self {
-            Self::Whole { command, .. } | Self::Masked { command, .. } => command,
+            Self::Whole { command, .. }
+            | Self::Masked { command, .. }
+            | Self::Cells { command, .. } => command,
         }
     }
+}
+
+/// What the painter serves, which decides the role it takes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Purpose {
+    /// One paint of the zones of the mask: [`crate::DeviceHandle::segment`].
+    Paint,
+    /// One stored drawing of every LED: [`crate::DeviceHandle::draw`].
+    Draw,
+    /// A flow of frames on the armed channel:
+    /// [`crate::DeviceHandle::open_stream`].
+    Stream,
 }
 
 /// The entry that arms and disarms the channel, where the mode has one.
@@ -78,20 +104,33 @@ impl Plan {
 }
 
 /// Everything the device file has to say about a stream over `mode`.
-pub(crate) fn plan(device: &Device, mode: Mode, options: &StreamOptions) -> Result<Plan> {
-    // A mode that names no arming entry has nothing to arm: over one that
-    // paints by mask, the zones are addressable as soon as the device is on.
-    let enable = match device.command_for(mode, Role::SegmentEnable) {
-        Some(command) => Some(Enable {
+pub(crate) fn plan(
+    device: &Device,
+    mode: Mode,
+    options: &StreamOptions,
+    purpose: Purpose,
+) -> Result<Plan> {
+    let painter = painter(device, mode, options.gradient, purpose)?;
+    // The arming entry belongs to the whole-frame channel. A mask or a stored
+    // drawing paints as soon as the device is on.
+    let enable = match (&painter, device.command_for(mode, Role::SegmentEnable)) {
+        (Painter::Whole { .. }, Some(command)) => Some(Enable {
             arg: arg_named(device, mode, command, ArgRole::Enable)?.to_owned(),
             command: command.to_owned(),
         }),
-        None => None,
+        _ => None,
     };
-    let painter = painter(device, mode, options.gradient)?;
     // Where the painting frame has no room for the setting, the file names a
-    // command that carries it alone.
-    let gradient = match device.command_for(mode, Role::SegmentGradient) {
+    // command that carries it alone. A stored drawing renders none.
+    let separate = match &painter {
+        Painter::Masked { .. } => true,
+        Painter::Whole { gradient, .. } => gradient.is_none(),
+        Painter::Cells { .. } => false,
+    };
+    let gradient = match device
+        .command_for(mode, Role::SegmentGradient)
+        .filter(|_| separate)
+    {
         Some(command) => Some((
             Enable {
                 arg: arg_named(device, mode, command, ArgRole::Gradient)?.to_owned(),
@@ -131,40 +170,68 @@ fn carries_gradient(painter: &Painter) -> bool {
     )
 }
 
-/// Whichever of the two painting roles the file declares for `mode`.
-///
-/// A whole-frame command wins where both are declared: it paints the same
-/// zones in one write.
-pub(crate) fn painter(device: &Device, mode: Mode, gradient: bool) -> Result<Painter> {
-    if let Some(command) = device.command_for(mode, Role::SegmentColor) {
-        return Ok(Painter::Whole {
-            colors: arg_named(device, mode, command, ArgRole::Colors)?.to_owned(),
-            // A device file that marks no gradient argument gets nothing
-            // extra: the codec refuses an argument the command does not
-            // declare.
-            gradient: arg_named(device, mode, command, ArgRole::Gradient)
-                .ok()
-                .map(|arg| (arg.to_owned(), i64::from(gradient))),
-            command: command.to_owned(),
-        });
-    }
-    // A file claiming neither is reported against the whole-frame role:
-    // `NoRoleCommand` names one role, and both point at the same file.
+/// The painting role that `purpose` takes on `mode`: the masked command for
+/// a paint, the whole-frame channel for a stream, the stored drawing for a
+/// drawing.
+pub(crate) fn painter(
+    device: &Device,
+    mode: Mode,
+    gradient: bool,
+    purpose: Purpose,
+) -> Result<Painter> {
+    let role = match purpose {
+        Purpose::Paint => Role::SegmentColorMasked,
+        Purpose::Stream => Role::SegmentColor,
+        Purpose::Draw => Role::Draw,
+    };
     let command = device
-        .command_for(mode, Role::SegmentColorMasked)
+        .command_for(mode, role)
         .ok_or_else(|| Error::NoRoleCommand {
             sku: device.sku.clone(),
             mode,
-            role: Role::SegmentColor,
+            role,
         })?;
+    match purpose {
+        Purpose::Paint => masked_painter(device, mode, command),
+        Purpose::Stream => whole_painter(device, mode, command, gradient),
+        Purpose::Draw => cells_painter(device, mode, command),
+    }
+}
+
+fn unbounded(device: &Device, mode: Mode, command: &str) -> Error {
+    Error::ZoneMaskUnbounded {
+        sku: device.sku.clone(),
+        mode,
+        command: command.to_owned(),
+    }
+}
+
+fn cells_painter(device: &Device, mode: Mode, command: &str) -> Result<Painter> {
+    Ok(Painter::Cells {
+        colors: arg_named(device, mode, command, ArgRole::Colors)?.to_owned(),
+        cells: arg_named(device, mode, command, ArgRole::Zones)?.to_owned(),
+        limit: mask_limit(device, mode, command).ok_or_else(|| unbounded(device, mode, command))?,
+        command: command.to_owned(),
+    })
+}
+
+fn masked_painter(device: &Device, mode: Mode, command: &str) -> Result<Painter> {
     Ok(Painter::Masked {
         colors: arg_named(device, mode, command, ArgRole::Colors)?.to_owned(),
         zones: arg_named(device, mode, command, ArgRole::Zones)?.to_owned(),
-        limit: mask_limit(device, mode, command).ok_or_else(|| Error::ZoneMaskUnbounded {
-            sku: device.sku.clone(),
-            mode,
-            command: command.to_owned(),
-        })?,
+        limit: mask_limit(device, mode, command).ok_or_else(|| unbounded(device, mode, command))?,
+        command: command.to_owned(),
+    })
+}
+
+fn whole_painter(device: &Device, mode: Mode, command: &str, gradient: bool) -> Result<Painter> {
+    Ok(Painter::Whole {
+        colors: arg_named(device, mode, command, ArgRole::Colors)?.to_owned(),
+        // A device file that marks no gradient argument gets nothing extra:
+        // the codec refuses an argument the command does not declare.
+        gradient: arg_named(device, mode, command, ArgRole::Gradient)
+            .ok()
+            .map(|arg| (arg.to_owned(), i64::from(gradient))),
         command: command.to_owned(),
     })
 }
@@ -239,6 +306,7 @@ mod tests {
                 resolution,
                 ..StreamOptions::default()
             },
+            Purpose::Paint,
         )
     }
 
@@ -282,7 +350,7 @@ commands:
         let catalog =
             Catalog::from_sources([("unbounded.yaml", UNBOUNDED)]).expect("the device file parses");
         let device = catalog.device("HTEST4").expect("the SKU resolves");
-        let error = plan(device, Mode::Ble, &StreamOptions::default())
+        let error = plan(device, Mode::Ble, &StreamOptions::default(), Purpose::Paint)
             .expect_err("nothing says how far the mask reaches");
         assert_eq!(error.code(), "zone_mask_unbounded");
     }

@@ -25,11 +25,36 @@ releases apart and keeps
   `SceneParam` and `SceneType`.
 - `Error::Scenes` carries `scenes::Error`: codes `scene_list_missing`,
   `unknown_scene`, `ambiguous_scene` and `scene_fetch_failed`, among others.
+- `DeviceHandle::draw()` stores a `Drawing` of the LEDs through `role: draw`.
+  It takes a cell list, or spreads the zones of `Drawing::resolution` over
+  every LED. `Drawing::args` sets the other arguments by name. The device
+  keeps the drawing after the sender stops.
+- `Role::Draw`: a stored drawing of the LEDs. Its arguments are marked
+  `role: colors` and `role: zones`.
+- `ArgSpec::Int` carries `default`, and `ArgOverride` too: the codec sends it
+  when the caller gives none. `ArgSpec::default_value()` reads it.
+- `codec::encode_batch()` encodes several commands, and carries the frames of
+  consecutive commands that share an envelope in one envelope.
 
 ### Changed
 
-- `DeviceHandle::segment()` with a zone list arms no channel where the mode
-  also claims `segment_color`: that channel belongs to the whole-frame command.
+- Breaking: `DeviceHandle::segment()` takes `role: segment_color_masked`
+  alone, on every mode. On `lan`, the H6022 and the H61A0 paint the 15 groups
+  of the mask in `ptReal`, and arm no channel, so the colors stay and
+  `devStatus` answers. `Resolution::Native` fails with
+  `native_zones_unreachable`: paint every LED with `DeviceHandle::draw()`, or
+  stream with `DeviceHandle::open_stream()`. Fewer zones than the groups of
+  the mask spread over those groups.
+- `DeviceHandle::segment()` sends the `segment_gradient` frame and the masked
+  frames in one `ptReal` datagram over `lan`. The firmware drops a command
+  that follows two others at once.
+- Breaking: `DeviceHandle::open_stream()` takes `role: segment_color` alone,
+  which only `lan` declares. On `ble` and `cloud` it fails with
+  `no_segment_command`. Paint those modes with `DeviceHandle::segment()`.
+- `DeviceHandle::gradient()` reaches `lan` on the H6022 and the H61A0,
+  through the `ble` frame in `ptReal`.
+- `stream::reach()` and `describe` report what `segment()` reaches: the 15
+  groups of the mask over `lan` on the H6022 and the H61A0.
 
 ## [1.18.0] — 2026-11-23
 

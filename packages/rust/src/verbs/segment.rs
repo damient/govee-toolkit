@@ -1,10 +1,8 @@
 //! Paint zones.
 //!
-//! Two roles paint, and the device file decides which one a mode carries. A
-//! `role: segment_color` command states the color of every zone in one frame,
-//! so it cannot paint a subset: this crate does not hold what the other zones
-//! show. A `role: segment_color_masked` command carries one color and the
-//! zones that take it, and leaves the rest alone.
+//! A `role: segment_color_masked` command carries one color and the zones that
+//! take it, and leaves the other zones alone. A paint of every zone sends one
+//! such frame per distinct color.
 
 use super::arg_for;
 use crate::codec::catalog::Device;
@@ -12,7 +10,7 @@ use crate::codec::{ArgRole, Args, Mode, Role};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::Served;
-use crate::stream::resolve::{Painter, Plan, plan};
+use crate::stream::resolve::{Painter, Plan, Purpose, plan};
 use crate::stream::{Resolution, StreamOptions, paint};
 
 /// One painting of a device's zones.
@@ -63,122 +61,90 @@ impl Painting {
 impl DeviceHandle<'_> {
     /// Paint zones.
     ///
-    /// A color per zone needs `role: segment_color`, and reaches one LED at a
-    /// time under [`Resolution::Native`]. Under [`Resolution::Groups`] it
-    /// paints each group over its own run of LEDs. A zone list needs
-    /// `role: segment_color_masked`. "Every zone" is the bound of the mask
-    /// where the frame names its zones, and the count [`Paint::resolution`]
-    /// resolves where one frame states them all.
+    /// Takes `role: segment_color_masked`: one frame per distinct color,
+    /// each naming the zones of the mask that take it. Where the mode marks
+    /// `role: segment_gradient`, the setting goes first. Where the frames
+    /// share an envelope, one datagram carries all of them
+    /// ([`crate::codec::encode_batch`]).
     ///
-    /// The channel is armed where the file marks `role: segment_enable`.
-    /// Nothing disarms it: a disarm ends the channel, and the colors with it.
+    /// The paint arms the channel where the mode marks `role: segment_enable`
+    /// and no `role: segment_color`. A stream owns the whole-frame channel,
+    /// and [`DeviceHandle::draw`] paints every LED.
     ///
-    /// Serves [`Role::SegmentEnable`], [`Role::SegmentColor`],
-    /// [`Role::SegmentColorMasked`] and [`Role::SegmentGradient`].
+    /// Serves [`Role::SegmentColorMasked`], [`Role::SegmentEnable`] and
+    /// [`Role::SegmentGradient`].
     ///
     /// # Errors
     ///
     /// [`Error::NoRoleCommand`], [`Error::NoRoleArg`],
     /// [`Error::ZoneCountUnknown`], [`Error::ColorCountMismatch`],
-    /// [`Error::ZoneListColorCount`], [`Error::ResolutionNotDistinct`],
-    /// [`Error::Codec`] for a zone index the command does not declare, plus
-    /// what [`DeviceHandle::send`] fails with.
+    /// [`Error::ZoneListColorCount`], [`Error::Codec`] for a zone index the
+    /// command does not declare, plus what [`DeviceHandle::send`] fails with.
     pub async fn segment(&self, paint: &Paint<'_>) -> Result<Served> {
-        match paint.zones {
-            Some(zones) => self.segment_zones(zones, paint).await,
-            None => self.segment_all(paint).await,
-        }
-    }
-
-    async fn segment_all(&self, paint: &Paint<'_>) -> Result<Served> {
         let call = self.resolve()?;
         let (mode, sku, device) = (call.mode(), call.sku(), call.spec());
 
+        // A zone list names its zones, so the count of every zone is not read.
+        let resolution = match paint.zones {
+            Some(_) => Resolution::App,
+            None => paint.resolution,
+        };
         let plan = plan(
             device,
             mode,
             &StreamOptions {
-                resolution: paint.resolution,
+                resolution,
                 gradient: paint.gradient,
                 ..StreamOptions::default()
             },
+            Purpose::Paint,
         )?;
-        let colors = colors(sku, &plan, paint.colors)?;
-        let colors = match plan.spread {
-            Some(spread) => spread.apply(&colors),
-            None => colors,
+        let frames = if let (
+            Some(zones),
+            Painter::Masked {
+                colors,
+                zones: mask,
+                ..
+            },
+        ) = (paint.zones, &plan.painter)
+        {
+            let [rgb] = *paint.colors else {
+                return Err(Error::ZoneListColorCount {
+                    colors: paint.colors.len(),
+                });
+            };
+            vec![
+                Args::new()
+                    .rgb(colors.as_str(), vec![rgb])
+                    .zones(mask.as_str(), zones.to_vec()),
+            ]
+        } else {
+            let colors = colors(sku, &plan, paint.colors)?;
+            let colors = match plan.spread {
+                Some(spread) => spread.apply(&colors),
+                None => colors,
+            };
+            paint::frames(&plan.painter, colors)?
         };
 
-        self.arm(mode, sku, device).await?;
+        if device.command_for(mode, Role::SegmentColor).is_none() {
+            self.arm(mode, sku, device).await?;
+        }
+        let mut commands = Vec::new();
         if let Some((entry, value)) = &plan.gradient {
-            let args = Args::new().int(entry.arg.as_str(), *value);
-            call.send(&entry.command, &args).await?;
+            commands.push((
+                entry.command.clone(),
+                Args::new().int(entry.arg.as_str(), *value),
+            ));
         }
-
-        let command = plan.painter.command().to_owned();
-        let mut served = None;
-        for args in paint::frames(&plan.painter, colors)? {
-            served = Some(call.send(&command, &args).await?);
-        }
+        let command = plan.painter.command();
+        commands.extend(frames.into_iter().map(|args| (command.to_owned(), args)));
         // The plan refuses a zone count of zero, so one color gives one frame.
-        served.ok_or_else(|| Error::ZoneCountUnknown {
-            sku: sku.to_owned(),
-        })
-    }
-
-    async fn segment_zones(&self, zones: &[u16], paint: &Paint<'_>) -> Result<Served> {
-        let [rgb] = *paint.colors else {
-            return Err(Error::ZoneListColorCount {
-                colors: paint.colors.len(),
-            });
-        };
-        let gradient = paint.gradient;
-        let entry = self.role_entry(Role::SegmentColorMasked)?;
-        let colors = entry.arg(ArgRole::Colors)?.to_owned();
-        let mask = entry.arg(ArgRole::Zones)?.to_owned();
-
-        // The painting frame carries the setting on some modes, and a frame
-        // of its own carries it on others.
-        let in_frame = entry.marked(ArgRole::Gradient).map(ToOwned::to_owned);
-        let alone = entry
-            .device()
-            .command_for(entry.mode(), Role::SegmentGradient)
-            .map(ToOwned::to_owned);
-        if gradient && in_frame.is_none() && alone.is_none() {
-            return Err(no_gradient(entry.sku(), entry.mode()));
-        }
-
-        // The arming entry belongs to the whole-frame command where the mode
-        // claims one: that channel is not the one this frame paints.
-        if entry
-            .device()
-            .command_for(entry.mode(), Role::SegmentColor)
-            .is_none()
-        {
-            self.arm(entry.mode(), entry.sku(), entry.device()).await?;
-        }
-        if in_frame.is_none()
-            && let Some(command) = alone
-        {
-            let arg = arg_for(
-                entry.sku(),
-                entry.device(),
-                entry.mode(),
-                &command,
-                ArgRole::Gradient,
-            )?
-            .to_owned();
-            let args = Args::new().int(arg, i64::from(gradient));
-            entry.send_command(&command, &args).await?;
-        }
-
-        let mut args = Args::new()
-            .rgb(colors, vec![rgb])
-            .zones(mask, zones.to_vec());
-        if let Some(arg) = in_frame {
-            args = args.int(arg, i64::from(gradient));
-        }
-        entry.send(&args).await
+        call.send_batch(&commands)
+            .await?
+            .ok_or_else(|| Error::ZoneCountUnknown {
+                sku: sku.to_owned(),
+            })
     }
 
     /// Set whether the firmware interpolates between zones, without painting.
@@ -228,7 +194,7 @@ impl DeviceHandle<'_> {
 /// and groups the LEDs around it, so a shorter list re-groups them rather than
 /// leaving the rest alone.
 fn colors(sku: &str, plan: &Plan, supplied: &[[u8; 3]]) -> Result<Vec<[u8; 3]>> {
-    let expected = whole(plan);
+    let expected = plan.zones;
     match supplied {
         [one] => Ok(vec![*one; expected]),
         many if many.len() == expected => Ok(many.to_vec()),
@@ -237,23 +203,5 @@ fn colors(sku: &str, plan: &Plan, supplied: &[[u8; 3]]) -> Result<Vec<[u8; 3]>> 
             expected,
             got: many.len(),
         }),
-    }
-}
-
-/// How many zones "every zone" is. A masked frame covers what its mask can
-/// name, and not `capabilities.segments.count`: the zones between the two
-/// would keep the color they had.
-fn whole(plan: &Plan) -> usize {
-    match plan.painter {
-        Painter::Masked { limit, .. } => limit,
-        Painter::Whole { .. } => plan.zones,
-    }
-}
-
-fn no_gradient(sku: &str, mode: Mode) -> Error {
-    Error::NoRoleCommand {
-        sku: sku.to_owned(),
-        mode,
-        role: Role::SegmentGradient,
     }
 }

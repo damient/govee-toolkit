@@ -1,7 +1,7 @@
 use crate::codec::{ArgSpec, Device, Mode};
-use crate::stream::resolve::{Painter, painter};
+use crate::stream::resolve::{Painter, Purpose, painter};
 
-/// What one mode's segment channel paints on one device.
+/// What [`crate::DeviceHandle::segment`] paints over one mode of one device.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Reach {
     /// How many zones one paint states over this mode.
@@ -15,10 +15,10 @@ pub struct Reach {
 /// nothing.
 #[must_use]
 pub fn reach(device: &Device, mode: Mode) -> Option<Reach> {
-    let painter = painter(device, mode, false).ok()?;
+    let painter = painter(device, mode, false, Purpose::Paint).ok()?;
     let zones = ceiling(device, mode, &painter)?;
     let native = match painter {
-        Painter::Whole { .. } => device
+        Painter::Whole { .. } | Painter::Cells { .. } => device
             .capabilities
             .native_pixels()
             .and_then(|pixels| usize::try_from(pixels).ok())
@@ -39,7 +39,7 @@ pub(crate) fn ceiling(device: &Device, mode: Mode, painter: &Painter) -> Option<
         Painter::Whole {
             command, colors, ..
         } => color_limit(device, mode, command, colors),
-        Painter::Masked { limit, .. } => Some(*limit),
+        Painter::Masked { limit, .. } | Painter::Cells { limit, .. } => Some(*limit),
     }
 }
 
@@ -56,30 +56,22 @@ mod tests {
 
     use super::*;
     use crate::codec::Catalog;
-    use crate::stream::resolve::plan;
+    use crate::stream::resolve::{Purpose, plan};
     use crate::stream::{Resolution, StreamOptions};
 
     const NARROW_MASK: &str = include_str!("../../tests/fixtures/narrow-mask.yaml");
     const NARROW_COLORS: &str = include_str!("../../tests/fixtures/narrow-colors.yaml");
 
     #[test]
-    fn a_whole_frame_mode_reaches_every_led_of_this_unit() {
-        let catalog = Catalog::embedded().expect("the catalog parses");
-        let device = catalog.device("H61A0").expect("the SKU resolves");
-
-        let lan = reach(device, Mode::Lan).expect("lan paints");
-        assert_eq!(lan.zones, 255);
-        assert!(lan.native);
-    }
-
-    #[test]
     fn a_masked_mode_reaches_what_its_mask_names_and_no_led() {
         let catalog = Catalog::embedded().expect("the catalog parses");
         let device = catalog.device("H61A0").expect("the SKU resolves");
 
-        let ble = reach(device, Mode::Ble).expect("ble paints");
-        assert_eq!(ble.zones, 15);
-        assert!(!ble.native);
+        for mode in [Mode::Lan, Mode::Ble] {
+            let masked = reach(device, mode).expect("the mode paints");
+            assert_eq!(masked.zones, 15);
+            assert!(!masked.native);
+        }
     }
 
     #[test]
@@ -102,6 +94,7 @@ mod tests {
                     resolution,
                     ..StreamOptions::default()
                 },
+                Purpose::Paint,
             )
         };
 
@@ -124,6 +117,7 @@ mod tests {
                     resolution,
                     ..StreamOptions::default()
                 },
+                Purpose::Stream,
             )
         };
 

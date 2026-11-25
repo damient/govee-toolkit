@@ -135,6 +135,36 @@
       "source": "docs/protocol/ble.md 6.4: the ble capture, inside ptReal. The same layout with other cells rendered over lan"
     },
     {
+      "name": "interpolation on, in ptReal",
+      "command": "gradient",
+      "args": { "on": 1 },
+      "frames_hex": ["33a3010000000000000000000000000000000091"],
+      "message": { "msg": { "cmd": "ptReal", "data": { "command": ["M6MBAAAAAAAAAAAAAAAAAAAAAJE="] } } },
+      "source": "docs/protocol/ble.md 2.6 inside ptReal, worked out from the documented layout. The rope rendered both values over lan"
+    },
+    {
+      "name": "interpolation off, in ptReal",
+      "command": "gradient",
+      "args": { "on": 0 },
+      "frames_hex": ["33a3000000000000000000000000000000000090"],
+      "message": { "msg": { "cmd": "ptReal", "data": { "command": ["M6MAAAAAAAAAAAAAAAAAAAAAAJA="] } } },
+      "source": "docs/protocol/ble.md 2.6 inside ptReal, worked out from the documented layout. The rope rendered both values over lan"
+    },
+    {
+      "name": "every LED held still by the defaults: LEDs 0 to 9 in green, the rest in red",
+      "command": "draw_cells",
+      "args": { "cells": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41], "colors": [[0, 255, 0], [0, 255, 0], [0, 255, 0], [0, 255, 0], [0, 255, 0], [0, 255, 0], [0, 255, 0], [0, 255, 0], [0, 255, 0], [0, 255, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0], [255, 0, 0]] },
+      "frames_hex": [
+        "a300010403090064000000020a00ff000001023c",
+        "a3010304050607080920ff00000a0b0c0d0e0f7e",
+        "a302101112131415161718191a1b1c1d1e1f2081",
+        "a3ff21222324252627282900000000000000007d",
+        "33050a200300000000000000000000000000001f"
+      ],
+      "message": { "msg": { "cmd": "ptReal", "data": { "command": ["owABBAMJAGQAAAACCgD/AAABAjw=", "owEDBAUGBwgJIP8AAAoLDA0OD34=", "owIQERITFBUWFxgZGhscHR4fIIE=", "o/8hIiMkJSYnKCkAAAAAAAAAAH0=", "MwUKIAMAAAAAAAAAAAAAAAAAAB8="] } } },
+      "source": "docs/protocol/ble.md 6.4, worked out from the documented layout, with the defaults effect 9 and speed 0"
+    },
+    {
       "name": "a scene of 40 bytes, code 16182, low byte first",
       "command": "scene",
       "args": { "code": 16182, "param": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40], "scene_type": 2 },

@@ -340,3 +340,33 @@ async fn a_stream_does_not_power_the_device_on() {
         .await
         .expect("power reaches the device");
 }
+
+/// The firmware renders nothing when the paint follows the arming frame at
+/// once, and answers nothing either way. See `docs/protocol/lan.md` 2.3 and
+/// `measurements.arm_settle_ms` of `devices/H61A0.yaml`.
+#[tokio::test]
+async fn opening_waits_for_the_channel_to_arm() {
+    let rig = rig().await;
+    let start = std::time::Instant::now();
+    let _stream = rig
+        .govee
+        .one()
+        .open_stream(options(Resolution::Exact(2)))
+        .await
+        .expect("the stream opens");
+
+    assert!(start.elapsed() >= Duration::from_millis(50));
+}
+
+#[tokio::test]
+async fn a_resolution_the_unit_renders_as_a_smaller_one_is_refused() {
+    let rig = rig().await;
+    let error = rig
+        .govee
+        .one()
+        .open_stream(options(Resolution::Exact(30)))
+        .await
+        .expect_err("this unit refines at 21, then at 42");
+
+    assert_eq!(error.code(), "resolution_not_distinct");
+}

@@ -290,7 +290,6 @@ fn nonzero(zones: u32) -> Result<u32, Missing> {
 
 fn paints_zones(device: &Device) -> bool {
     reaches(device, SEGMENTS, Role::SegmentColor)
-        || reaches(device, SEGMENTS, Role::SegmentColorMasked)
 }
 
 fn channels(

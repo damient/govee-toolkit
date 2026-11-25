@@ -11,7 +11,7 @@ include:
   - lan-razer
   - lan-segments
   - lan-music
-  - diy-strip
+  - cells-strip
   - scene-rgbic
   - ble-core
   - ble-reads
@@ -197,7 +197,10 @@ overrides:
       notes_append: >-
         The effects the phone controller offers: 9 clockwise, 10
         anticlockwise, 2 cycle, 19 gradient, 15 twinkle and 20 breathing.
+        Effect 9 at speed 0 holds the drawing still. See `verified:`.
       args:
+        effect: { default: 9 }
+        speed: { default: 0 }
         cells: { count: 42 }
         colors: { max_len: 42 }
     brightness:
@@ -210,7 +213,10 @@ overrides:
       notes_append: >-
         The effects the phone controller offers: 9 clockwise, 10
         anticlockwise, 2 cycle, 19 gradient, 15 twinkle and 20 breathing.
+        Effect 9 at speed 0 holds the drawing still. See `verified:`.
       args:
+        effect: { default: 9 }
+        speed: { default: 0 }
         cells: { count: 42 }
         colors: { max_len: 42 }
     brightness:
@@ -265,10 +271,10 @@ overrides:
     segment_color:
       notes_append: >-
         It paints one color over the zones the array names, and leaves the
-        rest alone. A stream over this mode sends one request per distinct
+        rest alone. A paint of several colors sends one request per distinct
         color, and the API's own interval between two requests about one
-        device is 6 seconds: the transport refuses a frame that waits longer
-        than `max_wait`. See docs/protocol/cloud.md 5.
+        device is 6 seconds: the transport refuses a request that waits
+        longer than `max_wait`. See docs/protocol/cloud.md 5.
 
 geometry:
   length_m: 3
@@ -314,11 +320,7 @@ measurements:
       - { zones: 20,  payload_bytes: 62,  clean_hz: 40, breaks_at_hz: 45 }
       - { zones: 60,  payload_bytes: 182, clean_hz: 25, breaks_at_hz: 30 }
       - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
-    # No ble rows. A ble frame is 20 bytes and paints one color, so the write
-    # budget above divided by the zone count gives a figure. That is
-    # arithmetic, not a stutter test on the rope. TODO: run the stutter test
-    # over ble and record what the strip renders cleanly. Until then a stream
-    # over ble falls back to the configured rate.
+    # No ble rows: a stream opens on lan alone.
 
 verified:
   by: "damient"
@@ -357,8 +359,12 @@ verified:
     free end dark at `gradient` 0, and lights it red at `gradient` 1. Five
     zones red and five blue, over the same two positions, render a hard
     boundary and a blend.
-    The `segment_gradient` role was exercised on this unit over ble and over
-    cloud, through the CLI, as a setting sent on its own. Over ble, a rope
+    The `segment_gradient` role was exercised on this unit over ble, over
+    cloud and over lan in `ptReal`, through the CLI, as a setting sent on its
+    own. Over lan (2026-11-25), a rope painted zone 0 red and the rest black
+    by mask left the free end dark at 0 and lit it red at 1, by eye. A stored
+    drawing of LEDs 0 to 3 in red left the free end dark at 1: the drawing
+    renders no interpolation. Over ble, a rope
     painted zone 0 red and the rest black under `gradient` 0 lit its free end
     when `33 A3 01` followed, with no color frame between the two. Over cloud,
     `gradientToggle` 0 and 1 were each sent to the control endpoint and each
@@ -497,7 +503,10 @@ verified:
     raw segment channel. Over a rope painted green through that channel,
     zones 10 to 14 in white brought back the stored zones (red and blue)
     around the white. `devStatus` does not report a `ptReal` write until the
-    next native command.
+    next native command. Through the `segment` verb (2026-11-25), red, green
+    and blue at resolution 3, spread over the 15 groups, rendered as three
+    still bands over the whole rope: the `gradient` frame and three masked
+    frames in one datagram.
 
     `draw_cells` comes from a ble capture of the phone controller
     (2026-11-24): effects 9, 10, 2, 19, 15 and 20, speed 51, red LEDs over
@@ -507,6 +516,13 @@ verified:
     twinkled. The six values of the capture are the six effects the phone
     controller offers here, and its effect table names them: see
     `draw_cells`. Only 9 and 15 were judged by eye over lan.
+
+    Over lan, in `ptReal`, through the CLI (2026-11-25), effect 9 at speed 0
+    held the drawing still: green LEDs 0 to 9 and blue LEDs 32 to 41 over red.
+    `draw_cells` takes both as defaults. Red, green and blue at resolution 3,
+    spread over the 42 LEDs, rendered as three still bands, and judged by
+    eye. Green LEDs 0 to 9 with every other argument left to its default
+    rendered still, on black.
 
     `scene` and `scene_builtin` were exercised over lan, in `ptReal`, through
     the CLI on firmware 2.06.02 (2026-11-25), and judged by eye. Six type 2

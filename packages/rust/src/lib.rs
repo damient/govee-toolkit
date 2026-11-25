@@ -160,6 +160,6 @@ pub use summary::{Style, Summary};
 pub use transport::{DeviceId, DeviceStatus, Health, Reply, State, Transport};
 #[cfg(feature = "transport")]
 pub use verbs::{
-    IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify, Music, Paint, Painting, Segments,
-    Supported,
+    Drawing, IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify, Music, Paint, Painting,
+    Segments, Supported,
 };

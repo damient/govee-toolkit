@@ -7,6 +7,7 @@
 //! A file that marks no entry for a role fails with [`Error::NoRoleCommand`].
 //! Nothing is approximated — see `docs/modes.md`.
 
+mod draw;
 mod identify;
 mod music;
 mod scene;
@@ -14,6 +15,7 @@ mod segment;
 mod supported;
 mod white;
 
+pub use draw::Drawing;
 pub use identify::{IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify};
 pub use music::Music;
 pub use segment::{Paint, Painting};
@@ -122,12 +124,6 @@ impl<'a> RoleEntry<'a> {
 
     pub(crate) fn device(&self) -> &'a Device {
         self.call.spec()
-    }
-
-    /// Send another command of the same device file, under the resolution
-    /// this entry was read with.
-    pub(crate) async fn send_command(&self, command: &str, args: &Args) -> Result<Served> {
-        self.call.send(command, args).await
     }
 
     /// [`Error::NoRoleArg`] where the entry marks no such argument.

@@ -140,6 +140,33 @@ impl<'a> Resolved<'a> {
             .await
     }
 
+    /// Send several commands in order, with the frames of commands that
+    /// share an envelope in one datagram ([`crate::codec::encode_batch`]).
+    /// Answers the last send, and `None` for an empty list.
+    pub(crate) async fn send_batch(&self, commands: &[(String, Args)]) -> Result<Option<Served>> {
+        let named: Vec<(&str, &Args)> = commands
+            .iter()
+            .map(|(command, args)| (command.as_str(), args))
+            .collect();
+        let batch = self
+            .handle
+            .govee
+            .encode_batch(&self.sku, self.mode, &named)?;
+        let last = commands
+            .last()
+            .map(|(command, _)| command.as_str())
+            .unwrap_or_default();
+        let mut served = None;
+        for encoded in &batch {
+            served = Some(
+                self.handle
+                    .send_encoded(self.mode, &self.sku, last, encoded)
+                    .await?,
+            );
+        }
+        Ok(served)
+    }
+
     /// [`Resolved::read`] where [`Resolved::answers`], else [`Resolved::send`].
     ///
     /// # Errors

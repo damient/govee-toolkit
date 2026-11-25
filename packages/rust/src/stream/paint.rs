@@ -31,6 +31,25 @@ pub(crate) fn frames(painter: &Painter, colors: Vec<[u8; 3]>) -> Result<Vec<Args
             zones,
             ..
         } => masked(name, zones, &colors),
+        Painter::Cells {
+            colors: name,
+            cells,
+            ..
+        } => {
+            let indices = (0..colors.len())
+                .map(|index| {
+                    u16::try_from(index).map_err(|_| Error::ZoneOutOfRange {
+                        index,
+                        zones: colors.len(),
+                    })
+                })
+                .collect::<Result<Vec<u16>>>()?;
+            Ok(vec![
+                Args::new()
+                    .zones(cells.as_str(), indices)
+                    .rgb(name.as_str(), colors),
+            ])
+        }
     }
 }
 

@@ -307,6 +307,7 @@ impl Error {
                 Role::SegmentEnable
                 | Role::SegmentColor
                 | Role::SegmentColorMasked
+                | Role::Draw
                 | Role::SegmentGradient => "no_segment_command",
                 Role::WifiLink
                 | Role::WifiApiType

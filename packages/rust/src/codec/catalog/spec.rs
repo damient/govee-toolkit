@@ -22,6 +22,10 @@ pub enum ArgSpec {
         #[serde(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         range: Option<Bounds>,
+        /// The value the codec sends when the caller supplies none.
+        #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        default: Option<i64>,
         /// See [`ArgRole`].
         #[serde(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -103,6 +107,15 @@ impl ArgSpec {
 
     /// What the SDK fills this argument with, if the file says.
     #[must_use]
+    pub fn default_value(&self) -> Option<i64> {
+        match self {
+            Self::Int { default, .. } => *default,
+            _ => None,
+        }
+    }
+
+    /// See [`ArgRole`].
+    #[must_use]
     pub fn role(&self) -> Option<ArgRole> {
         match self {
             Self::Int { role, .. }
@@ -126,11 +139,14 @@ pub enum ArgRole {
     /// One RGB triple per zone, on a
     /// [`Role::SegmentColor`](super::Role::SegmentColor) command, or the single
     /// triple a [`Role::SegmentColorMasked`](super::Role::SegmentColorMasked)
-    /// frame paints its zones.
+    /// frame paints its zones, or one triple per LED on a
+    /// [`Role::Draw`](super::Role::Draw) command.
     Colors,
     /// Which zones a
     /// [`Role::SegmentColorMasked`](super::Role::SegmentColorMasked) command
-    /// paints, zero-based.
+    /// paints, or which LEDs a
+    /// [`Role::Draw`](super::Role::Draw) command paints,
+    /// zero-based.
     Zones,
     /// Whether the firmware interpolates between zones, on a
     /// [`Role::SegmentColor`](super::Role::SegmentColor) command. Optional: a

@@ -12,10 +12,12 @@ use crate::codec::error::{Error, Result};
 use crate::codec::reply::Layout as ReplyLayout;
 use crate::codec::{Args, chunk, exchange};
 
+mod batch;
 #[cfg(test)]
 mod frames_tests;
 mod resolve;
 
+pub use batch::encode_batch;
 use resolve::{Frames, resolve, substitute};
 pub(crate) use resolve::{packed_rgb, packed_rgb_list, placeholder};
 
@@ -168,13 +170,17 @@ pub fn encode(device: &Device, mode: Mode, command: &str, args: &Args) -> Result
 
     Ok(Encoded {
         cmd: spec.cmd.clone(),
-        message: (!spec.cmd.is_empty())
-            .then(|| serde_json::json!({ "msg": { "cmd": spec.cmd, "data": data } })),
+        message: envelope(&spec.cmd, &data),
         frames,
         replies,
         roles,
         request: None,
     })
+}
+
+/// The `lan` envelope, and `None` where the wire carries no name.
+fn envelope(cmd: &str, data: &serde_json::Value) -> Option<serde_json::Value> {
+    (!cmd.is_empty()).then(|| serde_json::json!({ "msg": { "cmd": cmd, "data": data } }))
 }
 
 fn cloud(spec: &Command, value: &serde_json::Value, roles: BTreeMap<String, ArgRole>) -> Encoded {

@@ -85,3 +85,54 @@ fn a_list_of_exchanges_has_no_frames_to_carry() {
         "{problems:?}"
     );
 }
+
+const TWO: &str = "    first:\n      cmd: ptReal\n\
+     \n      payload: { command: \"${frames}\" }\n\
+     \n      frame: \"33 A3 ${v} <pad:20> <xor>\"\n      args:\n\
+     \n        v: { type: int, range: [0, 1] }\n\
+     \n    second:\n      cmd: ptReal\n\
+     \n      payload: { command: \"${frames}\" }\n\
+     \n      frame: \"33 05 ${v} <pad:20> <xor>\"\n      args:\n\
+     \n        v: { type: int, range: [0, 255] }\n\
+     \n    named:\n      cmd: ptReal\n\
+     \n      payload: { command: \"${frames}\", v: \"${v}\" }\n\
+     \n      frame: \"33 06 ${v} <pad:20> <xor>\"\n      args:\n\
+     \n        v: { type: int, range: [0, 255] }\n";
+
+#[test]
+fn commands_that_share_an_envelope_go_out_in_one() {
+    let catalog = catalog(TWO);
+    let device = catalog.device("HTEST").expect("the SKU resolves");
+    assert_eq!(validate::device(device), []);
+
+    let one = Args::new().int("v", 1);
+    let two = Args::new().int("v", 2);
+    let batch = super::encode_batch(
+        device,
+        Mode::Lan,
+        &[("first", &one), ("second", &one), ("second", &two)],
+    )
+    .expect("it encodes");
+
+    assert_eq!(batch.len(), 1);
+    assert_eq!(batch[0].frames.len(), 3);
+    let carried = &batch[0].message.as_ref().expect("an envelope")["msg"]["data"]["command"];
+    let expected: Vec<String> = batch[0].frames.iter().map(|f| BASE64.encode(f)).collect();
+    assert_eq!(carried, &serde_json::json!(expected));
+}
+
+#[test]
+fn a_payload_that_names_an_argument_keeps_its_envelope() {
+    let catalog = catalog(TWO);
+    let device = catalog.device("HTEST").expect("the SKU resolves");
+
+    let one = Args::new().int("v", 1);
+    let batch = super::encode_batch(
+        device,
+        Mode::Lan,
+        &[("first", &one), ("named", &one), ("named", &one)],
+    )
+    .expect("it encodes");
+
+    assert_eq!(batch.len(), 3);
+}
