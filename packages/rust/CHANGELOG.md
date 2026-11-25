@@ -15,6 +15,16 @@ releases apart and keeps
   bytes between them, 8 or 16 bits, either byte order.
 - `codec::frame::Token::Groups`: zone indices grouped by color, one byte each.
   An index named twice is `codec::Error::ArgSyntax`.
+- `codec::frame::Token::Arg16Le`: an integer field of two bytes, low byte
+  first, written `${name:16le}`.
+- `DeviceHandle::scene()` plays a `Scene`, and `scene_named()` plays one by
+  name or code from the cached library. `Devices::scene()`, `Verb::Scene`.
+- `scenes::fetch()` stores a model's scene library in the cache folder, with
+  no account. `scenes::load()` and `scenes::find()` read it back.
+- `Role::Scene`, `Role::SceneBuiltin` and the argument roles `SceneCode`,
+  `SceneParam` and `SceneType`.
+- `Error::Scenes` carries `scenes::Error`: codes `scene_list_missing`,
+  `unknown_scene`, `ambiguous_scene` and `scene_fetch_failed`, among others.
 
 ### Changed
 

@@ -121,6 +121,18 @@ pub(crate) enum Verb {
         #[arg(long, value_name = "COLOR")]
         color: Option<String>,
     },
+
+    /// Play a scene from the scene library of the device's model.
+    ///
+    /// `scenes fetch` stores that list once. This verb reads it and sends no
+    /// request to the cloud. The device answers nothing on `lan`: look at it.
+    Scene {
+        /// The devices: an identity, a SKU, a name or a group.
+        device: String,
+        /// A code, a full name such as `Aurora A`, or a name that one scene
+        /// alone carries. Case does not matter.
+        scene: String,
+    },
 }
 
 impl Verb {
@@ -133,7 +145,8 @@ impl Verb {
             | Self::Colortemp { device, .. }
             | Self::Segment { device, .. }
             | Self::Gradient { device, .. }
-            | Self::Music { device, .. } => device,
+            | Self::Music { device, .. }
+            | Self::Scene { device, .. } => device,
         }
     }
 }

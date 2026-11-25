@@ -22,6 +22,8 @@ pub enum Verb {
     Gradient(bool),
     /// [`crate::DeviceHandle::music`].
     Music(Music),
+    /// [`crate::DeviceHandle::scene_named`], with the name or the code.
+    Scene(String),
 }
 
 impl Verb {
@@ -36,6 +38,7 @@ impl Verb {
             Self::Segment(_) => "segment",
             Self::Gradient(_) => "gradient",
             Self::Music(_) => "music",
+            Self::Scene(_) => "scene",
         }
     }
 
@@ -49,7 +52,8 @@ impl Verb {
             Self::Color(_) => 4,
             Self::Segment(_) => 5,
             Self::Music(_) => 6,
-            Self::Power(false) => 7,
+            Self::Scene(_) => 7,
+            Self::Power(false) => 8,
         }
     }
 }
@@ -133,6 +137,7 @@ impl Devices<'_> {
             Verb::Segment(painting) => self.segment(&painting.paint()).await,
             Verb::Gradient(on) => self.gradient(*on).await,
             Verb::Music(music) => self.music(music).await,
+            Verb::Scene(query) => self.scene(query).await,
         }
     }
 

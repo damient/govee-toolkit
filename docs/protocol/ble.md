@@ -463,10 +463,10 @@ three ways, and each one is what makes a transfer built like §4 fail:
 
 `commandType` `0x41` is a music effect, and §6.2 is that one. `0x58` is a
 drawing on a grid, and §6.3 is that one. `0x03` is a drawing over the LEDs
-of a strip, and §6.4 is that one. Four more command
-types ride the same channel — `0x01`, `0x02`, `0x07` and `0x0A`. They are not
-implemented: which cutter each one takes was not established, and no transfer
-of that kind has been sent to a device.
+of a strip, and §6.4 is that one. `0x01` and `0x02` are scenes, and §6.5 is
+that one. Two more command types ride the same channel: `0x07` and `0x0A`.
+They are not implemented. Which cutter each one takes was not established, and
+no transfer of that kind has been sent to a device.
 
 ### 6.1 The cutting
 
@@ -594,6 +594,32 @@ The frame that plays it is the frame of §6.3, with `00` in place of `5A`:
 
 The phone controller sends code 800 (`20 03`). Status comes back as
 `A3 03 <status>`, then `33 05 00`.
+
+### 6.5 Scenes: `commandType` `0x01` and `0x02`
+
+A scene is a code and a parameter block. The scene library lists them: the
+cloud serves one library per model, without an account. Each scene gives a
+type, a 16-bit code and base64 parameters. The header carries 14 body bytes,
+and the body is the parameter block as the library gives it:
+
+```
+A3 00 01 <frames> <type> <14 bytes of parameters>   header
+A3 <i> <17 bytes>                                   i = 1..
+A3 FF <last piece>                                  closing frame
+33 05 04 <code:16le>                                the frame that names the scene
+```
+
+- The library's types 1 and 2 go out as the command types `0x01` and `0x02`,
+  with the same cutting.
+- The library's other types take other command types, and some take another
+  parameter layout.
+- The transfer plays the scene. The last frame sets the code that the device
+  reports back. That code is a record, not a check: the device reports it for
+  a scene that it does not play.
+- A scene with empty parameters is stored on the device. The last frame
+  alone plays it.
+- An effect can carry parameters of its own for a list of models. Those
+  replace the shared ones on a model of that list.
 
 ## 7. Probing
 

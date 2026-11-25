@@ -76,6 +76,10 @@ pub(crate) enum Command {
         targets: Vec<String>,
     },
 
+    /// Fetch or list the scenes of a model.
+    #[command(subcommand)]
+    Scenes(Scenes),
+
     /// Report what a device file declares: modes, capabilities, commands and
     /// arguments. Reads no hardware.
     Describe {
@@ -201,6 +205,21 @@ pub(crate) enum Command {
     },
 }
 
+#[derive(Debug, Subcommand)]
+pub(crate) enum Scenes {
+    /// Fetch the scene library of a model from the cloud, and store it in the
+    /// cache folder. The request carries no account and no key.
+    Fetch {
+        /// The model, such as `H61A0`.
+        sku: String,
+    },
+    /// List the scenes in the cached library of a model. Reads no network.
+    List {
+        /// The model, such as `H61A0`.
+        sku: String,
+    },
+}
+
 impl Command {
     /// The target of a command that drives one device.
     pub(crate) fn device(&self) -> Option<&str> {
@@ -216,6 +235,7 @@ impl Command {
             | Self::Devices { .. }
             | Self::Doctor
             | Self::Describe { .. }
+            | Self::Scenes(_)
             | Self::Watch { .. } => None,
         }
     }

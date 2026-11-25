@@ -124,11 +124,21 @@ impl From<crate::Error> for Failure {
     fn from(error: crate::Error) -> Self {
         let kind = error.code();
         let code = match kind {
-            "config" | "configuration" | "local_devices" | "env" | "mode_not_enabled" => CONFIG,
+            "config"
+            | "configuration"
+            | "local_devices"
+            | "env"
+            | "mode_not_enabled"
+            | "scene_list_missing"
+            | "scene_list_unreadable" => CONFIG,
             // A target the command line names badly is a usage fault; one
             // that matches nothing is the rig answering.
-            "target_not_understood" | "ambiguous_target" => USAGE,
-            "no_such_target" => UNREACHABLE,
+            "target_not_understood"
+            | "ambiguous_target"
+            | "unknown_scene"
+            | "ambiguous_scene"
+            | "bad_sku" => USAGE,
+            "no_such_target" | "scene_fetch_failed" => UNREACHABLE,
             "no_mode_available" | "mode_unavailable" | "unreachable" | "unknown_device" => {
                 UNREACHABLE
             }

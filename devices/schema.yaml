@@ -117,6 +117,7 @@ commands:
   #   BB                     a literal byte, two hex digits
   #   ${name}                one byte, from the integer argument `name`
   #   ${name:16}             two bytes, big-endian
+  #   ${name:16le}           two bytes, least significant first
   #   ${name:str8}           one length byte, then `name` as UTF-8
   #   ${name:str16}          two big-endian length bytes, then `name` as UTF-8
   #   ${name:mask8}          one byte of zone bits, least significant bit first
@@ -215,6 +216,7 @@ commands:
   #   BB                     that literal byte, which the reply must carry
   #   ${name}                one byte, captured as an integer
   #   ${name:16}             two bytes, big-endian
+  #   ${name:16le}           two bytes, least significant first
   #   ${name:bytes:6}        exactly six bytes, as they are
   #   ${name:ascii}          the rest of the reply as text, without trailing
   #                          zeros. It reads to the end, so it must come last,
@@ -412,6 +414,12 @@ commands:
     #                   `role: green` and `role: blue`, where this file
     #                   declares them. Declare the last four together or not
     #                   at all.
+    #   scene           one each of `role: scene_code`, `role: scene_param`
+    #                   and `role: scene_type`. The range of the last names
+    #                   the library types that the transfer plays, and the
+    #                   SDK refuses a scene of another type.
+    #   scene_builtin   one argument marked `role: scene_code`. The SDK sends
+    #                   it for a scene that the scene library gives no parameters.
     #   wifi_link       one marked `role: enable`.
     #   wifi_api_type   one captured field marked `role: api_type`. A second,
     #                   `role: hide_ssid`, records whether the device wants the

@@ -24,6 +24,17 @@ build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
 
+### 2026-11-25
+
+#### Added
+
+- `devices/schema.yaml`: `${name:16le}` writes two bytes, low byte first. The
+  roles `scene` and `scene_builtin` mark the scene entries.
+- `scene-rgbic` family: `scene` uploads a scene of type 1 or 2 and names its
+  code, `scene_builtin` names a stored scene. Over `ble`, and `lan` in `ptReal`.
+- `H61A0` includes it. Ten scenes of types 0, 1 and 2 rendered over `lan`, by
+  eye. The vectors come from the layout. See `docs/protocol/ble.md` 6.5.
+
 ### 2026-11-24
 
 #### Added

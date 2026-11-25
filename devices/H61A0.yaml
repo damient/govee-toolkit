@@ -11,6 +11,7 @@ include:
   - lan-razer
   - lan-segments
   - diy-strip
+  - scene-rgbic
   - ble-core
   - ble-reads
   - ble-music
@@ -500,3 +501,11 @@ verified:
     twinkled. The six values of the capture are the six effects the phone
     controller offers here, and its effect table names them: see
     `draw_cells`. Only 9 and 15 were judged by eye over lan.
+
+    `scene` and `scene_builtin` were exercised over lan, in `ptReal`, through
+    the CLI on firmware 2.06.02 (2026-11-25), and judged by eye. Six type 2
+    scenes played, from 34 to 175 bytes of parameters: up to 12 frames in one
+    datagram. Codes up to 16182 played. Both type 1 scenes of the library
+    played. Two stored scenes played from the code frame alone, code 0
+    included. Where the library gives this model parameters of its own, they
+    matched the shared ones. Only lan was exercised.

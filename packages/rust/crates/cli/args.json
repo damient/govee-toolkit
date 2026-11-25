@@ -305,6 +305,45 @@
       "value": "MS"
     }
   ],
+  "govee scene": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "DEVICE",
+      "required": true,
+      "value": "DEVICE"
+    },
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "SCENE",
+      "required": true,
+      "value": "SCENE"
+    }
+  ],
+  "govee scenes": [],
+  "govee scenes fetch": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "SKU",
+      "required": true,
+      "value": "SKU"
+    }
+  ],
+  "govee scenes list": [
+    {
+      "choices": null,
+      "default": null,
+      "multiple": false,
+      "name": "SKU",
+      "required": true,
+      "value": "SKU"
+    }
+  ],
   "govee segment": [
     {
       "choices": null,

@@ -52,6 +52,14 @@ impl Frame {
                     let value = int_arg(command, args, name)?;
                     push_int(&mut out, command, name, value, *bits)?;
                 }
+                Token::Arg16Le { name } => {
+                    let value = int_arg(command, args, name)?;
+                    push_int(&mut out, command, name, value, 16)?;
+                    let len = out.len();
+                    if let Some(field) = out.get_mut(len - 2..) {
+                        field.reverse();
+                    }
+                }
                 Token::Text { name, prefix } => {
                     let text = text_arg(command, args, name)?.as_bytes();
                     let max = (1usize << (prefix * 8)) - 1;
@@ -128,7 +136,7 @@ impl Frame {
         for token in &self.tokens {
             size += match token {
                 Token::Literal(_) | Token::Xor | Token::Sum => 1,
-                Token::Len16 => 2,
+                Token::Len16 | Token::Arg16Le { .. } => 2,
                 Token::SpanEnd => 0,
                 Token::Groups { cells, .. } => match args.get(cells) {
                     Some(ArgValue::Zones(zones)) => 1 + zones.len() * 5,

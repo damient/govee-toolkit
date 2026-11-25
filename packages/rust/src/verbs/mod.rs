@@ -9,6 +9,7 @@
 
 mod identify;
 mod music;
+mod scene;
 mod segment;
 mod supported;
 mod white;

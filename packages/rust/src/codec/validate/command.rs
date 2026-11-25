@@ -297,6 +297,8 @@ pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
         Role::WifiProvisionWithApi => &WIFI_CREDENTIALS_WITH_API,
         Role::Status => &[],
         Role::Music => &[ArgRole::Effect],
+        Role::Scene => &[ArgRole::SceneCode, ArgRole::SceneParam, ArgRole::SceneType],
+        Role::SceneBuiltin => &[ArgRole::SceneCode],
     };
     let mut problems: Vec<String> = required
         .iter()

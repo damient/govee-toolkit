@@ -16,6 +16,7 @@ mod devices;
 mod identify;
 #[cfg(feature = "ble")]
 mod provision;
+mod scenes;
 mod send;
 mod status;
 mod stream;
@@ -53,6 +54,7 @@ async fn route(govee: &Govee, cli: &Cli, writer: Writer) -> Result<(), Failure> 
             Ok(())
         }
         Command::Describe { target } => describe::run(govee, writer, target).await,
+        Command::Scenes(action) => scenes::run(writer, action).await,
         Command::Identify {
             targets,
             color,
@@ -126,6 +128,7 @@ async fn play(writer: Writer, members: &Devices<'_>, verb: &cli::Verb) -> Result
             color,
             ..
         } => Verb::Music(music(*effect, *sensitivity, *soft, color.as_deref())?),
+        cli::Verb::Scene { scene, .. } => Verb::Scene(scene.clone()),
     };
     verbs::run(writer, members, played).await
 }

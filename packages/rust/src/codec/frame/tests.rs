@@ -114,3 +114,21 @@ fn rejects_groups_with_one_argument() {
     let err = Frame::parse("x", "${cells:groups}").expect_err("should not parse");
     assert_eq!(err.code(), "frame_syntax");
 }
+
+#[test]
+fn a_little_endian_field_puts_the_low_byte_first() {
+    let frame = Frame::parse("x", "33 ${code:16le} ${code:16}").expect("should parse");
+    let args = crate::codec::Args::new().int("code", 0x3F36);
+    assert_eq!(
+        frame.build("x", &args).expect("should build"),
+        [0x33, 0x36, 0x3F, 0x3F, 0x36]
+    );
+}
+
+#[test]
+fn a_little_endian_field_refuses_a_value_past_16_bits() {
+    let frame = Frame::parse("x", "${code:16le}").expect("should parse");
+    let args = crate::codec::Args::new().int("code", 0x1_0000);
+    let err = frame.build("x", &args).expect_err("should not build");
+    assert_eq!(err.code(), "frame_width");
+}

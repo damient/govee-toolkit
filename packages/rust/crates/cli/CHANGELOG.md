@@ -5,6 +5,13 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Added
+
+- `govee scene <device> <scene>` plays a scene by name or code from the
+  cached library of the device's model.
+- `govee scenes fetch <SKU>` stores a model's scene library, with no account.
+  `govee scenes list <SKU>` prints it.
+
 ## [1.13.0] — 2026-11-23
 
 ### Changed

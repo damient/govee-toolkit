@@ -30,6 +30,11 @@ pub enum Token {
         /// `8` or `16`.
         bits: u32,
     },
+    /// An integer argument, emitted as two bytes, least significant first.
+    Arg16Le {
+        /// The argument name.
+        name: String,
+    },
     /// A string argument, behind a length prefix `prefix` bytes wide.
     Text {
         /// The argument name.
@@ -200,6 +205,7 @@ impl Frame {
             .iter()
             .flat_map(|t| match t {
                 Token::Arg { name, .. }
+                | Token::Arg16Le { name }
                 | Token::Text { name, .. }
                 | Token::Mask { name, .. }
                 | Token::Bytes { name } => [Some(name.as_str()), None],
@@ -334,6 +340,7 @@ fn parse_arg_ref(inner: &str) -> Option<Token> {
     Some(match kind {
         "8" => Token::Arg { name, bits: 8 },
         "16" => Token::Arg { name, bits: 16 },
+        "16le" => Token::Arg16Le { name },
         "str8" => Token::Text { name, prefix: 1 },
         "str16" => Token::Text { name, prefix: 2 },
         "mask8" => Token::Mask { name, width: 1 },

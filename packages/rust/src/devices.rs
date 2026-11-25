@@ -197,6 +197,13 @@ impl<'a> Devices<'a> {
         self.each(|handle| async move { handle.music(music).await })
             .await
     }
+
+    /// [`DeviceHandle::scene_named`] on every member. Each member reads the
+    /// library of its own model, where the same name can carry another code.
+    pub async fn scene(&self, query: &str) -> Vec<Outcome> {
+        self.each(|handle| async move { handle.scene_named(query).await })
+            .await
+    }
 }
 
 /// Each handle keeps its own mode pin, and nothing scans.

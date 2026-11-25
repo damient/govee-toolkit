@@ -371,7 +371,8 @@ frames, a chunked transfer included.
 
 A chunked transfer of [`ble.md`](ble.md) 6 goes in one datagram, the frame
 that plays it included. One firmware stored and played a drawing of
-[`ble.md`](ble.md) 6.3 this way.
+[`ble.md`](ble.md) 6.3 this way, and a scene of [`ble.md`](ble.md) 6.5 in
+12 frames.
 
 A device file declares it with `payload: { command: "${frames}" }`. See
 `devices/schema.yaml`.
