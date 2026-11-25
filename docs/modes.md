@@ -8,7 +8,7 @@ trade-offs, and **the user chooses which ones to enable, per device**.
 | ---- | ------- | ----- | ------------ | -------- |
 | `lan` | lowest | same network | the undocumented segment channel, in color, and `ble` frames in `ptReal`, music included. Brightness is global | LAN Control enabled in the Govee Home app |
 | `ble` | low | Bluetooth range | depends on the SKU family | a Bluetooth adapter on the host, and the device not already connected to something else |
-| `cloud` | highest (internet round-trip) | anywhere | segments in color and in brightness, music. No segment stream; throttled | a Govee API key, subject to rate limits |
+| `cloud` | highest (internet round-trip) | anywhere | segments in color and in brightness, music. Throttled | a Govee API key, subject to rate limits |
 
 The `lan` row is why a device that does music and per-segment brightness reads
 as `capped` over `lan` in [`compatibility.md`](compatibility.md): the transport
@@ -211,9 +211,9 @@ cost two windows.
 
 ## Capability differences between modes
 
-Modes are not interchangeable, and neither is a superset of the other. `cloud`
-does not expose the undocumented segment channel `lan` reaches, and it carries
-no segment stream at all. `lan` does not reach the per-segment brightness that
+Modes are not interchangeable, and neither is a superset of the other. The segment
+stream exists on `lan` alone: `ble` and `cloud` paint zones with `segment` and
+carry no stream. `lan` does not reach the per-segment brightness that
 `cloud` and `ble` carry. `ble` does not reach the network
 ([`protocol/cloud.md`](protocol/cloud.md)). When several modes are enabled and
 the SDK switches, a command unsupported by the active mode **fails explicitly**

@@ -154,6 +154,7 @@ pub(crate) enum Command {
     },
 
     /// Stream colors to the segment channel, one frame per line of stdin.
+    /// The channel exists on `lan` alone.
     ///
     /// A line is one `#RRGGBB`, which fills every zone, or one per zone,
     /// comma-separated. The stream closes at end of input, which disarms the
