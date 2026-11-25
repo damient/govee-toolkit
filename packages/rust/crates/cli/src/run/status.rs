@@ -1,14 +1,29 @@
+//! `status`: the state of every device of the target, one line each.
+
 use govee_toolkit::codec::Mode;
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{DeviceHandle, DeviceStatus};
+use govee_toolkit::{DeviceId, DeviceStatus, Devices};
 use serde_json::{Value, json};
 
-pub(super) async fn run(writer: Writer, handle: &DeviceHandle<'_>) -> Result<(), Failure> {
-    let call = handle.resolve()?;
-    let mode = call.mode();
-    let status = call.status().await?;
-    writer.emit(&as_json(&status, mode), &as_text(&status, mode));
-    Ok(())
+use crate::run::verbs::settle;
+
+pub(super) async fn run(writer: Writer, members: &Devices<'_>) -> Result<(), Failure> {
+    let outcomes = members
+        .each(|handle| async move {
+            handle.ensure_known().await?;
+            let call = handle.resolve()?;
+            Ok((call.mode(), call.status().await?))
+        })
+        .await;
+
+    let mut failures: Vec<(DeviceId, Failure)> = Vec::new();
+    for outcome in outcomes {
+        match outcome.result {
+            Ok((mode, status)) => writer.emit(&as_json(&status, mode), &as_text(&status, mode)),
+            Err(error) => failures.push((outcome.id, Failure::from(error))),
+        }
+    }
+    settle(writer, members.len(), failures)
 }
 
 // The core renders the fields, so this line and the `status` event line agree.

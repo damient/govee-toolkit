@@ -89,7 +89,8 @@ pub(crate) enum Command {
 
     /// Send one device file entry by name.
     Send {
-        /// The device: its identity, or a name the configuration gives.
+        /// The devices: an identity, a SKU, a name or a group. A device whose
+        /// file does not declare the entry fails, and the others go ahead.
         device: String,
         /// The entry in `commands.<mode>` of the device file.
         command: String,
@@ -98,9 +99,9 @@ pub(crate) enum Command {
         args: Vec<String>,
     },
 
-    /// Read the device's state.
+    /// Read the state of each device.
     Status {
-        /// The device: its identity, or a name the configuration gives.
+        /// The devices: an identity, a SKU, a name or a group.
         device: String,
     },
 
@@ -224,12 +225,12 @@ impl Command {
     /// The target of a command that drives one device.
     pub(crate) fn device(&self) -> Option<&str> {
         match self {
-            Self::Send { device, .. } | Self::Status { device } | Self::Stream { device, .. } => {
-                Some(device)
-            }
+            Self::Stream { device, .. } => Some(device),
             #[cfg(feature = "ble")]
             Self::Provision { device, .. } => Some(device),
             Self::Scan { .. }
+            | Self::Send { .. }
+            | Self::Status { .. }
             | Self::Verb(_)
             | Self::Identify { .. }
             | Self::Devices { .. }

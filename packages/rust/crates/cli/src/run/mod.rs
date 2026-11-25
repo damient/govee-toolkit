@@ -65,8 +65,22 @@ async fn route(govee: &Govee, cli: &Cli, writer: Writer) -> Result<(), Failure> 
             let walk = walk(color, *wait_ms, *hold_ms, *keep, restrict)?;
             identify::run(govee, writer, targets, &walk).await
         }
-        Command::Send { command, args, .. } => send::run(writer, one()?, command, args).await,
-        Command::Status { .. } => status::run(writer, one()?).await,
+        Command::Send {
+            device,
+            command,
+            args,
+        } => {
+            send::run(
+                writer,
+                &selected(govee, device, restrict).await?,
+                command,
+                args,
+            )
+            .await
+        }
+        Command::Status { device } => {
+            status::run(writer, &selected(govee, device, restrict).await?).await
+        }
         Command::Watch { rescan_ms } => watch::run(govee, writer, *rescan_ms, restrict).await,
         Command::Stream {
             resolution,
@@ -98,10 +112,12 @@ async fn route(govee: &Govee, cli: &Cli, writer: Writer) -> Result<(), Failure> 
             .await
         }
         Command::Verb(verb) => {
-            let members = govee
-                .devices(Filter::targets([verb.device()]), restrict)
-                .await?;
-            play(writer, &members, verb).await
+            play(
+                writer,
+                &selected(govee, verb.device(), restrict).await?,
+                verb,
+            )
+            .await
         }
     }
 }
@@ -154,6 +170,15 @@ fn music(effect: i64, sensitivity: i64, soft: bool, color: Option<&str>) -> Resu
         soft,
         color: color.map(args::rgb).transpose()?,
     })
+}
+
+/// The devices that a target names: an identity, a SKU, a name or a group.
+async fn selected<'a>(
+    govee: &'a Govee,
+    target: &str,
+    restrict: Option<Mode>,
+) -> Result<Devices<'a>, Failure> {
+    Ok(govee.devices(Filter::targets([target]), restrict).await?)
 }
 
 /// No mode keeps a record across runs, so a fresh process must find the

@@ -11,6 +11,10 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
   cached library of the device's model.
 - `govee scenes fetch <SKU>` stores a model's scene library, with no account.
   `govee scenes list <SKU>` prints it.
+- `govee send` and `govee status` take a set of devices, as the verbs do:
+  an identity, a SKU, a name or a group. Each device answers on its own
+  line. A device that fails writes its error to stderr, and the others go
+  ahead.
 
 ### Changed
 

@@ -1,34 +1,53 @@
-//! `send`: one device file entry, named as the file names it. The crate
-//! resolves the mode once and reads every value under the type the entry
-//! declares for it — see [`govee_toolkit::DeviceHandle::resolve`].
+//! `send`: one device file entry, named as the file names it, to every
+//! device of the target. For each device, the crate resolves the mode once
+//! and reads every value under the type the entry declares for it — see
+//! [`govee_toolkit::DeviceHandle::resolve`].
 //!
 //! An entry that declares a `reply:` is read, and what the layout captured is
 //! printed under the names the device file gives the fields.
 
-use govee_toolkit::codec::{self, Supplied};
+use govee_toolkit::codec::{self, Mode, Supplied};
 use govee_toolkit::exit::{Failure, Writer};
-use govee_toolkit::{DeviceHandle, Error, Invoked};
+use govee_toolkit::{DeviceId, Devices, Error, Invoked, Reply};
 use serde_json::json;
 
-use crate::run::verbs::report;
+use crate::run::verbs::{report, settle};
 
+/// Send the entry to every member. A member whose file does not declare it
+/// fails, and the others go ahead.
 pub(super) async fn run(
     writer: Writer,
-    handle: &DeviceHandle<'_>,
+    members: &Devices<'_>,
     command: &str,
     pairs: &[String],
 ) -> Result<(), Failure> {
-    let call = handle.resolve()?;
-    let mode = call.mode();
-    let values = call.args(command, supplied(pairs)?).map_err(usage)?;
+    let supplied = supplied(pairs)?;
+    let outcomes = members
+        .each(|handle| {
+            let supplied = supplied.clone();
+            async move {
+                handle.ensure_known().await?;
+                let call = handle.resolve()?;
+                let values = call.args(command, supplied)?;
+                Ok((call.mode(), call.invoke(command, &values).await?))
+            }
+        })
+        .await;
 
-    let reply = match call.invoke(command, &values).await? {
-        Invoked::Sent(served) => {
-            report(writer, &served);
-            return Ok(());
+    let mut failures: Vec<(DeviceId, Failure)> = Vec::new();
+    for outcome in outcomes {
+        match outcome.result {
+            Ok((_, Invoked::Sent(served))) => report(writer, &served),
+            Ok((mode, Invoked::Read(reply))) => fields(writer, mode, command, &reply),
+            Err(error) => failures.push((outcome.id, usage(error))),
         }
-        Invoked::Read(reply) => reply,
-    };
+    }
+    settle(writer, members.len(), failures)
+}
+
+/// What the `reply:` layout captured, under the names the device file gives
+/// the fields.
+fn fields(writer: Writer, mode: Mode, command: &str, reply: &Reply) {
     let fields = reply.fields.to_json();
     let text = fields
         .as_object()
@@ -48,7 +67,6 @@ pub(super) async fn run(
         }),
         &format!("{}  {mode}  {command}  {text}", reply.id),
     );
-    Ok(())
 }
 
 /// Each `name=value` as the shape a person typed: text, which the crate reads

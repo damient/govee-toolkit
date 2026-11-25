@@ -10,7 +10,6 @@ use serde_json::json;
 
 pub(super) async fn run(writer: Writer, members: &Devices<'_>, verb: Verb) -> Result<(), Failure> {
     let applied = members.apply(vec![verb]).await;
-    let line = applied.verdict();
     let mut failures: Vec<(DeviceId, Failure)> = Vec::new();
     for outcome in applied.reached {
         if let Err(error) = outcome.result {
@@ -23,12 +22,24 @@ pub(super) async fn run(writer: Writer, members: &Devices<'_>, verb: Verb) -> Re
             Err(error) => failures.push((outcome.id, Failure::from(error))),
         }
     }
-    let Some(line) = line else {
+    settle(writer, members.len(), failures)
+}
+
+/// Report the failures of a run over `members` devices. A set of one member
+/// exits with the error itself. A larger set writes one line per failure to
+/// stderr, and exits with the code of the first one.
+pub(super) fn settle(
+    writer: Writer,
+    members: usize,
+    mut failures: Vec<(DeviceId, Failure)>,
+) -> Result<(), Failure> {
+    if failures.is_empty() {
         return Ok(());
-    };
-    if members.len() == 1 {
+    }
+    if members == 1 {
         return Err(failures.remove(0).1);
     }
+    let mut ids: Vec<String> = Vec::new();
     for (id, failure) in &failures {
         writer.warn(
             &json!({
@@ -37,7 +48,15 @@ pub(super) async fn run(writer: Writer, members: &Devices<'_>, verb: Verb) -> Re
             }),
             &format!("{id} failed: {}", failure.message()),
         );
+        if !ids.contains(&id.to_string()) {
+            ids.push(id.to_string());
+        }
     }
+    let line = format!(
+        "{} of {members} devices failed: {}",
+        ids.len(),
+        ids.join(", ")
+    );
     Err(failures.remove(0).1.with_message(line))
 }
 
