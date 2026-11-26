@@ -171,9 +171,9 @@ in between.
 | `scan` | Finds the devices on your network |
 | `list_known` | Lists the devices found, with the health of each mode |
 | `status` | Reads the state of a device |
-| `set` | Sets power, brightness, color, white temperature, a segment, a gradient or music mode |
+| `set` | Sets power, brightness, color, white temperature, a segment, a gradient, music mode or a scene |
 | `send` | Sends one command that the device file declares |
-| `stream` | Plays frames on the segments of one or more devices, then gives back their colors |
+| `stream` | Plays frames on the segments of one or more devices over Wi-Fi, then gives back their colors |
 | `identify` | Lights the devices one by one, so you see which is which |
 | `doctor` | Lists the problems in your configuration |
 

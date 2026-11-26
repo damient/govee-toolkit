@@ -2,8 +2,8 @@
 title: Modi
 slug: modes
 order: 6
-description: WLAN, Bluetooth oder die Cloud — von wo aus jeder Weg deine Leuchte erreicht, und was jeder braucht.
-source: 4f40857299b36f7e9d64f3d83ccb55b68d2271ac
+description: WLAN, Bluetooth oder die Cloud: von wo aus jeder Weg deine Leuchte erreicht, und was jeder braucht.
+source: 754a0b1129283a1e2ac0b73a9665404789b4437a
 ---
 
 # Modi
@@ -19,16 +19,16 @@ Gerät, welche Wege erlaubt sind.
 
 ## Was jeder Modus braucht {#what-each-mode-needs}
 
-{{badge_lan}} — schalte „LAN Control“ für das Gerät in der Govee Home App ein,
+{{badge_lan}}: schalte „LAN Control“ für das Gerät in der Govee Home App ein,
 und bring das Gerät und deinen Computer ins selbe Netzwerk. Gast-WLAN und manche
-Mesh-Systeme trennen sie.
+Mesh-Systeme trennen sie. Die Live-Animation der Segmente läuft über diesen Modus.
 
-{{badge_ble}} — ein Bluetooth-Adapter an deinem Computer, und das Gerät in
+{{badge_ble}}: ein Bluetooth-Adapter an deinem Computer, und das Gerät in
 Reichweite. Eine Verbindung zur Zeit: Ein verbundenes Gerät sendet keine
 Advertisements mehr. Ein Scan, während ein anderer Controller die Verbindung
 hält, findet deshalb nichts.
 
-{{badge_cloud}} — ein Govee-API-Schlüssel, und das Gerät, registriert auf dieses
+{{badge_cloud}}: ein Govee-API-Schlüssel, und das Gerät, registriert auf dieses
 Konto. Die API ist gedrosselt und überträgt keine Animation.
 
 ## Wo die Wahrheit steht {#where-the-truth-lives}

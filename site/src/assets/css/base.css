@@ -33,6 +33,8 @@ img, svg { max-width: 100%; }
 
 .shell { width: 100%; max-width: var(--shell); margin-inline: auto; padding-inline: var(--gutter); }
 .shell.narrow { max-width: 760px; }
+/* The model index: one capability column needs less than the full shell. */
+.shell.list { max-width: 1120px; }
 /* The hero beam runs under the first sections, and a positioned layer paints
    over the content of a static one. They stand above it. */
 .slab { position: relative; z-index: 1; padding-block: clamp(40px, 5.5vw, 72px); }

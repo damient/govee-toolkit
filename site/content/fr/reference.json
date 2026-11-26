@@ -1,5 +1,5 @@
 {
-  "$source": "53c2af29c206fb239497a66aca386c9734d5a499",
+  "$source": "7df8dfd5afc149b55ab6cc4a29a460a1fac49637",
   "intro": "Chaque action, depuis la CLI govee, Rust, Python, Node.js ou une console DMX.",
   "groups": {
     "find": "Trouver les appareils",
@@ -31,10 +31,7 @@
     },
     "status": {
       "summary": "Demander à l'appareil son état actuel.",
-      "detail": "`last_status` renvoie l'état déjà connu et n'envoie rien.",
-      "action": {
-        "title": "Relire l'état"
-      }
+      "detail": "`last_status` renvoie l'état déjà connu et n'envoie rien."
     },
     "watch": {
       "summary": "Suivre les événements : un appareil apparaît, l'état de santé d'un mode change."
@@ -72,7 +69,7 @@
     },
     "segment": {
       "summary": "Peindre les zones.",
-      "detail": "Une seule couleur remplit chaque zone, et une liste donne une couleur par zone. Avec `zones`, seules les zones nommées changent, ce qui demande un mode qui peint par masque. Un nombre de zones que l'unité n'affiche pas est refusé.",
+      "detail": "Une seule couleur remplit chaque zone, et une liste donne une couleur par zone. Avec `zones`, seules les zones nommées changent, ce qui demande un mode qui peint par masque. Les couleurs restent après l'appel. Un nombre de zones que l'unité n'affiche pas est refusé. Pour une couleur par LED, ouvrez un flux ou enregistrez un dessin.",
       "action": {
         "title": "Peindre les zones"
       }
@@ -87,7 +84,7 @@
     },
     "music": {
       "summary": "Jouer un effet que l'appareil produit à partir de son propre micro.",
-      "detail": "L'appareil écoute avec son propre micro, et rien n'est envoyé en flux depuis votre machine. Les numéros d'effet dépendent du mode, et `lan` ne transmet aucune commande de musique. Réglez une couleur, une température ou l'alimentation pour arrêter l'effet.",
+      "detail": "L'appareil écoute avec son propre micro, et rien n'est envoyé en flux depuis votre machine. Les numéros d'effet dépendent du mode. En `lan`, la commande passe dans `ptReal` sur un modèle dont le fichier d'appareil la déclare. Réglez une couleur, une température ou l'alimentation pour arrêter l'effet.",
       "action": {
         "title": "Jouer un effet musical",
         "summary": "L'appareil écoute avec son propre micro."
@@ -95,7 +92,11 @@
     },
     "open-stream": {
       "summary": "Ouvrir le canal des segments et le garder armé.",
-      "detail": "Le flux indique le nombre de zones et la cadence de trames mesurée sur l'unité. Les couleurs s'arrêtent quand vous le fermez."
+      "detail": "Le flux s'ouvre en `lan`. Il indique le nombre de zones et la cadence de trames mesurée sur l'unité. Les couleurs s'arrêtent quand vous le fermez.",
+      "action": {
+        "title": "Animer en temps réel",
+        "summary": "Ouvrez le canal des segments et envoyez trame après trame. Les couleurs s'arrêtent quand vous le fermez."
+      }
     },
     "set-zone": {
       "summary": "Régler une zone du flux."
@@ -130,14 +131,27 @@
     },
     "provision": {
       "summary": "Connecter un nouvel appareil à un réseau Wi-Fi, en Bluetooth.",
-      "detail": "Le mot de passe circule en clair : tout ce qui est à portée Bluetooth pendant le transfert peut le lire.",
-      "action": {
-        "title": "Le connecter à un réseau Wi-Fi"
-      }
+      "detail": "Le mot de passe circule en clair : tout ce qui est à portée Bluetooth pendant le transfert peut le lire."
     },
     "modes": {
       "summary": "Limiter une commande à un seul mode.",
       "detail": "Elle n'active jamais un mode que la configuration omet, et elle ne se replie jamais sur un autre mode. Un appareil qu'aucun mode activé n'atteint est une erreur."
+    },
+    "scene": {
+      "summary": "Jouer une scène de la bibliothèque de scènes du modèle, par son nom ou son code.",
+      "detail": "`govee scenes fetch` enregistre la bibliothèque d'un modèle, sans compte ni clé, et `govee scenes list` l'affiche. Un appel lit le cache et n'envoie aucune requête au cloud. Un nom qui correspond à plusieurs scènes est refusé, et l'erreur donne le nom complet de chacune. En `lan`, la scène passe dans `ptReal`, et l'appareil ne répond rien.",
+      "action": {
+        "title": "Jouer une scène",
+        "summary": "Récupérez une fois la bibliothèque de scènes du modèle. Chaque appel la lit ensuite dans le cache."
+      }
+    },
+    "draw": {
+      "summary": "Enregistrer un dessin des LED sur l'appareil.",
+      "detail": "`cells` nomme les LED, à partir de zéro, et les autres LED affichent le fond. `colors` contient une couleur, ou une couleur par cellule. Sans `cells`, il contient une couleur par zone. Les autres arguments de la commande de dessin, comme le fond et la vitesse, prennent les valeurs par défaut du fichier d'appareil, qui tiennent le dessin immobile. En `lan`, le dessin passe dans `ptReal`.",
+      "action": {
+        "title": "Dessiner",
+        "summary": "L'appareil continue de jouer le dessin après l'arrêt de l'envoi."
+      }
     }
   }
 }

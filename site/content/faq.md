@@ -87,8 +87,16 @@ whole strip in one command. Each model page gives its zone count.
 ## Can my lights follow music or my screen? <!-- menu: Music and screen -->
 
 The toolkit streams colors to a strip frame after frame, in real time, over
-Wi-Fi and over Bluetooth. Your own program, or one you pick, supplies the
-frames: from music, from the screen or from a sensor.
+Wi-Fi. Your own program, or one you pick, supplies the frames: from music,
+from the screen or from a sensor. A model with a microphone also plays its
+own music effects: its model page lists the modes that carry them.
+
+## Can I play the scenes of my light? <!-- menu: Scenes -->
+
+Yes, on a model whose page lists "Play a scene". `govee scenes fetch <model>`
+stores the scene library of the model once, with no account. `govee scene
+<device> "<name>"` then plays a scene by its name or its code. You can also
+store a drawing of your own on the device, and the device keeps playing it.
 
 ## Can I control my lights with DMX? <!-- menu: DMX -->
 
@@ -100,7 +108,7 @@ media server or a show application, and each light becomes a DMX fixture.
 
 Yes. The MCP server, `govee-toolkit-mcp`, runs on your machine and gives an
 assistant the device catalog and the controls: scan, status, power,
-brightness, color and segments. [MCP server]({{base}}docs/mcp/) explains the
+brightness, color, segments and scenes. [MCP server]({{base}}docs/mcp/) explains the
 setup.
 
 ## Does it work with Home Assistant, Homebridge or Matter? <!-- menu: Home Assistant, Matter -->

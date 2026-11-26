@@ -3,7 +3,7 @@ title: MCP-Server
 slug: mcp
 order: 8
 description: Lass einen KI-Assistenten den Gerätekatalog lesen und deine Leuchten steuern, über einen lokalen MCP-Server.
-source: 92c6411f45f2e8e5d5006a6c8cf7e45127325edf
+source: df5029f3b6fc02690a6c6ad1b6111f898d7f09a0
 ---
 
 # MCP-Server
@@ -173,9 +173,9 @@ dazwischen scannen.
 | `scan` | Findet die Geräte in deinem Netzwerk |
 | `list_known` | Listet die gefundenen Geräte, mit dem Zustand jedes Modus |
 | `status` | Liest den Zustand eines Geräts |
-| `set` | Setzt Ein/Aus, Helligkeit, Farbe, Farbtemperatur, ein Segment, einen Verlauf oder den Musikmodus |
+| `set` | Setzt Ein/Aus, Helligkeit, Farbe, Farbtemperatur, ein Segment, einen Verlauf, den Musikmodus oder eine Szene |
 | `send` | Sendet einen Befehl, den die Gerätedatei deklariert |
-| `stream` | Spielt Frames auf den Segmenten eines oder mehrerer Geräte ab und stellt dann ihre Farben wieder her |
+| `stream` | Spielt Frames auf den Segmenten eines oder mehrerer Geräte über WLAN ab und stellt dann ihre Farben wieder her |
 | `identify` | Lässt die Geräte eines nach dem anderen leuchten, damit du siehst, welches welches ist |
 | `doctor` | Listet die Probleme in deiner Konfiguration |
 

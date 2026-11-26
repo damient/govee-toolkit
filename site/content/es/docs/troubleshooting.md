@@ -3,7 +3,7 @@ title: Solución de problemas
 slug: troubleshooting
 order: 9
 description: Nada responde al escaneo, un comando no hace nada, se rechaza un valor: qué significa cada caso.
-source: 29626cda78a98b9a2c684d72dc514da617657a12
+source: 3efc01557d239fe5fdbfe28919096d20636a6be3
 ---
 
 # Solución de problemas
@@ -68,6 +68,18 @@ En un modelo verificado, el firmware limita `brightness: 0` a 1. Usa
 El canal de segmentos en `lan` solo transporta color. Ahí el brillo es global.
 `ble` transporta el brillo por zona, y `cloud` lo transporta por zona. Es una
 propiedad del transporte, no una carencia del código.
+
+## No se encuentra una escena {#a-scene-is-not-found}
+
+`govee scene` lee la biblioteca de escenas del modelo desde una caché en tu
+ordenador.
+
+- `scene_list_missing`: ejecuta una vez `govee scenes fetch <modelo>` y vuelve
+  a intentarlo.
+- `unknown_scene`: `govee scenes list <modelo>` muestra los nombres y los
+  códigos.
+- `ambiguous_scene`: el nombre coincide con más de una escena. Da un nombre
+  completo del error, o un código.
 
 ## El escaneo Bluetooth no encuentra nada {#the-bluetooth-scan-finds-nothing}
 

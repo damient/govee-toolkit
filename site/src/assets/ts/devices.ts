@@ -41,20 +41,19 @@ export function filter(input: HTMLInputElement): void {
   apply();
 }
 
-// A plain click on the SKU copies it; the link serves the keyboard and every other click.
+// The SKU button copies the SKU. A click anywhere else on the row opens the model page.
 export function rowLink(body: HTMLElement): void {
   body.addEventListener("click", (event) => {
     if (!(event.target instanceof Element)) return;
-    const sku = event.target.closest("th[scope='row']");
-    if (sku && event.detail > 0 && !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) {
-      event.preventDefault();
-      void copySku(sku.textContent?.trim() ?? "");
+    const sku = event.target.closest<HTMLElement>("[data-sku]");
+    if (sku) {
+      void copySku(sku.dataset.sku ?? "");
       return;
     }
     if (event.target.closest("a")) return;
     if (String(getSelection())) return;
     const row = event.target.closest("tr");
-    const link = row?.querySelector<HTMLAnchorElement>("th a[href]");
+    const link = row?.querySelector<HTMLAnchorElement>("a.model-name");
     if (link) link.click();
   });
 }

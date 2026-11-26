@@ -13,15 +13,6 @@
 .matrix tbody tr.has-page:hover { background: var(--panel); }
 .matrix tbody tr.has-page:hover th[scope="row"] a { color: var(--ember); }
 
-/* The model index: the seven columns need more width than a phone has. */
-.matrix-list { min-width: 720px; }
-/* The three mode columns and the DMX column answer one question each:
-   centered, they read as a row of answers rather than as four ragged
-   columns. */
-.matrix-list th:nth-child(n + 4), .matrix-list td:nth-child(n + 4) { text-align: center; }
-
-.matrix-list td:nth-child(n + 4) .caps-row { justify-content: center; }
-.matrix-list thead th:nth-child(n + 4) .mbadge { display: inline-flex; }
 
 /* A model page holds the same two columns in every table, so they carry one
    column width and wrap inside it rather than scrolling. */
@@ -41,11 +32,6 @@
    model index gives them. */
 .mode-note { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); }
 
-/* The family icon draws the shape of the product, so a reader finds a model by
-   what it looks like before reading its name. Its column carries no head: the
-   shape stands for the name beside it. */
-.matrix-list th:nth-child(2), .matrix-list .shape { width: 64px; }
-.matrix-list .shape { line-height: 0; text-align: center; }
 .family-icon { width: 19px; height: 19px; color: var(--muted); }
 
 .pill {
@@ -58,11 +44,6 @@
 .pill-capped { color: var(--azure); border-color: color-mix(in oklab, var(--azure) 45%, transparent); }
 .pill-partial { color: var(--amber); border-color: color-mix(in oklab, var(--amber) 45%, transparent); }
 .pill-unknown { color: var(--muted); border-style: dashed; }
-/* The DMX answer. It takes the green of a full mode: the column says the
-   bridge reaches the model, the same way a pill says a mode does. */
-.dmx-yes { display: inline-flex; color: var(--green); }
-.dmx-yes .badge-icon { width: 17px; height: 17px; margin-right: 0; }
-
 
 /* --- One model, one page ------------------------------------------------ */
 
@@ -175,14 +156,6 @@ a.mbadge-device:hover { --tint: var(--text); }
 .caps-lg li { font-size: 14px; padding: 10px 14px; border-radius: 8px; gap: 9px; }
 .caps-lg .cap-icon { width: 17px; height: 17px; }
 
-/* The legend names every mark of the table in the chip the model page uses,
-   so one mark reads the same on both pages. The two marks that carry a
-   sentence take the slot of the icon. The capabilities take the first row,
-   the marks the second. */
-.legend-caps { margin: 0; justify-content: center; }
-.legend-caps:first-of-type { margin: 2.4em 0 16px; }
-.legend-caps .pill { padding: 3px 8px; }
-.legend-caps .muted { width: 15px; text-align: center; }
 
 
 /* The action blocks take the two-column layout of the reference page. The
@@ -194,16 +167,20 @@ a.mbadge-device:hover { --tint: var(--text); }
 .usage .ref-entry:last-child { padding-bottom: 0; }
 .is-device .usage h3 { font-size: 1.05rem; margin: 0 0 .6em; }
 
-/* What this model bounds. The mode badge stands on a row only where the modes
-   disagree on the range. */
+/* What this model bounds, under the code. The mode badge stands on a row only
+   where the modes disagree on the range. */
+.ref-code { min-width: 0; }
 .bounds { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ref-code .bounds { margin-top: 12px; }
 .prose .bounds { padding-left: 0; }
 .prose .bounds li {
   display: inline-flex; align-items: center; gap: 8px; margin-bottom: 0;
   font: 400 12px/1 var(--mono); color: var(--prose);
   background: var(--panel-2); border: 1px solid var(--line);
-  border-radius: 6px; padding: 6px 9px;
+  border-radius: 6px; padding: 0 9px; height: 26px; box-sizing: border-box;
 }
+/* A mode mark fits the height of a plain row. */
+.bounds .mbadge-mini { padding: 2px; }
 .bounds li code { background: none; border: 0; padding: 0; color: var(--text); }
 
 /* The two closing blocks stand side by side where the column is wide enough.

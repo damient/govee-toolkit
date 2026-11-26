@@ -28,7 +28,7 @@
           "id": "devices",
           "title": "devices",
           "summary": "Name several devices at once, then list them or send them one command.",
-          "detail": "A target is an identity (`1C:8B:\u2026`), a SKU (`H6159`), a configured name (`kitchen`) or a group (`ambient`). Prefix it with `id:`, `sku:`, `name:` or `group:` where the kind is ambiguous. With no target, it selects every device a scan finds. The first call that reads a SKU, or every device, scans once. Each member answers its own outcome, and a member that fails stops no other one.",
+          "detail": "A target is an identity (`1C:8B:…`), a SKU (`H6159`), a configured name (`kitchen`) or a group (`ambient`). Prefix it with `id:`, `sku:`, `name:` or `group:` where the kind is ambiguous. With no target, it selects every device a scan finds. The first call that reads a SKU, or every device, scans once. Each member answers its own outcome, and a member that fails stops no other one.",
           "api": [
             "Govee::devices"
           ],
@@ -100,10 +100,6 @@
           "roles": [
             "status"
           ],
-          "action": {
-            "order": 80,
-            "title": "Read the state back"
-          },
           "summary": "Ask the device for its current state.",
           "detail": "`last_status` returns the state already known and sends nothing.",
           "api": [
@@ -277,7 +273,6 @@
           "id": "segment",
           "title": "segment",
           "roles": [
-            "segment_color",
             "segment_color_masked"
           ],
           "action": {
@@ -286,7 +281,7 @@
             "segments": true
           },
           "summary": "Paint the zones.",
-          "detail": "One color fills every zone, and a list gives one color per zone. With `zones`, only the named zones change, which needs a mode that paints by mask. A zone count the unit does not render is refused.",
+          "detail": "One color fills every zone, and a list gives one color per zone. With `zones`, only the named zones change, which needs a mode that paints by mask. The colors stay after the call. A zone count the unit does not render is refused. For one color per LED, open a stream or store a drawing.",
           "api": [
             "DeviceHandle::segment"
           ],
@@ -306,17 +301,6 @@
               ],
               "examples": {
                 "cli": "govee segment DEVICE --zones 0,1,2 \"#ff3d00\""
-              }
-            },
-            {
-              "needs": [
-                "native_pixels"
-              ],
-              "examples": {
-                "cli": "# One color per LED, in zone order. `describe` reports how many.\ngovee segment DEVICE --resolution native \"#ff3d00,#00a3ff,#000000,...\"\n# The same list, from a pipe or a file.\necho \"#ff3d00,#00a3ff,#000000,...\" | govee segment DEVICE --resolution native -",
-                "rust": "device.segment(&Paint {\n    zones: None,\n    colors: &frame,\n    resolution: Resolution::Native,\n    gradient: false,\n}).await?;",
-                "python": "await device.segment(colors=frame, resolution=\"native\")",
-                "node": "await device.segment(frame, null, \"native\")"
               }
             }
           ]
@@ -350,10 +334,6 @@
         {
           "id": "music",
           "title": "music",
-          "modes": [
-            "ble",
-            "cloud"
-          ],
           "roles": [
             "music"
           ],
@@ -366,12 +346,12 @@
             "sensitivity": 60
           },
           "action": {
-            "order": 70,
+            "order": 66,
             "title": "Play a music effect",
             "summary": "The device listens on its own microphone."
           },
           "summary": "Play an effect the device renders from its own microphone.",
-          "detail": "The device listens with its own microphone, and nothing streams from your host. The effect numbers belong to the mode, and `lan` carries no music command. Set a color, a temperature or the power to end the effect.",
+          "detail": "The device listens with its own microphone, and nothing streams from your host. The effect numbers belong to the mode. Over `lan`, the command travels inside `ptReal` on a model whose device file declares it. Set a color, a temperature or the power to end the effect.",
           "api": [
             "DeviceHandle::music"
           ],
@@ -384,6 +364,72 @@
             "python": "await device.music(effect={effect}, sensitivity={sensitivity})",
             "node": "await device.music({effect}, {sensitivity})"
           }
+        },
+        {
+          "id": "scene",
+          "title": "scene",
+          "modes": [
+            "lan",
+            "ble"
+          ],
+          "roles": [
+            "scene",
+            "scene_builtin"
+          ],
+          "values": {
+            "sku": "SKU"
+          },
+          "action": {
+            "order": 64,
+            "title": "Play a scene",
+            "summary": "Fetch the scene library of the model once. Each call then reads it from the cache."
+          },
+          "summary": "Play a scene of the model's scene library, by name or by code.",
+          "detail": "`govee scenes fetch` stores the library of a model, with no account and no key, and `govee scenes list` prints it. A call reads the cache and sends no request to the cloud. A name that matches more than one scene is refused, and the error lists the full name of each match. Over `lan`, the scene travels inside `ptReal`, and the device answers nothing.",
+          "api": [
+            "DeviceHandle::scene",
+            "DeviceHandle::scene_named"
+          ],
+          "cli": [
+            "govee scene",
+            "govee scenes"
+          ],
+          "examples": {
+            "cli": "govee scenes fetch {sku}\ngovee scenes list {sku}\ngovee scene DEVICE \"Aurora\"",
+            "rust": "govee_toolkit::scenes::fetch(\"{sku}\").await?;\ndevice.scene_named(\"Aurora\").await?;",
+            "python": "await fetch_scenes(\"{sku}\")\nawait device.scene(\"Aurora\")",
+            "node": "await fetchScenes('{sku}')\nawait device.scene('Aurora')"
+          }
+        },
+        {
+          "id": "draw",
+          "title": "draw",
+          "modes": [
+            "lan",
+            "ble"
+          ],
+          "roles": [
+            "draw"
+          ],
+          "action": {
+            "order": 68,
+            "title": "Draw",
+            "summary": "The device keeps playing the drawing after the sender stops."
+          },
+          "summary": "Store a drawing of the LEDs on the device.",
+          "detail": "`cells` names the LEDs, zero-based, and the other LEDs show the background. `colors` holds one color, or one color per cell. Without `cells`, it holds one color per zone. The other arguments of the drawing command, such as the background and the speed, take the defaults of the device file, which hold the drawing still. Over `lan`, the drawing travels inside `ptReal`.",
+          "api": [
+            "DeviceHandle::draw"
+          ],
+          "cli": [
+            "govee send"
+          ],
+          "examples": {
+            "cli": "govee send DEVICE draw_cells --arg cells=0,1,2 --arg colors=ff3d00",
+            "rust": "device.draw(&Drawing {\n    cells: Some(&[0, 1, 2]),\n    colors: &[[255, 61, 0]],\n    resolution: Resolution::default(),\n    args: &Args::new(),\n}).await?;",
+            "python": "await device.draw((255, 61, 0), cells=[0, 1, 2])",
+            "node": "await device.draw({ cells: [0, 1, 2], colors: [255, 61, 0] })"
+          }
         }
       ]
     },
@@ -391,15 +437,23 @@
       "id": "stream",
       "title": "Animate the segments",
       "modes": [
-        "lan",
-        "ble"
+        "lan"
       ],
       "entries": [
         {
           "id": "open-stream",
           "title": "open_stream",
+          "roles": [
+            "segment_color"
+          ],
+          "action": {
+            "order": 62,
+            "title": "Animate in real time",
+            "summary": "Open the segment channel and send frame after frame. The colors end when you close it.",
+            "segments": true
+          },
           "summary": "Open the segment channel and keep it armed.",
-          "detail": "The stream reports the zone count and the frame rate measured on the unit. The colors end when you close it.",
+          "detail": "The stream opens on `lan`. It reports the zone count and the frame rate measured on the unit. The colors end when you close it.",
           "api": [
             "DeviceHandle::open_stream"
           ],
@@ -408,9 +462,9 @@
           ],
           "examples": {
             "cli": "# frames.txt: one frame per line, one color per zone.\ngovee stream DEVICE --resolution native < frames.txt",
-            "rust": "let stream = device.open_stream(StreamOptions::default()).await?;\nprintln!(\"{} zones at {} Hz\", stream.zones(), stream.rate_hz());",
-            "python": "stream = await device.open_stream()\nprint(stream.zones, stream.rate_hz)",
-            "node": "const stream = await device.openStream()\nconsole.log(stream.zones, stream.rateHz)"
+            "rust": "let stream = device.open_stream(StreamOptions::default()).await?;\nprintln!(\"{} zones at {} Hz\", stream.zones(), stream.rate_hz());\nstream.set_zone(0, [255, 61, 0])?;\nstream.close().await?;",
+            "python": "stream = await device.open_stream()\nprint(stream.zones, stream.rate_hz)\nstream.set_zone(0, (255, 61, 0))\nawait stream.close()",
+            "node": "const stream = await device.openStream()\nconsole.log(stream.zones, stream.rateHz)\nstream.setZone(0, [255, 61, 0])\nawait stream.close()"
           }
         },
         {
@@ -551,10 +605,6 @@
             "wifi_provision",
             "wifi_provision_with_api"
           ],
-          "action": {
-            "order": 90,
-            "title": "Put it on a Wi-Fi network"
-          },
           "summary": "Put a new device on a Wi-Fi network, over Bluetooth.",
           "detail": "The password travels in plaintext: anything in Bluetooth range during the transfer can read it.",
           "api": [

@@ -1,7 +1,7 @@
 ---
 title: Domande frequenti
 description: Che cos'è Govee Toolkit, quali luci Govee raggiunge, e cosa ti serve per controllarle via Wi-Fi, via Bluetooth o tramite il cloud.
-source: c6e77337cfbf1646097cc1a62168315b829f8532
+source: e290c00ed743d71ab8f736a7316468768037d409
 ---
 
 ## Che cos'è Govee Toolkit? {#what-is-govee-toolkit} <!-- menu: Che cos'è -->
@@ -90,8 +90,17 @@ zone.
 ## Le mie luci possono seguire la musica o lo schermo? {#can-my-lights-follow-music-or-my-screen} <!-- menu: Musica e schermo -->
 
 Il toolkit invia colori a una striscia frame dopo frame, in tempo reale, via
-Wi-Fi e via Bluetooth. Il tuo programma, o uno che scegli tu, fornisce i frame:
-dalla musica, dallo schermo o da un sensore.
+Wi-Fi. Il tuo programma, o uno che scegli tu, fornisce i frame: dalla musica,
+dallo schermo o da un sensore. Un modello con microfono riproduce anche i suoi
+effetti musicali: la sua pagina modello elenca le modalità che li trasportano.
+
+## Posso riprodurre le scene della mia luce? {#can-i-play-the-scenes-of-my-light} <!-- menu: Scene -->
+
+Sì, su un modello la cui pagina elenca "Riprodurre una scena". `govee scenes
+fetch <modello>` salva una volta la libreria di scene del modello, senza
+account. `govee scene <dispositivo> "<nome>"` riproduce poi una scena con il
+suo nome o il suo codice. Puoi anche salvare un tuo disegno sul dispositivo, e
+il dispositivo continua a riprodurlo.
 
 ## Posso controllare le mie luci con il DMX? {#can-i-control-my-lights-with-dmx} <!-- menu: DMX -->
 
@@ -103,7 +112,7 @@ DMX. [DMX]({{base}}docs/dmx/) spiega la configurazione.
 
 Sì. Il server MCP, `govee-toolkit-mcp`, gira sul tuo computer e dà a un
 assistente il catalogo dei dispositivi e i comandi: scansione, stato,
-accensione, luminosità, colore e segmenti. [Server MCP]({{base}}docs/mcp/)
+accensione, luminosità, colore, segmenti e scene. [Server MCP]({{base}}docs/mcp/)
 spiega la configurazione.
 
 ## Funziona con Home Assistant, Homebridge o Matter? {#does-it-work-with-home-assistant-homebridge-or-matter} <!-- menu: Home Assistant, Matter -->

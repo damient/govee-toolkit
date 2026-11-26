@@ -1,5 +1,5 @@
 {
-  "$source": "53c2af29c206fb239497a66aca386c9734d5a499",
+  "$source": "7df8dfd5afc149b55ab6cc4a29a460a1fac49637",
   "intro": "Jede Aktion, aus der govee-CLI, aus Rust, Python, Node.js oder von einem DMX-Pult.",
   "groups": {
     "find": "Geräte finden",
@@ -31,10 +31,7 @@
     },
     "status": {
       "summary": "Das Gerät nach seinem aktuellen Zustand fragen.",
-      "detail": "`last_status` liefert den schon bekannten Zustand und sendet nichts.",
-      "action": {
-        "title": "Den Zustand zurücklesen"
-      }
+      "detail": "`last_status` liefert den schon bekannten Zustand und sendet nichts."
     },
     "watch": {
       "summary": "Ereignissen folgen: Ein Gerät erscheint, ein Modus ändert seinen Zustand."
@@ -72,7 +69,7 @@
     },
     "segment": {
       "summary": "Die Zonen färben.",
-      "detail": "Eine Farbe füllt jede Zone, und eine Liste gibt eine Farbe pro Zone. Mit `zones` ändern sich nur die genannten Zonen. Das braucht einen Modus, der per Maske färbt. Eine Zonenzahl, die die Einheit nicht darstellt, wird abgelehnt.",
+      "detail": "Eine Farbe füllt jede Zone, und eine Liste gibt eine Farbe pro Zone. Mit `zones` ändern sich nur die genannten Zonen. Das braucht einen Modus, der per Maske färbt. Die Farben bleiben nach dem Aufruf. Eine Zonenzahl, die die Einheit nicht darstellt, wird abgelehnt. Für eine Farbe pro LED öffne einen Stream oder speichere eine Zeichnung.",
       "action": {
         "title": "Die Zonen färben"
       }
@@ -87,7 +84,7 @@
     },
     "music": {
       "summary": "Einen Effekt abspielen, den das Gerät aus seinem eigenen Mikrofon erzeugt.",
-      "detail": "Das Gerät hört mit seinem eigenen Mikrofon zu, und nichts wird von deinem Rechner gestreamt. Die Effektnummern gehören zum Modus, und `lan` überträgt keinen Musikbefehl. Stelle eine Farbe, eine Temperatur oder Ein/Aus ein, um den Effekt zu beenden.",
+      "detail": "Das Gerät hört mit seinem eigenen Mikrofon zu, und nichts wird von deinem Rechner gestreamt. Die Effektnummern gehören zum Modus. Über `lan` geht der Befehl in `ptReal`, auf einem Modell, dessen Gerätedatei ihn deklariert. Setze eine Farbe, eine Temperatur oder Ein/Aus, um den Effekt zu beenden.",
       "action": {
         "title": "Einen Musikeffekt abspielen",
         "summary": "Das Gerät hört mit seinem eigenen Mikrofon zu."
@@ -95,7 +92,11 @@
     },
     "open-stream": {
       "summary": "Den Segmentkanal öffnen und scharf halten.",
-      "detail": "Der Stream meldet die Zonenzahl und die Bildrate, die auf der Einheit gemessen wurden. Die Farben enden, wenn du ihn schließt."
+      "detail": "Der Stream öffnet sich über `lan`. Er meldet die Zonenzahl und die Bildrate, die auf der Einheit gemessen wurden. Die Farben enden, wenn du ihn schließt.",
+      "action": {
+        "title": "In Echtzeit animieren",
+        "summary": "Öffne den Segmentkanal und sende Frame für Frame. Die Farben enden, wenn du ihn schließt."
+      }
     },
     "set-zone": {
       "summary": "Eine Zone des Streams setzen."
@@ -130,14 +131,27 @@
     },
     "provision": {
       "summary": "Ein neues Gerät über Bluetooth in ein WLAN bringen.",
-      "detail": "Das Passwort wird im Klartext übertragen: Alles in Bluetooth-Reichweite kann es während der Übertragung lesen.",
-      "action": {
-        "title": "In ein WLAN bringen"
-      }
+      "detail": "Das Passwort wird im Klartext übertragen: Alles in Bluetooth-Reichweite kann es während der Übertragung lesen."
     },
     "modes": {
       "summary": "Einen Befehl auf einen Modus beschränken.",
       "detail": "Es aktiviert nie einen Modus, den die Konfiguration auslässt, und es weicht nie auf einen anderen aus. Ein Gerät, das kein aktivierter Modus erreicht, ist ein Fehler."
+    },
+    "scene": {
+      "summary": "Eine Szene aus der Szenenbibliothek des Modells abspielen, über ihren Namen oder ihren Code.",
+      "detail": "`govee scenes fetch` speichert die Bibliothek eines Modells, ohne Konto und ohne Schlüssel, und `govee scenes list` zeigt sie an. Ein Aufruf liest den Cache und schickt keine Anfrage an die Cloud. Ein Name, der auf mehr als eine Szene passt, wird abgelehnt, und der Fehler nennt den vollen Namen jedes Treffers. Über `lan` geht die Szene in `ptReal`, und das Gerät antwortet nicht.",
+      "action": {
+        "title": "Eine Szene abspielen",
+        "summary": "Hol die Szenenbibliothek des Modells einmal. Jeder Aufruf liest sie danach aus dem Cache."
+      }
+    },
+    "draw": {
+      "summary": "Eine Zeichnung der LEDs auf dem Gerät speichern.",
+      "detail": "`cells` nennt die LEDs, ab null gezählt, und die anderen LEDs zeigen den Hintergrund. `colors` enthält eine Farbe, oder eine Farbe pro Zelle. Ohne `cells` enthält es eine Farbe pro Zone. Die anderen Argumente des Zeichenbefehls, wie der Hintergrund und die Geschwindigkeit, nehmen die Standardwerte der Gerätedatei, die die Zeichnung stillhalten. Über `lan` geht die Zeichnung in `ptReal`.",
+      "action": {
+        "title": "Zeichnen",
+        "summary": "Das Gerät spielt die Zeichnung weiter, wenn der Sender aufhört."
+      }
     }
   }
 }

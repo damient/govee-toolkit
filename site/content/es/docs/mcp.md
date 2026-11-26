@@ -3,7 +3,7 @@ title: Servidor MCP
 slug: mcp
 order: 8
 description: Deja que un asistente de IA lea el catálogo de dispositivos y controle tus luces, a través de un servidor MCP local.
-source: 92c6411f45f2e8e5d5006a6c8cf7e45127325edf
+source: df5029f3b6fc02690a6c6ad1b6111f898d7f09a0
 ---
 
 # Servidor MCP
@@ -175,9 +175,9 @@ comando `govee` puede escanear entre medias.
 | `scan` | Encuentra los dispositivos de tu red |
 | `list_known` | Lista los dispositivos encontrados, con el estado de cada modo |
 | `status` | Lee el estado de un dispositivo |
-| `set` | Ajusta el encendido, el brillo, el color, la temperatura de blanco, un segmento, un degradado o el modo música |
+| `set` | Ajusta el encendido, el brillo, el color, la temperatura de blanco, un segmento, un degradado, el modo música o una escena |
 | `send` | Envía un comando que declara el archivo del dispositivo |
-| `stream` | Reproduce fotogramas en los segmentos de uno o varios dispositivos, y después les devuelve los colores que tenían antes |
+| `stream` | Reproduce fotogramas en los segmentos de uno o varios dispositivos por Wi-Fi, y después les devuelve los colores que tenían antes |
 | `identify` | Enciende los dispositivos uno a uno, para que veas cuál es cuál |
 | `doctor` | Lista los problemas de tu configuración |
 

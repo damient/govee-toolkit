@@ -1,10 +1,11 @@
 // Nothing here names a model or a command: the device files own them.
 
-import { categoryOptions } from "./categories.ts";
+import { type ListView, categoryOptions, members } from "./categories.ts";
 import { MODES } from "./config.ts";
 import { DASH, escapeAttr, escapeHtml, fill } from "./html.ts";
 import { icon, shapeIcon, sharesMark } from "./icons.ts";
 import { infoBadge } from "./listed.ts";
+import { dmxMark } from "./mode-badge.ts";
 import type { T } from "./locales.ts";
 import type { Device, Mode, Support } from "./types.ts";
 
@@ -33,30 +34,35 @@ const pill = (value: Support, t: T): string =>
 /** A key such as `segment_brightness` as a reader reads it. */
 export const label = (key: string, t: T): string => t.or(`cap.${key}`, key.replaceAll("_", " "));
 
-/** The device list. `current` names the category of a category page, which
- * lists the rows of that category alone. */
-export function renderIndex(template: string, devices: Device[], current: string | undefined, t: T): string {
-  const rows = current === undefined ? devices : devices.filter((d) => d.category === current);
+/** The device list of one view: every model, the tested ones or one category. */
+export function renderIndex(template: string, devices: Device[], view: ListView, t: T): string {
+  const rows = members(devices, view);
+  const heading = view.kind === "all"
+    ? t("list.heading")
+    : view.kind === "tested" ? t("list.heading_tested") : t("list.heading_category", { name: t.category(view.name) });
+  const scope = view.kind === "all"
+    ? t("list.scope")
+    : view.kind === "tested" ? t("list.scope_tested") : t("list.scope_category", { name: t.category(view.name) });
   return fill(template, {
     devices_rows: rows.map((d) => row(d, t)).join("\n"),
-    devices_categories: categoryOptions(devices, current, t),
+    devices_categories: categoryOptions(devices, view, t),
     caps_legend: capsLegend(rows, t),
-    check_mark: CHECK,
-    devices_heading: current === undefined ? escapeHtml(t("list.heading")) : escapeHtml(t("list.heading_category", { name: t.category(current) })),
-    devices_scope: escapeAttr(current === undefined ? t("list.scope") : t("list.scope_category", { name: t.category(current) })),
+    devices_heading: escapeHtml(heading),
+    devices_scope: escapeAttr(scope),
   });
 }
 
-// A mode that reaches no capability shows its state instead.
-function modeCell(d: Device, mode: Mode, t: T): string {
-  const state = support(d, mode);
+// The capabilities that any mode reaches, one mark each. A model that no mode
+// reaches shows its state instead.
+function capsCell(d: Device, t: T): string {
   // Two capabilities that share a mark show once. The model page names both.
-  const caps = [...(d.modes?.[mode]?.capabilities ?? [])]
+  const caps = [...new Set(reached(d).flatMap((m) => d.modes?.[m]?.capabilities ?? []))]
     .filter((c) => !sharesMark(c))
     .toSorted((a, b) => order(a) - order(b));
+  const dmx = hasDmx(d) ? dmxMark() : "";
   if (caps.length === 0) {
-    if (state === "none") return DASH;
-    return pill(state, t);
+    const none = MODES.every((m) => support(d, m) === "none");
+    return `<div class="caps-cell">${none ? DASH : pill("unknown", t)}${dmx}</div>`;
   }
   const items = caps
     .map(
@@ -64,7 +70,7 @@ function modeCell(d: Device, mode: Mode, t: T): string {
         + `<span class="visually-hidden">${escapeHtml(label(c, t))}</span></li>`,
     )
     .join("");
-  return `<ul class="caps-row">${items}</ul>`;
+  return `<div class="caps-cell"><ul class="caps-row">${items}</ul>${dmx}</div>`;
 }
 
 // A device file that declares a new capability adds its row to the legend.
@@ -81,19 +87,13 @@ export function hasDmx(d: Device): boolean {
   return (d.dmx?.personalities?.length ?? 0) > 0;
 }
 
-function dmxCell(d: Device): string {
-  if (!hasDmx(d)) return DASH;
-  return `<span class="dmx-yes">${CHECK}<span class="visually-hidden">DMX</span></span>`;
-}
-
 function row(d: Device, t: T): string {
-  const cells = MODES.map((m) => `<td>${modeCell(d, m, t)}</td>`).join("")
-    + `<td>${dmxCell(d)}</td>`;
   const names = [d.sku, d.name, ...(d.aliases ?? [])].join(" ").toLowerCase();
   const mark = d.listing === undefined ? "" : ` ${infoBadge(t)}`;
   return `          <tr class="has-page" data-search="${escapeAttr(names)}">
-            <th scope="row"><a href="{{base}}devices/${escapeAttr(d.sku)}/">${escapeHtml(d.sku)}</a></th>
             <td class="shape">${shapeIcon(d.shape ?? d.family)}</td>
-            <td>${escapeHtml(d.name)}${mark}</td>${cells}
+            <th scope="row"><a class="model-name" href="{{base}}devices/${escapeAttr(d.sku)}/">${escapeHtml(d.name)}</a>${mark}
+              <button type="button" class="sku" data-sku="${escapeAttr(d.sku)}">${escapeHtml(d.sku)}</button></th>
+            <td>${capsCell(d, t)}</td>
           </tr>`;
 }

@@ -27,6 +27,12 @@ export function modeMark(mode: Mode): string {
     + `<span class="visually-hidden">${mode}</span></span>`;
 }
 
+/** The DMX badge with the icon alone, for a row of capability marks. */
+export function dmxMark(): string {
+  return `<span class="mbadge mbadge-dmx mbadge-mini" data-tip="DMX">${badgeIcon("dmx")}`
+    + `<span class="visually-hidden">DMX</span></span>`;
+}
+
 /** One badge, saying the model answers a DMX channel table. It names an
  * input and not a mode, so it takes the neutral tint. */
 export function dmxBadge(): string {

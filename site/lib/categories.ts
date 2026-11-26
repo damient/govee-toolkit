@@ -13,14 +13,34 @@ export function tally(devices: Device[]): [string, number][] {
   return [...count].toSorted(([a], [b]) => a.localeCompare(b));
 }
 
-/** The options of the category select. Each value is the URL of its page. */
-export function categoryOptions(devices: Device[], current: string | undefined, t: T): string {
-  const all = `<option value="{{base}}devices/"${current === undefined ? " selected" : ""}>${escapeHtml(t("list.all_categories"))}</option>`;
-  const each = tally(devices).map(([name, n]) => {
-    const on = name === current ? " selected" : "";
-    return `<option value="{{base}}${escapeAttr(categoryUrl(name))}"${on}>${escapeHtml(t.category(name))} (${n})</option>`;
-  });
-  return [all, ...each].join("\n          ");
+/** What a list page shows: every model, the models tested on hardware, or one category. */
+export type ListView = { kind: "all" } | { kind: "tested" } | { kind: "category"; name: string };
+
+export const TESTED_URL = "devices/tested/";
+
+/** A model that a device file describes and that somebody verified on a unit. */
+export const isTested = (d: Device): boolean => d.listing === undefined && d.verified?.date !== undefined;
+
+/** The models one view lists. */
+export function members(devices: Device[], view: ListView): Device[] {
+  if (view.kind === "tested") return devices.filter((d) => isTested(d));
+  if (view.kind === "category") return devices.filter((d) => d.category === view.name);
+  return devices;
+}
+
+const option = (url: string, text: string, on: boolean): string =>
+  `<option value="{{base}}${escapeAttr(url)}"${on ? " selected" : ""}>${escapeHtml(text)}</option>`;
+
+/** The options of the category select. Each value is the URL of its page.
+ * The categories sort by their name in the language of the page. */
+export function categoryOptions(devices: Device[], view: ListView, t: T): string {
+  const all = option("devices/", t("list.all_categories"), view.kind === "all");
+  const tested = option(TESTED_URL, `${t("list.tested")} (${members(devices, { kind: "tested" }).length})`, view.kind === "tested");
+  const each = tally(devices)
+    .map(([name, n]) => ({ name, n, shown: t.category(name) }))
+    .toSorted((a, b) => a.shown.localeCompare(b.shown, t.lang))
+    .map(({ name, n, shown }) => option(categoryUrl(name), `${shown} (${n})`, view.kind === "category" && view.name === name));
+  return [all, tested, ...each].join("\n          ");
 }
 
 /** The trail of a model page: the category sits between the list and the model. */
@@ -29,28 +49,32 @@ export function deviceTrail(d: Device, t: T): Crumb[] {
   return [[t("page.devices"), "devices/"], ...middle, [d.sku, `devices/${d.sku}/`]];
 }
 
-/** One page per category of a language, rendered from the template of the devices page. */
+/** The page of the tested models, then one page per category, in one language,
+ * rendered from the template of the devices page. */
 export function categoryPages(
   devices: Device[],
-  render: (template: string, devices: Device[], current: string, t: T) => string,
+  render: (template: string, devices: Device[], view: ListView, t: T) => string,
   locale: Locale,
 ) {
   const t = strings(locale);
-  return tally(devices).map(([name]) => {
-    const url = categoryUrl(name);
-    const members = devices.filter((d) => d.category === name);
-    const shown = t.category(name);
-    const trail: Crumb[] = [[t("page.devices"), "devices/"], [shown, url]];
-    const title = t("list.category_title", { name: shown });
-    return {
-      src: "devices.html",
-      url,
-      nav: "devices",
-      title,
-      description: t("list.category_description", { count: members.length, name: shown }),
-      render: (template: string, all: Device[]) => render(template, all, name, t),
-      trail,
-      jsonld: [collectionData(title, locale, url, members.map((d): Crumb => [`${d.sku} — ${d.name}`, `devices/${d.sku}/`]))],
-    };
+  const page = (view: ListView, url: string, shown: string, title: string, description: string) => ({
+    src: "devices.html",
+    url,
+    nav: "devices",
+    title,
+    description,
+    render: (template: string, all: Device[]) => render(template, all, view, t),
+    trail: [[t("page.devices"), "devices/"], [shown, url]] satisfies Crumb[],
+    jsonld: [collectionData(title, locale, url, members(devices, view).map((d): Crumb => [`${d.sku} - ${d.name}`, `devices/${d.sku}/`]))],
   });
+  const tested = members(devices, { kind: "tested" });
+  return [
+    page({ kind: "tested" }, TESTED_URL, t("list.tested"), t("list.tested_title"), t("list.tested_description", { count: tested.length })),
+    ...tally(devices).map(([name]) => {
+      const view: ListView = { kind: "category", name };
+      const shown = t.category(name);
+      return page(view, categoryUrl(name), shown, t("list.category_title", { name: shown }),
+        t("list.category_description", { count: members(devices, view).length, name: shown }));
+    }),
+  ];
 }

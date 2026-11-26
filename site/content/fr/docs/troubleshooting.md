@@ -3,7 +3,7 @@ title: Dépannage
 slug: troubleshooting
 order: 9
 description: Rien ne répond au scan, une commande ne fait rien, une valeur est refusée — ce que chaque cas signifie.
-source: 29626cda78a98b9a2c684d72dc514da617657a12
+source: 3efc01557d239fe5fdbfe28919096d20636a6be3
 ---
 
 # Dépannage
@@ -69,6 +69,17 @@ Sur un modèle vérifié, le firmware ramène `brightness: 0` à 1. Utilisez
 Le canal des segments en `lan` ne transmet que la couleur. La luminosité y est
 globale. `ble` transmet la luminosité par zone, et `cloud` aussi. C'est une
 propriété du transport, pas un manque dans le code.
+
+## Une scène est introuvable {#a-scene-is-not-found}
+
+`govee scene` lit la bibliothèque de scènes du modèle dans un cache sur votre
+ordinateur.
+
+- `scene_list_missing` : lancez une fois `govee scenes fetch <modèle>`, puis
+  réessayez.
+- `unknown_scene` : `govee scenes list <modèle>` affiche les noms et les codes.
+- `ambiguous_scene` : le nom correspond à plusieurs scènes. Donnez un nom
+  complet tiré de l'erreur, ou un code.
 
 ## Le scan Bluetooth ne trouve rien {#the-bluetooth-scan-finds-nothing}
 

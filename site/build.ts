@@ -58,7 +58,7 @@ function sources(t: T): Source[] {
       url: "devices/",
       nav: "devices",
       title: t("page.devices"),
-      render: (template, devices) => renderIndex(template, devices, undefined, t),
+      render: (template, devices) => renderIndex(template, devices, { kind: "all" }, t),
       trail: [[t("page.devices"), "devices/"]],
       description: t("page.devices_description"),
     },
