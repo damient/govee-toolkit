@@ -1,0 +1,139 @@
+<section class="hero">
+  <div class="aurora" aria-hidden="true"><i class="band"></i><i class="edge"></i><i class="lobe"></i><i class="floor"></i></div>
+  <div class="shell">
+    <div class="hero-text">
+      <h1>{{t:home2.title}}</h1>
+      <p class="lede">
+        {{t:home2.lede}}
+      </p>
+      <div class="cta-links">
+        <a class="btn" href="{{base}}studio/">{{t:home2.cta_studio}}</a>
+        <a class="btn ghost" href="{{base}}sdk/">{{t:home2.cta_sdk}}</a>
+      </div>
+    </div>
+    <a class="hero-video" href="https://youtu.be/NZpa4-mK3h0" data-video="NZpa4-mK3h0">
+      <img src="{{base}}assets/img/video-thumbnail.jpg" width="1280" height="720" alt="" loading="lazy">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg></span>
+      <span class="visually-hidden">{{t:home.play}}</span>
+    </a>
+  </div>
+</section>
+
+<section class="slab" id="products">
+  <div class="shell">
+    <h2 class="big">{{t:home2.products_title}}</h2>
+    <p class="lede">{{t:home2.products_lede}}</p>
+    <div class="product-cards">
+      <a class="product-card studio" href="{{base}}studio/">
+        <p class="eyebrow">{{t:home2.studio_eyebrow}}</p>
+        <h3>Studio</h3>
+        <p>{{t:home2.studio_text}}</p>
+        <ul>
+          <li>{{t:home2.studio_point_1}}</li>
+          <li>{{t:home2.studio_point_2}}</li>
+        </ul>
+        <span class="more">{{t:home2.studio_more}}</span>
+      </a>
+      <a class="product-card dmx" href="{{base}}dmx/">
+        <p class="eyebrow">{{t:home2.dmx_eyebrow}}</p>
+        <h3>{{t:home2.dmx_name}}</h3>
+        <p>{{t:home2.dmx_text}}</p>
+        <ul>
+          <li>{{t:home2.dmx_point_1}}</li>
+          <li>{{t:home2.dmx_point_2}}</li>
+        </ul>
+        <span class="more">{{t:home2.dmx_more}}</span>
+      </a>
+      <a class="product-card sdk" href="{{base}}sdk/">
+        <p class="eyebrow">{{t:home2.sdk_eyebrow}}</p>
+        <h3>SDK</h3>
+        <p>{{t:home2.sdk_text}}</p>
+        <ul>
+          <li>{{t:home2.sdk_point_1}}</li>
+          <li>{{t:home2.sdk_point_2}}</li>
+        </ul>
+        <span class="more">{{t:home2.sdk_more}}</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="slab spotlight">
+  <div class="shell split">
+    <div>
+      <p class="eyebrow">Studio</p>
+      <h2 class="big">{{t:home2.studio_title}}</h2>
+      <p class="lede">{{t:home2.studio_lede}}</p>
+      <ul class="ticks">
+        <li>{{t:home2.studio_tick_1}}</li>
+        <li>{{t:home2.studio_tick_2}}</li>
+        <li>{{t:home2.studio_tick_3}}</li>
+      </ul>
+      <a class="btn ghost" href="{{base}}studio/">{{t:home2.studio_see}}</a>
+    </div>
+    <video class="shot" src="{{base}}assets/img/studio.webm" poster="{{base}}assets/img/studio-home.jpg" width="1440" height="900" muted playsinline data-autoplay aria-hidden="true"></video>
+  </div>
+</section>
+
+<section class="slab spotlight">
+  <div class="shell split reverse">
+    <div>
+      <p class="eyebrow">{{t:home2.dmx_name}}</p>
+      <h2 class="big">{{t:home2.dmx_title}}</h2>
+      <p class="lede">{{t:home2.dmx_lede}}</p>
+      <a class="btn ghost" href="{{base}}dmx/">{{t:home2.dmx_see}}</a>
+    </div>
+    {{dmx_desk}}
+  </div>
+</section>
+
+<section class="slab spotlight">
+  <div class="shell split">
+    <div>
+      <p class="eyebrow">SDK</p>
+      <h2 class="big">{{t:home2.sdk_title}}</h2>
+      <p class="lede">{{t:home2.sdk_lede}}</p>
+      <a class="btn ghost" href="{{base}}sdk/">{{t:home2.sdk_see}}</a>
+    </div>
+    {{sdk_tabs}}
+  </div>
+</section>
+
+<section class="slab modes">
+  <div class="shell">
+    <h2 class="big">{{t:home.modes_title}}</h2>
+    <div class="mode-cards">
+      <a class="mode-card lan" href="{{base}}docs/modes/">
+        <h3>{{badge_lan}}</h3>
+        <p class="tag">{{t:home.lan_tag}}</p>
+        <p>{{t:home.lan_text}}</p>
+      </a>
+      <a class="mode-card ble" href="{{base}}docs/modes/">
+        <h3>{{badge_ble}}</h3>
+        <p class="tag">{{t:home.ble_tag}}</p>
+        <p>{{t:home.ble_text}}</p>
+      </a>
+      <a class="mode-card cloud" href="{{base}}docs/modes/">
+        <h3>{{badge_cloud}}</h3>
+        <p class="tag">{{t:home.cloud_tag}}</p>
+        <p>{{t:home.cloud_text}}</p>
+      </a>
+      <a class="mode-card dmx" href="{{base}}docs/dmx/">
+        <h3>{{badge_dmx}}</h3>
+        <p class="tag">{{t:home.dmx_tag}}</p>
+        <p>{{t:home.dmx_text}}</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="slab closer">
+  <div class="shell">
+    <h2 class="big">{{t:home2.closer_title}}</h2>
+    <p class="lede">{{t:home2.closer_lede}}</p>
+    <div class="cta-links">
+      <a class="btn" href="{{base}}devices/">{{t:home2.closer_devices}}</a>
+      <a class="btn ghost" href="{{repo}}" target="_blank" rel="noreferrer">{{t:home2.closer_code}}</a>
+    </div>
+  </div>
+</section>

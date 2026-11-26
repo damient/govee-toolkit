@@ -1,11 +1,13 @@
 // Progressive enhancement only: every page works with this file blocked.
 
+import { autoplay } from "./autoplay.ts";
 import { choices } from "./choices.ts";
 import { copy } from "./copy.ts";
+import { desk } from "./desk.ts";
 import { personalities } from "./dmx.ts";
 import { filter, rowLink } from "./devices.ts";
 import { dots } from "./dots.ts";
-import { docSelect, langMenu, menu } from "./menu.ts";
+import { dismiss, docSelect, langMenu, menu } from "./menu.ts";
 import { spy } from "./spy.ts";
 import { strip } from "./strip.ts";
 import { tabs } from "./tabs.ts";
@@ -21,6 +23,7 @@ const wire = <E extends Element>(selector: string, type: new () => E, setup: (el
 };
 
 wire("[data-strip]", HTMLElement, strip);
+wire("[data-desk]", HTMLElement, desk);
 wire("[data-topbar]", HTMLElement, topbar);
 wire("[data-dots]", HTMLElement, dots);
 wire("[data-copy]", HTMLButtonElement, copy);
@@ -28,10 +31,12 @@ wire("[data-filter]", HTMLInputElement, filter);
 wire("[data-rows]", HTMLElement, rowLink);
 wire("[data-doc-select]", HTMLDetailsElement, docSelect);
 wire("[data-lang-menu]", HTMLDetailsElement, langMenu);
+wire("[data-nav-menu]", HTMLDetailsElement, dismiss);
 wire("[data-theme-toggle]", HTMLButtonElement, theme);
 wire("[data-menu-toggle]", HTMLButtonElement, menu);
 wire("[data-spy]", HTMLElement, spy);
 wire("[data-dmx]", HTMLElement, personalities);
 wire("[data-video]", HTMLAnchorElement, video);
+wire("video[data-autoplay]", HTMLVideoElement, autoplay);
 tabs();
 choices();

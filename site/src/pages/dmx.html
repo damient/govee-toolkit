@@ -1,0 +1,77 @@
+<section class="slab product-head">
+  <div class="shell split">
+    <div>
+      <p class="eyebrow">{{t:home2.dmx_name}}</p>
+      <h1>{{t:pdmx.title}}</h1>
+      <p class="lede">{{t:pdmx.lede}}</p>
+      <div class="cta-links">
+        <a class="btn" href="#get">{{t:pdmx.install}}</a>
+        <a class="btn ghost" href="{{base}}docs/dmx/">{{t:pdmx.guide}}</a>
+      </div>
+    </div>
+    {{dmx_desk}}
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell">
+    <h2 class="big">{{t:pdmx.layouts_title}}</h2>
+    <p class="lede">{{t:pdmx.layouts_lede}}</p>
+    <div class="cards">
+      <div class="card">
+        <h3><code>full</code></h3>
+        <p>{{t:pdmx.full}}</p>
+      </div>
+      <div class="card">
+        <h3><code>segment</code></h3>
+        <p>{{t:pdmx.segment}}</p>
+      </div>
+      <div class="card">
+        <h3><code>pixel</code></h3>
+        <p>{{t:pdmx.pixel}}</p>
+      </div>
+    </div>
+    <p class="note">{{t:pdmx.layouts_note}}</p>
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell">
+    <h2 class="big">{{t:pdmx.steps_title}}</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>{{t:pdmx.patch_title}}</h3>
+        <p>{{t:pdmx.patch_text}}</p>
+      </div>
+      <div class="card">
+        <h3>{{t:pdmx.identify_title}}</h3>
+        <p>{{t:pdmx.identify_text}}</p>
+      </div>
+      <div class="card">
+        <h3>{{t:pdmx.run_title}}</h3>
+        <p>{{t:pdmx.run_text}}</p>
+      </div>
+      <div class="card">
+        <h3>{{t:pdmx.dry_title}}</h3>
+        <p>{{t:pdmx.dry_text}}</p>
+      </div>
+    </div>
+    <p class="note">{{t:pdmx.drop}}</p>
+  </div>
+</section>
+
+<section class="slab" id="get">
+  <div class="shell split">
+    <div>
+      <h2 class="big">{{t:pdmx.install}}</h2>
+      <p class="lede">{{t:pdmx.need}}</p>
+      <a class="btn ghost" href="{{base}}devices/">{{t:pdmx.check}}</a>
+    </div>
+    <div class="terminal">
+<pre><code><span class="prompt">$</span> cargo install govee-toolkit-dmx
+<span class="prompt">$</span> govee-dmx patch
+<span class="prompt">$</span> govee-dmx run</code></pre>
+      <button class="copy" type="button" data-copy="cargo install govee-toolkit-dmx">{{t:docs.copy}}</button>
+    </div>
+  </div>
+</section>

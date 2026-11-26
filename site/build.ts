@@ -20,6 +20,7 @@ import { fill } from "./lib/html.ts";
 import { isReference, readApi, readCatalog, readCategories, readJson } from "./lib/json.ts";
 import { ENGLISH, LOCALES, type Locale, type T, forgetStrings, strings, translate } from "./lib/locales.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
+import { productSources } from "./lib/products.ts";
 import { REFERENCE_URL, localReference, referenceNav, referencePage } from "./lib/reference.ts";
 import { breadcrumb, deviceData, homeData, redirect, robots, sitemapXml } from "./lib/seo.ts";
 import { type Change, notify, serve } from "./lib/serve.ts";
@@ -32,6 +33,7 @@ interface Source {
   nav: string;
   title: string | null;
   klass?: string;
+  noindex?: boolean;
   render?: (template: string, devices: Device[]) => string;
   trail?: Crumb[];
   description?: string;
@@ -52,7 +54,6 @@ const out = join(root, `.dist-build-${process.pid}`);
 
 function sources(t: T): Source[] {
   return [
-    { src: "index.html", url: "", nav: "home", title: null, klass: "is-home" },
     {
       src: "devices.html",
       url: "devices/",
@@ -71,6 +72,7 @@ function sources(t: T): Source[] {
       trail: [[t("page.devices"), "devices/"], [t("page.add"), "devices/add/"]],
       description: t("page.add_description"),
     },
+    ...productSources(t),
   ];
 }
 
