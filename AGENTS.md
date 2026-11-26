@@ -137,11 +137,11 @@ SKU.
   page or to `site/content/i18n/en.json`, update each language and stamp it
   with `node translations.ts --stamp <file>` in `site/`. The check fails on a
   page or a string that does not follow the English text.
-- **Name no company and no app.** Do not write "company", "manufacturer",
-  "vendor" or "app". The software a user drives these devices with is "the
-  phone controller", or "another controller" where it competes for the link.
-  "Govee" stays where it names the devices or the public "Govee Home app"
-  switch a user must find.
+- **Name no company.** Do not write "company", "manufacturer" or "vendor".
+  The software a user drives these devices with is "the phone controller", or
+  "another controller" where it competes for the link. "Govee" stays where it
+  names the devices or the public "Govee Home app" switch a user must find.
+  Studio is "the app".
 - **Describe the code as it is, not as it was.** Docs and comments carry no
   trace of refactored, renamed or deleted code: no "no longer", "used to",
   "previously", "this replaces the old X". Rewrite in the present. History that
