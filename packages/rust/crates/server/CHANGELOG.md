@@ -9,6 +9,18 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 - `POST /api/apply` takes `scene`: a name or a code of the scene library
   that `govee scenes fetch <SKU>` caches for each model.
 
+### Changed
+
+- `GET /api/devices/{id}/status` answers 200 and
+  `{ "online": false, "reason", "code" }` for a device that does not answer,
+  in place of 502. A device that answers adds `"online": true`. Studio shows
+  the light offline, and the browser logs no error.
+- An SDK error gets the HTTP status of its `code`, and the body adds
+  `code`: 503 for a device that does not answer, 404, 400, 409, 422, 429,
+  502 only for a refusal from the device or the API, and 500 for the rest.
+  The README lists the table under "Errors". `POST /api/devices/{id}/identify`
+  answers 503 in place of 502 when the device does not answer.
+
 ### Fixed
 
 - `features.segments` gives the zone count on `lan` for the H6022 and the

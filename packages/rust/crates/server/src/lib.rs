@@ -12,6 +12,7 @@ mod compat;
 mod control;
 mod devices;
 mod entries;
+mod fault;
 mod reset;
 mod rooms;
 mod settings;

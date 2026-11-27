@@ -11,6 +11,7 @@ use govee_toolkit::{Config, DeviceConfig, DeviceId, Govee, Mode, Walk};
 use serde_json::{Value, json};
 use tokio::sync::Mutex;
 
+use crate::fault::failed;
 use crate::storage::Storage;
 use crate::{refuse, rooms};
 
@@ -88,10 +89,6 @@ impl Sdk {
     }
 }
 
-pub(crate) fn failed(error: &govee_toolkit::Error) -> Response {
-    refuse(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string())
-}
-
 fn family(govee: &Govee, sku: Option<&str>) -> Option<String> {
     let file = govee.catalog().device(sku?).ok()?;
     Some(file.family.clone())
@@ -167,7 +164,7 @@ pub(crate) async fn identify(State(sdk): State<Arc<Sdk>>, Path(id): Path<String>
     match report {
         Ok(report) => match report.summary("light") {
             None => Json(json!({})).into_response(),
-            Some(line) => refuse(StatusCode::BAD_GATEWAY, &line),
+            Some(line) => refuse(StatusCode::SERVICE_UNAVAILABLE, &line),
         },
         Err(error) => failed(&error),
     }

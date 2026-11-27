@@ -51,10 +51,11 @@ const isBoolean = (value: unknown): value is boolean => typeof value === "boolea
 const isNumber = (value: unknown): value is number => typeof value === "number";
 const isString = (value: unknown): value is string => typeof value === "string";
 
-/** `GET /api/devices/{id}/status`. The first call for a device can take the scan window. A device that does not answer throws `refused`. */
-export async function status(id: string): Promise<Status> {
+/** `GET /api/devices/{id}/status`. The first call for a device can take the scan window. `null` when the device does not answer. */
+export async function status(id: string): Promise<Status | null> {
   const body = await request(devicePath(id, "status"));
   if (typeof body !== "object" || body === null) throw new Failure("unreadable");
+  if (Reflect.get(body, "online") === false) return null;
   return {
     on: field(body, "on", isBoolean),
     brightness: field(body, "brightness", isNumber),

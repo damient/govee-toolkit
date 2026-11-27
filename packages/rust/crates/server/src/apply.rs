@@ -8,7 +8,8 @@ use govee_toolkit::{DeviceId, Error, Filter, Painting, Resolution, Supported, Ve
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::devices::{Sdk, failed};
+use crate::devices::Sdk;
+use crate::fault::failed;
 use crate::refuse;
 use crate::studio::Hex;
 

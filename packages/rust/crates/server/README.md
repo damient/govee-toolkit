@@ -112,11 +112,11 @@ shape of the settings adds a row.
 
 | Route | Answer |
 | ----- | ------ |
-| `GET /api/devices` | `{ "devices": [{ "id", "sku", "name", "family" }] }`: the devices of `config.yaml`, at once, with no scan. `sku` and `family` are `null` when the entry gives no SKU. An error answers 500 and `{ "error" }` |
-| `GET /api/scan` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`. Each record adds `family`, `name` (from `config.yaml`) and `configured` (`config.yaml` has an entry). The call takes one scan window, 2 s by default. An error answers 500 and `{ "error" }` |
+| `GET /api/devices` | `{ "devices": [{ "id", "sku", "name", "family" }] }`: the devices of `config.yaml`, at once, with no scan. `sku` and `family` are `null` when the entry gives no SKU. An error answers as [Errors](#errors) says |
+| `GET /api/scan` | `{ "devices": [...] }`: the devices that answer a `lan` scan, in the record of `govee list --json`. Each record adds `family`, `name` (from `config.yaml`) and `configured` (`config.yaml` has an entry). The call takes one scan window, 2 s by default. An error answers as [Errors](#errors) says |
 | `PUT /api/devices` | `{ "keep": [{ "id", "sku", "name" }], "remove": ["id"] }`, written to `config.yaml` in one go. An entry with no `sku` gets the one of the request, and a new entry also gets `modes: [lan]`. A blank `name` removes the name. A name is 64 characters at most, or 400. A removed device leaves its rooms. A request that changes no entry writes nothing. The SDK takes the new entries and keeps the devices that it knows. The other keys stay, without their comments |
-| `POST /api/devices/{id}/identify` | the walk of `govee identify` over `lan` for one device: off, green, then off. The answer comes when the walk ends: `{}`, or 502 and `{ "error" }` when the device does not answer |
-| `GET /api/devices/{id}/status` | `{ "id", "on", "brightness", "color", "color_temp_kelvin", "raw", "brightness_range", "features" }`: the record of `govee status --json`, asked over the modes that `config.yaml` enables. `brightness_range` is `[min, max]` from the device file for the mode that answered, or `null`. `features` is `{ "color", "color_temp", "segments", "gradient" }` for that mode: `color` when it has an entry `role: color`, `color_temp` the bounds in kelvin of its entry `role: color_temp` or `null`, `segments` the zone count of its entry `role: segment_color_masked` or `null`, `gradient` when it also has an entry `role: segment_gradient`. The first call for a device that the SDK does not know scans until the device answers. A device that does not answer gets 502 and `{ "error" }` |
+| `POST /api/devices/{id}/identify` | the walk of `govee identify` over `lan` for one device: off, green, then off. The answer comes when the walk ends: `{}`, or 503 and `{ "error" }` when the device does not answer |
+| `GET /api/devices/{id}/status` | `{ "id", "on", "brightness", "color", "color_temp_kelvin", "raw", "brightness_range", "features" }`: the record of `govee status --json`, asked over the modes that `config.yaml` enables. `brightness_range` is `[min, max]` from the device file for the mode that answered, or `null`. `features` is `{ "color", "color_temp", "segments", "gradient" }` for that mode: `color` when it has an entry `role: color`, `color_temp` the bounds in kelvin of its entry `role: color_temp` or `null`, `segments` the zone count of its entry `role: segment_color_masked` or `null`, `gradient` when it also has an entry `role: segment_gradient`. The first call for a device that the SDK does not know scans until the device answers. The record adds `"online": true`. A device that does not answer gets 200 and `{ "online": false, "reason", "code" }`: `code` is the one of [Errors](#errors). Another error answers as [Errors](#errors) says |
 | `POST /api/apply` | `{ "ids": ["id"], "power", "brightness", "color", "color_temp", "segment", "gradient", "scene" }`: each key but `ids` is optional, and one at least must be there. `power` is `true` or `false`, `brightness` a level in the bounds of `brightness_range`, `color` `"#rrggbb"` over the whole device, `color_temp` a white temperature in kelvin in the bounds of `features.color_temp`, `segment` `{ "zones": [0, 1], "color": "#rrggbb" }` over the zero-based zones of the list (the other zones keep their color), `gradient` `true` or `false`, `scene` a name or a code (as text) of the scene library that `govee scenes fetch <SKU>` caches for each model. A `segment` carries `gradient`, and a `segment` with no `gradient` sets it off. Power on goes first and power off last. A device that fails takes no later step. The answer is `{ "devices": [{ "id", "ok", "error" }] }` in the order of `ids`, with the first error of each device. When a device fails, the others go ahead. `error` is `{ "code", "message" }` or `null`. An empty `ids`, an empty `zones` and a request with no change get 400 |
 | `GET /api/rooms` | `{ "rooms": [{ "id", "name", "devices" }] }`, in the order of `rooms.json` |
 | `PUT /api/rooms` | `{ "rooms": [{ "id", "name", "devices" }] }` replaces every room, and answers as `GET`. A room with no `id` gets `room-<n>`. A device ID is kept in upper case, as the SDK gives it. A blank name, a name longer than 64 characters, a name or an `id` that two rooms share, and a device that a room lists twice get 400 and change nothing |
@@ -130,5 +130,23 @@ shape of the settings adds a row.
 | `POST /api/backup/restore` | puts back the files from the `.import.bak` copies of the last import, then deletes the copies. With no copy, 409. A client from the network gets 403 |
 | `POST /api/reset` | `{ "prefs": true, "devices": true }`, one key or both. `prefs` puts the settings of `GET /api/settings` back to the defaults. `devices` removes the `devices:` key of `config.yaml` and every room, and gives the change to the SDK. The other keys stay, without their comments. The API key and the sharing switch stay. With neither key, 400. A client from the network gets 403 |
 | any other path | a file of the web UI: the copy in the binary, or the directory that `--web` names. A file of the binary carries an `ETag` and `Cache-Control: no-cache`, and a request with a matching `If-None-Match` gets 304 |
+
+## Errors
+
+A route that fails on the SDK answers `{ "error", "code" }`. `code` is the
+stable code of the SDK error, and the HTTP status follows it:
+
+| `code` | Status |
+| ------ | ------ |
+| `no_mode_available`, `mode_unavailable`, `unreachable`, `unknown_device`: the device does not answer now | 503 |
+| `shut_down`, `stream_closed` | 503 |
+| `no_such_target` | 404 |
+| `target_not_understood`, `ambiguous_target` | 400 |
+| `out_of_range`, and the other codes of the `codec` category: the command cannot be built | 422 |
+| `rate_limited` | 429 |
+| `api`, `provision_refused`: the device or the API answered with a refusal | 502 |
+| `config`, `env`, `local_devices`: a file cannot be read | 500 |
+| the other codes of the `config` category: the configuration does not allow the request | 409 |
+| any other code | 500 |
 
 Not affiliated with Govee.
