@@ -2,14 +2,15 @@
   <div class="aurora" aria-hidden="true"><i class="band"></i><i class="edge"></i><i class="lobe"></i><i class="floor"></i></div>
   <div class="shell">
     <div class="hero-text">
-      <h1>{{t:home2.title}}</h1>
+      <h1>{{t:home3.title}}</h1>
       <p class="lede">
-        {{t:home2.lede}}
+        {{t:home3.lede}}
       </p>
       <div class="cta-links">
-        <a class="btn" href="{{base}}studio/">{{t:home2.cta_studio}}</a>
-        <a class="btn ghost" href="{{base}}sdk/">{{t:home2.cta_sdk}}</a>
+        <a class="btn" href="{{base}}studio/">{{t:home3.cta_studio}}</a>
+        <a class="btn ghost" href="{{base}}devices/">{{t:home3.cta_devices}}</a>
       </div>
+      <p class="hero-meta">{{t:home3.meta}} · <a href="{{base}}sdk/">{{t:home3.meta_sdk}}</a></p>
     </div>
     <a class="hero-video" href="https://youtu.be/NZpa4-mK3h0" data-video="NZpa4-mK3h0">
       <img src="{{base}}assets/img/video-thumbnail.jpg" width="1280" height="720" alt="" loading="lazy">
@@ -19,40 +20,58 @@
   </div>
 </section>
 
+<section class="slab">
+  <div class="shell">
+    <h2 class="big">{{t:home3.benefits_title}}</h2>
+    <p class="lede">{{t:home3.benefits_lede}}</p>
+    <div class="cards three">
+      <div class="card">
+        <h3>{{t:home3.instant_title}}</h3>
+        <p>{{t:home3.instant_text}}</p>
+      </div>
+      <div class="card">
+        <h3>{{t:home3.zones_title}}</h3>
+        <p>{{t:home3.zones_text}}</p>
+      </div>
+      <div class="card">
+        <h3>{{t:home3.scenes_title}}</h3>
+        <p>{{t:home3.scenes_text}}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="slab" id="products">
   <div class="shell">
-    <h2 class="big">{{t:home2.products_title}}</h2>
-    <p class="lede">{{t:home2.products_lede}}</p>
+    <h2 class="big">{{t:home3.products_title}}</h2>
+    <p class="lede">{{t:home3.products_lede}}</p>
     <div class="product-cards">
       <a class="product-card studio" href="{{base}}studio/">
-        <p class="eyebrow">{{t:home2.studio_eyebrow}}</p>
+        <p class="eyebrow">{{t:home3.studio_eyebrow}}</p>
         <h3>Studio</h3>
-        <p>{{t:home2.studio_text}}</p>
+        <p>{{t:home3.studio_text}}</p>
         <ul>
-          <li>{{t:home2.studio_point_1}}</li>
-          <li>{{t:home2.studio_point_2}}</li>
+          <li>{{t:home3.studio_point_1}}</li>
         </ul>
-        <span class="more">{{t:home2.studio_more}}</span>
+        <span class="more">{{t:home3.studio_more}}</span>
       </a>
       <a class="product-card dmx" href="{{base}}dmx/">
-        <p class="eyebrow">{{t:home2.dmx_eyebrow}}</p>
-        <h3>{{t:home2.dmx_name}}</h3>
-        <p>{{t:home2.dmx_text}}</p>
+        <p class="eyebrow">{{t:home3.dmx_eyebrow}}</p>
+        <h3>{{t:home3.dmx_name}}</h3>
+        <p>{{t:home3.dmx_text}}</p>
         <ul>
-          <li>{{t:home2.dmx_point_1}}</li>
-          <li>{{t:home2.dmx_point_2}}</li>
+          <li>{{t:home3.dmx_point}}</li>
         </ul>
-        <span class="more">{{t:home2.dmx_more}}</span>
+        <span class="more">{{t:home3.dmx_more}}</span>
       </a>
       <a class="product-card sdk" href="{{base}}sdk/">
-        <p class="eyebrow">{{t:home2.sdk_eyebrow}}</p>
+        <p class="eyebrow">{{t:home3.sdk_eyebrow}}</p>
         <h3>SDK</h3>
-        <p>{{t:home2.sdk_text}}</p>
+        <p>{{t:home3.sdk_text}}</p>
         <ul>
-          <li>{{t:home2.sdk_point_1}}</li>
-          <li>{{t:home2.sdk_point_2}}</li>
+          <li>{{t:home3.sdk_point_1}}</li>
         </ul>
-        <span class="more">{{t:home2.sdk_more}}</span>
+        <span class="more">{{t:home3.sdk_more}}</span>
       </a>
     </div>
   </div>
@@ -62,14 +81,14 @@
   <div class="shell split">
     <div>
       <p class="eyebrow">Studio</p>
-      <h2 class="big">{{t:home2.studio_title}}</h2>
-      <p class="lede">{{t:home2.studio_lede}}</p>
+      <h2 class="big">{{t:home3.studio_title}}</h2>
+      <p class="lede">{{t:home3.studio_lede}}</p>
       <ul class="ticks">
-        <li>{{t:home2.studio_tick_1}}</li>
-        <li>{{t:home2.studio_tick_2}}</li>
-        <li>{{t:home2.studio_tick_3}}</li>
+        <li>{{t:home3.studio_tick_1}}</li>
+        <li>{{t:home3.studio_tick_zones}}</li>
+        <li>{{t:home3.studio_tick_phone}}</li>
       </ul>
-      <a class="btn ghost" href="{{base}}studio/">{{t:home2.studio_see}}</a>
+      <a class="btn" href="{{base}}studio/">{{t:home3.studio_get}}</a>
     </div>
     <video class="shot" src="{{base}}assets/img/studio.webm" poster="{{base}}assets/img/studio-home.jpg" width="1440" height="900" muted playsinline data-autoplay aria-hidden="true"></video>
   </div>
@@ -78,10 +97,14 @@
 <section class="slab spotlight">
   <div class="shell split reverse">
     <div>
-      <p class="eyebrow">{{t:home2.dmx_name}}</p>
-      <h2 class="big">{{t:home2.dmx_title}}</h2>
-      <p class="lede">{{t:home2.dmx_lede}}</p>
-      <a class="btn ghost" href="{{base}}dmx/">{{t:home2.dmx_see}}</a>
+      <p class="eyebrow">{{t:home3.dmx_name}}</p>
+      <h2 class="big">{{t:home3.dmx_title}}</h2>
+      <p class="lede">{{t:home3.dmx_lede}}</p>
+      <ul class="ticks">
+        <li>{{t:home3.dmx_tick_resolution}}</li>
+        <li>{{t:home3.dmx_point_1}}</li>
+      </ul>
+      <a class="btn ghost" href="{{base}}dmx/">{{t:home3.dmx_see}}</a>
     </div>
     {{dmx_desk}}
   </div>
@@ -91,9 +114,9 @@
   <div class="shell split">
     <div>
       <p class="eyebrow">SDK</p>
-      <h2 class="big">{{t:home2.sdk_title}}</h2>
-      <p class="lede">{{t:home2.sdk_lede}}</p>
-      <a class="btn ghost" href="{{base}}sdk/">{{t:home2.sdk_see}}</a>
+      <h2 class="big">{{t:home3.sdk_title}}</h2>
+      <p class="lede">{{t:home3.sdk_lede}}</p>
+      <a class="btn ghost" href="{{base}}sdk/">{{t:home3.sdk_see}}</a>
     </div>
     {{sdk_tabs}}
   </div>
@@ -101,27 +124,23 @@
 
 <section class="slab modes">
   <div class="shell">
-    <h2 class="big">{{t:home.modes_title}}</h2>
-    <div class="mode-cards">
+    <h2 class="big">{{t:home3.modes_title}}</h2>
+    <p class="lede">{{t:home3.modes_lede}}</p>
+    <div class="mode-cards three">
       <a class="mode-card lan" href="{{base}}docs/modes/">
-        <h3>{{badge_lan}}</h3>
-        <p class="tag">{{t:home.lan_tag}}</p>
-        <p>{{t:home.lan_text}}</p>
+        <h3>{{t:home3.lan_name}}</h3>
+        <p class="tag">{{t:home3.lan_tag}}</p>
+        <p>{{t:home3.lan_text}}</p>
       </a>
       <a class="mode-card ble" href="{{base}}docs/modes/">
-        <h3>{{badge_ble}}</h3>
-        <p class="tag">{{t:home.ble_tag}}</p>
-        <p>{{t:home.ble_text}}</p>
+        <h3>{{t:home3.ble_name}}</h3>
+        <p class="tag">{{t:home3.ble_tag}}</p>
+        <p>{{t:home3.ble_text}}</p>
       </a>
       <a class="mode-card cloud" href="{{base}}docs/modes/">
-        <h3>{{badge_cloud}}</h3>
-        <p class="tag">{{t:home.cloud_tag}}</p>
-        <p>{{t:home.cloud_text}}</p>
-      </a>
-      <a class="mode-card dmx" href="{{base}}docs/dmx/">
-        <h3>{{badge_dmx}}</h3>
-        <p class="tag">{{t:home.dmx_tag}}</p>
-        <p>{{t:home.dmx_text}}</p>
+        <h3>Cloud</h3>
+        <p class="tag">{{t:home3.cloud_tag}}</p>
+        <p>{{t:home3.cloud_text}}</p>
       </a>
     </div>
   </div>
@@ -129,11 +148,15 @@
 
 <section class="slab closer">
   <div class="shell">
-    <h2 class="big">{{t:home2.closer_title}}</h2>
-    <p class="lede">{{t:home2.closer_lede}}</p>
-    <div class="cta-links">
-      <a class="btn" href="{{base}}devices/">{{t:home2.closer_devices}}</a>
-      <a class="btn ghost" href="{{repo}}" target="_blank" rel="noreferrer">{{t:home2.closer_code}}</a>
-    </div>
+    <h2 class="big">{{t:home3.closer_title}}</h2>
+    <p class="lede">{{t:home3.closer_lede}}</p>
+    <form class="closer-search" action="{{base}}devices/" method="get">
+      <label class="search">
+        <span class="visually-hidden">{{t:home3.closer_label}}</span>
+        <input type="search" name="q" placeholder="{{t:home3.closer_placeholder}}" autocomplete="off">
+      </label>
+      <button class="btn" type="submit">{{t:home3.closer_check}}</button>
+    </form>
+    <p class="closer-meta">{{t:home3.closer_meta}} · <a href="{{repo}}" target="_blank" rel="noreferrer">{{t:home3.closer_code}}</a></p>
   </div>
 </section>

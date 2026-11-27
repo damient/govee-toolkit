@@ -38,21 +38,22 @@
   opacity: .28;
 }
 
-/* On the home page the bar sits over the hero beam, so it starts bare. The
+/* On a page whose head draws the beam (the home page and the product
+   pages), the bar sits over the beam, so it starts bare. The
    ground and the line arrive together, with `data-past-top`. */
-.is-home .topbar {
+.has-beam .topbar {
   background: transparent;
   backdrop-filter: none;
   transition: background .35s ease;
 }
-.is-home .topbar:not([data-past-top]) .topline { opacity: 0; }
-.is-home .topbar[data-past-top] {
+.has-beam .topbar:not([data-past-top]) .topline { opacity: 0; }
+.has-beam .topbar[data-past-top] {
   background: var(--bar-bg);
   backdrop-filter: blur(14px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .topline, .is-home .topbar { transition: none; }
+  .topline, .has-beam .topbar { transition: none; }
 }
 .topbar .shell { display: flex; align-items: center; gap: 24px; height: var(--bar-h); }
 .wordmark {
@@ -76,18 +77,12 @@
 .controls { display: flex; align-items: center; gap: 8px; margin-left: -16px; }
 .links a {
   font: 500 14px/1 var(--sans); color: var(--muted); text-decoration: none;
-  padding-block: 6px;
+  padding-block: 6px; white-space: nowrap;
 }
 .links a:hover, .links a[aria-current] { color: var(--text); }
 .links a[aria-current] { box-shadow: inset 0 -2px 0 0 var(--ember); }
-.links .ghost {
-  display: inline-flex; align-items: center; gap: 7px; height: 30px;
-  color: var(--text); border: 1px solid var(--line-strong);
-  padding: 0 11px; border-radius: 8px;
-}
-.links .ghost svg { width: 15px; height: 15px; }
-/* GitHub, the language menu and the theme toggle read as one group, set
-   apart from the page links. */
+/* The language menu and the theme toggle read as one group, set apart from
+   the page links. */
 .bar-tools { display: flex; align-items: center; gap: 8px; margin-left: clamp(8px, 2.4vw, 30px); }
 
 .theme, .burger {
@@ -130,7 +125,7 @@
   }
   /* The panel hides the page, so the bar over it carries the same ground at
      full strength. The two read as one surface. */
-  .topbar[data-menu="open"], .is-home .topbar[data-menu="open"] {
+  .topbar[data-menu="open"], .has-beam .topbar[data-menu="open"] {
     background: var(--ink);
     backdrop-filter: none;
   }
@@ -138,7 +133,6 @@
   .topbar[data-menu] .links a { padding: 12px 0; font-size: 16px; text-align: center; }
   .topbar[data-menu] .links a[aria-current] { box-shadow: none; color: var(--ember); }
   .topbar[data-menu] .bar-tools { display: contents; }
-  .topbar[data-menu] .links .ghost { justify-content: center; height: auto; margin-top: 14px; padding: 12px; }
   /* One theme control at a time: inside the folded menu, the top bar keeps
      only the burger. */
   .controls .theme { display: none; }

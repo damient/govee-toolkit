@@ -1,12 +1,13 @@
 <section class="slab product-head">
+  <div class="aurora" data-beam="developers" aria-hidden="true"><i class="band"></i><i class="edge"></i><i class="lobe"></i><i class="floor"></i></div>
   <div class="shell split">
     <div>
-      <p class="eyebrow">SDK</p>
-      <h1>{{t:psdk.title}}</h1>
-      <p class="lede">{{t:psdk.lede}}</p>
+      <p class="eyebrow">{{t:nav.developers}}</p>
+      <h1>{{t:pdev.title}}</h1>
+      <p class="lede">{{t:pdev.lede}}</p>
       <div class="cta-links">
-        <a class="btn" href="{{base}}docs/install/">{{t:home.install}}</a>
-        <a class="btn ghost" href="{{base}}docs/reference/">{{t:psdk.every}}</a>
+        <a class="btn" href="{{base}}docs/install/">{{t:pdev.quick_start}}</a>
+        <a class="btn ghost" href="{{repo}}" target="_blank" rel="noreferrer">{{t:pdev.github}}</a>
       </div>
     </div>
     {{sdk_tabs}}
@@ -15,7 +16,7 @@
 
 <section class="slab">
   <div class="shell">
-    <h2 class="big">{{t:psdk.pick}}</h2>
+    <h2 class="big">{{t:pdev.pick}}</h2>
     <div class="cards two">
       <a class="card" href="{{base}}docs/install/#rust">
         <h3>Rust</h3>
@@ -65,6 +66,50 @@
         <h3>{{t:psdk.scenes_title}}</h3>
         <p>{{t:psdk.scenes_text}}</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell">
+    <h2 class="big">{{t:pdev.further}}</h2>
+    <div class="cards three">
+      <div class="card">
+        <h3>{{t:pdev.guides}}</h3>
+        <ul class="card-links">
+          <li><a href="{{base}}docs/start/">{{t:pdev.start}}</a></li>
+          <li><a href="{{base}}docs/install/">{{t:pdev.install}}</a></li>
+          <li><a href="{{base}}docs/configure/">{{t:pdev.configure}}</a></li>
+          <li><a href="{{base}}docs/troubleshooting/">{{t:pdev.troubleshooting}}</a></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>{{t:pdev.reference}}</h3>
+        <ul class="card-links">
+          <li><a href="{{base}}docs/reference/">{{t:pdev.api}}</a></li>
+          <li><a href="{{base}}docs/modes/">{{t:pdev.modes}}</a></li>
+          <li><a href="{{base}}docs/dmx/">{{t:pdev.dmx}}</a></li>
+          <li><a href="{{base}}docs/targets/">{{t:pdev.targets}}</a></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>{{t:pdev.contribute}}</h3>
+        <ul class="card-links">
+          <li><a href="{{base}}devices/add/">{{t:layout.add_device}}</a></li>
+          <li><a href="{{repo}}/blob/main/CONTRIBUTING.md">{{t:layout.contribute}}</a></li>
+          <li><a href="{{repo}}/blob/main/CHANGELOG.md">{{t:layout.changelog}}</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slab closer">
+  <div class="shell">
+    <h2 class="big">{{t:pdev.closer_title}}</h2>
+    <p class="lede">{{t:pdev.closer_lede}}</p>
+    <div class="cta-links">
+      <a class="btn" href="{{repo}}" target="_blank" rel="noreferrer">{{t:pdev.github}}</a>
     </div>
   </div>
 </section>

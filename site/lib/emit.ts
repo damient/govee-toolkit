@@ -64,7 +64,7 @@ export async function emit(
     css: frame.css,
     redirect: page.locale.id === ENGLISH.id && page.url === "" ? homeRedirect() : "",
     jsonld: jsonLd(page.jsonld),
-    nav: topNav(page.nav, frame.docsHome, t),
+    nav: topNav(page.nav, t),
     docnav: frame.docNav,
     content: fill(page.body, frame.vars),
     client_strings: t.client(),
@@ -79,30 +79,18 @@ export async function emit(
   await writeFile(file, html);
 }
 
-function topNav(current: string, docsHome: string, t: T): string {
-  const link = (url: string, key: string) => {
-    const on = key === current ? ' aria-current="page"' : "";
-    return `<a href="${base}${url}"${on}>${t(`nav.${key}`)}</a>`;
+// Docs pages light the Developers link: the guides and the reference serve the SDK.
+function topNav(current: string, t: T): string {
+  const here = current === "docs" ? "developers" : current;
+  const link = (url: string, key: string, label: string) => {
+    const on = key === here ? ' aria-current="page"' : "";
+    return `<a href="${base}${url}"${on}>${label}</a>`;
   };
   return [
-    productMenu(current === "products", t),
-    link(docsHome, "docs"),
-    link("devices/", "devices"),
-    link("faq/", "faq"),
+    link("studio/", "studio", "Studio"),
+    link("dmx/", "dmx", "DMX"),
+    link("sdk/", "developers", t("nav.developers")),
+    link("devices/", "devices", t("nav.lights")),
+    link("faq/", "faq", t("nav.help")),
   ].join("\n        ");
 }
-
-// A `<details>`, so the menu opens without JavaScript. The product names are
-// the same in every language.
-function productMenu(here: boolean, t: T): string {
-  const items = [["studio/", "Studio", "studio"], ["dmx/", "DMX", "dmx"], ["sdk/", "SDK", "sdk"]]
-    .map(([url, name, key]) => `<li><a href="${base}${url}"><span>${name}</span>`
-      + `<span class="nav-note">${t(`nav.${key}_note`)}</span></a></li>`)
-    .join("");
-  return `<details class="nav-menu" data-nav-menu>
-          <summary${here ? ' aria-current="page"' : ""}>${t("nav.products")}${CARET}</summary>
-          <ul>${items}</ul>
-        </details>`;
-}
-
-const CARET = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>';
