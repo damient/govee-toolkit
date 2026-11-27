@@ -1,5 +1,8 @@
 //! `GET /api/devices` reads `config.yaml` and answers at once. `GET /api/scan`
 //! answers when the `lan` scan window ends.
+//!
+//! The server drives every light over [`MODE`] alone. `config.yaml` is shared
+//! with the CLI, so it can hold an entry that this mode does not reach.
 
 use std::sync::Arc;
 
@@ -14,6 +17,10 @@ use tokio::sync::Mutex;
 use crate::fault::failed;
 use crate::storage::Storage;
 use crate::{refuse, rooms};
+
+/// The one mode of the server. A light that the configuration does not enable
+/// for it stays out of `GET /api/devices`.
+pub(crate) const MODE: Mode = Mode::Lan;
 
 /// Starts on the first request, so that a UI-only server opens no socket.
 #[derive(Debug, Default)]
@@ -95,7 +102,7 @@ fn family(govee: &Govee, sku: Option<&str>) -> Option<String> {
 }
 
 fn scanned(govee: &Govee, device: &govee_toolkit::Device, config: Option<&Config>) -> Value {
-    let mut value = device.to_json(Some(Mode::Lan));
+    let mut value = device.to_json(Some(MODE));
     if let Some(fields) = value.as_object_mut() {
         fields.insert("family".to_owned(), json!(family(govee, Some(&device.sku))));
         let name = config.and_then(|config| config.name_for(&device.id));
@@ -115,15 +122,21 @@ fn entry(govee: &Govee, id: &DeviceId, entry: &DeviceConfig) -> Value {
     })
 }
 
+/// The entries that [`MODE`] reaches.
+fn reached(config: &Config) -> impl Iterator<Item = (&DeviceId, &DeviceConfig)> {
+    config
+        .devices
+        .iter()
+        .filter(|(id, _)| config.modes_for(id).contains(&MODE))
+}
+
 pub(crate) async fn list(State(sdk): State<Arc<Sdk>>) -> Response {
     let found = async {
         let govee = sdk.get().await?;
-        let records = sdk
-            .config(&govee)
-            .into_iter()
-            .flat_map(|config| &config.devices);
         govee_toolkit::Result::Ok(
-            records
+            sdk.config(&govee)
+                .into_iter()
+                .flat_map(reached)
                 .map(|(id, record)| entry(&govee, id, record))
                 .collect::<Vec<_>>(),
         )
@@ -138,7 +151,7 @@ pub(crate) async fn list(State(sdk): State<Arc<Sdk>>) -> Response {
 pub(crate) async fn scan(State(sdk): State<Arc<Sdk>>) -> Response {
     let found = async {
         let govee = sdk.get().await?;
-        let devices = govee.scan(Some(&[Mode::Lan])).await?;
+        let devices = govee.scan(Some(&[MODE])).await?;
         let config = sdk.config(&govee);
         govee_toolkit::Result::Ok(
             devices
@@ -167,5 +180,29 @@ pub(crate) async fn identify(State(sdk): State<Arc<Sdk>>, Path(id): Path<String>
             Some(line) => refuse(StatusCode::SERVICE_UNAVAILABLE, &line),
         },
         Err(error) => failed(&error),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used)]
+
+    use super::*;
+
+    const CONFIG: &str = "
+defaults:
+  modes: [lan]
+devices:
+  AA:BB:CC:DD:EE:01: {sku: H6008}
+  AA:BB:CC:DD:EE:02: {sku: H6008, modes: [lan, cloud]}
+  5B05DEE1-F68B-26C3-785D-04752C1A0333: {sku: H6008, modes: [ble]}
+";
+
+    #[test]
+    fn an_entry_that_the_mode_does_not_reach_stays_out_of_the_list() {
+        let config: Config = serde_norway::from_str(CONFIG).unwrap();
+        let mut ids: Vec<String> = reached(&config).map(|(id, _)| id.to_string()).collect();
+        ids.sort();
+        assert_eq!(ids, ["AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:02"]);
     }
 }

@@ -20,6 +20,10 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   502 only for a refusal from the device or the API, and 500 for the rest.
   The README lists the table under "Errors". `POST /api/devices/{id}/identify`
   answers 503 in place of 502 when the device does not answer.
+- The server drives every light over `lan` alone. `GET /api/devices` leaves
+  out an entry of `config.yaml` that does not enable `lan`, such as a `ble`
+  entry that the CLI wrote. `GET /api/devices/{id}/status` and
+  `POST /api/apply` use `lan`, whatever other mode the entry enables.
 
 ### Fixed
 

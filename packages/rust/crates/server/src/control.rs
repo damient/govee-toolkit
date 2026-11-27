@@ -7,7 +7,7 @@ use govee_toolkit::{DeviceId, Supported};
 use serde_json::json;
 
 use crate::apply;
-use crate::devices::Sdk;
+use crate::devices::{MODE, Sdk};
 use crate::fault::{failed, offline};
 
 /// `brightness_range` is `null` when the mode that answered has none. The first
@@ -20,7 +20,7 @@ pub(crate) async fn status(State(sdk): State<Arc<Sdk>>, Path(id): Path<String>) 
         Err(error) => return failed(&error),
     };
     let answer = async {
-        let handle = govee.device(&DeviceId::new(&id), None)?;
+        let handle = govee.device(&DeviceId::new(&id), Some(MODE))?;
         handle.ensure_known().await?;
         let call = handle.resolve()?;
         let supported = Supported::of(call.spec(), call.mode());

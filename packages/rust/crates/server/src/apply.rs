@@ -8,7 +8,7 @@ use govee_toolkit::{DeviceId, Error, Filter, Painting, Resolution, Supported, Ve
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::devices::Sdk;
+use crate::devices::{MODE, Sdk};
 use crate::fault::failed;
 use crate::refuse;
 use crate::studio::Hex;
@@ -96,7 +96,7 @@ pub(crate) async fn apply(State(sdk): State<Arc<Sdk>>, Json(body): Json<Apply>) 
     }
     let applied = async {
         let govee = sdk.get().await?;
-        let devices = govee.devices(Filter::ids(ids.clone()), None).await?;
+        let devices = govee.devices(Filter::ids(ids.clone()), Some(MODE)).await?;
         govee_toolkit::Result::Ok(devices.apply(verbs).await)
     }
     .await;
