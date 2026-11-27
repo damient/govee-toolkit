@@ -1,6 +1,6 @@
 # Versioning and compatibility
 
-Seven packages release independently off one shared core. This page is the rule
+Eight packages release independently off one shared core. This page is the rule
 they follow, written before the first release rather than after the second one
 breaks.
 
@@ -13,9 +13,10 @@ Each package keeps its own —
 [`node`](../packages/node/CHANGELOG.md),
 [`dmx`](../packages/rust/crates/dmx/CHANGELOG.md),
 [`server`](../packages/rust/crates/server/CHANGELOG.md),
-[`mcp`](../integrations/mcp/CHANGELOG.md). The root
+[`mcp`](../integrations/mcp/CHANGELOG.md),
+[`desktop`](../apps/desktop/CHANGELOG.md). The root
 [`CHANGELOG.md`](../CHANGELOG.md) carries what belongs to no package — the
-device catalog, the documentation, the tooling and CI — and indexes the seven.
+device catalog, the documentation, the tooling and CI — and indexes the eight.
 
 ## Semver
 
@@ -55,9 +56,10 @@ the change again against the bumped manifest, before it publishes.
 | `python-vX.Y.Z` | `govee-toolkit` | PyPI |
 | `node-vX.Y.Z` | `govee-toolkit` | npm |
 | `mcp-vX.Y.Z` | `govee-toolkit-mcp` | npm |
+| `desktop-vX.Y.Z` | Studio desktop app | GitHub releases |
 
-Versions are **not** kept in lockstep. Seven packages that move at different
-speeds and share a version number would mean publishing six no-op releases
+Versions are **not** kept in lockstep. Eight packages that move at different
+speeds and share a version number would mean publishing seven no-op releases
 every time one of them changed.
 
 ## One crate, and what a feature means
@@ -164,6 +166,12 @@ The changelog is the source, and the release is derived from it:
    section. Three numbers that disagree fail the run before anything is built.
 5. The section becomes the body of the GitHub release, and the workflow
    publishes to the registry.
+
+The desktop app has no registry. `desktop-release.yml` attaches the
+installers to the GitHub release of the tag. It also moves the tag
+`desktop-latest` to the tagged commit, and puts the same installers on the
+release `desktop-latest` under names without a version. The site links to
+that release, so the links stay valid from one version to the next.
 
 No registry token is stored in the repository: each workflow publishes through
 the registry's trusted publishing, which trades the job's OIDC identity for a
