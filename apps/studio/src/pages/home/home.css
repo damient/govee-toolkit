@@ -2,20 +2,32 @@
 .home > .alert { margin-top: 4px; }
 
 .home-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 12px; }
-.home-rooms { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
-.home-rooms label { white-space: nowrap; }
+.home-rooms { min-width: 0; max-width: 100%; }
+.home-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.home-tabs label { white-space: nowrap; }
+.home-select { display: none; max-width: 100%; height: 36px; padding-left: 14px; border-radius: 999px; }
 .home-end { display: flex; flex: 1; align-items: center; justify-content: flex-end; gap: 8px; }
-.home-search {
-  display: flex; flex: 0 1 280px; align-items: center; gap: 8px; min-width: 0; padding: 0 12px;
-  border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--muted);
-}
-.home-search:focus-within { border-color: var(--accent-ember); }
-.home-search svg { flex: none; width: 16px; height: 16px; }
+.home-tool { width: 36px; height: 36px; border-radius: 50%; }
+.home-tool:disabled { cursor: default; }
+.home-tool.spin svg { animation: home-spin .8s linear infinite; }
+
+@keyframes home-spin { to { transform: rotate(360deg); } }
+.home-search { display: flex; flex: 0 1 auto; align-items: center; min-width: 0; }
+.home-search.open { flex: 0 1 260px; }
 .home-search input {
-  flex: 1; min-width: 0; padding: 8px 0; border: 0; background: none; outline: none;
-  color: var(--text); font: 500 13px/1.3 var(--mono);
+  flex: 1; min-width: 0; padding: 8px 14px; border: 1px solid var(--accent-ember); border-radius: 999px;
+  background: var(--panel); outline: none; color: var(--text); font: 500 13px/1.3 var(--mono);
 }
-.home-setup { width: 36px; height: 36px; }
+.home-bright { position: relative; display: flex; }
+.home-bright .home-tool[aria-expanded="true"] { background: var(--panel-2); color: var(--text); }
+.home-bright-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; display: flex; align-items: center; gap: 10px;
+  width: 240px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--panel-2); box-shadow: 0 12px 32px rgb(0 0 0 / 30%);
+}
+.home-bright-pop[hidden] { display: none; }
+.home-bright-range { flex: 1; min-width: 0; accent-color: var(--accent-ember); }
+.home-bright-value { min-width: 4ch; color: var(--muted); font: 500 12px/1 var(--mono); text-align: right; }
 
 .home-power {
   display: grid; flex: none; place-items: center; width: 36px; height: 36px; padding: 0;
@@ -64,11 +76,20 @@
 .home-level:focus-visible { outline: none; }
 .home-level:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--ember); outline-offset: 2px; }
 .home-level:focus-visible::-moz-range-thumb { outline: 2px solid var(--ember); outline-offset: 2px; }
+.home-add { align-items: center; justify-content: center; min-height: 96px; border-style: dashed; background: none; color: var(--muted); text-decoration: none; }
+.home-add:hover { color: var(--text); }
+.home-add .light-icon { background: none; }
+.home-add .light-icon svg { width: 22px; height: 22px; }
 .home-card.lit .light-icon { color: var(--text); }
 .home-none { margin: 0; color: var(--muted); font: 500 13px/1.6 var(--mono); }
 
-/* Phone: the search takes the free width of its row. */
+/* Phone: a dropdown in place of the tabs, on one row with the actions. The open search takes the free width. */
 @media (max-width: 700px) {
-  .home-end { flex-basis: 100%; }
-  .home-search { flex: 1; }
+  .home-bar { flex-wrap: nowrap; gap: 8px; }
+  .home-rooms { flex: 0 1 auto; }
+  .home-tabs { display: none; }
+  .home-select { display: block; }
+  .home-end { gap: 4px; }
+  .home-search.open { flex: 1; }
+  .home-bar:has(.home-search.open) .home-rooms { display: none; }
 }

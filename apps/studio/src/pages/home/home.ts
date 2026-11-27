@@ -1,5 +1,5 @@
 import "./home.css";
-import { ALL, bar } from "./bar.ts";
+import { ALL, type BarOptions, bar } from "./bar.ts";
 import { type Found, type Room, devices, rooms } from "../../core/api.ts";
 import { apply } from "../../core/control.ts";
 import { openPanel } from "./panel/panel.ts";
@@ -10,7 +10,8 @@ import { alert } from "../../components/alert/alert.ts";
 import { loading } from "../../components/loading/loading.ts";
 import { notice } from "../../components/notice/notice.ts";
 import { pathOf } from "../../core/router.ts";
-import { ARROW, icon } from "../../components/icon/icon.ts";
+import { ARROW, PLUS, icon } from "../../components/icon/icon.ts";
+import { element } from "../../core/dom.ts";
 
 const WAND =
   "M6 21L21 6l-3-3L3 18zM15 6l3 3M9 3a2 2 0 0 0 2 2 2 2 0 0 0-2 2 2 2 0 0 0-2-2 2 2 0 0 0 2-2M19 13a2 2 0 0 0 2 2 2 2 0 0 0-2 2 2 2 0 0 0-2-2 2 2 0 0 0 2-2";
@@ -28,6 +29,36 @@ function welcome(view: HTMLElement): void {
 
 const matches = (found: Found, query: string): boolean =>
   query === "" || [found.name, found.sku].some((text) => text?.toLowerCase().includes(query) === true);
+
+function addCard(): HTMLAnchorElement {
+  const link = element("a", "light-card home-add");
+  link.href = pathOf("setup");
+  const mark = element("span", "light-icon");
+  mark.append(icon(PLUS));
+  link.append(mark, element("span", "light-title", t("home.add")));
+  return link;
+}
+
+/** The mean brightness of the lights shown that are on, in percent. 100 when none is on. */
+function meanLevel(cards: HomeCard[]): number {
+  const levels = cards.flatMap((card) => {
+    const state = card.snapshot();
+    return state?.on === true && state.brightness !== null ? [state.brightness] : [];
+  });
+  return levels.length > 0 ? Math.round(levels.reduce((sum, level) => sum + level, 0) / levels.length) : 100;
+}
+
+function together(cards: HomeCard[], shown: () => HomeCard[]): Pick<BarOptions, "refresh" | "level" | "dim"> {
+  return {
+    async refresh() {
+      await Promise.all(cards.map((card) => card.read()));
+    },
+    level: () => meanLevel(shown()),
+    dim(percent) {
+      for (const card of shown()) card.dim(percent);
+    },
+  };
+}
 
 /** The lights that the power button of the bar turned off. A reload drops them, and so does a light turned on by hand. */
 let turnedOff: string[] = [];
@@ -92,6 +123,7 @@ function board(box: HTMLElement, lights: Found[], list: Room[]): void {
         refresh();
       });
     },
+    ...together(cards, shown),
   });
 
   const turnedOn = (): void => {
@@ -99,7 +131,7 @@ function board(box: HTMLElement, lights: Found[], list: Room[]): void {
     refresh();
   };
   for (const found of lights) cards.push(new HomeCard(found, { changed: refresh, open: openPanel, turnedOn }));
-  grid.append(...cards.map((card) => card.node));
+  grid.append(...cards.map((card) => card.node), addCard());
   box.append(top.node, grid, none);
   filter(room, "");
 }

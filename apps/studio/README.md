@@ -86,11 +86,16 @@ page: move the shared code to `components/`, `shell/` or `core/`.
   light and every client shows the same list. Studio keeps the colors of
   the segments and the gradient until a reload: the status of a light does
   not give them. "Save to library" waits for the Library view. The bar
-  (`bar.ts`) holds the tabs of the rooms, a search on the name and the
-  SKU, a power button, and a link to the setup. The power
-  button turns off the lights shown that are on, then turns back on these
-  lights only. Studio keeps that list until a reload, or until the user
-  turns a light on from its card or its panel. With no light, Home shows a
+  (`bar.ts`) holds the rooms, then a search button, a brightness button, a
+  refresh button and a power button. On a phone, a dropdown replaces the
+  tabs of the rooms. The search button opens a field for the name or the
+  SKU (`tools.ts`). The brightness button opens a slider in percent. The
+  slider sends the level to the lights shown that are on, each in the range
+  of its device file. The refresh button reads the status of every light
+  again. The power button turns off the lights shown that are on, then
+  turns back on these lights only. Studio keeps that list until a reload, or
+  until the user turns a light on from its card or its panel. A card after
+  the lights opens the setup. With no light, Home shows a
   welcome card that opens the setup. Settings also opens the setup.
 - `/setup` has no entry in the navigation. Its first step shows the
   lights of `config.yaml` at once (`/api/devices`), and runs a `lan` scan

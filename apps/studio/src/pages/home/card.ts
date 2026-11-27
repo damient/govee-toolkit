@@ -136,8 +136,7 @@ export class HomeCard {
     });
     this.swatch.append(this.level);
     this.node.append(top, this.swatch, this.error);
-    this.slot.append(statusMark(t("light.checking"), loading({ size: "s" })));
-    this.read();
+    void this.read();
   }
 
   private powerButton(): PowerButton {
@@ -153,9 +152,10 @@ export class HomeCard {
     return powerButton(this.name, press, true);
   }
 
-  /** Ask the light for its state. */
-  private read(): void {
-    status(this.found.id).then(
+  /** Ask the light for its state. The promise settles with the answer, and never rejects. */
+  read(): Promise<void> {
+    this.slot.replaceChildren(statusMark(t("light.checking"), loading({ size: "s" })));
+    return status(this.found.id).then(
       (answer) => {
         this.settle(answer);
       },
@@ -163,6 +163,16 @@ export class HomeCard {
         this.settle(null);
       },
     );
+  }
+
+  /** Send `percent` to a light that is on and has a brightness. The level stays in the range of the light. */
+  dim(percent: number): void {
+    const range = this.state?.on === true ? this.state.range : null;
+    if (range === null || range === undefined) return;
+    const [low, high] = range;
+    const level = Math.min(high, Math.max(low, Math.round(percent)));
+    this.level.value = String(level);
+    this.send(level);
   }
 
   /** The power state, or `null` while it is not known. */
