@@ -23,6 +23,9 @@ h3 { font-size: 1.15rem; }
 p { margin: 0 0 1em; }
 a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
 a:hover { text-decoration-color: currentColor; }
+/* A browser draws a `<button>` with the arrow. `:where()` keeps the rule at
+   zero specificity, so a `cursor: help` on one class still wins. */
+:where(button:not(:disabled), .btn) { cursor: pointer; }
 code, pre, kbd { font-family: var(--mono); font-size: .92em; }
 /* The faces carry no 700: name the weight that exists rather than let the
    browser draw a synthetic bold. */
