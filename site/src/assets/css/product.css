@@ -50,18 +50,6 @@
 .cards.soon .card { --accent: var(--muted); }
 
 @media (min-width: 1000px) { .cards.soon { grid-template-columns: repeat(3, 1fr); } }
-.platforms { list-style: none; margin: 1.6em 0; padding: 0; display: grid; gap: 8px; }
-.platforms li {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 12px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-  font-weight: 500;
-}
-.soon-badge, .ok-badge {
-  font: 500 12px/1 var(--mono); letter-spacing: .04em; padding: 6px 9px; border-radius: 6px;
-  color: var(--muted); border: 1px solid var(--line-strong);
-}
-.ok-badge { color: var(--accent-cyan); border-color: color-mix(in oklab, var(--accent-cyan) 45%, transparent); }
-
 /* --- Visuals ------------------------------------------------------------ */
 
 /* The recording of Studio. It runs on mock data: no real light. */
@@ -91,3 +79,50 @@
 .card-links { list-style: none; margin: .6em 0 0; padding: 0; display: grid; gap: .5em; }
 .card-links a { color: var(--prose); }
 .card-links a:hover { color: var(--text); }
+
+/* --- Run Studio --------------------------------------------------------- */
+
+/* One card per system. `platforms.ts` shows the steps of the chosen one. */
+.get-tabs { display: grid; gap: 14px; margin-top: 2.2em; }
+
+@media (min-width: 760px) { .get-tabs { grid-template-columns: repeat(3, 1fr); } }
+.get-card, .get-pane { --accent: var(--accent-blue); --on-accent: #fff; }
+/* Black in the light theme, white in the dark one. */
+:is(.get-card, .get-pane).macos { --accent: var(--text); --on-accent: var(--ink); }
+:is(.get-card, .get-pane).linux { --accent: light-dark(#c47f00, var(--accent-amber)); --on-accent: #16151a; }
+.get-card {
+  display: flex; align-items: center; gap: 16px; width: 100%;
+  font: inherit; color: var(--text); text-align: left;
+  transition: border-color .2s, transform .2s;
+}
+.get-card:hover { transform: translateY(-2px); }
+.get-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.get-card .card-chip { width: 52px; height: 52px; border-radius: 14px; }
+.get-card .card-icon { width: 28px; height: 28px; }
+.get-name { display: block; font-size: 1.2rem; font-weight: 600; }
+.get-tag { display: block; margin-top: .2em; color: var(--muted); font-size: .9rem; }
+.get-card[aria-selected="true"] {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 7%, var(--panel));
+}
+/* The hover rule of `halo.css` comes later in the cascade. */
+.get-card[aria-selected="true"]:is(*, :hover) .card-chip { background: var(--accent); color: var(--on-accent); }
+
+.get-pane {
+  margin-top: 14px; padding: clamp(22px, 3vw, 34px);
+  border: 1px solid var(--line); border-radius: 16px;
+  background: var(--panel);
+}
+.get-steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.get-steps li { position: relative; min-height: 32px; padding-left: 50px; color: var(--prose); counter-increment: step; }
+.get-steps li::before {
+  content: counter(step); position: absolute; top: -4px; left: 0;
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  font: 600 14px/1 var(--mono); color: var(--accent);
+  border: 1px solid color-mix(in oklab, var(--accent) 50%, transparent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+.get-steps .btn, .get-steps .terminal { margin-top: 12px; }
+.get-pane > .note { margin: 1.6em 0 0; }
+
+@media (prefers-reduced-motion: reduce) { .get-card { transition: none; } }

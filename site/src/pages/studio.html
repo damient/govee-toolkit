@@ -67,25 +67,52 @@
 </section>
 
 <section class="slab" id="get">
-  <div class="shell split">
-    <div>
-      <h2 class="big">{{t:pstudio.run}}</h2>
-      <p class="lede">{{t:pstudio.get_lede}}</p>
-      <ul class="platforms">
-        <li><span>macOS</span><span class="soon-badge">{{t:pstudio.desktop_soon}}</span></li>
-        <li><span>Windows</span><span class="soon-badge">{{t:pstudio.desktop_soon}}</span></li>
-        <li><span>Linux</span><span class="ok-badge">{{t:pstudio.service}}</span></li>
-      </ul>
-      <p class="note">{{t:pstudio.linux}} <a href="{{repo}}/blob/main/packages/rust/crates/server/README.md#linux">{{t:pstudio.linux_link}}</a></p>
-    </div>
-    <div>
-      <div class="terminal">
-<pre><code><span class="prompt">$</span> cargo install govee-toolkit-server
-<span class="prompt">$</span> govee-server
-<span class="dim"># {{t:pstudio.then_open}}</span></code></pre>
-        <button class="copy" type="button" data-copy="cargo install govee-toolkit-server">{{t:docs.copy}}</button>
+  <div class="shell">
+    <h2 class="big">{{t:pstudio.run}}</h2>
+    <p class="lede">{{t:pstudio.get_lede}}</p>
+    <div class="get" data-get>
+      <div class="get-tabs" role="tablist" aria-label="{{t:pstudio.run}}" data-halo>
+        <button class="card get-card windows" type="button" role="tab" id="get-tab-windows" aria-controls="get-windows" aria-selected="false" data-os="windows">
+          <span class="card-chip">{{card_icon.windows}}</span>
+          <span><span class="get-name">Windows</span><span class="get-tag">{{t:pstudio.win_tag}}</span></span>
+        </button>
+        <button class="card get-card macos" type="button" role="tab" id="get-tab-macos" aria-controls="get-macos" aria-selected="false" data-os="macos">
+          <span class="card-chip">{{card_icon.apple}}</span>
+          <span><span class="get-name">macOS</span><span class="get-tag">{{t:pstudio.mac_tag}}</span></span>
+        </button>
+        <button class="card get-card linux" type="button" role="tab" id="get-tab-linux" aria-controls="get-linux" aria-selected="false" data-os="linux">
+          <span class="card-chip">{{card_icon.linux}}</span>
+          <span><span class="get-name">Linux</span><span class="get-tag">{{t:pstudio.service}}</span></span>
+        </button>
       </div>
-      <p class="note">{{t:pstudio.local}}</p>
+      <div class="get-pane windows" id="get-windows" role="tabpanel" aria-labelledby="get-tab-windows" data-os="windows">
+        <ol class="get-steps">
+          <li>{{t:pstudio.step_download}}<br><a class="btn" href="{{repo}}/releases/download/desktop-latest/Govee-Toolkit-Studio-Windows-setup.exe">{{t:pstudio.download}} .exe</a></li>
+          <li>{{t:pstudio.win_install}}</li>
+          <li>{{t:pstudio.win_open}}</li>
+        </ol>
+      </div>
+      <div class="get-pane macos" id="get-macos" role="tabpanel" aria-labelledby="get-tab-macos" data-os="macos">
+        <ol class="get-steps">
+          <li>{{t:pstudio.step_download}}<br><a class="btn" href="{{repo}}/releases/download/desktop-latest/Govee-Toolkit-Studio-macOS.dmg">{{t:pstudio.download}} .dmg</a></li>
+          <li>{{t:pstudio.mac_install}}</li>
+          <li>{{t:pstudio.mac_open}}</li>
+        </ol>
+      </div>
+      <div class="get-pane linux" id="get-linux" role="tabpanel" aria-labelledby="get-tab-linux" data-os="linux">
+        <ol class="get-steps">
+          <li>{{t:pstudio.linux_rust}} <a href="https://rustup.rs">rustup.rs</a></li>
+          <li>{{t:pstudio.linux_install}}
+            <div class="terminal">
+<pre><code><span class="prompt">$</span> cargo install govee-toolkit-server
+<span class="prompt">$</span> govee-server</code></pre>
+              <button class="copy" type="button" data-copy="cargo install govee-toolkit-server">{{t:docs.copy}}</button>
+            </div>
+          </li>
+          <li>{{t:pstudio.linux_open}}</li>
+        </ol>
+        <p class="note">{{t:pstudio.linux}} <a href="{{repo}}/blob/main/packages/rust/crates/server/README.md#linux">{{t:pstudio.linux_link}}</a></p>
+      </div>
     </div>
   </div>
 </section>
