@@ -63,6 +63,12 @@ releases apart and keeps
 - `Segments::armed` is always `false`: `segment()` arms no channel on any
   mode. Read `Supported::segments` alone.
 
+### Fixed
+
+- A `lan` scan reply from a tracked device counts as an answer for its
+  breaker. A device that answers a scan again is open to the next command,
+  and it no longer waits for the cooldown of `Degraded` or `Down`.
+
 ## [1.18.0] — 2026-11-23
 
 ### Added

@@ -167,6 +167,8 @@ one, driven by the per-device circuit breaker:
   the preferred one. Two consecutive answers bring it back to `OK`.
 - Six take it to `DOWN`, which is the same shape with a five-minute cooldown —
   a mode silent for minutes is not worth probing every 30 seconds.
+- A `lan` scan reply counts as an answer. It lets the next command through
+  before the cooldown ends, and that command is the second answer.
 - The thresholds and both cooldowns are the defaults. `lan:` and `cloud:` in
   the configuration tune them for those two modes. The `ble` breaker takes the
   same defaults, and a host changes them only by building `ble::Options` itself
