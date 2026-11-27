@@ -8,6 +8,13 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
 - `POST /api/apply` takes `scene`: a name or a code of the scene library
   that `govee scenes fetch <SKU>` caches for each model.
+- `POST /api/apply` takes `draw`: one color per LED, stored on the device
+  through its `role: draw` entry. `features.draw` of
+  `GET /api/devices/{id}/status` gives the LED count, and the grid
+  `[columns, rows]` that `measurements.segment_grid` records, or `null`.
+- `GET /api/devices/{id}/status` adds `drawing`: the last `draw` that the
+  server sent to the device, kept in memory. A solid color, a white, a
+  segment or a scene that the device takes sets it back to `null`.
 
 ### Changed
 

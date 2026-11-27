@@ -24,16 +24,21 @@ pub(crate) async fn status(State(sdk): State<Arc<Sdk>>, Path(id): Path<String>) 
         handle.ensure_known().await?;
         let call = handle.resolve()?;
         let supported = Supported::of(call.spec(), call.mode());
-        Ok::<_, govee_toolkit::Error>((call.status().await?, supported))
+        let features = apply::features(&supported, call.spec(), call.mode());
+        Ok::<_, govee_toolkit::Error>((call.status().await?, supported, features))
     }
     .await;
     match answer {
-        Ok((status, supported)) => {
+        Ok((status, supported, features)) => {
             let mut record = status.to_json();
             if let Some(fields) = record.as_object_mut() {
                 fields.insert("online".to_owned(), json!(true));
                 fields.insert("brightness_range".to_owned(), json!(supported.brightness));
-                fields.insert("features".to_owned(), apply::features(&supported));
+                fields.insert("features".to_owned(), features);
+                fields.insert(
+                    "drawing".to_owned(),
+                    sdk.drawings().get(&DeviceId::new(&id)),
+                );
             }
             Json(record).into_response()
         }

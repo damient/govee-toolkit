@@ -11,6 +11,7 @@ mod backup;
 mod compat;
 mod control;
 mod devices;
+mod drawings;
 mod entries;
 mod fault;
 mod reset;

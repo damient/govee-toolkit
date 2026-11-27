@@ -14,6 +14,7 @@ use govee_toolkit::{Config, DeviceConfig, DeviceId, Govee, Mode, Walk};
 use serde_json::{Value, json};
 use tokio::sync::Mutex;
 
+use crate::drawings::Drawings;
 use crate::fault::failed;
 use crate::storage::Storage;
 use crate::{refuse, rooms};
@@ -29,6 +30,7 @@ pub(crate) struct Sdk {
     storage: Option<Storage>,
     rooms: Arc<rooms::Store>,
     govee: Mutex<Option<Arc<Govee>>>,
+    drawings: Drawings,
 }
 
 impl Sdk {
@@ -37,6 +39,7 @@ impl Sdk {
             storage,
             rooms,
             govee: Mutex::default(),
+            drawings: Drawings::default(),
         }
     }
 
@@ -58,6 +61,10 @@ impl Sdk {
 
     pub(crate) fn storage(&self) -> Option<&Storage> {
         self.storage.as_ref()
+    }
+
+    pub(crate) fn drawings(&self) -> &Drawings {
+        &self.drawings
     }
 
     pub(crate) fn rooms(&self) -> Arc<rooms::Store> {
