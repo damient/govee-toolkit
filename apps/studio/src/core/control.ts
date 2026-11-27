@@ -10,13 +10,29 @@ export interface Features {
   segments: number | null;
   /** `Change.gradient` works. */
   gradient: boolean;
+  /** The LEDs of `Change.draw`, or `null` when the mode has no drawing. */
+  draw: Draw | null;
+}
+
+export interface Draw {
+  /** The LED count. */
+  cells: number;
+  /** `[columns, rows]`, row 0 at the top, or `null` for a strip. */
+  grid: [number, number] | null;
 }
 
 const isPair = (value: unknown): value is [number, number] =>
   Array.isArray(value) && value.length === 2 && value.every((item) => typeof item === "number");
 
+function draw(value: unknown): Draw | null {
+  if (typeof value !== "object" || value === null) return null;
+  const cells = "cells" in value && typeof value.cells === "number" && value.cells > 0 ? value.cells : null;
+  if (cells === null) return null;
+  return { cells, grid: "grid" in value && isPair(value.grid) ? value.grid : null };
+}
+
 /** A device that `POST /api/apply` can only switch and dim. */
-export const NONE: Features = { color: false, colorTemp: null, segments: null, gradient: false };
+export const NONE: Features = { color: false, colorTemp: null, segments: null, gradient: false, draw: null };
 
 function features(value: unknown): Features {
   if (typeof value !== "object" || value === null) return NONE;
@@ -26,6 +42,7 @@ function features(value: unknown): Features {
     colorTemp: "color_temp" in value && isPair(value.color_temp) ? value.color_temp : null,
     segments: segments !== null && segments > 0 ? segments : null,
     gradient: "gradient" in value && value.gradient === true,
+    draw: "draw" in value ? draw(value.draw) : null,
   };
 }
 
@@ -41,6 +58,8 @@ export interface Status {
   /** The bounds of `Change.brightness`, or `null` when the device has no brightness. */
   range: [number, number] | null;
   features: Features;
+  /** The last drawing that the server sent to the light, `#RRGGBB` for each LED, or `null`. */
+  drawing: string[] | null;
 }
 
 const field = <T>(body: object, key: string, check: (value: unknown) => value is T): T | null => {
@@ -50,6 +69,7 @@ const field = <T>(body: object, key: string, check: (value: unknown) => value is
 const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
 const isNumber = (value: unknown): value is number => typeof value === "number";
 const isString = (value: unknown): value is string => typeof value === "string";
+const isColors = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => isString(item));
 
 /** `GET /api/devices/{id}/status`. The first call for a device can take the scan window. `null` when the device does not answer. */
 export async function status(id: string): Promise<Status | null> {
@@ -63,6 +83,7 @@ export async function status(id: string): Promise<Status | null> {
     kelvin: field(body, "color_temp_kelvin", isNumber),
     range: field(body, "brightness_range", isPair),
     features: features(Reflect.get(body, "features")),
+    drawing: field(body, "drawing", isColors),
   };
 }
 
@@ -79,7 +100,8 @@ function asOutcome(value: unknown): Outcome {
   }
   const ok = "ok" in value && value.ok === true;
   const failure = "error" in value && typeof value.error === "object" && value.error !== null ? value.error : null;
-  const message = failure !== null && "message" in failure && typeof failure.message === "string" ? failure.message : null;
+  const message =
+    failure !== null && "message" in failure && typeof failure.message === "string" ? failure.message : null;
   return { id: value.id, ok, error: ok ? null : (message ?? "?") };
 }
 
@@ -96,6 +118,8 @@ export interface Change {
   segment?: { zones: number[]; color: string };
   /** A `segment` carries it: a paint with no `gradient` sets it off. */
   gradient?: boolean;
+  /** `#RRGGBB` for each LED that `Features.draw` counts. The device keeps the drawing after the request. */
+  draw?: string[];
 }
 
 /** `POST /api/apply`: change the lights of `ids` at once. A light that fails does not stop the others. */

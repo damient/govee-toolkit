@@ -5,6 +5,8 @@ import { tooltip } from "../../../components/tooltip/tooltip.ts";
 
 const WHITE = "#ffffff";
 const BASE = ["#ff0000", "#ff7a00", "#ffd400", "#00ff14", "#0050ff", "#8a2bff", "#ff2bd6", WHITE];
+/** The base colors of a drawing. Black leaves a LED unlit. */
+export const DRAW_BASE = [...BASE, "#000000"];
 
 /** The white of a light that has a white temperature: the slider shows while it is picked. */
 export interface White {
@@ -50,7 +52,6 @@ function wheelToggle(wheelNode: HTMLElement, changed: () => void): HTMLButtonEle
   return button;
 }
 
-
 /** The favorites are a setting of the server, so every light shows them. */
 export class ColorPart {
   readonly node = document.createElement("div");
@@ -62,12 +63,21 @@ export class ColorPart {
   private readonly pick: (hex: string) => void;
   private readonly failed: (message: string) => void;
   private readonly white: White | null;
+  private readonly base: readonly string[];
   /** The first swatch when it shows a color that no other swatch has. A drag of the wheel recolors it. */
   private extra: HTMLElement | null = null;
 
-  /** `failed` shows an error of the save of the favorites. */
-  constructor(start: string, pick: (hex: string) => void, failed: (message: string) => void, white: White | null) {
+  /** `failed` shows an error of the save of the favorites. `titled` `false` leaves the title to a tab. `base` follows the favorites. */
+  constructor(
+    start: string,
+    pick: (hex: string) => void,
+    failed: (message: string) => void,
+    white: White | null,
+    titled = true,
+    base: readonly string[] = BASE,
+  ) {
     this.white = white;
+    this.base = base;
     this.current = white?.on === true ? WHITE : start;
     this.pick = pick;
     this.failed = failed;
@@ -91,13 +101,19 @@ export class ColorPart {
     const label = document.createElement("span");
     label.className = "panel-label";
     label.textContent = t("panel.color");
-    this.node.append(label, this.swatches, this.circle.node, this.keep);
+    if (titled) this.node.append(label);
+    this.node.append(this.swatches, this.circle.node, this.keep);
     if (white) {
       white.row.hidden = !white.on;
       this.node.append(white.row);
     }
     this.circle.set(this.current);
     this.draw();
+  }
+
+  /** The color that the swatches and the wheel show. */
+  color(): string {
+    return this.current;
   }
 
   private readonly choose = (hex: string): void => {
@@ -135,7 +151,7 @@ export class ColorPart {
   /** A base color that is a favorite shows once, among the favorites. */
   private draw(): void {
     const favorites = prefs().favorites;
-    const colors = [...favorites, ...BASE.filter((hex) => !favorites.includes(hex))];
+    const colors = [...favorites, ...this.base.filter((hex) => !favorites.includes(hex))];
     const extra = !colors.includes(this.current);
     if (extra) colors.unshift(this.current);
     const nodes = colors.map((hex) => swatch(hex, this.choose));

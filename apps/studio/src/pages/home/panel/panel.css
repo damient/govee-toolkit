@@ -38,9 +38,36 @@
 .panel-swatch:focus-visible, .panel-zone:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
 
 .panel-zones { display: flex; flex-direction: column; gap: 10px; }
-.panel-strip { display: grid; grid-template-columns: repeat(var(--zones), minmax(0, 1fr)); gap: 3px; }
+.panel-strip {
+  display: grid; grid-template-columns: repeat(var(--zones), minmax(0, 1fr)); gap: 3px;
+  touch-action: none; user-select: none;
+}
 .panel-zone {
   height: 34px; min-width: 0; padding: 0; border: 0; border-radius: 6px;
   background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); cursor: pointer;
 }
-.panel-zone[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--ember); }
+.panel-zone[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--text); }
+/* A folded strip: the row gap and the side padding hold the link between two rows. */
+.panel-strip.folded { row-gap: 12px; padding: 0 10px; }
+.panel-zone.turn { position: relative; }
+.panel-zone.turn::after {
+  position: absolute; top: 50%; left: 100%; width: 7px; height: calc(100% + 12px);
+  border: 2px solid var(--line); border-left: 0; border-radius: 0 8px 8px 0;
+  content: ""; pointer-events: none;
+}
+.panel-zone.turn.left::after { right: 100%; left: auto; border-right: 0; border-left: 2px solid var(--line); border-radius: 8px 0 0 8px; }
+.panel-grid .panel-zone { height: auto; aspect-ratio: 1; }
+
+.panel-tabs { display: flex; flex-direction: column; gap: 24px; }
+.panel-tabbar { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.panel-tab {
+  display: flex; align-items: center; gap: 8px; margin-bottom: -1px; padding: 10px 14px;
+  border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted);
+  font: 500 12px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; cursor: pointer;
+}
+.panel-tab svg { width: 16px; height: 16px; }
+.panel-tab:hover { color: var(--text); }
+.panel-tab[aria-selected="true"] { border-bottom-color: var(--ember); color: var(--text); }
+.panel-tab:focus-visible { outline: 2px solid var(--ember); outline-offset: -2px; }
+.panel-pane { display: flex; flex-direction: column; gap: 32px; }
+.panel-pane[hidden] { display: none; }

@@ -2,65 +2,16 @@ import "./panel.css";
 import { type Change, type Status, apply, applyOne } from "../../../core/control.ts";
 import { type Memory, type ZonesPart, memory, zonesPart } from "./zones.ts";
 import { explain, t } from "../../../core/i18n.ts";
-import { ColorPart, type White } from "./color.ts";
+import { ColorPart, DRAW_BASE, type White } from "./color.ts";
 import { type HomeCard, powerButton } from "../card.ts";
 import { familyIcon } from "../../../components/family/family.ts";
 import { latest } from "../../../core/latest.ts";
+import { BRUSH, PALETTE } from "../../../components/icon/icon.ts";
+import { type Tab, tabs } from "./tabs.ts";
 import { sheet } from "../../../components/sheet/sheet.ts";
 import { tooltip } from "../../../components/tooltip/tooltip.ts";
 import { element } from "../../../core/dom.ts";
-
-interface Switch {
-  row: HTMLElement;
-  set(on: boolean): void;
-}
-
-function switchRow(text: string, on: boolean, click: (on: boolean) => void): Switch {
-  const row = element("label", "panel-row");
-  const button = element("button", "switch");
-  button.type = "button";
-  button.setAttribute("role", "switch");
-  const set = (next: boolean): void => {
-    button.setAttribute("aria-checked", String(next));
-  };
-  button.addEventListener("click", () => {
-    click(button.getAttribute("aria-checked") !== "true");
-  });
-  set(on);
-  row.append(element("span", "panel-label", text), button);
-  return { row, set };
-}
-
-interface Slider {
-  row: HTMLElement;
-  /** The bar under the knob, as the color bar of a card. */
-  track: HTMLElement;
-}
-
-/** A value out of the bounds shows at the nearest bound. A `null` text names the slider for a screen reader only. */
-function slider(
-  text: string | null,
-  name: string,
-  [low, high]: [number, number],
-  level: number | null,
-  change: (level: number) => void,
-): Slider {
-  const row = element("label", "panel-field");
-  const track = element("span", "home-swatch panel-track");
-  const input = element("input", "home-level");
-  input.setAttribute("aria-label", name);
-  input.type = "range";
-  input.min = String(low);
-  input.max = String(high);
-  input.value = String(Math.min(high, Math.max(low, level ?? high)));
-  input.addEventListener("input", () => {
-    change(Number(input.value));
-  });
-  track.append(input);
-  if (text !== null) row.append(element("span", "panel-label", text));
-  row.append(track);
-  return { row, track };
-}
+import { type Switch, slider, switchRow } from "./fields.ts";
 
 function head(card: HomeCard): Node[] {
   const shape = element("span", "light-icon");
@@ -91,6 +42,14 @@ class LightPanel {
   private readonly controls = element("div", "panel-controls");
   private readonly kept: Memory | null;
   private readonly zones: ZonesPart | null;
+  /** The colors of the zone tab. A zone that the selection takes gets its color at once. */
+  private brush: ColorPart | null = null;
+  /** The colors at the start of a drag. A LED that the drag takes out of the selection gets its color back. */
+  private before: (string | null)[] | null = null;
+  /** `true`: the zones are the LEDs of `Change.draw`, else the zones of `Change.segment`. */
+  private readonly leds: boolean;
+  /** The color of a LED that Studio did not paint, for a drawing that sends every LED. */
+  private readonly base: string;
   /** Shows the state of the power button. `power` sets it. */
   private showPower: (lit: boolean) => void = () => {
     // The button does not exist before `show`.
@@ -113,12 +72,29 @@ class LightPanel {
     this.card = card;
     this.id = card.found.id;
     this.error.hidden = true;
-    const count = state.features.segments;
+    const { draw } = state.features;
+    this.leds = draw !== null;
+    this.base = start(state);
+    const count = draw?.cells ?? state.features.segments;
     this.kept = count === null ? null : memory(this.id, count);
-    this.zones = this.kept === null ? null : zonesPart(this.kept);
-    const white = this.white(state);
-    if (state.features.color) this.controls.append(new ColorPart(start(state), this.paint, this.fail, white).node);
-    else if (white !== null) this.controls.append(white.row);
+    const drawn = this.card.drawingNow();
+    if (this.leds && this.kept !== null && drawn?.length === count) this.kept.colors = [...drawn];
+    const layout = { leds: this.leds, columns: draw?.grid?.[0] ?? null };
+    this.zones =
+      this.kept === null
+        ? null
+        : zonesPart(this.kept, layout, {
+            begin: () => {
+              this.before = this.kept === null ? null : [...this.kept.colors];
+            },
+            changed: () => {
+              if (this.brush !== null) this.paint(this.brush.color());
+            },
+            end: () => {
+              this.before = null;
+            },
+          });
+    // Brightness applies to every tab, so it shows over the tabs.
     if (state.range !== null) {
       const name = t("panel.brightness");
       const { row } = slider(name, name, state.range, state.brightness, (level) => {
@@ -126,13 +102,43 @@ class LightPanel {
       });
       this.controls.append(row);
     }
-    if (this.zones !== null) this.controls.append(this.zones.node);
-    if (this.kept !== null && state.features.gradient) this.controls.append(this.gradient(this.kept).row);
+    const panes = this.panes(state);
+    this.controls.append(tabs(panes, drawn === null ? "color" : "draw", t("panel.tabs")));
     this.on = state.on === true;
   }
 
+  /** The color of the whole light, then the paint of the zones when the light has zones and a color. */
+  private panes(state: Status): Tab[] {
+    const { color } = state.features;
+    const split = this.zones !== null && color;
+    const panes: Tab[] = [];
+    const solid = element("div", "panel-pane");
+    const white = this.white(state);
+    if (color) solid.append(new ColorPart(start(state), this.paintAll, this.fail, white, !split).node);
+    else if (white !== null) solid.append(white.row);
+    if (solid.childElementCount > 0)
+      panes.push({
+        id: "color",
+        icon: PALETTE,
+        label: t("panel.tab.color"),
+        node: solid,
+      });
+    if (!split || this.zones === null || this.kept === null) return panes;
+    const pane = element("div", "panel-pane");
+    this.brush = new ColorPart(this.base, this.paint, this.fail, null, false, DRAW_BASE);
+    pane.append(this.brush.node, this.zones.node);
+    if (!this.leds && state.features.gradient) pane.append(this.gradient(this.kept).row);
+    const label = t(this.leds ? "panel.tab.draw" : "panel.tab.zones");
+    panes.push({ id: "draw", icon: BRUSH, label, node: pane });
+    return panes;
+  }
+
   show(): void {
-    const panel = sheet({ head: head(this.card), end: [this.power(this.on)], label: this.card.name });
+    const panel = sheet({
+      head: head(this.card),
+      end: [this.power(this.on)],
+      label: this.card.name,
+    });
     panel.body.append(this.controls, this.error);
     panel.foot.append(libraryButton());
   }
@@ -162,11 +168,26 @@ class LightPanel {
     this.error.textContent = message;
   };
 
-  /** Paint the zones selected, or the whole light when none is. */
+  private readonly paintAll = (hex: string): void => {
+    this.send({ color: hex });
+  };
+
+  /** Paint the zones selected with `hex`. With no zone selected, `hex` only becomes the brush. A drawing sends every LED: the others would go black. */
   private readonly paint = (hex: string): void => {
+    const kept = this.kept;
+    if (kept === null) return;
     const picked = this.zones?.selected() ?? [];
-    if (picked.length === 0 || this.kept === null) this.send({ color: hex });
-    else this.send({ segment: { zones: picked, color: hex }, gradient: this.kept.gradient });
+    if (picked.length === 0) return;
+    if (this.leds) {
+      const chosen = new Set(picked);
+      this.send({
+        draw: (this.before ?? kept.colors).map((color, cell) => (chosen.has(cell) ? hex : (color ?? this.base))),
+      });
+    } else
+      this.send({
+        segment: { zones: picked, color: hex },
+        gradient: kept.gradient,
+      });
   };
 
   /** Show a change that the light took, on the card and on the zones. */
@@ -177,6 +198,11 @@ class LightPanel {
     if (change.color !== undefined) {
       this.card.update({ color: change.color, kelvin: 0 });
       this.kept?.colors.fill(change.color);
+    }
+    if (change.color !== undefined || change.kelvin !== undefined) this.card.drawn(null);
+    if (change.draw !== undefined) {
+      this.card.drawn(change.draw);
+      if (this.kept !== null) this.kept.colors = [...change.draw];
     }
     const segment = change.segment;
     if (segment !== undefined && this.kept !== null) {

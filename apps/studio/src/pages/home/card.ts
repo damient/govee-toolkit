@@ -28,6 +28,20 @@ function shown(state: Status): string | null {
   return hex === "000000" ? null : `#${hex}`;
 }
 
+/** One hard band per LED, in LED order. Neighbors of one color share a band. */
+function bands(colors: string[]): string {
+  const step = 100 / colors.length;
+  const stops: string[] = [];
+  let from = 0;
+  colors.forEach((color, cell) => {
+    if (colors[cell + 1] === color) return;
+    const to = (cell + 1) * step;
+    stops.push(`${color} ${from.toFixed(2)}% ${to.toFixed(2)}%`);
+    from = to;
+  });
+  return `linear-gradient(90deg, ${stops.join(", ")})`;
+}
+
 export interface PowerButton {
   button: HTMLButtonElement;
   set: (on: boolean) => void;
@@ -83,6 +97,8 @@ export class HomeCard {
   private readonly power: PowerButton;
   /** `null` until the light answers, and while it does not answer. */
   private state: Status | null = null;
+  /** The colors of the last drawing that Studio sent, one per LED. A solid color sets it back to `null`. */
+  private drawing: string[] | null = null;
   /** Sends the level while the knob moves. */
   private readonly send = latest(
     async (level: number) => {
@@ -113,7 +129,8 @@ export class HomeCard {
       fromControl = event.composedPath().some((item) => item instanceof Element && item.matches(CONTROLS));
     });
     this.node.addEventListener("click", (event) => {
-      const control = fromControl || event.composedPath().some((item) => item instanceof Element && item.matches(CONTROLS));
+      const control =
+        fromControl || event.composedPath().some((item) => item instanceof Element && item.matches(CONTROLS));
       fromControl = false;
       if (!control && this.state !== null) this.events.open(this);
     });
@@ -193,6 +210,17 @@ export class HomeCard {
     this.events.changed();
   }
 
+  /** The colors of the drawing that the card shows, or `null`. */
+  drawingNow(): string[] | null {
+    return this.drawing;
+  }
+
+  /** Show a drawing that the light took, or `null` when a solid color replaces it. */
+  drawn(colors: string[] | null): void {
+    this.drawing = colors === null ? null : [...colors];
+    this.draw();
+  }
+
   /**
    * Show what `apply` answered to a power change of this light. `wanted` is the state that it
    * asked for. `bar` is `true` for a change
@@ -207,6 +235,7 @@ export class HomeCard {
         kelvin: null,
         range: null,
         features: NONE,
+        drawing: null,
         ...this.state,
         on: wanted,
       };
@@ -221,6 +250,7 @@ export class HomeCard {
 
   private settle(state: Status | null): void {
     this.state = state;
+    if (state !== null) this.drawing = state.drawing;
     this.draw();
     this.events.changed();
   }
@@ -236,7 +266,9 @@ export class HomeCard {
     this.error.hidden = true;
     this.node.classList.toggle("offline", state === null);
     this.node.classList.toggle("lit", state?.on === true);
-    this.swatch.style.background = (state === null ? null : shown(state)) ?? "";
+    const lit = state?.on === true;
+    const solid = state === null ? null : shown(state);
+    this.swatch.style.background = lit && this.drawing !== null ? bands(this.drawing) : (solid ?? "");
     this.level.hidden = (state?.range ?? null) === null;
     const reach = t(state === null ? "light.offline" : "home.light.online");
     this.dot.classList.toggle("online", state !== null);
@@ -257,5 +289,4 @@ export class HomeCard {
     this.power.set(state.on === true);
     if (this.power.button.parentNode !== this.slot) this.slot.replaceChildren(this.power.button);
   }
-
 }
