@@ -89,6 +89,7 @@
 .get-card, .get-pane { --accent: var(--accent-blue); --on-accent: #fff; }
 /* Black in the light theme, white in the dark one. */
 :is(.get-card, .get-pane).macos { --accent: var(--text); --on-accent: var(--ink); }
+.get-pane.dmx { --accent: var(--accent-cyan); --on-accent: #16151a; }
 :is(.get-card, .get-pane).linux { --accent: light-dark(#c47f00, var(--accent-amber)); --on-accent: #16151a; }
 .get-card {
   display: flex; align-items: center; gap: 16px; width: 100%;
