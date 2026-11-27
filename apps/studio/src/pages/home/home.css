@@ -39,6 +39,8 @@
 .home-power[aria-pressed="true"] { background: var(--accent-cyan); color: #fff; box-shadow: 0 0 14px rgb(0 194 181 / 45%); }
 .home-power:disabled { cursor: default; opacity: .5; }
 .home-power:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+/* On the column of the power buttons of the cards: their padding plus their border. */
+.home-end > .home-power { margin: 0 15px 0 12px; }
 
 .home-card.offline { cursor: default; }
 .home-card.offline:hover { border-color: var(--line); }
@@ -90,6 +92,7 @@
   .home-tabs { display: none; }
   .home-select { display: block; }
   .home-end { gap: 4px; }
+  .home-end > .home-power { margin: 0 13px 0 8px; }
   .home-search.open { flex: 1; }
   .home-bar:has(.home-search.open) .home-rooms { display: none; }
 }
