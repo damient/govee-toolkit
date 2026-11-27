@@ -4,6 +4,7 @@
 import { codeBlock, highlight } from "./code.ts";
 import { deskHtml } from "./desk.ts";
 import { fill } from "./html.ts";
+import { cardIcons } from "./icons.ts";
 import type { T } from "./locales.ts";
 import type { Crumb } from "./types.ts";
 
@@ -22,10 +23,10 @@ export interface ProductSource {
 
 /** The pages of one language. */
 export function productSources(t: T): ProductSource[] {
-  const tabs = (template: string) =>
-    fill(template, { sdk_tabs: sdkTabs(t("docs.copy"), t("ref.language")), dmx_desk: deskHtml(t) });
+  const parts = (template: string) =>
+    fill(template, { ...cardIcons(), sdk_tabs: sdkTabs(t("docs.copy"), t("ref.language")), dmx_desk: deskHtml(t) });
   return [
-    { src: "home.html", url: "", nav: "home", title: null, klass: "is-home is-product has-beam", render: tabs },
+    { src: "home.html", url: "", nav: "home", title: null, klass: "is-home is-product has-beam", render: parts },
     ...(t.lang === "en" ? [{ src: "index.html", url: "old/", nav: "home", title: null, klass: "is-home has-beam", noindex: true }] : []),
     {
       src: "studio.html",
@@ -33,6 +34,7 @@ export function productSources(t: T): ProductSource[] {
       nav: "studio",
       title: "Studio",
       klass: "is-product has-beam",
+      render: parts,
       trail: [["Studio", "studio/"]],
       description: t("pstudio.description"),
     },
@@ -42,7 +44,7 @@ export function productSources(t: T): ProductSource[] {
       nav: "dmx",
       title: t("home3.dmx_name"),
       klass: "is-product has-beam",
-      render: tabs,
+      render: parts,
       trail: [[t("home3.dmx_name"), "dmx/"]],
       description: t("pdmx.description"),
     },
@@ -52,7 +54,7 @@ export function productSources(t: T): ProductSource[] {
       nav: "developers",
       title: t("nav.developers"),
       klass: "is-product has-beam",
-      render: tabs,
+      render: parts,
       trail: [[t("nav.developers"), "sdk/"]],
       description: t("psdk.description"),
     },

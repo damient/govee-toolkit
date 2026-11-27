@@ -1,6 +1,6 @@
 /* The two lanes on the "add a device" page, and the short question list under
-   them. The card carries the same left light bar as `.card`, so the page reads
-   as part of the site. */
+   them. A lane is drawn as a card (`halo.css`), so the page reads as part of
+   the site. */
 
 .paths { display: grid; gap: 34px; }
 
@@ -8,27 +8,10 @@
 .path {
   --accent: var(--accent-cyan);
   --tint: var(--cyan);
-  position: relative;
-  padding: 30px 28px 32px 31px;
-  background: var(--panel); border: 1px solid var(--line); border-left: 0;
-}
-.path::before {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--accent) 45%, transparent) 0%,
-    var(--accent) 24%,
-    color-mix(in oklab, var(--accent) 68%, #fff) 50%,
-    var(--accent) 76%,
-    color-mix(in oklab, var(--accent) 45%, transparent) 100%);
-  background-size: 100% 300%;
-  box-shadow: 0 0 18px 1px color-mix(in oklab, var(--accent) 60%, transparent);
-  animation: flow 5s linear infinite;
+  padding: 30px 28px 32px;
 }
 .path:nth-child(2) { --accent: var(--accent-ember); --tint: var(--ember); }
-.path:nth-child(2)::before { animation-delay: -2.5s; }
 
-@media (prefers-reduced-motion: reduce) { .path::before { animation: none; } }
 .path h2 { font-size: clamp(1.3rem, 1.1rem + .7vw, 1.65rem); margin: 0; }
 .path > p { color: var(--prose); }
 .path .tag {

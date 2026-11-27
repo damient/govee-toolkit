@@ -18,17 +18,17 @@
   <div class="shell">
     <h2 class="big">{{t:pdmx.layouts_title}}</h2>
     <p class="lede">{{t:pdmx.layouts_lede}}</p>
-    <div class="cards">
+    <div class="cards" data-halo>
       <div class="card">
-        <h3><code>full</code></h3>
+        <div class="card-head"><span class="card-chip">{{card_icon.full}}</span><h3><code>full</code></h3></div>
         <p>{{t:pdmx.full}}</p>
       </div>
       <div class="card">
-        <h3><code>segment</code></h3>
+        <div class="card-head"><span class="card-chip">{{card_icon.zones}}</span><h3><code>segment</code></h3></div>
         <p>{{t:pdmx.segment}}</p>
       </div>
       <div class="card">
-        <h3><code>pixel</code></h3>
+        <div class="card-head"><span class="card-chip">{{card_icon.pixel}}</span><h3><code>pixel</code></h3></div>
         <p>{{t:pdmx.pixel}}</p>
       </div>
     </div>
@@ -39,7 +39,7 @@
 <section class="slab">
   <div class="shell">
     <h2 class="big">{{t:pdmx.steps_title}}</h2>
-    <div class="cards">
+    <div class="cards" data-halo>
       <div class="card">
         <h3>{{t:pdmx.patch_title}}</h3>
         <p>{{t:pdmx.patch_text}}</p>
