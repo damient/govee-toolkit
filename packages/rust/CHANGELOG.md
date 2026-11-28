@@ -40,6 +40,10 @@ releases apart and keeps
 
 ### Changed
 
+- A minor release can add a variant to a public enum and a field to a public
+  struct, also without `#[non_exhaustive]`. Write a `_` arm in a `match` on
+  an enum of the crate. See
+  [`docs/versioning.md`](../../docs/versioning.md#what-a-minor-release-can-add).
 - Breaking: `DeviceHandle::segment()` takes `role: segment_color_masked`
   alone, on every mode. On `lan`, the H6022 and the H61A0 paint the 15 groups
   of the mask in `ptReal`, and arm no channel, so the colors stay and

@@ -128,6 +128,23 @@ Not public: the APIs of `crates/sim` and `crates/xtask`, the on-disk device
 cache format (it is versioned and discarded when foreign), log and tracing
 output, and anything marked `#[doc(hidden)]`.
 
+### What a minor release can add
+
+A minor release can add these items, also to a type without
+`#[non_exhaustive]`:
+
+- A variant to a public enum.
+- A field to a struct variant of a public enum.
+- A public field to a public struct.
+
+Write a `_` arm in a `match` on a public enum of the crate. A struct literal
+or a pattern that names every field can fail to compile after a minor
+release. A variant number of an enum without `repr` carries no promise.
+
+The lint settings of `cargo-semver-checks` in `packages/rust/Cargo.toml`
+apply these rules. The next major release adds `#[non_exhaustive]` to these
+types and removes the lint settings.
+
 ### The device catalog
 
 The catalog is data, and it is versioned as data rather than as code:
@@ -252,7 +269,9 @@ Each public surface deprecates in its own way:
 `cargo-semver-checks` runs on every pull request, against the crate on
 crates.io as the baseline: a change to the public API that the version in the
 manifest does not account for fails there, not on a registry that never takes a
-version back. The rest of what CI runs is in
+version back. The lint settings in `packages/rust/Cargo.toml` follow
+[What a minor release can add](#what-a-minor-release-can-add). The rest of
+what CI runs is in
 [`../CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 npm holds the name under a `0.0.0` placeholder; the first real release of the
