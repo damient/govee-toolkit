@@ -139,9 +139,7 @@ impl From<crate::Error> for Failure {
             | "ambiguous_scene"
             | "bad_sku" => USAGE,
             "no_such_target" | "scene_fetch_failed" => UNREACHABLE,
-            "no_mode_available" | "mode_unavailable" | "unreachable" | "unknown_device" => {
-                UNREACHABLE
-            }
+            _ if error.is_offline() => UNREACHABLE,
             "mode_not_implemented" | "missing_credential" => UNSUPPORTED,
             // A device file that declares nothing for what was asked, and a
             // zone the mode cannot address, refuse the command. Nothing went

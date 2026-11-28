@@ -1,13 +1,12 @@
 //! The scene library of a model, and the scene a call names.
 
-use govee_toolkit::input::Value;
-use govee_toolkit::{Error, OwnedDevice, Scene as CoreScene, Served, scenes};
+use govee_toolkit::{Error, OwnedDevice, Scene as CoreScene, Served, input, scenes};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 use pyo3_async_runtimes::tokio::future_into_py;
 
 use crate::conv::{self, to_py};
-use crate::errors::{map, value_error};
+use crate::errors::map;
 
 /// One scene of a model's library.
 #[pyclass(frozen, skip_from_py_object, module = "govee_toolkit", name = "Scene")]
@@ -106,11 +105,7 @@ pub(crate) fn chosen(object: &Bound<'_, PyAny>) -> PyResult<Chosen> {
 }
 
 pub(crate) fn query(object: &Bound<'_, PyAny>) -> PyResult<String> {
-    match conv::value(object)? {
-        Value::Text(name) => Ok(name),
-        Value::Int(code) => Ok(code.to_string()),
-        _ => Err(value_error("a scene is a name or a code")),
-    }
+    conv::read(input::scene(&conv::value(object)?))
 }
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {

@@ -29,6 +29,11 @@ releases apart and keeps
   It takes a cell list, or spreads the zones of `Drawing::resolution` over
   every LED. `Drawing::args` sets the other arguments by name. The device
   keeps the drawing after the sender stops.
+- `Supported::draw`: the LED count of `role: draw`.
+- `Resolved::role_args()` reads supplied arguments under the types of the
+  entry that claims a role.
+- `input::scene()` reads a scene name or code from a host value.
+- `Error::is_offline()`: the device does not answer now.
 - `Role::Draw`: a stored drawing of the LEDs. Its arguments are marked
   `role: colors` and `role: zones`.
 - `ArgSpec::Int` carries `default`, and `ArgOverride` too: the codec sends it

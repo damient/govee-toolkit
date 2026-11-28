@@ -2,7 +2,7 @@
 //! [`DeviceHandle::resolve`].
 
 use crate::codec::coerce::{self, Supplied};
-use crate::codec::{Args, Device, Error as CodecError, Mode};
+use crate::codec::{Args, Device, Error as CodecError, Mode, Role};
 use crate::device::DeviceHandle;
 #[cfg(doc)]
 use crate::error::Error;
@@ -88,6 +88,23 @@ impl<'a> Resolved<'a> {
             }
             .into()),
             None => Ok(()),
+        }
+    }
+
+    /// [`Resolved::args`] for the entry that claims `role` on this mode. A
+    /// mode with no such entry takes no arguments, and the verb then reports
+    /// the missing role.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Resolved::args`].
+    pub fn role_args<I>(&self, role: Role, supplied: I) -> Result<Args>
+    where
+        I: IntoIterator<Item = (String, Supplied)>,
+    {
+        match self.device.entry_for(self.mode, role) {
+            Some((command, _)) => self.args(command, supplied),
+            None => Ok(Args::new()),
         }
     }
 

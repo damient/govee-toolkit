@@ -72,13 +72,17 @@ pub fn verbs(value: &Value, style: Style) -> Result<Vec<Verb>> {
         verbs.push(Verb::Gradient(flag(on)?));
     }
     if let Some(scene) = at("scene") {
-        verbs.push(Verb::Scene(scene_query(scene)?));
+        verbs.push(Verb::Scene(self::scene(scene)?));
     }
     Ok(verbs)
 }
 
-/// A scene is a name or a code: a number reads as its code.
-fn scene_query(value: &Value) -> Result<String> {
+/// The scene a value names: a text is a name, a number is a code.
+///
+/// # Errors
+///
+/// [`Refused`] for a value of another shape.
+pub fn scene(value: &Value) -> Result<String> {
     match value {
         Value::Text(text) => Ok(text.clone()),
         Value::Int(code) => Ok(code.to_string()),

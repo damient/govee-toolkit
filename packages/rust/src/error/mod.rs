@@ -331,6 +331,16 @@ impl Error {
         }
     }
 
+    /// The device does not answer now: no mode reaches it, or nothing knows
+    /// it. A later call can succeed.
+    #[must_use]
+    pub fn is_offline(&self) -> bool {
+        matches!(
+            self.code(),
+            "no_mode_available" | "mode_unavailable" | "unreachable" | "unknown_device"
+        )
+    }
+
     /// The family this failure belongs to.
     #[must_use]
     pub fn category(&self) -> Category {

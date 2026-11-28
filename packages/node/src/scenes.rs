@@ -3,7 +3,7 @@
 // A doc comment here is the JSDoc, which names the error codes in prose.
 #![allow(clippy::missing_errors_doc)]
 
-use govee_toolkit::input::Value;
+use govee_toolkit::input::{self, Value};
 use govee_toolkit::{Scene as CoreScene, scenes};
 use napi::Env;
 use napi::bindgen_prelude::{PromiseRaw, Uint8Array, Unknown};
@@ -75,24 +75,15 @@ pub(crate) enum Query {
 
 /// A number reads as the code of the scene.
 pub(crate) fn named(env: &Env, value: &Unknown<'_>) -> napi::Result<String> {
-    query_text(&conv::value(env, value)?)
-        .ok_or_else(|| value_error(env, "a scene is a name or a code"))
-}
-
-fn query_text(value: &Value) -> Option<String> {
-    match value {
-        Value::Text(text) => Some(text.clone()),
-        Value::Int(code) => Some(code.to_string()),
-        _ => None,
-    }
+    conv::read(env, input::scene(&conv::value(env, value)?))
 }
 
 pub(crate) fn query(env: &Env, value: &Unknown<'_>) -> napi::Result<Query> {
     let value = conv::value(env, value)?;
     if !matches!(value, Value::Map(_)) {
-        return query_text(&value)
+        return input::scene(&value)
             .map(Query::Named)
-            .ok_or_else(|| value_error(env, "a scene is a name, a code or a Scene"));
+            .map_err(|_| value_error(env, "a scene is a name, a code or a Scene"));
     }
     conv::read(
         env,

@@ -4,7 +4,7 @@ use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use govee_toolkit::codec::{ArgBound, ArgRole, Device, Mode, Role};
+use govee_toolkit::codec::Device;
 use govee_toolkit::{
     Applied, Args, DeviceId, Devices, Drawing, Error, Filter, Outcome, Painting, Resolution,
     Supported, Verb,
@@ -17,31 +17,20 @@ use crate::fault::failed;
 use crate::refuse;
 use crate::studio::Hex;
 
-pub(crate) fn features(supported: &Supported, spec: &Device, mode: Mode) -> Value {
+pub(crate) fn features(supported: &Supported, spec: &Device) -> Value {
     let segments = supported.segments.map(|segments| segments.zones);
     json!({
         "color": supported.color,
         "color_temp": supported.color_temp,
         "segments": segments,
         "gradient": segments.is_some() && supported.gradient,
-        "draw": draw(spec, mode),
+        "draw": supported.draw.map(|cells| draw(spec, cells)),
     })
 }
 
 /// The LED count of the `draw` entry, and `[columns, rows]` when the file
-/// records a `measurements.segment_grid` of that many cells. `null` without
-/// an entry or a `count:` on its cells.
-fn draw(spec: &Device, mode: Mode) -> Value {
-    let cells = spec.entry_for(mode, Role::Draw).and_then(|(_, command)| {
-        let name = command.arg_for(ArgRole::Zones)?;
-        match command.args.get(name)?.bound() {
-            ArgBound::Zones(cells) => Some(cells),
-            _ => None,
-        }
-    });
-    let Some(cells) = cells else {
-        return Value::Null;
-    };
+/// records a `measurements.segment_grid` of that many cells.
+fn draw(spec: &Device, cells: usize) -> Value {
     let grid = spec
         .measurements
         .extra

@@ -5,7 +5,7 @@
 mod options;
 mod values;
 
-pub use options::{modes, names, verbs, walk};
+pub use options::{modes, names, scene, verbs, walk};
 pub use values::{args, colors, mode, packed, painting, rate, resolution, rgb, zones};
 
 use crate::summary::Style;

@@ -8,7 +8,7 @@ use serde_json::json;
 
 use crate::apply;
 use crate::devices::{MODE, Sdk};
-use crate::fault::{failed, offline};
+use crate::fault::failed;
 
 /// `brightness_range` is `null` when the mode that answered has none. The first
 /// call for a device that no transport knows scans until the device answers.
@@ -24,7 +24,7 @@ pub(crate) async fn status(State(sdk): State<Arc<Sdk>>, Path(id): Path<String>) 
         handle.ensure_known().await?;
         let call = handle.resolve()?;
         let supported = Supported::of(call.spec(), call.mode());
-        let features = apply::features(&supported, call.spec(), call.mode());
+        let features = apply::features(&supported, call.spec());
         Ok::<_, govee_toolkit::Error>((call.status().await?, supported, features))
     }
     .await;
@@ -42,7 +42,7 @@ pub(crate) async fn status(State(sdk): State<Arc<Sdk>>, Path(id): Path<String>) 
             }
             Json(record).into_response()
         }
-        Err(error) if offline(&error) => Json(json!({
+        Err(error) if error.is_offline() => Json(json!({
             "online": false,
             "reason": error.to_string(),
             "code": error.code(),

@@ -4,24 +4,11 @@ use axum::response::{IntoResponse, Response};
 use govee_toolkit::{Category, Error};
 use serde_json::json;
 
-/// The codes of a device that does not answer now. `/status` reports them as
-/// `online: false`, and a command answers 503 for them.
-const OFFLINE: [&str; 4] = [
-    "no_mode_available",
-    "mode_unavailable",
-    "unreachable",
-    "unknown_device",
-];
-
-pub(crate) fn offline(error: &Error) -> bool {
-    OFFLINE.contains(&error.code())
-}
-
 /// The HTTP status of an SDK failure. The match reads `Error::code`, which
 /// the SDK keeps stable.
 pub(crate) fn status_of(error: &Error) -> StatusCode {
     match error.code() {
-        code if OFFLINE.contains(&code) => StatusCode::SERVICE_UNAVAILABLE,
+        _ if error.is_offline() => StatusCode::SERVICE_UNAVAILABLE,
         "shut_down" | "stream_closed" => StatusCode::SERVICE_UNAVAILABLE,
         "no_such_target" => StatusCode::NOT_FOUND,
         "target_not_understood" | "ambiguous_target" => StatusCode::BAD_REQUEST,
@@ -58,14 +45,14 @@ mod tests {
             id: DeviceId::new("AA:BB"),
             modes: vec![govee_toolkit::Mode::Lan],
         };
-        assert!(offline(&error));
+        assert!(error.is_offline());
         assert_eq!(status_of(&error), StatusCode::SERVICE_UNAVAILABLE);
     }
 
     #[test]
     fn a_configuration_conflict_answers_409() {
         let error = Error::Configuration(Vec::new());
-        assert!(!offline(&error));
+        assert!(!error.is_offline());
         assert_eq!(status_of(&error), StatusCode::CONFLICT);
     }
 }

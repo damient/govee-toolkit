@@ -3,7 +3,7 @@
 //! Each one calls the matching method of the crate, which reads the entry the
 //! device file marks with that `role:`. No command name lives here.
 
-use govee_toolkit::codec::{Args, Role};
+use govee_toolkit::codec::Role;
 use govee_toolkit::input::Value;
 use govee_toolkit::{Drawing, Identify, Music, input};
 use napi::Env;
@@ -224,13 +224,8 @@ impl DeviceHandle {
         let supplied = conv::read(env, input::args(at("args"), conv::STYLE))?;
         self.served(env, move |owned| async move {
             let device = owned.handle();
-            // The entry that claims `role: draw` on the mode that serves the
-            // device now gives the types of the arguments.
-            let call = device.resolve()?;
-            let args = match call.spec().entry_for(call.mode(), Role::Draw) {
-                Some((command, _)) => call.args(command, supplied)?,
-                None => Args::new(),
-            };
+            // The mode that serves the device now gives the types.
+            let args = device.resolve()?.role_args(Role::Draw, supplied)?;
             let drawing = Drawing {
                 cells: cells.as_deref(),
                 colors: &colors,

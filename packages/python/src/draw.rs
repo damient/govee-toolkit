@@ -2,7 +2,7 @@
 
 use govee_toolkit::codec::{Role, Supplied};
 use govee_toolkit::input::Value;
-use govee_toolkit::{Args, DeviceHandle, Drawing, Error, Resolution, Served, input};
+use govee_toolkit::{DeviceHandle, Drawing, Error, Resolution, Served, input};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
@@ -37,11 +37,7 @@ impl Drawn {
     /// Reads the arguments under the types of the entry that claims
     /// `role: draw` on the mode that serves the device now.
     pub(crate) async fn send(self, device: DeviceHandle<'_>) -> Result<Served, Error> {
-        let call = device.resolve()?;
-        let args = match call.spec().entry_for(call.mode(), Role::Draw) {
-            Some((command, _)) => call.args(command, self.supplied)?,
-            None => Args::new(),
-        };
+        let args = device.resolve()?.role_args(Role::Draw, self.supplied)?;
         device
             .draw(&Drawing {
                 cells: self.cells.as_deref(),

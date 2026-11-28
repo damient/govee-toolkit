@@ -23,6 +23,9 @@ pub struct Supported {
     pub segments: Option<Segments>,
     /// `gradient` has an entry.
     pub gradient: bool,
+    /// The LED count of `draw`, or `None` without an entry or a `count:` on
+    /// its cells.
+    pub draw: Option<usize>,
 }
 
 /// The zones of [`Supported::segments`].
@@ -56,6 +59,10 @@ impl Supported {
                 _ => None,
             },
             gradient: has(Role::SegmentGradient),
+            draw: match bound(device, mode, Role::Draw, ArgRole::Zones) {
+                Some(ArgBound::Zones(cells)) => Some(cells),
+                _ => None,
+            },
         }
     }
 }
