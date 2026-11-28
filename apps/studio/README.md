@@ -195,7 +195,12 @@ page: move the shared code to `components/`, `shell/` or `core/`.
 - The text of the UI is in `src/assets/locales/<code>.json`. `en.json` is the
   reference: it gives the keys, and a key that another file does not have
   shows in English. A change of language shows the splash while the new
-  file loads. English is the only language for now.
+  file loads. Studio speaks English, French, German, Spanish and
+  Italian.
+- Until the user picks a language in Settings, Studio takes the first
+  language of `navigator.languages` that has a file, else English. In the
+  desktop app, that list is the language of the system. A reset of the
+  preferences goes back to it.
 
 A view gets its content when the content works against the server, `lan`
 first.
