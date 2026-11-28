@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::future::Future;
+use std::sync::{Arc, Mutex, PoisonError};
 
 use futures_util::future::join_all;
 use serde_json::{Value, json};
@@ -7,6 +9,7 @@ use crate::codec::Mode;
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::{Device, Served};
+use crate::scenes::{self, Scene};
 use crate::transport::DeviceId;
 use crate::verbs::{Music, Paint};
 
@@ -200,9 +203,25 @@ impl<'a> Devices<'a> {
 
     /// [`DeviceHandle::scene_named`] on every member. Each member reads the
     /// library of its own model, where the same name can carry another code.
+    /// The members of one model share one read of the cache.
     pub async fn scene(&self, query: &str) -> Vec<Outcome> {
-        self.each(|handle| async move { handle.scene_named(query).await })
-            .await
+        let read: Mutex<HashMap<String, Arc<Vec<Scene>>>> = Mutex::default();
+        let read = &read;
+        self.each(|handle| async move {
+            let sku = handle.resolve()?.sku().to_owned();
+            let library = {
+                let mut held = read.lock().unwrap_or_else(PoisonError::into_inner);
+                if let Some(library) = held.get(&sku) {
+                    Arc::clone(library)
+                } else {
+                    let library = Arc::new(scenes::load(&sku)?);
+                    held.insert(sku.clone(), Arc::clone(&library));
+                    library
+                }
+            };
+            handle.scene(scenes::find(&sku, &library, query)?).await
+        })
+        .await
     }
 }
 

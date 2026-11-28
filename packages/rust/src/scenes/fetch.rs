@@ -18,7 +18,7 @@ const APP_VERSION: (&str, &str) = ("AppVersion", "7.6.20");
 /// [`Error::Unreadable`] if the answer is not a library, and
 /// [`Error::BadSku`] as for the cache file name.
 pub async fn fetch(sku: &str) -> Result<Vec<Scene>, Error> {
-    cache::file(sku)?;
+    let path = cache::file(sku)?;
     let failed = |reason: String| Error::Fetch {
         sku: sku.to_owned(),
         reason,
@@ -47,5 +47,6 @@ pub async fn fetch(sku: &str) -> Result<Vec<Scene>, Error> {
             "the answer lists no scene for this model".to_owned(),
         ));
     }
-    cache::store(sku, &text)
+    cache::write(&path, &text)?;
+    Ok(scenes)
 }

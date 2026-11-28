@@ -4,13 +4,12 @@
 //! take it, and leaves the other zones alone. A paint of every zone sends one
 //! such frame per distinct color.
 
-use super::arg_for;
-use crate::codec::catalog::Device;
-use crate::codec::{ArgRole, Args, Mode, Role};
+use super::fill;
+use crate::codec::{ArgRole, Args, Role};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
 use crate::event::Served;
-use crate::stream::resolve::{Painter, Plan, Purpose, plan};
+use crate::stream::resolve::{Painter, Purpose, plan};
 use crate::stream::{Resolution, StreamOptions, paint};
 
 /// One painting of a device's zones.
@@ -119,7 +118,7 @@ impl DeviceHandle<'_> {
                     .zones(mask.as_str(), zones.to_vec()),
             ]
         } else {
-            let colors = colors(sku, &plan, paint.colors)?;
+            let colors = fill(sku, paint.colors, plan.zones)?;
             let colors = match plan.spread {
                 Some(spread) => spread.apply(&colors),
                 None => colors,

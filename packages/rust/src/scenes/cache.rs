@@ -57,15 +57,20 @@ pub fn load(sku: &str) -> Result<Vec<Scene>, Error> {
 pub fn store(sku: &str, text: &str) -> Result<Vec<Scene>, Error> {
     let path = file(sku)?;
     let scenes = parse(sku, text, &path)?;
-    let write = || -> std::io::Result<()> {
+    write(&path, text)?;
+    Ok(scenes)
+}
+
+/// Write `text` to the cache file `path`, which [`file`] gave.
+pub(super) fn write(path: &std::path::Path, text: &str) -> Result<(), Error> {
+    let put = || -> std::io::Result<()> {
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
         }
-        std::fs::write(&path, text)
+        std::fs::write(path, text)
     };
-    write().map_err(|e| Error::Unreadable {
-        path: path.clone(),
+    put().map_err(|e| Error::Unreadable {
         reason: e.to_string(),
-    })?;
-    Ok(scenes)
+        path: path.to_path_buf(),
+    })
 }

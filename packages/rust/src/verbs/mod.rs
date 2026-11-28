@@ -174,3 +174,21 @@ fn marked<'a>(device: &'a Device, mode: Mode, command: &str, arg_role: ArgRole) 
         .get(command)
         .and_then(|spec| spec.arg_for(arg_role))
 }
+
+/// One color for each of `count` cells: one color repeated, or a list of
+/// `count`.
+///
+/// A list must state every cell: the firmware reads the count off the frame
+/// and groups the LEDs around it, so a shorter list re-groups them rather than
+/// leaving the rest alone.
+fn fill(sku: &str, colors: &[[u8; 3]], count: usize) -> Result<Vec<[u8; 3]>> {
+    match colors {
+        [one] => Ok(vec![*one; count]),
+        many if many.len() == count => Ok(many.to_vec()),
+        many => Err(Error::ColorCountMismatch {
+            sku: sku.to_owned(),
+            expected: count,
+            got: many.len(),
+        }),
+    }
+}

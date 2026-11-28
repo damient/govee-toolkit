@@ -191,11 +191,28 @@ pub(crate) fn painter(
             mode,
             role,
         })?;
-    match purpose {
-        Purpose::Paint => masked_painter(device, mode, command),
-        Purpose::Stream => whole_painter(device, mode, command, gradient),
-        Purpose::Draw => cells_painter(device, mode, command),
-    }
+    let command_name = command.to_owned();
+    Ok(match purpose {
+        Purpose::Stream => return whole_painter(device, mode, command, gradient),
+        Purpose::Paint => {
+            let (colors, zones, limit) = mask_args(device, mode, command)?;
+            Painter::Masked {
+                command: command_name,
+                colors,
+                zones,
+                limit,
+            }
+        }
+        Purpose::Draw => {
+            let (colors, cells, limit) = mask_args(device, mode, command)?;
+            Painter::Cells {
+                command: command_name,
+                cells,
+                colors,
+                limit,
+            }
+        }
+    })
 }
 
 fn unbounded(device: &Device, mode: Mode, command: &str) -> Error {
@@ -206,22 +223,14 @@ fn unbounded(device: &Device, mode: Mode, command: &str) -> Error {
     }
 }
 
-fn cells_painter(device: &Device, mode: Mode, command: &str) -> Result<Painter> {
-    Ok(Painter::Cells {
-        colors: arg_named(device, mode, command, ArgRole::Colors)?.to_owned(),
-        cells: arg_named(device, mode, command, ArgRole::Zones)?.to_owned(),
-        limit: mask_limit(device, mode, command).ok_or_else(|| unbounded(device, mode, command))?,
-        command: command.to_owned(),
-    })
-}
-
-fn masked_painter(device: &Device, mode: Mode, command: &str) -> Result<Painter> {
-    Ok(Painter::Masked {
-        colors: arg_named(device, mode, command, ArgRole::Colors)?.to_owned(),
-        zones: arg_named(device, mode, command, ArgRole::Zones)?.to_owned(),
-        limit: mask_limit(device, mode, command).ok_or_else(|| unbounded(device, mode, command))?,
-        command: command.to_owned(),
-    })
+/// The colors argument, the zone argument and the bound of a command that
+/// names its zones: a masked paint or a stored drawing.
+fn mask_args(device: &Device, mode: Mode, command: &str) -> Result<(String, String, usize)> {
+    Ok((
+        arg_named(device, mode, command, ArgRole::Colors)?.to_owned(),
+        arg_named(device, mode, command, ArgRole::Zones)?.to_owned(),
+        mask_limit(device, mode, command).ok_or_else(|| unbounded(device, mode, command))?,
+    ))
 }
 
 fn whole_painter(device: &Device, mode: Mode, command: &str, gradient: bool) -> Result<Painter> {

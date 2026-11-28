@@ -26,27 +26,51 @@ pub fn encode_batch(
     mode: Mode,
     commands: &[(&str, &Args)],
 ) -> Result<Vec<Encoded>> {
-    let mut batch: Vec<(Option<&serde_json::Value>, Encoded)> = Vec::new();
+    let mut batch: Vec<Run<'_>> = Vec::new();
     for (command, args) in commands {
         let encoded = encode(device, mode, command, args)?;
         let template = shared(device, mode, command, &encoded);
-        if let (Some(template), Some((Some(last_template), last))) = (template, batch.last_mut())
-            && *last_template == template
-            && last.cmd == encoded.cmd
+        if let (Some(template), Some(last)) = (template, batch.last_mut())
+            && last.template == Some(template)
+            && last.encoded.cmd == encoded.cmd
         {
-            last.frames.extend(encoded.frames);
-            last.replies.extend(encoded.replies);
-            let all = Frames {
-                single: None,
-                all: &last.frames,
-            };
-            let data = substitute(command, template, &Args::new(), &all)?;
-            last.message = envelope(&last.cmd, &data);
+            last.encoded.frames.extend(encoded.frames);
+            last.encoded.replies.extend(encoded.replies);
+            last.merged = true;
             continue;
         }
-        batch.push((template, encoded));
+        batch.push(Run {
+            command,
+            template,
+            encoded,
+            merged: false,
+        });
     }
-    Ok(batch.into_iter().map(|(_, encoded)| encoded).collect())
+    batch.into_iter().map(Run::finish).collect()
+}
+
+/// Consecutive commands that share one envelope.
+struct Run<'a> {
+    /// The first command, which names the run in an error.
+    command: &'a str,
+    template: Option<&'a serde_json::Value>,
+    encoded: Encoded,
+    /// More than one command: the message is built again from every frame.
+    merged: bool,
+}
+
+impl Run<'_> {
+    fn finish(mut self) -> Result<Encoded> {
+        if let (true, Some(template)) = (self.merged, self.template) {
+            let all = Frames {
+                single: None,
+                all: &self.encoded.frames,
+            };
+            let data = substitute(self.command, template, &Args::new(), &all)?;
+            self.encoded.message = envelope(&self.encoded.cmd, &data);
+        }
+        Ok(self.encoded)
+    }
 }
 
 /// The template of a command that can share its envelope, and `None` for

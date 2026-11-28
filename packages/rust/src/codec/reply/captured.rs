@@ -55,20 +55,12 @@ impl Captured {
     /// lowercase hex.
     #[must_use]
     pub fn to_json(&self) -> serde_json::Value {
-        use std::fmt::Write as _;
-
         let mut map = serde_json::Map::new();
         for (name, value) in &self.0 {
             let json = match value {
                 ArgValue::Int(v) => serde_json::Value::from(*v),
                 ArgValue::Text(text) => serde_json::Value::from(text.clone()),
-                ArgValue::Bytes(bytes) => {
-                    let mut hex = String::with_capacity(bytes.len().saturating_mul(2));
-                    for byte in bytes {
-                        let _ = write!(hex, "{byte:02x}");
-                    }
-                    serde_json::Value::from(hex)
-                }
+                ArgValue::Bytes(bytes) => serde_json::Value::from(crate::codec::hex(bytes)),
                 ArgValue::Rgb(_) | ArgValue::Zones(_) => continue,
             };
             map.insert(name.clone(), json);

@@ -1,5 +1,6 @@
 //! Store a drawing of the LEDs.
 
+use super::fill;
 use crate::codec::{ArgValue, Args};
 use crate::device::DeviceHandle;
 use crate::error::{Error, Result};
@@ -60,19 +61,14 @@ impl DeviceHandle<'_> {
                 sku: sku.to_owned(),
             });
         };
-        let mismatch = |expected: usize| Error::ColorCountMismatch {
-            sku: sku.to_owned(),
-            expected,
-            got: drawing.colors.len(),
-        };
 
         let mut args = if let Some(list) = drawing.cells {
-            let painted = stated(drawing.colors, list.len()).ok_or_else(|| mismatch(list.len()))?;
+            let painted = fill(sku, drawing.colors, list.len())?;
             Args::new()
                 .zones(cells.as_str(), list.to_vec())
                 .rgb(colors.as_str(), painted)
         } else {
-            let painted = stated(drawing.colors, plan.zones).ok_or_else(|| mismatch(plan.zones))?;
+            let painted = fill(sku, drawing.colors, plan.zones)?;
             let painted = match plan.spread {
                 Some(spread) => spread.apply(&painted),
                 None => painted,
@@ -87,15 +83,5 @@ impl DeviceHandle<'_> {
             }
         }
         call.send(plan.painter.command(), &args).await
-    }
-}
-
-/// One color for each of `count` cells: one color repeated, or a list of
-/// `count`. `None` for another length.
-fn stated(colors: &[[u8; 3]], count: usize) -> Option<Vec<[u8; 3]>> {
-    match colors {
-        [one] => Some(vec![*one; count]),
-        many if many.len() == count => Some(many.to_vec()),
-        _ => None,
     }
 }

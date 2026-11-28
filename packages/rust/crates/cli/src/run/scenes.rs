@@ -7,17 +7,16 @@ use serde_json::json;
 use crate::cli::Scenes;
 
 pub(super) async fn run(writer: Writer, action: &Scenes) -> Result<(), Failure> {
-    let (sku, scenes) = match action {
-        Scenes::Fetch { sku } => (sku, scenes::fetch(sku).await.map_err(from)?),
-        Scenes::List { sku } => (sku, scenes::load(sku).map_err(from)?),
-    };
     match action {
-        Scenes::Fetch { .. } => writer.emit(
-            &json!({ "sku": sku, "scenes": scenes.len() }),
-            &format!("{sku}: {} scenes stored", scenes.len()),
-        ),
-        Scenes::List { .. } => {
-            for scene in &scenes {
+        Scenes::Fetch { sku } => {
+            let count = scenes::fetch(sku).await.map_err(from)?.len();
+            writer.emit(
+                &json!({ "sku": sku, "scenes": count }),
+                &format!("{sku}: {count} scenes stored"),
+            );
+        }
+        Scenes::List { sku } => {
+            for scene in &scenes::load(sku).map_err(from)? {
                 writer.emit(&json!(scene), &line(scene));
             }
         }

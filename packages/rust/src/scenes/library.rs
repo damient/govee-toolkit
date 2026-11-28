@@ -26,14 +26,8 @@ pub struct Scene {
 }
 
 mod hex {
-    use std::fmt::Write;
-
     pub(super) fn serialize<S: serde::Serializer>(bytes: &[u8], s: S) -> Result<S::Ok, S::Error> {
-        let text = bytes.iter().fold(String::new(), |mut out, b| {
-            let _ = write!(out, "{b:02x}");
-            out
-        });
-        s.serialize_str(&text)
+        s.serialize_str(&crate::codec::hex(bytes))
     }
 }
 
