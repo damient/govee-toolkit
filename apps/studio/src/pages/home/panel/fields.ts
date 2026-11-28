@@ -25,6 +25,8 @@ export interface Slider {
   row: HTMLElement;
   /** The bar under the knob, as the color bar of a card. */
   track: HTMLElement;
+  /** Move the knob to `level`, and send nothing. */
+  set: (level: number) => void;
 }
 
 /** A value out of the bounds shows at the nearest bound. A `null` text names the slider for a screen reader only. */
@@ -49,5 +51,8 @@ export function slider(
   track.append(input);
   if (text !== null) row.append(element("span", "panel-label", text));
   row.append(track);
-  return { row, track };
+  const set = (next: number): void => {
+    input.value = String(Math.min(high, Math.max(low, next)));
+  };
+  return { row, track, set };
 }

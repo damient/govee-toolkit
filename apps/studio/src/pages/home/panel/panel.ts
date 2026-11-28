@@ -2,38 +2,18 @@ import "./panel.css";
 import { type Change, type Status, apply, applyOne } from "../../../core/control.ts";
 import { type Memory, type ZonesPart, memory, zonesPart } from "./zones.ts";
 import { explain, t } from "../../../core/i18n.ts";
-import { ColorPart, DRAW_BASE, type White } from "./color.ts";
+import { ColorPart, DRAW_BASE, type White, startColor as start } from "./color.ts";
+import { head } from "./head.ts";
 import { type HomeCard, powerButton } from "../card.ts";
-import { familyIcon } from "../../../components/family/family.ts";
 import { latest } from "../../../core/latest.ts";
 import { BRUSH, PALETTE } from "../../../components/icon/icon.ts";
-import { type Tab, tabs } from "./tabs.ts";
+import { type Tab, type Tabs, tabs } from "./tabs.ts";
+import { loadPresets } from "../../../core/presets.ts";
+import type { Look } from "./presets.ts";
+import { PresetsUi } from "./preset-ui.ts";
 import { sheet } from "../../../components/sheet/sheet.ts";
-import { tooltip } from "../../../components/tooltip/tooltip.ts";
 import { element } from "../../../core/dom.ts";
-import { type Switch, slider, switchRow } from "./fields.ts";
-
-function head(card: HomeCard): Node[] {
-  const shape = element("span", "light-icon");
-  shape.append(familyIcon(card.found.family));
-  const text = element("div", "home-text");
-  text.append(element("h2", "light-title panel-name", card.name), element("span", "home-sku", card.found.sku ?? ""));
-  return [shape, text];
-}
-
-function start(state: Status): string {
-  const hex = state.color?.toLowerCase() ?? "#000000";
-  return hex === "#000000" ? "#ffffff" : hex;
-}
-
-/** It waits for the library view. */
-function libraryButton(): HTMLButtonElement {
-  const button = element("button", "button", t("panel.library"));
-  button.type = "button";
-  button.setAttribute("aria-disabled", "true");
-  tooltip(button, t("panel.soon"));
-  return button;
-}
+import { type Slider, type Switch, slider, switchRow } from "./fields.ts";
 
 /** Each change goes to the light at once, with one request in flight at most. */
 class LightPanel {
@@ -46,6 +26,12 @@ class LightPanel {
   private brush: ColorPart | null = null;
   /** The colors at the start of a drag. A LED that the drag takes out of the selection gets its color back. */
   private before: (string | null)[] | null = null;
+  /** The brightness sliders of the tabs. */
+  private readonly levels: Slider[] = [];
+  /** The presets of the light, or `null` with no SKU. */
+  private readonly presets: PresetsUi | null;
+  /** The tabs, once built. The presets tab shows when the model has a preset. */
+  private bar: Tabs | null = null;
   /** `true`: the zones are the LEDs of `Change.draw`, else the zones of `Change.segment`. */
   private readonly leds: boolean;
   /** The color of a LED that Studio did not paint, for a drawing that sends every LED. */
@@ -54,11 +40,13 @@ class LightPanel {
   private showPower: (lit: boolean) => void = () => {
     // The button does not exist before `show`.
   };
+  /** Send one change and show it. */
+  private readonly run = async (change: Change): Promise<void> => {
+    await this.change(change);
+    this.took(change);
+  };
   private readonly send = latest(
-    async (change: Change) => {
-      await this.change(change);
-      this.took(change);
-    },
+    this.run,
     (failure) => {
       this.fail(explain(failure));
     },
@@ -94,17 +82,41 @@ class LightPanel {
               this.before = null;
             },
           });
-    // Brightness applies to every tab, so it shows over the tabs.
-    if (state.range !== null) {
-      const name = t("panel.brightness");
-      const { row } = slider(name, name, state.range, state.brightness, (level) => {
-        this.send({ brightness: level });
-      });
-      this.controls.append(row);
-    }
+    this.presets = this.presetsUi(state, layout.columns);
+    if (this.presets) this.presets.view.levels = this.levels;
     const panes = this.panes(state);
-    this.controls.append(tabs(panes, drawn === null ? "color" : "draw", t("panel.tabs")));
+    // A light with no color tab shows its brightness alone.
+    const alone = panes.length === 0 ? this.level(state) : null;
+    if (alone !== null) this.controls.append(alone);
+    if (this.presets !== null && panes.length > 0)
+      panes.push(
+        this.presets.tab((shown) => {
+          this.bar?.show("presets", shown);
+        }),
+      );
+    this.bar = tabs(panes, drawn === null ? "color" : "draw", t("panel.tabs"));
+    if (this.presets) this.presets.view.tabs = this.bar;
+    this.controls.append(this.bar.node);
     this.on = state.on === true;
+  }
+
+  /** A brightness slider of a tab. Every tab has one, and a move shows on the others. `null` when the light has no brightness. */
+  private level(state: Status): HTMLElement | null {
+    if (state.range === null) return null;
+    const name = t("panel.brightness");
+    const made = slider(name, name, state.range, state.brightness, (value) => {
+      for (const other of this.levels) if (other !== made) other.set(value);
+      this.send({ brightness: value });
+    });
+    this.levels.push(made);
+    return made.row;
+  }
+
+  private presetsUi(state: Status, columns: number | null): PresetsUi | null {
+    const { sku } = this.card.found;
+    if (sku === null) return null;
+    const light = { sku, features: state.features, range: state.range, kept: this.kept, leds: this.leds, columns };
+    return new PresetsUi(light, this.run, this.fail, () => this.card.snapshot()?.brightness ?? null);
   }
 
   /** The color of the whole light, then the paint of the zones when the light has zones and a color. */
@@ -114,20 +126,28 @@ class LightPanel {
     const panes: Tab[] = [];
     const solid = element("div", "panel-pane");
     const white = this.white(state);
-    if (color) solid.append(new ColorPart(start(state), this.paintAll, this.fail, white, !split).node);
-    else if (white !== null) solid.append(white.row);
-    if (solid.childElementCount > 0)
-      panes.push({
-        id: "color",
-        icon: PALETTE,
-        label: t("panel.tab.color"),
-        node: solid,
-      });
+    if (color) {
+      const part = new ColorPart(start(state), this.paintAll, this.fail, white, !split);
+      const look = (): Look => (white !== null && part.color() === "#ffffff" ? { kelvin: white.kelvin() } : { color: part.color() });
+      solid.append(part.node, this.adder(look));
+      if (this.presets) Object.assign(this.presets.view, { color: part, white });
+    } else if (white !== null) {
+      solid.append(white.row, this.adder(() => ({ kelvin: white.kelvin() })));
+      if (this.presets) this.presets.view.white = white;
+    }
+    const dim = solid.childElementCount > 0 ? this.level(state) : null;
+    if (dim !== null) solid.prepend(dim);
+    if (solid.childElementCount > 0) panes.push({ id: "color", icon: PALETTE, label: t("panel.tab.color"), node: solid });
     if (!split || this.zones === null || this.kept === null) return panes;
     const pane = element("div", "panel-pane");
     this.brush = new ColorPart(this.base, this.paint, this.fail, null, false, DRAW_BASE);
+    const level = this.level(state);
+    if (level !== null) pane.append(level);
     pane.append(this.brush.node, this.zones.node);
     if (!this.leds && state.features.gradient) pane.append(this.gradient(this.kept).row);
+    const kept = this.kept;
+    const cells = (): { cells: string[] } => ({ cells: kept.colors.map((hex) => hex ?? this.base) });
+    pane.append(this.adder(cells));
     const label = t(this.leds ? "panel.tab.draw" : "panel.tab.zones");
     panes.push({ id: "draw", icon: BRUSH, label, node: pane });
     return panes;
@@ -140,7 +160,13 @@ class LightPanel {
       label: this.card.name,
     });
     panel.body.append(this.controls, this.error);
-    panel.foot.append(libraryButton());
+    loadPresets().catch((failure: unknown) => {
+      this.fail(explain(failure));
+    });
+  }
+
+  private adder(look: () => Look): HTMLElement {
+    return this.presets?.adder(look) ?? element("span", "");
   }
 
   /** The white temperature slider, or `null` when the mode has none. The white swatch sends its value. */
@@ -149,7 +175,7 @@ class LightPanel {
     if (bounds === null) return null;
     const on = state.kelvin !== null && state.kelvin > 0;
     let kelvin = on && state.kelvin !== null ? state.kelvin : Math.round((bounds[0] + bounds[1]) / 2);
-    const { row, track } = slider(null, t("panel.white"), bounds, kelvin, (value) => {
+    const { row, track, set } = slider(null, t("panel.white"), bounds, kelvin, (value) => {
       kelvin = value;
       this.send({ kelvin });
     });
@@ -159,6 +185,11 @@ class LightPanel {
       on,
       pick: () => {
         this.send({ kelvin });
+      },
+      kelvin: () => kelvin,
+      set: (value) => {
+        kelvin = value;
+        set(value);
       },
     };
   }
