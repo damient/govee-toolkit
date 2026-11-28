@@ -249,8 +249,10 @@ function notFound(): Page {
 }
 
 // Two renames: `dist/` is missing for microseconds, not for a whole build.
+// `previous` carries the pid: two builds that publish at once (`npm run dev`
+// beside `tools/qa-site.sh`) must not delete the directory of the other.
 async function publish(): Promise<void> {
-  const previous = `${dist}.previous`;
+  const previous = `${dist}.previous-${process.pid}`;
   await rm(previous, { recursive: true, force: true });
   if (existsSync(dist)) await rename(dist, previous);
   await rename(out, dist);

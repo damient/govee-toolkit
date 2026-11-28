@@ -41,12 +41,12 @@ export function watchSources(rebuild: (change: Change) => Promise<void>): void {
 }
 
 /**
- * Deletes the staging directory of every build whose process is gone. A build
- * stopped halfway leaves its directory behind.
+ * Deletes the staging and `dist.previous-<pid>` directories of every build
+ * whose process is gone. A build stopped halfway leaves them behind.
  */
 export async function sweepStaging(): Promise<void> {
   const stale = (await readdir(root)).filter((name) => {
-    const pid = /^\.dist-build-(\d+)$/u.exec(name)?.[1];
+    const pid = /^(?:\.dist-build|dist\.previous)-(\d+)$/u.exec(name)?.[1];
     return pid !== undefined && !alive(Number(pid));
   });
   await Promise.all(stale.map((name) => rm(join(root, name), { recursive: true, force: true })));
