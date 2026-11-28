@@ -6,7 +6,7 @@
 
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
 use tokio::sync::broadcast;
 
@@ -137,22 +137,26 @@ impl Shared {
             cache.record(device, SystemTime::now())
         };
 
-        {
+        let tracked_before = {
             let Ok(mut devices) = self.devices.lock() else {
                 return;
             };
-            match devices.get_mut(&device.id) {
-                Some(tracked) => {
-                    tracked.ip = device.ip;
-                    tracked.sku.clone_from(&device.sku);
-                }
-                None => {
-                    devices.insert(
-                        device.id.clone(),
-                        Tracked::new(device.ip, device.sku.clone(), self.policy),
-                    );
-                }
+            if let Some(tracked) = devices.get_mut(&device.id) {
+                tracked.ip = device.ip;
+                tracked.sku.clone_from(&device.sku);
+                true
+            } else {
+                devices.insert(
+                    device.id.clone(),
+                    Tracked::new(device.ip, device.sku.clone(), self.policy),
+                );
+                false
             }
+        };
+        // A scan reply is an answer over this mode. Without it, a device that
+        // is back stays refused for the whole `Down` cooldown.
+        if tracked_before {
+            self.record(&device.id, true, Instant::now());
         }
 
         if change != Change::Refreshed {

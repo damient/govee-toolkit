@@ -1,0 +1,47 @@
+/* The model index: the device list, the tested list and each category page.
+   A row shows the shape icon, the name over the SKU, and the capabilities.
+   On a phone the capabilities go under the name. */
+
+/* The model index puts the search and the table close under the lede. */
+.pagehead:has(.shell.list) { padding-bottom: clamp(4px, 1vw, 12px); }
+.pagehead:has(.shell.list) .lede { margin-bottom: 0; }
+.slab:has(> .shell.list) { padding-bottom: clamp(12px, 1.6vw, 20px); }
+
+.matrix-list { min-width: 560px; }
+/* The capabilities of every mode, then the DMX mark at the end of the row. */
+.caps-cell { display: flex; align-items: center; gap: 10px; }
+
+/* The family icon draws the shape of the product, so a reader finds a model by
+   what it looks like before reading its name. Its column carries no head: the
+   shape stands for the name beside it. */
+.matrix-list th:first-child, .matrix-list .shape { width: 104px; }
+.matrix-list .shape { line-height: 0; text-align: center; }
+.matrix-list .shape .family-icon { width: 40px; height: 40px; }
+/* The name over the SKU. A click on the SKU copies it. */
+.matrix-list th[scope="row"] { font: 400 1rem/1.35 var(--sans); }
+.matrix-list .model-name { color: var(--text); text-decoration: none; }
+.matrix-list .sku {
+  display: block; margin-top: 4px; padding: 0; border: 0; background: none;
+  font: 500 12px/1.2 var(--mono); letter-spacing: .04em; color: var(--muted); cursor: inherit;
+}
+.matrix-list .sku:hover, .matrix-list .sku:focus-visible { text-decoration: underline; }
+/* On a phone, a row is a grid: the icon on the left, the name, the SKU and
+   the capabilities stacked on the right. The column heads go. */
+@media (max-width: 640px) {
+  .matrix-list { min-width: 0; }
+  .matrix-list thead { display: none; }
+  .matrix-list tbody tr {
+    display: grid; grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center; border-bottom: 1px solid var(--line);
+  }
+  .matrix-list tbody tr:last-child { border-bottom: 0; }
+  .matrix-list tbody th, .matrix-list tbody td { border-bottom: 0; padding: 0; }
+  .matrix-list .shape { grid-row: span 2; width: auto; padding: 16px 0 16px 8px; }
+  .matrix-list .shape .family-icon { width: 34px; height: 34px; }
+  .matrix-list tbody th[scope="row"] { padding: 14px 14px 12px 0; }
+  .matrix-list tbody td:last-child { padding: 0 14px 14px 0; }
+}
+
+/* The legend names every capability mark of the table in the chip that the
+   model page uses, so one mark reads the same on both pages. */
+.legend-caps { margin: 2.4em 0 0; justify-content: center; }

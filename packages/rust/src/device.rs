@@ -191,7 +191,16 @@ impl<'a> DeviceHandle<'a> {
         args: &Args,
     ) -> Result<Served> {
         let encoded = self.govee.encode(sku, mode, command, args)?;
+        self.send_encoded(mode, sku, command, &encoded).await
+    }
 
+    pub(crate) async fn send_encoded(
+        &self,
+        mode: Mode,
+        sku: &str,
+        command: &str,
+        encoded: &crate::codec::Encoded,
+    ) -> Result<Served> {
         // Fire-and-verify needs a request to verify with. Without a status
         // command in the device file, the command still goes out, unverified.
         // A device with an armed segment channel can answer no status until
@@ -207,7 +216,7 @@ impl<'a> DeviceHandle<'a> {
         let sent = self
             .govee
             .transport(&self.id, mode)?
-            .send(&self.id, &encoded, verify)
+            .send(&self.id, encoded, verify)
             .await?;
         self.govee.wrote(&self.id, sku, mode);
 
@@ -229,20 +238,20 @@ impl<'a> DeviceHandle<'a> {
     /// or dropping it, disarms the channel, and the device goes back to the
     /// color it showed before.
     ///
+    /// Serves [`Role::SegmentColor`](crate::codec::Role::SegmentColor) and
+    /// [`Role::SegmentEnable`](crate::codec::Role::SegmentEnable).
+    ///
     /// # Errors
     ///
     /// [`Error::ModeNotImplemented`] if this build carries no transport for
     /// the chosen mode, [`Error::MissingCredential`] if it carries one that
     /// has no credential,
-    /// [`Error::NoRoleCommand`] if the device file marks no entry
-    /// `role: segment_enable`, and none `role: segment_color` or
-    /// `role: segment_color_masked`, or if
-    /// [`StreamOptions::gradient`](crate::StreamOptions::gradient) asks for
-    /// interpolation the mode carries nowhere,
+    /// [`Error::NoRoleCommand`] if the mode marks no entry
+    /// `role: segment_color`, which is the case on every mode except `lan`,
+    /// or if [`StreamOptions::gradient`](crate::StreamOptions::gradient) asks
+    /// for interpolation the mode carries nowhere,
     /// [`Error::ZoneCountUnknown`] if the count asked for is not recorded for
-    /// this unit,
-    /// [`Error::NativeZonesUnreachable`] if the mode paints by zone mask and
-    /// cannot reach native resolution, [`Error::ZoneCountUnsupported`] if the
+    /// this unit, [`Error::ZoneCountUnsupported`] if the
     /// mode paints fewer zones than a count the caller states,
     /// [`Error::Codec`] if the zone count is outside what the command declares,
     /// or [`Error::Transport`] if arming cannot be sent.

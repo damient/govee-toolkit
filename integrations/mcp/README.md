@@ -119,9 +119,9 @@ closes, or on `SIGINT` and `SIGTERM`.
 | `scan({ modes? })` | Runs a discovery scan and lists the devices that answered. When nothing answers, `problems` gives what keeps the replies away |
 | `list_known()` | Lists the devices that a scan found, with the health of each mode. The first call scans each mode that no scan covered |
 | `status({ target, mode? })` | Asks a device for its state |
-| `set({ target, mode?, power?, brightness?, color?, color_temp?, segment?, music?, gradient? })` | Sets the state of a device, of a group, or of every device of one SKU |
+| `set({ target, mode?, power?, brightness?, color?, color_temp?, segment?, music?, gradient?, scene? })` | Sets the state of a device, of a group, or of every device of one SKU, and plays a scene of the cached library |
 | `send({ target, mode?, command, args? })` | Sends one command that the device file declares |
-| `stream({ targets, mode?, frames, hold_ms?, repeat?, resolution?, rate?, gradient? })` | Plays frames on the segment channel of one or more devices in step, then disarms |
+| `stream({ targets, mode?, frames, hold_ms?, repeat?, resolution?, rate?, gradient? })` | Plays frames on the segment channel of one or more devices in step over `lan`, then disarms |
 | `identify({ targets?, mode? })` | Lights the devices one by one, so that a person can find each one |
 | `doctor()` | Lists the problems in the configuration |
 
@@ -136,10 +136,16 @@ members go on. `send` reads a command whose entry declares an answer, and
 sends any other one. It refuses a command that takes a secret, such as a
 network password, with `secret_arg`.
 
-`stream` holds the call for the whole playback, 120 s at most. Each device
-gets each frame at the same time, so two devices side by side show which one
-lags. The answer counts the frames that reached the wire. The firmware
-acknowledges no frame, so a person watches what each device shows.
+`set` paints `segment` through the zone mask of the device file. The paint
+arms no channel, and the colors stay. The `native` resolution fails with
+`native_zones_unreachable`: call `stream` for it. `scene` takes a name or a
+code, and plays from the scene library of the model in the cache. Fill the
+cache with `govee scenes fetch <SKU>`.
+
+`stream` opens on `lan` alone. It holds the call for the whole playback, 120 s
+at most. Each device gets each frame at the same time, so two devices side by
+side show which one lags. The answer counts the frames that reached the wire.
+The firmware acknowledges no frame, so a person watches what each device shows.
 
 Over `lan`, an `ok` outcome says that the command left. The firmware
 acknowledges nothing, so call `status` to read what the device applied.

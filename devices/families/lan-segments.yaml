@@ -1,0 +1,40 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "lan-segments"
+
+description: >-
+  The masked zone color of `ble` sub-mode 21 and the zone interpolation,
+  carried over `lan` inside a `ptReal` command. Each frame is the `ble` frame,
+  byte for byte. See docs/protocol/lan.md 2.9, and docs/protocol/ble.md 2.3
+  and 2.6.
+
+commands:
+  lan:
+    segment_color_masked:
+      cmd: "ptReal"
+      role: segment_color_masked
+      frame: "33 05 15 01 (${colors}:rgb)×${nb} 00 00 00 00 00 ${zones:mask16} <pad:20> <xor>"
+      payload: { command: "${frames}" }
+      args:
+        colors: { type: rgb_list, max_len: 1, role: colors }
+        nb: { type: int, range: [1, 1] }
+        zones: { type: zones, count: 15, role: zones }
+      notes: >-
+        The firmware answers nothing, and `devStatus` can keep the old color
+        until the next native command. Paint a subset and look at the device:
+        a saturated mask looks exactly like an ignored mask.
+
+    gradient:
+      cmd: "ptReal"
+      role: segment_gradient
+      frame: "33 A3 ${on} <pad:20> <xor>"
+      payload: { command: "${frames}" }
+      args:
+        on: { type: int, range: [0, 1], role: gradient }
+      notes: >-
+        Whether the firmware interpolates between the zones of the mask. A
+        stored drawing renders none. The setting stays until something
+        changes it.

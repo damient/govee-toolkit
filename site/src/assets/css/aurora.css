@@ -11,7 +11,10 @@
   position: absolute;
   /* The beam runs behind the top bar, which is 62px tall and sits over the
      hero, and past the lower edge of the hero. It is cut by neither. */
-  inset: -62px 0 0;
+  inset: -62px 0 auto;
+  /* One height on every page, so the beam falls at the same place whatever
+     the head holds. The two values are the height of the home hero. */
+  height: 840px;
   z-index: 0;
   pointer-events: none;
   /* Layout and style only: `paint` would clip the beam at the lower edge
@@ -126,4 +129,35 @@
   /* The page color over the headline is what held the beam back. Dark text
      reads over these colors, so the ground steps aside. */
   --floor-a: .45;
+}
+
+@media (min-width: 960px) { .aurora { height: 690px; } }
+
+/* One variant per product page. It changes the colors and nothing else. The
+   tokens are set on the beam alone: nothing else on the page sees them. */
+.aurora[data-beam="studio"] {
+  --accent-ember: #ff2d87;
+  --accent-amber: #ff7ac0;
+  --beam-core: light-dark(#ff9ccb, #ffe0f0);
+  --beam-edge: light-dark(#ff5ea8, #4a0d3a);
+  --beam-foot: light-dark(#7c5cff, #3a0f45);
+  --magenta: #ff8a3d;
+}
+
+.aurora[data-beam="dmx"] {
+  --accent-ember: var(--accent-cyan);
+  --accent-amber: #4fd8e0;
+  --beam-core: light-dark(#7fe6ec, #d6fbff);
+  --beam-edge: light-dark(#2b8cff, #0b2f4a);
+  --beam-foot: light-dark(#7c5cff, #13234f);
+  --magenta: var(--accent-blue);
+}
+
+.aurora[data-beam="developers"] {
+  --accent-ember: #7c5cff;
+  --accent-amber: #a58bff;
+  --beam-core: light-dark(#c9b8ff, #ece4ff);
+  --beam-edge: light-dark(#ff5ea8, #2a1250);
+  --beam-foot: light-dark(#2b8cff, #3a0f45);
+  --accent-violet: var(--accent-blue);
 }

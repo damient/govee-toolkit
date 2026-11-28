@@ -6,9 +6,9 @@ trade-offs, and **the user chooses which ones to enable, per device**.
 
 | Mode | Latency | Range | Capabilities | Requires |
 | ---- | ------- | ----- | ------------ | -------- |
-| `lan` | lowest | same network | the undocumented segment channel, in color. No music command, and brightness is global | LAN Control enabled in the Govee Home app |
+| `lan` | lowest | same network | the undocumented segment channel, in color, and `ble` frames in `ptReal`, music included. Brightness is global | LAN Control enabled in the Govee Home app |
 | `ble` | low | Bluetooth range | depends on the SKU family | a Bluetooth adapter on the host, and the device not already connected to something else |
-| `cloud` | highest (internet round-trip) | anywhere | segments in color and in brightness, music. No segment stream; throttled | a Govee API key, subject to rate limits |
+| `cloud` | highest (internet round-trip) | anywhere | segments in color and in brightness, music. Throttled | a Govee API key, subject to rate limits |
 
 The `lan` row is why a device that does music and per-segment brightness reads
 as `capped` over `lan` in [`compatibility.md`](compatibility.md): the transport
@@ -71,6 +71,7 @@ The configuration folder holds:
 - `.env`: read when the search for a `.env` finds nothing else.
 - `studio.json`: the settings of the server and the settings of Studio.
 - `rooms.json`: the rooms of the lights, which `govee-server` keeps.
+- `presets.json`: the presets of Studio, which `govee-server` keeps.
 - `devices/`: the device files of the user, when `catalog.local_devices` is on.
 
 The cache folder holds `devices.json`, the result of the last discovery. It
@@ -167,6 +168,8 @@ one, driven by the per-device circuit breaker:
   the preferred one. Two consecutive answers bring it back to `OK`.
 - Six take it to `DOWN`, which is the same shape with a five-minute cooldown —
   a mode silent for minutes is not worth probing every 30 seconds.
+- A `lan` scan reply counts as an answer. It lets the next command through
+  before the cooldown ends, and that command is the second answer.
 - The thresholds and both cooldowns are the defaults. `lan:` and `cloud:` in
   the configuration tune them for those two modes. The `ble` breaker takes the
   same defaults, and a host changes them only by building `ble::Options` itself
@@ -211,9 +214,9 @@ cost two windows.
 
 ## Capability differences between modes
 
-Modes are not interchangeable, and neither is a superset of the other. `cloud`
-does not expose the undocumented segment channel `lan` reaches, and it carries
-no segment stream at all. `lan` does not reach the per-segment brightness that
+Modes are not interchangeable, and neither is a superset of the other. The segment
+stream exists on `lan` alone: `ble` and `cloud` paint zones with `segment` and
+carry no stream. `lan` does not reach the per-segment brightness that
 `cloud` and `ble` carry. `ble` does not reach the network
 ([`protocol/cloud.md`](protocol/cloud.md)). When several modes are enabled and
 the SDK switches, a command unsupported by the active mode **fails explicitly**

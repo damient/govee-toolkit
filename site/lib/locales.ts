@@ -40,6 +40,8 @@ export const contentDir = (locale: Locale): string =>
 export interface T {
   (key: string, vars?: Record<string, string | number>): string;
   has(key: string): boolean;
+  /** The language id, for `localeCompare`. */
+  lang: string;
   /** The text of `key`, or `fallback` where no language has the key. */
   or(key: string, fallback: string): string;
   /** The name of a category of Govee's LAN list. An untranslated name stays as it is. */
@@ -80,6 +82,7 @@ export function strings(locale: Locale): T {
   };
   const t: T = Object.assign(lookup, {
     has: (key: string) => text(key) !== undefined,
+    lang: locale.id,
     or: (key: string, fallback: string) => (text(key) === undefined ? fallback : lookup(key)),
     category: (name: string) => {
       const value = isRecord(categories) ? categories[name] : undefined;

@@ -18,11 +18,13 @@ mod errors;
 mod events;
 mod govee;
 mod promise;
+mod scenes;
 mod stream;
 mod types;
 mod verbs;
 
 use napi_derive::napi;
+pub use scenes::{Scene, fetch_scenes, load_scenes};
 
 /// The version of this binding.
 #[napi]

@@ -1,7 +1,7 @@
 ---
 title: Häufige Fragen
 description: Was Govee Toolkit ist, welche Govee-Leuchten es erreicht, und was du brauchst, um sie über WLAN, über Bluetooth oder über die Cloud zu steuern.
-source: c6e77337cfbf1646097cc1a62168315b829f8532
+source: e290c00ed743d71ab8f736a7316468768037d409
 ---
 
 ## Was ist Govee Toolkit? {#what-is-govee-toolkit} <!-- menu: Worum es geht -->
@@ -92,8 +92,18 @@ ganzen Streifen mit einem Befehl an. Jede Modellseite nennt ihre Zonenzahl.
 ## Können meine Leuchten Musik oder meinem Bildschirm folgen? {#can-my-lights-follow-music-or-my-screen} <!-- menu: Musik und Bildschirm -->
 
 Das Toolkit streamt Farben Frame für Frame in Echtzeit an einen Streifen, über
-WLAN und über Bluetooth. Dein eigenes Programm, oder eines, das du wählst,
-liefert die Frames: aus Musik, vom Bildschirm oder von einem Sensor.
+WLAN. Dein eigenes Programm, oder eines, das du wählst, liefert die Frames: aus
+Musik, vom Bildschirm oder von einem Sensor. Ein Modell mit Mikrofon spielt
+auch seine eigenen Musikeffekte: Seine Modellseite nennt die Modi, die sie
+übertragen.
+
+## Kann ich die Szenen meiner Leuchte abspielen? {#can-i-play-the-scenes-of-my-light} <!-- menu: Szenen -->
+
+Ja, auf einem Modell, dessen Seite „Eine Szene abspielen“ nennt. `govee scenes
+fetch <Modell>` speichert die Szenenbibliothek des Modells einmal, ohne Konto.
+`govee scene <Gerät> "<Name>"` spielt dann eine Szene über ihren Namen oder
+ihren Code. Du kannst auch eine eigene Zeichnung auf dem Gerät speichern, und
+das Gerät spielt sie weiter.
 
 ## Kann ich meine Leuchten per DMX steuern? {#can-i-control-my-lights-with-dmx} <!-- menu: DMX -->
 
@@ -105,7 +115,7 @@ DMX-Fixture. [DMX]({{base}}docs/dmx/) erklärt die Einrichtung.
 
 Ja. Der MCP-Server, `govee-toolkit-mcp`, läuft auf deinem Rechner und gibt
 einem Assistenten den Gerätekatalog und die Steuerung: Scan, Status, Ein/Aus,
-Helligkeit, Farbe und Segmente. [MCP-Server]({{base}}docs/mcp/) erklärt die
+Helligkeit, Farbe, Segmente und Szenen. [MCP-Server]({{base}}docs/mcp/) erklärt die
 Einrichtung.
 
 ## Funktioniert es mit Home Assistant, Homebridge oder Matter? {#does-it-work-with-home-assistant-homebridge-or-matter} <!-- menu: Home Assistant, Matter -->

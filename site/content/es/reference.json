@@ -1,5 +1,5 @@
 {
-  "$source": "53c2af29c206fb239497a66aca386c9734d5a499",
+  "$source": "7df8dfd5afc149b55ab6cc4a29a460a1fac49637",
   "intro": "Cada acción, desde la CLI govee, Rust, Python, Node.js o una consola DMX.",
   "groups": {
     "find": "Encontrar dispositivos",
@@ -31,10 +31,7 @@
     },
     "status": {
       "summary": "Pide al dispositivo su estado actual.",
-      "detail": "`last_status` devuelve el estado ya conocido y no envía nada.",
-      "action": {
-        "title": "Leer el estado"
-      }
+      "detail": "`last_status` devuelve el estado ya conocido y no envía nada."
     },
     "watch": {
       "summary": "Sigue los eventos: aparece un dispositivo, cambia el estado de un modo."
@@ -72,7 +69,7 @@
     },
     "segment": {
       "summary": "Pinta las zonas.",
-      "detail": "Un color llena todas las zonas, y una lista da un color por zona. Con `zones`, solo cambian las zonas indicadas, lo que necesita un modo que pinte por máscara. Se rechaza un número de zonas que la unidad no representa.",
+      "detail": "Un color llena todas las zonas, y una lista da un color por zona. Con `zones`, solo cambian las zonas indicadas, lo que necesita un modo que pinte por máscara. Los colores se quedan tras la llamada. Se rechaza un número de zonas que la unidad no representa. Para un color por LED, abre un stream o guarda un dibujo.",
       "action": {
         "title": "Pintar las zonas"
       }
@@ -87,7 +84,7 @@
     },
     "music": {
       "summary": "Reproduce un efecto que el dispositivo genera a partir de su propio micrófono.",
-      "detail": "El dispositivo escucha con su propio micrófono, y nada se transmite desde tu equipo. Los números de efecto dependen del modo, y `lan` no tiene comando de música. Ajusta un color, una temperatura o el encendido para terminar el efecto.",
+      "detail": "El dispositivo escucha con su propio micrófono, y nada se envía en streaming desde tu equipo. Los números de efecto dependen del modo. Por `lan`, el comando va dentro de `ptReal` en un modelo cuyo archivo de dispositivo lo declara. Ajusta un color, una temperatura o el encendido para terminar el efecto.",
       "action": {
         "title": "Reproducir un efecto de música",
         "summary": "El dispositivo escucha con su propio micrófono."
@@ -95,7 +92,11 @@
     },
     "open-stream": {
       "summary": "Abre el canal de segmentos y mantenlo armado.",
-      "detail": "El stream indica el número de zonas y la tasa de fotogramas medida en la unidad. Los colores terminan cuando lo cierras."
+      "detail": "El stream se abre por `lan`. Indica el número de zonas y la tasa de fotogramas medida en la unidad. Los colores terminan cuando lo cierras.",
+      "action": {
+        "title": "Animar en tiempo real",
+        "summary": "Abre el canal de segmentos y envía fotograma tras fotograma. Los colores terminan cuando lo cierras."
+      }
     },
     "set-zone": {
       "summary": "Ajusta una zona del stream."
@@ -130,14 +131,27 @@
     },
     "provision": {
       "summary": "Conecta un dispositivo nuevo a una red Wi-Fi, por Bluetooth.",
-      "detail": "La contraseña viaja en texto plano: cualquier equipo al alcance del Bluetooth durante la transferencia puede leerla.",
-      "action": {
-        "title": "Conectarlo a una red Wi-Fi"
-      }
+      "detail": "La contraseña viaja en texto plano: cualquier equipo al alcance del Bluetooth durante la transferencia puede leerla."
     },
     "modes": {
       "summary": "Restringe un comando a un modo.",
       "detail": "Nunca habilita un modo que la configuración deja fuera, y nunca recurre a otro modo. Un dispositivo al que no llega ningún modo habilitado es un error."
+    },
+    "scene": {
+      "summary": "Reproduce una escena de la biblioteca de escenas del modelo, por su nombre o su código.",
+      "detail": "`govee scenes fetch` guarda la biblioteca de un modelo, sin cuenta ni clave, y `govee scenes list` la muestra. Una llamada lee la caché y no envía ninguna petición a la nube. Un nombre que coincide con más de una escena se rechaza, y el error da el nombre completo de cada una. Por `lan`, la escena va dentro de `ptReal`, y el dispositivo no responde nada.",
+      "action": {
+        "title": "Reproducir una escena",
+        "summary": "Descarga una vez la biblioteca de escenas del modelo. Cada llamada la lee después desde la caché."
+      }
+    },
+    "draw": {
+      "summary": "Guarda un dibujo de los LED en el dispositivo.",
+      "detail": "`cells` nombra los LED, desde cero, y los demás LED muestran el fondo. `colors` lleva un color, o un color por celda. Sin `cells`, lleva un color por zona. Los demás argumentos del comando de dibujo, como el fondo y la velocidad, toman los valores por defecto del archivo del dispositivo, que dejan el dibujo quieto. Por `lan`, el dibujo va dentro de `ptReal`.",
+      "action": {
+        "title": "Dibujar",
+        "summary": "El dispositivo sigue mostrando el dibujo cuando el envío se detiene."
+      }
     }
   }
 }

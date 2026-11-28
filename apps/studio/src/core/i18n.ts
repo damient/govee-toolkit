@@ -6,11 +6,17 @@ import { prefs } from "./prefs.ts";
 export type Key = keyof typeof en;
 
 /** Each code needs a file `locales/<code>.json`. */
-export const LANGUAGES = ["en"] as const;
+export const LANGUAGES = ["en", "fr", "de", "es", "it"] as const;
 export type Language = (typeof LANGUAGES)[number];
 
 /** The name of each language, in that language. */
-export const NAMES: Record<Language, string> = { en: "English" };
+export const NAMES: Record<Language, string> = {
+  en: "English",
+  fr: "Français",
+  de: "Deutsch",
+  es: "Español",
+  it: "Italiano",
+};
 
 // The bundled English text stays until a file loads, so that an error can show.
 let strings: Record<string, string> = en;
@@ -26,8 +32,24 @@ export function t(key: Key, vars: Record<string, string> = {}): string {
   return text.replaceAll(/\{(\w+)\}/gu, (match, name: string) => vars[name] ?? match);
 }
 
+function isLanguage(code: string): code is Language {
+  return LANGUAGES.some((item) => item === code);
+}
+
+/** The first tag of `navigator.languages` whose primary subtag has a file: `fr-CA` gives `fr`. */
+function system(): Language | undefined {
+  for (const tag of navigator.languages) {
+    const code = tag.toLowerCase().split("-")[0] ?? "";
+    if (isLanguage(code)) return code;
+  }
+  return undefined;
+}
+
+/** The language that the user picked, else the language of the system or browser, else English. */
 export function language(): Language {
-  return LANGUAGES.find((code) => code === prefs().language) ?? "en";
+  const picked = prefs().language;
+  if (picked !== null && isLanguage(picked)) return picked;
+  return system() ?? "en";
 }
 
 /** The file is fetched each time, so that a change shows without a rebuild. */

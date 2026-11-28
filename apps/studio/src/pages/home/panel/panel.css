@@ -31,16 +31,72 @@
   width: 30px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 50%; cursor: pointer;
 }
 .panel-keep { align-self: center; }
+.panel-favorite { position: relative; display: inline-flex; }
+.panel-remove {
+  position: absolute; top: -5px; right: -5px; display: grid; place-items: center; width: 16px; height: 16px;
+  padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--text); cursor: pointer;
+}
+.panel-remove svg { width: 10px; height: 10px; stroke-width: 2.5; }
+.panel-remove:hover { background: var(--panel-2); }
+.panel-remove:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
 .panel-custom { border: 0; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); }
 .panel-custom[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--text); }
-.panel-wheel[hidden], .panel-field[hidden], .panel-keep[hidden] { display: none; }
+.panel-wheel[hidden], .panel-field[hidden], .panel-keep[hidden], .panel-swatches[hidden] { display: none; }
 .panel-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--text); }
 .panel-swatch:focus-visible, .panel-zone:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
 
 .panel-zones { display: flex; flex-direction: column; gap: 10px; }
-.panel-strip { display: grid; grid-template-columns: repeat(var(--zones), minmax(0, 1fr)); gap: 3px; }
+.panel-strip {
+  display: grid; grid-template-columns: repeat(var(--zones), minmax(0, 1fr)); gap: 3px;
+  touch-action: none; user-select: none;
+}
 .panel-zone {
   height: 34px; min-width: 0; padding: 0; border: 0; border-radius: 6px;
   background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); cursor: pointer;
 }
-.panel-zone[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--ember); }
+.panel-zone[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--text); }
+/* A folded strip: the row gap and the side padding hold the link between two rows. */
+.panel-strip.folded { row-gap: 12px; padding: 0 10px; }
+.panel-zone.turn { position: relative; }
+.panel-zone.turn::after {
+  position: absolute; top: 50%; left: 100%; width: 7px; height: calc(100% + 12px);
+  border: 2px solid var(--line); border-left: 0; border-radius: 0 8px 8px 0;
+  content: ""; pointer-events: none;
+}
+.panel-zone.turn.left::after { right: 100%; left: auto; border-right: 0; border-left: 2px solid var(--line); border-radius: 8px 0 0 8px; }
+.panel-grid .panel-zone { height: auto; aspect-ratio: 1; }
+
+.panel-tabs { display: flex; flex-direction: column; gap: 24px; }
+.panel-tabbar { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.panel-tab {
+  display: flex; align-items: center; justify-content: center; margin-bottom: -1px; padding: 10px 18px;
+  border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); cursor: pointer;
+}
+.panel-tab svg { width: 24px; height: 24px; }
+.panel-tab:hover { color: var(--text); }
+.panel-tab[aria-selected="true"] { border-bottom-color: var(--ember); color: var(--text); }
+.panel-tab:focus-visible { outline: 2px solid var(--ember); outline-offset: -2px; }
+.panel-pane { display: flex; flex-direction: column; gap: 32px; }
+.panel-pane[hidden] { display: none; }
+.panel-tabbar[hidden], .panel-tab[hidden] { display: none; }
+
+.panel-preset-actions { display: flex; gap: 8px; justify-content: center; }
+.panel-preset-actions .button[hidden] { display: none; }
+.panel-preset-name {
+  width: 100%; margin: 0 0 22px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel-2); color: var(--text); font: 500 15px/1.3 var(--sans);
+}
+.panel-preset-name:focus { border-color: var(--ember); outline: none; }
+.panel-presets { gap: 8px; }
+.panel-preset { display: flex; align-items: center; gap: 4px; padding-right: 4px; border: 1px solid var(--line); border-radius: 10px; }
+.panel-preset:hover { background: var(--panel-2); }
+.panel-preset-play {
+  display: flex; flex: 1; align-items: center; gap: 14px; min-width: 0; padding: 8px; border: 0; border-radius: 10px;
+  background: none; color: var(--text); font: 500 14px/1.3 var(--sans); text-align: left; cursor: pointer;
+}
+.panel-preset-play:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.panel-preset-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-snap {
+  flex: none; width: 44px; height: 44px; overflow: hidden; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--line);
+}
+.panel-snap.cells { display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 1fr)); grid-auto-rows: 1fr; }

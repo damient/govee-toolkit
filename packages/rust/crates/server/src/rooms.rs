@@ -3,8 +3,7 @@
 //! the same rooms.
 
 use std::io;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::Arc;
 
 use axum::Json;
 use axum::extract::State;
@@ -14,6 +13,7 @@ use govee_toolkit::DeviceId;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::store::{Checked, JsonStore};
 use crate::{refuse, storage};
 
 pub(crate) const VERSION: &str = "0.1.0";
@@ -47,8 +47,8 @@ pub(crate) struct Room {
     devices: Vec<DeviceId>,
 }
 
-impl Rooms {
-    pub(crate) fn checked(self) -> Result<Self, String> {
+impl Checked for Rooms {
+    fn checked(self) -> Result<Self, String> {
         if self.version != VERSION {
             return Err(format!(
                 "the rooms have the version {}, which this server does not read: update govee-server",
@@ -63,7 +63,9 @@ impl Rooms {
             ..Self::default()
         })
     }
+}
 
+impl Rooms {
     fn forget(&mut self, ids: &[DeviceId]) -> bool {
         let mut changed = false;
         for room in &mut self.rooms {
@@ -116,45 +118,9 @@ fn valid(rooms: Vec<Room>) -> Result<Vec<Room>, String> {
     Ok(out)
 }
 
-#[derive(Debug, Default)]
-pub(crate) struct Store {
-    /// `None` keeps the rooms in memory alone.
-    path: Option<PathBuf>,
-    data: Mutex<Rooms>,
-}
+pub(crate) type Store = JsonStore<Rooms>;
 
 impl Store {
-    pub(crate) fn open(path: Option<PathBuf>) -> io::Result<Self> {
-        let rooms = match &path {
-            Some(path) => read(path)?.unwrap_or_default(),
-            None => Rooms::default(),
-        };
-        Ok(Self {
-            path,
-            data: Mutex::new(rooms),
-        })
-    }
-
-    fn lock(&self) -> MutexGuard<'_, Rooms> {
-        self.data.lock().unwrap_or_else(PoisonError::into_inner)
-    }
-
-    pub(crate) fn get(&self) -> Rooms {
-        self.lock().clone()
-    }
-
-    /// `None` deletes the file. `keep` copies it to `.import.bak` first. A
-    /// failed write leaves the rooms as they were.
-    pub(crate) fn set(&self, rooms: Option<Rooms>, keep: bool) -> io::Result<()> {
-        let mut data = self.lock();
-        if let Some(path) = &self.path {
-            let text = rooms.as_ref().map(storage::json_text).transpose()?;
-            storage::put(path, text.as_deref(), false, keep)?;
-        }
-        *data = rooms.unwrap_or_default();
-        Ok(())
-    }
-
     pub(crate) fn forget(&self, ids: &[DeviceId]) -> io::Result<()> {
         let mut next = self.get();
         if next.forget(ids) {
@@ -162,15 +128,6 @@ impl Store {
         }
         Ok(())
     }
-}
-
-pub(crate) fn read(path: &std::path::Path) -> io::Result<Option<Rooms>> {
-    let Some(text) = storage::read(path)? else {
-        return Ok(None);
-    };
-    let invalid = |e: String| storage::invalid(format!("{}: {e}", path.display()));
-    let rooms: Rooms = serde_json::from_str(&text).map_err(|e| invalid(e.to_string()))?;
-    rooms.checked().map(Some).map_err(invalid)
 }
 
 fn answer(rooms: &Rooms) -> Response {

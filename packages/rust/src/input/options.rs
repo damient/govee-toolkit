@@ -6,7 +6,7 @@ use crate::govee::Walk;
 use crate::summary::Style;
 use crate::verbs::Music;
 
-const VERBS: [&str; 7] = [
+const VERBS: [&str; 8] = [
     "power",
     "brightness",
     "color",
@@ -14,6 +14,7 @@ const VERBS: [&str; 7] = [
     "segment",
     "music",
     "gradient",
+    "scene",
 ];
 const SEGMENT: [&str; 4] = ["colors", "zones", "resolution", "gradient"];
 const MUSIC: [&str; 4] = ["effect", "sensitivity", "soft", "color"];
@@ -70,7 +71,23 @@ pub fn verbs(value: &Value, style: Style) -> Result<Vec<Verb>> {
     if let Some(on) = at("gradient") {
         verbs.push(Verb::Gradient(flag(on)?));
     }
+    if let Some(scene) = at("scene") {
+        verbs.push(Verb::Scene(self::scene(scene)?));
+    }
     Ok(verbs)
+}
+
+/// The scene a value names: a text is a name, a number is a code.
+///
+/// # Errors
+///
+/// [`Refused`] for a value of another shape.
+pub fn scene(value: &Value) -> Result<String> {
+    match value {
+        Value::Text(text) => Ok(text.clone()),
+        Value::Int(code) => Ok(code.to_string()),
+        _ => Err(Refused::new("a scene is a name or a code")),
+    }
 }
 
 fn segment(value: &Value, style: Style) -> Result<Verb> {

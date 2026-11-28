@@ -32,8 +32,8 @@ this page is written by hand.
 
 `capped` and `partial` are not the same answer. `capped` says the mode goes as
 far as the transport goes: nobody can do better over it, on any device. Every
-RGBIC device is `capped` over `lan`, because `lan` carries no music command and
-no per-segment brightness. `partial` says this device file falls short of what
+RGBIC device is `capped` over `lan`, because `lan` carries no per-segment
+brightness. `partial` says this device file falls short of what
 the transport carries, so somebody can close the gap. Both list each capability
 out of reach, with the reason, under `modes.<mode>.unreachable`.
 
@@ -83,7 +83,6 @@ such in the device file until someone verifies them.
 | --- | ------ | ---- | ----- | ----- | ------- | -------- |
 | [H6008](../devices/H6008.yaml) | rgbww-bulb | Smart LED Bulb RGBWW | full | full | full | ✅ 2026-09-22 |
 | [H6022](../devices/H6022.yaml) | rgbic-table-lamp | Table Lamp 2 | capped | full | capped | ✅ 2026-09-22 |
-| [H6114](../devices/H6114.yaml) | rgb-car-strip | RGB Car LED Strip Lights | none | full | none | ✅ 2026-09-07 |
 | [H61A0](../devices/H61A0.yaml) | rgbic-neon-rope | 3m RGBIC LED Neon Rope Lights | capped | full | full | ✅ 2026-09-22 |
 <!-- /generated -->
 
@@ -94,7 +93,6 @@ such in the device file until someone verifies them.
 | --- | ---------- | ----- | --------- | ----- | ----- | ------------------ | -------- |
 | H6008 | ✅ | ✅ | ✅ | — | ✅ | — | — |
 | H6022 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| H6114 | ✅ | ✅ | — | ✅ | ✅ | — | — |
 | H61A0 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 <!-- /generated -->
 

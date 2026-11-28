@@ -289,27 +289,31 @@ every second row moves the other way. Paint one column to see which layout a
 unit has: the right one draws a straight line, and the other draws a zigzag.
 The layout is a property of the unit — record it in `devices/<SKU>.yaml`.
 
-### 2.4 Music mode — host-side, nothing to discover on the device
+### 2.4 Music mode
 
-The vendor's desktop app captures audio, computes a spectrum, groups the LEDs
-and streams the result over the `razer` channel of 2.3. The device only obeys.
+Two kinds of music reach a device over `lan`.
 
-Music mode is therefore reproducible locally over the channel documented
-above; the only missing piece is audio capture, which is a host concern. On
-macOS, capturing *system* audio needs a loopback device; a microphone is
-directly accessible.
+**On the device.** The device listens on its own microphone. The music frame
+of [`ble.md`](ble.md) 2.7 travels in `ptReal` (2.9), byte for byte. The phone
+controller sends music this way over its cloud channel. The device file
+records the effects that a unit rendered. `devStatus` reports no
+music state.
+
+**On the host.** The desktop controller captures audio, computes a spectrum,
+groups the LEDs and streams the result over the `razer` channel of 2.3. The
+device only obeys. Audio capture is a host concern. On macOS, a capture of
+the system audio needs a loopback device, and a microphone is directly
+accessible.
 
 ### 2.5 Per-segment brightness — not on this transport
 
 Over LAN, brightness is global. The segment channel of 2.3 carries color only,
 and no command changes that.
 
-The `pt`, `ptReal`, `ptIotOp` and `bulb` commands belong to a separate account
-channel of the vendor's cloud, which this SDK does not implement. Probing them
-over LAN stays silent because the command exists, but not on this transport.
-
-This is a real boundary of `lan` mode, not a gap waiting to be filled: a device
-file spells it `capped`, not `partial`. See [`cloud.md`](cloud.md).
+`ptReal` (2.9) carries `ble` frames, and `ble` has a per-zone brightness
+frame. Nobody has probed that frame inside `ptReal`. Until a unit renders it, a
+device file spells per-zone brightness over `lan` `capped`, not `partial`. See
+[`cloud.md`](cloud.md).
 
 ### 2.6 Sensors / telemetry
 
@@ -348,6 +352,44 @@ answered a probe last month may not today. Ship the probes with the SDKs rather
 than trusting a table: which command names answer, the real clamping bounds read
 back through `devStatus`, and a visual test for the raw channel, which never
 replies.
+
+### 2.9 `ptReal`: `ble` frames inside a `lan` command
+
+`ptReal` carries a list of `ble` frames. Each item is the base64 of one
+20-byte frame of [`ble.md`](ble.md), byte for byte, checksum included:
+
+```json
+{"msg":{"cmd":"ptReal","data":{"command":["MwUVAf8AAAAAAAAAHwAAAAAAAMI="]}}}
+```
+
+The phone controller sends the same command over its cloud channel. Some
+firmwares also execute it from UDP 4003. One datagram can carry several
+frames, a chunked transfer included.
+
+- The firmware answers nothing, and the `ble` answers (`AA ...`) do not come
+  back over `lan`. A sender cannot know that a frame was accepted.
+- `devStatus` can report the previous state until the next native command.
+  Do not use it to check a `ptReal` write: look at the device.
+- A firmware executes some frames and drops others in silence. Record in the
+  device file each frame that a unit rendered.
+- A frame that sets a normal-mode color ends the raw segment channel of 2.3.
+  The device then shows its stored zones, with the new frame applied.
+
+The zone interpolation frame of [`ble.md`](ble.md) 2.6 travels the same way,
+and acts on the zones that the masked frame paints. A stored drawing renders
+no interpolation.
+
+A drawing held still paints every LED without the raw segment channel. The
+device keeps it after the sender stops, and it keeps its answer to
+`devStatus`. A `role: draw` entry declares it in a device file.
+
+A chunked transfer of [`ble.md`](ble.md) 6 goes in one datagram, the frame
+that plays it included. One firmware stored and played a drawing of
+[`ble.md`](ble.md) 6.3 this way, and a scene of [`ble.md`](ble.md) 6.5 in
+12 frames.
+
+A device file declares it with `payload: { command: "${frames}" }`. See
+`devices/schema.yaml`.
 
 ## 3. Discovery method
 

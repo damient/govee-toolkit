@@ -24,7 +24,6 @@ is never truncated to fit.
 | --- | ---- | ------ | --------- | ------- |
 | [H6008](../devices/H6008.yaml) | Smart LED Bulb RGBWW | 6 | — | — |
 | [H6022](../devices/H6022.yaml) | Table Lamp 2 | 6 | 48 | 399 |
-| [H6114](../devices/H6114.yaml) | RGB Car LED Strip Lights | — | — | — |
 | [H61A0](../devices/H61A0.yaml) | 3m RGBIC LED Neon Rope Lights | 6 | 48 | 129 |
 <!-- /generated -->
 
@@ -53,7 +52,6 @@ know it before the show.
 | --- | ------ | ------------ | ----------------- | ----------- |
 | H6008 | 1 to 100 | 100 | 2700 to 6500 | 255 |
 | H6022 | 0 to 100 | 101 | 2700 to 6500 | 255 |
-| H6114 | — | — | — | — |
 | H61A0 | 1 to 100 | 100 | 2000 to 9000 | 255 |
 <!-- /generated -->
 

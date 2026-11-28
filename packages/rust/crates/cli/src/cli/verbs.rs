@@ -65,12 +65,12 @@ pub(crate) enum Verb {
         /// The devices: an identity, a SKU, a name or a group.
         device: String,
         /// Zone indices, zero-based and comma-separated. Every zone when
-        /// absent. A subset needs a mode that paints by zone mask, and takes
-        /// one color.
+        /// absent. A subset takes one color.
         #[arg(long, value_name = "LIST")]
         zones: Option<String>,
-        /// How many zones the frame states: `app`, `native`, `groups`, or a
-        /// count. A count the unit renders as a smaller one is refused.
+        /// How many zones the frame states: `app`, `groups`, or a count. A
+        /// count the unit renders as a smaller one is refused. `native`
+        /// fails: paint every LED with `send <device> draw_cells`, or `stream`.
         #[arg(long, default_value_t = Resolution::default().to_string(), value_name = "RESOLUTION")]
         resolution: String,
         /// One `#RRGGBB` for every zone, or one per zone, comma-separated.
@@ -121,6 +121,18 @@ pub(crate) enum Verb {
         #[arg(long, value_name = "COLOR")]
         color: Option<String>,
     },
+
+    /// Play a scene from the scene library of the device's model.
+    ///
+    /// `scenes fetch` stores that list once. This verb reads it and sends no
+    /// request to the cloud. The device answers nothing on `lan`: look at it.
+    Scene {
+        /// The devices: an identity, a SKU, a name or a group.
+        device: String,
+        /// A code, a full name such as `Aurora A`, or a name that one scene
+        /// alone carries. Case does not matter.
+        scene: String,
+    },
 }
 
 impl Verb {
@@ -133,7 +145,8 @@ impl Verb {
             | Self::Colortemp { device, .. }
             | Self::Segment { device, .. }
             | Self::Gradient { device, .. }
-            | Self::Music { device, .. } => device,
+            | Self::Music { device, .. }
+            | Self::Scene { device, .. } => device,
         }
     }
 }

@@ -85,6 +85,9 @@ pub mod error;
 pub mod paths;
 #[cfg(feature = "transport")]
 #[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
+pub mod scenes;
+#[cfg(feature = "transport")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
 pub mod stream;
 #[cfg(feature = "transport")]
 #[cfg_attr(docsrs, doc(cfg(feature = "transport")))]
@@ -146,6 +149,8 @@ pub use provision::{Provisioned, WifiCredentials};
 #[cfg(feature = "transport")]
 pub use resolved::{Invoked, Resolved, Secrets};
 #[cfg(feature = "transport")]
+pub use scenes::Scene;
+#[cfg(feature = "transport")]
 pub use select::{Filter, Selector, Target};
 #[cfg(feature = "transport")]
 pub use stream::{ParseError, Rate, Reach, Resolution, SegmentStream, StreamOptions};
@@ -155,6 +160,6 @@ pub use summary::{Style, Summary};
 pub use transport::{DeviceId, DeviceStatus, Health, Reply, State, Transport};
 #[cfg(feature = "transport")]
 pub use verbs::{
-    IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify, Music, Paint, Painting, Segments,
-    Supported,
+    Drawing, IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify, Music, Paint, Painting,
+    Segments, Supported,
 };

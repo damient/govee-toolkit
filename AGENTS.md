@@ -137,11 +137,11 @@ SKU.
   page or to `site/content/i18n/en.json`, update each language and stamp it
   with `node translations.ts --stamp <file>` in `site/`. The check fails on a
   page or a string that does not follow the English text.
-- **Name no company and no app.** Do not write "company", "manufacturer",
-  "vendor" or "app". The software a user drives these devices with is "the
-  phone controller", or "another controller" where it competes for the link.
-  "Govee" stays where it names the devices or the public "Govee Home app"
-  switch a user must find.
+- **Name no company.** Do not write "company", "manufacturer" or "vendor".
+  The software a user drives these devices with is "the phone controller", or
+  "another controller" where it competes for the link. "Govee" stays where it
+  names the devices or the public "Govee Home app" switch a user must find.
+  Studio is "the app".
 - **Describe the code as it is, not as it was.** Docs and comments carry no
   trace of refactored, renamed or deleted code: no "no longer", "used to",
   "previously", "this replaces the old X". Rewrite in the present. History that
@@ -232,6 +232,9 @@ SKU.
   `cargo run -p govee-toolkit-cli --features ble -- <verb>` sends the bytes the
   device file declares, so the test exercises what the SDK ships. Write a
   one-off tool only for a probe that no device file entry can express.
+- After a `ptReal` test or a stored drawing, put the device back in a normal
+  state when the person confirms the result. The device keeps playing what it
+  stored after the sender stops. Send a native command, for example `color`.
 - Two techniques that pay off, in order: decompile the vendor's desktop app, and
   capture its UDP traffic on port 4003. Both beat guessing frames. What you
   learn that way is describable in your own words; **no decompiled output,

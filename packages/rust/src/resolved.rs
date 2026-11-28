@@ -2,7 +2,7 @@
 //! [`DeviceHandle::resolve`].
 
 use crate::codec::coerce::{self, Supplied};
-use crate::codec::{Args, Device, Error as CodecError, Mode};
+use crate::codec::{Args, Device, Error as CodecError, Mode, Role};
 use crate::device::DeviceHandle;
 #[cfg(doc)]
 use crate::error::Error;
@@ -91,6 +91,23 @@ impl<'a> Resolved<'a> {
         }
     }
 
+    /// [`Resolved::args`] for the entry that claims `role` on this mode. A
+    /// mode with no such entry takes no arguments, and the verb then reports
+    /// the missing role.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Resolved::args`].
+    pub fn role_args<I>(&self, role: Role, supplied: I) -> Result<Args>
+    where
+        I: IntoIterator<Item = (String, Supplied)>,
+    {
+        match self.device.entry_for(self.mode, role) {
+            Some((command, _)) => self.args(command, supplied),
+            None => Ok(Args::new()),
+        }
+    }
+
     /// Read values a caller supplied under the types the device file
     /// declares.
     ///
@@ -138,6 +155,33 @@ impl<'a> Resolved<'a> {
         self.handle
             .send_resolved(self.mode, &self.sku, command, args)
             .await
+    }
+
+    /// Send several commands in order, with the frames of commands that
+    /// share an envelope in one datagram ([`crate::codec::encode_batch`]).
+    /// Answers the last send, and `None` for an empty list.
+    pub(crate) async fn send_batch(&self, commands: &[(String, Args)]) -> Result<Option<Served>> {
+        let named: Vec<(&str, &Args)> = commands
+            .iter()
+            .map(|(command, args)| (command.as_str(), args))
+            .collect();
+        let batch = self
+            .handle
+            .govee
+            .encode_batch(&self.sku, self.mode, &named)?;
+        let last = commands
+            .last()
+            .map(|(command, _)| command.as_str())
+            .unwrap_or_default();
+        let mut served = None;
+        for encoded in &batch {
+            served = Some(
+                self.handle
+                    .send_encoded(self.mode, &self.sku, last, encoded)
+                    .await?,
+            );
+        }
+        Ok(served)
     }
 
     /// [`Resolved::read`] where [`Resolved::answers`], else [`Resolved::send`].

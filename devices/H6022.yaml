@@ -9,6 +9,10 @@ aliases: []
 include:
   - lan-documented
   - lan-razer
+  - lan-segments
+  - lan-music
+  - cells-grid
+  - scene-rgbic
   - ble-core
   - ble-reads
   - ble-color
@@ -38,17 +42,16 @@ capabilities:
 modes:
   lan:
     support: capped
-    capabilities: [power, brightness, color, colortemp, segments]
+    capabilities: [power, brightness, color, colortemp, segments, music]
     unreachable:
       segment_brightness: transport
-      music: transport
     notes: >-
       Requires LAN Control enabled in the Govee Home app. The four documented
       commands answer and read back through `devStatus`, and the segment
-      channel of docs/protocol/lan.md 2.3 paints. Brightness is global here:
-      the segment channel carries color only. It carries no music command: the
-      lamp renders no music over lan, and a host that streams computed colors
-      over the segment channel is not this capability. See
+      channel of docs/protocol/lan.md 2.3 paints. The 15 zones of the ble
+      mask paint through `ptReal` as well. Brightness is global here:
+      the segment channel carries color only. Music runs off the lamp's own
+      microphone, through the `ble` frame of sub-mode 19 in `ptReal`. See
       docs/protocol/lan.md 2.4.
   ble:
     support: full
@@ -61,8 +64,7 @@ modes:
       and the white temperature share sub-mode 13, one colour over the whole
       lamp. Segments are narrower here than over lan: zones are addressed
       through a mask 15 bits wide, against the 132 LEDs the lan raw channel
-      reaches. Music runs off the lamp's own microphone, at sub-mode 19, which
-      lan carries no command for. Wi-Fi provisioning works from here, through
+      reaches. Music runs off the lamp's own microphone, at sub-mode 19. Wi-Fi provisioning works from here, through
       `provision_wifi()`. One connection at a time: a connected lamp stops
       advertising. See docs/protocol/ble.md.
   cloud:
@@ -82,9 +84,9 @@ modes:
       request every few seconds. See docs/protocol/cloud.md 5 and 6.
 
 commands:
+  ble:
   # Every frame here is 20 bytes: proType, commandType, payload, then a XOR of
   # the 19 bytes before it. See docs/protocol/ble.md 1.2.
-  ble:
     colortemp:
       role: color_temp
       frame: "33 05 0D 00 00 00 ${kelvin:16} 00 00 00 <pad:20> <xor>"
@@ -99,6 +101,17 @@ commands:
 
 overrides:
   lan:
+    draw_cells:
+      notes_append: >-
+        The grid is 12 columns by 11 rows, around the cylinder: left and right
+        turn the drawing around the lamp.
+      args:
+        cells: { count: 132 }
+        colors: { max_len: 132 }
+    gradient:
+      notes: >-
+        TODO: nothing established what this unit does with the byte. The
+        diffuser blurs the edge between two zones, as over `ble`.
     brightness:
       notes: >-
         Percent. The firmware clamps a value above 100 to 100 in silence, and
@@ -124,6 +137,13 @@ overrides:
         and docs/protocol/lan.md 2.3.
 
   ble:
+    draw_cells:
+      notes_append: >-
+        The grid is 12 columns by 11 rows, around the cylinder: left and right
+        turn the drawing around the lamp.
+      args:
+        cells: { count: 132 }
+        colors: { max_len: 132 }
     read_version_06:
       notes_append: >-
         A third version, 1.00.14 on this unit, against the 1.04.01 and 1.03.08
@@ -360,7 +380,7 @@ verified:
     500 ms. See docs/protocol/lan.md 1, "Read after a command".
 
     The lamp has a microphone and the phone controller offers a music mode.
-    lan carries no music command, so that is a ble session, below.
+    It plays over ble, below, and over lan in `ptReal`, at the end.
 
     ble mode reaches every capability, over the encoded link of
     docs/protocol/ble.md 9. The unit advertises as `Govee_H6022_646E`, the
@@ -467,3 +487,38 @@ verified:
 
     The state answer also carries an `online` flag, which the SDK models
     nothing of.
+
+    `segment_color_masked` was exercised over lan, in `ptReal`, through the
+    CLI (2026-11-24), and judged by eye. Over a blue lamp, zones 0 to 2 in red
+    and zones 12 to 14 in green lit red at the bottom and green at the top,
+    with blue between. Zone 0 is the bottom of the lamp. Through the
+    `segment` verb (2026-11-25), red, green and blue at resolution 3, spread
+    over the 15 groups, rendered as three still bands with red at the bottom:
+    the `gradient` frame and three masked frames in one datagram.
+
+    `draw_cells` was exercised over lan, in `ptReal`, through the CLI
+    (2026-11-24), and judged by eye. Green over the top ring and blue over the
+    bottom ring, on black, motion 0, rendered as sent and twinkled. One red
+    column, motion 3, speed 100, turned around the lamp, and turned clearly
+    slower at speed 10. Motion 1 twinkled
+    and scrolled up, and motion 255 held the drawing still. The drawing stays
+    after the sender stops. Over ble only the phone controller sent this
+    transfer: the lamp answered `A3 58 00`, then `33 05 00`.
+
+    The defaults of `draw_cells` (black, speed 0, motion 255) were exercised
+    over lan, in `ptReal`, through the CLI (2026-11-25), and judged by eye.
+    Red, green and blue at resolution 3, spread over the 132 LEDs, rendered as
+    three still bands with red at the top. The lamp answered `devStatus` right
+    after it.
+
+    `scene_builtin` was exercised over lan, in `ptReal`, through the CLI
+    (2026-11-25), and judged by eye. The stored scenes Rainbow (code 42) and
+    Fire (code 40) played from the code frame alone. `scene` was not
+    exercised: the scene library gives this model types 0 and 5 only, and
+    the family plays types 1 and 2.
+
+    `music` was exercised over lan, in `ptReal`, through the CLI
+    (2026-11-25), and judged by eye with sound in the room. Effect 4 with
+    blue imposed played on sound in blue. Effect 0 with the colors left to
+    the firmware changed the effect and played on sound. `devStatus` reports
+    no music state.

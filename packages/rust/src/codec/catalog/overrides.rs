@@ -62,6 +62,8 @@ pub struct ArgOverride {
     pub max_len: Option<usize>,
     /// New zone count for a `zones`.
     pub count: Option<usize>,
+    /// The value the codec sends for an `int` the caller leaves out.
+    pub default: Option<i64>,
 }
 
 /// Apply `overrides` to `table`, which holds the commands of `mode`.
@@ -159,21 +161,30 @@ fn apply_one(
 fn patch_arg(spec: &mut ArgSpec, patch: &ArgOverride) -> std::result::Result<(), String> {
     let type_name = spec.type_name();
     match spec {
-        ArgSpec::Int { range, .. } => {
+        ArgSpec::Int { range, default, .. } => {
             reject(patch.max_len.is_some(), "max_len", type_name)?;
             reject(patch.count.is_some(), "count", type_name)?;
-            let Some(new) = &patch.range else {
+            if patch.range.is_none() && patch.default.is_none() {
                 return Err("nothing to change".to_owned());
-            };
-            if new.pair() == range.as_ref().and_then(Bounds::pair) && new.pair().is_some() {
-                return Err("`range` repeats the bounds the table already gives".to_owned());
             }
-            *range = Some(new.clone());
+            if let Some(new) = &patch.range {
+                if new.pair() == range.as_ref().and_then(Bounds::pair) && new.pair().is_some() {
+                    return Err("`range` repeats the bounds the table already gives".to_owned());
+                }
+                *range = Some(new.clone());
+            }
+            if let Some(new) = patch.default {
+                if *default == Some(new) {
+                    return Err("`default` repeats the value the table already gives".to_owned());
+                }
+                *default = Some(new);
+            }
         }
         ArgSpec::RgbList { max_len, .. }
         | ArgSpec::String { max_len, .. }
         | ArgSpec::Bytes { max_len, .. } => {
             reject(patch.range.is_some(), "range", type_name)?;
+            reject(patch.default.is_some(), "default", type_name)?;
             reject(patch.count.is_some(), "count", type_name)?;
             let Some(new) = patch.max_len else {
                 return Err("nothing to change".to_owned());
@@ -185,6 +196,7 @@ fn patch_arg(spec: &mut ArgSpec, patch: &ArgOverride) -> std::result::Result<(),
         }
         ArgSpec::Zones { count, .. } => {
             reject(patch.range.is_some(), "range", type_name)?;
+            reject(patch.default.is_some(), "default", type_name)?;
             reject(patch.max_len.is_some(), "max_len", type_name)?;
             let Some(new) = patch.count else {
                 return Err("nothing to change".to_owned());

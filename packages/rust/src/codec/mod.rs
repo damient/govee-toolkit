@@ -56,7 +56,7 @@ pub use catalog::{
 };
 pub use chunk::Chunk;
 pub use coerce::{NotAColor, Supplied};
-pub use command::{Encoded, encode};
+pub use command::{Encoded, encode, encode_batch};
 pub use error::{Error, Result};
 pub use exchange::{Exchange, Exchanges, Step};
 pub use frame::Frame;
@@ -380,8 +380,7 @@ impl Inner {
     }
 }
 
-/// A frame as lowercase hex, for a test that compares against a capture.
-#[cfg(test)]
+/// Bytes as lowercase hex.
 pub(crate) fn hex(bytes: &[u8]) -> String {
     use std::fmt::Write as _;
     bytes.iter().fold(String::new(), |mut out, b| {

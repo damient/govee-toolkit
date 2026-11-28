@@ -209,6 +209,38 @@
         "a111ff000000000000000000000000000000004f"
       ],
       "source": "worked out from the layout of docs/protocol/ble.md 4; a transfer of this form was captured and acknowledged, but its bytes carry the network password, so the credentials here are placeholders"
+    },
+    {
+      "name": "a scene of 40 bytes, code 16182, low byte first",
+      "command": "scene",
+      "args": { "code": 16182, "param": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40], "scene_type": 2 },
+      "frames_hex": [
+        "a3000103020102030405060708090a0b0c0d0eac",
+        "a3010f101112131415161718191a1b1c1d1e1fad",
+        "a3ff202122232425262728000000000000000074",
+        "330504363f00000000000000000000000000003b"
+      ],
+      "source": "docs/protocol/ble.md 6.5, worked out from the documented layout. The parameters are written for this vector"
+    },
+    {
+      "name": "a stored scene, code 8",
+      "command": "scene_builtin",
+      "args": { "code": 8 },
+      "frames_hex": [
+        "330504080000000000000000000000000000003a"
+      ],
+      "source": "docs/protocol/ble.md 6.5, worked out from the documented layout"
+    },
+    {
+      "name": "a type 1 scene of 20 bytes, code 107",
+      "command": "scene",
+      "args": { "code": 107, "param": [65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84], "scene_type": 1 },
+      "frames_hex": [
+        "a3000102014142434445464748494a4b4c4d4eae",
+        "a3ff4f5051525354000000000000000000000047",
+        "3305046b00000000000000000000000000000059"
+      ],
+      "source": "docs/protocol/ble.md 6.5, worked out from the documented layout. The parameters are written for this vector"
     }
   ]
 }

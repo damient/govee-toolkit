@@ -2,18 +2,34 @@
 .sitefoot .shell { display: grid; gap: 40px; }
 
 @media (min-width: 900px) { .sitefoot .shell { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 56px; } }
+.foot-brand { text-align: center; }
 .foot-brand .wordmark { display: inline-flex; margin-bottom: 14px; }
-.sitefoot .muted { font-size: .9rem; max-width: 46ch; margin: 0; }
-.foot-nav { display: grid; gap: 32px; text-align: center; }
+.sitefoot .muted { font-size: .9rem; max-width: 46ch; margin: 0 auto; }
+.foot-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px; margin-top: 24px; }
 
-@media (min-width: 560px) { .foot-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 900px) {
+  .foot-brand { text-align: left; }
+  .sitefoot .muted { margin: 0; }
+  .foot-cta { justify-content: flex-start; }
+}
+.sitefoot .foot-cta .btn { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-size: 15px; }
+.foot-github svg { width: 17px; height: 17px; }
+.foot-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 16px; text-align: center; }
+
+@media (min-width: 760px) { .foot-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .sitefoot .eyebrow { margin-bottom: 1.6em; color: var(--text); }
 .sitefoot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .sitefoot a { color: var(--muted); text-decoration: none; font-size: .95rem; }
 .sitefoot a:hover { color: var(--text); }
+.sitefoot .foot-get {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 20px 48px;
+  margin-top: 48px; padding-top: 26px; border-top: 1px solid var(--line);
+}
+.foot-group { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 18px; }
+.sitefoot .foot-group .eyebrow { margin: 0; }
 .sitefoot .foot-pkgs {
-  list-style: none; margin: 26px 0 0; padding: 0;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px;
 }
 .sitefoot .foot-pkgs a {
   display: inline-flex; align-items: center; justify-content: center;
@@ -21,12 +37,14 @@
   font: 500 13px/1 var(--sans); color: var(--prose);
   border: 1px solid var(--line-strong);
 }
-.sitefoot .foot-pkgs + .foot-pkgs { margin-top: 8px; }
 .sitefoot .foot-pkgs a:hover { color: var(--text); border-color: var(--text); }
 
-.sitefoot .foot-base { display: block; margin-top: 48px; padding-top: 26px; border-top: 1px solid var(--line); text-align: center; }
+.sitefoot .foot-base {
+  display: grid; justify-items: center; gap: 22px;
+  margin-top: 26px; padding-top: 26px; border-top: 1px solid var(--line); text-align: center;
+}
 .sitefoot .foot-line { margin: 0; font-size: .95rem; }
-.foot-dots { display: flex; align-items: center; gap: 8px; width: fit-content; margin: 16px auto; }
+.foot-dots { display: flex; align-items: center; gap: 8px; width: fit-content; margin: 0 auto 12px; }
 .foot-dots i {
   width: 7px; height: 7px; border-radius: 50%; background: var(--dot);
   box-shadow: 0 0 9px 0 var(--dot), 0 0 20px 1px color-mix(in oklab, var(--dot) 45%, transparent);
@@ -35,5 +53,12 @@
 .foot-dots i:nth-child(2) { --dot: var(--accent-cyan); }
 .foot-dots i:nth-child(3) { --dot: var(--accent-violet); }
 
-.sitefoot .foot-legal { margin: 0 auto; max-width: 68ch; color: var(--muted); font-size: .85rem; }
+.sitefoot .foot-legal { margin: 0; max-width: 68ch; color: var(--muted); font-size: .85rem; }
+
+@media (min-width: 900px) {
+  .sitefoot .foot-base { grid-template-columns: minmax(0, 1fr) auto; align-items: center; text-align: left; }
+  .sitefoot .foot-base .foot-mark { display: flex; align-items: center; gap: 14px; }
+  .sitefoot .foot-base .foot-dots { margin: 0; }
+  .sitefoot .foot-base .foot-legal { justify-self: start; }
+}
 

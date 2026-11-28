@@ -1,0 +1,167 @@
+# Builds the desktop app on a desktop-vX.Y.Z tag, for macOS and Windows.
+# The versioned release gets the installers. The release `desktop-latest`
+# gets the same files under names without a version, for the site links.
+# A manual run builds the installers as workflow artifacts and publishes nothing.
+name: Desktop release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["desktop-v*"]
+
+env:
+  APP: Govee-Toolkit-Studio
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read     # read the CI run of the tagged commit
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: CI passed on this commit
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci-passed.sh "$GITHUB_SHA"
+      - name: Tag, manifest and changelog agree
+        if: github.event_name == 'push'
+        run: tools/release-notes.sh desktop "$GITHUB_REF_NAME" > /dev/null
+      - name: Version
+        id: version
+        run: |
+          version=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' \
+            apps/desktop/src-tauri/Cargo.toml | head -1)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: check
+    strategy:
+      matrix:
+        include:
+          # Apple silicon only: the build ships no Intel binary.
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            rust-targets: aarch64-apple-darwin
+            bundles: dmg
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            rust-targets: x86_64-pc-windows-msvc
+            bundles: nsis
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: |
+            apps/studio/package-lock.json
+            apps/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+          targets: ${{ matrix.rust-targets }}
+      # `tauri build` runs the build of Studio, which needs its dependencies.
+      - name: Install the dependencies
+        run: |
+          npm ci --prefix apps/studio
+          npm ci --prefix apps/desktop
+      # With no certificate, the app gets an ad-hoc signature: Gatekeeper
+      # then asks the user to allow the app in Privacy & Security.
+      - name: Build the installers
+        working-directory: apps/desktop
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Tauri reads an empty variable as a value: unset the missing secrets.
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD \
+            APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            [ -n "${!name}" ] || unset "$name"
+          done
+          if [ "$RUNNER_OS" = macOS ] && [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
+            export APPLE_SIGNING_IDENTITY=-
+          fi
+          npm run build -- --target "${{ matrix.target }}" \
+            --bundles "${{ matrix.bundles }}"
+      - name: Name the installers
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          bundle=apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle
+          mkdir out
+          if [ "$RUNNER_OS" = macOS ]; then
+            cp "$bundle"/dmg/*.dmg "out/$APP-$VERSION-macOS.dmg"
+          else
+            cp "$bundle"/nsis/*-setup.exe "out/$APP-$VERSION-Windows-setup.exe"
+          fi
+          ls -l out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installers-${{ runner.os }}
+          path: out/*
+          if-no-files-found: error
+
+  publish:
+    needs: [check, build]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the releases and move the tag desktop-latest
+      actions: read     # read this run's installer artifacts
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Release notes
+        run: |
+          tools/release-notes.sh desktop "$GITHUB_REF_NAME" \
+            > "$RUNNER_TEMP/notes.md"
+      # `gh run download` rather than an action, as in python-release.yml.
+      - name: Collect the installers
+        run: |
+          gh run download "$GITHUB_RUN_ID" --dir "$RUNNER_TEMP/artifacts" \
+            --pattern 'installers-*'
+      - name: GitHub release
+        uses: ./.github/actions/github-release
+        with:
+          notes: ${{ runner.temp }}/notes.md
+      - name: Attach the installers
+        run: |
+          gh release upload "$GITHUB_REF_NAME" --clobber \
+            "$RUNNER_TEMP"/artifacts/installers-*/*
+      # The site links to /releases/download/desktop-latest/<file>. The names
+      # carry no version, so a link stays valid from one release to the next.
+      - name: Move the tag desktop-latest to this commit
+        run: git push --force origin "$GITHUB_SHA:refs/tags/desktop-latest"
+      - name: Update the release desktop-latest
+        run: |
+          mkdir latest
+          for file in "$RUNNER_TEMP"/artifacts/installers-*/*; do
+            cp "$file" "latest/$(basename "$file" | sed "s/-$VERSION-/-/")"
+          done
+          ls -l latest
+          notes="The installers of desktop-v$VERSION. The file names stay the same from one release to the next."
+          if gh release view desktop-latest >/dev/null 2>&1; then
+            gh release edit desktop-latest --title "Studio desktop app (latest)" \
+              --notes "$notes" --latest=false
+          else
+            gh release create desktop-latest --verify-tag --latest=false \
+              --title "Studio desktop app (latest)" --notes "$notes"
+          fi
+          gh release upload desktop-latest --clobber latest/*

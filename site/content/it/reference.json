@@ -1,5 +1,5 @@
 {
-  "$source": "53c2af29c206fb239497a66aca386c9734d5a499",
+  "$source": "7df8dfd5afc149b55ab6cc4a29a460a1fac49637",
   "intro": "Ogni azione, dalla CLI govee, da Rust, Python, Node.js o da una console DMX.",
   "groups": {
     "find": "Trovare i dispositivi",
@@ -31,10 +31,7 @@
     },
     "status": {
       "summary": "Chiedi al dispositivo il suo stato attuale.",
-      "detail": "`last_status` restituisce lo stato già noto e non invia niente.",
-      "action": {
-        "title": "Rileggi lo stato"
-      }
+      "detail": "`last_status` restituisce lo stato già noto e non invia niente."
     },
     "watch": {
       "summary": "Segui gli eventi: un dispositivo compare, lo stato di salute di una modalità cambia."
@@ -72,7 +69,7 @@
     },
     "segment": {
       "summary": "Colora le zone.",
-      "detail": "Un colore riempie ogni zona, e un elenco dà un colore per zona. Con `zones`, cambiano solo le zone indicate, e questo richiede una modalità che colora per maschera. Un numero di zone che l'unità non visualizza viene rifiutato.",
+      "detail": "Un colore riempie ogni zona, e un elenco dà un colore per zona. Con `zones`, cambiano solo le zone indicate, e questo richiede una modalità che colora per maschera. I colori restano dopo la chiamata. Un numero di zone che l'unità non visualizza viene rifiutato. Per un colore per LED, apri uno stream o salva un disegno.",
       "action": {
         "title": "Colora le zone"
       }
@@ -87,7 +84,7 @@
     },
     "music": {
       "summary": "Riproduci un effetto che il dispositivo genera dal proprio microfono.",
-      "detail": "Il dispositivo ascolta con il proprio microfono, e niente viene trasmesso dal tuo computer. I numeri degli effetti dipendono dalla modalità, e `lan` non ha nessun comando musica. Imposta un colore, una temperatura o l'accensione per terminare l'effetto.",
+      "detail": "Il dispositivo ascolta con il proprio microfono, e niente viene inviato in streaming dal tuo computer. I numeri degli effetti dipendono dalla modalità. Via `lan`, il comando viaggia dentro `ptReal` su un modello il cui file del dispositivo lo dichiara. Imposta un colore, una temperatura o l'accensione per terminare l'effetto.",
       "action": {
         "title": "Riproduci un effetto musicale",
         "summary": "Il dispositivo ascolta con il proprio microfono."
@@ -95,7 +92,11 @@
     },
     "open-stream": {
       "summary": "Apri il canale dei segmenti e tienilo armato.",
-      "detail": "Lo stream riporta il numero di zone e il frame rate misurati sull'unità. I colori terminano quando lo chiudi."
+      "detail": "Lo stream si apre via `lan`. Riporta il numero di zone e il frame rate misurati sull'unità. I colori terminano quando lo chiudi.",
+      "action": {
+        "title": "Animare in tempo reale",
+        "summary": "Apri il canale dei segmenti e invia frame dopo frame. I colori terminano quando lo chiudi."
+      }
     },
     "set-zone": {
       "summary": "Imposta una zona dello stream."
@@ -130,14 +131,27 @@
     },
     "provision": {
       "summary": "Collega un nuovo dispositivo a una rete Wi-Fi, via Bluetooth.",
-      "detail": "La password viaggia in chiaro: chiunque sia a portata Bluetooth durante il trasferimento la può leggere.",
-      "action": {
-        "title": "Collegalo a una rete Wi-Fi"
-      }
+      "detail": "La password viaggia in chiaro: chiunque sia a portata Bluetooth durante il trasferimento la può leggere."
     },
     "modes": {
       "summary": "Limita un comando a una modalità.",
       "detail": "Non abilita mai una modalità che la configurazione esclude, e non ripiega mai su un'altra. Un dispositivo che nessuna modalità abilitata raggiunge è un errore."
+    },
+    "scene": {
+      "summary": "Riproduci una scena della libreria di scene del modello, con il suo nome o il suo codice.",
+      "detail": "`govee scenes fetch` salva la libreria di un modello, senza account né chiave, e `govee scenes list` la mostra. Una chiamata legge la cache e non invia nessuna richiesta al cloud. Un nome che corrisponde a più di una scena viene rifiutato, e l'errore riporta il nome completo di ognuna. Via `lan`, la scena viaggia dentro `ptReal`, e il dispositivo non risponde.",
+      "action": {
+        "title": "Riprodurre una scena",
+        "summary": "Scarica una volta la libreria di scene del modello. Ogni chiamata la legge poi dalla cache."
+      }
+    },
+    "draw": {
+      "summary": "Salva un disegno dei LED sul dispositivo.",
+      "detail": "`cells` indica i LED, contati da zero, e gli altri LED mostrano lo sfondo. `colors` contiene un colore, o un colore per cella. Senza `cells`, contiene un colore per zona. Gli altri argomenti del comando di disegno, come lo sfondo e la velocità, prendono i valori predefiniti del file del dispositivo, che tengono fermo il disegno. Via `lan`, il disegno viaggia dentro `ptReal`.",
+      "action": {
+        "title": "Disegnare",
+        "summary": "Il dispositivo continua a riprodurre il disegno quando l'invio si ferma."
+      }
     }
   }
 }

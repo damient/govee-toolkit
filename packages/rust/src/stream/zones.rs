@@ -23,6 +23,11 @@ pub(super) fn zone_count(
             mode,
         });
     }
+    if let Painter::Cells { .. } = painter
+        && !matches!(resolution, Resolution::Groups)
+    {
+        return cells(device, mode, painter, resolution);
+    }
     let count = match resolution {
         Resolution::App => device.capabilities.segment_count().unwrap_or(0),
         Resolution::Native => device.capabilities.native_pixels().unwrap_or(0),
@@ -35,8 +40,8 @@ pub(super) fn zone_count(
         });
     }
     // `App` and `Native` come from the device file, which states that they
-    // render.
-    if let Resolution::Exact(_) = resolution
+    // render. The measured groupings are the whole-frame channel's.
+    if let (Resolution::Exact(_), Painter::Whole { .. }) = (resolution, painter)
         && let Some(rendered) = device.measurements.renders_as(count)
         && rendered != count
     {
@@ -52,7 +57,7 @@ pub(super) fn zone_count(
         return Ok((count, None));
     };
     if count <= limit {
-        return Ok((count, None));
+        return Ok((count, masked_spread(device, painter, count, limit)));
     }
     if let Resolution::App = resolution {
         return Ok((limit, None));
@@ -65,6 +70,24 @@ pub(super) fn zone_count(
     })
 }
 
+/// Fewer zones than the groups the mask reaches spread over those groups, so
+/// no group keeps the color it had.
+fn masked_spread(device: &Device, painter: &Painter, count: usize, limit: usize) -> Option<Spread> {
+    let Painter::Masked { .. } = painter else {
+        return None;
+    };
+    let target = device
+        .capabilities
+        .segment_groups()
+        .and_then(|n| usize::try_from(n).ok())
+        .unwrap_or(limit)
+        .min(limit);
+    if count >= target {
+        return None;
+    }
+    Spread::new(u32::try_from(count).ok()?, u32::try_from(target).ok()?)
+}
+
 fn groups(device: &Device, mode: Mode, painter: &Painter) -> Result<(usize, Option<Spread>)> {
     let unknown = || Error::ZoneCountUnknown {
         sku: device.sku.clone(),
@@ -72,7 +95,7 @@ fn groups(device: &Device, mode: Mode, painter: &Painter) -> Result<(usize, Opti
     let groups = device.capabilities.segment_groups().ok_or_else(unknown)?;
     let (width, spread) = match painter {
         Painter::Masked { .. } => (groups, None),
-        Painter::Whole { .. } => {
+        Painter::Whole { .. } | Painter::Cells { .. } => {
             let pixels = device.capabilities.native_pixels().ok_or_else(unknown)?;
             let spread = Spread::new(groups, pixels).ok_or_else(unknown)?;
             (pixels, (groups != pixels).then_some(spread))
@@ -92,13 +115,52 @@ fn groups(device: &Device, mode: Mode, painter: &Painter) -> Result<(usize, Opti
     Ok((usize::try_from(groups).unwrap_or(usize::MAX), spread))
 }
 
+/// A stored drawing names every LED, so the SDK spreads the zones the
+/// resolution names over them. The firmware groups nothing here.
+fn cells(
+    device: &Device,
+    mode: Mode,
+    painter: &Painter,
+    resolution: Resolution,
+) -> Result<(usize, Option<Spread>)> {
+    let unknown = || Error::ZoneCountUnknown {
+        sku: device.sku.clone(),
+    };
+    let pixels = device.capabilities.native_pixels().ok_or_else(unknown)?;
+    let count = match resolution {
+        Resolution::App => device.capabilities.segment_count().ok_or_else(unknown)?,
+        Resolution::Exact(n) => u32::from(n),
+        Resolution::Native | Resolution::Groups => pixels,
+    };
+    let limit = ceiling(device, mode, painter).unwrap_or(usize::MAX);
+    let width = usize::try_from(pixels).unwrap_or(usize::MAX);
+    if width > limit {
+        return Err(Error::ZoneCountUnsupported {
+            sku: device.sku.clone(),
+            mode,
+            zones: width,
+            limit,
+        });
+    }
+    let spread = Spread::new(count, pixels).ok_or_else(|| Error::ZoneCountUnsupported {
+        sku: device.sku.clone(),
+        mode,
+        zones: usize::try_from(count).unwrap_or(usize::MAX),
+        limit: width,
+    })?;
+    Ok((
+        usize::try_from(count).unwrap_or(usize::MAX),
+        (count != pixels).then_some(spread),
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used)]
 
     use crate::codec::{Catalog, Mode};
     use crate::error::Result;
-    use crate::stream::resolve::{Plan, plan};
+    use crate::stream::resolve::{Plan, Purpose, plan};
     use crate::stream::{Resolution, StreamOptions};
 
     const MASKED: &str = include_str!("../../tests/fixtures/masked-zones.yaml");
@@ -116,6 +178,12 @@ mod tests {
             &StreamOptions {
                 resolution,
                 ..StreamOptions::default()
+            },
+            // `lan` declares the whole-frame channel, which a stream takes.
+            if mode == Mode::Lan {
+                Purpose::Stream
+            } else {
+                Purpose::Paint
             },
         )
     }

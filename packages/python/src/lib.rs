@@ -10,9 +10,11 @@ mod config;
 mod conv;
 mod device;
 mod devices;
+mod draw;
 mod errors;
 mod events;
 mod govee;
+mod scene;
 mod stream;
 mod types;
 
@@ -43,6 +45,7 @@ fn govee_toolkit_module(module: &Bound<'_, PyModule>) -> PyResult<()> {
     govee::register(module)?;
     devices::register(module)?;
     stream::register(module)?;
+    scene::register(module)?;
     Ok(())
 }
 

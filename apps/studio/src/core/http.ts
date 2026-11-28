@@ -24,11 +24,12 @@ export async function request(path: string, init: RequestInit = {}): Promise<unk
     throw new Failure("offline");
   }
   // A server older than Studio has no such route, and answers 404 or 405 with no body.
-  if (response.status === 404 || response.status === 405) throw new Failure("outdated");
+  const missing = response.status === 404 || response.status === 405;
   let body: unknown;
   try {
     body = await response.json();
   } catch {
+    if (missing) throw new Failure("outdated");
     throw new Failure(response.ok ? "unreadable" : "refused", response.ok ? "" : `HTTP ${response.status}`);
   }
   if (!response.ok) throw new Failure("refused", errorOf(body) || `HTTP ${response.status}`);

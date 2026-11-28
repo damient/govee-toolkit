@@ -24,6 +24,15 @@ include = ["src/**", "build.rs", "README.md", "devices/**"]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
+# A minor release can add a variant to a public enum and a field to a public
+# struct: docs/versioning.md, "What a minor release can add". A variant
+# number of an enum without `repr` carries no promise.
+[package.metadata.cargo-semver-checks.lints]
+enum_no_repr_variant_discriminant_changed = "allow"
+enum_variant_added = { required-update = "minor" }
+enum_struct_variant_field_added = { required-update = "minor" }
+constructible_struct_adds_field = { required-update = "minor" }
+
 [workspace]
 resolver = "3"
 members = ["crates/cli", "crates/dmx", "crates/server", "crates/sim", "crates/xtask"]

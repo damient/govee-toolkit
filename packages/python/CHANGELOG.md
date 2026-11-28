@@ -4,6 +4,24 @@ Changes to `govee-toolkit` (Python), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `fetch_scenes(sku)` stores the scene library of a model over `cloud`, and
+  `load_scenes(sku)` reads it back as a list of `Scene`.
+- `DeviceHandle.scene()` plays a `Scene`, or a name or a code of the cached
+  library. `Devices.scene()` and `Devices.apply(scene=...)` play it on every
+  member. A name that matches no scene or more than one raises `CodecError`.
+- `DeviceHandle.draw()` stores a drawing of the LEDs on the entry marked
+  `role: draw`. The device keeps playing it.
+
+### Changed
+
+- Breaking: `DeviceHandle.open_stream()` opens on `lan` alone. Another mode
+  fails with `no_segment_command`. Paint `ble` and `cloud` with `segment()`.
+- Breaking: `segment()` paints the 15 groups of the mask over `lan` on the
+  H6022 and the H61A0, in `ptReal`. It arms no channel, and the colors stay.
+  A native resolution fails with `native_zones_unreachable`: stream instead.
+
 ## [1.10.0] — 2026-11-23
 
 ### Changed

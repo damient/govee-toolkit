@@ -49,7 +49,7 @@ than taking a slower path in silence.
 
 The engine works over `lan`, over `ble` and over `cloud`, verified on real
 hardware: discovery, on/off, brightness, color, per-segment color, and live
-animation over the two local modes. It is usable today from Rust, from Python
+animation over `lan`. It is usable today from Rust, from Python
 and from Node.js.
 
 A DMX bridge drives the same devices from a lighting desk:

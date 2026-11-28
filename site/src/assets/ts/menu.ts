@@ -50,6 +50,11 @@ export function langMenu(box: HTMLDetailsElement): void {
       // Storage blocked: the choice holds for this visit only.
     }
   });
+  dismiss(box);
+}
+
+// A click outside the menu or Escape closes it.
+export function dismiss(box: HTMLDetailsElement): void {
   document.addEventListener("click", (event) => {
     if (box.open && event.target instanceof Node && !box.contains(event.target)) box.open = false;
   });

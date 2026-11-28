@@ -4,20 +4,21 @@
 //! one: a device no enabled mode reaches raises, and says so.
 
 use std::future::Future;
-use std::sync::Arc;
 
 use govee_toolkit::{
     DeviceHandle as CoreHandle, Error, Identify, Music, OwnedDevice, Secrets, Served as CoreServed,
-    StreamOptions, WifiCredentials, describe, input,
+    WifiCredentials, describe,
 };
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3_async_runtimes::tokio::future_into_py;
 
 use crate::apply::Invoked;
-use crate::conv::{self, read, to_py};
+use crate::conv::{self, to_py};
+use crate::draw::Drawn;
 use crate::errors::map;
 use crate::events::StatusStream;
+use crate::scene::chosen;
 use crate::stream::SegmentStream;
 use crate::types::{DeviceStatus, Health, Reply, Served};
 
@@ -245,10 +246,12 @@ impl DeviceHandle {
         )
     }
 
-    /// Paint the segments once.
+    /// Paint the segments once, through the zone mask, on every mode.
     ///
     /// One color fills every zone, and a list states them all. `bytes`
-    /// carries three bytes for every zone. A zone list takes one color.
+    /// carries three bytes for every zone. A zone list takes one color. It
+    /// arms no channel, and the colors stay. `resolution="native"` raises
+    /// `native_zones_unreachable`: stream instead.
     #[pyo3(
         signature = (colors, zones=None, resolution=None, gradient=false),
         text_signature = "($self, colors, zones=None, resolution='app', gradient=False)"
@@ -265,6 +268,42 @@ impl DeviceHandle {
         self.served(py, |device| async move {
             device.handle().segment(&painting.paint()).await
         })
+    }
+
+    /// Store a drawing of the LEDs, on the entry marked `role: draw`.
+    ///
+    /// Without `cells`, `colors` states one color, or one per zone of
+    /// `resolution`. With `cells`, it states one color, or one per cell.
+    /// `args` gives the other arguments of the entry, by name. The device
+    /// keeps playing the drawing after the call.
+    #[pyo3(
+        signature = (colors, *, cells=None, resolution=None, args=None),
+        text_signature = "($self, colors, *, cells=None, resolution='app', args=None)"
+    )]
+    fn draw<'py>(
+        &self,
+        py: Python<'py>,
+        colors: &Bound<'py, PyAny>,
+        cells: Option<&Bound<'py, PyAny>>,
+        resolution: Option<&Bound<'py, PyAny>>,
+        args: Option<&Bound<'py, PyDict>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let drawn = Drawn::read(colors, cells, resolution, args)?;
+        self.served(
+            py,
+            |device| async move { drawn.send(device.handle()).await },
+        )
+    }
+
+    /// Play a scene: a `Scene`, or a name, a shared name or a code that the
+    /// cached library of the model resolves. Sends no request to the cloud.
+    fn scene<'py>(
+        &self,
+        py: Python<'py>,
+        scene: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let chosen = chosen(scene)?;
+        self.served(py, |device| chosen.play(device))
     }
 
     /// Ask the firmware to interpolate between zones, and to wrap from the
@@ -308,6 +347,9 @@ impl DeviceHandle {
 
     /// Open the raw segment channel and paint it frame by frame.
     ///
+    /// The channel exists on `lan` alone: another mode fails with
+    /// `no_segment_command`.
+    ///
     /// Power the device on first: arming a dark strip paints nothing. The
     /// channel holds the colors only while it is armed, and the device goes
     /// back to the color it showed before once the stream closes.
@@ -322,16 +364,7 @@ impl DeviceHandle {
         rate: Option<&Bound<'py, PyAny>>,
         gradient: bool,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let options = StreamOptions {
-            resolution: read(input::resolution(&conv::optional(resolution)?))?,
-            rate: read(input::rate(&conv::optional(rate)?))?,
-            gradient,
-        };
-        let device = self.inner.clone();
-        future_into_py(py, async move {
-            let stream = map(device.handle().open_stream(options).await)?;
-            Ok(SegmentStream::new(Arc::new(stream)))
-        })
+        SegmentStream::open(py, self.inner.clone(), resolution, rate, gradient)
     }
 
     fn __repr__(&self) -> String {

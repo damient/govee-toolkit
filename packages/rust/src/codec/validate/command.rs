@@ -1,6 +1,6 @@
 //! Structural checks on one command entry.
 
-use crate::codec::catalog::{ArgRole, Command, Mode, Role};
+use crate::codec::catalog::{ArgRole, ArgSpec, Command, Mode, Role};
 use crate::codec::chunk::{self, Layout};
 use crate::codec::exchange::Exchanges;
 
@@ -9,6 +9,7 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
 
     problems.extend(check_arg_roles(command));
     problems.extend(check_reserved_args(command));
+    problems.extend(check_defaults(command));
     problems.extend(check_declaration(command));
     problems.extend(super::cloud::check_cloud(mode, command));
 
@@ -54,8 +55,30 @@ pub(super) fn check_command(mode: Mode, name: &str, command: &Command) -> Vec<St
     }
 
     let single_frame = command.frame.is_some() && command.frames.is_empty();
-    problems.extend(check_payload(mode, command, single_frame));
+    let one_way = single_frame || (command.body.is_some() && command.frames.is_empty());
+    problems.extend(check_payload(mode, command, single_frame, one_way));
     problems
+}
+
+/// A default outside its own range would fail every call that leaves it out.
+fn check_defaults(command: &Command) -> Vec<String> {
+    command
+        .args
+        .iter()
+        .filter_map(|(name, spec)| {
+            let ArgSpec::Int {
+                range: Some(range),
+                default: Some(value),
+                ..
+            } = spec
+            else {
+                return None;
+            };
+            let [min, max] = range.pair()?;
+            (*value < min || *value > max)
+                .then(|| format!("argument `{name}`: `default` {value} is outside [{min}, {max}]"))
+        })
+        .collect()
 }
 
 /// A command sends one frame, a chunked body, or a list of exchanges. A file
@@ -165,7 +188,9 @@ fn check_chunk(name: &str, command: &Command, problems: &mut Vec<String>) -> Opt
     }
 }
 
-fn check_payload(mode: Mode, command: &Command, has_frame: bool) -> Vec<String> {
+/// `has_frame`: the command declares one `frame:`. `one_way`: it declares a
+/// `frame:` or a chunked `body:`, and no list of exchanges.
+fn check_payload(mode: Mode, command: &Command, has_frame: bool, one_way: bool) -> Vec<String> {
     let mut problems = Vec::new();
     let mut placeholders = Vec::new();
     collect_placeholders(&command.payload, &mut placeholders);
@@ -174,6 +199,13 @@ fn check_payload(mode: Mode, command: &Command, has_frame: bool) -> Vec<String> 
         if name == "frame" {
             if !has_frame {
                 problems.push("payload uses `${frame}` but no `frame:` is declared".to_owned());
+            }
+        } else if name == "frames" {
+            if !one_way {
+                problems.push(
+                    "payload uses `${frames}` but declares neither a `frame:` nor a `body:`"
+                        .to_owned(),
+                );
             }
         } else if !command.args.contains_key(name) {
             problems.push(format!(
@@ -186,8 +218,13 @@ fn check_payload(mode: Mode, command: &Command, has_frame: bool) -> Vec<String> 
     // neither: its wire carries the frame on its own.
     let wrapped =
         !matches!(mode, Mode::Ble) || !command.cmd.is_empty() || !command.payload.is_null();
-    if has_frame && wrapped && !placeholders.iter().any(|p| p == "frame") {
+    let carries = |name: &str| placeholders.iter().any(|p| p == name);
+    if has_frame && wrapped && !carries("frame") && !carries("frames") {
         problems.push("declares a `frame:` the payload never carries with `${frame}`".to_owned());
+    }
+    let chunked = command.body.is_some() && command.chunk.is_some() && command.frame.is_none();
+    if chunked && wrapped && !carries("frames") {
+        problems.push("declares a `body:` the payload never carries with `${frames}`".to_owned());
     }
     // A cloud payload is the capability's value, and the `capability:` carries
     // it.
@@ -275,13 +312,15 @@ pub(super) fn check_role_args(role: Role, command: &Command) -> Vec<String> {
         Role::ColorTemp => &[ArgRole::ColorTemp],
         Role::SegmentEnable | Role::WifiLink => &[ArgRole::Enable],
         Role::SegmentColor => &[ArgRole::Colors],
-        Role::SegmentColorMasked => &[ArgRole::Colors, ArgRole::Zones],
+        Role::SegmentColorMasked | Role::Draw => &[ArgRole::Colors, ArgRole::Zones],
         Role::SegmentGradient => &[ArgRole::Gradient],
         Role::WifiApiType => &[ArgRole::ApiType],
         Role::WifiProvision => &WIFI_CREDENTIALS,
         Role::WifiProvisionWithApi => &WIFI_CREDENTIALS_WITH_API,
         Role::Status => &[],
         Role::Music => &[ArgRole::Effect],
+        Role::Scene => &[ArgRole::SceneCode, ArgRole::SceneParam, ArgRole::SceneType],
+        Role::SceneBuiltin => &[ArgRole::SceneCode],
     };
     let mut problems: Vec<String> = required
         .iter()

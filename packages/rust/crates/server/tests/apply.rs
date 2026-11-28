@@ -35,6 +35,8 @@ async fn a_request_that_changes_nothing_is_refused() {
     assert_eq!(apply(r#"{"ids":["AA:BB"]}"#).await, StatusCode::BAD_REQUEST);
     let empty = r##"{"ids":["AA:BB"],"segment":{"zones":[],"color":"#ff0000"}}"##;
     assert_eq!(apply(empty).await, StatusCode::BAD_REQUEST);
+    let none = r#"{"ids":["AA:BB"],"segment":{"colors":[]}}"#;
+    assert_eq!(apply(none).await, StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]
@@ -43,4 +45,6 @@ async fn a_value_that_is_not_valid_is_refused() {
     assert_eq!(apply(color).await, StatusCode::UNPROCESSABLE_ENTITY);
     let key = r#"{"ids":["AA:BB"],"hue":10}"#;
     assert_eq!(apply(key).await, StatusCode::UNPROCESSABLE_ENTITY);
+    let scene = r#"{"ids":["AA:BB"],"scene":2867}"#;
+    assert_eq!(apply(scene).await, StatusCode::UNPROCESSABLE_ENTITY);
 }

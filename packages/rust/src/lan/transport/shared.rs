@@ -176,7 +176,7 @@ impl Shared {
     }
 
     /// Feed the breaker and publish the transition, if there was one.
-    fn record(&self, id: &DeviceId, answered: bool, now: Instant) {
+    pub(super) fn record(&self, id: &DeviceId, answered: bool, now: Instant) {
         self.devices
             .record(&self.events, id, Mode::Lan, answered, now);
     }

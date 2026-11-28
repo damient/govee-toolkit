@@ -4,9 +4,17 @@ export const ALERT = "M12 8v5M12 16h.01M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2
 export const ARROW = "M5 12h14M13 18l6-6M13 6l6 6";
 export const BACK = "M15 6l-6 6 6 6";
 export const CHECK = "M5 12l5 5L20 7";
+export const BOOKMARK = "M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z";
+export const BRUSH = "M10 14l8.3-8.3a2 2 0 0 1 2.8 2.8L12.8 16.8M10 14a3.5 3.5 0 0 0-3.5 3.5c0 1.4-1 2.5-2.5 2.5h5a4 4 0 0 0 3.8-3.2";
 export const EDIT = "M4 20h4L18.5 9.5a2.8 2.8 0 0 0-4-4L4 16v4M13.5 6.5l4 4";
+export const PALETTE = "M12 21a9 9 0 1 1 9-9c0 1.7-1.3 3-3 3h-2.2a1.8 1.8 0 0 0-1.3 3A1.8 1.8 0 0 1 12 21zM7.5 12h.01M9.5 7.5h.01M14.5 7.5h.01";
+export const PLUS = "M12 5v14M5 12h14";
 export const REFRESH = "M20 11A8.1 8.1 0 0 0 4.5 9M4 5v4h4M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4";
-export const SEARCH = "M10.5 17.5a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4.5-4.5";
+export const SUN = "M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4";
+export const TRASH = "M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3";
+export const STAR = "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z";
+export const CLOSE = "M6 6l12 12M18 6L6 18";
+export const SEARCH ="M10.5 17.5a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4.5-4.5";
 
 export function icon(d: string): SVGSVGElement {
   const svg = document.createElementNS(SVG, "svg");

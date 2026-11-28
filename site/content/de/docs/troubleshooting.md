@@ -3,7 +3,7 @@ title: Fehlerbehebung
 slug: troubleshooting
 order: 9
 description: Nichts antwortet auf den Scan, ein Befehl bewirkt nichts, ein Wert wird abgelehnt — was jeder Fall bedeutet.
-source: 29626cda78a98b9a2c684d72dc514da617657a12
+source: 3efc01557d239fe5fdbfe28919096d20636a6be3
 ---
 
 # Fehlerbehebung
@@ -70,6 +70,17 @@ Nutze `govee off`, um das Gerät auszuschalten.
 Der Segmentkanal auf `lan` überträgt nur Farbe. Die Helligkeit ist dort global.
 `ble` überträgt die Helligkeit pro Zone, und `cloud` überträgt sie pro Zone. Das
 ist eine Eigenschaft der Übertragung, keine Lücke im Code.
+
+## Eine Szene wird nicht gefunden {#a-scene-is-not-found}
+
+`govee scene` liest die Szenenbibliothek des Modells aus einem Cache auf
+deinem Computer.
+
+- `scene_list_missing`: Führe einmal `govee scenes fetch <Modell>` aus, dann
+  versuch es noch einmal.
+- `unknown_scene`: `govee scenes list <Modell>` zeigt die Namen und die Codes.
+- `ambiguous_scene`: Der Name passt auf mehr als eine Szene. Gib einen vollen
+  Namen aus der Fehlermeldung an, oder einen Code.
 
 ## Der Bluetooth-Scan findet nichts {#the-bluetooth-scan-finds-nothing}
 

@@ -3,7 +3,7 @@ title: Serveur MCP
 slug: mcp
 order: 8
 description: Laissez un assistant IA lire le catalogue des appareils et piloter vos lumières, par un serveur MCP local.
-source: 92c6411f45f2e8e5d5006a6c8cf7e45127325edf
+source: df5029f3b6fc02690a6c6ad1b6111f898d7f09a0
 ---
 
 # Serveur MCP
@@ -172,9 +172,9 @@ ainsi faire un scan entre-temps.
 | `scan` | Trouve les appareils sur votre réseau |
 | `list_known` | Liste les appareils trouvés, avec l'état de santé de chaque mode |
 | `status` | Lit l'état d'un appareil |
-| `set` | Règle l'alimentation, la luminosité, la couleur, la température de blanc, un segment, un dégradé ou le mode musique |
+| `set` | Règle l'alimentation, la luminosité, la couleur, la température de blanc, un segment, un dégradé, le mode musique ou une scène |
 | `send` | Envoie une commande que déclare le fichier d'appareil |
-| `stream` | Joue des trames sur les segments d'un ou plusieurs appareils, puis leur rend leurs couleurs |
+| `stream` | Joue des trames sur les segments d'un ou plusieurs appareils en Wi-Fi, puis leur rend leurs couleurs |
 | `identify` | Allume les appareils un par un, pour que vous voyiez lequel est lequel |
 | `doctor` | Liste les problèmes de votre configuration |
 

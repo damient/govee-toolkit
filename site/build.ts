@@ -14,12 +14,12 @@ import { devicePage } from "./lib/device-page.ts";
 import { renderIndex } from "./lib/devices.ts";
 import { type Draft, type Frame, type Page, address, emit } from "./lib/emit.ts";
 import { everyModel } from "./lib/listed.ts";
-import { navItem } from "./lib/docs.ts";
 import { faqPage } from "./lib/faq.ts";
 import { fill } from "./lib/html.ts";
 import { isReference, readApi, readCatalog, readCategories, readJson } from "./lib/json.ts";
 import { ENGLISH, LOCALES, type Locale, type T, forgetStrings, strings, translate } from "./lib/locales.ts";
 import { dmxBadge, modeBadges } from "./lib/mode-badge.ts";
+import { productSources } from "./lib/products.ts";
 import { REFERENCE_URL, localReference, referenceNav, referencePage } from "./lib/reference.ts";
 import { breadcrumb, deviceData, homeData, redirect, robots, sitemapXml } from "./lib/seo.ts";
 import { type Change, notify, serve } from "./lib/serve.ts";
@@ -32,6 +32,7 @@ interface Source {
   nav: string;
   title: string | null;
   klass?: string;
+  noindex?: boolean;
   render?: (template: string, devices: Device[]) => string;
   trail?: Crumb[];
   description?: string;
@@ -52,13 +53,12 @@ const out = join(root, `.dist-build-${process.pid}`);
 
 function sources(t: T): Source[] {
   return [
-    { src: "index.html", url: "", nav: "home", title: null, klass: "is-home" },
     {
       src: "devices.html",
       url: "devices/",
       nav: "devices",
       title: t("page.devices"),
-      render: (template, devices) => renderIndex(template, devices, undefined, t),
+      render: (template, devices) => renderIndex(template, devices, { kind: "all" }, t),
       trail: [[t("page.devices"), "devices/"]],
       description: t("page.devices_description"),
     },
@@ -71,10 +71,9 @@ function sources(t: T): Source[] {
       trail: [[t("page.devices"), "devices/"], [t("page.add"), "devices/add/"]],
       description: t("page.add_description"),
     },
+    ...productSources(t),
   ];
 }
-
-const FOOT_SKIP = new Set(["docs/configure/", "docs/targets/", "docs/dmx/", "docs/mcp/", "docs/troubleshooting/"]);
 
 async function main(): Promise<void> {
   forgetStrings();
@@ -126,12 +125,7 @@ async function localePages(locale: Locale, { layout, devices, reference, api, cs
     ...(ref === null ? [] : [referenceNav(t)]),
   ].toSorted((a, b) => a.order - b.order);
   const docsHome = nav[0]?.url ?? REFERENCE_URL;
-  // The footer names a short list. The side menu keeps every page.
-  const docNav = nav
-    .filter((item) => !FOOT_SKIP.has(item.url))
-    .map((item) => navItem(base, item, null))
-    .join("\n          ");
-  const frame: Frame = { layout: translate(layout, t), css, docsHome, docNav, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
+  const frame: Frame = { layout: translate(layout, t), css, docsHome, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
   const pages: Draft[] = [
     ...(await sourcePages([...sources(t), ...categoryPages(devices, renderIndex, locale)], devices, locale)),
     ...docPages(docs, nav, docsHome, locale),
@@ -247,8 +241,10 @@ function notFound(): Page {
 }
 
 // Two renames: `dist/` is missing for microseconds, not for a whole build.
+// `previous` carries the pid: two builds that publish at once (`npm run dev`
+// beside `tools/qa-site.sh`) must not delete the directory of the other.
 async function publish(): Promise<void> {
-  const previous = `${dist}.previous`;
+  const previous = `${dist}.previous-${process.pid}`;
   await rm(previous, { recursive: true, force: true });
   if (existsSync(dist)) await rename(dist, previous);
   await rename(out, dist);

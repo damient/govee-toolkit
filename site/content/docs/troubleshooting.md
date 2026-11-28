@@ -67,6 +67,16 @@ The segment channel on `lan` carries color only. Brightness is global there.
 `ble` carries brightness per zone, and `cloud` carries it per zone. This is a
 property of the transport, not a gap in the code.
 
+## A scene is not found
+
+`govee scene` reads the scene library of the model from a cache on your
+computer.
+
+- `scene_list_missing`: run `govee scenes fetch <model>` once, then try again.
+- `unknown_scene`: `govee scenes list <model>` prints the names and the codes.
+- `ambiguous_scene`: the name matches more than one scene. Give a full name
+  from the error, or a code.
+
 ## The Bluetooth scan finds nothing
 
 A Govee device stops advertising once something connects to it. If the Govee

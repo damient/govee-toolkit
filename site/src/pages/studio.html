@@ -1,0 +1,118 @@
+<section class="slab product-head">
+  <div class="aurora" data-beam="studio" aria-hidden="true"><i class="band"></i><i class="edge"></i><i class="lobe"></i><i class="floor"></i></div>
+  <div class="shell split">
+    <div>
+      <p class="eyebrow">Studio</p>
+      <h1>{{t:pstudio.title}}</h1>
+      <p class="lede">{{t:pstudio.lede}}</p>
+      <div class="cta-links">
+        <a class="btn" href="#get">{{t:pstudio.run}}</a>
+        <a class="btn ghost" href="{{base}}docs/start/">{{t:pstudio.prepare}}</a>
+      </div>
+    </div>
+    <video class="shot" src="{{base}}assets/img/studio.webm" poster="{{base}}assets/img/studio-home.jpg" width="1440" height="900" muted playsinline data-autoplay aria-hidden="true"></video>
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell">
+    <h2 class="big">{{t:pstudio.today}}</h2>
+    <div class="cards three" data-halo>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.find}}</span><h3>{{t:pstudio.find_title}}</h3></div>
+        <p>{{t:pstudio.find_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.rooms}}</span><h3>{{t:pstudio.rooms_title}}</h3></div>
+        <p>{{t:pstudio.rooms_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.color}}</span><h3>{{t:pstudio.color_title}}</h3></div>
+        <p>{{t:pstudio.color_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.brush}}</span><h3>{{t:pstudio.segments_title}}</h3></div>
+        <p>{{t:pstudio.segments_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.presets}}</span><h3>{{t:pstudio.presets_title}}</h3></div>
+        <p>{{t:pstudio.presets_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.phone}}</span><h3>{{t:pstudio.phone_title}}</h3></div>
+        <p>{{t:pstudio.phone_text}}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell">
+    <h2 class="big">{{t:pstudio.soon}}</h2>
+    <div class="cards soon" data-halo>
+      <div class="card">
+        <h3>{{t:pstudio.library_title}}</h3>
+        <p>{{t:pstudio.library_text}}</p>
+      </div>
+      <div class="card">
+        <h3>{{t:pstudio.live_title}}</h3>
+        <p>{{t:pstudio.live_text}}</p>
+      </div>
+      <div class="card">
+        <h3>{{t:pstudio.stage_title}}</h3>
+        <p>{{t:pstudio.stage_text}}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slab" id="get">
+  <div class="shell">
+    <h2 class="big">{{t:pstudio.run}}</h2>
+    <p class="lede">{{t:pstudio.get_lede}}</p>
+    <div class="get" data-get>
+      <div class="get-tabs" role="tablist" aria-label="{{t:pstudio.run}}" data-halo>
+        <button class="card get-card windows" type="button" role="tab" id="get-tab-windows" aria-controls="get-windows" aria-selected="false" data-os="windows">
+          <span class="card-chip">{{card_icon.windows}}</span>
+          <span><span class="get-name">Windows</span><span class="get-tag">{{t:pstudio.win_tag}}</span></span>
+        </button>
+        <button class="card get-card macos" type="button" role="tab" id="get-tab-macos" aria-controls="get-macos" aria-selected="false" data-os="macos">
+          <span class="card-chip">{{card_icon.apple}}</span>
+          <span><span class="get-name">macOS</span><span class="get-tag">{{t:pstudio.mac_tag}}</span></span>
+        </button>
+        <button class="card get-card linux" type="button" role="tab" id="get-tab-linux" aria-controls="get-linux" aria-selected="false" data-os="linux">
+          <span class="card-chip">{{card_icon.linux}}</span>
+          <span><span class="get-name">Linux</span><span class="get-tag">{{t:pstudio.service}}</span></span>
+        </button>
+      </div>
+      <div class="get-pane windows" id="get-windows" role="tabpanel" aria-labelledby="get-tab-windows" data-os="windows">
+        <ol class="get-steps">
+          <li>{{t:pstudio.step_download}}<br><a class="btn" href="{{repo}}/releases/download/desktop-latest/Govee-Toolkit-Studio-Windows-setup.exe">{{t:pstudio.download}} .exe</a></li>
+          <li>{{t:pstudio.win_install}}</li>
+          <li>{{t:pstudio.win_open}}</li>
+        </ol>
+      </div>
+      <div class="get-pane macos" id="get-macos" role="tabpanel" aria-labelledby="get-tab-macos" data-os="macos">
+        <ol class="get-steps">
+          <li>{{t:pstudio.step_download}}<br><a class="btn" href="{{repo}}/releases/download/desktop-latest/Govee-Toolkit-Studio-macOS.dmg">{{t:pstudio.download}} .dmg</a></li>
+          <li>{{t:pstudio.mac_install}}</li>
+          <li>{{t:pstudio.mac_open}}</li>
+        </ol>
+      </div>
+      <div class="get-pane linux" id="get-linux" role="tabpanel" aria-labelledby="get-tab-linux" data-os="linux">
+        <ol class="get-steps">
+          <li>{{t:pstudio.linux_rust}} <a href="https://rustup.rs">rustup.rs</a></li>
+          <li>{{t:pstudio.linux_install}}
+            <div class="terminal">
+<pre><code><span class="prompt">$</span> cargo install govee-toolkit-server
+<span class="prompt">$</span> govee-server</code></pre>
+              <button class="copy" type="button" data-copy="cargo install govee-toolkit-server">{{t:docs.copy}}</button>
+            </div>
+          </li>
+          <li>{{t:pstudio.linux_open}}</li>
+        </ol>
+        <p class="note">{{t:pstudio.linux}} <a href="{{repo}}/blob/main/packages/rust/crates/server/README.md#linux">{{t:pstudio.linux_link}}</a></p>
+      </div>
+    </div>
+  </div>
+</section>

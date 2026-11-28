@@ -1,6 +1,6 @@
-//! Painting zones one frame at a time, against a simulated device. The raw
-//! channel never answers, so a paint is only observable as the datagrams it
-//! puts on the wire.
+//! Painting zones, against a simulated device. Neither the raw channel nor
+//! `ptReal` answers, so a paint is only observable as the datagrams it puts
+//! on the wire.
 
 #![allow(
     clippy::unwrap_used,
@@ -18,9 +18,6 @@ mod common;
 
 use common::{One, Rig, SKU, hex, wait_for};
 
-/// The arming frame every paint sends first, as `H61A0` declares it.
-const ARM: &str = "bb0001b1010a";
-
 async fn rig() -> Rig {
     Rig::start(
         Config::default(),
@@ -28,17 +25,6 @@ async fn rig() -> Rig {
         SKU,
     )
     .await
-}
-
-/// UDP on the loopback is fast but not synchronous: a send returns before the
-/// datagram arrives.
-async fn awaited(simulator: &Simulator, count: usize) -> Vec<String> {
-    wait_for(|| {
-        let frames = frames(simulator);
-        (frames.len() >= count).then_some(frames)
-    })
-    .await
-    .unwrap_or_default()
 }
 
 fn frames(simulator: &Simulator) -> Vec<String> {
@@ -51,6 +37,33 @@ fn frames(simulator: &Simulator) -> Vec<String> {
         .collect()
 }
 
+/// The frames of every `ptReal` datagram, in the order they arrived.
+fn ptreal(simulator: &Simulator) -> Vec<Vec<String>> {
+    simulator
+        .received()
+        .into_iter()
+        .filter(|received| received.cmd == "ptReal")
+        .map(|received| {
+            received.data["command"]
+                .as_array()
+                .expect("a list of frames")
+                .iter()
+                .map(|frame| {
+                    hex(&BASE64
+                        .decode(frame.as_str().expect("a string"))
+                        .expect("base64"))
+                })
+                .collect()
+        })
+        .collect()
+}
+
+async fn painted(simulator: &Simulator) -> Vec<String> {
+    wait_for(|| ptreal(simulator).pop())
+        .await
+        .unwrap_or_default()
+}
+
 fn paint(colors: &[[u8; 3]], resolution: Resolution) -> Paint<'_> {
     Paint {
         zones: None,
@@ -60,96 +73,131 @@ fn paint(colors: &[[u8; 3]], resolution: Resolution) -> Paint<'_> {
     }
 }
 
+fn gradient(colors: &[[u8; 3]], resolution: Resolution) -> Paint<'_> {
+    Paint {
+        gradient: true,
+        ..paint(colors, resolution)
+    }
+}
+
+/// The `interpolation off, in ptReal` vector of
+/// tests/fixtures/golden/lan/H61A0.json.
+const GRADIENT_OFF: &str = "33a3000000000000000000000000000000000090";
+
+/// The zones that the mask field of a masked frame names.
+fn mask(frame: &str) -> u16 {
+    let field = u16::from_str_radix(&frame[24..28], 16).expect("hex");
+    field.swap_bytes()
+}
+
+/// One datagram carries the setting and one frame per distinct color. Three
+/// zones spread over the 15 groups of the mask, so no group keeps an old
+/// color.
 #[tokio::test]
-async fn one_color_fills_every_zone_the_resolution_names() {
+async fn a_paint_of_every_zone_goes_in_one_datagram() {
     let rig = rig().await;
     rig.govee
         .one()
-        .segment(&paint(&[[255, 0, 0]], Resolution::Exact(2)))
+        .segment(&paint(
+            &[[255, 0, 0], [0, 255, 0], [0, 0, 255]],
+            Resolution::Exact(3),
+        ))
         .await
         .expect("the paint goes out");
 
-    assert_eq!(
-        awaited(&rig.simulator, 2).await,
-        vec![ARM.to_owned(), "bb0008b00002ff0000ff000001".to_owned()]
+    let datagram = painted(&rig.simulator).await;
+    assert_eq!(ptreal(&rig.simulator).len(), 1, "one datagram");
+    assert_eq!(datagram.len(), 4, "{datagram:?}");
+    assert_eq!(datagram[0], GRADIENT_OFF);
+    for (frame, color) in datagram[1..].iter().zip(["ff0000", "00ff00", "0000ff"]) {
+        assert!(frame.starts_with(&format!("33051501{color}")), "{frame}");
+    }
+    let masks: Vec<u16> = datagram[1..].iter().map(|frame| mask(frame)).collect();
+    assert_eq!(masks, [0x001f, 0x03e0, 0x7c00]);
+    assert!(
+        frames(&rig.simulator).is_empty(),
+        "nothing went out on razer"
     );
 }
 
-/// `lan` carries the interpolation setting inside the frame that paints, so it
-/// marks no `role: segment_gradient`. The call fails rather than repaint: the
-/// colors the device shows are not held here.
+/// The app count of the device file is 10 zones: one color spreads over the
+/// 15 groups of the mask.
 #[tokio::test]
-async fn setting_the_gradient_alone_is_refused_where_only_a_paint_carries_it() {
+async fn one_color_paints_every_group_of_the_mask() {
     let rig = rig().await;
+    rig.govee
+        .one()
+        .segment(&paint(&[[255, 0, 0]], Resolution::App))
+        .await
+        .expect("the paint goes out");
 
-    let refused = rig
+    let datagram = painted(&rig.simulator).await;
+    assert_eq!(datagram.len(), 2, "{datagram:?}");
+    assert_eq!(mask(&datagram[1]), 0x7fff);
+}
+
+#[tokio::test]
+async fn a_paint_of_every_led_is_refused() {
+    let rig = rig().await;
+    let error = rig
         .govee
+        .one()
+        .segment(&paint(&[[255, 0, 0]], Resolution::Native))
+        .await
+        .expect_err("the mask names 15 groups");
+
+    assert_eq!(error.code(), "native_zones_unreachable");
+}
+
+/// The `interpolation on, in ptReal` vector of
+/// tests/fixtures/golden/lan/H61A0.json.
+const GRADIENT_ON: &str = "33a3010000000000000000000000000000000091";
+
+/// The setting travels alone, as the `ble` frame inside `ptReal`.
+#[tokio::test]
+async fn the_gradient_alone_goes_out_in_ptreal() {
+    let rig = rig().await;
+    rig.govee
         .one()
         .gradient(true)
         .await
-        .expect_err("lan carries the setting in the painting frame");
+        .expect("lan declares the setting in ptReal");
 
+    assert_eq!(painted(&rig.simulator).await, vec![GRADIENT_ON.to_owned()]);
     assert!(
-        matches!(refused, govee_toolkit::Error::NoRoleCommand { .. }),
-        "{refused:?}"
-    );
-    assert!(frames(&rig.simulator).is_empty(), "nothing was painted");
-}
-
-/// The firmware renders nothing when the paint follows the arming frame at
-/// once, and answers nothing either way. See `docs/protocol/lan.md` 2.3 and
-/// `measurements.arm_settle_ms` of `devices/H61A0.yaml`.
-#[tokio::test]
-async fn the_first_paint_waits_for_the_channel_to_arm() {
-    let rig = rig().await;
-    let start = std::time::Instant::now();
-
-    rig.govee
-        .one()
-        .segment(&paint(&[[255, 0, 0]], Resolution::Exact(2)))
-        .await
-        .expect("the paint goes out");
-
-    assert!(start.elapsed() >= std::time::Duration::from_millis(50));
-}
-
-#[tokio::test]
-async fn a_color_list_states_one_zone_each() {
-    let rig = rig().await;
-    rig.govee
-        .one()
-        .segment(&paint(&[[255, 0, 0], [0, 255, 0]], Resolution::Exact(2)))
-        .await
-        .expect("the paint goes out");
-
-    assert_eq!(
-        awaited(&rig.simulator, 2).await.last().map(String::as_str),
-        Some("bb0008b00002ff000000ff0001")
+        frames(&rig.simulator).is_empty(),
+        "nothing went out on razer"
     );
 }
 
+/// The setting rides in the datagram of the mask.
 #[tokio::test]
-async fn native_resolution_states_every_addressable_led() {
+async fn a_gradient_paint_carries_the_setting_first() {
     let rig = rig().await;
-    let mut colors = vec![[0, 0, 0]; 42];
-    colors[0] = [255, 0, 0];
-
     rig.govee
         .one()
-        .segment(&paint(&colors, Resolution::Native))
+        .segment(&gradient(&[[255, 0, 0]], Resolution::App))
         .await
         .expect("the paint goes out");
 
-    // The `one lit zone at native resolution` vector of
-    // tests/fixtures/golden/lan/H61A0.json.
-    let frame = awaited(&rig.simulator, 2)
+    let datagram = painted(&rig.simulator).await;
+    assert_eq!(ptreal(&rig.simulator).len(), 1, "one datagram");
+    assert_eq!(datagram[0], GRADIENT_ON);
+    assert!(datagram[1].starts_with("33051501ff0000"), "{datagram:?}");
+}
+
+#[tokio::test]
+async fn a_gradient_paint_reaches_the_groups_of_the_mask() {
+    let rig = rig().await;
+    let error = rig
+        .govee
+        .one()
+        .segment(&gradient(&[[255, 0, 0]], Resolution::Exact(30)))
         .await
-        .last()
-        .cloned()
-        .expect("a frame");
-    assert!(frame.starts_with("bb0080b0002aff0000"));
-    // bb, the 16-bit length, the op, the gradient, the count, then the xor.
-    assert_eq!(frame.len(), 2 * (6 + 3 * 42 + 1));
+        .expect_err("the mask names 15 groups");
+
+    assert_eq!(error.code(), "zone_count_unsupported");
+    assert!(ptreal(&rig.simulator).is_empty(), "nothing went out");
 }
 
 #[tokio::test]
@@ -158,25 +206,11 @@ async fn a_list_that_states_another_count_than_the_resolution_is_refused() {
     let error = rig
         .govee
         .one()
-        .segment(&paint(&[[255, 0, 0], [0, 255, 0]], Resolution::Native))
+        .segment(&paint(&[[255, 0, 0], [0, 255, 0]], Resolution::App))
         .await
-        .expect_err("42 zones, 2 colors");
+        .expect_err("10 zones, 2 colors");
 
     assert_eq!(error.code(), "color_count_mismatch");
-    assert!(frames(&rig.simulator).is_empty(), "nothing went out");
-}
-
-#[tokio::test]
-async fn a_resolution_the_unit_renders_as_a_smaller_one_is_refused() {
-    let rig = rig().await;
-    let error = rig
-        .govee
-        .one()
-        .segment(&paint(&[[255, 0, 0]], Resolution::Exact(30)))
-        .await
-        .expect_err("this unit refines at 21, then at 42");
-
-    assert_eq!(error.code(), "resolution_not_distinct");
     assert!(frames(&rig.simulator).is_empty(), "nothing went out");
 }
 
@@ -196,4 +230,33 @@ async fn a_zone_list_takes_one_color() {
         .expect_err("a mask carries one color");
 
     assert_eq!(error.code(), "zone_list_color_count");
+}
+
+/// The mask frame is the `ble` frame inside `ptReal`. It paints the normal
+/// mode, not the raw channel, so nothing arms that channel first. The
+/// `interpolation off, in ptReal` and `red over zones 0 to 4, in ptReal`
+/// vectors of tests/fixtures/golden/lan/H61A0.json, in one datagram.
+#[tokio::test]
+async fn a_zone_list_goes_out_in_ptreal_and_arms_nothing() {
+    let rig = rig().await;
+    rig.govee
+        .one()
+        .segment(&Paint {
+            zones: Some(&[0, 1, 2, 3, 4]),
+            colors: &[[255, 0, 0]],
+            resolution: Resolution::App,
+            gradient: false,
+        })
+        .await
+        .expect("the paint goes out");
+
+    assert_eq!(
+        painted(&rig.simulator).await,
+        [GRADIENT_OFF, "33051501ff000000000000001f000000000000c2"]
+    );
+    assert_eq!(ptreal(&rig.simulator).len(), 1, "one datagram");
+    assert!(
+        frames(&rig.simulator).is_empty(),
+        "nothing went out on razer"
+    );
 }

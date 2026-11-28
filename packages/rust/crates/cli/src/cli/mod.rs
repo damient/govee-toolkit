@@ -76,6 +76,10 @@ pub(crate) enum Command {
         targets: Vec<String>,
     },
 
+    /// Fetch or list the scenes of a model.
+    #[command(subcommand)]
+    Scenes(Scenes),
+
     /// Report what a device file declares: modes, capabilities, commands and
     /// arguments. Reads no hardware.
     Describe {
@@ -85,7 +89,8 @@ pub(crate) enum Command {
 
     /// Send one device file entry by name.
     Send {
-        /// The device: its identity, or a name the configuration gives.
+        /// The devices: an identity, a SKU, a name or a group. A device whose
+        /// file does not declare the entry fails, and the others go ahead.
         device: String,
         /// The entry in `commands.<mode>` of the device file.
         command: String,
@@ -94,9 +99,9 @@ pub(crate) enum Command {
         args: Vec<String>,
     },
 
-    /// Read the device's state.
+    /// Read the state of each device.
     Status {
-        /// The device: its identity, or a name the configuration gives.
+        /// The devices: an identity, a SKU, a name or a group.
         device: String,
     },
 
@@ -149,6 +154,7 @@ pub(crate) enum Command {
     },
 
     /// Stream colors to the segment channel, one frame per line of stdin.
+    /// The channel exists on `lan` alone.
     ///
     /// A line is one `#RRGGBB`, which fills every zone, or one per zone,
     /// comma-separated. The stream closes at end of input, which disarms the
@@ -201,21 +207,37 @@ pub(crate) enum Command {
     },
 }
 
+#[derive(Debug, Subcommand)]
+pub(crate) enum Scenes {
+    /// Fetch the scene library of a model from the cloud, and store it in the
+    /// cache folder. The request carries no account and no key.
+    Fetch {
+        /// The model, such as `H61A0`.
+        sku: String,
+    },
+    /// List the scenes in the cached library of a model. Reads no network.
+    List {
+        /// The model, such as `H61A0`.
+        sku: String,
+    },
+}
+
 impl Command {
     /// The target of a command that drives one device.
     pub(crate) fn device(&self) -> Option<&str> {
         match self {
-            Self::Send { device, .. } | Self::Status { device } | Self::Stream { device, .. } => {
-                Some(device)
-            }
+            Self::Stream { device, .. } => Some(device),
             #[cfg(feature = "ble")]
             Self::Provision { device, .. } => Some(device),
             Self::Scan { .. }
+            | Self::Send { .. }
+            | Self::Status { .. }
             | Self::Verb(_)
             | Self::Identify { .. }
             | Self::Devices { .. }
             | Self::Doctor
             | Self::Describe { .. }
+            | Self::Scenes(_)
             | Self::Watch { .. } => None,
         }
     }

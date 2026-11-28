@@ -166,7 +166,10 @@ disagree:
 3. Every pin on the version that moved. `crates/cli` depends on `govee-toolkit`
    by version, so a core bump raises that pin in the same commit.
 4. The lock files: `cargo update --workspace --offline` in `packages/rust` and
-   in `packages/python`.
+   in `packages/python`. A core bump also moves the lock file of
+   `apps/desktop/src-tauri`, which takes the crates by path: run
+   `cargo metadata --format-version 1 --offline > /dev/null` there. It
+   records the new local version and moves no other crate.
 
 Then update the `Version` column of the index table in the root file, and run
 `tools/release-notes.sh <pkg> <pkg>-vX.Y.Z` for every package that moved.

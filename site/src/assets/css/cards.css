@@ -1,29 +1,3 @@
-/* The light runs down the left edge, the way it runs down a strip. The bar
-   is taller than the card, and the animation moves it: the bright band
-   travels from top to bottom and the card glows where it passes. */
-.card::before, .mode-card::before {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--accent) 45%, transparent) 0%,
-    var(--accent) 24%,
-    color-mix(in oklab, var(--accent) 68%, #fff) 50%,
-    var(--accent) 76%,
-    color-mix(in oklab, var(--accent) 45%, transparent) 100%);
-  background-size: 100% 300%;
-  box-shadow: 0 0 18px 1px color-mix(in oklab, var(--accent) 60%, transparent);
-  animation: flow 5s linear infinite;
-}
-
-@keyframes flow {
-  from { background-position: 0 100%; }
-  to { background-position: 0 -100%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card::before, .mode-card::before { animation: none; }
-}
-
 .cards { display: grid; gap: 14px; margin-top: 2.4em; }
 
 @media (min-width: 680px) { .cards { grid-template-columns: repeat(2, 1fr); } }
@@ -32,17 +6,8 @@
 @media (min-width: 1000px) { .cards:not(.two) { grid-template-columns: repeat(4, 1fr); } }
 .card {
   --accent: var(--accent-ember);
-  position: relative;
-  display: block; text-decoration: none; padding: 22px 20px 22px 23px;
-  background: var(--panel); border: 1px solid var(--line); border-left: 0;
-  border-radius: 0;
+  display: block; text-decoration: none;
 }
-.card:nth-child(2)::before { animation-delay: -1.1s; }
-.card:nth-child(3)::before { animation-delay: -2.2s; }
-.card:nth-child(4)::before { animation-delay: -3.3s; }
-.card:nth-child(5)::before { animation-delay: -4.4s; }
-.card:nth-child(6)::before { animation-delay: -5.5s; }
-.card:hover { background: var(--panel-2); }
 .card > h3 { margin: 0 0 .45em; }
 .card p { color: var(--muted); font-size: .95rem; margin: 0; }
 
@@ -60,12 +25,8 @@
 
 @media (min-width: 680px) { .mode-cards { grid-template-columns: repeat(2, 1fr); } }
 .mode-card {
-  position: relative;
   display: block; text-decoration: none;
-  padding: 22px 20px 22px 23px; border-radius: 0;
-  background: var(--panel); border: 1px solid var(--line); border-left: 0;
 }
-.mode-card:hover { background: var(--panel-2); }
 .mode-card h3 { margin-bottom: .75em; }
 /* The badge is the heading of its card, so it is drawn larger than the one a
    table row carries. */
@@ -80,9 +41,6 @@
 .mode-card.ble { --accent: var(--accent-cyan); }
 .mode-card.cloud { --accent: var(--accent-violet); }
 .mode-card.dmx { --accent: var(--muted); }
-.mode-card.ble::before { animation-delay: -1.2s; }
-.mode-card.cloud::before { animation-delay: -2.4s; }
-.mode-card.dmx::before { animation-delay: -3.6s; }
 /* The link that closes a section stands under its cards, on their center. */
 #languages .btn {
   display: block; width: fit-content; margin-top: 2.2em; margin-inline: auto;

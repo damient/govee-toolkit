@@ -5,6 +5,15 @@
   <!-- Without it, macOS kills the app the first time the `ble` mode opens the Bluetooth stack. -->
   <key>NSBluetoothAlwaysUsageDescription</key>
   <string>govee-toolkit uses Bluetooth to control your lights in the ble mode.</string>
+  <!-- WKWebView gives `navigator.languages` only from this list. Keep it equal to `LANGUAGES` in `apps/studio/src/core/i18n.ts`. -->
+  <key>CFBundleLocalizations</key>
+  <array>
+    <string>en</string>
+    <string>fr</string>
+    <string>de</string>
+    <string>es</string>
+    <string>it</string>
+  </array>
   <!-- Without it, macOS blocks the multicast of the `lan` scan: "No route to host". -->
   <key>NSLocalNetworkUsageDescription</key>
   <string>govee-toolkit finds and controls the lights on your local network.</string>

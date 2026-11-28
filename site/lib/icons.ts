@@ -37,6 +37,7 @@ const MODES = load("mode");
 const FAMILIES = load("family");
 const SLOTS = load("slot");
 const BADGES = load("badge");
+const CARDS = load("card");
 
 // The two segment capabilities share one icon, and the color tells them apart:
 // they address the same zones.
@@ -75,6 +76,16 @@ export function slotIcon(name: string): string {
 /** The icon of one badge that names no mode, such as the DMX one. */
 export function badgeIcon(name: string): string {
   return svg(BADGES.get(name), "mode-icon");
+}
+
+/** The `{{card_icon.<name>}}` and `{{mode_icon.<mode>}}` values of a page template,
+ * one per file of `src/icons/card/` and `src/icons/mode/`. */
+export function cardIcons(): Record<string, string> {
+  const entries: [string, string][] = [
+    ...[...CARDS].map(([name, found]): [string, string] => [`card_icon.${name}`, svg(found, "card-icon")]),
+    ...[...MODES].map(([name, found]): [string, string] => [`mode_icon.${name}`, svg(found, "card-icon")]),
+  ];
+  return Object.fromEntries(entries);
 }
 
 /** The icon of one device family, or an empty string when no file draws it. */

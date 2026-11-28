@@ -94,6 +94,21 @@ fn the_verbs_take_the_host_spelling_and_refuse_a_misspelled_key() {
 }
 
 #[test]
+fn a_scene_reads_a_name_or_a_code() {
+    let named = map(vec![("scene", Value::Text("Aurora".into()))]);
+    assert_eq!(
+        verbs(&named, Style::Python),
+        Ok(vec![Verb::Scene("Aurora".into())])
+    );
+    let coded = map(vec![("scene", Value::Int(2867))]);
+    assert_eq!(
+        verbs(&coded, Style::Javascript),
+        Ok(vec![Verb::Scene("2867".into())])
+    );
+    assert!(verbs(&map(vec![("scene", Value::Bool(true))]), Style::Python).is_err());
+}
+
+#[test]
 fn a_walk_keeps_its_defaults_and_refuses_a_negative_wait() {
     assert!(walk(&Value::Null, Style::Python).is_ok());
     assert!(walk(&map(vec![("wait", Value::Float(-1.0))]), Style::Python).is_err());

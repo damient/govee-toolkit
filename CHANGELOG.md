@@ -15,6 +15,7 @@ shipped.
 | `govee-toolkit-server` (Rust) | [`packages/rust/crates/server/CHANGELOG.md`](packages/rust/crates/server/CHANGELOG.md) | 0.1.0 |
 | `govee-toolkit` (Python) | [`packages/python/CHANGELOG.md`](packages/python/CHANGELOG.md) | 1.10.0 |
 | `govee-toolkit` (Node) | [`packages/node/CHANGELOG.md`](packages/node/CHANGELOG.md) | 1.9.0 |
+| Studio desktop app | [`apps/desktop/CHANGELOG.md`](apps/desktop/CHANGELOG.md) | unreleased |
 | `govee-toolkit-mcp` (MCP server) | [`integrations/mcp/CHANGELOG.md`](integrations/mcp/CHANGELOG.md) | 0.3.1 |
 
 ## Catalog
@@ -23,6 +24,60 @@ The catalog has no version of its own. A package embeds the catalog at
 build time and ships it, so a release pins the date below. `catalog.json` is
 the generated artifact, and it carries the schema revision that it was built
 at.
+
+### 2026-11-25
+
+#### Added
+
+- `devices/schema.yaml`: `${name:16le}` writes two bytes, low byte first. The
+  roles `scene` and `scene_builtin` mark the scene entries.
+- `scene-rgbic` family: `scene` uploads a scene of type 1 or 2 and names its
+  code, `scene_builtin` names a stored scene. Over `ble`, and `lan` in `ptReal`.
+- `H61A0` includes it. Ten scenes of types 0, 1 and 2 rendered over `lan`, by
+  eye. The vectors come from the layout. See `docs/protocol/ble.md` 6.5.
+- `H6022` includes it. Two stored scenes rendered over `lan`, by eye. Its
+  library gives types 0 and 5 only.
+- `H6008` includes it, over `ble` only: it ignores `ptReal`. A stored and a
+  type 1 scene rendered, by eye.
+- `lan-music` family: `music` sends the `ble` music frame of sub-mode 19 over
+  `lan` in `ptReal`. See `docs/protocol/lan.md` 2.4.
+- `H6022` and `H61A0` include it and reach `music` over `lan`. Effect 4 played,
+  by eye. `H61A0` effect 0 renders nothing, over `lan` and `ble`. Vectors from
+  the layout.
+- `devices/schema.yaml`: the role `draw` marks a stored drawing of the LEDs.
+  The `draw` verb takes it.
+- `devices/schema.yaml`: an `int` argument takes `default:`, which the codec
+  sends when the caller gives none. An override can set it.
+- `lan-segments` family: `gradient` sends the `ble` interpolation frame in
+  `ptReal`, `role: segment_gradient`. `H61A0` rendered both values over `lan`,
+  by eye. On `H6022` the diffuser hides the result.
+- `cells-grid` family: `draw_cells` takes `role: draw`, and its defaults hold
+  the drawing still on black with motion 255.
+- `cells-strip` family: `draw_cells` takes `role: draw`, and draws on black by
+  default. `H61A0` gives the defaults effect 9 and speed 0, which hold the
+  drawing still. Vectors from the layout.
+
+#### Removed
+
+- `H6114`: the device file and its `ble` conformance vectors. The model is a
+  car strip with Bluetooth only, out of the scope of this project.
+
+### 2026-11-24
+
+#### Added
+
+- `devices/schema.yaml`: the `${frames}` payload placeholder carries every
+  frame of a `frame:` or a chunked `body:` as a base64 list.
+- `lan-segments` family: `segment_color_masked` over `lan`, the `ble`
+  mask frame inside `ptReal`. See `docs/protocol/lan.md` 2.9.
+- `H61A0` and `H6022` include it: 15 zones, by eye on each unit. The
+  vectors come from the layout, not from a capture.
+- `devices/schema.yaml`: `<span:…>` … `</span>` writes a length field, and
+  `${cells,colors:groups}` writes cells grouped by color.
+- `cells-grid` and `cells-strip` families: `draw_cells` stores a drawing on the
+  device, over `ble` and over `lan` in `ptReal`. Layouts from captures.
+- `H6022` includes `cells-grid` (132 cells), and `H61A0` includes `cells-strip`
+  (42 LEDs). Both rendered over `lan`, by eye.
 
 ### 2026-11-20
 

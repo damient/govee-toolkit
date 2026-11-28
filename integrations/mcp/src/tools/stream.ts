@@ -57,6 +57,7 @@ export function registerStream(server: McpServer): void {
       title: "Stream frames to the segment channel",
       description:
         "Arm the segment channel of each device, play the frames in turn, each for `hold_ms`, then disarm. " +
+          "The channel exists on `lan` alone. " +
           "Each device then goes back to the color it showed before. " +
           "Power the devices on first, with `set`: an armed channel on a dark device paints nothing. " +
           `One call plays for ${MAX_PLAY_MS / 1000} s at most. ` +

@@ -23,8 +23,8 @@
 
 use std::time::Duration;
 
-use govee_toolkit::stream::{Rate, Resolution, StreamOptions};
-use govee_toolkit::{Args, Config, Device, DeviceId, Error, Govee};
+use govee_toolkit::stream::Resolution;
+use govee_toolkit::{Args, Config, Device, DeviceId, Error, Govee, Paint};
 
 /// Every zone the H61A0's mask reaches. A zone past this is refused, not
 /// trimmed: the firmware would drop the bit in silence.
@@ -197,29 +197,27 @@ async fn read_everything(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(),
     Ok(())
 }
 
-/// The segment channel, armed once and fed frames on a clock. This mode
-/// paints by mask, so a repaint costs one write per distinct color.
+/// One zone at a time, by mask: each paint leaves the other zones alone. A
+/// stream takes the `lan` channel alone.
 async fn paint_zones(device: &govee_toolkit::DeviceHandle<'_>) -> Result<(), Error> {
-    let stream = device
-        .open_stream(StreamOptions {
-            // `Resolution::Native` is refused here: a mask names zones and
-            // reaches no pixel behind them.
-            resolution: Resolution::Exact(15),
-            rate: Rate::Measured,
+    device
+        .segment(&Paint {
+            zones: None,
+            colors: &[[0, 0, 40]],
+            resolution: Resolution::Groups,
             gradient: false,
         })
         .await?;
-
-    stream.fill([0, 0, 40])?;
-    for zone in 0..stream.zones() {
-        stream.set_zone(zone, [255, 140, 0])?;
+    for zone in 0..15 {
+        device
+            .segment(&Paint {
+                zones: Some(&[zone]),
+                colors: &[[255, 140, 0]],
+                resolution: Resolution::Groups,
+                gradient: false,
+            })
+            .await?;
         tokio::time::sleep(Duration::from_millis(120)).await;
     }
-    println!(
-        "{} frames sent, {} superseded",
-        stream.frames_sent(),
-        stream.frames_superseded()
-    );
-    stream.close().await?;
     Ok(())
 }

@@ -9,11 +9,11 @@ use napi::Env;
 use napi::bindgen_prelude::{Object, PromiseRaw, Unknown};
 use napi_derive::napi;
 
-use crate::conv;
 use crate::device::DeviceHandle;
 use crate::errors::Parts;
 use crate::promise::promise;
 use crate::types::{Device, Served};
+use crate::{conv, scenes};
 
 /// What one member answered.
 #[napi]
@@ -246,6 +246,22 @@ impl Devices {
         self.served(env, move |set| async move {
             set.devices().segment(&painting.paint()).await
         })
+    }
+
+    /// `DeviceHandle.scene()` on every member, by name or code. Each member
+    /// reads the library of its own model, where one name can carry another
+    /// code.
+    #[napi]
+    pub fn scene<'env>(
+        &self,
+        env: &'env Env,
+        #[napi(ts_arg_type = "string | number")] query: Unknown<'_>,
+    ) -> napi::Result<PromiseRaw<'env, Vec<Outcome>>> {
+        let query = scenes::named(env, &query)?;
+        self.served(
+            env,
+            move |set| async move { set.devices().scene(&query).await },
+        )
     }
 
     /// Set the interpolation between zones on every member.

@@ -1,0 +1,80 @@
+/* The fader desk of the DMX pages. Each fader is a vertical
+   `<input type="range">` with a rectangular cap, as on a lighting desk. */
+
+.desk {
+  --lamp: rgb(210 50 0);
+  --lamp-glow: .8;
+  padding: 22px 22px 18px; border-radius: var(--radius);
+  background: var(--code-bg); border: 1px solid var(--code-line);
+}
+
+/* The light that the faders drive. */
+.desk-lamp {
+  height: 14px; margin: 0 4px 24px; border-radius: 7px;
+  background: var(--lamp);
+  box-shadow:
+    0 0 calc(30px * var(--lamp-glow)) calc(4px * var(--lamp-glow)) var(--lamp),
+    0 0 calc(80px * var(--lamp-glow)) 0 var(--lamp);
+  transition: background .08s linear, box-shadow .08s linear;
+}
+.desk-faders { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+
+.fader {
+  --level: 0;
+  --tint: #c9c7cf;
+  display: grid; justify-items: center; gap: 10px;
+  font: 500 12px/1 var(--mono); color: var(--code-text); cursor: grab;
+}
+.fader.r { --tint: #ff3d00; }
+.fader.g { --tint: #00c2b5; }
+.fader.b { --tint: #2b8cff; }
+.fader.mode { --tint: #9694a0; }
+.fader b { color: var(--muted); font-weight: 500; }
+.fader span:not(.value) { font-size: 11px; color: var(--muted); }
+.fader .value { font-size: 13px; color: var(--code-text); font-variant-numeric: tabular-nums; }
+
+/* The slot is the track, as wide as the cap so the cap sits on the line. The
+   lit part ends at the center of the cap: the cap travels the height less its
+   own 20px. */
+.fader input {
+  --cap: 34px;
+  appearance: none; writing-mode: vertical-lr; direction: rtl;
+  width: var(--cap); height: 170px; margin: 0; padding: 0;
+  background:
+    linear-gradient(to top, var(--tint) 0 calc(10px + var(--level) * (100% - 20px)), transparent 0)
+      center / 4px 100% no-repeat,
+    linear-gradient(var(--code-line), var(--code-line)) center / 4px 100% no-repeat;
+  cursor: grab;
+  /* A vertical drag moves the fader, not the page. */
+  touch-action: none;
+}
+.fader input:active { cursor: grabbing; }
+.fader input:focus-visible { outline: 2px solid var(--ember); outline-offset: 4px; border-radius: 4px; }
+.fader input::-webkit-slider-runnable-track { width: var(--cap); background: none; }
+.fader input::-moz-range-track { width: var(--cap); background: none; }
+
+/* The cap: a dark rectangle with one line across it, lit in the channel color. */
+.fader input::-webkit-slider-thumb {
+  appearance: none; width: var(--cap); height: 20px; border-radius: 4px; box-sizing: border-box;
+  background:
+    linear-gradient(var(--tint), var(--tint)) center / 70% 2px no-repeat,
+    linear-gradient(#3a3f4d, #20242f);
+  border: 1px solid rgb(255 255 255 / 18%);
+  box-shadow: 0 3px 8px rgb(0 0 0 / 55%), inset 0 1px 0 rgb(255 255 255 / 12%);
+}
+.fader input::-moz-range-thumb {
+  width: var(--cap); height: 20px; border-radius: 4px; box-sizing: border-box;
+  background:
+    linear-gradient(var(--tint), var(--tint)) center / 70% 2px no-repeat,
+    linear-gradient(#3a3f4d, #20242f);
+  border: 1px solid rgb(255 255 255 / 18%);
+  box-shadow: 0 3px 8px rgb(0 0 0 / 55%), inset 0 1px 0 rgb(255 255 255 / 12%);
+}
+
+@media (max-width: 480px) {
+  .desk { padding-inline: 12px; }
+  .fader input { --cap: 28px; height: 140px; }
+  .fader span:not(.value) { font-size: 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) { .desk-lamp { transition: none; } }

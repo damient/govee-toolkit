@@ -461,10 +461,12 @@ three ways, and each one is what makes a transfer built like §4 fail:
 - The count byte in the header is the number of frames in the transfer, the
   header and the closing frame included. It does not count data frames.
 
-`commandType` `0x41` is a music effect, and §6.2 is that one. Four more command
-types ride the same channel — `0x01`, `0x02`, `0x07` and `0x0A`. They are not
-implemented: which cutter each one takes was not established, and no transfer
-of that kind has been sent to a device.
+`commandType` `0x41` is a music effect, and §6.2 is that one. `0x58` is a
+drawing on a grid, and §6.3 is that one. `0x03` is a drawing over the LEDs
+of a strip, and §6.4 is that one. `0x01` and `0x02` are scenes, and §6.5 is
+that one. Two more command types ride the same channel: `0x07` and `0x0A`.
+They are not implemented. Which cutter each one takes was not established, and
+no transfer of that kind has been sent to a device.
 
 ### 6.1 The cutting
 
@@ -527,6 +529,97 @@ header   a3000102413207ff0000ff7f00ffff0000ff0054
 closing  a3ff0000ff00ffff8b00ff0300630000000000b7
 plays it 3305133263000000000000000000000000000074
 ```
+
+### 6.3 Grid drawings — `commandType` `0x58`
+
+A device whose phone controller shows a grid of cells stores a drawing here,
+and plays it with a motion. The device keeps playing it after the sender
+stops. The header carries 14 body bytes, because one command byte follows the
+frame count.
+
+```
+body   5A <background R G B> <background brightness> <show type> <layer count>
+       <layer>...
+layer  <length:16le> 03 <data length:16le> <data>
+       <speed> <layer brightness> <motion> <show type> <priority>
+       <duration:16le> 00 00 00 00
+data   <group count> (<n> <R G B> <cell>×n)×count
+```
+
+- `5A` is the first body byte, and it is not the command type.
+- A 16-bit length goes least significant byte first. The layer length counts
+  the bytes after it, up to the end of the layer. The data length counts the
+  data.
+- A group is one color and the cells that take it, one byte each. A cell is
+  `row × columns + column`, with row 0 at the top of the grid. A cell in no
+  group shows the background.
+- Motion 255 holds the drawing still, and 0 twinkles. 1 to 8 move it up,
+  down, left, right, then up-left, up-right, down-left and down-right. 9 and
+  10 turn it clockwise and anticlockwise.
+- The phone controller sends brightness 100, show type 0, priority 1 and a
+  duration of `FF FF`.
+
+What plays the transfer is one frame of sub-mode 10:
+
+```
+33 05 0A <code:16le> 5A 00
+```
+
+The phone controller sends code 800 (`20 03`). Status comes back as
+`A3 58 <status>`, then `33 05 00` for the frame that plays it.
+
+A device file writes the lengths with `<span:16le>` and `</span>`, and the
+groups with `${cells,colors:groups}`. See `devices/schema.yaml`.
+
+### 6.4 Strip drawings — `commandType` `0x03`
+
+A strip stores a drawing over its LEDs here, and plays it with an effect. The
+header carries 14 body bytes. The groups have the layout of §6.3:
+
+```
+body   <effect> <speed> <background brightness> <background R G B> <data>
+data   <group count> (<n> <R G B> <LED>×n)×count
+```
+
+- A LED is its position from the start of the strip, one byte.
+- A LED in no group shows the background.
+- The effect identifiers are the device's own. Effect 0 can render the
+  background and drop the groups, with no error.
+
+The frame that plays it is the frame of §6.3, with `00` in place of `5A`:
+
+```
+33 05 0A <code:16le> 00 00
+```
+
+The phone controller sends code 800 (`20 03`). Status comes back as
+`A3 03 <status>`, then `33 05 00`.
+
+### 6.5 Scenes: `commandType` `0x01` and `0x02`
+
+A scene is a code and a parameter block. The scene library lists them: the
+cloud serves one library per model, without an account. Each scene gives a
+type, a 16-bit code and base64 parameters. The header carries 14 body bytes,
+and the body is the parameter block as the library gives it:
+
+```
+A3 00 01 <frames> <type> <14 bytes of parameters>   header
+A3 <i> <17 bytes>                                   i = 1..
+A3 FF <last piece>                                  closing frame
+33 05 04 <code:16le>                                the frame that names the scene
+```
+
+- The library's types 1 and 2 go out as the command types `0x01` and `0x02`,
+  with the same cutting.
+- The library's other types take other command types, and some take another
+  parameter layout.
+- The transfer plays the scene. The last frame sets the code that the device
+  reports back. That code is a record, not a check: the device reports it for
+  a scene that it does not play.
+- A scene with empty parameters is stored on the device. The last frame
+  alone plays it.
+- An effect can carry parameters of its own for a list of models. Those
+  replace the shared ones on a model of that list.
 
 ## 7. Probing
 

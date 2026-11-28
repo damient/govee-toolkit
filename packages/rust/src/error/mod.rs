@@ -4,6 +4,10 @@ use crate::codec::{ArgRole, Mode, Role};
 use crate::config::Problem;
 use crate::transport::DeviceId;
 
+mod category;
+
+pub use category::Category;
+
 /// Why an enabled mode has no transport. `doctor` reports the same fact
 /// before any command is sent, so the sentence lives here once.
 pub(crate) const NO_TRANSPORT_IN_BUILD: &str =
@@ -26,6 +30,10 @@ pub enum Error {
     /// nothing the SDK knows.
     #[error(transparent)]
     Select(#[from] crate::select::Error),
+
+    /// A scene could not be found, read or fetched. Nothing was sent.
+    #[error(transparent)]
+    Scenes(#[from] crate::scenes::Error),
 
     /// The configuration file could not be read or parsed.
     #[error("configuration `{path}`: {reason}")]
@@ -267,51 +275,6 @@ pub enum Error {
     },
 }
 
-/// What kind of failure an [`Error`] is. A binding maps this to the exception
-/// or the error class it raises.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum Category {
-    /// The command could not be built. Nothing was sent.
-    Codec,
-    /// A mode failed to carry the command, or the device refused it.
-    Transport,
-    /// The configuration is unreadable, or it enables what cannot work.
-    Config,
-}
-
-impl Category {
-    /// The name of the class every failure belongs to, whatever its category.
-    pub const BASE_CLASS: &'static str = "GoveeError";
-
-    /// A stable, language-neutral name.
-    #[must_use]
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Codec => "codec",
-            Self::Transport => "transport",
-            Self::Config => "config",
-        }
-    }
-
-    /// The name a binding gives the error class of this category. Every
-    /// binding raises the same name for the same failure.
-    #[must_use]
-    pub fn class_name(self) -> &'static str {
-        match self {
-            Self::Codec => "CodecError",
-            Self::Transport => "TransportError",
-            Self::Config => "ConfigError",
-        }
-    }
-}
-
-impl std::fmt::Display for Category {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
 /// Result alias for this crate.
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -325,6 +288,7 @@ impl Error {
             Self::Codec(e) => e.code(),
             Self::Transport(e) => e.code(),
             Self::Select(e) => e.code(),
+            Self::Scenes(e) => e.code(),
             Self::Config { .. } => "config",
             Self::Configuration(_) => "configuration",
             Self::NoModeAvailable { .. } => "no_mode_available",
@@ -333,12 +297,17 @@ impl Error {
             Self::MissingCredential { .. } => "missing_credential",
             Self::NoRoleCommand { role, .. } => match role {
                 Role::Status => "no_status_command",
-                Role::Power | Role::Brightness | Role::Color | Role::ColorTemp | Role::Music => {
-                    "no_verb_command"
-                }
+                Role::Power
+                | Role::Brightness
+                | Role::Color
+                | Role::ColorTemp
+                | Role::Music
+                | Role::Scene
+                | Role::SceneBuiltin => "no_verb_command",
                 Role::SegmentEnable
                 | Role::SegmentColor
                 | Role::SegmentColorMasked
+                | Role::Draw
                 | Role::SegmentGradient => "no_segment_command",
                 Role::WifiLink
                 | Role::WifiApiType
@@ -362,10 +331,21 @@ impl Error {
         }
     }
 
+    /// The device does not answer now: no mode reaches it, or nothing knows
+    /// it. A later call can succeed.
+    #[must_use]
+    pub fn is_offline(&self) -> bool {
+        matches!(
+            self.code(),
+            "no_mode_available" | "mode_unavailable" | "unreachable" | "unknown_device"
+        )
+    }
+
     /// The family this failure belongs to.
     #[must_use]
     pub fn category(&self) -> Category {
         match self {
+            Self::Scenes(e) => e.category(),
             Self::Codec(_)
             | Self::NoRoleCommand { .. }
             | Self::NoRoleArg { .. }

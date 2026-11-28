@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use govee_toolkit::SegmentStream as CoreStream;
+use govee_toolkit::{OwnedDevice, SegmentStream as CoreStream, StreamOptions, input};
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 
-use crate::conv::{colors, rgb};
+use crate::conv::{colors, optional, read, rgb};
 use crate::errors::map;
 
 /// An open segment channel. The writers never block: each one replaces what
@@ -21,8 +21,24 @@ pub(crate) struct SegmentStream {
 }
 
 impl SegmentStream {
-    pub(crate) fn new(inner: Arc<CoreStream>) -> Self {
-        Self { inner }
+    pub(crate) fn open<'py>(
+        py: Python<'py>,
+        device: OwnedDevice,
+        resolution: Option<&Bound<'py, PyAny>>,
+        rate: Option<&Bound<'py, PyAny>>,
+        gradient: bool,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let options = StreamOptions {
+            resolution: read(input::resolution(&optional(resolution)?))?,
+            rate: read(input::rate(&optional(rate)?))?,
+            gradient,
+        };
+        future_into_py(py, async move {
+            let stream = map(device.handle().open_stream(options).await)?;
+            Ok(Self {
+                inner: Arc::new(stream),
+            })
+        })
     }
 }
 

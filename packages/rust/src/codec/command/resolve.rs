@@ -62,12 +62,16 @@ pub(super) fn resolve(
 
     let mut out = Args::new();
     for (name, arg_spec) in &spec.args {
-        let supplied = args.get(name).cloned().or_else(|| {
-            derived
-                .iter()
-                .find(|(n, _)| n == name)
-                .map(|(_, v)| ArgValue::Int(*v))
-        });
+        let supplied = args
+            .get(name)
+            .cloned()
+            .or_else(|| {
+                derived
+                    .iter()
+                    .find(|(n, _)| n == name)
+                    .map(|(_, v)| ArgValue::Int(*v))
+            })
+            .or_else(|| arg_spec.default_value().map(ArgValue::Int));
         let Some(value) = supplied else {
             if captured.contains(name.as_str()) {
                 continue;
@@ -159,13 +163,14 @@ fn check_len(command: &str, name: &str, len: usize, max_len: Option<usize>) -> R
 
 /// Replace `"${name}"` placeholders in the `payload:` template.
 ///
-/// Only a whole string is a placeholder. `${frame}` is reserved: it resolves to
-/// the base64 of the frame the command declares.
+/// Only a whole string is a placeholder. Two names are reserved: `${frame}`
+/// resolves to the base64 of the one frame the command declares, and
+/// `${frames}` to a list with the base64 of each frame the command builds.
 pub(super) fn substitute(
     command: &str,
     template: &serde_json::Value,
     args: &Args,
-    frame: Option<&[u8]>,
+    frames: &Frames<'_>,
 ) -> Result<serde_json::Value> {
     use serde_json::Value;
 
@@ -187,9 +192,18 @@ pub(super) fn substitute(
                 return pack_rgb_list(command, list, args);
             }
             if name == "frame"
-                && let Some(bytes) = frame
+                && let Some(bytes) = frames.single
             {
                 return Ok(Value::String(BASE64.encode(bytes)));
+            }
+            if name == "frames" && !frames.all.is_empty() {
+                return Ok(Value::Array(
+                    frames
+                        .all
+                        .iter()
+                        .map(|bytes| Value::String(BASE64.encode(bytes)))
+                        .collect(),
+                ));
             }
             match (name, args.get(name)) {
                 (_, Some(ArgValue::Int(v))) => Value::from(*v),
@@ -204,17 +218,25 @@ pub(super) fn substitute(
         }
         Value::Object(map) => Value::Object(
             map.iter()
-                .map(|(k, v)| Ok((k.clone(), substitute(command, v, args, frame)?)))
+                .map(|(k, v)| Ok((k.clone(), substitute(command, v, args, frames)?)))
                 .collect::<Result<_>>()?,
         ),
         Value::Array(items) => Value::Array(
             items
                 .iter()
-                .map(|v| substitute(command, v, args, frame))
+                .map(|v| substitute(command, v, args, frames))
                 .collect::<Result<_>>()?,
         ),
         other => other.clone(),
     })
+}
+
+/// The frames a payload can carry.
+pub(super) struct Frames<'a> {
+    /// What `${frame}` names: the frame of a command that declares one.
+    pub(super) single: Option<&'a [u8]>,
+    /// What `${frames}` names: every frame of a `frame:` or a chunked body.
+    pub(super) all: &'a [Vec<u8>],
 }
 
 /// Zone indices, ascending and each one once: a repeated index could pass the

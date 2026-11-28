@@ -3,7 +3,7 @@ title: Risoluzione dei problemi
 slug: troubleshooting
 order: 9
 description: Niente risponde alla scansione, un comando non fa niente, un valore viene rifiutato — cosa significa ognuno.
-source: 29626cda78a98b9a2c684d72dc514da617657a12
+source: 3efc01557d239fe5fdbfe28919096d20636a6be3
 ---
 
 # Risoluzione dei problemi
@@ -69,6 +69,17 @@ Su un modello verificato, il firmware limita `brightness: 0` a 1. Usa
 Il canale dei segmenti su `lan` trasporta solo il colore. Lì la luminosità è
 globale. `ble` trasporta la luminosità per zona, e anche `cloud` la trasporta
 per zona. È una proprietà del trasporto, non una lacuna del codice.
+
+## Una scena non si trova {#a-scene-is-not-found}
+
+`govee scene` legge la libreria di scene del modello da una cache sul tuo
+computer.
+
+- `scene_list_missing`: esegui una volta `govee scenes fetch <modello>`, poi
+  riprova.
+- `unknown_scene`: `govee scenes list <modello>` mostra i nomi e i codici.
+- `ambiguous_scene`: il nome corrisponde a più di una scena. Indica un nome
+  completo preso dall'errore, o un codice.
 
 ## La scansione Bluetooth non trova niente {#the-bluetooth-scan-finds-nothing}
 

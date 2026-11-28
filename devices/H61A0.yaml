@@ -9,6 +9,10 @@ aliases: []
 include:
   - lan-documented
   - lan-razer
+  - lan-segments
+  - lan-music
+  - cells-strip
+  - scene-rgbic
   - ble-core
   - ble-reads
   - ble-music
@@ -39,17 +43,18 @@ capabilities:
 modes:
   lan:
     support: capped
-    capabilities: [power, brightness, color, colortemp, segments]
+    capabilities: [power, brightness, color, colortemp, segments, music]
     unreachable:
       segment_brightness: transport
-      music: transport
     notes: >-
       Requires LAN Control enabled in the Govee Home app. Reaches the segment
-      channel, including beyond the 10 zones the app exposes. Brightness is
+      channel, including beyond the 10 zones the app exposes. It also paints
+      the 15 zones of the ble mask, through `ptReal`, and leaves the other
+      zones alone. Brightness is
       global here: the segment channel carries color only. See
-      docs/protocol/lan.md 2.5. It carries no music command: the device renders
-      no music over lan, and a host that streams computed colors over the
-      segment channel is not this capability. See docs/protocol/lan.md 2.4.
+      docs/protocol/lan.md 2.5. Music runs off the device's own microphone,
+      through the `ble` frame of sub-mode 19 in `ptReal`. See
+      docs/protocol/lan.md 2.4.
   ble:
     support: full
     capabilities: [power, brightness, color, colortemp, segments, segment_brightness, music]
@@ -183,12 +188,37 @@ commands:
 
 overrides:
   lan:
+    music:
+      notes_append: >-
+        Trap: effect 0 renders nothing, over lan and over ble: the rope keeps
+        the effect before it. See `verified:`.
+
+    draw_cells:
+      notes_append: >-
+        The effects the phone controller offers: 9 clockwise, 10
+        anticlockwise, 2 cycle, 19 gradient, 15 twinkle and 20 breathing.
+        Effect 9 at speed 0 holds the drawing still. See `verified:`.
+      args:
+        effect: { default: 9 }
+        speed: { default: 0 }
+        cells: { count: 42 }
+        colors: { max_len: 42 }
     brightness:
       notes: >-
         Percent. The firmware clamps 0 to 1 and does not turn the device off,
         so only `power` does. See docs/protocol/lan.md 2.1.
 
   ble:
+    draw_cells:
+      notes_append: >-
+        The effects the phone controller offers: 9 clockwise, 10
+        anticlockwise, 2 cycle, 19 gradient, 15 twinkle and 20 breathing.
+        Effect 9 at speed 0 holds the drawing still. See `verified:`.
+      args:
+        effect: { default: 9 }
+        speed: { default: 0 }
+        cells: { count: 42 }
+        colors: { max_len: 42 }
     brightness:
       notes: >-
         Percent on this unit, not 0..255. See docs/protocol/ble.md 2.2.
@@ -224,8 +254,9 @@ overrides:
     music:
       notes: >-
         Sub-mode 19. The device listens on its own microphone. `effect`
-        selects the rendering: 0 to 7 each render one, and 8 to 15, 50 and 255
-        render nothing here — the rope keeps what the frame before it left. An
+        selects the rendering: 1 to 7 each render one. Trap: 0, 8 to 15, 50
+        and 255 render nothing here, and the rope keeps what the frame before
+        it left. Two sessions disagree on 0, see `verified:`. An
         effect this frame cannot render is not one the device lacks: 50
         renders over `music_effect` below, which carries the parameters this
         frame has no room for. Nothing maps an identifier to an effect. `soft`
@@ -240,10 +271,10 @@ overrides:
     segment_color:
       notes_append: >-
         It paints one color over the zones the array names, and leaves the
-        rest alone. A stream over this mode sends one request per distinct
+        rest alone. A paint of several colors sends one request per distinct
         color, and the API's own interval between two requests about one
-        device is 6 seconds: the transport refuses a frame that waits longer
-        than `max_wait`. See docs/protocol/cloud.md 5.
+        device is 6 seconds: the transport refuses a request that waits
+        longer than `max_wait`. See docs/protocol/cloud.md 5.
 
 geometry:
   length_m: 3
@@ -289,11 +320,7 @@ measurements:
       - { zones: 20,  payload_bytes: 62,  clean_hz: 40, breaks_at_hz: 45 }
       - { zones: 60,  payload_bytes: 182, clean_hz: 25, breaks_at_hz: 30 }
       - { zones: 120, payload_bytes: 362, clean_hz: 20, breaks_at_hz: 25 }
-    # No ble rows. A ble frame is 20 bytes and paints one color, so the write
-    # budget above divided by the zone count gives a figure. That is
-    # arithmetic, not a stutter test on the rope. TODO: run the stutter test
-    # over ble and record what the strip renders cleanly. Until then a stream
-    # over ble falls back to the configured rate.
+    # No ble rows: a stream opens on lan alone.
 
 verified:
   by: "damient"
@@ -332,8 +359,12 @@ verified:
     free end dark at `gradient` 0, and lights it red at `gradient` 1. Five
     zones red and five blue, over the same two positions, render a hard
     boundary and a blend.
-    The `segment_gradient` role was exercised on this unit over ble and over
-    cloud, through the CLI, as a setting sent on its own. Over ble, a rope
+    The `segment_gradient` role was exercised on this unit over ble, over
+    cloud and over lan in `ptReal`, through the CLI, as a setting sent on its
+    own. Over lan (2026-11-25), a rope painted zone 0 red and the rest black
+    by mask left the free end dark at 0 and lit it red at 1, by eye. A stored
+    drawing of LEDs 0 to 3 in red left the free end dark at 1: the drawing
+    renders no interpolation. Over ble, a rope
     painted zone 0 red and the rest black under `gradient` 0 lit its free end
     when `33 A3 01` followed, with no color frame between the two. Over cloud,
     `gradientToggle` 0 and 1 were each sent to the control endpoint and each
@@ -465,3 +496,49 @@ verified:
     After a command over lan, `devStatus` reported the previous state for up
     to 61 ms, and every read from 134 ms reported the new one. Exercised with
     color, brightness and white temperature, 7 commands. The file records 150.
+
+    `segment_color_masked` was exercised over lan, in `ptReal`, through the
+    CLI on firmware 2.06.02 (2026-11-24), and judged by eye. Over a blue rope,
+    zones 0 to 4 turned red and the rest stayed blue. Trap: the frame ends the
+    raw segment channel. Over a rope painted green through that channel,
+    zones 10 to 14 in white brought back the stored zones (red and blue)
+    around the white. `devStatus` does not report a `ptReal` write until the
+    next native command. Through the `segment` verb (2026-11-25), red, green
+    and blue at resolution 3, spread over the 15 groups, rendered as three
+    still bands over the whole rope: the `gradient` frame and three masked
+    frames in one datagram.
+
+    `draw_cells` comes from a ble capture of the phone controller
+    (2026-11-24): effects 9, 10, 2, 19, 15 and 20, speed 51, red LEDs over
+    white. The lamp answered `A3 03 00`, then `33 05 00`. Over lan, in
+    `ptReal`, through the CLI, effect 9 with green LEDs 0 to 9 and blue LEDs
+    32 to 41 over red rendered as sent, and judged by eye. Effect 15
+    twinkled. The six values of the capture are the six effects the phone
+    controller offers here, and its effect table names them: see
+    `draw_cells`. Only 9 and 15 were judged by eye over lan.
+
+    Over lan, in `ptReal`, through the CLI (2026-11-25), effect 9 at speed 0
+    held the drawing still: green LEDs 0 to 9 and blue LEDs 32 to 41 over red.
+    `draw_cells` takes both as defaults. Red, green and blue at resolution 3,
+    spread over the 42 LEDs, rendered as three still bands, and judged by
+    eye. Green LEDs 0 to 9 with every other argument left to its default
+    rendered still, on black.
+
+    `scene` and `scene_builtin` were exercised over lan, in `ptReal`, through
+    the CLI on firmware 2.06.02 (2026-11-25), and judged by eye. Six type 2
+    scenes played, from 34 to 175 bytes of parameters: up to 12 frames in one
+    datagram. Codes up to 16182 played. Both type 1 scenes of the library
+    played. Two stored scenes played from the code frame alone, code 0
+    included. Where the library gives this model parameters of its own, they
+    matched the shared ones. Only lan was exercised.
+
+    `music` was exercised over lan, in `ptReal`, through the CLI on firmware
+    2.06.02 (2026-11-25), and judged by eye with sound in the room. Effect 4
+    played on sound, in blue and then in green imposed. Trap: effect 0
+    rendered nothing, with the colors imposed or left to the firmware, and
+    the rope kept the effect before it. Effects 1 to 3 and 5 to 7 were sent
+    and something played, but which identifier rendered was NOT established.
+    Over ble, through the CLI, effect 0 with red imposed after effect 4 in
+    green rendered nothing either: the rope stayed green. The session of
+    2026-09-22 saw 0 render over ble on the same firmware. What separates the
+    two results was NOT established.

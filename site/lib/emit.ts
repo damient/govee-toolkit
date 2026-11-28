@@ -27,7 +27,6 @@ export interface Frame {
   layout: string;
   css: string;
   docsHome: string;
-  docNav: string;
   vars: Record<string, string>;
 }
 
@@ -64,8 +63,7 @@ export async function emit(
     css: frame.css,
     redirect: page.locale.id === ENGLISH.id && page.url === "" ? homeRedirect() : "",
     jsonld: jsonLd(page.jsonld),
-    nav: topNav(page.nav, frame.docsHome, t),
-    docnav: frame.docNav,
+    nav: topNav(page.nav, t),
     content: fill(page.body, frame.vars),
     client_strings: t.client(),
     year: String(new Date().getUTCFullYear()),
@@ -79,17 +77,18 @@ export async function emit(
   await writeFile(file, html);
 }
 
-function topNav(current: string, docsHome: string, t: T): string {
-  const items = [
-    { url: "", key: "home" },
-    { url: docsHome, key: "docs" },
-    { url: "devices/", key: "devices" },
-    { url: "faq/", key: "faq" },
-  ];
-  return items
-    .map(({ url, key }) => {
-      const on = key === current ? ' aria-current="page"' : "";
-      return `<a href="${base}${url}"${on}>${t(`nav.${key}`)}</a>`;
-    })
-    .join("\n        ");
+// Docs pages light the Developers link: the guides and the reference serve the SDK.
+function topNav(current: string, t: T): string {
+  const here = current === "docs" ? "developers" : current;
+  const link = (url: string, key: string, label: string) => {
+    const on = key === here ? ' aria-current="page"' : "";
+    return `<a href="${base}${url}"${on}>${label}</a>`;
+  };
+  return [
+    link("studio/", "studio", "Studio"),
+    link("dmx/", "dmx", "DMX"),
+    link("sdk/", "developers", t("nav.developers")),
+    link("devices/", "devices", t("nav.lights")),
+    link("faq/", "faq", t("nav.help")),
+  ].join("\n        ");
 }

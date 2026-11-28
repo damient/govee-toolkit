@@ -3,7 +3,7 @@ title: Server MCP
 slug: mcp
 order: 8
 description: Permetti a un assistente IA di leggere il catalogo dei dispositivi e di comandare le tue luci, tramite un server MCP locale.
-source: 92c6411f45f2e8e5d5006a6c8cf7e45127325edf
+source: df5029f3b6fc02690a6c6ad1b6111f898d7f09a0
 ---
 
 # Server MCP
@@ -175,9 +175,9 @@ fare una scansione nel frattempo.
 | `scan` | Trova i dispositivi sulla tua rete |
 | `list_known` | Elenca i dispositivi trovati, con lo stato di salute di ogni modalità |
 | `status` | Legge lo stato di un dispositivo |
-| `set` | Imposta accensione, luminosità, colore, temperatura del bianco, un segmento, una sfumatura o la modalità musica |
+| `set` | Imposta accensione, luminosità, colore, temperatura del bianco, un segmento, una sfumatura, la modalità musica o una scena |
 | `send` | Invia un comando dichiarato nel file del dispositivo |
-| `stream` | Riproduce frame sui segmenti di uno o più dispositivi, poi riporta i colori che avevano prima |
+| `stream` | Riproduce frame sui segmenti di uno o più dispositivi via Wi-Fi, poi riporta i colori che avevano prima |
 | `identify` | Accende i dispositivi uno per uno, così vedi quale è quale |
 | `doctor` | Elenca i problemi della tua configurazione |
 

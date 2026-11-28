@@ -19,12 +19,14 @@ use crate::codec::measurements::Measurements;
 mod bounds;
 mod mode;
 mod overrides;
+mod role;
 mod spec;
 
 pub use bounds::{ArgBound, Bounds, CapabilityRef, resolve as resolve_bounds};
 pub use mode::{Mode, UnknownMode};
 pub use overrides::{ArgOverride, Override, Overrides, apply as apply_overrides};
-pub use spec::{ArgRole, ArgSpec, Role};
+pub use role::Role;
+pub use spec::{ArgRole, ArgSpec};
 
 impl ArgRole {
     /// Whether the role is a secret: [`ArgRole::Password`].

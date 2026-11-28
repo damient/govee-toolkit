@@ -4,6 +4,24 @@ Changes to `govee-toolkit` (Node.js), the binding over the Rust core in
 [`../rust`](../rust). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- `fetchScenes(sku)` stores the scene library of a model in the cache, and
+  `loadScenes(sku)` reads it back as `Scene` objects.
+- `DeviceHandle.scene()` plays a scene by name, by code or as a `Scene`, and
+  `Devices.scene()` plays one by name or code on every member. `apply()`
+  takes `scene`.
+- `DeviceHandle.draw()` stores a drawing of the LEDs: a list of cells and
+  their colors, or one color per zone.
+
+### Changed
+
+- Breaking: `DeviceHandle.openStream()` opens on `lan` alone. Another mode
+  fails with `no_segment_command`. Paint `ble` and `cloud` with `segment()`.
+- Breaking: `segment()` paints the 15 groups of the mask over `lan` on the
+  H6022 and the H61A0, in `ptReal`. It arms no channel, and the colors stay.
+  A native resolution fails with `native_zones_unreachable`: stream instead.
+
 ## [1.9.0] — 2026-11-23
 
 ### Changed

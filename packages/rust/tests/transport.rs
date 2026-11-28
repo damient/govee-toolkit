@@ -264,6 +264,34 @@ async fn answering_again_brings_the_mode_back() {
 }
 
 #[tokio::test]
+async fn a_scan_reply_lets_a_probe_through_before_the_cooldown() {
+    let policy = Policy {
+        degrade_after: 1,
+        cooldown: Duration::from_secs(300),
+        ..Policy::default()
+    };
+    let rig = Rig::start(policy).await;
+    rig.discover().await;
+    rig.simulator.set_status(serde_json::json!({ "onOff": 1 }));
+
+    let request = rig.status_request();
+    rig.simulator.set_silent(true);
+    let _ = rig.transport.status(&id(), &request).await;
+    let health = rig.transport.health(&id()).expect("known");
+    assert_eq!(health.state, State::Degraded);
+    assert!(!health.available);
+
+    rig.simulator.set_silent(false);
+    rig.discover().await;
+    assert!(rig.transport.health(&id()).expect("known").available);
+    rig.transport
+        .status(&id(), &request)
+        .await
+        .expect("the device answers again");
+    assert_eq!(rig.transport.health(&id()).expect("known").state, State::Ok);
+}
+
+#[tokio::test]
 async fn fire_and_verify_records_the_silence_without_delaying_the_command() {
     let policy = Policy {
         degrade_after: 1,

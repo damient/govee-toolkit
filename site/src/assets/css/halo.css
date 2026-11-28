@@ -1,0 +1,43 @@
+/* A card has a neutral border. The accent shows where the pointer is:
+   `halo.ts` writes the pointer position in `--mx` and `--my` on every card of
+   a `[data-halo]` grid, so the light spills onto the neighbours. With
+   JavaScript blocked, or on a touch screen, the border stays neutral. */
+
+.card, .mode-card, .product-card, .path {
+  position: relative; isolation: isolate; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 16px; background: var(--panel);
+}
+.card, .mode-card { padding: 24px 22px; }
+.product-card { padding: 28px 26px 24px; }
+
+/* The ring is the gradient left between the content box and the border box. */
+:is(.card, .mode-card, .product-card, .path)::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; padding: 1px;
+  border-radius: inherit; pointer-events: none;
+  background: radial-gradient(260px circle at var(--mx, -999px) var(--my, -999px), var(--accent), transparent 70%);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+:is(.card, .mode-card, .product-card, .path)::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(420px circle at var(--mx, -999px) var(--my, -999px), color-mix(in oklab, var(--accent) 10%, transparent), transparent 65%),
+    radial-gradient(160px circle at 0 0, color-mix(in oklab, var(--accent) 9%, transparent), transparent 70%);
+}
+
+/* The chip is taller than one title line, so the head centers the two. */
+.card-head { display: flex; align-items: center; gap: 14px; margin-bottom: .9em; }
+.mode-card .card-head { margin-bottom: 1em; }
+.card-head h3 { margin: 0; }
+.card-chip {
+  display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 11px;
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+  transition: background .25s;
+}
+.card-icon { display: block; width: 22px; height: 22px; }
+.product-card .card-chip { width: 48px; height: 48px; border-radius: 13px; }
+.product-card .card-chip .card-icon { width: 26px; height: 26px; }
+:is(.card, .mode-card, .product-card):hover .card-chip { background: color-mix(in oklab, var(--accent) 28%, transparent); }
+
+@media (prefers-reduced-motion: reduce) { .card-chip { transition: none; } }

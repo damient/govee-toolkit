@@ -7,12 +7,15 @@
 //! A file that marks no entry for a role fails with [`Error::NoRoleCommand`].
 //! Nothing is approximated — see `docs/modes.md`.
 
+mod draw;
 mod identify;
 mod music;
+mod scene;
 mod segment;
 mod supported;
 mod white;
 
+pub use draw::Drawing;
 pub use identify::{IDENTIFY_COLOR, IDENTIFY_HOLD, IDENTIFY_WAIT, Identify};
 pub use music::Music;
 pub use segment::{Paint, Painting};
@@ -123,12 +126,6 @@ impl<'a> RoleEntry<'a> {
         self.call.spec()
     }
 
-    /// Send another command of the same device file, under the resolution
-    /// this entry was read with.
-    pub(crate) async fn send_command(&self, command: &str, args: &Args) -> Result<Served> {
-        self.call.send(command, args).await
-    }
-
     /// [`Error::NoRoleArg`] where the entry marks no such argument.
     pub(crate) fn arg(&self, arg_role: ArgRole) -> Result<&str> {
         self.marked(arg_role).ok_or_else(|| Error::NoRoleArg {
@@ -176,4 +173,22 @@ fn marked<'a>(device: &'a Device, mode: Mode, command: &str, arg_role: ArgRole) 
         .get(mode)
         .get(command)
         .and_then(|spec| spec.arg_for(arg_role))
+}
+
+/// One color for each of `count` cells: one color repeated, or a list of
+/// `count`.
+///
+/// A list must state every cell: the firmware reads the count off the frame
+/// and groups the LEDs around it, so a shorter list re-groups them rather than
+/// leaving the rest alone.
+fn fill(sku: &str, colors: &[[u8; 3]], count: usize) -> Result<Vec<[u8; 3]>> {
+    match colors {
+        [one] => Ok(vec![*one; count]),
+        many if many.len() == count => Ok(many.to_vec()),
+        many => Err(Error::ColorCountMismatch {
+            sku: sku.to_owned(),
+            expected: count,
+            got: many.len(),
+        }),
+    }
 }

@@ -7,6 +7,7 @@
 #   tools/release-notes.sh dmx dmx-v0.1.0
 #   tools/release-notes.sh server server-v0.1.0
 #   tools/release-notes.sh mcp mcp-v0.1.0
+#   tools/release-notes.sh desktop desktop-v0.1.0
 #
 # The tag, the version in the manifest and the changelog heading carry the same
 # number. A tag pushed past a manifest nobody bumped would otherwise publish a
@@ -16,7 +17,7 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: ${0##*/} <rust|cli|dmx|server|python|node|mcp> <tag>" >&2
+  echo "usage: ${0##*/} <rust|cli|dmx|server|python|node|mcp|desktop> <tag>" >&2
   exit 2
 }
 
@@ -35,6 +36,8 @@ server) subdir=packages/rust/crates/server file=Cargo.toml ;;
 python) subdir=packages/python file=pyproject.toml ;;
 node) subdir=packages/node file=package.json pattern='.*"version" *: *"\([^"]*\)".*' ;;
 mcp) subdir=integrations/mcp file=package.json pattern='.*"version" *: *"\([^"]*\)".*' ;;
+# Tauri reads the version of the bundle from Cargo.toml.
+desktop) subdir=apps/desktop file=src-tauri/Cargo.toml ;;
 *) usage ;;
 esac
 

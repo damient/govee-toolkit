@@ -4,7 +4,8 @@
 //! layout stays next to its command and no SKU name reaches this code.
 //! `devices/schema.yaml` lists the tokens.
 //!
-//! Three rules, each of them an error. `<len:16>` counts the bytes after
+//! Four rules, each of them an error. A `<span:…>` closes with a `</span>`
+//! later in the same layout. `<len:16>` counts the bytes after
 //! `<op:...>` up to but excluding the checksum, so a layout declaring it must
 //! put `<op:...>` immediately after. A checksum — `<xor>` or `<sum>`, and one
 //! of the two at most — comes last and `<pad:...>` immediately before it. And
@@ -15,6 +16,7 @@ use crate::codec::error::{Error, Result};
 
 mod build;
 mod fields;
+mod groups;
 
 /// One element of a parsed frame layout.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,6 +29,11 @@ pub enum Token {
         name: String,
         /// `8` or `16`.
         bits: u32,
+    },
+    /// An integer argument, emitted as two bytes, least significant first.
+    Arg16Le {
+        /// The argument name.
+        name: String,
     },
     /// A string argument, behind a length prefix `prefix` bytes wide.
     Text {
@@ -64,6 +71,24 @@ pub enum Token {
         /// What one item looks like.
         item: RepeatItem,
     },
+    /// A length field `width` bytes wide. It counts the bytes from after it
+    /// up to the matching [`Token::SpanEnd`].
+    Span {
+        /// `1` or `2`.
+        width: usize,
+        /// Whether the least significant byte comes first.
+        little: bool,
+    },
+    /// The end of the innermost open [`Token::Span`].
+    SpanEnd,
+    /// Indices grouped by color, one byte each: the group count, then for
+    /// each group the index count, the color and the indices.
+    Groups {
+        /// The zone argument that holds the indices.
+        cells: String,
+        /// The list argument that holds one color, or one color per index.
+        colors: String,
+    },
     /// The XOR checksum of every preceding byte.
     Xor,
     /// The low byte of the sum of every preceding byte.
@@ -98,8 +123,9 @@ impl Frame {
     ///
     /// [`Error::FrameSyntax`] if a token is unrecognized, if `<len:16>`,
     /// `<op:…>`, `<pad:…>` or a checksum appear more than once or in an
-    /// impossible position, if `<xor>` and `<sum>` appear together, or if
-    /// `<len:16>` is not immediately followed by `<op:…>`.
+    /// impossible position, if `<xor>` and `<sum>` appear together, if
+    /// `<len:16>` is not immediately followed by `<op:…>`, or if a
+    /// `<span:…>` and a `</span>` do not pair up.
     pub fn parse(command: &str, source: &str) -> Result<Self> {
         let bad = |reason: String| Error::FrameSyntax {
             command: command.to_owned(),
@@ -154,6 +180,7 @@ impl Frame {
             return Err(bad("`<len:16>` must be followed by `<op:…>`".to_owned()));
         }
 
+        balanced(&tokens).map_err(|reason| bad(reason.to_owned()))?;
         Ok(Self { tokens })
     }
 
@@ -178,19 +205,43 @@ impl Frame {
             .iter()
             .flat_map(|t| match t {
                 Token::Arg { name, .. }
+                | Token::Arg16Le { name }
                 | Token::Text { name, .. }
                 | Token::Mask { name, .. }
                 | Token::Bytes { name } => [Some(name.as_str()), None],
                 Token::Repeat { list, count, .. } => [Some(list.as_str()), Some(count.as_str())],
+                Token::Groups { cells, colors } => [Some(cells.as_str()), Some(colors.as_str())],
                 Token::Literal(_)
                 | Token::Opcode(_)
                 | Token::Len16
                 | Token::Pad(_)
+                | Token::Span { .. }
+                | Token::SpanEnd
                 | Token::Xor
                 | Token::Sum => [None, None],
             })
             .flatten()
     }
+}
+
+/// Every `<span:…>` closes, after it opens.
+fn balanced(tokens: &[Token]) -> std::result::Result<(), &'static str> {
+    let mut open = 0usize;
+    for token in tokens {
+        match token {
+            Token::Span { .. } => open += 1,
+            Token::SpanEnd => {
+                open = open
+                    .checked_sub(1)
+                    .ok_or("`</span>` closes no `<span:…>`")?;
+            }
+            _ => {}
+        }
+    }
+    if open > 0 {
+        return Err("a `<span:…>` has no `</span>`");
+    }
+    Ok(())
 }
 
 /// Where the first matching token is, and whether another one follows it.
@@ -208,6 +259,25 @@ fn parse_token(raw: &str) -> Option<Token> {
         "<len:16>" => return Some(Token::Len16),
         "<xor>" => return Some(Token::Xor),
         "<sum>" => return Some(Token::Sum),
+        "</span>" => return Some(Token::SpanEnd),
+        "<span:8>" => {
+            return Some(Token::Span {
+                width: 1,
+                little: false,
+            });
+        }
+        "<span:16>" => {
+            return Some(Token::Span {
+                width: 2,
+                little: false,
+            });
+        }
+        "<span:16le>" => {
+            return Some(Token::Span {
+                width: 2,
+                little: true,
+            });
+        }
         _ => {}
     }
     if let Some(hex) = raw.strip_prefix("<op:").and_then(|r| r.strip_suffix('>')) {
@@ -255,10 +325,22 @@ fn parse_arg_ref(inner: &str) -> Option<Token> {
     if name.is_empty() {
         return None;
     }
+    if kind == "groups" {
+        let (cells, colors) = name.split_once(',')?;
+        let (cells, colors) = (cells.trim(), colors.trim());
+        if cells.is_empty() || colors.is_empty() || colors.contains(',') {
+            return None;
+        }
+        return Some(Token::Groups {
+            cells: cells.to_owned(),
+            colors: colors.to_owned(),
+        });
+    }
     let name = name.to_owned();
     Some(match kind {
         "8" => Token::Arg { name, bits: 8 },
         "16" => Token::Arg { name, bits: 16 },
+        "16le" => Token::Arg16Le { name },
         "str8" => Token::Text { name, prefix: 1 },
         "str16" => Token::Text { name, prefix: 2 },
         "mask8" => Token::Mask { name, width: 1 },
@@ -293,97 +375,4 @@ fn parse_repeat(raw: &str) -> Option<Token> {
 }
 
 #[cfg(test)]
-mod tests {
-    #![allow(clippy::expect_used)]
-
-    use super::*;
-
-    #[test]
-    fn ascii_x_is_accepted_for_the_multiplication_sign() {
-        let a = Frame::parse("seg", "(${c}:rgb)×${n}");
-        let b = Frame::parse("seg", "(${c}:rgb)x${n}");
-        assert_eq!(a.ok(), b.ok());
-    }
-
-    #[test]
-    fn rejects_a_checksum_that_is_not_last() {
-        let err = Frame::parse("x", "BB <xor> 01").expect_err("should not parse");
-        assert_eq!(err.code(), "frame_syntax");
-    }
-
-    #[test]
-    fn rejects_the_two_checksums_together() {
-        let err = Frame::parse("x", "BB <xor> <sum>").expect_err("should not parse");
-        assert_eq!(err.code(), "frame_syntax");
-    }
-
-    #[test]
-    fn rejects_a_length_field_with_no_opcode_after_it() {
-        let err = Frame::parse("x", "BB <len:16> <xor>").expect_err("should not parse");
-        assert_eq!(err.code(), "frame_syntax");
-    }
-
-    #[test]
-    fn rejects_a_length_field_followed_by_a_plain_literal() {
-        let err = Frame::parse("x", "BB <len:16> B0 ${on} <xor>").expect_err("should not parse");
-        assert_eq!(err.code(), "frame_syntax");
-    }
-
-    #[test]
-    fn parses_a_multi_byte_opcode() {
-        let frame = Frame::parse("x", "BB <len:16> <op:B0B1> ${on}").expect("should parse");
-        assert_eq!(
-            frame.tokens().get(2),
-            Some(&Token::Opcode(vec![0xB0, 0xB1]))
-        );
-    }
-
-    #[test]
-    fn rejects_an_opcode_with_an_odd_number_of_digits() {
-        let err = Frame::parse("x", "<op:B> ${on}").expect_err("should not parse");
-        assert_eq!(err.code(), "frame_syntax");
-    }
-
-    #[test]
-    fn parses_every_field_shape() {
-        let frame = Frame::parse(
-            "x",
-            "${s:str8} ${t:str16} ${m:mask8} ${z:mask16} ${b:bytes} <pad:20> <xor>",
-        )
-        .expect("should parse");
-        assert_eq!(
-            frame.arg_names().collect::<Vec<_>>(),
-            ["s", "t", "m", "z", "b"]
-        );
-    }
-
-    #[test]
-    fn rejects_an_unknown_field_shape() {
-        let err = Frame::parse("x", "${s:str32}").expect_err("should not parse");
-        assert_eq!(err.code(), "frame_syntax");
-    }
-
-    #[test]
-    fn rejects_a_second_padding_field() {
-        let err = Frame::parse("x", "<pad:20> <pad:20> <xor>").expect_err("should not parse");
-        assert_eq!(err.code(), "frame_syntax");
-    }
-
-    #[test]
-    fn rejects_padding_that_something_follows() {
-        let err = Frame::parse("x", "A1 <pad:20> BB <xor>").expect_err("should not parse");
-        assert_eq!(err.code(), "frame_syntax");
-    }
-
-    #[test]
-    fn rejects_padding_to_nothing() {
-        let err = Frame::parse("x", "BB <pad:0> <xor>").expect_err("should not parse");
-        assert_eq!(err.code(), "frame_syntax");
-    }
-
-    #[test]
-    fn rejects_an_unknown_token() {
-        let err = Frame::parse("x", "BB {on}").expect_err("should not parse");
-        assert_eq!(err.code(), "frame_syntax");
-    }
-}
+mod tests;

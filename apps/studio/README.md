@@ -54,7 +54,7 @@ page: move the shared code to `components/`, `shell/` or `core/`.
 - A splash screen stays until the server answers `/api/settings`. If the
   server does not answer, the splash stays and gives the reason.
 - The shell has a rail, with the logo above the navigation, and one view per
-  space: Home, Library (presets and scenes), Live (pads), Stage (rooms in
+  space: Home, Library (scenes), Live (pads), Stage (rooms in
   3D and the scene timeline) and Settings. Library, Live and Stage show a
   "Coming soon" card that says what the view will do (`soon.ts`).
 - Each view has a path: `/`, `/settings`, `/setup`. `router.ts` routes the
@@ -72,25 +72,40 @@ page: move the shared code to `components/`, `shell/` or `core/`.
   change goes through `/api/apply`. A click on a light that answers opens
   its panel (`panel/`), on the right of the page, or full screen on a
   phone (`components/sheet/`), with a back button. The head holds the
-  power button. The body holds the colors (the current color when no
-  swatch has it, the favorites, the base colors, and a chip that shows a
-  color wheel), the white temperature, the brightness, the
-  segments and the gradient. It shows each part that `features` of the
+  power button. The body holds icon tabs: Color, Draw (or Segments) and
+  Presets. Color and Draw each hold a brightness slider, and a move of one
+  moves the other. Color holds the base colors and a chip that shows a color
+  wheel on a first row, then the current color when no swatch has it and the
+  favorites, and the white temperature. Draw holds the LEDs or the segments,
+  and the gradient. It shows each part that `features` of the
   status gives for the mode that answered. A change goes to the light at
   once, with one request in flight at most (`core/latest.ts`). A change to
   a light that is off turns it on in the same request. With
   segments selected, a color paints these segments. With none, it paints
   the whole light. The white swatch sends the white temperature where the
   mode has one, and shows its slider. The favorite button shows with the
-  wheel, and for a favorite color. The favorites are a setting of the server, so every
+  wheel, for a color that is not a base color or a favorite. A cross on a
+  favorite removes it. The favorites are a setting of the server, so every
   light and every client shows the same list. Studio keeps the colors of
   the segments and the gradient until a reload: the status of a light does
-  not give them. "Save to library" waits for the Library view. The bar
-  (`bar.ts`) holds the tabs of the rooms, a search on the name and the
-  SKU, a power button, and a link to the setup. The power
-  button turns off the lights shown that are on, then turns back on these
-  lights only. Studio keeps that list until a reload, or until the user
-  turns a light on from its card or its panel. With no light, Home shows a
+  not give them. "Add preset" under Color and Draw saves the look of the tab
+  and the brightness as a preset (`presets.ts`, `preset-ui.ts`,
+  `preset-list.ts`), which `govee-server` keeps in `presets.json`. The
+  Presets tab shows while the light can apply a preset: a drawing or a
+  segment paint of its SKU, and every color and white that its mode takes. A
+  click applies the preset. Its menu edits it (the panel applies it, opens its
+  tab with its values, and "Update preset" saves into it) or deletes it after
+  a confirmation. A drawing applies only to a light with as many LEDs. The bar
+  (`bar.ts`) holds the rooms, then a search button, a brightness button, a
+  refresh button and a power button. On a phone, a dropdown replaces the
+  tabs of the rooms. The search button opens a field for the name or the
+  SKU (`tools.ts`). The brightness button opens a slider in percent. The
+  slider sends the level to the lights shown that are on, each in the range
+  of its device file. The refresh button reads the status of every light
+  again. The power button turns off the lights shown that are on, then
+  turns back on these lights only. Studio keeps that list until a reload, or
+  until the user turns a light on from its card or its panel. A card after
+  the lights opens the setup. With no light, Home shows a
   welcome card that opens the setup. Settings also opens the setup.
 - `/setup` has no entry in the navigation. Its first step shows the
   lights of `config.yaml` at once (`/api/devices`), and runs a `lan` scan
@@ -180,7 +195,12 @@ page: move the shared code to `components/`, `shell/` or `core/`.
 - The text of the UI is in `src/assets/locales/<code>.json`. `en.json` is the
   reference: it gives the keys, and a key that another file does not have
   shows in English. A change of language shows the splash while the new
-  file loads. English is the only language for now.
+  file loads. Studio speaks English, French, German, Spanish and
+  Italian.
+- Until the user picks a language in Settings, Studio takes the first
+  language of `navigator.languages` that has a file, else English. In the
+  desktop app, that list is the language of the system. A reset of the
+  preferences goes back to it.
 
 A view gets its content when the content works against the server, `lan`
 first.

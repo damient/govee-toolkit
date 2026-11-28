@@ -19,12 +19,15 @@ Legend: ✅ available · 🚧 in progress · 🔜 planned
 | ✅ | **Per-device throttle on `cloud`** — one request per device per interval, and an explicit failure rather than an invisible queue |
 | ✅ | **Discovery** — multicast scan at startup, periodic background refresh, persistent on-disk cache |
 | ✅ | **Undocumented LAN commands** — the raw segment channel is documented and verified on one device. Each further command needs the same treatment once somebody finds it |
-| ✅ | **Segment streaming** (`packages/rust/src/stream`) — frames over the raw segment channel, at the rate measured on the unit |
+| ✅ | **Segment streaming** (`packages/rust/src/stream`): frames over the raw segment channel of `lan`, at the rate measured on the unit |
+| ✅ | **`ptReal` over LAN**: `ble` frames inside a `lan` command, declared in the device file. Paints the zones of the `ble` mask, and every LED through a stored drawing, without the raw segment channel. Verified on two devices. See [`protocol/lan.md`](protocol/lan.md) 2.9 |
+| ✅ | **Drawings stored on the device**: cells grouped by color, a background and a motion, over `ble` and over `lan` in `ptReal`. The device plays it after the sender stops. A grid and a strip, verified on one device each. See [`protocol/ble.md`](protocol/ble.md) 6.3 and 6.4 |
+| ✅ | **Scenes** (`scene()`): plays a scene of the model's scene library, by name or by code, over `ble` and over `lan` in `ptReal`. `govee scenes fetch` stores the library once, with no account, and a send reads it from the cache. Verified on one device. See [`protocol/ble.md`](protocol/ble.md) 6.5 |
 | ✅ | **Per-device mode selection** — one mode for strict behavior, several for switching, see [`modes.md`](modes.md) |
 | ✅ | **Per-device, per-mode circuit breaker** — `OK` / `DEGRADED` / `DOWN`. The breaker decides from state it already holds, not from a fresh timeout per call |
 | ✅ | **Explicit failures** — a command a mode cannot serve fails and says so. The SDK never approximates one in silence |
 | ✅ | **White temperature** (`color_temp()`) — one call sets the kelvin value and, where the frame carries it, the RGB rendering the firmware does not compute |
-| ✅ | **Music** (`music()`) — plays an effect the device renders from its own microphone, over `ble` and `cloud`. `lan` carries no music command |
+| ✅ | **Music** (`music()`) — plays an effect the device renders from its own microphone, over `ble`, over `cloud`, and over `lan` in `ptReal`. Verified on two devices. See [`protocol/lan.md`](protocol/lan.md) 2.4 |
 | ✅ | **Identify** (`identify()`) — powers one device on and paints one color, so a person maps an identity to a fixture in the room. `govee identify` and `govee-dmx identify` walk a whole rig, or the devices a target names: an identity, a SKU, a name, a group, and on the bridge a universe and a channel. |
 | ✅ | **Names and groups** — `name:` and `groups:` in `config.yaml` give targets in place of an identity. `Govee::device()` gives the handle of one device, and `Govee::devices()` the handle of any number: every device, a SKU, a group or a list of targets. A verb on it goes to every member at once, and a member that fails stops no other one (`govee on <group>`). `Devices::apply()` sends several verbs in one fixed order, power on first and power off last. |
 | ✅ | **Wi-Fi provisioning** (`provision_wifi()`) — puts a device out of the box on a network over `ble`, which is what makes `lan` reachable |

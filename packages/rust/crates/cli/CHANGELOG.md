@@ -5,6 +5,28 @@ crates.io from `packages/rust/crates/cli`. It versions apart from
 `govee-toolkit` and releases under `cli-vX.Y.Z`. The policy is
 [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Added
+
+- `govee scene <device> <scene>` plays a scene by name or code from the
+  cached library of the device's model.
+- `govee scenes fetch <SKU>` stores a model's scene library, with no account.
+  `govee scenes list <SKU>` prints it.
+- `govee send` and `govee status` take a set of devices, as the verbs do:
+  an identity, a SKU, a name or a group. Each device answers on its own
+  line. A device that fails writes its error to stderr, and the others go
+  ahead.
+
+### Changed
+
+- Breaking: `govee stream` opens on `lan` alone. Another mode fails with
+  `no_segment_command`.
+- Breaking: `govee segment` paints the 15 groups of the mask over `lan` on
+  the H6022 and the H61A0, in one `ptReal` datagram. The colors stay after
+  the command ends. A native resolution fails with
+  `native_zones_unreachable`: use `govee stream`, or `govee send` with
+  `draw_cells`.
+- `govee gradient` reaches `lan` on the H6022 and the H61A0.
+
 ## [1.13.0] — 2026-11-23
 
 ### Changed

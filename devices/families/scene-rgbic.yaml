@@ -1,0 +1,66 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "scene-rgbic"
+
+description: >-
+  A scene of the scene library. A chunked transfer carries its parameters, and
+  a frame then names its code. The `lan` entries carry the `ble` frames inside
+  `ptReal`. See docs/protocol/ble.md 6.5 and docs/protocol/lan.md 2.9.
+
+commands:
+  ble:
+    scene:
+      role: scene
+      body: &body "${param:bytes}"
+      chunk:
+        size: 17
+        head_size: 14
+        header: &header "A3 00 01 ${total} ${scene_type} ${chunk:bytes} <pad:20> <xor>"
+        data: &data "A3 ${index} ${chunk:bytes} <pad:20> <xor>"
+        footer: &footer "A3 FF ${chunk:bytes} <pad:20> <xor>"
+        then: &then "33 05 04 ${code:16le} <pad:20> <xor>"
+      args:
+        code: &code { type: int, range: [0, 65535], role: scene_code }
+        param: &param { type: bytes, max_len: 512, role: scene_param }
+        scene_type: &scene_type { type: int, range: [1, 2], role: scene_type }
+      notes: &notes >-
+        The library's types 1 and 2 are the command types 1 and 2 of the
+        transfer. The other types take other command types. The transfer
+        plays the scene: the code frame sets what the device reports back.
+    scene_builtin:
+      role: scene_builtin
+      frame: &label "33 05 04 ${code:16le} <pad:20> <xor>"
+      args:
+        code: *code
+      notes: &builtin_notes >-
+        A scene that the firmware stores, named by its code. The scene library
+        gives it no parameters.
+  lan:
+    scene:
+      cmd: "ptReal"
+      role: scene
+      body: *body
+      chunk:
+        size: 17
+        head_size: 14
+        header: *header
+        data: *data
+        footer: *footer
+        then: *then
+      payload: { command: "${frames}" }
+      args:
+        code: *code
+        param: *param
+        scene_type: *scene_type
+      notes: *notes
+    scene_builtin:
+      cmd: "ptReal"
+      role: scene_builtin
+      frame: *label
+      payload: { command: "${frames}" }
+      args:
+        code: *code
+      notes: *builtin_notes

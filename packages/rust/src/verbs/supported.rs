@@ -23,6 +23,9 @@ pub struct Supported {
     pub segments: Option<Segments>,
     /// `gradient` has an entry.
     pub gradient: bool,
+    /// The LED count of `draw`, or `None` without an entry or a `count:` on
+    /// its cells.
+    pub draw: Option<usize>,
 }
 
 /// The zones of [`Supported::segments`].
@@ -31,7 +34,9 @@ pub struct Supported {
 pub struct Segments {
     /// The zone count of the entry.
     pub zones: usize,
-    /// The mode arms a segment channel before it paints zones.
+    /// Always `false`: [`DeviceHandle::segment`](crate::DeviceHandle::segment)
+    /// paints by mask and arms no channel on any mode.
+    #[deprecated(since = "1.19.0", note = "`segment()` arms no channel on any mode")]
     pub armed: bool,
 }
 
@@ -46,13 +51,18 @@ impl Supported {
             color: has(Role::Color),
             color_temp: range(device, mode, Role::ColorTemp, ArgRole::ColorTemp),
             segments: match bound(device, mode, Role::SegmentColorMasked, ArgRole::Zones) {
+                #[allow(deprecated)]
                 Some(ArgBound::Zones(zones)) => Some(Segments {
                     zones,
-                    armed: has(Role::SegmentEnable),
+                    armed: false,
                 }),
                 _ => None,
             },
             gradient: has(Role::SegmentGradient),
+            draw: match bound(device, mode, Role::Draw, ArgRole::Zones) {
+                Some(ArgBound::Zones(cells)) => Some(cells),
+                _ => None,
+            },
         }
     }
 }

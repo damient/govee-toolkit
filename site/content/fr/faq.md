@@ -1,7 +1,7 @@
 ---
 title: Questions fréquentes
 description: Ce qu'est Govee Toolkit, quelles lumières Govee il atteint, et ce qu'il vous faut pour les piloter en Wi-Fi, en Bluetooth ou par le cloud.
-source: c6e77337cfbf1646097cc1a62168315b829f8532
+source: e290c00ed743d71ab8f736a7316468768037d409
 ---
 
 ## Qu'est-ce que Govee Toolkit ? {#what-is-govee-toolkit} <!-- menu: Ce que c'est -->
@@ -90,8 +90,18 @@ zones.
 ## Mes lumières peuvent-elles suivre la musique ou mon écran ? {#can-my-lights-follow-music-or-my-screen} <!-- menu: Musique et écran -->
 
 Le toolkit envoie les couleurs à un ruban trame après trame, en temps réel, en
-Wi-Fi et en Bluetooth. Votre propre programme, ou un programme de votre choix,
-fournit les trames : à partir de la musique, de l'écran ou d'un capteur.
+Wi-Fi. Votre propre programme, ou un programme de votre choix, fournit les
+trames : à partir de la musique, de l'écran ou d'un capteur. Un modèle doté d'un
+micro joue aussi ses propres effets musicaux : sa page de modèle liste les modes
+qui les transmettent.
+
+## Puis-je jouer les scènes de ma lumière ? {#can-i-play-the-scenes-of-my-light} <!-- menu: Scènes -->
+
+Oui, sur un modèle dont la page liste « Jouer une scène ». `govee scenes fetch
+<modèle>` enregistre une fois la bibliothèque de scènes du modèle, sans compte.
+`govee scene <appareil> "<nom>"` joue ensuite une scène par son nom ou son code.
+Vous pouvez aussi enregistrer un dessin à vous sur l'appareil, et l'appareil
+continue de le jouer.
 
 ## Puis-je piloter mes lumières en DMX ? {#can-i-control-my-lights-with-dmx} <!-- menu: DMX -->
 
@@ -103,7 +113,7 @@ média ou d'un logiciel de spectacle, et chaque lumière devient un projecteur D
 
 Oui. Le serveur MCP, `govee-toolkit-mcp`, tourne sur votre machine et donne à un
 assistant le catalogue des appareils et les commandes : scan, état, alimentation,
-luminosité, couleur et segments. [Serveur MCP]({{base}}docs/mcp/) explique la mise
+luminosité, couleur, segments et scènes. [Serveur MCP]({{base}}docs/mcp/) explique la mise
 en place.
 
 ## Fonctionne-t-il avec Home Assistant, Homebridge ou Matter ? {#does-it-work-with-home-assistant-homebridge-or-matter} <!-- menu: Home Assistant, Matter -->

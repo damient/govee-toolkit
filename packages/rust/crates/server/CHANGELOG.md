@@ -4,6 +4,46 @@ Changes to `govee-toolkit-server`, the crate of the `govee-server` binary in
 `packages/rust/crates/server`. It releases under `server-vX.Y.Z`. The policy
 is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 
+### Added
+
+- `POST /api/apply` takes `scene`: a name or a code of the scene library
+  that `govee scenes fetch <SKU>` caches for each model.
+- `POST /api/apply` takes `draw`: one color per LED, stored on the device
+  through its `role: draw` entry. `features.draw` of
+  `GET /api/devices/{id}/status` gives the LED count, and the grid
+  `[columns, rows]` that `measurements.segment_grid` records, or `null`.
+- `GET /api/devices/{id}/status` adds `drawing`: the last `draw` that the
+  server sent to the device, kept in memory. A solid color, a white, a
+  segment or a scene that the device takes sets it back to `null`.
+- `/api/presets` keeps the presets of Studio in `presets.json`: a name, the
+  SKU that the preset was saved on, one of `color`, `kelvin` and `cells`,
+  and a brightness in percent. `POST` adds one preset, `PUT /api/presets/{id}`
+  replaces one and `DELETE /api/presets/{id}` deletes one, so a client with an
+  old list loses no preset. A backup carries `presets`.
+- `POST /api/apply` takes `segment` as `{ "colors": [...] }`: one color for
+  each zone, sent in one datagram where the frames share an envelope.
+
+### Changed
+
+- `GET /api/devices/{id}/status` answers 200 and
+  `{ "online": false, "reason", "code" }` for a device that does not answer,
+  in place of 502. A device that answers adds `"online": true`. Studio shows
+  the light offline, and the browser logs no error.
+- An SDK error gets the HTTP status of its `code`, and the body adds
+  `code`: 503 for a device that does not answer, 404, 400, 409, 422, 429,
+  502 only for a refusal from the device or the API, and 500 for the rest.
+  The README lists the table under "Errors". `POST /api/devices/{id}/identify`
+  answers 503 in place of 502 when the device does not answer.
+- The server drives every light over `lan` alone. `GET /api/devices` leaves
+  out an entry of `config.yaml` that does not enable `lan`, such as a `ble`
+  entry that the CLI wrote. `GET /api/devices/{id}/status` and
+  `POST /api/apply` use `lan`, whatever other mode the entry enables.
+
+### Fixed
+
+- `features.segments` gives the zone count on `lan` for the H6022 and the
+  H61A0. `segment` paints there by mask and arms no channel.
+
 ## [0.1.0] — 2026-11-23
 
 ### Added

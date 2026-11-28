@@ -102,13 +102,6 @@ function bounds(entry: Served, args: Record<string, string>): string {
 
 const zones = (device: Device) => device.capabilities?.segments ?? null;
 
-// True where the unit renders more LEDs than it has zones, so a frame can
-// state one color per LED.
-function native(device: Device): boolean {
-  const seg = zones(device);
-  return Boolean(seg?.native_pixels) && seg?.native_pixels !== seg?.count;
-}
-
 function segments(device: Device): string {
   const seg = zones(device);
   const rows: string[] = [];
@@ -119,13 +112,11 @@ function segments(device: Device): string {
 
 // The values this unit puts in the placeholders, and the names it satisfies.
 function unit(item: RefEntry, entry: Served, device: Device): { values: Values; can: Set<string> } {
-  const values: Values = {};
+  const values: Values = { sku: device.sku };
   for (const [name, role] of Object.entries(item.args ?? {})) {
     values[name] = pick(entry, role, item.values?.[name]);
   }
-  const can = new Set(entry.has);
-  if (native(device)) can.add("native_pixels");
-  return { values, can };
+  return { values, can: new Set(entry.has) };
 }
 
 // A badge marks the exception: an action every mode serves carries none.
@@ -141,9 +132,11 @@ function block(item: ActionEntry, entry: Served, device: Device, t: T): string {
   return `<article class="ref-entry" id="send-${escapeAttr(item.id)}">
             <div class="ref-text">
               <h3><a class="anchor" href="#send-${escapeAttr(item.id)}">${escapeHtml(action.title)}</a>${marks}</h3>
-              ${summary}${extra}${bounds(entry, item.args ?? {})}
+              ${summary}
             </div>
-            ${langBlock(`send-${item.id}`, examples(item, values, can), t)}
+            <div class="ref-code">
+              ${langBlock(`send-${item.id}`, examples(item, values, can), t)}${extra}${bounds(entry, item.args ?? {})}
+            </div>
           </article>`;
 }
 

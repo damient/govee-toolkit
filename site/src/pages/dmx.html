@@ -1,0 +1,115 @@
+<section class="slab product-head">
+  <div class="aurora" data-beam="dmx" aria-hidden="true"><i class="band"></i><i class="edge"></i><i class="lobe"></i><i class="floor"></i></div>
+  <div class="shell split">
+    <div>
+      <p class="eyebrow">{{t:home3.dmx_name}}</p>
+      <h1>{{t:pdmx.hero_title}}</h1>
+      <p class="lede">{{t:pdmx.hero_lede}}</p>
+      <div class="cta-links">
+        <a class="btn" href="#get">{{t:pdmx.install}}</a>
+        <a class="btn ghost" href="{{base}}devices/">{{t:home3.cta_devices}}</a>
+      </div>
+      <p class="hero-meta">{{t:pdmx.hero_meta}}</p>
+    </div>
+    {{dmx_desk}}
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell">
+    <h2 class="big">{{t:pdmx.today}}</h2>
+    <div class="cards" data-halo>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.dmx}}</span><h3>{{t:pdmx.fixture_title}}</h3></div>
+        <p>{{t:pdmx.fixture_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.find}}</span><h3>{{t:pdmx.patch_title}}</h3></div>
+        <p>{{t:pdmx.patch_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.color}}</span><h3>{{t:pdmx.identify_title}}</h3></div>
+        <p>{{t:pdmx.identify_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.instant}}</span><h3>{{t:pdmx.local_title}}</h3></div>
+        <p>{{t:pdmx.local_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.modes}}</span><h3>{{t:pdmx.live_title}}</h3></div>
+        <p>{{t:pdmx.live_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.cli}}</span><h3>{{t:pdmx.dry_title}}</h3></div>
+        <p>{{t:pdmx.dry_text}}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slab">
+  <div class="shell">
+    <h2 class="big">{{t:pdmx.layouts_title}}</h2>
+    <p class="lede">{{t:pdmx.layouts_lede}}</p>
+    <div class="cards three" data-halo>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.full}}</span><h3>{{t:pdmx.full_title}}</h3></div>
+        <p>{{t:pdmx.full_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.zones}}</span><h3>{{t:pdmx.segment_title}}</h3></div>
+        <p>{{t:pdmx.segment_text}}</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-chip">{{card_icon.pixel}}</span><h3>{{t:pdmx.pixel_title}}</h3></div>
+        <p>{{t:pdmx.pixel_text}}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slab" id="get">
+  <div class="shell">
+    <h2 class="big">{{t:pdmx.install}}</h2>
+    <p class="lede">{{t:pdmx.need}}</p>
+    <div class="get-pane dmx">
+      <ol class="get-steps">
+        <li>{{t:pstudio.linux_rust}} <a href="https://rustup.rs">rustup.rs</a></li>
+        <li>{{t:pdmx.step_install}}
+          <div class="terminal">
+<pre><code><span class="prompt">$</span> cargo install govee-toolkit-dmx</code></pre>
+            <button class="copy" type="button" data-copy="cargo install govee-toolkit-dmx">{{t:docs.copy}}</button>
+          </div>
+        </li>
+        <li>{{t:pdmx.step_patch}}
+          <div class="terminal">
+<pre><code><span class="prompt">$</span> govee-dmx patch
+<span class="prompt">$</span> govee-dmx identify</code></pre>
+            <button class="copy" type="button" data-copy="govee-dmx patch">{{t:docs.copy}}</button>
+          </div>
+        </li>
+        <li>{{t:pdmx.step_run}}
+          <div class="terminal">
+<pre><code><span class="prompt">$</span> govee-dmx run</code></pre>
+            <button class="copy" type="button" data-copy="govee-dmx run">{{t:docs.copy}}</button>
+          </div>
+        </li>
+      </ol>
+      <p class="note">{{t:pdmx.guide_note}} <a href="{{base}}docs/dmx/">{{t:pdmx.guide}}</a></p>
+    </div>
+  </div>
+</section>
+
+<section class="slab closer">
+  <div class="shell">
+    <h2 class="big">{{t:home3.closer_title}}</h2>
+    <p class="lede">{{t:home3.closer_lede}}</p>
+    <form class="closer-search" action="{{base}}devices/" method="get">
+      <label class="search">
+        <span class="visually-hidden">{{t:home3.closer_label}}</span>
+        <input type="search" name="q" placeholder="{{t:home3.closer_placeholder}}" autocomplete="off">
+      </label>
+      <button class="btn" type="submit">{{t:home3.closer_check}}</button>
+    </form>
+  </div>
+</section>

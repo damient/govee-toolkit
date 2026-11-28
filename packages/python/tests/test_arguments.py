@@ -9,6 +9,7 @@ takes for no argument raises `ValueError` and nothing is sent either way.
 
 import pytest
 
+from govee_toolkit import CodecError, ConfigError, load_scenes
 from helpers import call, refuses_unknown
 
 pytestmark = pytest.mark.asyncio
@@ -73,3 +74,66 @@ async def test_an_unnamed_rate_is_refused(handle):
 async def test_an_unnamed_mode_is_refused(govee):
     with pytest.raises(ValueError):
         await call(govee.scan, ["radio"])
+
+
+async def test_a_drawing_reaches_the_send_path(handle):
+    await refuses_unknown(
+        handle.draw, [(255, 0, 0)], cells=[0, 1], args={"background": (0, 0, 0)}
+    )
+
+
+@pytest.mark.parametrize(
+    "keywords",
+    [
+        pytest.param({"cells": ["first"]}, id="cell name"),
+        pytest.param({"cells": [-1]}, id="negative cell"),
+        pytest.param({"resolution": "every"}, id="resolution"),
+        pytest.param({"args": {"speed": object()}}, id="argument"),
+    ],
+)
+async def test_a_drawing_refuses_a_bad_keyword(handle, keywords):
+    with pytest.raises(ValueError):
+        await call(handle.draw, [(255, 0, 0)], **keywords)
+
+
+async def test_a_drawing_refuses_a_bad_color(handle):
+    with pytest.raises(ValueError):
+        await call(handle.draw, [(256, 0, 0)])
+
+
+@pytest.mark.parametrize("scene", ["Aurora", 2867])
+async def test_a_scene_name_or_code_reaches_the_send_path(handle, scene):
+    await refuses_unknown(handle.scene, scene)
+
+
+@pytest.mark.parametrize("scene", [True, 1.5, None, ["Aurora"]])
+async def test_a_scene_is_a_name_or_a_code(handle, scene):
+    with pytest.raises(ValueError):
+        await call(handle.scene, scene)
+
+
+async def test_a_scene_on_a_set_is_a_name_or_a_code(govee):
+    devices = await govee.devices([])
+    with pytest.raises(ValueError):
+        await call(devices.scene, True)
+    assert await devices.scene("Aurora") == []
+
+
+async def test_apply_takes_a_scene_name_or_code(govee):
+    devices = await govee.devices([])
+    assert (await devices.apply(scene="Aurora")).ok
+    assert (await devices.apply(scene=2867)).ok
+    with pytest.raises(ValueError):
+        await call(devices.apply, scene=True)
+
+
+def test_a_library_that_no_fetch_stored_is_missing():
+    with pytest.raises(ConfigError) as raised:
+        load_scenes("H6022")
+    assert raised.value.code == "scene_list_missing"
+
+
+def test_a_model_name_that_names_no_file_is_refused():
+    with pytest.raises(CodecError) as raised:
+        load_scenes("../H6022")
+    assert raised.value.code == "bad_sku"

@@ -1,5 +1,5 @@
 <section class="pagehead">
-  <div class="shell">
+  <div class="shell list">
     {{crumbs}}
     <h1>{{devices_heading}}</h1>
     <p class="lede">{{t:devices.lede}}</p>
@@ -7,7 +7,7 @@
 </section>
 
 <section class="slab">
-  <div class="shell">
+  <div class="shell list">
     <div class="toolbar">
       <label class="search">
         <span class="visually-hidden">{{t:devices.search}}</span>
@@ -27,13 +27,9 @@
         <caption class="visually-hidden">{{t:devices.caption}}</caption>
         <thead>
           <tr>
-            <th scope="col">SKU</th>
             <th scope="col"><span class="visually-hidden">{{t:devices.shape}}</span></th>
             <th scope="col">{{t:devices.name}}</th>
-            <th scope="col">{{badge_lan}}</th>
-            <th scope="col">{{badge_ble}}</th>
-            <th scope="col">{{badge_cloud}}</th>
-            <th scope="col">{{badge_dmx}}</th>
+            <th scope="col">{{t:devices.capabilities}}</th>
           </tr>
         </thead>
         <tbody data-rows>
@@ -44,11 +40,6 @@
 
     <ul class="caps legend-caps">
         {{caps_legend}}
-    </ul>
-    <ul class="caps legend-caps">
-        <li><span class="pill pill-unknown">?</span>{{t:devices.unknown}}</li>
-        <li><span class="dmx-yes">{{check_mark}}</span>{{t:devices.dmx}}</li>
-        <li><span class="muted">—</span>{{t:devices.none}}</li>
     </ul>
   </div>
 </section>

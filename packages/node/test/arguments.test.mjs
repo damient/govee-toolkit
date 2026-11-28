@@ -84,3 +84,52 @@ test("an unnamed rate is refused", () =>
 
 test("an unnamed mode is refused", () =>
   withGovee(sdk, (govee) => refusesValue(() => govee.scan(["radio"]))));
+
+test("a drawing carries colors", () =>
+  onHandle((handle) => refusesValue(() => handle.draw({ cells: [0, 1] }))));
+
+test("a drawing key outside the list is refused", () =>
+  onHandle((handle) => refusesValue(() => handle.draw({ colors: [255, 0, 0], zones: [0] }))));
+
+test("a drawing argument of whole numbers reaches the send path", () =>
+  onHandle((handle) =>
+    refusesUnknown(() => handle.draw({ colors: [255, 0, 0], args: { background: [1, 2, 3] } }))));
+
+test("an unnamed drawing resolution is refused", () =>
+  onHandle((handle) => refusesValue(() => handle.draw({ colors: [255, 0, 0], resolution: "every" }))));
+
+test("a drawing reaches the send path", () =>
+  onHandle((handle) =>
+    refusesUnknown(() =>
+      handle.draw({ cells: [0, 5], colors: [[255, 0, 0]], args: { speed: 50 } }))));
+
+const SCENE = { name: "Aurora A", category: "Natural", code: 2867, sceneType: 1, param: new Uint8Array([1, 2]) };
+
+for (const scene of ["Aurora", 2867, SCENE]) {
+  test(`a scene is a name, a code or a Scene: ${typeof scene}`, () =>
+    onHandle((handle) => refusesUnknown(() => handle.scene(scene))));
+}
+
+const REFUSED_SCENES = {
+  boolean: true,
+  "a Scene with no param": { ...SCENE, param: undefined },
+  "a code outside 0 to 65535": { ...SCENE, code: 70000 },
+  "a key outside the Scene": { ...SCENE, effect: 1 },
+};
+
+for (const [shape, scene] of Object.entries(REFUSED_SCENES)) {
+  test(`a scene shape is refused: ${shape}`, () =>
+    onHandle((handle) => refusesValue(() => handle.scene(scene))));
+}
+
+test("a set takes a scene name or code alone", () =>
+  onHandle(async (_, govee) => {
+    const devices = await govee.devices([UNKNOWN_ID]);
+    await refusesValue(() => devices.scene(SCENE));
+  }));
+
+test("a library that no fetch stored is missing", () =>
+  assert.throws(() => sdk.loadScenes("H6022"), { code: "scene_list_missing" }));
+
+test("a SKU that no file name carries is refused", () =>
+  assert.throws(() => sdk.loadScenes("../H6022"), { code: "bad_sku" }));

@@ -2,7 +2,7 @@
 title: Modes
 slug: modes
 order: 6
-description: Wi-Fi, Bluetooth or the cloud — where each path reaches your light from, and what each one needs.
+description: Wi-Fi, Bluetooth or the cloud: where each path reaches your light from, and what each one needs.
 ---
 
 # Modes
@@ -18,15 +18,15 @@ to allow, for each device.
 
 ## What each mode needs
 
-{{badge_lan}} — turn on "LAN Control" for the device in the Govee Home app, and put
+{{badge_lan}}: turn on "LAN Control" for the device in the Govee Home app, and put
 the device and your computer on the same network. Guest Wi-Fi and some mesh
-setups separate them.
+setups separate them. The live animation of the segments runs over this mode.
 
-{{badge_ble}} — a Bluetooth adapter on your computer, and the device within range.
+{{badge_ble}}: a Bluetooth adapter on your computer, and the device within range.
 One connection at a time: a connected device stops advertising, so a scan run
 while another controller holds the link finds nothing.
 
-{{badge_cloud}} — a Govee API key, and the device registered to that account.
+{{badge_cloud}}: a Govee API key, and the device registered to that account.
 The API is throttled, and it carries no animation.
 
 ## Where the truth lives

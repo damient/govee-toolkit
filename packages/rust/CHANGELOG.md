@@ -7,6 +7,80 @@ releases apart and keeps
 [its own changelog](crates/cli/CHANGELOG.md). The policy is
 [`../../docs/versioning.md`](../../docs/versioning.md).
 
+### Added
+
+- A `payload:` reads `${frames}`: a list with the base64 of each frame the
+  command builds. `ptReal` uses it to carry `ble` frames over `lan`.
+- `codec::frame::Token::Span` and `Token::SpanEnd`: a length field over the
+  bytes between them, 8 or 16 bits, either byte order.
+- `codec::frame::Token::Groups`: zone indices grouped by color, one byte each.
+  An index named twice is `codec::Error::ArgSyntax`.
+- `codec::frame::Token::Arg16Le`: an integer field of two bytes, low byte
+  first, written `${name:16le}`.
+- `DeviceHandle::scene()` plays a `Scene`, and `scene_named()` plays one by
+  name or code from the cached library. `Devices::scene()`, `Verb::Scene`.
+- `scenes::fetch()` stores a model's scene library in the cache folder, with
+  no account. `scenes::load()` and `scenes::find()` read it back.
+- `Role::Scene`, `Role::SceneBuiltin` and the argument roles `SceneCode`,
+  `SceneParam` and `SceneType`.
+- `Error::Scenes` carries `scenes::Error`: codes `scene_list_missing`,
+  `unknown_scene`, `ambiguous_scene` and `scene_fetch_failed`, among others.
+- `DeviceHandle::draw()` stores a `Drawing` of the LEDs through `role: draw`.
+  It takes a cell list, or spreads the zones of `Drawing::resolution` over
+  every LED. `Drawing::args` sets the other arguments by name. The device
+  keeps the drawing after the sender stops.
+- `Supported::draw`: the LED count of `role: draw`.
+- `Resolved::role_args()` reads supplied arguments under the types of the
+  entry that claims a role.
+- `input::scene()` reads a scene name or code from a host value.
+- `Error::is_offline()`: the device does not answer now.
+- `Role::Draw`: a stored drawing of the LEDs. Its arguments are marked
+  `role: colors` and `role: zones`.
+- `ArgSpec::Int` carries `default`, and `ArgOverride` too: the codec sends it
+  when the caller gives none. `ArgSpec::default_value()` reads it.
+- `codec::encode_batch()` encodes several commands, and carries the frames of
+  consecutive commands that share an envelope in one envelope.
+- `input::verbs()` reads `scene`, a name or a code, into `Verb::Scene`. The
+  `apply()` of the Node and Python bindings takes it.
+
+### Changed
+
+- A minor release can add a variant to a public enum and a field to a public
+  struct, also without `#[non_exhaustive]`. Write a `_` arm in a `match` on
+  an enum of the crate. See
+  [`docs/versioning.md`](../../docs/versioning.md#what-a-minor-release-can-add).
+- Breaking: `DeviceHandle::segment()` takes `role: segment_color_masked`
+  alone, on every mode. On `lan`, the H6022 and the H61A0 paint the 15 groups
+  of the mask in `ptReal`, and arm no channel, so the colors stay and
+  `devStatus` answers. `Resolution::Native` fails with
+  `native_zones_unreachable`: paint every LED with `DeviceHandle::draw()`, or
+  stream with `DeviceHandle::open_stream()`. Fewer zones than the groups of
+  the mask spread over those groups.
+- `DeviceHandle::segment()` sends the `segment_gradient` frame and the masked
+  frames in one `ptReal` datagram over `lan`. The firmware drops a command
+  that follows two others at once.
+- Breaking: `DeviceHandle::open_stream()` takes `role: segment_color` alone,
+  which only `lan` declares. On `ble` and `cloud` it fails with
+  `no_segment_command`. Paint those modes with `DeviceHandle::segment()`.
+- `DeviceHandle::gradient()` reaches `lan` on the H6022 and the H61A0,
+  through the `ble` frame in `ptReal`.
+- `stream::reach()` and `describe` report what `segment()` reaches: the 15
+  groups of the mask over `lan` on the H6022 and the H61A0.
+
+### Deprecated
+
+- `Segments::armed` is always `false`: `segment()` arms no channel on any
+  mode. Read `Supported::segments` alone.
+
+### Fixed
+
+- `segment()` arms no channel. A mode that declared `role: segment_enable`
+  and no `role: segment_color` got an arming frame and a settle wait before
+  each masked paint, against what `Segments::armed` states.
+- A `lan` scan reply from a tracked device counts as an answer for its
+  breaker. A device that answers a scan again is open to the next command,
+  and it no longer waits for the cooldown of `Degraded` or `Down`.
+
 ## [1.18.0] — 2026-11-23
 
 ### Added

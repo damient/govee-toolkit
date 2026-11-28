@@ -1,0 +1,31 @@
+# Nothing here is measured: what one unit answered belongs in that unit's
+# device file, under `verified:`.
+
+schema_version: 1
+
+family: "lan-music"
+
+description: >-
+  The music entry of `ble` sub-mode 19, carried over `lan` inside a `ptReal`
+  command. The frame is the `ble` frame, byte for byte. The device listens on
+  its own microphone. See docs/protocol/lan.md 2.9 and docs/protocol/ble.md
+  2.7.
+
+commands:
+  lan:
+    music:
+      cmd: "ptReal"
+      role: music
+      frame: "33 05 13 ${effect} ${sensitivity} ${soft} ${color_mode} ${r} ${g} ${b} <pad:20> <xor>"
+      payload: { command: "${frames}" }
+      args:
+        effect: { type: int, range: [0, 7], role: effect }
+        sensitivity: { type: int, range: [0, 99], role: sensitivity }
+        soft: { type: int, range: [0, 1], role: soft }
+        color_mode: { type: int, range: [0, 1], role: color_mode }
+        r: { type: int, range: [0, 255], role: red }
+        g: { type: int, range: [0, 255], role: green }
+        b: { type: int, range: [0, 255], role: blue }
+      notes: >-
+        The firmware answers nothing, and `devStatus` does not report music.
+        Look at the device: a write that is sent is not a write it played.

@@ -400,6 +400,84 @@
         "a111ff000000000000000000000000000000004f"
       ],
       "source": "docs/protocol/ble.md 4 \u2014 worked out from the documented layout; these arguments were not sent, but the entry was, and the lamp acknowledged the transfer"
+    },
+    {
+      "name": "a drawing in red over white, twinkling and scrolling up",
+      "command": "draw_cells",
+      "args": { "background_red": 255, "background_green": 255, "background_blue": 255, "cells": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 20, 24, 36, 42, 43, 46, 48, 54, 55, 56, 57, 58, 60, 65, 72, 76, 77, 84, 89, 96, 108, 116, 120, 128], "colors": [[255, 0, 0]], "speed": 50, "motion": 1 },
+      "frames_hex": ["a3000104585affffff6400013800032a0001250b", "a301ff0000000102030405060708090a0b0c1445", "a30218242a2b2e30363738393a3c41484c4d54d8", "a3ff59606c7478803264010001ffff00000000d3", "33050a20035a0000000000000000000000000045"],
+      "source": "docs/protocol/ble.md 6.3: the layout of a capture of the phone controller, rebuilt with another drawing. The unit stored it and played it twinkling and scrolling up, over lan in ptReal"
+    },
+    {
+      "name": "two colors over black, still",
+      "command": "draw_cells",
+      "args": { "background_red": 0, "background_green": 0, "background_blue": 0, "cells": [0, 1, 131], "colors": [[255, 0, 0], [255, 0, 0], [0, 0, 255]], "speed": 0, "motion": 0 },
+      "frames_hex": ["a3000103585a0000006400011a00030c000202d3", "a301ff00000001010000ff830064000001ffff44", "a3ff00000000000000000000000000000000005c", "33050a20035a0000000000000000000000000045"],
+      "source": "docs/protocol/ble.md 6.3: worked out from the layout, not captured. Two colors make two groups"
+    },
+    {
+      "name": "a scene of 40 bytes, code 16182, low byte first",
+      "command": "scene",
+      "args": { "code": 16182, "param": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40], "scene_type": 2 },
+      "frames_hex": [
+        "a3000103020102030405060708090a0b0c0d0eac",
+        "a3010f101112131415161718191a1b1c1d1e1fad",
+        "a3ff202122232425262728000000000000000074",
+        "330504363f00000000000000000000000000003b"
+      ],
+      "source": "docs/protocol/ble.md 6.5, worked out from the documented layout. The parameters are written for this vector"
+    },
+    {
+      "name": "a stored scene, code 8",
+      "command": "scene_builtin",
+      "args": { "code": 8 },
+      "frames_hex": [
+        "330504080000000000000000000000000000003a"
+      ],
+      "source": "docs/protocol/ble.md 6.5, worked out from the documented layout"
+    },
+    {
+      "name": "a type 1 scene of 20 bytes, code 107",
+      "command": "scene",
+      "args": { "code": 107, "param": [65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84], "scene_type": 1 },
+      "frames_hex": [
+        "a3000102014142434445464748494a4b4c4d4eae",
+        "a3ff4f5051525354000000000000000000000047",
+        "3305046b00000000000000000000000000000059"
+      ],
+      "source": "docs/protocol/ble.md 6.5, worked out from the documented layout. The parameters are written for this vector"
+    }
+  ],
+  "errors": [
+    {
+      "name": "a cell past the 12 by 11 grid",
+      "command": "draw_cells",
+      "args": { "background_red": 0, "background_green": 0, "background_blue": 0, "cells": [132], "colors": [[255, 0, 0]], "speed": 50, "motion": 0 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "two colors for three cells",
+      "command": "draw_cells",
+      "args": { "background_red": 0, "background_green": 0, "background_blue": 0, "cells": [0, 1, 2], "colors": [[255, 0, 0], [0, 0, 255]], "speed": 50, "motion": 0 },
+      "code": "repeat_count_mismatch"
+    },
+    {
+      "name": "one cell named twice",
+      "command": "draw_cells",
+      "args": { "background_red": 0, "background_green": 0, "background_blue": 0, "cells": [5, 5], "colors": [[255, 0, 0]], "speed": 50, "motion": 0 },
+      "code": "arg_syntax"
+    },
+    {
+      "name": "a scene type that the transfer does not carry",
+      "command": "scene",
+      "args": { "code": 16182, "param": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40], "scene_type": 3 },
+      "code": "out_of_range"
+    },
+    {
+      "name": "a code past 16 bits",
+      "command": "scene_builtin",
+      "args": { "code": 65536 },
+      "code": "out_of_range"
     }
   ]
 }

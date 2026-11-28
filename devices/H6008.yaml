@@ -9,6 +9,7 @@ name: "Smart LED Bulb RGBWW"
 aliases: []
 include:
   - lan-documented
+  - scene-rgbic
   - ble-core
   - ble-color
   - ble-version-06
@@ -122,6 +123,12 @@ overrides:
       notes_append: >-
         It clamps a value outside the range above in silence. See
         docs/protocol/lan.md 1, "Documented commands".
+
+    # The unit ignores `ptReal`. See `verified:`.
+    scene:
+      drop: true
+    scene_builtin:
+      drop: true
 
   ble:
     power:
@@ -253,3 +260,11 @@ verified:
     one unit, a request sent directly after the command reported the new
     state 21 times of 21, over color, brightness and white temperature. The
     answers came 50 to 148 ms after the command. The file records 0.
+
+    `scene` and `scene_builtin` were exercised over ble on one unit, through
+    the CLI (2026-11-25), and judged by eye. The stored scene Night Light
+    (code 2) played from the code frame alone. Rainbow, type 1 with 29 bytes
+    of parameters (code 1175), played. Over lan in `ptReal`, the same two
+    scenes changed nothing. One `ble` color frame in `ptReal` changed nothing
+    either, with and without `write: true` in `data`. The unit ignores
+    `ptReal` over lan, whatever the frame.

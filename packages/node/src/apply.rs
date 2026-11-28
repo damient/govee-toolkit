@@ -173,7 +173,7 @@ impl Devices {
         &self,
         env: &'env Env,
         #[napi(
-            ts_arg_type = "{ power?: boolean, brightness?: number, color?: [number, number, number] | Uint8Array, colorTemp?: number, segment?: { colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number>, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean }, music?: { effect: number, sensitivity?: number, soft?: boolean, color?: [number, number, number] | Uint8Array }, gradient?: boolean }"
+            ts_arg_type = "{ power?: boolean, brightness?: number, color?: [number, number, number] | Uint8Array, colorTemp?: number, segment?: { colors: [number, number, number] | Array<[number, number, number]> | Uint8Array, zones?: Array<number>, resolution?: number | 'app' | 'native' | 'groups', gradient?: boolean }, music?: { effect: number, sensitivity?: number, soft?: boolean, color?: [number, number, number] | Uint8Array }, gradient?: boolean, scene?: string | number }"
         )]
         verbs: Object<'_>,
     ) -> napi::Result<PromiseRaw<'env, Applied>> {

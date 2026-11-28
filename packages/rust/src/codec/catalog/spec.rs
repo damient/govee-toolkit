@@ -22,6 +22,10 @@ pub enum ArgSpec {
         #[serde(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
         range: Option<Bounds>,
+        /// The value the codec sends when the caller supplies none.
+        #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        default: Option<i64>,
         /// See [`ArgRole`].
         #[serde(default)]
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -103,6 +107,15 @@ impl ArgSpec {
 
     /// What the SDK fills this argument with, if the file says.
     #[must_use]
+    pub fn default_value(&self) -> Option<i64> {
+        match self {
+            Self::Int { default, .. } => *default,
+            _ => None,
+        }
+    }
+
+    /// See [`ArgRole`].
+    #[must_use]
     pub fn role(&self) -> Option<ArgRole> {
         match self {
             Self::Int { role, .. }
@@ -120,17 +133,24 @@ impl ArgSpec {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ArgRole {
-    /// Whether to arm or disarm, on a [`Role::SegmentEnable`] command. `1`
-    /// arms.
+    /// Whether to arm or disarm, on a
+    /// [`Role::SegmentEnable`](super::Role::SegmentEnable) command. `1` arms.
     Enable,
-    /// One RGB triple per zone, on a [`Role::SegmentColor`] command, or the
-    /// single triple a [`Role::SegmentColorMasked`] frame paints its zones.
+    /// One RGB triple per zone, on a
+    /// [`Role::SegmentColor`](super::Role::SegmentColor) command, or the single
+    /// triple a [`Role::SegmentColorMasked`](super::Role::SegmentColorMasked)
+    /// frame paints its zones, or one triple per LED on a
+    /// [`Role::Draw`](super::Role::Draw) command.
     Colors,
-    /// Which zones a [`Role::SegmentColorMasked`] command paints, zero-based.
+    /// Which zones a
+    /// [`Role::SegmentColorMasked`](super::Role::SegmentColorMasked) command
+    /// paints, or which LEDs a
+    /// [`Role::Draw`](super::Role::Draw) command paints,
+    /// zero-based.
     Zones,
     /// Whether the firmware interpolates between zones, on a
-    /// [`Role::SegmentColor`] command. Optional: a command declaring no
-    /// argument for it is sent none.
+    /// [`Role::SegmentColor`](super::Role::SegmentColor) command. Optional: a
+    /// command declaring no argument for it is sent none.
     Gradient,
     /// Whether the device is on, captured from a reply. Non-zero is on.
     On,
@@ -145,8 +165,9 @@ pub enum ArgRole {
     Green,
     /// The blue component of the same triple.
     Blue,
-    /// The white temperature, in kelvin. What a [`Role::ColorTemp`] command
-    /// sets, and what a reply reports: `0` reports a device in color mode.
+    /// The white temperature, in kelvin. What a
+    /// [`Role::ColorTemp`](super::Role::ColorTemp) command sets, and what a
+    /// reply reports: `0` reports a device in color mode.
     ColorTemp,
     /// The red component of the RGB rendering of that temperature, which the
     /// SDK computes from the kelvin value. Optional.
@@ -155,7 +176,8 @@ pub enum ArgRole {
     WhiteGreen,
     /// The blue component of the same rendering.
     WhiteBlue,
-    /// The network name to join, on a [`Role::WifiProvision`] command.
+    /// The network name to join, on a
+    /// [`Role::WifiProvision`](super::Role::WifiProvision) command.
     Network,
     /// The password of that network. Plaintext on the wire.
     Password,
@@ -169,11 +191,12 @@ pub enum ArgRole {
     TimezoneMinutes,
     /// The firmware's `IoT` protocol version. The SDK sends `0`.
     IotVersion,
-    /// The endpoint the device must talk to, on a [`Role::WifiProvision`]
-    /// command that carries one. The SDK derives it from [`ArgRole::ApiType`].
+    /// The endpoint the device must talk to, on a
+    /// [`Role::WifiProvision`](super::Role::WifiProvision) command that carries
+    /// one. The SDK derives it from [`ArgRole::ApiType`].
     ApiUrl,
     /// Which endpoint the device asks for, captured from a
-    /// [`Role::WifiApiType`] reply.
+    /// [`Role::WifiApiType`](super::Role::WifiApiType) reply.
     ApiType,
     /// Whether provisioning must carry the hidden-network flag, captured from
     /// the same reply. No command encodes that flag yet.
@@ -193,10 +216,18 @@ pub enum ArgRole {
     /// What a chunked transfer was answered with, captured from its
     /// acknowledgement. `0` says the device accepted the transfer.
     AckStatus,
+    /// The 16-bit code of a scene, as the scene library gives it.
+    SceneCode,
+    /// The parameters of a scene, as the scene library gives them, sent as
+    /// they are.
+    SceneParam,
+    /// The type the scene library gives a scene. Its `range:` names the types
+    /// that the entry's transfer plays.
+    SceneType,
 }
 
 impl ArgRole {
-    pub(crate) const ALL: [Self; 28] = [
+    pub(crate) const ALL: [Self; 31] = [
         Self::Enable,
         Self::Colors,
         Self::Zones,
@@ -225,6 +256,9 @@ impl ArgRole {
         Self::Soft,
         Self::ColorMode,
         Self::AckStatus,
+        Self::SceneCode,
+        Self::SceneParam,
+        Self::SceneType,
     ];
 
     /// The argument type a device file must declare for this role.
@@ -253,7 +287,10 @@ impl ArgRole {
             | Self::Sensitivity
             | Self::Soft
             | Self::ColorMode
-            | Self::AckStatus => crate::codec::args::INT,
+            | Self::AckStatus
+            | Self::SceneCode
+            | Self::SceneType => crate::codec::args::INT,
+            Self::SceneParam => crate::codec::args::BYTES,
             Self::Colors => crate::codec::args::RGB_LIST,
             Self::Zones => crate::codec::args::ZONES,
             Self::Network | Self::Password | Self::ApiUrl => crate::codec::args::TEXT,
@@ -292,102 +329,9 @@ impl fmt::Display for ArgRole {
             Self::Soft => "soft",
             Self::ColorMode => "color_mode",
             Self::AckStatus => "ack_status",
-        })
-    }
-}
-
-/// What a command is for, when the SDK must pick one without being told.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Role {
-    /// Reports the device's state. This is what fire-and-verify sends after a
-    /// command, and what a `status()` call encodes.
-    Status,
-    /// Turns the device on and off. Must declare an argument marked
-    /// [`ArgRole::On`]. `1` turns on.
-    Power,
-    /// Sets the brightness. Must declare an argument marked
-    /// [`ArgRole::Brightness`], in the unit that argument's `range:` gives.
-    Brightness,
-    /// Sets one color over the whole device. Must declare arguments marked
-    /// [`ArgRole::Red`], [`ArgRole::Green`] and [`ArgRole::Blue`].
-    Color,
-    /// Sets the white temperature, and the white it renders. Must declare an
-    /// argument marked [`ArgRole::ColorTemp`], plus the three white
-    /// components where the frame carries the rendering.
-    ColorTemp,
-    /// Arms and disarms the raw segment channel. Must declare an argument
-    /// marked [`ArgRole::Enable`].
-    SegmentEnable,
-    /// Paints every zone at once. Must declare an argument marked
-    /// [`ArgRole::Colors`]; one marked [`ArgRole::Gradient`] is supplied when
-    /// declared.
-    SegmentColor,
-    /// Paints one color over the zones a mask names, so a stream over it
-    /// costs one write per distinct color. Must declare an argument marked
-    /// [`ArgRole::Colors`] and one marked [`ArgRole::Zones`].
-    SegmentColorMasked,
-    /// Sets zone interpolation, on a mode that carries it in a frame of its
-    /// own. Must declare an argument marked [`ArgRole::Gradient`].
-    SegmentGradient,
-    /// Wakes the Wi-Fi module before provisioning, and releases it after. Must
-    /// declare an argument marked [`ArgRole::Enable`].
-    WifiLink,
-    /// Reports which endpoint the device asks provisioning for. Must capture a
-    /// field marked [`ArgRole::ApiType`]. A file that declares none makes the
-    /// SDK provision without an endpoint.
-    WifiApiType,
-    /// Carries the network credentials. Must declare arguments marked
-    /// [`ArgRole::Network`], [`ArgRole::Password`], [`ArgRole::RunMode`],
-    /// [`ArgRole::TimezoneHours`], [`ArgRole::TimezoneMinutes`] and
-    /// [`ArgRole::IotVersion`].
-    WifiProvision,
-    /// The same, plus an argument marked [`ArgRole::ApiUrl`]. The SDK sends
-    /// this one when [`Role::WifiApiType`] reports a type.
-    WifiProvisionWithApi,
-    /// Plays an effect the device renders from its own microphone. Must
-    /// declare an argument marked [`ArgRole::Effect`]; the SDK fills the other
-    /// music arguments where the entry declares them.
-    Music,
-}
-
-impl Role {
-    /// Every role. `Display` gives the name that a device file writes.
-    pub const CLAIMABLE: [Self; 14] = [
-        Self::Status,
-        Self::Power,
-        Self::Brightness,
-        Self::Color,
-        Self::ColorTemp,
-        Self::SegmentEnable,
-        Self::SegmentColor,
-        Self::SegmentColorMasked,
-        Self::SegmentGradient,
-        Self::WifiLink,
-        Self::WifiApiType,
-        Self::WifiProvision,
-        Self::WifiProvisionWithApi,
-        Self::Music,
-    ];
-}
-
-impl fmt::Display for Role {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Status => "status",
-            Self::Power => "power",
-            Self::Brightness => "brightness",
-            Self::Color => "color",
-            Self::ColorTemp => "color_temp",
-            Self::SegmentEnable => "segment_enable",
-            Self::SegmentColor => "segment_color",
-            Self::SegmentColorMasked => "segment_color_masked",
-            Self::SegmentGradient => "segment_gradient",
-            Self::WifiLink => "wifi_link",
-            Self::WifiApiType => "wifi_api_type",
-            Self::WifiProvision => "wifi_provision",
-            Self::WifiProvisionWithApi => "wifi_provision_with_api",
-            Self::Music => "music",
+            Self::SceneCode => "scene_code",
+            Self::SceneParam => "scene_param",
+            Self::SceneType => "scene_type",
         })
     }
 }
