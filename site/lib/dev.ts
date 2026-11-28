@@ -16,6 +16,28 @@ const CSS_DIR = `src${sep}assets${sep}css${sep}`;
  * stylesheet.
  */
 export function watchSources(rebuild: (change: Change) => Promise<void>): void {
+  // One build at a time: two builds of one process share the staging directory,
+  // and the second empties it while the first writes. A change during a build
+  // runs one more build after it.
+  let busy = false;
+  let pending: Change | undefined;
+  const run = async (change: Change): Promise<void> => {
+    if (busy) {
+      pending = pending === undefined || (pending === "css" && change === "css") ? change : "page";
+      return;
+    }
+    busy = true;
+    try {
+      await rebuild(change);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      busy = false;
+    }
+    const next = pending;
+    pending = undefined;
+    if (next !== undefined) await run(next);
+  };
   let queued: NodeJS.Timeout | undefined;
   let css = true;
   const touch = (path: string) => {
@@ -24,7 +46,7 @@ export function watchSources(rebuild: (change: Change) => Promise<void>): void {
     queued = setTimeout(() => {
       const change = css ? "css" : "page";
       css = true;
-      rebuild(change).catch(console.error);
+      void run(change);
     }, 80);
   };
   for (const dir of SOURCES) {
