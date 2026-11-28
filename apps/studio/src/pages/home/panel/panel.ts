@@ -2,7 +2,7 @@ import "./panel.css";
 import { type Change, type Status, apply, applyOne } from "../../../core/control.ts";
 import { type Memory, type ZonesPart, memory, zonesPart } from "./zones.ts";
 import { explain, t } from "../../../core/i18n.ts";
-import { ColorPart, DRAW_BASE, type White, startColor as start } from "./color.ts";
+import { ColorPart, DRAW_BASE, WHITE, type White, startColor as start } from "./color.ts";
 import { head } from "./head.ts";
 import { type HomeCard, powerButton } from "../card.ts";
 import { latest } from "../../../core/latest.ts";
@@ -128,7 +128,7 @@ class LightPanel {
     const white = this.white(state);
     if (color) {
       const part = new ColorPart(start(state), this.paintAll, this.fail, white, !split);
-      const look = (): Look => (white !== null && part.color() === "#ffffff" ? { kelvin: white.kelvin() } : { color: part.color() });
+      const look = (): Look => (white !== null && part.color() === WHITE ? { kelvin: white.kelvin() } : { color: part.color() });
       solid.append(part.node, this.adder(look));
       if (this.presets) Object.assign(this.presets.view, { color: part, white });
     } else if (white !== null) {
@@ -237,9 +237,10 @@ class LightPanel {
     }
     const segment = change.segment;
     if (segment !== undefined && this.kept !== null) {
-      for (const zone of segment.zones) this.kept.colors[zone] = segment.color;
+      if ("colors" in segment) this.kept.colors = [...segment.colors];
+      else for (const zone of segment.zones) this.kept.colors[zone] = segment.color;
     }
-    this.zones?.draw();
+    if (change.color !== undefined || change.draw !== undefined || segment !== undefined) this.zones?.draw();
   }
 
   /** Send `change`. A light that is off turns on first, in the same request. */

@@ -103,8 +103,7 @@ export class HomeCard {
   private readonly send = latest(
     async (level: number) => {
       await applyOne(this.found.id, { brightness: level });
-      this.error.hidden = true;
-      if (this.state) this.state = { ...this.state, brightness: level };
+      this.dimmed({ id: this.found.id, ok: true, error: null }, level);
     },
     (failure) => {
       this.fail(explain(failure));
@@ -182,14 +181,22 @@ export class HomeCard {
     );
   }
 
-  /** Send `percent` to a light that is on and has a brightness. The level stays in the range of the light. */
-  dim(percent: number): void {
+  /** Show `percent` in the range of a light that is on and has a brightness, and answer that level. `null` for another light. */
+  aim(percent: number): number | null {
     const range = this.state?.on === true ? this.state.range : null;
-    if (range === null || range === undefined) return;
+    if (range === null || range === undefined) return null;
     const [low, high] = range;
     const level = Math.min(high, Math.max(low, Math.round(percent)));
     this.level.value = String(level);
-    this.send(level);
+    return level;
+  }
+
+  /** Keep the level that `answer` took, or show its error. */
+  dimmed(answer: Outcome, level: number): void {
+    if (answer.ok) {
+      this.error.hidden = true;
+      if (this.state) this.state = { ...this.state, brightness: level };
+    } else this.fail(answer.error ?? "");
   }
 
   /** The power state, or `null` while it is not known. */

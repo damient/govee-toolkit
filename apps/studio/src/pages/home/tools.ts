@@ -3,7 +3,8 @@ import { element } from "../../core/dom.ts";
 import { t } from "../../core/i18n.ts";
 import { tooltip } from "../../components/tooltip/tooltip.ts";
 
-function toolButton(path: string, label: string): HTMLButtonElement {
+/** An icon button of the Home bar, with `label` as its name and its tooltip. */
+export function toolButton(path: string, label: string): HTMLButtonElement {
   const button = element("button", "icon-button home-tool");
   button.type = "button";
   button.setAttribute("aria-label", label);

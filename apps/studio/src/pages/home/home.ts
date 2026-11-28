@@ -12,6 +12,7 @@ import { notice } from "../../components/notice/notice.ts";
 import { pathOf } from "../../core/router.ts";
 import { ARROW, PLUS, icon } from "../../components/icon/icon.ts";
 import { element } from "../../core/dom.ts";
+import { latest } from "../../core/latest.ts";
 
 const WAND =
   "M6 21L21 6l-3-3L3 18zM15 6l3 3M9 3a2 2 0 0 0 2 2 2 2 0 0 0-2 2 2 2 0 0 0-2-2 2 2 0 0 0 2-2M19 13a2 2 0 0 0 2 2 2 2 0 0 0-2 2 2 2 0 0 0-2-2 2 2 0 0 0 2-2";
@@ -48,15 +49,37 @@ function meanLevel(cards: HomeCard[]): number {
   return levels.length > 0 ? Math.round(levels.reduce((sum, level) => sum + level, 0) / levels.length) : 100;
 }
 
-function together(cards: HomeCard[], shown: () => HomeCard[]): Pick<BarOptions, "refresh" | "level" | "dim"> {
+/** One request for each level: the lights of one range take one request together. */
+async function dimAll(cards: HomeCard[], percent: number): Promise<void> {
+  const groups = new Map<number, HomeCard[]>();
+  for (const card of cards) {
+    const level = card.aim(percent);
+    if (level !== null) groups.set(level, [...(groups.get(level) ?? []), card]);
+  }
+  await Promise.all(
+    [...groups].map(async ([level, members]) => {
+      const answers = await apply(
+        members.map((card) => card.found.id),
+        { brightness: level },
+      );
+      for (const answer of answers) members.find((card) => card.found.id === answer.id)?.dimmed(answer, level);
+    }),
+  );
+}
+
+function together(cards: HomeCard[], shown: () => HomeCard[], box: HTMLElement): Pick<BarOptions, "refresh" | "level" | "dim"> {
+  const send = latest(
+    (percent: number) => dimAll(shown(), percent),
+    (failure) => {
+      box.append(alert({ tone: "error", title: explain(failure) }));
+    },
+  );
   return {
     async refresh() {
       await Promise.all(cards.map((card) => card.read()));
     },
     level: () => meanLevel(shown()),
-    dim(percent) {
-      for (const card of shown()) card.dim(percent);
-    },
+    dim: send,
   };
 }
 
@@ -123,7 +146,7 @@ function board(box: HTMLElement, lights: Found[], list: Room[]): void {
         refresh();
       });
     },
-    ...together(cards, shown),
+    ...together(cards, shown, box),
   });
 
   const turnedOn = (): void => {

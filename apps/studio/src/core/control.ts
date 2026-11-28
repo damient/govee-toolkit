@@ -114,8 +114,8 @@ export interface Change {
   color?: string;
   /** A white temperature, in `Features.colorTemp`. */
   kelvin?: number;
-  /** One color over the zero-based zones, which `Features.segments` counts. The other zones keep their color. */
-  segment?: { zones: number[]; color: string };
+  /** One color over the zero-based zones, which `Features.segments` counts, and the other zones keep their color. Or one color for each zone. */
+  segment?: { zones: number[]; color: string } | { colors: string[] };
   /** A `segment` carries it: a paint with no `gradient` sets it off. */
   gradient?: boolean;
   /** `#RRGGBB` for each LED that `Features.draw` counts. The device keeps the drawing after the request. */

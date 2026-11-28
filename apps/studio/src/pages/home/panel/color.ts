@@ -5,7 +5,7 @@ import { tooltip } from "../../../components/tooltip/tooltip.ts";
 import type { Status } from "../../../core/control.ts";
 import { CLOSE, STAR, icon } from "../../../components/icon/icon.ts";
 
-const WHITE = "#ffffff";
+export const WHITE = "#ffffff";
 const BASE = ["#ff0000", "#ff7a00", "#ffd400", "#00ff14", "#0050ff", "#8a2bff", "#ff2bd6", WHITE];
 /** The base colors of a drawing. Black leaves a LED unlit. */
 export const DRAW_BASE = [...BASE, "#000000"];
@@ -87,6 +87,17 @@ function wheelToggle(wheelNode: HTMLElement, changed: () => void): HTMLButtonEle
   return button;
 }
 
+/** Redraw `part` when the favorites change. A weak reference lets a closed panel go before the next change. */
+function follow(part: ColorPart): void {
+  const weak = new WeakRef(part);
+  const redraw = (): void => {
+    const live = weak.deref();
+    if (live?.node.isConnected === true) live.draw();
+    else changes.removeEventListener("favorites", redraw);
+  };
+  changes.addEventListener("favorites", redraw);
+}
+
 /** The favorites are a setting of the server, so every light shows them. */
 export class ColorPart {
   readonly node = document.createElement("div");
@@ -147,11 +158,7 @@ export class ColorPart {
     }
     this.circle.set(this.current);
     this.draw();
-    const redraw = (): void => {
-      if (this.node.isConnected) this.draw();
-      else changes.removeEventListener("favorites", redraw);
-    };
-    changes.addEventListener("favorites", redraw);
+    follow(this);
   }
 
   /** The color that the swatches and the wheel show. */
@@ -201,7 +208,7 @@ export class ColorPart {
   }
 
   /** The base colors on the first row. The color of the wheel and the favorites on the second row. */
-  private draw(): void {
+  draw(): void {
     const favorites = prefs().favorites;
     const extra = !this.base.includes(this.current) && !favorites.includes(this.current);
     this.extra = extra ? swatch(this.current, this.choose) : null;

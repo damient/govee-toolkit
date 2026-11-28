@@ -4,13 +4,12 @@ import { BOOKMARK, icon } from "../../../components/icon/icon.ts";
 import { askName, confirmDelete } from "./preset-form.ts";
 import { explain, t } from "../../../core/i18n.ts";
 import type { Change } from "../../../core/control.ts";
-import type { ColorPart, White } from "./color.ts";
+import { type ColorPart, type White, WHITE } from "./color.ts";
 import type { Slider } from "./fields.ts";
 import type { Tab, Tabs } from "./tabs.ts";
 import { element } from "../../../core/dom.ts";
 import { presetsTab } from "./preset-list.ts";
 
-const WHITE = "#ffffff";
 
 /** The parts of the panel that an edit sets to the values of a preset. The panel fills them as it builds them. */
 export interface PresetView {

@@ -1,9 +1,10 @@
 /**
  * The shortest time between the starts of two calls, in milliseconds.
  * `/api/apply` answers in a few milliseconds over `lan`, so the call in
- * flight paces nothing. A burst of brightness commands loses the last one in
- * silence: the H6008 at 16 ms apart, the H6022 at 35 ms. Both took every
- * command at 50 ms. This value doubles that.
+ * flight paces nothing. Some lights lose the last command of a burst of
+ * brightness commands 35 ms apart in silence, and take every command at
+ * 50 ms. This value doubles that. It paces the manual controls alone: a live
+ * path must not go through `latest()`.
  */
 const GAP_MS = 100;
 

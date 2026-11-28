@@ -31,51 +31,41 @@ export function fits(preset: Preset, light: PresetLight): boolean {
 }
 
 /**
- * The changes that apply `preset`: a color, a white, a drawing, or one segment
- * change per color. The first change carries the brightness, in the range of
- * the light. `null` when the light has another number of zones or LEDs than
- * the preset.
+ * The change that applies `preset`: a color, a white, a drawing, or one color
+ * for each zone. It carries the brightness, in the range of the light. `null`
+ * when the light has another number of zones or LEDs than the preset.
  */
-function presetChanges(preset: Preset, light: PresetLight): Change[] | null {
+function presetChange(preset: Preset, light: PresetLight): Change | null {
   const { range, kept } = light;
   const level = preset.brightness;
   const dim = level === undefined || range === null ? {} : { brightness: Math.min(range[1], Math.max(range[0], level)) };
-  if (preset.color !== undefined) return [{ color: preset.color, ...dim }];
-  if (preset.kelvin !== undefined) return [{ kelvin: preset.kelvin, ...dim }];
+  if (preset.color !== undefined) return { color: preset.color, ...dim };
+  if (preset.kelvin !== undefined) return { kelvin: preset.kelvin, ...dim };
   const cells = preset.cells ?? [];
   if (kept === null || cells.length !== kept.colors.length) return null;
-  if (light.leds) return [{ draw: cells, ...dim }];
-  const groups = new Map<string, number[]>();
-  cells.forEach((hex, zone) => {
-    groups.set(hex, [...(groups.get(hex) ?? []), zone]);
-  });
-  const changes: Change[] = [...groups].map(([color, zones]) => ({ segment: { zones, color }, gradient: kept.gradient }));
-  const [first] = changes;
-  if (first !== undefined) Object.assign(first, dim);
-  return changes;
+  if (light.leds) return { draw: cells, ...dim };
+  return { segment: { colors: cells }, gradient: kept.gradient, ...dim };
 }
 
 const WARM = [255, 180, 107];
 const NEUTRAL = [255, 244, 229];
 const COLD = [205, 220, 255];
 
-/** Send the changes of `preset` in turn: one request in flight at most. `failed` gets a light that cannot apply it. */
+/** Send the change of `preset`. `failed` gets a light that cannot apply it. */
 export function playPreset(
   preset: Preset,
   light: PresetLight,
   run: (change: Change) => Promise<void>,
   failed: (message: string) => void,
 ): void {
-  const changes = presetChanges(preset, light);
-  if (changes === null) {
+  const change = presetChange(preset, light);
+  if (change === null) {
     failed(t("panel.preset.size"));
     return;
   }
-  changes
-    .reduce((before, change) => before.then(() => run(change)), Promise.resolve())
-    .catch((failure: unknown) => {
-      failed(explain(failure));
-    });
+  run(change).catch((failure: unknown) => {
+    failed(explain(failure));
+  });
 }
 
 function mix(from: number[], to: number[], ratio: number): number[] {

@@ -4,7 +4,7 @@ import { POWER } from "./card.ts";
 import { t } from "../../core/i18n.ts";
 import { tooltip } from "../../components/tooltip/tooltip.ts";
 import { REFRESH, icon } from "../../components/icon/icon.ts";
-import { brightness, search } from "./tools.ts";
+import { brightness, search, toolButton } from "./tools.ts";
 import { element } from "../../core/dom.ts";
 
 /** The value of the "All" tab. A room ID is never empty. */
@@ -90,11 +90,7 @@ function powerButton(click: () => void): { button: HTMLButtonElement; set: (acti
 }
 
 function refreshButton(click: () => void): HTMLButtonElement {
-  const button = element("button", "icon-button home-tool");
-  button.type = "button";
-  button.setAttribute("aria-label", t("home.refresh"));
-  button.append(icon(REFRESH));
-  tooltip(button, t("home.refresh"));
+  const button = toolButton(REFRESH, t("home.refresh"));
   button.addEventListener("click", click);
   return button;
 }
