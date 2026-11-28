@@ -71,6 +71,7 @@ The configuration folder holds:
 - `.env`: read when the search for a `.env` finds nothing else.
 - `studio.json`: the settings of the server and the settings of Studio.
 - `rooms.json`: the rooms of the lights, which `govee-server` keeps.
+- `presets.json`: the presets of Studio, which `govee-server` keeps.
 - `devices/`: the device files of the user, when `catalog.local_devices` is on.
 
 The cache folder holds `devices.json`, the result of the last discovery. It

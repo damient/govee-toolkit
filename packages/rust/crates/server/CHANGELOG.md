@@ -15,6 +15,11 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
 - `GET /api/devices/{id}/status` adds `drawing`: the last `draw` that the
   server sent to the device, kept in memory. A solid color, a white, a
   segment or a scene that the device takes sets it back to `null`.
+- `/api/presets` keeps the presets of Studio in `presets.json`: a name, the
+  SKU that the preset was saved on, one of `color`, `kelvin` and `cells`,
+  and a brightness in percent. `POST` adds one preset, `PUT /api/presets/{id}`
+  replaces one and `DELETE /api/presets/{id}` deletes one, so a client with an
+  old list loses no preset. A backup carries `presets`.
 
 ### Changed
 

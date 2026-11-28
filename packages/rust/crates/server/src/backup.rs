@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::devices::Sdk;
+use crate::presets::{self, Presets};
 use crate::rooms::{self, Rooms};
 use crate::share::{Local, Share};
 use crate::storage::{self, Storage};
@@ -40,6 +41,10 @@ struct Document<Server = serde_json::Value, Part = serde_json::Value> {
     /// The content of `rooms.json`. A backup with no `rooms` holds no room.
     #[serde(default)]
     rooms: Option<Rooms>,
+    /// The content of `presets.json`. A backup with no `presets` holds no
+    /// preset.
+    #[serde(default)]
+    presets: Option<Presets>,
 }
 
 #[derive(Debug)]
@@ -49,6 +54,7 @@ pub(crate) struct Backup {
     pub(crate) share: Arc<Share>,
     pub(crate) sdk: Arc<Sdk>,
     pub(crate) rooms: Arc<rooms::Store>,
+    pub(crate) presets: Arc<presets::Store>,
 }
 
 impl Backup {
@@ -100,6 +106,7 @@ pub(crate) async fn export(
             config,
             credentials: key.map(|key| BTreeMap::from([(KEY_ENV.to_owned(), key)])),
             rooms: Some(backup.rooms.get()),
+            presets: Some(backup.presets.get()),
         };
         serde_json::to_string_pretty(&document).map_err(storage::invalid)
     })
@@ -125,6 +132,7 @@ struct Plan {
     studio: Studio,
     credentials: Option<String>,
     rooms: Option<Rooms>,
+    presets: Option<Presets>,
 }
 
 fn validate(body: &[u8], credentials: &Path) -> Result<Plan, String> {
@@ -164,11 +172,13 @@ fn validate(body: &[u8], credentials: &Path) -> Result<Plan, String> {
         _ => None,
     };
     let rooms = document.rooms.map(Rooms::checked).transpose()?;
+    let presets = document.presets.map(Presets::checked).transpose()?;
     Ok(Plan {
         config: document.config,
         studio,
         credentials,
         rooms,
+        presets,
     })
 }
 
@@ -181,6 +191,7 @@ fn write(backup: &Backup, storage: &Storage, plan: Plan, keep: bool) -> io::Resu
     )?;
     storage::put(&storage.config, plan.config.as_deref(), false, keep)?;
     backup.rooms.set(plan.rooms, keep)?;
+    backup.presets.set(plan.presets, keep)?;
     backup.store.replace(plan.studio, keep)
 }
 
@@ -214,12 +225,13 @@ pub(crate) async fn import(
     axum::Json(json!({ "imported": true })).into_response()
 }
 
-fn copies(storage: &Storage) -> [std::path::PathBuf; 4] {
+fn copies(storage: &Storage) -> [std::path::PathBuf; 5] {
     [
         storage.credentials(),
         storage.config.clone(),
         storage.studio(),
         storage.rooms(),
+        storage.presets(),
     ]
 }
 
@@ -263,6 +275,7 @@ fn kept(storage: &Storage) -> io::Result<Option<Plan>> {
         studio,
         credentials: read(&storage.credentials())?,
         rooms: rooms::read(&storage::bak(&storage.rooms()))?,
+        presets: presets::read(&storage::bak(&storage.presets()))?,
     }))
 }
 
@@ -329,6 +342,7 @@ mod tests {
             store,
             sdk: Arc::new(Sdk::default()),
             rooms: Arc::new(rooms::Store::default()),
+            presets: Arc::new(presets::Store::default()),
         };
         assert_eq!(
             backup.admit(Local(false)).unwrap_err().0,

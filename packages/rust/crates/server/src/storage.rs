@@ -11,7 +11,8 @@ use serde::Serialize;
 /// The files that the server reads and writes.
 #[derive(Debug, Clone)]
 pub struct Storage {
-    /// The folder of `studio.json`, `rooms.json` and `credentials.env`.
+    /// The folder of `studio.json`, `rooms.json`, `presets.json` and
+    /// `credentials.env`.
     pub dir: PathBuf,
     /// The configuration file of the SDK.
     pub config: PathBuf,
@@ -51,6 +52,10 @@ impl Storage {
 
     pub(crate) fn rooms(&self) -> PathBuf {
         self.dir.join("rooms.json")
+    }
+
+    pub(crate) fn presets(&self) -> PathBuf {
+        self.dir.join("presets.json")
     }
 
     pub(crate) fn credentials(&self) -> PathBuf {

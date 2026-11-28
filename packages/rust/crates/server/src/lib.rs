@@ -14,6 +14,7 @@ mod devices;
 mod drawings;
 mod entries;
 mod fault;
+mod presets;
 mod reset;
 mod rooms;
 mod settings;
@@ -24,7 +25,7 @@ mod web;
 
 use axum::http::{HeaderMap, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post};
+use axum::routing::{get, post, put};
 use axum::{Json, Router, middleware};
 use tower_http::services::ServeDir;
 
@@ -74,8 +75,8 @@ pub enum Web {
 ///
 /// # Errors
 ///
-/// `InvalidData` when `studio.json` or `rooms.json` does not parse, or the
-/// read error.
+/// `InvalidData` when `studio.json`, `rooms.json` or `presets.json` does not
+/// parse, or the read error.
 pub fn router(options: &Options) -> io::Result<Router> {
     Ok(routes(options, None)?.0)
 }
@@ -87,6 +88,9 @@ fn routes(
     let storage = options.storage.clone();
     let store = Arc::new(studio::Store::open(storage.as_ref().map(Storage::studio))?);
     let rooms = Arc::new(rooms::Store::open(storage.as_ref().map(Storage::rooms))?);
+    let presets = Arc::new(presets::Store::open(
+        storage.as_ref().map(Storage::presets),
+    )?);
     let sdk = Arc::new(devices::Sdk::new(storage.clone(), Arc::clone(&rooms)));
     let share = Arc::new(share::Share::new(listen, Arc::clone(&store)));
     let backup = Arc::new(backup::Backup {
@@ -95,6 +99,7 @@ fn routes(
         share: Arc::clone(&share),
         sdk: Arc::clone(&sdk),
         rooms: Arc::clone(&rooms),
+        presets: Arc::clone(&presets),
     });
     let api = Router::new()
         .route("/devices", get(devices::list).put(entries::put))
@@ -112,6 +117,15 @@ fn routes(
             Router::new()
                 .route("/rooms", get(rooms::get).put(rooms::put))
                 .with_state(rooms),
+        )
+        .merge(
+            Router::new()
+                .route("/presets", get(presets::get).post(presets::add))
+                .route(
+                    "/presets/{id}",
+                    put(presets::replace).delete(presets::remove),
+                )
+                .with_state(presets),
         )
         .merge(
             Router::new()
