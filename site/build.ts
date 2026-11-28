@@ -14,7 +14,6 @@ import { devicePage } from "./lib/device-page.ts";
 import { renderIndex } from "./lib/devices.ts";
 import { type Draft, type Frame, type Page, address, emit } from "./lib/emit.ts";
 import { everyModel } from "./lib/listed.ts";
-import { navItem } from "./lib/docs.ts";
 import { faqPage } from "./lib/faq.ts";
 import { fill } from "./lib/html.ts";
 import { isReference, readApi, readCatalog, readCategories, readJson } from "./lib/json.ts";
@@ -76,8 +75,6 @@ function sources(t: T): Source[] {
   ];
 }
 
-const FOOT_SKIP = new Set(["docs/configure/", "docs/targets/", "docs/dmx/", "docs/mcp/", "docs/troubleshooting/"]);
-
 async function main(): Promise<void> {
   forgetStrings();
   const [catalog, api, categories] = await Promise.all([readCatalog(), readApi(), readCategories()]);
@@ -128,12 +125,7 @@ async function localePages(locale: Locale, { layout, devices, reference, api, cs
     ...(ref === null ? [] : [referenceNav(t)]),
   ].toSorted((a, b) => a.order - b.order);
   const docsHome = nav[0]?.url ?? REFERENCE_URL;
-  // The footer names a short list. The side menu keeps every page.
-  const docNav = nav
-    .filter((item) => !FOOT_SKIP.has(item.url))
-    .map((item) => navItem(base, item, null))
-    .join("\n          ");
-  const frame: Frame = { layout: translate(layout, t), css, docsHome, docNav, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
+  const frame: Frame = { layout: translate(layout, t), css, docsHome, vars: { base, repo: repoUrl, badge_dmx: dmxBadge(), ...modeBadges() } };
   const pages: Draft[] = [
     ...(await sourcePages([...sources(t), ...categoryPages(devices, renderIndex, locale)], devices, locale)),
     ...docPages(docs, nav, docsHome, locale),

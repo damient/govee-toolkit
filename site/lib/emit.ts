@@ -27,7 +27,6 @@ export interface Frame {
   layout: string;
   css: string;
   docsHome: string;
-  docNav: string;
   vars: Record<string, string>;
 }
 
@@ -65,7 +64,6 @@ export async function emit(
     redirect: page.locale.id === ENGLISH.id && page.url === "" ? homeRedirect() : "",
     jsonld: jsonLd(page.jsonld),
     nav: topNav(page.nav, t),
-    docnav: frame.docNav,
     content: fill(page.body, frame.vars),
     client_strings: t.client(),
     year: String(new Date().getUTCFullYear()),
