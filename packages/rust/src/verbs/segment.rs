@@ -66,12 +66,10 @@ impl DeviceHandle<'_> {
     /// share an envelope, one datagram carries all of them
     /// ([`crate::codec::encode_batch`]).
     ///
-    /// The paint arms the channel where the mode marks `role: segment_enable`
-    /// and no `role: segment_color`. A stream owns the whole-frame channel,
-    /// and [`DeviceHandle::draw`] paints every LED.
+    /// The paint arms no channel. A stream owns the whole-frame channel, and
+    /// [`DeviceHandle::draw`] paints every LED.
     ///
-    /// Serves [`Role::SegmentColorMasked`], [`Role::SegmentEnable`] and
-    /// [`Role::SegmentGradient`].
+    /// Serves [`Role::SegmentColorMasked`] and [`Role::SegmentGradient`].
     ///
     /// # Errors
     ///
@@ -126,9 +124,6 @@ impl DeviceHandle<'_> {
             paint::frames(&plan.painter, colors)?
         };
 
-        if device.command_for(mode, Role::SegmentColor).is_none() {
-            self.arm(mode, sku, device).await?;
-        }
         let mut commands = Vec::new();
         if let Some((entry, value)) = &plan.gradient {
             commands.push((
@@ -167,40 +162,5 @@ impl DeviceHandle<'_> {
     pub async fn gradient(&self, on: bool) -> Result<Served> {
         self.one_arg(Role::SegmentGradient, ArgRole::Gradient, i64::from(on))
             .await
-    }
-
-    /// Arm the segment channel, where the mode has an entry that arms it.
-    ///
-    /// A paint that follows the arming frame at once is dropped in silence, so
-    /// this waits for the firmware to switch channel before it returns — see
-    /// `docs/protocol/lan.md` 2.3.
-    async fn arm(&self, mode: Mode, sku: &str, device: &Device) -> Result<()> {
-        let Some(command) = device.command_for(mode, Role::SegmentEnable) else {
-            return Ok(());
-        };
-        let command = command.to_owned();
-        let arg = arg_for(sku, device, mode, &command, ArgRole::Enable)?.to_owned();
-        self.send_resolved(mode, sku, &command, &Args::new().int(arg, 1))
-            .await?;
-        tokio::time::sleep(device.measurements.arm_settle()).await;
-        Ok(())
-    }
-}
-
-/// The color of every zone, from what the caller supplied.
-///
-/// A list must state every zone: the firmware reads the count off the frame
-/// and groups the LEDs around it, so a shorter list re-groups them rather than
-/// leaving the rest alone.
-fn colors(sku: &str, plan: &Plan, supplied: &[[u8; 3]]) -> Result<Vec<[u8; 3]>> {
-    let expected = plan.zones;
-    match supplied {
-        [one] => Ok(vec![*one; expected]),
-        many if many.len() == expected => Ok(many.to_vec()),
-        many => Err(Error::ColorCountMismatch {
-            sku: sku.to_owned(),
-            expected,
-            got: many.len(),
-        }),
     }
 }

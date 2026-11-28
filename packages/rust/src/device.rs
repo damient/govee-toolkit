@@ -238,7 +238,8 @@ impl<'a> DeviceHandle<'a> {
     /// or dropping it, disarms the channel, and the device goes back to the
     /// color it showed before.
     ///
-    /// Serves [`Role::SegmentColor`](crate::codec::Role::SegmentColor).
+    /// Serves [`Role::SegmentColor`](crate::codec::Role::SegmentColor) and
+    /// [`Role::SegmentEnable`](crate::codec::Role::SegmentEnable).
     ///
     /// # Errors
     ///

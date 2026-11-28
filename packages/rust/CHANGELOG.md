@@ -74,6 +74,9 @@ releases apart and keeps
 
 ### Fixed
 
+- `segment()` arms no channel. A mode that declared `role: segment_enable`
+  and no `role: segment_color` got an arming frame and a settle wait before
+  each masked paint, against what `Segments::armed` states.
 - A `lan` scan reply from a tracked device counts as an answer for its
   breaker. A device that answers a scan again is open to the next command,
   and it no longer waits for the cooldown of `Degraded` or `Down`.
