@@ -12,6 +12,10 @@ extend-exclude = [
   "**/site/content/i18n/es.json",
   "**/site/content/i18n/fr.json",
   "**/site/content/i18n/it.json",
+  "**/apps/studio/src/assets/locales/de.json",
+  "**/apps/studio/src/assets/locales/es.json",
+  "**/apps/studio/src/assets/locales/fr.json",
+  "**/apps/studio/src/assets/locales/it.json",
 ]
 
 [default]
