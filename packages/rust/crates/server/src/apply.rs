@@ -40,12 +40,57 @@ fn draw(spec: &Device, cells: usize) -> Value {
     json!({ "cells": cells, "grid": grid })
 }
 
+/// A `segment`: one color over a list of zones, or one color per zone.
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub(crate) enum Zones {
+    Listed(Listed),
+    Every(Every),
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct Zones {
+pub(crate) struct Listed {
     /// Zero-based.
     zones: Vec<u16>,
     color: Hex,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Every {
+    /// As many as `features.segments`.
+    colors: Vec<Hex>,
+}
+
+impl Zones {
+    fn is_empty(&self) -> bool {
+        match self {
+            Self::Listed(listed) => listed.zones.is_empty(),
+            Self::Every(every) => every.colors.is_empty(),
+        }
+    }
+
+    fn painting(self, gradient: bool) -> Painting {
+        let (zones, colors, resolution) = match self {
+            Self::Listed(Listed { zones, color }) => {
+                (Some(zones), vec![color.rgb()], Resolution::default())
+            }
+            Self::Every(Every { colors }) => {
+                // The count of the list, so that the mask takes one color
+                // each and spreads nothing.
+                let count = u16::try_from(colors.len()).unwrap_or(u16::MAX);
+                let colors = colors.iter().map(Hex::rgb).collect();
+                (None, colors, Resolution::Exact(count))
+            }
+        };
+        Painting {
+            zones,
+            colors,
+            resolution,
+            gradient,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,12 +119,9 @@ impl Apply {
         verbs.extend(self.color.map(|hex| Verb::Color(hex.rgb())));
         verbs.extend(self.color_temp.map(Verb::ColorTemp));
         match self.segment {
-            Some(segment) => verbs.push(Verb::Segment(Painting {
-                zones: Some(segment.zones),
-                colors: vec![segment.color.rgb()],
-                resolution: Resolution::default(),
-                gradient: self.gradient.unwrap_or(false),
-            })),
+            Some(segment) => verbs.push(Verb::Segment(
+                segment.painting(self.gradient.unwrap_or(false)),
+            )),
             None => verbs.extend(self.gradient.map(Verb::Gradient)),
         }
         verbs.extend(self.scene.map(Verb::Scene));
@@ -101,29 +143,28 @@ pub(crate) async fn apply(State(sdk): State<Arc<Sdk>>, Json(mut body): Json<Appl
     if body.ids.is_empty() {
         return refuse(StatusCode::BAD_REQUEST, "`ids` is empty");
     }
-    if body
-        .segment
-        .as_ref()
-        .is_some_and(|segment| segment.zones.is_empty())
-    {
-        return refuse(StatusCode::BAD_REQUEST, "`segment.zones` is empty");
+    if body.segment.as_ref().is_some_and(Zones::is_empty) {
+        return refuse(StatusCode::BAD_REQUEST, "`segment` names no zone");
     }
     let ids: Vec<DeviceId> = body.ids.iter().map(DeviceId::new).collect();
     if body.draw.as_ref().is_some_and(Vec::is_empty) {
         return refuse(StatusCode::BAD_REQUEST, "`draw` is empty");
     }
-    let colors: Option<Vec<[u8; 3]>> = body
-        .draw
-        .take()
+    let drawing: Option<Arc<[Hex]>> = body.draw.take().map(Into::into);
+    let colors: Option<Vec<[u8; 3]>> = drawing
+        .as_ref()
         .map(|draw| draw.iter().map(Hex::rgb).collect());
-    let solid = body.color.is_some()
-        || body.color_temp.is_some()
-        || body.scene.is_some()
-        || body.segment.is_some();
     let verbs = body.verbs();
     if verbs.is_empty() && colors.is_none() {
         return refuse(StatusCode::BAD_REQUEST, "the request changes nothing");
     }
+    // A change that repaints every LED replaces the drawing.
+    let solid = verbs.iter().any(|verb| {
+        matches!(
+            verb,
+            Verb::Color(_) | Verb::ColorTemp(_) | Verb::Scene(_) | Verb::Segment(_)
+        )
+    });
     let applied = async {
         let govee = sdk.get().await?;
         let devices = govee.devices(Filter::ids(ids.clone()), Some(MODE)).await?;
@@ -151,8 +192,8 @@ pub(crate) async fn apply(State(sdk): State<Arc<Sdk>>, Json(mut body): Json<Appl
                 .find(|(failed, _)| *failed == id)
                 .map(|(_, error)| *error);
             if error.is_none() {
-                match &colors {
-                    Some(colors) => sdk.drawings().set(id, colors),
+                match &drawing {
+                    Some(drawing) => sdk.drawings().set(id, drawing),
                     None if solid => sdk.drawings().clear(id),
                     None => {}
                 }

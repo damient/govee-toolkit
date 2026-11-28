@@ -20,6 +20,7 @@ mod rooms;
 mod settings;
 mod share;
 mod storage;
+mod store;
 mod studio;
 mod web;
 

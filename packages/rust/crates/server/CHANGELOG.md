@@ -20,6 +20,8 @@ is [`../../../../docs/versioning.md`](../../../../docs/versioning.md).
   and a brightness in percent. `POST` adds one preset, `PUT /api/presets/{id}`
   replaces one and `DELETE /api/presets/{id}` deletes one, so a client with an
   old list loses no preset. A backup carries `presets`.
+- `POST /api/apply` takes `segment` as `{ "colors": [...] }`: one color for
+  each zone, sent in one datagram where the frames share an envelope.
 
 ### Changed
 

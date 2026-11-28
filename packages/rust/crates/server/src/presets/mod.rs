@@ -5,9 +5,7 @@
 //! changes one preset in the list that the server holds, so a client with an
 //! old list loses no preset.
 
-use std::io;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::Arc;
 
 use axum::Json;
 use axum::extract::{Path as AxumPath, State};
@@ -16,6 +14,7 @@ use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::store::{Checked, JsonStore};
 use crate::studio::Hex;
 use crate::{refuse, storage};
 
@@ -65,8 +64,8 @@ pub(crate) struct Preset {
     brightness: Option<u8>,
 }
 
-impl Presets {
-    pub(crate) fn checked(self) -> Result<Self, String> {
+impl Checked for Presets {
+    fn checked(self) -> Result<Self, String> {
         if self.version != VERSION {
             return Err(format!(
                 "the presets have the version {}, which this server does not read: update govee-server",
@@ -93,14 +92,14 @@ fn valid(presets: Vec<Preset>) -> Result<Vec<Preset>, String> {
         .max()
         .unwrap_or(0);
     let mut out: Vec<Preset> = Vec::with_capacity(presets.len());
-    for preset in presets {
+    for mut preset in presets {
         let name = preset.name.trim().to_owned();
         if name.is_empty() || name.chars().count() > NAME_MAX || name.chars().any(char::is_control)
         {
             return Err(format!("a preset name has 1 to {NAME_MAX} characters"));
         }
         look(&preset, &name)?;
-        let sku = preset.sku;
+        let sku = &preset.sku;
         let plain = |b: u8| b.is_ascii_alphanumeric() || b == b'-' || b == b'_';
         if !(1..=SKU_MAX).contains(&sku.len()) || !sku.bytes().all(plain) {
             return Err(format!("`{sku}` is not a model"));
@@ -113,15 +112,9 @@ fn valid(presets: Vec<Preset>) -> Result<Vec<Preset>, String> {
         if out.iter().any(|kept| kept.id == id) {
             return Err(format!("two presets have the id `{id}`"));
         }
-        out.push(Preset {
-            id,
-            name,
-            sku,
-            color: preset.color,
-            kelvin: preset.kelvin,
-            cells: preset.cells,
-            brightness: preset.brightness,
-        });
+        preset.id = id;
+        preset.name = name;
+        out.push(preset);
     }
     Ok(out)
 }
@@ -131,7 +124,11 @@ fn look(preset: &Preset, name: &str) -> Result<(), String> {
         (Some(_), None, None) => {}
         (None, Some(kelvin), None) if KELVIN.contains(&kelvin) => {}
         (None, Some(_), None) => {
-            return Err(format!("`{name}` has a white outside 1000 to 12000 K"));
+            return Err(format!(
+                "`{name}` has a white outside {} to {} K",
+                KELVIN.start(),
+                KELVIN.end()
+            ));
         }
         (None, None, Some(cells)) if (1..=CELLS_MAX).contains(&cells.len()) => {}
         (None, None, Some(_)) => {
@@ -149,45 +146,7 @@ fn look(preset: &Preset, name: &str) -> Result<(), String> {
     Ok(())
 }
 
-#[derive(Debug, Default)]
-pub(crate) struct Store {
-    /// `None` keeps the presets in memory alone.
-    path: Option<PathBuf>,
-    data: Mutex<Presets>,
-}
-
-impl Store {
-    pub(crate) fn open(path: Option<PathBuf>) -> io::Result<Self> {
-        let presets = match &path {
-            Some(path) => read(path)?.unwrap_or_default(),
-            None => Presets::default(),
-        };
-        Ok(Self {
-            path,
-            data: Mutex::new(presets),
-        })
-    }
-
-    fn lock(&self) -> MutexGuard<'_, Presets> {
-        self.data.lock().unwrap_or_else(PoisonError::into_inner)
-    }
-
-    pub(crate) fn get(&self) -> Presets {
-        self.lock().clone()
-    }
-
-    /// `None` deletes the file. `keep` copies it to `.import.bak` first. A
-    /// failed write leaves the presets as they were.
-    pub(crate) fn set(&self, presets: Option<Presets>, keep: bool) -> io::Result<()> {
-        let mut data = self.lock();
-        if let Some(path) = &self.path {
-            let text = presets.as_ref().map(storage::json_text).transpose()?;
-            storage::put(path, text.as_deref(), false, keep)?;
-        }
-        *data = presets.unwrap_or_default();
-        Ok(())
-    }
-}
+pub(crate) type Store = JsonStore<Presets>;
 
 /// The status and the message of a change that the server refuses.
 type Refusal = (StatusCode, String);
@@ -206,11 +165,8 @@ impl Store {
             presets: valid(list).map_err(|e| (StatusCode::BAD_REQUEST, e))?,
             ..Presets::default()
         };
-        if let Some(path) = &self.path {
-            let fault = |e: io::Error| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string());
-            let text = storage::json_text(&presets).map_err(fault)?;
-            storage::put(path, Some(&text), false, false).map_err(fault)?;
-        }
+        self.write(Some(&presets), false)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
         *data = presets.clone();
         Ok(presets)
     }
@@ -220,15 +176,6 @@ fn place(list: &[Preset], id: &str) -> Result<usize, Refusal> {
     list.iter()
         .position(|preset| preset.id == id)
         .ok_or_else(|| (StatusCode::NOT_FOUND, format!("there is no preset `{id}`")))
-}
-
-pub(crate) fn read(path: &Path) -> io::Result<Option<Presets>> {
-    let Some(text) = storage::read(path)? else {
-        return Ok(None);
-    };
-    let invalid = |e: String| storage::invalid(format!("{}: {e}", path.display()));
-    let presets: Presets = serde_json::from_str(&text).map_err(|e| invalid(e.to_string()))?;
-    presets.checked().map(Some).map_err(invalid)
 }
 
 fn answer(presets: &Presets) -> Response {

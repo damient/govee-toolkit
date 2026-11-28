@@ -35,6 +35,8 @@ async fn a_request_that_changes_nothing_is_refused() {
     assert_eq!(apply(r#"{"ids":["AA:BB"]}"#).await, StatusCode::BAD_REQUEST);
     let empty = r##"{"ids":["AA:BB"],"segment":{"zones":[],"color":"#ff0000"}}"##;
     assert_eq!(apply(empty).await, StatusCode::BAD_REQUEST);
+    let none = r#"{"ids":["AA:BB"],"segment":{"colors":[]}}"#;
+    assert_eq!(apply(none).await, StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]

@@ -21,6 +21,7 @@ use crate::presets::{self, Presets};
 use crate::rooms::{self, Rooms};
 use crate::share::{Local, Share};
 use crate::storage::{self, Storage};
+use crate::store::{self, Checked};
 use crate::studio::{Store, Studio};
 use crate::{compat, refuse};
 
@@ -274,8 +275,8 @@ fn kept(storage: &Storage) -> io::Result<Option<Plan>> {
         config,
         studio,
         credentials: read(&storage.credentials())?,
-        rooms: rooms::read(&storage::bak(&storage.rooms()))?,
-        presets: presets::read(&storage::bak(&storage.presets()))?,
+        rooms: store::read(&storage::bak(&storage.rooms()))?,
+        presets: store::read(&storage::bak(&storage.presets()))?,
     }))
 }
 
